@@ -1,10 +1,17 @@
 import Dom
+import Dom.Exec.Scenario
 
 /-!
 # `lake exe dom-model`
 
-Phase 1-3 の定義が小さな木の上で動くことを確認する demo。
-Phase 4 で scenario file の評価（PLAN §7）をここに足す。
+引数なしで起動すると、Phase 1-3 の定義が小さな木の上で動くことを確認する demo を実行する。
+scenario file の path を渡すと、それを評価して結果の JSON を標準出力に書く（PLAN §7）。
+
+```sh
+lake exe dom-model                          # demo
+lake exe dom-model test/scenarios/x.json    # scenario 一つを評価して標準出力へ
+lake exe dom-model --batch DIR              # DIR/*.json をまとめて評価し DIR/*.lean.json へ書く
+```
 -/
 
 namespace Dom.Demo
@@ -62,7 +69,7 @@ end Dom.Demo
 
 open Dom Dom.Demo
 
-def main : IO Unit := do
+def demo : IO Unit := do
   IO.println "-- Phase 1: tree model --"
   IO.println s!"checkWellFormed sample = {sample.checkWellFormed}"
   IO.println s!"preorder doc           = {reprStr (preorder sample doc)}"
@@ -100,3 +107,48 @@ def main : IO Unit := do
   IO.println s!"moveBefore otherDoc head none: {describe (moveBefore sample otherDoc head none)}"
   IO.println s!"moveBefore body orphan none  : {describe (moveBefore sample body orphan none)}"
   IO.println s!"moveBefore body html none    : {describe (moveBefore sample body html none)}"
+
+/-- scenario file 一つを評価して、結果の JSON を返す。 -/
+def evalFile (path : System.FilePath) : IO (Except String String) := do
+  let src ← IO.FS.readFile path
+  return Dom.Exec.runScenarioString src
+
+/-- 出力 file（`*.lean.json` / `*.dommy.json`）は入力として扱わない。 -/
+def isScenarioFile (p : System.FilePath) : Bool :=
+  let name := p.fileName.getD ""
+  name.endsWith ".json" && !name.endsWith ".lean.json" && !name.endsWith ".dommy.json"
+
+/--
+`DIR/*.json` をまとめて評価し、それぞれ `DIR/<base>.lean.json` に書く。
+
+differential testing の driver は、oracle の起動回数を減らすためにこの mode を使う。
+-/
+def runBatch (dir : System.FilePath) : IO UInt32 := do
+  let entries ← dir.readDir
+  let mut failed : UInt32 := 0
+  for e in entries.qsort (fun a b => a.fileName < b.fileName) do
+    if isScenarioFile e.path then
+      match ← evalFile e.path with
+      | .error msg =>
+        IO.eprintln s!"{e.path}: {msg}"
+        failed := 1
+      | .ok out =>
+        let base : String := (e.fileName.dropEnd 5).toString
+        IO.FS.writeFile (dir / (System.FilePath.mk (base ++ ".lean.json"))) out
+  return failed
+
+def main (args : List String) : IO UInt32 := do
+  match args with
+  | [] => demo; return 0
+  | ["--batch", dir] => runBatch dir
+  | [path] =>
+    match ← evalFile path with
+    | .error e =>
+      IO.eprintln s!"{path}: {e}"
+      return 1
+    | .ok out =>
+      IO.println out
+      return 0
+  | _ =>
+    IO.eprintln "usage: dom-model [SCENARIO.json | --batch DIR]"
+    return 2

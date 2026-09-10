@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    {"id": 0, "kind": "document"},
+    {"id": 1, "kind": "element", "parent": 0},
+    {"id": 2, "kind": "element", "parent": 1},
+    {"id": 3, "kind": "text", "parent": 2, "data": "abc"},
+    {"id": 4, "kind": "element"}
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {"op": "appendChild", "parent": 2, "node": 4},
+    {"op": "insertBefore", "parent": 2, "node": 4, "child": 3},
+    {"op": "removeChild", "parent": 2, "node": 3},
+    {"op": "replaceChild", "parent": 1, "node": 4, "child": 2}
+  ]
+}

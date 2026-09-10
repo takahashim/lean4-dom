@@ -1,0 +1,304 @@
+# frozen_string_literal: true
+
+# Dommy 側の scenario runner。
+#
+# lean4-dom の `lake exe dom-model SCENARIO.json` と同じ形式の JSON を標準出力に書く。
+# 比較は test/compare.rb が行う。
+#
+#   bundle exec ruby test/dommy_runner.rb SCENARIO.json
+#
+# Dommy が未実装の操作（受け手の class に method が無い場合）は
+# `{"ok": false, "exception": "__unsupported__"}` として報告し、
+# 仕様上の例外との不一致と区別できるようにする。
+
+require "json"
+require "dommy"
+
+module DommyRunner
+  UNSUPPORTED = "__unsupported__"
+
+  # 各操作が呼び出す Dommy の method 名。capability 判定にも使う。
+  OP_METHOD = {
+    "appendChild" => :append_child,
+    "insertBefore" => :insert_before,
+    "replaceChild" => :replace_child,
+    "removeChild" => :remove_child,
+    "replaceChildren" => :replace_children,
+    "before" => :before,
+    "after" => :after,
+    "replaceWith" => :replace_with,
+    "remove" => :remove,
+    "moveBefore" => :move_before
+  }.freeze
+
+  # scenario の kind から Dommy の node を作る。
+  class Builder
+    def initialize(specs)
+      @specs = specs
+      @objects = {}
+      @documents = {}
+    end
+
+    # scenario の document node に対応する、空の Document を作る。
+    #
+    # `Dommy::Document.new` は doctype と <html> を持った状態で生まれるので、
+    # 子を外して空にしてから使う。
+    # `implementation.create_document(nil, nil, nil)` なら最初から空だが、
+    # そちらは XML document になり `documentFragment.appendChild` が
+    # `Makiri::Error` になるため使えない。
+    def new_empty_document
+      doc = Dommy::Document.new
+      doc.child_nodes.to_a.each { |n| n.remove if n.respond_to?(:remove) }
+      doc
+    end
+
+    def build
+      default_doc_id = @specs.find { |s| s["kind"] == "document" }&.fetch("id")
+      @specs.each { |s| create(s, default_doc_id) }
+      # children の順序は nodes 配列の並び順で決まる。
+      @specs.each do |s|
+        parent_id = s["parent"]
+        next if parent_id.nil?
+
+        parent = @objects[parent_id]
+        unless parent.respond_to?(:append_child)
+          raise "node #{parent_id} (#{kind_of_id(parent_id)}) に append_child が無い"
+        end
+
+        parent.append_child(@objects[s["id"]])
+      end
+      @objects
+    end
+
+    private
+
+    def kind_of_id(id)
+      @specs.find { |s| s["id"] == id }&.fetch("kind")
+    end
+
+    def owner_document(spec, default_doc_id)
+      id = spec["ownerDocument"] || (spec["kind"] == "document" ? spec["id"] : default_doc_id)
+      @documents[id] or raise "node #{spec['id']}: ownerDocument #{id.inspect} が document ではない"
+    end
+
+    def create(spec, default_doc_id)
+      id = spec["id"]
+      data = spec["data"].to_s
+      if spec["kind"] == "document"
+        doc = new_empty_document
+        @documents[id] = doc
+        @objects[id] = doc
+        return
+      end
+
+      doc = owner_document(spec, default_doc_id)
+      @objects[id] =
+        case spec["kind"]
+        when "element" then doc.create_element("div")
+        when "text" then doc.create_text_node(data)
+        when "comment" then doc.create_comment(data)
+        when "processingInstruction" then doc.create_processing_instruction("pi", data)
+        when "cdataSection" then doc.create_cdata_section(data)
+        when "documentFragment" then doc.create_document_fragment
+        when "documentType" then doc.implementation.create_document_type("html", "", "")
+        else raise "未知の kind #{spec['kind'].inspect}"
+        end
+    end
+  end
+
+  module_function
+
+  # Dommy の例外から仕様上の名前を取り出す。
+  def exception_name(error)
+    if error.respond_to?(:name) && error.name.is_a?(String) && !error.name.empty?
+      error.name
+    else
+      error.class.name.split("::").last
+    end
+  end
+
+  def node_id(objects, node)
+    return nil if node.nil?
+
+    objects.each { |id, obj| return id if obj.equal?(node) }
+    objects.each { |id, obj| return id if obj == node }
+    nil
+  end
+
+  # Dommy は class によって `parent_node` / `child_nodes` を持たないことがある。
+  # 木の意味としては「parent は無い」「children は空」なので、そう読み替える。
+  def parent_of(node)
+    node.respond_to?(:parent_node) ? node.parent_node : nil
+  end
+
+  def children_of(node)
+    node.respond_to?(:child_nodes) ? node.child_nodes.to_a : []
+  end
+
+  def data_of(node)
+    node.respond_to?(:data) ? node.data.to_s : ""
+  rescue StandardError
+    ""
+  end
+
+  def snapshot(objects, kinds)
+    nodes = objects.keys.sort.map do |id|
+      node = objects[id]
+      {
+        "id" => id,
+        "kind" => kinds[id],
+        "parent" => node_id(objects, parent_of(node)),
+        "children" => children_of(node).map { |c| node_id(objects, c) },
+        "data" => data_of(node)
+      }
+    end
+    { "nodes" => nodes, "ranges" => [], "iterators" => [] }
+  end
+
+  # 操作の受け手（method を呼ぶ相手）の id。
+  def receiver_id(op)
+    op.key?("target") ? op["target"] : op["parent"]
+  end
+
+  def apply(objects, op)
+    o = ->(key) { key.nil? ? nil : objects[key] }
+    receiver = objects[receiver_id(op)]
+    method = OP_METHOD.fetch(op["op"]) { raise "未知の op #{op['op'].inspect}" }
+    raise NotImplementedError, op["op"] if receiver.nil? || !receiver.respond_to?(method)
+
+    # 存在しない id を指した引数は、Dommy 側では nil になる。
+    # 仕様では「Node でない値」なので TypeError 相当だが、
+    # 比較の意味を保つため未対応として報告する。
+    case op["op"]
+    when "appendChild"
+      raise NotImplementedError, "missing node" if o[op["node"]].nil?
+
+      receiver.append_child(o[op["node"]])
+    when "insertBefore"
+      raise NotImplementedError, "missing node" if o[op["node"]].nil?
+      raise NotImplementedError, "missing child" if op["child"] && o[op["child"]].nil?
+
+      receiver.insert_before(o[op["node"]], o[op["child"]])
+    when "replaceChild"
+      raise NotImplementedError, "missing node" if o[op["node"]].nil? || o[op["child"]].nil?
+
+      receiver.replace_child(o[op["node"]], o[op["child"]])
+    when "removeChild"
+      raise NotImplementedError, "missing node" if o[op["node"]].nil?
+
+      receiver.remove_child(o[op["node"]])
+    when "replaceChildren"
+      if op["node"].nil?
+        receiver.replace_children
+      else
+        raise NotImplementedError, "missing node" if o[op["node"]].nil?
+
+        receiver.replace_children(o[op["node"]])
+      end
+    when "before", "after", "replaceWith"
+      raise NotImplementedError, "missing node" if o[op["node"]].nil?
+
+      receiver.public_send(method, o[op["node"]])
+    when "remove"
+      receiver.remove
+    when "moveBefore"
+      raise NotImplementedError, "missing node" if o[op["node"]].nil?
+
+      receiver.move_before(o[op["node"]], o[op["child"]])
+    end
+  end
+
+  def run(scenario)
+    kinds = scenario["nodes"].to_h { |s| [s["id"], s["kind"]] }
+    objects = Builder.new(scenario["nodes"]).build
+    initial = snapshot(objects, kinds)
+    steps = []
+    (scenario["operations"] || []).each do |op|
+      begin
+        apply(objects, op)
+      rescue NotImplementedError, NoMethodError
+        steps << { "ok" => false, "exception" => UNSUPPORTED }
+        break
+      rescue StandardError => e
+        steps << { "ok" => false, "exception" => exception_name(e) }
+        break
+      end
+      steps << snapshot(objects, kinds).merge("ok" => true)
+    end
+    { "initial" => initial, "steps" => steps }
+  end
+
+  # 各 kind が各操作を実装しているかの一覧。
+  def capabilities
+    doc = Dommy::Document.new
+    doc.child_nodes.to_a.each { |n| n.remove if n.respond_to?(:remove) }
+    impl = doc.implementation
+    # HTML document では CDATASection を作れない（仕様どおり）ので、作れた kind だけを見る。
+    builders = {
+      "document" => -> { doc },
+      "element" => -> { doc.create_element("div") },
+      "text" => -> { doc.create_text_node("x") },
+      "comment" => -> { doc.create_comment("x") },
+      "processingInstruction" => -> { doc.create_processing_instruction("pi", "x") },
+      "cdataSection" => -> { doc.create_cdata_section("x") },
+      "documentFragment" => -> { doc.create_document_fragment },
+      "documentType" => -> { impl.create_document_type("html", "", "") }
+    }
+    builders.filter_map do |kind, make|
+      node = begin
+        make.call
+      rescue StandardError
+        next nil
+      end
+      [kind, OP_METHOD.select { |_, m| node.respond_to?(m) }.keys]
+    end.to_h
+  end
+
+  # 出力 file は入力として扱わない。
+  def scenario_file?(path)
+    path.end_with?(".json") && !path.end_with?(".lean.json") && !path.end_with?(".dommy.json")
+  end
+
+  # `DIR/*.json` をまとめて評価し、それぞれ `DIR/<base>.dommy.json` に書く。
+  #
+  # makiri を ASan 付きで build している環境では、この process から fork できない。
+  # Lean の oracle を別 process として起動するのは driver 側の仕事にして、
+  # ここでは file の読み書きだけを行う。
+  def run_batch(dir)
+    failed = 0
+    Dir[File.join(dir, "*.json")].sort.each do |path|
+      next unless scenario_file?(path)
+
+      base = File.basename(path, ".json")
+      out =
+        begin
+          run(JSON.parse(File.read(path)))
+        rescue StandardError => e
+          failed = 1
+          { "error" => "#{e.class}: #{e.message}" }
+        end
+      File.write(File.join(dir, "#{base}.dommy.json"), JSON.generate(out))
+    end
+    failed
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  case ARGV[0]
+  when "--capabilities"
+    puts JSON.pretty_generate(DommyRunner.capabilities)
+    exit 0
+  when "--batch"
+    dir = ARGV[1] or abort "usage: dommy_runner.rb --batch DIR"
+    exit DommyRunner.run_batch(dir)
+  else
+    path = ARGV[0] or abort "usage: dommy_runner.rb [--capabilities|--batch DIR] SCENARIO.json"
+    scenario = JSON.parse(File.read(path))
+    begin
+      puts JSON.generate(DommyRunner.run(scenario))
+    rescue StandardError => e
+      warn "#{path}: 初期状態を組み立てられない: #{e.class}: #{e.message}"
+      exit 1
+    end
+  end
+end

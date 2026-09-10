@@ -217,11 +217,87 @@ DocumentFragment の展開、および Document の子に対する制約
   "converting nodes into a node" で DocumentFragment を生成するが、
   本 model は node を生成しないので、生成済みの node を引数に取る。
 
+## Phase 4（Dommy との differential testing）— 一巡した
+
+`PLAN.md` §7 の仕組みを用意し、実際に Dommy と突き合わせて不一致を検出した。
+
+### 実装したもの
+
+| file | 役割 |
+| --- | --- |
+| `Dom/Exec/Json.lean` | scenario の JSON 入出力（§7.1, §7.2） |
+| `Dom/Exec/Scenario.lean` | 初期状態の構築と操作列の評価 |
+| `Main.lean` | `dom-model SCENARIO.json` と `dom-model --batch DIR` |
+| `test/dommy_runner.rb` | Dommy 側の評価。`--capabilities` で実装状況も出す |
+| `test/compare.rb` | 出力の比較（parent / children / tree order / 例外） |
+| `test/generate.rb` | scenario の乱数生成（§7.3） |
+| `test/difftest.rb` | driver。生成・評価・比較・最小化 |
+| `test/scenarios/*.json` | 固定 scenario |
+
+使い方は `test/README.md` にまとめた。
+
+JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使う。
+`Lean` への依存は `Dom/Exec/` に閉じており、`Dom.lean` からも `Dom/Properties/` からも
+import しないので、証明側の build には影響しない。
+
+Lean 側は各 step の後で `checkWellFormed` を走らせ、
+invariant が破れていれば出力に `invariantViolation` を足す（PLAN §3.5）。
+これまでの実行で一度も立っていない。
+
+### Dommy 側で見つかった不一致
+
+生成 scenario 80 本（seed 7、1 本あたり操作 8 個）で 22 本が不一致になり、
+すべて 1〜2 操作まで最小化できた。原因は次の 4 種類である。
+代表例を `test/scenarios/` に固定 scenario として残した。
+
+1. **`before()` / `after()` / `replaceWith()` / `replaceChildren()` が
+   ensure pre-insert validity を通っていない。**
+   `appendChild` / `insertBefore` / `replaceChild` は正しく検査するのに、
+   ChildNode と ParentNode の便利 method は検査を迂回する。結果として
+   * 仕様が禁じる木を作れてしまう
+     （`element.after(text)` で Text が Document の子になる。
+     `childnode-after-bypasses-validity.json`、`replacewith-bypasses-validity.json`）
+   * backend の `Makiri::Error` がそのまま外に出る
+     （`text.before(自分の parent)`。`childnode-before-leaks-backend-error.json`、
+     `replacechildren-bypasses-validity.json`）
+
+   これは `memo.md` §7 が想定していた「どの API から始めても検査が迂回されない」
+   という性質が破れている例である。
+   model 側では public API がすべて `ensurePreInsertionValidity` を通る構造になっており、
+   その保存は `Dom/Properties/Algorithms.lean` で証明してある。
+2. **空の Document への `appendChild(doctype)` が何もしない。**
+   例外も投げず、doctype は子にならず parent も付かない。
+   仕様では valid なので子になるべきである。
+   `doctype-append-to-empty-document.json`
+3. **XML document（`implementation.createDocument(null, null, null)`）の
+   DocumentFragment に `appendChild` すると `Makiri::Error` になる。**
+   HTML document の fragment なら通る。
+   runner はこれを避けて、HTML document の子を外して空にしたものを使っている。
+4. **API の実装漏れ。** `dommy_runner.rb --capabilities` で一覧できる。
+
+   | kind | 仕様にあって Dommy に無いもの |
+   | --- | --- |
+   | `Document` | insertBefore, replaceChild, removeChild, replaceChildren, before, after, replaceWith, remove |
+   | `Element` | replaceWith |
+   | CharacterData と DocumentType | childNodes（空の NodeList を返すべき）、および node tree を変える method 全般 |
+   | `DocumentFragment` | （ChildNode の method は仕様上も無いので問題なし） |
+   | すべて | moveBefore |
+
+   `Document` に `node_type` が無い、`DocumentType` に `node_name` が無いなど、
+   Node interface の属性にも欠けがある。
+
+### 現状の一致状況
+
+上の 4 種類を避けた範囲（Dommy が実装している (kind, 操作) の組だけを生成し、
+doctype を初期状態に置かない）では、生成 scenario は一致する。
+`--all-ops` や `--doctype-prob 0.5` を付けると、上の不一致が再現する。
+
 ## 未着手
 
-Phase 4 以降（`Dom/Exec/`, `Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`）は
+Phase 5 以降（`Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`）は
 directory を用意しただけで、まだ空である。
 
-次は Phase 4 の differential testing（PLAN §7）で、
-scenario の JSON 入出力（`Dom/Exec/Json.lean`, `Dom/Exec/Scenario.lean`）と
-Dommy 側の runner を用意する。
+PLAN §7.4 の完了条件は「tree mutation の範囲で Lean と Dommy の出力が一致すること」だが、
+現時点では Dommy 側の不具合により一致していない。
+model と仕様を読み直した結果、いずれも Dommy 側を直すべきものと判断した。
+Phase 5（Range）に進むか、先に Dommy の修正を待つかは別途決める。

@@ -1,0 +1,13 @@
+{
+  "_note": "element.after(text) で Text を Document の子にできてしまう。仕様では ensure pre-insert validity の step 6 で HierarchyRequestError。appendChild 経由なら Dommy も正しく弾く。",
+  "nodes": [
+    {"id": 0, "kind": "document"},
+    {"id": 1, "kind": "element", "parent": 0},
+    {"id": 2, "kind": "text", "data": "x"}
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {"op": "after", "target": 1, "node": 2}
+  ]
+}
