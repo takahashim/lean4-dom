@@ -1,0 +1,97 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 3,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 3
+    },
+    {
+      "id": 5,
+      "kind": "processingInstruction",
+      "parent": 2,
+      "data": "t5"
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 4
+    },
+    {
+      "id": 7,
+      "kind": "element"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 6,
+        "offset": 0
+      },
+      "end": {
+        "node": 3,
+        "offset": 1
+      }
+    },
+    {
+      "start": {
+        "node": 7,
+        "offset": 0
+      },
+      "end": {
+        "node": 7,
+        "offset": 0
+      }
+    },
+    {
+      "start": {
+        "node": 4,
+        "offset": 0
+      },
+      "end": {
+        "node": 6,
+        "offset": 0
+      }
+    },
+    {
+      "start": {
+        "node": 3,
+        "offset": 0
+      },
+      "end": {
+        "node": 3,
+        "offset": 0
+      }
+    }
+  ],
+  "iterators": [
+    {
+      "root": 6,
+      "reference": 6,
+      "pointerBeforeReference": true
+    },
+    {
+      "root": 5,
+      "reference": 5,
+      "pointerBeforeReference": true
+    }
+  ],
+  "operations": []
+}

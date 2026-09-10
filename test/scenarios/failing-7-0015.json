@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 3,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 4,
+      "kind": "comment",
+      "parent": 3,
+      "data": "f"
+    },
+    {
+      "id": 6,
+      "kind": "processingInstruction",
+      "parent": 2,
+      "data": "t6"
+    },
+    {
+      "id": 7,
+      "kind": "text",
+      "parent": 2,
+      "data": "t7"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 6,
+        "offset": 2
+      },
+      "end": {
+        "node": 6,
+        "offset": 2
+      }
+    },
+    {
+      "start": {
+        "node": 2,
+        "offset": 2
+      },
+      "end": {
+        "node": 2,
+        "offset": 2
+      }
+    },
+    {
+      "start": {
+        "node": 7,
+        "offset": 0
+      },
+      "end": {
+        "node": 7,
+        "offset": 0
+      }
+    },
+    {
+      "start": {
+        "node": 0,
+        "offset": 1
+      },
+      "end": {
+        "node": 6,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [
+    {
+      "root": 4,
+      "reference": 4,
+      "pointerBeforeReference": true
+    },
+    {
+      "root": 6,
+      "reference": 6,
+      "pointerBeforeReference": true
+    }
+  ],
+  "operations": []
+}

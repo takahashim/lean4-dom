@@ -927,13 +927,12 @@ sweep 中に一度も「初期状態の range が valid でない」は出てい
 これは Ruby 側の辞書式比較と Lean 側の `bpPosition` が一致していることの
 実験的な裏付けになっている。
 
-## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`）
+## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`, `f461486`）
 
-finding 1（`before` / `after` / `replaceWith` / `replaceChildren` が
-ensure pre-insertion validity を迂回する）を直した。あわせて、
-同じ sweep で出た次の二つも直した。
+finding 1（validity の迂回）と finding 2（range 調整の順序）を直した。
+あわせて、同じ sweep で新たに出た五つも直した。全部で七つある。
 
-1. **ChildNode の三つが validity を全く通らない**（`87432de`）。
+1. **ChildNode の三つが validity を全く通らない**（finding 1、`87432de`）。
    `before` / `after` / `replaceWith` は最後に **親** への pre-insert（replace）で終わるので、
    親側の validity が走らなければならない。親は Document のこともあり、
    その場合は step 6（Text の子を持てない、element は高々一つ、doctype は document element より前）
@@ -953,32 +952,68 @@ ensure pre-insertion validity を迂回する）を直した。あわせて、
    step 3 で初めて差し替える。Dommy は先に差し替えていたので、
    `x` が parent の子でないときに `NotFoundError` にならず黙って append していた。
 
-回帰 test は `gems/dommy/test/wpt/test_wpt_child_node_pre_insertion_validity.rb`（19 件）。
-Dommy の既存 suite は 3903 runs / 0 failures のまま。
+### 5. live range の挿入側調整が仕様の位置にない（finding 2、`f461486`）
+
+仕様の insert step 5（parent を指す offset の調整）は step 7 の adopt → remove より
+**前** に走る。Dommy は木を変え終わってから `notify_child_list_mutation` の中で
+調整していたので、「その insert 自身の removal が parent の上へ動かした boundary」を
+二重に数えていた。
+
+```
+<div><!--cc--><em/></div>            range: (em, 0) - (em, 0)
+div.insertBefore(em, comment)
+→ 仕様 (div, 1) / Dommy は (div, 2)
+```
+
+後追いの `__internal_ranges_inserted__` を
+`__internal_ranges_will_insert__(parent, ref, count)` に置き換え、
+各挿入箇所が step 5 の位置で呼ぶ形にした。
+`ChildNode#convert_for_insert` が「調整 → 引数の変換」を一つにまとめているので、
+両者が離れないようになっている。
+
+順序で気をつける点が三つあった。
+
+* **replace** は置き換える node の adopt（step 6、旧 parent から外す）が
+  古い子の除去（step 7）より **前** で、挿入（step 9）はその後。
+  つまり調整は二つの除去の後に来る。
+  最初これを逆に並べ替えてしまい、差分テストで 4 件の回帰が出て気づいた。
+* **pre-insert step 3**（reference child が挿入する node 自身なら、
+  reference をその next sibling へ進める）は step 5 より前に走る。
+  でないと `x.before(x)` が x の位置で調整してしまう。
+* **append（reference が null）は何も調整しない**。
+  `replaceChildren` / replace-all / `textContent=` は影響を受けない。
+
+### 6. Document への fragment 挿入で insert step 4 が走らない（`f461486`）
+
+`document.appendChild(fragment)` は fragment の backend node をそのまま backend に渡していて、
+backend が children を黙って splice するので、
+insert step 4（fragment の children を **removing steps 付きで** 外す）が走っていなかった。
+fragment の子の中にあった live range は、動いた node を指したまま取り残されていた。
+Document 側でも `extract_children` を通すようにした。
+
+### 7. `Fragment#replaceChild` の例外の順序（`f461486`）
+
+parent 判定を validity より前に置いていたので、
+`frag.replaceChild(frag, frag)` が step 2 の `HierarchyRequestError` ではなく
+`NotFoundError` になっていた。`ShadowRoot#replaceChild` も同じで、
+`ShadowRoot#insertBefore` には validity 検査自体が無かった。
 
 ### 修正後の一致状況
 
-`--ranges 4 --iterators 2 --nodes 10 --ops 10` で seed 1 / 3 / 7 / 42 を
-各 100 scenario 回した結果、**不一致は各 seed 1 件だけ**で、
-すべて finding 2（range 調整の順序）である。
+`--ranges 4 --iterators 2 --nodes 10 --ops 10` で seed 10 個 × 各 100 scenario、
+**合計 1000 scenario で不一致ゼロ**。固定 scenario も `doctype-wrapper-identity`
+（finding 3）以外はすべて一致する。
 修正前は既定の設定でも 80 中 22 件が不一致だった。
+
+回帰 test は次の二つ。
+
+* `test/wpt/test_wpt_child_node_pre_insertion_validity.rb`（19 件）
+* `test/wpt/test_wpt_live_range_insert_order.rb`（6 件）
+
+Dommy の既存 suite は 3909 runs / 0 failures。
 
 ## 残っている Dommy の不一致
 
-* **finding 2（range 調整の順序）**。仕様の insert step 5（parent を指す offset の調整）は
-  step 7 の adopt → remove より **前** に走る。Dommy は木を変え終わってから
-  `notify_child_list_mutation` の中で調整するので、
-  「その insert 自身の removal が parent の上へ動かした boundary」を二重に数える。
-  最小例は `test/scenarios/range-adjust-order-on-before.json` と
-  `test/scenarios/range-adjust-order-on-move.json`。
-  直すには `__internal_ranges_inserted__` を
-  `__internal_ranges_will_insert__(parent, ref, count)` に置き換えて
-  **引数を変換する前** に呼ぶ必要がある。挿入する箇所が
-  `parent_node.rb` / `child_node.rb` / `element.rb` / `document.rb` /
-  `shadow_root.rb` / `html_elements.rb` に約 20 か所あり、
-  `replace_child_within` は「古い子を先に外してから step 5」という
-  仕様の順序（replace step 10 → 12）に合わせる並べ替えも要る。
-  今回は着手していない。
 * **finding 3（`createDocumentType` の wrapper identity）**。
   `test/scenarios/doctype-wrapper-identity.json`。
 * **finding 4（XML document で fragment の `appendChild` が `Makiri::Error`）**。
