@@ -1,0 +1,16 @@
+{
+  "_note": "replace data の step 8-11。offset=2, count=2, data=\"XYZ\" で \"abcdef\" が \"abXYZef\" になる。start 1 は offset 以下なので不変、end 3 は (2,4] にあるので 2 になる。5 と 6 は offset+count より後ろなので data の長さ 3 を足して count 2 を引く。",
+  "nodes": [
+    {"id": 0, "kind": "document"},
+    {"id": 1, "kind": "element", "parent": 0},
+    {"id": 2, "kind": "text", "parent": 1, "data": "abcdef"}
+  ],
+  "ranges": [
+    {"start": {"node": 2, "offset": 1}, "end": {"node": 2, "offset": 3}},
+    {"start": {"node": 2, "offset": 5}, "end": {"node": 2, "offset": 6}}
+  ],
+  "iterators": [],
+  "operations": [
+    {"op": "replaceData", "node": 2, "offset": 2, "count": 2, "data": "XYZ"}
+  ]
+}

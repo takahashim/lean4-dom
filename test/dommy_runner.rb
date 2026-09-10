@@ -28,8 +28,16 @@ module DommyRunner
     "after" => :after,
     "replaceWith" => :replace_with,
     "remove" => :remove,
-    "moveBefore" => :move_before
+    "moveBefore" => :move_before,
+    "replaceData" => :replace_data,
+    "appendData" => :append_data,
+    "insertData" => :insert_data,
+    "deleteData" => :delete_data,
+    "setData" => :data=
   }.freeze
+
+  # 受け手が `node` である操作（CharacterData の method）。
+  CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
 
   # scenario の kind から Dommy の node を作る。
   class Builder
@@ -218,6 +226,8 @@ module DommyRunner
 
   # 操作の受け手（method を呼ぶ相手）の id。
   def receiver_id(op)
+    return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
+
     op.key?("target") ? op["target"] : op["parent"]
   end
 
@@ -228,6 +238,19 @@ module DommyRunner
       raise NotImplementedError, "iterator index" if it.nil?
 
       return op["op"] == "iteratorNext" ? it.next_node : it.previous_node
+    end
+    if CHARACTER_DATA_OPS.include?(op["op"])
+      node = objects[op["node"]]
+      method = OP_METHOD.fetch(op["op"])
+      raise NotImplementedError, op["op"] if node.nil? || !node.respond_to?(method)
+
+      return case op["op"]
+             when "replaceData" then node.replace_data(op["offset"], op["count"], op["data"].to_s)
+             when "appendData" then node.append_data(op["data"].to_s)
+             when "insertData" then node.insert_data(op["offset"], op["data"].to_s)
+             when "deleteData" then node.delete_data(op["offset"], op["count"])
+             when "setData" then node.data = op["data"].to_s
+             end
     end
     o = ->(key) { key.nil? ? nil : objects[key] }
     receiver = objects[receiver_id(op)]

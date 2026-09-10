@@ -94,6 +94,11 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .moveBefore p n c => moveBefore s ⟨p⟩ ⟨n⟩ (c.map NodeId.mk)
   | .iteratorNext i => .ok (stepIterator s i nextNode)
   | .iteratorPrevious i => .ok (stepIterator s i previousNode)
+  | .replaceData n o c d => replaceData s ⟨n⟩ o c d
+  | .appendData n d => appendData s ⟨n⟩ d
+  | .insertData n o d => insertData s ⟨n⟩ o d
+  | .deleteData n o c => deleteData s ⟨n⟩ o c
+  | .setData n d => setData s ⟨n⟩ d
 
 /--
 操作列を順に適用する。例外が起きた step で打ち切る（PLAN §7.2）。

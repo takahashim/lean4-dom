@@ -22,7 +22,8 @@ module Generate
 
   # `moveBefore` は Dommy が未実装なので、既定では生成しない。
   OPS = %w[appendChild insertBefore replaceChild removeChild replaceChildren
-           before after replaceWith remove].freeze
+           before after replaceWith remove
+           replaceData appendData insertData deleteData setData].freeze
 
   # 仕様上どの interface がどの操作を持つか。
   #   Node        すべての node
@@ -31,15 +32,16 @@ module Generate
   NODE_OPS = %w[appendChild insertBefore replaceChild removeChild].freeze
   PARENT_NODE_OPS = %w[replaceChildren moveBefore].freeze
   CHILD_NODE_OPS = %w[before after replaceWith remove].freeze
+  CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
 
   SPEC_OPS = {
     "document" => NODE_OPS + PARENT_NODE_OPS,
     "documentFragment" => NODE_OPS + PARENT_NODE_OPS,
     "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS,
-    "text" => NODE_OPS + CHILD_NODE_OPS,
-    "comment" => NODE_OPS + CHILD_NODE_OPS,
-    "processingInstruction" => NODE_OPS + CHILD_NODE_OPS,
-    "cdataSection" => NODE_OPS + CHILD_NODE_OPS,
+    "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
+    "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
+    "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
+    "cdataSection" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "documentType" => NODE_OPS + CHILD_NODE_OPS
   }.freeze
 
@@ -138,6 +140,15 @@ module Generate
     when "before", "after", "replaceWith"
       { "op" => op, "target" => pick.call, "node" => maybe.call }
     when "remove" then { "op" => op, "target" => pick.call }
+    when "replaceData"
+      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4),
+        "data" => %w[x yz abc][rng.rand(3)] }
+    when "appendData" then { "op" => op, "node" => pick.call, "data" => %w[x yz][rng.rand(2)] }
+    when "insertData"
+      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "data" => %w[x yz][rng.rand(2)] }
+    when "deleteData"
+      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4) }
+    when "setData" then { "op" => op, "node" => pick.call, "data" => %w[[] pq rstu][rng.rand(3)] }
     when "moveBefore"
       { "op" => op, "parent" => pick.call, "node" => maybe.call,
         "child" => rng.rand < 0.5 ? nil : maybe.call }
@@ -146,6 +157,8 @@ module Generate
 
   # 操作の受け手（method を呼ぶ相手）の id。
   def receiver_id(op)
+    return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
+
     op.key?("target") ? op["target"] : op["parent"]
   end
 

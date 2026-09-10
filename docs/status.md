@@ -596,6 +596,80 @@ Ruby の method として公開されておらず、`__js_get__` 経由でしか
 Dommy の Ruby API は他が snake_case で揃っているので、そこだけ不揃いである。
 runner は `__js_get__` へ fallback するようにしてある。
 
+## Phase 7（CharacterData）— 一巡した
+
+`PLAN.md` §10 の定義・証明・differential testing を実装した。
+
+### 実装した定義（`Dom/CharacterData/ReplaceData.lean`）
+
+| 定義 | 対応する仕様 |
+| --- | --- |
+| `adjustedCount` | replace data step 3（count の切り詰め） |
+| `spliceData` | replace data step 5-7 |
+| `replaceDataAdjustBP`, `replaceDataAdjustRange` | replace data step 8-11（live range の調整） |
+| `replaceData` | §4.10 "replace data" |
+| `appendData`, `insertData`, `deleteData`, `setData`, `substringData` | §4.10 の method |
+
+仕様の `replace data` には node が CharacterData であるという検査が無い
+（`CharacterData` interface の method からしか呼ばれないため）。
+本 model は node を kind で区別するので、
+CharacterData 以外に対しては `invalidNodeTypeError` を返す。
+
+**`data` の長さの単位に差がある。** 仕様は UTF-16 の code unit 数だが、
+Lean の `String.length` は code point 数である。
+BMP の範囲では両者は一致するので、本 model は BMP に限って仕様どおりになる。
+differential testing の生成器も BMP の文字しか使わない。
+astral 面の文字（surrogate pair）まで扱うには、`NodeData.length` と
+`spliceData` を UTF-16 の単位で定義し直す必要がある。
+
+### 証明した theorem（`Dom/Properties/CharacterData.lean`）
+
+| PLAN §10.2 | theorem |
+| --- | --- |
+| `replaceData_preserves_wellformed` | 同名。`data` しか変えないので木の構造は変わらない（`wellFormed_withData`） |
+| `replaceData_preserves_ranges_valid`（両端が木の中にある部分） | `replaceData_preserves_endpoints` |
+| wrapper への持ち上げ | `appendData_`, `insertData_`, `deleteData_`, `setData_` + `preserves_wellformed` / `preserves_endpoints` |
+
+端点の証明の要は `length_spliceData` である。
+`offset ≤ length` と `offset + count ≤ length`（step 3 の切り詰め後）のもとで
+`新しい長さ + count = 元の長さ + data の長さ` が成り立つので、
+step 8-11 の三つの場合をどれも `omega` で片づけられる。
+
+### differential testing
+
+固定 scenario 二つで仕様の分岐をすべて通した。
+
+* `characterdata-replace-data-ranges.json` — step 8-11 の三つの場合
+  （offset 以下は不変、`(offset, offset+count]` は offset に、それより後ろは
+  `+ data の長さ − count`）
+* `characterdata-index-size-and-clamp.json` — `offset > length` の `IndexSizeError` と
+  step 3 の count の切り詰め、および `appendData` / `insertData` / `setData`
+
+いずれも Dommy と一致した。生成 scenario でも CharacterData 由来の不一致は出ていない。
+**Dommy の CharacterData は仕様どおりに動いている。**
+
+## PLAN の第3の成功条件
+
+`memo.md` §17 の第3の成功条件は
+「mutation の任意の組み合わせの後でも Range boundary points が valid であることを証明する」である。
+
+現時点で証明できているのは、`ValidBoundaryPoint`（node が木にあり offset が length 以下）の
+保存であり、対象は次のとおりである。
+
+* `remove` とそれを経由する public API（`preRemove` / `removeChild` / `nodeRemove`）
+* parent を持たない node の `insert`
+* `replaceData` とその wrapper
+
+証明できていないのは次の三つで、`docs/status.md` の各 Phase の節に理由を書いた。
+
+1. `BoundaryLE`（start ≤ end の順序）の保存
+2. parent を持つ node の `insert`（仕様が調整を removal より前に置くため、途中で一時的に invalid になる）
+3. DocumentFragment を展開する `insert`
+
+いずれも定義と実行時検査（`checkRangesValid`）は用意してあり、
+differential testing の各 step で確認している。
+
 ## 未着手
 
-Phase 7（`Dom/CharacterData/`）はまだ無い。
+Phase 8（`PLAN.md` §11）の再評価。MutationObserver と Shadow DOM に進むかどうかを、
+Phase 4-7 の differential testing で見つかった不一致の傾向から判断する。

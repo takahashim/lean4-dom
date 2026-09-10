@@ -87,6 +87,14 @@ def describeIter : Except DOMException DOMState → String
   | .error e => s!"error {e}"
   | .ok s => s!"ok {iterSummary s} valid={checkIteratorsValid s}"
 
+def worldStr : String := " world"
+def starsStr : String := "** "
+def xyStr : String := "XY"
+
+def describeData : Except DOMException DOMState → String
+  | .error e => s!"error {e}"
+  | .ok s => s!"ok data={reprStr ((s.tree.get? hello).map (·.data))} ranges={rangeSummary s}"
+
 /-- iterator を `n` 回進めた状態。 -/
 def advance (s : DOMState) : Nat → DOMState
   | 0 => s
@@ -155,6 +163,14 @@ def demo : IO Unit := do
   IO.println s!"nextNode x3                  : {iterSummary (advance state 3)}"
   IO.println s!"x2 の後で removeChild html head : {describeIter (removeChild (advance state 2) html head)}"
   IO.println s!"x3 の後で removeChild html body : {describeIter (removeChild (advance state 3) html body)}"
+  IO.println ""
+  IO.println "-- Phase 7: CharacterData --"
+  IO.println s!"hello の data                : {reprStr ((state.tree.get? hello).map (·.data))}"
+  IO.println s!"appendData ' world'          : {describeData (appendData state hello worldStr)}"
+  IO.println s!"insertData 0 '** '           : {describeData (insertData state hello 0 starsStr)}"
+  IO.println s!"deleteData 1 99              : {describeData (deleteData state hello 1 99)}"
+  IO.println s!"replaceData 1 3 'XY'         : {describeData (replaceData state hello 1 3 xyStr)}"
+  IO.println s!"replaceData 99 0 'XY'        : {describeData (replaceData state hello 99 0 xyStr)}"
 
 /-- scenario file 一つを評価して、結果の JSON を返す。 -/
 def evalFile (path : System.FilePath) : IO (Except String String) := do

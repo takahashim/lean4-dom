@@ -2,6 +2,7 @@ import Lean.Data.Json
 import Dom.Mutation.Api
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
+import Dom.CharacterData.ReplaceData
 
 /-!
 # scenario の入出力
@@ -83,6 +84,11 @@ inductive Operation where
   | moveBefore (parent node : Nat) (child : Option Nat)
   | iteratorNext (index : Nat)
   | iteratorPrevious (index : Nat)
+  | replaceData (node : Nat) (offset count : Nat) (data : String)
+  | appendData (node : Nat) (data : String)
+  | insertData (node : Nat) (offset : Nat) (data : String)
+  | deleteData (node : Nat) (offset count : Nat)
+  | setData (node : Nat) (data : String)
 deriving Repr
 
 /-- 一つの scenario。 -/
@@ -160,6 +166,15 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .moveBefore (← natField j "parent") (← natField j "node") (← natField? j "child")
   | "iteratorNext" => return .iteratorNext (← natField j "iterator")
   | "iteratorPrevious" => return .iteratorPrevious (← natField j "iterator")
+  | "replaceData" =>
+    return .replaceData (← natField j "node") (← natField j "offset") (← natField j "count")
+      (← strField j "data" "")
+  | "appendData" => return .appendData (← natField j "node") (← strField j "data" "")
+  | "insertData" =>
+    return .insertData (← natField j "node") (← natField j "offset") (← strField j "data" "")
+  | "deleteData" =>
+    return .deleteData (← natField j "node") (← natField j "offset") (← natField j "count")
+  | "setData" => return .setData (← natField j "node") (← strField j "data" "")
   | _ => .error s!"未知の op `{op}`"
 
 def boundaryPointOfJson (j : Json) : Except String BoundaryPoint := do
