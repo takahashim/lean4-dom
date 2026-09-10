@@ -927,7 +927,7 @@ sweep 中に一度も「初期状態の range が valid でない」は出てい
 これは Ruby 側の辞書式比較と Lean 側の `bpPosition` が一致していることの
 実験的な裏付けになっている。
 
-## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`, `f461486`, `d604752`, `c6ce3c3`）
+## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`, `f461486`, `d604752`, `c6ce3c3`, `0b34062`）
 
 finding 1（validity の迂回）と finding 2（range 調整の順序）を直した。
 あわせて、同じ sweep で新たに出た五つも直した。全部で七つある。
@@ -1109,14 +1109,48 @@ backend が doctype node を作れないときの synthetic doctype は従来ど
 1 だけ直しても error の種類が変わるだけなので、2 が先である。
 2 は Makiri repo の話であり、ここでは扱わない。
 
+## `moveBefore` の実装（Dommy commit `0b34062`）
+
+仕様 §4.2.3 の move algorithm（2025 年追加）を Dommy に実装した。
+`Internal::ParentNode`（Element / DocumentFragment / ShadowRoot）と `Document` の両方。
+
+move は remove + insert の合成ではない。
+
+* removing steps も insertion steps も走らせない（connected / disconnected callback が出ない）。
+* adopt しない。step 1 が「node と newParent の shadow-including root が同じ」を
+  要求するので node document は変わらない。
+* validity は `ensure pre-insert validity` ではなく step 1-6 の独自のもの。
+
+一方で live range / NodeIterator の pre-remove steps と挿入側の offset 調整は共有する。
+
+**その順序が insert とちょうど逆である。** pre-remove steps が step 10、
+range の offset 調整が step 16 なので、
+「removal が parent の上へ持ち上げた boundary」は move では **調整される**。
+insert では step 5 が先に済んでいるので調整されない（前述）。
+子が三つの parent で `parent.moveBefore(最後の子, 最初の子)` を行い、
+最後の子の中に collapsed range があると、結果は `(parent, 3)` であって `(parent, 2)` ではない。
+
+実装中に二つ間違えて、差分テストが両方とも捕まえた。
+
+* backend node の比較に `equal?` を使っていた。
+  Makiri は `parent` を呼ぶたびに同じ node に対して別の Ruby object を返すので、
+  step 1 の root 比較が常に失敗して `HierarchyRequestError` になっていた。`==` に直した。
+* `Dommy::Document` は `__dommy_backend_node__` を持たないので、
+  `document.moveBefore(node, document)` の reference child が nil に落ちていた
+  （step 3 の `NotFoundError` にならず append 扱いになる）。
+
+これで **仕様がその kind に定めている操作は Dommy にすべてある**。
+`dommy_runner.rb --capabilities` の欠落表は全 kind `(なし)` になった。
+
+差分テストの `unsupported` は Dommy の実装漏れではなく、
+harness が「存在しない id を指した引数」を意図的に飛ばしている分である
+（model は `notFoundError`、Dommy は引数が nil になり WebIDL の `TypeError` 相当なので、
+そのままでは意味のある比較にならない）。
+その旨を `test/dommy_runner.rb` と `test/compare.rb` の表示に書いた。
+
 ## 残っている Dommy の不一致
 
 * **finding 4**（上記）。Makiri 側の `XML::DocumentFragment#add_child`。
-* **`moveBefore` が未実装**。仕様 §4.2.3 の move algorithm（2025 年追加）で、
-  remove + insert の合成とは違う（removing / insertion steps を走らせない、
-  node document を付け替えない、validity が独自）。
-  model 側には実装と証明があるので、Dommy に入れば差分テストの対象になる。
-  差分テストの `unsupported` はいまこれだけが理由である。
 
 ## 未着手
 

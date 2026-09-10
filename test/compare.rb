@@ -87,7 +87,7 @@ module Compare
       d = ds[i]
       if d && d["ok"] == false && d["exception"] == UNSUPPORTED
         unsupported = true
-        messages << "step #{i}: Dommy が未実装（lean=#{l && (l['ok'] ? 'ok' : l['exception'])}）"
+        messages << "step #{i}: この harness では比べられない（lean=#{l && (l['ok'] ? 'ok' : l['exception'])}）"
         break
       end
       if l.nil? || d.nil?

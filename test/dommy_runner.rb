@@ -259,7 +259,8 @@ module DommyRunner
 
     # 存在しない id を指した引数は、Dommy 側では nil になる。
     # 仕様では「Node でない値」なので TypeError 相当だが、
-    # 比較の意味を保つため未対応として報告する。
+    # model 側は `notFoundError` を返すので、そのままでは意味のある比較にならない。
+    # `--capabilities` が示す実装漏れとは別で、これは harness 側の都合である。
     case op["op"]
     when "appendChild"
       raise NotImplementedError, "missing node" if o[op["node"]].nil?
@@ -294,6 +295,7 @@ module DommyRunner
       receiver.remove
     when "moveBefore"
       raise NotImplementedError, "missing node" if o[op["node"]].nil?
+      raise NotImplementedError, "missing child" if op["child"] && o[op["child"]].nil?
 
       receiver.move_before(o[op["node"]], o[op["child"]])
     end
