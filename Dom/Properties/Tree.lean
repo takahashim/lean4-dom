@@ -388,9 +388,9 @@ theorem depth_lt_size (hwf : WellFormed t) {n : NodeId} {d : NodeData} (hn : t.g
     depth t n < t.size :=
   ancestorChain_length_lt_size hwf hn t.size
 
-/-- 深さは parent から一段ずつ増える。`preorder` の正しさの証明で減少量として使う。 -/
-theorem depth_parent (hwf : WellFormed t) {c n : NodeId} (hp : parentOf t c = some n) :
-    depth t c = depth t n + 1 := by
+/-- ancestor の列は parent から一段ずつ伸びる。 -/
+theorem ancestors_eq_cons (hwf : WellFormed t) {c n : NodeId} (hp : parentOf t c = some n) :
+    ancestors t c = n :: ancestors t n := by
   obtain ⟨cd, hcd, hcdp⟩ := parentOf_eq_some hp
   obtain ⟨m, hm⟩ : ∃ m, t.size = m + 1 := by
     have := ancestorChain_length_lt_size hwf hcd 0
@@ -407,9 +407,14 @@ theorem depth_parent (hwf : WellFormed t) {c n : NodeId} (hp : parentOf t c = so
       omega
   have hstable : ancestorChain t (m + 1) n = ancestorChain t m n :=
     ancestorChain_eq_of_length_lt hchain (m + 1) (Nat.le_succ m)
-  show (ancestors t c).length = (ancestors t n).length + 1
   unfold ancestors
   rw [hm, ancestorChain_succ_some hp, hstable]
+
+/-- 深さは parent から一段ずつ増える。`preorder` の正しさの証明で減少量として使う。 -/
+theorem depth_parent (hwf : WellFormed t) {c n : NodeId} (hp : parentOf t c = some n) :
+    depth t c = depth t n + 1 := by
+  show (ancestors t c).length = (ancestors t n).length + 1
+  rw [ancestors_eq_cons hwf hp]
   simp
 
 /-! ## preorder -/
@@ -983,5 +988,466 @@ theorem InclusiveAncestor.trans_inclusive {t : Tree} {a b c : NodeId}
   · rcases hbc with rfl | hbc
     · exact Or.inr hab
     · exact Or.inr (hab.trans_ancestor hbc)
+
+/-! ## 兄弟の部分木の先行関係
+
+`precedes` を tree order の列挙から構造的な条件へ言い換えるための補題を並べる。
+「前の兄弟の部分木は後の兄弟の部分木より先行する」が中心である。
+-/
+
+theorem precedesIn_append_of_mem_left {a b : NodeId} :
+    ∀ (l₁ l₂ : List NodeId), a ∈ l₁ → b ∉ l₁ → b ∈ l₂ →
+      precedesIn (l₁ ++ l₂) a b = true := by
+  intro l₁
+  induction l₁ with
+  | nil => intro l₂ ha; simp at ha
+  | cons x rest ih =>
+    intro l₂ ha hb hb2
+    have hxb : x ≠ b := fun he => hb (he ▸ List.mem_cons_self ..)
+    by_cases hxa : x = a
+    · subst hxa
+      rw [List.cons_append, precedesIn_cons_self]
+      simp only [decide_eq_true_eq]
+      exact List.mem_append_right _ hb2
+    · rw [List.cons_append, precedesIn_cons_ne hxa hxb]
+      refine ih l₂ ?_ (fun h => hb (List.mem_cons_of_mem _ h)) hb2
+      rcases List.mem_cons.mp ha with he | he
+      · exact absurd he.symm hxa
+      · exact he
+
+/--
+`cs` の中で `cx` が `cy` より前にあり、各 node の列が互いに素なら、
+`cx` の列の要素は `cy` の列の要素より先行する。
+-/
+theorem precedesIn_flatMap_of_split {f : NodeId → List NodeId}
+    {u v : List NodeId} {cx cy x y : NodeId}
+    (hcy : cy ∈ v) (hx : x ∈ f cx) (hy : y ∈ f cy)
+    (hxu : ∀ c ∈ u, x ∉ f c) (hyu : ∀ c ∈ u, y ∉ f c) (hycx : y ∉ f cx) :
+    precedesIn ((u ++ cx :: v).flatMap f) x y = true := by
+  rw [List.flatMap_append, List.flatMap_cons]
+  rw [precedesIn_append_of_not_mem _ _
+    (fun h => by obtain ⟨c, hc, hxc⟩ := List.mem_flatMap.mp h; exact hxu c hc hxc)
+    (fun h => by obtain ⟨c, hc, hyc⟩ := List.mem_flatMap.mp h; exact hyu c hc hyc)]
+  exact precedesIn_append_of_mem_left _ _ hx hycx (List.mem_flatMap.mpr ⟨cy, hcy, hy⟩)
+
+/-! ## index と children の分割 -/
+
+theorem index_eq_some_iff_split {t : Tree} {c p : NodeId} {i : Nat}
+    (hp : parentOf t c = some p) :
+    index t c = some i ↔
+      ∃ u v, childrenOf t p = u ++ c :: v ∧ u.length = i ∧ c ∉ u := by
+  unfold index
+  rw [hp]
+  simp only [Option.bind_some]
+  exact Dom.ListUtil.findIdx?_eq_some_iff_split
+
+/-- well-formed な木では、parent を持つ node の index は必ず存在する。 -/
+theorem index_isSome (hwf : WellFormed t) {c p : NodeId} (hp : parentOf t c = some p) :
+    ∃ i, index t c = some i := by
+  have hmem : c ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hp
+  unfold index
+  rw [hp]
+  simp only [Option.bind_some]
+  cases hf : (childrenOf t p).findIdx? (fun x => decide (x = c)) with
+  | some i => exact ⟨i, rfl⟩
+  | none =>
+    exfalso
+    rw [List.findIdx?_eq_none_iff] at hf
+    have hn := hf c hmem
+    simp at hn
+
+/-- index が小さいほうの子で分割すると、index が大きいほうは後ろ側に入る。 -/
+theorem index_split_lt (hwf : WellFormed t) {p cx cy : NodeId} {i j : Nat}
+    (hcx : parentOf t cx = some p) (hcy : parentOf t cy = some p)
+    (hi : index t cx = some i) (hj : index t cy = some j) (hij : i < j) :
+    ∃ u v, childrenOf t p = u ++ cx :: v ∧ cy ∈ v := by
+  obtain ⟨u, v, hsplit, hlen, hnot⟩ := (index_eq_some_iff_split hcx).mp hi
+  refine ⟨u, v, hsplit, ?_⟩
+  have hnd : (childrenOf t p).Nodup := by
+    obtain ⟨pd, hpd⟩ := exists_data_of_parentOf hwf hcx
+    rw [childrenOf_eq hpd]
+    exact hwf.children_nodup p pd hpd
+  have hmem : cy ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hcy
+  rw [hsplit] at hmem hnd
+  have hund : u.Nodup := (List.nodup_append.mp hnd).1
+  rcases List.mem_append.mp hmem with hu | hv
+  · exfalso
+    obtain ⟨u₁, u₂, hu₁⟩ := Dom.ListUtil.mem_split hu
+    have hsplit₂ : childrenOf t p = u₁ ++ cy :: (u₂ ++ cx :: v) := by
+      rw [hsplit, hu₁]; simp
+    have hnot₁ : cy ∉ u₁ := by
+      rw [hu₁] at hund
+      intro hm
+      exact (List.nodup_append.mp hund).2.2 cy hm cy (List.mem_cons_self ..) rfl
+    have heq : index t cy = some u₁.length :=
+      (index_eq_some_iff_split hcy).mpr ⟨u₁, u₂ ++ cx :: v, hsplit₂, rfl, hnot₁⟩
+    rw [hj] at heq
+    have hju : j = u₁.length := Option.some.inj heq
+    have hlt : u₁.length < u.length := by rw [hu₁]; simp
+    omega
+  · rcases List.mem_cons.mp hv with he | he
+    · exfalso
+      rw [he, hi] at hj
+      have : i = j := Option.some.inj hj
+      omega
+    · exact he
+
+theorem inclusiveAncestor_of_ancestor_parent {t : Tree} {r n p : NodeId}
+    (h : Ancestor t r n) (hp : parentOf t n = some p) : InclusiveAncestor t r p := by
+  obtain ⟨q, hq, hcase⟩ := h.cases_parent
+  rw [hp] at hq
+  cases hq
+  rcases hcase with rfl | ha
+  · exact Or.inl rfl
+  · exact Or.inr ha
+
+/-- 前の兄弟の部分木は、後の兄弟の部分木より tree order で先行する。 -/
+theorem precedesIn_preorderFuel_of_sibling (hwf : WellFormed t) {k : Nat} {p cx cy x y : NodeId}
+    {pd : NodeData} (hp : t.get? p = some pd) (hk : t.size - depth t p ≤ k)
+    (hcx : parentOf t cx = some p) (hcy : parentOf t cy = some p)
+    {i j : Nat} (hi : index t cx = some i) (hj : index t cy = some j) (hij : i < j)
+    (hx : InclusiveDescendant t x cx) (hy : InclusiveDescendant t y cy) :
+    precedesIn (preorderFuel t k p) x y = true := by
+  obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := by
+    have := depth_lt_size hwf hp
+    exact ⟨k - 1, by omega⟩
+  -- children を cx の位置で分割する
+  obtain ⟨u, v, hsplit, hcyv⟩ := index_split_lt hwf hcx hcy hi hj hij
+  have hnd : (childrenOf t p).Nodup := by
+    rw [childrenOf_eq hp]; exact hwf.children_nodup p pd hp
+  rw [hsplit] at hnd
+  have hcxu : cx ∉ u := fun hm =>
+    (List.nodup_append.mp hnd).2.2 cx hm cx (List.mem_cons_self ..) rfl
+  have hune : ∀ c ∈ u, c ≠ cx ∧ c ≠ cy := by
+    intro c hc
+    exact ⟨(List.nodup_append.mp hnd).2.2 c hc cx (List.mem_cons_self ..),
+      (List.nodup_append.mp hnd).2.2 c hc cy (List.mem_cons_of_mem _ hcyv)⟩
+  have hxycx : cx ≠ cy := fun he =>
+    (List.nodup_cons.mp (List.nodup_append.mp hnd).2.1).1 (he ▸ hcyv)
+  -- 子の部分木は fuel k' で列挙できる
+  obtain ⟨cxd, hcxd, _⟩ := parentOf_eq_some hcx
+  obtain ⟨cyd, hcyd, _⟩ := parentOf_eq_some hcy
+  have hdx : depth t cx = depth t p + 1 := depth_parent hwf hcx
+  have hdy : depth t cy = depth t p + 1 := depth_parent hwf hcy
+  have hmemx : x ∈ preorderFuel t k' cx :=
+    mem_preorderFuel_of_inclusive_descendant hwf k' cx cxd hcxd (by omega) x hx
+  have hmemy : y ∈ preorderFuel t k' cy :=
+    mem_preorderFuel_of_inclusive_descendant hwf k' cy cyd hcyd (by omega) y hy
+  -- 部分木は互いに素
+  have hdisj : ∀ c ∈ childrenOf t p, ∀ c' ∈ childrenOf t p, c ≠ c' →
+      ∀ z, z ∈ preorderFuel t k' c → z ∉ preorderFuel t k' c' := by
+    intro c hc c' hc' hne z hz hz'
+    exact sibling_subtrees_disjoint hwf (parentOf_of_mem_childrenOf hwf hc)
+      (parentOf_of_mem_childrenOf hwf hc') hne
+      (inclusive_descendant_of_mem_preorderFuel hwf k' c z hz)
+      (inclusive_descendant_of_mem_preorderFuel hwf k' c' z hz')
+  have hmemu : ∀ c ∈ u, c ∈ childrenOf t p := by
+    intro c hc; rw [hsplit]; exact List.mem_append_left _ hc
+  have hmemcx : cx ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hcx
+  have hmemcy : cy ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hcy
+  -- x も y も p 自身ではない
+  have hxp : x ≠ p := by
+    intro he
+    subst he
+    rcases hx with hcxx | hanc
+    · exact hwf.acyclic x (Ancestor.step (hcxx ▸ hcx))
+    · exact hwf.acyclic x ((Ancestor.step hcx).trans_ancestor hanc)
+  have hyp : y ≠ p := by
+    intro he
+    subst he
+    rcases hy with hcyy | hanc
+    · exact hwf.acyclic y (Ancestor.step (hcyy ▸ hcy))
+    · exact hwf.acyclic y ((Ancestor.step hcy).trans_ancestor hanc)
+  rw [preorderFuel_succ_pos hp, precedesIn_cons_ne (fun he => hxp he.symm)
+    (fun he => hyp he.symm), hsplit]
+  exact precedesIn_flatMap_of_split hcyv hmemx hmemy
+    (fun c hc hz => hdisj cx hmemcx c (hmemu c hc) (fun he => (hune c hc).1 he.symm) x hmemx hz)
+    (fun c hc hz => hdisj cy hmemcy c (hmemu c hc) (fun he => (hune c hc).2 he.symm) y hmemy hz)
+    (fun hz => hdisj cy hmemcy cx hmemcx (fun he => hxycx he.symm) y hmemy hz)
+
+/-- 両方が前半にあるなら、連結しても判定は変わらない。 -/
+theorem precedesIn_append_of_mem_both {x y : NodeId} (hxy : x ≠ y) :
+    ∀ (l₁ l₂ : List NodeId), x ∈ l₁ → y ∈ l₁ →
+      precedesIn (l₁ ++ l₂) x y = precedesIn l₁ x y := by
+  intro l₁
+  induction l₁ with
+  | nil => intro l₂ hx; simp at hx
+  | cons z rest ih =>
+    intro l₂ hx hy
+    by_cases hzx : z = x
+    · subst hzx
+      have hy' : y ∈ rest := by
+        rcases List.mem_cons.mp hy with he | he
+        · exact absurd he.symm hxy
+        · exact he
+      rw [List.cons_append, precedesIn_cons_self, precedesIn_cons_self]
+      simp [hy', List.mem_append_left _ hy']
+    · by_cases hzy : z = y
+      · rw [List.cons_append, precedesIn_cons_target hzx hzy,
+          precedesIn_cons_target hzx hzy]
+      · have hx' : x ∈ rest := by
+          rcases List.mem_cons.mp hx with he | he
+          · exact absurd he.symm hzx
+          · exact he
+        have hy' : y ∈ rest := by
+          rcases List.mem_cons.mp hy with he | he
+          · exact absurd he.symm hzy
+          · exact he
+        rw [List.cons_append, precedesIn_cons_ne hzx hzy, precedesIn_cons_ne hzx hzy]
+        exact ih l₂ hx' hy'
+
+/-- 同じ segment に入っている二つの要素の判定は、その segment だけで決まる。 -/
+theorem precedesIn_flatMap_same {f : NodeId → List NodeId} {cs : List NodeId}
+    {c x y : NodeId} (hxy : x ≠ y) (hnd : cs.Nodup) (hc : c ∈ cs)
+    (hx : x ∈ f c) (hy : y ∈ f c)
+    (hdisj : ∀ c' ∈ cs, c' ≠ c → x ∉ f c' ∧ y ∉ f c') :
+    precedesIn (cs.flatMap f) x y = precedesIn (f c) x y := by
+  obtain ⟨u, v, hu⟩ := Dom.ListUtil.mem_split hc
+  subst hu
+  have hcu : c ∉ u := fun hm =>
+    (List.nodup_append.mp hnd).2.2 c hm c (List.mem_cons_self ..) rfl
+  have hne : ∀ c' ∈ u, c' ≠ c := fun c' hc' he => hcu (he ▸ hc')
+  rw [List.flatMap_append, List.flatMap_cons]
+  have hxu : x ∉ u.flatMap f := by
+    intro hm
+    obtain ⟨c', hc', hxc'⟩ := List.mem_flatMap.mp hm
+    exact (hdisj c' (List.mem_append_left _ hc') (hne c' hc')).1 hxc'
+  have hyu : y ∉ u.flatMap f := by
+    intro hm
+    obtain ⟨c', hc', hyc'⟩ := List.mem_flatMap.mp hm
+    exact (hdisj c' (List.mem_append_left _ hc') (hne c' hc')).2 hyc'
+  rw [precedesIn_append_of_not_mem _ _ hxu hyu]
+  exact precedesIn_append_of_mem_both hxy _ _ hx hy
+
+/--
+より深い位置の兄弟についても、前の兄弟の部分木は後の兄弟の部分木より先行する。
+
+`r` から `p` へ降りていく帰納法で示す。
+-/
+theorem precedesIn_preorderFuel_of_sibling_deep (hwf : WellFormed t) :
+    ∀ (k : Nat) (r x y : NodeId) (rd : NodeData), t.get? r = some rd →
+      t.size - depth t r ≤ k →
+      InclusiveDescendant t x r → InclusiveDescendant t y r →
+      ∀ (p cx cy : NodeId) (i j : Nat), parentOf t cx = some p → parentOf t cy = some p →
+        index t cx = some i → index t cy = some j → i < j →
+        InclusiveAncestor t cx x → InclusiveAncestor t cy y →
+      precedesIn (preorderFuel t k r) x y = true := by
+  intro k
+  induction k with
+  | zero =>
+    intro r x y rd hr hk
+    exfalso
+    have := depth_lt_size hwf hr
+    omega
+  | succ k ih =>
+    intro r x y rd hr hk hxr hyr p cx cy i j hcx hcy hi hj hij hxcx hycy
+    have hcxy : cx ≠ cy := by
+      intro he
+      rw [he, hj] at hi
+      have : j = i := Option.some.inj hi
+      omega
+    have hxy : x ≠ y := by
+      intro he
+      exact sibling_subtrees_disjoint hwf hcx hcy hcxy hxcx (he ▸ hycy)
+    by_cases hpr : p = r
+    · subst hpr
+      exact precedesIn_preorderFuel_of_sibling hwf hr hk hcx hcy hi hj hij hxcx hycy
+    · -- r は p の真の ancestor
+      have hrp : Ancestor t r p := by
+        rcases inclusive_ancestor_linear hxr hxcx with hrc | hcr
+        · rcases hrc with he | hanc
+          · exfalso
+            exact sibling_subtrees_disjoint hwf hcx hcy hcxy (by rw [← he]; exact hyr) hycy
+          · rcases inclusiveAncestor_of_ancestor_parent hanc hcx with he | hanc'
+            · exact absurd he.symm hpr
+            · exact hanc'
+        · exfalso
+          exact sibling_subtrees_disjoint hwf hcx hcy hcxy
+            (hcr.trans_inclusive hyr) hycy
+      obtain ⟨c, hc, hcp⟩ := hrp.exists_child
+      obtain ⟨cd, hcd, _⟩ := parentOf_eq_some hc
+      have hccx : InclusiveAncestor t c cx := hcp.trans_inclusive (Or.inr (Ancestor.step hcx))
+      have hccy : InclusiveAncestor t c cy := hcp.trans_inclusive (Or.inr (Ancestor.step hcy))
+      have hcxx : InclusiveAncestor t c x := hccx.trans_inclusive hxcx
+      have hcyy : InclusiveAncestor t c y := hccy.trans_inclusive hycy
+      have hrx : Ancestor t r x := by
+        rcases hcxx with he | hanc
+        · rw [← he]; exact Ancestor.step hc
+        · exact (Ancestor.step hc).trans_ancestor hanc
+      have hry : Ancestor t r y := by
+        rcases hcyy with he | hanc
+        · rw [← he]; exact Ancestor.step hc
+        · exact (Ancestor.step hc).trans_ancestor hanc
+      have hxr' : x ≠ r := fun he => hwf.acyclic r (he ▸ hrx)
+      have hyr' : y ≠ r := fun he => hwf.acyclic r (he ▸ hry)
+      have hdepth : depth t c = depth t r + 1 := depth_parent hwf hc
+      have hmemx : x ∈ preorderFuel t k c :=
+        mem_preorderFuel_of_inclusive_descendant hwf k c cd hcd (by omega) x hcxx
+      have hmemy : y ∈ preorderFuel t k c :=
+        mem_preorderFuel_of_inclusive_descendant hwf k c cd hcd (by omega) y hcyy
+      have hnd : (childrenOf t r).Nodup := by
+        rw [childrenOf_eq hr]; exact hwf.children_nodup r rd hr
+      have hmemc : c ∈ childrenOf t r := mem_childrenOf_of_parentOf hwf hc
+      have hsame : precedesIn ((childrenOf t r).flatMap (preorderFuel t k)) x y
+          = precedesIn (preorderFuel t k c) x y := by
+        refine precedesIn_flatMap_same hxy hnd hmemc hmemx hmemy ?_
+        intro c' hc' hne
+        refine ⟨fun hz => ?_, fun hz => ?_⟩
+        · exact sibling_subtrees_disjoint hwf (parentOf_of_mem_childrenOf hwf hc') hc hne
+            (inclusive_descendant_of_mem_preorderFuel hwf k c' x hz) hcxx
+        · exact sibling_subtrees_disjoint hwf (parentOf_of_mem_childrenOf hwf hc') hc hne
+            (inclusive_descendant_of_mem_preorderFuel hwf k c' y hz) hcyy
+      rw [preorderFuel_succ_pos hr, precedesIn_cons_ne (fun he => hxr' he.symm)
+        (fun he => hyr' he.symm), hsame]
+      exact ih c x y cd hcd (by omega) hcxx hcyy p cx cy i j hcx hcy hi hj hij hxcx hycy
+
+/-! ## tree order の構造的な特徴づけ -/
+
+/--
+構造で定めた tree order の先行関係。
+
+`x` が `y` の ancestor であるか、あるいは共通の parent を持つ二つの子 `cx`, `cy` が
+あって `cx` のほうが index が小さく、`x` が `cx` の、`y` が `cy` の
+inclusive descendant であるか、のいずれか。
+-/
+def PrecedesStruct (t : Tree) (x y : NodeId) : Prop :=
+  Ancestor t x y ∨
+    ∃ p cx cy i j, parentOf t cx = some p ∧ parentOf t cy = some p ∧
+      index t cx = some i ∧ index t cy = some j ∧ i < j ∧
+      InclusiveAncestor t cx x ∧ InclusiveAncestor t cy y
+
+theorem precedesIn_preorder_of_struct (hwf : WellFormed t) {r x y : NodeId} {rd : NodeData}
+    (hr : t.get? r = some rd) (hx : InclusiveDescendant t x r)
+    (hy : InclusiveDescendant t y r) (h : PrecedesStruct t x y) :
+    precedesIn (preorder t r) x y = true := by
+  rcases h with hanc | ⟨p, cx, cy, i, j, hcx, hcy, hi, hj, hij, hxcx, hycy⟩
+  · exact precedesIn_preorderFuel_of_ancestor hwf t.size r rd hr (Nat.sub_le _ _) x y hanc hx
+  · exact precedesIn_preorderFuel_of_sibling_deep hwf t.size r x y rd hr (Nat.sub_le _ _)
+      hx hy p cx cy i j hcx hcy hi hj hij hxcx hycy
+
+/-- 同じ parent の相異なる子は index も異なる。 -/
+theorem index_ne_of_ne {t : Tree} {p cx cy : NodeId} {i j : Nat}
+    (hcx : parentOf t cx = some p) (hcy : parentOf t cy = some p)
+    (hi : index t cx = some i) (hj : index t cy = some j) (hne : cx ≠ cy) : i ≠ j := by
+  intro he
+  subst he
+  obtain ⟨u, v, hsplit, hlen, _⟩ := (index_eq_some_iff_split hcx).mp hi
+  obtain ⟨u', v', hsplit', hlen', _⟩ := (index_eq_some_iff_split hcy).mp hj
+  exact hne (Dom.ListUtil.append_cons_inj (by rw [← hsplit, hsplit']) (by omega))
+
+/-- 同じ木にある相異なる二つの node は、必ずどちらかが先行する。 -/
+theorem precedesStruct_total (hwf : WellFormed t) :
+    ∀ (k : Nat) (r x y : NodeId) (rd : NodeData), t.get? r = some rd →
+      t.size - depth t r ≤ k → InclusiveDescendant t x r → InclusiveDescendant t y r →
+      x ≠ y → PrecedesStruct t x y ∨ PrecedesStruct t y x := by
+  intro k
+  induction k with
+  | zero =>
+    intro r x y rd hr hk
+    exfalso
+    have := depth_lt_size hwf hr
+    omega
+  | succ k ih =>
+    intro r x y rd hr hk hx hy hxy
+    by_cases hxr : x = r
+    · subst hxr
+      rcases hy with he | hanc
+      · exact absurd he hxy
+      · exact Or.inl (Or.inl hanc)
+    · by_cases hyr : y = r
+      · subst hyr
+        rcases hx with he | hanc
+        · exact absurd he.symm hxy
+        · exact Or.inr (Or.inl hanc)
+      · -- どちらも r の真の descendant
+        have hrx : Ancestor t r x := by
+          rcases hx with he | hanc
+          · exact absurd he.symm hxr
+          · exact hanc
+        have hry : Ancestor t r y := by
+          rcases hy with he | hanc
+          · exact absurd he.symm hyr
+          · exact hanc
+        obtain ⟨cx, hcx, hcxx⟩ := hrx.exists_child
+        obtain ⟨cy, hcy, hcyy⟩ := hry.exists_child
+        by_cases hcc : cx = cy
+        · subst hcc
+          obtain ⟨cd, hcd, _⟩ := parentOf_eq_some hcx
+          have hdepth : depth t cx = depth t r + 1 := depth_parent hwf hcx
+          exact ih cx x y cd hcd (by omega) hcxx hcyy hxy
+        · obtain ⟨i, hi⟩ := index_isSome hwf hcx
+          obtain ⟨j, hj⟩ := index_isSome hwf hcy
+          rcases Nat.lt_or_ge i j with hlt | hge
+          · exact Or.inl (Or.inr ⟨r, cx, cy, i, j, hcx, hcy, hi, hj, hlt, hcxx, hcyy⟩)
+          · have hne := index_ne_of_ne hcx hcy hi hj hcc
+            exact Or.inr (Or.inr ⟨r, cy, cx, j, i, hcy, hcx, hj, hi, by omega, hcyy, hcxx⟩)
+
+/-- 列の中で両方が先行しあうことはない。 -/
+theorem precedesIn_asymm {l : List NodeId} {x y : NodeId} (hxy : x ≠ y)
+    (hx : x ∈ l) (hy : y ∈ l) (h : precedesIn l x y = true) : precedesIn l y x = false := by
+  cases hb : precedesIn l y x with
+  | false => rfl
+  | true =>
+    exfalso
+    have h1 := (precedesIn_iff_idx hxy l hx hy).mp h
+    have h2 := (precedesIn_iff_idx (fun he => hxy he.symm) l hy hx).mp hb
+    omega
+
+/-- PLAN §4.2 の拡張。`precedes` は構造的な条件と一致する。 -/
+theorem precedesIn_preorder_iff_struct (hwf : WellFormed t) {r x y : NodeId} {rd : NodeData}
+    (hr : t.get? r = some rd) (hx : InclusiveDescendant t x r)
+    (hy : InclusiveDescendant t y r) (hxy : x ≠ y) :
+    precedesIn (preorder t r) x y = true ↔ PrecedesStruct t x y := by
+  constructor
+  · intro h
+    rcases precedesStruct_total hwf t.size r x y rd hr (Nat.sub_le _ _) hx hy hxy with hs | hs
+    · exact hs
+    · exfalso
+      have hyx := precedesIn_preorder_of_struct hwf hr hy hx hs
+      rw [precedesIn_asymm hxy ((mem_preorder_iff hwf hr x).mpr hx)
+        ((mem_preorder_iff hwf hr y).mpr hy) h] at hyx
+      simp at hyx
+  · exact precedesIn_preorder_of_struct hwf hr hx hy
+
+/-- `precedes` の構造的な特徴づけ。同じ root にある相異なる二つの node について。 -/
+theorem precedes_iff_struct (hwf : WellFormed t) {a b : NodeId} {ad : NodeData}
+    (ha : t.get? a = some ad) (hroot : root t a = root t b) (hab : a ≠ b) :
+    precedes t a b = true ↔ PrecedesStruct t a b := by
+  obtain ⟨rd, hrd⟩ := exists_data_root hwf ha
+  have hxa : InclusiveDescendant t a (root t a) := root_inclusive_ancestor t a
+  have hxb : InclusiveDescendant t b (root t a) := by
+    rw [hroot]; exact root_inclusive_ancestor t b
+  unfold precedes treeOrder
+  exact precedesIn_preorder_iff_struct hwf hrd hxa hxb hab
+
+/-- 同じ root にある相異なる二つの node は、どちらか一方だけが先行する。 -/
+theorem precedes_eq_false_iff (hwf : WellFormed t) {a b : NodeId} {ad : NodeData}
+    (ha : t.get? a = some ad) (hroot : root t a = root t b) (hab : a ≠ b) :
+    precedes t b a = false ↔ PrecedesStruct t a b := by
+  obtain ⟨rd, hrd⟩ := exists_data_root hwf ha
+  have hxa : InclusiveDescendant t a (root t a) := root_inclusive_ancestor t a
+  have hxb : InclusiveDescendant t b (root t a) := by
+    rw [hroot]; exact root_inclusive_ancestor t b
+  have hba : precedes t b a = true ↔ PrecedesStruct t b a := by
+    obtain ⟨bd, hbd⟩ : ∃ bd, t.get? b = some bd :=
+      exists_data_of_mem_preorderFuel t.size (root t a) b ((mem_preorder_iff hwf hrd b).mpr hxb)
+    exact precedes_iff_struct hwf hbd hroot.symm (fun h => hab h.symm)
+  constructor
+  · intro h
+    rcases precedesStruct_total hwf t.size (root t a) a b rd hrd (Nat.sub_le _ _)
+      hxa hxb hab with hs | hs
+    · exact hs
+    · exact absurd (hba.mpr hs) (by rw [h]; simp)
+  · intro hs
+    cases hb : precedes t b a with
+    | false => rfl
+    | true =>
+      exfalso
+      have hs' := hba.mp hb
+      have h1 := precedesIn_preorder_of_struct hwf hrd hxa hxb hs
+      have h2 := precedesIn_preorder_of_struct hwf hrd hxb hxa hs'
+      rw [precedesIn_asymm hab ((mem_preorder_iff hwf hrd a).mpr hxa)
+        ((mem_preorder_iff hwf hrd b).mpr hxb) h1] at h2
+      simp at h2
 
 end Dom

@@ -249,6 +249,15 @@ theorem removeAll_eq_self {α : Type _} [DecidableEq α] {l : List α} {a : α} 
   intro he
   exact h (he ▸ hx)
 
+/-- 分割した形での `removeAll`。 -/
+theorem removeAll_append_cons {α : Type _} [DecidableEq α] {u v : List α} {a : α}
+    (hu : a ∉ u) (hv : a ∉ v) : removeAll (u ++ a :: v) a = u ++ v := by
+  unfold removeAll
+  rw [List.filter_append, List.filter_cons]
+  simp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, if_false]
+  rw [show (u.filter fun x => decide (x ≠ a)) = u from removeAll_eq_self hu,
+    show (v.filter fun x => decide (x ≠ a)) = v from removeAll_eq_self hv]
+
 /-- 重複が無い list から要素を一つ取り除くと、長さがちょうど 1 減る。 -/
 theorem length_removeAll {α : Type _} [DecidableEq α] :
     ∀ {l : List α} {a : α}, l.Nodup → a ∈ l → (removeAll l a).length + 1 = l.length
@@ -301,5 +310,137 @@ theorem lastD_mem_or {α : Type _} : ∀ (l : List α) (d : α), lastD l d ∈ l
     rcases lastD_mem_or (y :: rest) d with h | h
     · exact Or.inl (List.mem_cons_of_mem _ (by simpa [lastD] using h))
     · exact Or.inr (by simpa [lastD] using h)
+
+/--
+`findIdx?` が `some i` を返すことと、その要素の直前で分割できることは同値である。
+
+`Dom/Basic/Tree.lean` の `index` は children の中での位置なので、
+この補題で「children を分割した形」と行き来する。
+-/
+theorem findIdx?_eq_some_iff_split {α : Type _} [DecidableEq α] {a : α} :
+    ∀ {l : List α} {i : Nat},
+      l.findIdx? (fun x => decide (x = a)) = some i ↔
+        ∃ u v, l = u ++ a :: v ∧ u.length = i ∧ a ∉ u
+  | [], i => by
+    constructor
+    · intro h; simp at h
+    · rintro ⟨u, v, hu, _, _⟩
+      cases u <;> simp at hu
+  | x :: rest, i => by
+    constructor
+    · intro h
+      rw [List.findIdx?_cons] at h
+      by_cases hx : x = a
+      · rw [if_pos (by simp [hx])] at h
+        have hi : i = 0 := (Option.some.inj h).symm
+        subst hi
+        exact ⟨[], rest, by rw [hx]; rfl, rfl, by simp⟩
+      · rw [if_neg (by simp [hx])] at h
+        obtain ⟨i', hi', he⟩ := Option.map_eq_some_iff.mp h
+        obtain ⟨u, v, hu, hlen, hnot⟩ := findIdx?_eq_some_iff_split.mp hi'
+        refine ⟨x :: u, v, by rw [hu]; rfl, by simp only [List.length_cons, hlen]; omega, ?_⟩
+        intro hm
+        rcases List.mem_cons.mp hm with he' | he'
+        · exact hx he'.symm
+        · exact hnot he'
+    · rintro ⟨u, v, hu, hlen, hnot⟩
+      rw [List.findIdx?_cons]
+      cases u with
+      | nil =>
+        have hxa : x = a := (List.cons.inj hu).1
+        rw [if_pos (by simp [hxa])]
+        have hi : i = 0 := by simpa using hlen.symm
+        rw [hi]
+      | cons y u' =>
+        obtain ⟨hy, hrest⟩ := List.cons.inj hu
+        have hxa : x ≠ a := by
+          intro he
+          exact hnot (by rw [← hy, he]; exact List.mem_cons_self ..)
+        rw [if_neg (by simp [hxa])]
+        refine Option.map_eq_some_iff.mpr ⟨u'.length, ?_, ?_⟩
+        · exact findIdx?_eq_some_iff_split.mpr ⟨u', v, hrest, rfl,
+            fun hm => hnot (List.mem_cons_of_mem _ hm)⟩
+        · simp only [List.length_cons] at hlen; omega
+
+/-- 同じ位置で分割した list の、その位置の要素は等しい。 -/
+theorem append_cons_inj {α : Type _} :
+    ∀ {u u' : List α} {a b : α} {v v' : List α},
+      u ++ a :: v = u' ++ b :: v' → u.length = u'.length → a = b
+  | [], [], a, b, v, v', h, _ => (List.cons.inj h).1
+  | [], _ :: _, _, _, _, _, _, hlen => by simp at hlen
+  | _ :: _, [], _, _, _, _, _, hlen => by simp at hlen
+  | x :: u, y :: u', a, b, v, v', h, hlen => by
+    refine append_cons_inj (u := u) (u' := u') (a := a) (b := b) (v := v) (v' := v') ?_ ?_
+    · exact (List.cons.inj h).2
+    · simp only [List.length_cons] at hlen; omega
+
+/-- `removeAll` した後の `findIdx?`。取り除いた位置より後ろなら 1 減る。 -/
+theorem findIdx?_removeAll {α : Type _} [DecidableEq α] {l : List α} {a c : α} {i k : Nat}
+    (hnd : l.Nodup) (hcn : c ≠ a)
+    (ha : l.findIdx? (fun x => decide (x = a)) = some i)
+    (hc : l.findIdx? (fun x => decide (x = c)) = some k) :
+    (removeAll l a).findIdx? (fun x => decide (x = c)) = some (if i < k then k - 1 else k) := by
+  obtain ⟨u, v, hl, hulen, hnu⟩ := findIdx?_eq_some_iff_split.mp ha
+  subst hl
+  obtain ⟨hndu, hndav, hcross⟩ := List.nodup_append.mp hnd
+  have hnv : a ∉ v := (List.nodup_cons.mp hndav).1
+  have hndv : v.Nodup := (List.nodup_cons.mp hndav).2
+  rw [removeAll_append_cons hnu hnv]
+  have hcmem : c ∈ u ++ a :: v := by
+    obtain ⟨w1, w2, hw, _, _⟩ := findIdx?_eq_some_iff_split.mp hc
+    rw [hw]; simp
+  rcases List.mem_append.mp hcmem with hcu | hcav
+  · -- c は取り除く位置より前
+    obtain ⟨u1, u2, hu⟩ := mem_split hcu
+    subst hu
+    obtain ⟨hndu1, hndcu2, hcross1⟩ := List.nodup_append.mp hndu
+    have hnu1 : c ∉ u1 := fun hm => hcross1 c hm c (by simp) rfl
+    have hkeq : k = u1.length := by
+      have : (u1 ++ c :: (u2 ++ a :: v)).findIdx? (fun x => decide (x = c)) = some u1.length :=
+        findIdx?_eq_some_iff_split.mpr ⟨u1, u2 ++ a :: v, by simp, rfl, hnu1⟩
+      rw [show u1 ++ c :: u2 ++ a :: v = u1 ++ c :: (u2 ++ a :: v) by simp] at hc
+      rw [this] at hc
+      exact (Option.some.inj hc).symm
+    have hilt : k < i := by
+      rw [hkeq, ← hulen]
+      simp
+    rw [if_neg (by omega)]
+    rw [show u1 ++ c :: u2 ++ v = u1 ++ c :: (u2 ++ v) by simp]
+    rw [findIdx?_eq_some_iff_split.mpr ⟨u1, u2 ++ v, rfl, rfl, hnu1⟩, hkeq]
+  · -- c は取り除く位置より後ろ
+    have hcv : c ∈ v := by
+      rcases List.mem_cons.mp hcav with he | hm
+      · exact absurd he hcn
+      · exact hm
+    obtain ⟨v1, v2, hv⟩ := mem_split hcv
+    subst hv
+    obtain ⟨hndv1, hndcv2, hcrossv⟩ := List.nodup_append.mp hndv
+    have hnv1 : c ∉ v1 := fun hm => hcrossv c hm c (by simp) rfl
+    have hncu : c ∉ u := fun hm => hcross c hm c (by simp) rfl
+    have hnpre : c ∉ u ++ a :: v1 := by
+      intro hm
+      rcases List.mem_append.mp hm with h | h
+      · exact hncu h
+      · rcases List.mem_cons.mp h with he | h
+        · exact hcn he
+        · exact hnv1 h
+    have hkeq : k = (u ++ a :: v1).length := by
+      have : (u ++ a :: (v1 ++ c :: v2)).findIdx? (fun x => decide (x = c))
+          = some (u ++ a :: v1).length :=
+        findIdx?_eq_some_iff_split.mpr ⟨u ++ a :: v1, v2, by simp, rfl, hnpre⟩
+      rw [this] at hc
+      exact (Option.some.inj hc).symm
+    have hilt : i < k := by
+      rw [hkeq, ← hulen]
+      simp
+    rw [if_pos hilt]
+    rw [show u ++ (v1 ++ c :: v2) = (u ++ v1) ++ c :: v2 by simp]
+    have hnpre2 : c ∉ u ++ v1 := by
+      intro hm
+      rcases List.mem_append.mp hm with h | h
+      · exact hncu h
+      · exact hnv1 h
+    rw [findIdx?_eq_some_iff_split.mpr ⟨u ++ v1, v2, rfl, rfl, hnpre2⟩, hkeq]
+    simp
 
 end Dom.ListUtil

@@ -141,7 +141,8 @@ if $PROGRAM_NAME == __FILE__
   # 既定で混ぜると初期状態の時点で多数が不一致になり、
   # 操作の意味論の比較ができなくなる。
   opts = { count: 50, seed: Random.new_seed, nodes: 8, ops: 6,
-           move: false, all: false, fixed_only: false, doctype: 0.0 }
+           move: false, all: false, fixed_only: false, doctype: 0.0,
+           ranges: 2, iterators: 1 }
   OptionParser.new do |o|
     o.on("--count N", Integer) { |v| opts[:count] = v }
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
@@ -151,6 +152,8 @@ if $PROGRAM_NAME == __FILE__
     o.on("--all-ops") { opts[:all] = true }
     o.on("--fixed-only") { opts[:fixed_only] = true }
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
+    o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
+    o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
   end.parse!
 
   Difftest.report_capabilities
@@ -183,7 +186,8 @@ if $PROGRAM_NAME == __FILE__
     rng = Random.new(opts[:seed])
     generated = Array.new(opts[:count]) do
       Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops],
-                             ops: ops, allow: allow, doctype_prob: opts[:doctype])
+                             ops: ops, allow: allow, doctype_prob: opts[:doctype],
+                             range_count: opts[:ranges], iterator_count: opts[:iterators])
     end
     puts "生成 scenario（seed=#{opts[:seed]}, count=#{opts[:count]}）:"
     stats = Hash.new(0)

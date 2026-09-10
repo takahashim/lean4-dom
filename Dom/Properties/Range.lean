@@ -1,5 +1,6 @@
 import Dom.Range.Adjust
 import Dom.Properties.Algorithms
+import Dom.Properties.Path
 
 /-!
 # Phase 5 の theorem
@@ -75,20 +76,6 @@ theorem index_lt_children_length {t : Tree} {n p : NodeId} {i : Nat}
   rw [hp] at hi
   simp only [Option.bind_some] at hi
   exact (List.findIdx?_eq_some_iff_findIdx_eq.mp hi).1
-
-theorem index_isSome {t : Tree} {n p : NodeId} (hwf : WellFormed t)
-    (hp : parentOf t n = some p) : ∃ i, index t n = some i := by
-  have hmem : n ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hp
-  unfold index
-  rw [hp]
-  simp only [Option.bind_some]
-  cases hf : (childrenOf t p).findIdx? (fun c => decide (c = n)) with
-  | some i => exact ⟨i, rfl⟩
-  | none =>
-    exfalso
-    rw [List.findIdx?_eq_none_iff] at hf
-    have hn := hf n hmem
-    simp at hn
 
 /-! ## detach と length -/
 
@@ -1091,11 +1078,69 @@ theorem insert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId
     · exact hstep s _ hv h
 
 /-- `remove` の後も、両端が同じ node を指す range は正しく並んでいる。 -/
-theorem remove_preserves_boundaryLE {s s' : DOMState} {n p : NodeId}
+theorem remove_preserves_boundaryLE_sameNode {s s' : DOMState} {n p : NodeId}
     (hp : parentOf s.tree n = some p) (h : remove s n = .ok s')
     (hv : RangesSameNodeOrdered s) :
     ∀ r ∈ s'.ranges, BoundaryLE s'.tree r.start r.«end» :=
   boundaryLE_of_sameNodeOrdered (remove_preserves_sameNodeOrdered hp h hv)
+
+/--
+PLAN §8.3。`remove` は range の順序を保つ。両端が別の node を指す場合も含む。
+
+`Dom/Properties/Path.lean` の key 表現（`bpPosition_eq_lexCmp`）を使う。
+live range pre-remove steps は key の上では `shiftKey` として働き、
+`shiftKey` は辞書式順序について単調である。
+-/
+theorem remove_preserves_boundaryLE {s s' : DOMState} {n p : NodeId}
+    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p)
+    (hv : RangeEndpointsValid s)
+    (hord : ∀ r ∈ s.ranges, BoundaryLE s.tree r.start r.«end»)
+    (h : remove s n = .ok s') :
+    ∀ r ∈ s'.ranges, BoundaryLE s'.tree r.start r.«end» := by
+  obtain ⟨i, hi⟩ := index_isSome hwf hp
+  have hwf' : WellFormed s'.tree := remove_preserves_wellformed hwf h
+  have hranges : s'.ranges = s.ranges.map (liveRangePreRemoveRange s.tree n p i) := by
+    rw [remove_ranges hp h, hi]; rfl
+  intro r hr
+  rw [hranges] at hr
+  obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hr
+  obtain ⟨⟨ad, had, _⟩, ⟨bd, hbd, _⟩⟩ := hv r₀ hr₀
+  rw [← hrr]
+  exact boundaryLE_detach hwf hwf' hp hi (remove_ok h).2 had hbd (hord r₀ hr₀)
+
+/-- `remove` は `RangeValid` を保つ。 -/
+theorem remove_preserves_rangesValid {s s' : DOMState} {n p : NodeId}
+    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p)
+    (hlen : ChildCountKind s.tree p) (hv : RangesValid s) (h : remove s n = .ok s') :
+    RangesValid s' := by
+  intro r hr
+  obtain ⟨hs, he⟩ := remove_preserves_endpoints hwf hp hlen hv.endpoints h r hr
+  exact ⟨hs, he, remove_preserves_boundaryLE hwf hp hv.endpoints
+    (fun r₀ hr₀ => (hv r₀ hr₀).2.2) h r hr⟩
+
+/-! ### remove を経由する public API への持ち上げ -/
+
+theorem preRemove_preserves_rangesValid {s s' : DOMState} {child parent : NodeId}
+    (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
+    (hv : RangesValid s) (h : preRemove s child parent = .ok s') : RangesValid s' := by
+  unfold preRemove at h
+  split at h
+  · simp at h
+  · next hp => exact remove_preserves_rangesValid hwf (by simpa using hp) hlen hv h
+
+theorem removeChild_preserves_rangesValid {s s' : DOMState} {parent child : NodeId}
+    (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
+    (hv : RangesValid s) (h : removeChild s parent child = .ok s') : RangesValid s' :=
+  preRemove_preserves_rangesValid hwf hlen hv h
+
+theorem nodeRemove_preserves_rangesValid {s s' : DOMState} {this : NodeId}
+    (hwf : WellFormed s.tree)
+    (hlen : ∀ p, parentOf s.tree this = some p → ChildCountKind s.tree p)
+    (hv : RangesValid s) (h : nodeRemove s this = .ok s') : RangesValid s' := by
+  unfold nodeRemove at h
+  split at h
+  · rw [← Except.ok.inj h]; exact hv
+  · next p hp => exact remove_preserves_rangesValid hwf hp (hlen p hp) hv h
 
 /-- `move` も `remove` と挿入側の調整を通るだけなので、同じ node の上の順序を保つ。 -/
 theorem move_preserves_sameNodeOrdered {s s' : DOMState} {node newParent : NodeId}

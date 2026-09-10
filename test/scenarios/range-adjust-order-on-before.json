@@ -1,0 +1,16 @@
+{
+  "_note": "before() の挿入側 offset 調整（仕様 insert step 5）は、step 7 の adopt→remove より前に走る。element6.before 相当で 6 を前へ動かすと、6 の中にあった boundary は remove により (1,1) へ出るが、step 5 はその前に済んでいるので +1 されない。仕様/Lean は (1,1)、Dommy は調整を後に回すので (1,2)。",
+  "nodes": [
+    {"id": 0, "kind": "document"},
+    {"id": 1, "kind": "element", "parent": 0},
+    {"id": 5, "kind": "comment", "parent": 1, "data": "c"},
+    {"id": 6, "kind": "element", "parent": 1}
+  ],
+  "ranges": [
+    {"start": {"node": 6, "offset": 0}, "end": {"node": 6, "offset": 0}}
+  ],
+  "iterators": [],
+  "operations": [
+    {"op": "before", "target": 5, "node": 6}
+  ]
+}

@@ -107,7 +107,26 @@ def RangeEndpointsValid (s : DOMState) : Prop :=
 theorem RangesValid.endpoints {s : DOMState} (h : RangesValid s) : RangeEndpointsValid s :=
   fun r hr => ⟨(h r hr).1, (h r hr).2.1⟩
 
-/-- 実行時の検査。differential testing の各 step で使う。 -/
+/--
+実行時の検査のうち、両端が木の中にあることだけを見る部分。
+
+順序（`BoundaryLE`）は **仕様の invariant ではない**。
+`setStart` / `setEnd` は順序を保つように collapse するが、
+木を変える algorithm の側にはそのような正規化が無く、
+insert step 5 と step 7 の adopt→remove の順序のせいで
+start と end が逆転することがある（`docs/status.md` 参照）。
+differential testing の各 step で model の不具合として扱ってよいのはこちらだけである。
+-/
+def checkRangeEndpointsValid (s : DOMState) : Bool :=
+  s.ranges.all fun r =>
+    checkValidBoundaryPoint s.tree r.start && checkValidBoundaryPoint s.tree r.«end»
+
+theorem checkRangeEndpointsValid_iff (s : DOMState) :
+    checkRangeEndpointsValid s = true ↔ RangeEndpointsValid s := by
+  simp only [checkRangeEndpointsValid, List.all_eq_true, Bool.and_eq_true,
+    checkValidBoundaryPoint_iff, RangeEndpointsValid, EndpointsValid]
+
+/-- 両端が木の中にあり、かつ順序も付いていること。 -/
 def checkRangesValid (s : DOMState) : Bool :=
   s.ranges.all fun r =>
     checkValidBoundaryPoint s.tree r.start && checkValidBoundaryPoint s.tree r.«end» &&

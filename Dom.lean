@@ -18,6 +18,7 @@ import Dom.Mutation.Api
 import Dom.Properties.Tree
 import Dom.Properties.Mutation
 import Dom.Properties.Algorithms
+import Dom.Properties.Path
 import Dom.Properties.Range
 import Dom.Properties.Iterator
 import Dom.Properties.CharacterData

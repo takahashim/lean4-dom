@@ -1,0 +1,16 @@
+{
+  "_note": "仕様の insert は live range の start ≤ end を保たない。insert step 5（parent を指す offset の +count）は step 7 の adopt→remove より前に走るので、動かす node の中にあった boundary は step 5 の後に (parent, 旧 index) へ出る。node はその位置より前へ入るため、start と end が逆転する。ここでは start=(2,0)、end は (1,1) になり、node 2 は index 1 なので start が end より後になる。Dommy は調整を remove の後に回すので end=(1,2) となり、たまたま順序を保つ（Dommy 側の未修正 finding と同じ原因）。",
+  "nodes": [
+    {"id": 0, "kind": "document"},
+    {"id": 1, "kind": "element", "parent": 0},
+    {"id": 2, "kind": "comment", "parent": 1, "data": "cc"},
+    {"id": 3, "kind": "text", "parent": 1, "data": "tt"}
+  ],
+  "ranges": [
+    {"start": {"node": 2, "offset": 0}, "end": {"node": 3, "offset": 2}}
+  ],
+  "iterators": [],
+  "operations": [
+    {"op": "insertBefore", "parent": 1, "node": 3, "child": 2}
+  ]
+}

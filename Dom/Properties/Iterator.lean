@@ -100,15 +100,6 @@ theorem ancestor_root_of_not_above {t : Tree} {root tbr node : NodeId} (hwf : We
     rw [(isInclusiveAncestorOf_iff hwf tbr root).mpr h] at hroot
     simp at hroot
 
-theorem inclusiveAncestor_of_ancestor_parent {t : Tree} {r n p : NodeId}
-    (h : Ancestor t r n) (hp : parentOf t n = some p) : InclusiveAncestor t r p := by
-  obtain ⟨q, hq, hcase⟩ := h.cases_parent
-  rw [hp] at hq
-  cases hq
-  rcases hcase with rfl | ha
-  · exact Or.inl rfl
-  · exact Or.inr ha
-
 theorem inclusiveAncestor_lastD_preorder {t : Tree} {prev : NodeId} {d : NodeData}
     (hwf : WellFormed t) (hprev : t.get? prev = some d) :
     InclusiveAncestor t prev (ListUtil.lastD (preorder t prev) prev) := by

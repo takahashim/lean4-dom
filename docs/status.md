@@ -659,6 +659,9 @@ step 8-11 の三つの場合をどれも `omega` で片づけられる。
 2. parent を持つ node の `insert`（仕様が調整を removal より前に置くため、途中で一時的に invalid になる）
 3. DocumentFragment を展開する `insert`
 
+（2 と 3 はその後証明した。1 は `remove` については証明した。
+`insert` / `move` の挿入側は仕様がその性質を持たないことが分かった。以下の節を参照。）
+
 いずれも定義と実行時検査（`checkRangesValid`）は用意してあり、
 differential testing の各 step で確認している。
 
@@ -724,16 +727,272 @@ public API について `RangesSameNodeOrdered` の保存を示し、
 `replaceData_preserves_boundaryLE` を得た。
 differential testing の生成器が作る range もこの形である。
 
-**両端が別の node を指す場合は未証明。**
-仕様の boundary point position は step 3-4 で tree order（`precedes`）と
-`childTowards` を使うので、mutation の後の tree order を追う理論が要る。
-具体的には「部分木を外したとき、外に残る node どうしの tree order は変わらない」
-という定理と、そのための「preorder における部分木は連続した区間である」という補題が要る。
-実行時検査（`checkRangesValid`）はこの場合も含めて確認しており、
-differential testing で不一致は出ていない。
+**両端が別の node を指す場合**は、`remove` については証明した（次節）。
+`insert` / `move` の挿入側は、その後 **定理が偽であること** が分かった
+（「`insert` 側の `BoundaryLE` は保たれない」の節）。
+
+## 別 node の `BoundaryLE`：`remove` について証明した
+
+新しい module `Dom/Properties/Path.lean`（約 900 行）で、
+boundary point position を **数列の辞書式比較** に言い換えてから証明した。
+
+### key による言い換え
+
+root から node へ至る経路上の各段の index を並べた列に offset を付けたものを
+boundary point の **key** とする。
+
+```lean
+def pathNodes (t : Tree) (n : NodeId) : List NodeId := (n :: ancestors t n).reverse
+def pathIndices (t : Tree) (n : NodeId) : List Nat :=
+  ((pathNodes t n).drop 1).map fun x => (index t x).getD 0
+def bpKey (t : Tree) (bp : BoundaryPoint) : List Nat := pathIndices t bp.node ++ [bp.offset]
+```
+
+```lean
+theorem bpPosition_eq_lexCmp (hwf : WellFormed t) {a b : BoundaryPoint} {ad bd : NodeData}
+    (ha : t.get? a.node = some ad) (hb : t.get? b.node = some bd)
+    (hroot : root t a.node = root t b.node) :
+    bpPosition t a b = lexCmp (bpKey t a) (bpKey t b)
+```
+
+仕様の boundary point position は step 2（同じ node）、step 3（follow なら入れ替え）、
+step 4（ancestor なら `childTowards` の index と offset を比べる）、step 5（それ以外は before）
+に分かれるが、key の辞書式比較はこの四つをまとめて表す。
+
+この定理を出すために、`Dom/Properties/Tree.lean` に tree order の
+**構造的な特徴づけ** を足した。
+
+```lean
+def PrecedesStruct (t : Tree) (x y : NodeId) : Prop :=
+  Ancestor t x y ∨
+    ∃ p cx cy i j, parentOf t cx = some p ∧ parentOf t cy = some p ∧
+      index t cx = some i ∧ index t cy = some j ∧ i < j ∧
+      InclusiveAncestor t cx x ∧ InclusiveAncestor t cy y
+
+theorem precedes_iff_struct (hwf : WellFormed t) {a b : NodeId} {ad : NodeData}
+    (ha : t.get? a = some ad) (hroot : root t a = root t b) (hab : a ≠ b) :
+    precedes t a b = true ↔ PrecedesStruct t a b
+```
+
+健全性（構造 → `precedes`）は「前の兄弟の部分木は後の兄弟の部分木に先行する」
+（`precedesIn_preorderFuel_of_sibling_deep`）から、
+完全性は三分律（`precedesStruct_total`）と `precedesIn` の非対称性から出る。
+当初想定していた「preorder における部分木は連続した区間である」という補題は要らなかった。
+
+key が node を決めること（`eq_of_pathIndices_eq`）も示した。
+これは `p` までの key が `x` の key の真の prefix なら `p` は `x` の inclusive ancestor である、
+という形（`inclusiveAncestor_of_dropPrefix`）で使う。
+
+### live range pre-remove steps は key の上で単調
+
+`node`（parent は `p`、index は `i`）を外すとき、key は次の写像で移る。
+
+```lean
+def shiftDown (i x : Nat) : Nat := if i < x then x - 1 else x
+
+def shiftTail (i : Nat) : List Nat → List Nat
+  | [] => []
+  | x :: xs => shiftDown i x :: (if x = i then [] else xs)
+
+def shiftKey (P : List Nat) (i : Nat) (key : List Nat) : List Nat :=
+  match dropPrefixNat P key with
+  | none => key
+  | some rest => P ++ shiftTail i rest
+```
+
+`P` は `p` までの index 列である。`shiftTail` の `if x = i then []` が
+「外す部分木の中を指していた点は `(p, i)` へ移る」に対応し、
+`shiftDown` が「`i` より後ろの index / offset は一つ減る」に対応する。
+
+```lean
+theorem bpKey_detach (hwf : WellFormed t) (hwf' : WellFormed t')
+    (hpar : parentOf t n = some p) (hi : index t n = some i) (hd : detach t n = .ok t')
+    {bp : BoundaryPoint} (hroot : root t bp.node = root t p) :
+    bpKey t' (liveRangePreRemoveBP t n p i bp) = shiftKey (pathIndices t p) i (bpKey t bp)
+
+theorem shiftKey_mono (P : List Nat) (i : Nat) {u v : List Nat} (h : lexCmp u v ≠ .gt) :
+    lexCmp (shiftKey P i u) (shiftKey P i v) ≠ .gt
+```
+
+`shiftKey` の単調性は、`shiftDown i` が単調で、
+`shiftDown i x = shiftDown i y` かつ `x < y` なら `x = i`（すなわちその点は部分木の中にいた）
+という観察に尽きる。
+
+### 結果
+
+```lean
+theorem boundaryLE_detach (hwf : WellFormed t) (hwf' : WellFormed t') ... :
+    BoundaryLE t' (liveRangePreRemoveBP t n p i a) (liveRangePreRemoveBP t n p i b)
+
+theorem remove_preserves_boundaryLE {s s' : DOMState} {n p : NodeId}
+    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p)
+    (hv : RangeEndpointsValid s)
+    (hord : ∀ r ∈ s.ranges, BoundaryLE s.tree r.start r.«end»)
+    (h : remove s n = .ok s') :
+    ∀ r ∈ s'.ranges, BoundaryLE s'.tree r.start r.«end»
+```
+
+`ValidBoundaryPoint` の保存と合わせて `RangesValid` の保存になり、
+`remove` を経由する public API に持ち上げた。
+
+* `remove_preserves_rangesValid`
+* `preRemove_preserves_rangesValid`
+* `removeChild_preserves_rangesValid`
+* `nodeRemove_preserves_rangesValid`
+
+木が別の場合（range が外す部分木と無関係な木にある場合）も
+`liveRangePreRemoveBP_of_other_root` で分けて扱っており、仮定は
+「両端が木の中にある」「もともと順序が付いている」だけである。
+
+## `insert` 側の `BoundaryLE` は **保たれない**（仕様の性質）
+
+挿入側を証明しようとしていたが、**定理そのものが偽**であることが
+differential testing で分かった。生成器を別 node の range を作るように直した直後に、
+model 側の invariant 検査（`checkRangesValid`）が破れる scenario が出た。
+
+最小例（`test/scenarios/range-order-broken-by-insert.json`）:
+
+```
+<element 1>
+  <comment 2 "cc">     ← range.start = (2, 0)
+  <text 3 "tt">        ← range.end   = (3, 2)
+
+element1.insertBefore(text3, comment2)
+```
+
+仕様どおりに追うと:
+
+* insert step 5（`child` = 2、index 0）。parent を指す boundary は無いので何もしない。
+* insert step 7 の adopt → remove。3 は index 1 なので、
+  live range pre-remove steps で end が `(1, 1)` へ出る。
+* 3 を 2 の前に入れて children は `[3, 2]`。node 2 の index は 1。
+
+結果は start = `(2, 0)`、end = `(1, 1)` で、**start が end より後**になる。
+
+つまり `BoundaryLE`（start ≤ end）は仕様の invariant ではない。
+仕様が順序を正規化するのは `setStart` / `setEnd` の側だけで
+（「bp が end より後なら end も動かす」）、
+木を変える algorithm の側にはそれに当たる step が無い。
+`dom.bs` にも live range について順序の invariant は書かれていない
+（書かれているのは「start と end の root は同じ」だけ）。
+
+原因は step の順序である。offset の調整（step 5）が
+木を変える step 7 より前に置かれているので、
+「動かす node の中にあった boundary」は step 5 を通り過ぎたあとに
+`(parent, 旧 index)` へ出る。node はその位置より前へ入るため、順序が逆転する。
+
+この発見を受けて次の二つを直した。
+
+* `Dom/Range/BoundaryPoint.lean` に `checkRangeEndpointsValid` を足した。
+  両端が木の中にあることだけを見る。
+* `Dom/Exec/Scenario.lean` の各 step の invariant を
+  `checkRangesValid` から `checkRangeEndpointsValid` に弱めた。
+  初期状態については `checkRangesValid` のまま
+  （scenario の range は `setStart` / `setEnd` で作れるものに限りたいため）。
+
+証明側の帰結は次のとおり。
+
+* `remove` の `BoundaryLE` 保存は成り立つ（前節）。
+* `insert` / `move` の `BoundaryLE` 保存は **成り立たない**。証明すべき定理ではない。
+* 仕様の invariant として残るのは `ValidBoundaryPoint`（両端が木の中にある）で、
+  これは `remove` / `insert` / `move` / `replaceData` すべてについて証明済みである。
+
+なお Dommy は調整を remove の後に回すので、この例では end = `(1, 2)` となり
+たまたま順序を保つ。ただしそれは仕様と違う値であり、下の finding 2 と同じ原因である。
+
+## 生成器の拡張（別 node の range）
+
+`test/generate.rb` の `random_ranges` は両端を同じ node に置いていたので、
+今回証明した「別 node の `BoundaryLE`」を一度も叩けていなかった。次のように直した。
+
+* 3 回に 2 回は、同じ root にある **別々の node** に両端を置く。
+  どちらを start にするかは **key の辞書式比較** で決める。
+  `Dom/Properties/Path.lean` の `bpKey`（root からの index 列 ++ offset）を
+  Ruby 側に写したもので、`bpPosition_eq_lexCmp` により仕様の
+  boundary point position と一致する。
+* boundary point に doctype を選ばない。
+  仕様の `setStart` / `setEnd` は doctype を `InvalidNodeTypeError` で弾くので、
+  以前は Dommy 側だけが例外を投げて「Dommy 側でエラー」になっていた。
+* `--ranges N` / `--iterators N` を `generate.rb` と `difftest.rb` に足した。
+
+model の各 step が `checkRangeEndpointsValid` を検査しているので、
+この生成器は「別 node の range を持つ状態で mutation を重ねても
+両端が木の中に残るか」を常時監視することになる。
+上の「`insert` 側の `BoundaryLE` は保たれない」も、
+生成器を直した直後の最初の sweep で出た。
+
+副産物として、生成した別 node の range は初期状態で
+`checkRangesValid`（順序を含む）を通る必要があるが、
+sweep 中に一度も「初期状態の range が valid でない」は出ていない。
+これは Ruby 側の辞書式比較と Lean 側の `bpPosition` が一致していることの
+実験的な裏付けになっている。
+
+## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`）
+
+finding 1（`before` / `after` / `replaceWith` / `replaceChildren` が
+ensure pre-insertion validity を迂回する）を直した。あわせて、
+同じ sweep で出た次の二つも直した。
+
+1. **ChildNode の三つが validity を全く通らない**（`87432de`）。
+   `before` / `after` / `replaceWith` は最後に **親** への pre-insert（replace）で終わるので、
+   親側の validity が走らなければならない。親は Document のこともあり、
+   その場合は step 6（Text の子を持てない、element は高々一つ、doctype は document element より前）
+   が加わる。親の wrapper に `__internal_ensure_insertion_validity__` を生やして dispatch する形にした。
+   引数を変換する前に検査するので、弾かれた呼び出しは木を変えない。
+2. **step 2（node が parent の inclusive ancestor）が Fragment / ShadowRoot で無効だった**（`87432de`）。
+   `check_insertion!` が Element だけの override だったため、
+   `frag.replaceChildren(frag)` や `frag.appendChild(frag)` が通っていた。
+   `Internal::ParentNode` に移して三者で共有した。
+3. **step 2 が Document 引数で発火しない**（`f2af31a`）。
+   `Dommy::Document` は `__dommy_backend_node__` を持たないので早期 return していた。
+   `el.insertBefore(document, ref)` が step 3 の `NotFoundError` になっていた
+   （仕様は step 2 の `HierarchyRequestError`）。
+   Document は `backend_doc` で解決し、親を document まで登るようにした。
+4. **`insertBefore(x, x)` の reference 差し替えが validity より前**（`f2af31a`）。
+   仕様は pre-insert step 1 で **呼び出し側が渡した** reference を検査し、
+   step 3 で初めて差し替える。Dommy は先に差し替えていたので、
+   `x` が parent の子でないときに `NotFoundError` にならず黙って append していた。
+
+回帰 test は `gems/dommy/test/wpt/test_wpt_child_node_pre_insertion_validity.rb`（19 件）。
+Dommy の既存 suite は 3903 runs / 0 failures のまま。
+
+### 修正後の一致状況
+
+`--ranges 4 --iterators 2 --nodes 10 --ops 10` で seed 1 / 3 / 7 / 42 を
+各 100 scenario 回した結果、**不一致は各 seed 1 件だけ**で、
+すべて finding 2（range 調整の順序）である。
+修正前は既定の設定でも 80 中 22 件が不一致だった。
+
+## 残っている Dommy の不一致
+
+* **finding 2（range 調整の順序）**。仕様の insert step 5（parent を指す offset の調整）は
+  step 7 の adopt → remove より **前** に走る。Dommy は木を変え終わってから
+  `notify_child_list_mutation` の中で調整するので、
+  「その insert 自身の removal が parent の上へ動かした boundary」を二重に数える。
+  最小例は `test/scenarios/range-adjust-order-on-before.json` と
+  `test/scenarios/range-adjust-order-on-move.json`。
+  直すには `__internal_ranges_inserted__` を
+  `__internal_ranges_will_insert__(parent, ref, count)` に置き換えて
+  **引数を変換する前** に呼ぶ必要がある。挿入する箇所が
+  `parent_node.rb` / `child_node.rb` / `element.rb` / `document.rb` /
+  `shadow_root.rb` / `html_elements.rb` に約 20 か所あり、
+  `replace_child_within` は「古い子を先に外してから step 5」という
+  仕様の順序（replace step 10 → 12）に合わせる並べ替えも要る。
+  今回は着手していない。
+* **finding 3（`createDocumentType` の wrapper identity）**。
+  `test/scenarios/doctype-wrapper-identity.json`。
+* **finding 4（XML document で fragment の `appendChild` が `Makiri::Error`）**。
+* **finding 5（API の欠落）**。`--all-ops` の `unsupported` の主因。
+  `Element#replaceWith`（`replace_with_nodes` はあるが `replace_with` が無い）、
+  `Element#nodeName`、`moveBefore`、
+  Document の `insertBefore` / `replaceChild` / `removeChild` / `replaceChildren` など。
 
 ## 未着手
 
-* `BoundaryLE` の保存のうち、両端が別の node を指す場合。
 * Phase 8（`PLAN.md` §11）の再評価。MutationObserver と Shadow DOM に進むかどうかを、
   Phase 4-7 の differential testing で見つかった不一致の傾向から判断する。
+  Dommy は両方とも実装しており（`lib/dommy/mutation_observer.rb` 336 行、
+  `lib/dommy/shadow_root.rb` 320 行）、突き合わせる相手はいる。
+  MutationObserver は record の内容と順序が仕様で決まっていて、
+  ここまでで見つかった不一致（validity の迂回、range 調整の順序）と
+  同じ「step の順序」の問題が出やすいので、進むならこちらが先である。

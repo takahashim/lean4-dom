@@ -55,7 +55,14 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
 
 /-! ## 操作の適用 -/
 
-/-- 初期状態を組み立てる。range と iterator が valid であることも検査する。 -/
+/--
+初期状態を組み立てる。range と iterator が valid であることも検査する。
+
+初期状態については順序（`BoundaryLE`）も要求する。scenario の range は
+`setStart` / `setEnd` で作れるものに限りたいからである。
+mutation の後については `checkRangeEndpointsValid` しか要求しない
+（順序は仕様の invariant ではない。`runOperations` の註を参照）。
+-/
 def buildState (sc : Scenario) : Except String DOMState := do
   let t ← buildTree sc.nodes
   let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators }
@@ -104,6 +111,12 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
 操作列を順に適用する。例外が起きた step で打ち切る（PLAN §7.2）。
 
 返り値の第二成分は、invariant が破れた step の番号（0 始まり）。
+
+range については **両端が木の中にあること** だけを invariant とする。
+順序（start ≤ end）は仕様の invariant ではない。木を変える algorithm の側には
+`setStart` / `setEnd` のような正規化が無く、insert step 5（offset の調整）が
+step 7 の adopt→remove より前に走るせいで、順序は実際に逆転しうる。
+`test/scenarios/range-order-broken-by-insert.json` がその最小例である。
 -/
 def runOperations : DOMState → List Operation → Nat → List StepResult × Option (Nat × String)
   | _, [], _ => ([], none)
@@ -112,7 +125,7 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
     | .error e => ([.failed e], none)
     | .ok s' =>
       if !s'.tree.checkWellFormed then ([.ok s'], some (i, "wellFormed"))
-      else if !checkRangesValid s' then ([.ok s'], some (i, "rangesValid"))
+      else if !checkRangeEndpointsValid s' then ([.ok s'], some (i, "rangeEndpointsValid"))
       else if !checkIteratorsValid s' then ([.ok s'], some (i, "iteratorsValid"))
       else
         let (rest, viol) := runOperations s' ops (i + 1)

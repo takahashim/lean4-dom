@@ -171,16 +171,105 @@ module Generate
     nodes.count { |n| n["parent"] == spec["id"] }
   end
 
-  # 同じ node の中に収まる range を作る。start ≤ end はこの作り方で保証される。
-  def random_ranges(rng, nodes, count)
-    Array.new(count) do
-      spec = nodes.sample(random: rng)
-      len = length_of(spec, nodes)
-      a = rng.rand(len + 1)
-      b = a + rng.rand(len - a + 1)
-      { "start" => { "node" => spec["id"], "offset" => a },
-        "end" => { "node" => spec["id"], "offset" => b } }
+  # boundary point になれない kind。仕様 §5.5 の `setStart` / `setEnd` は
+  # doctype を InvalidNodeTypeError で弾く。
+  NON_BOUNDARY_KINDS = %w[documentType].freeze
+
+  def boundary_candidates(nodes)
+    nodes.reject { |n| NON_BOUNDARY_KINDS.include?(n["kind"]) }
+  end
+
+  # `nodes` を id 引きの hash にする。経路をたどる補助。
+  def index_by_id(nodes)
+    nodes.to_h { |n| [n["id"], n] }
+  end
+
+  def parent_of(by_id, id)
+    by_id[id] && by_id[id]["parent"]
+  end
+
+  # `id` の root。scenario の木は有限で循環が無いので単純にたどれる。
+  def root_of(by_id, id)
+    cur = id
+    cur = parent_of(by_id, cur) while parent_of(by_id, cur)
+    cur
+  end
+
+  # parent の children における `id` の位置。
+  def child_index(nodes, by_id, id)
+    p = parent_of(by_id, id)
+    return nil if p.nil?
+
+    nodes.select { |n| n["parent"] == p }.index { |n| n["id"] == id }
+  end
+
+  # boundary point の key（`Dom/Properties/Path.lean` の `bpKey`）。
+  # root からの各段の index の列に offset を付けたもの。
+  # 仕様 §5.3 の boundary point position は、この列の辞書式比較に一致する
+  # （`bpPosition_eq_lexCmp`）ので、start ≤ end はこれで判定できる。
+  def bp_key(nodes, by_id, id, offset)
+    path = []
+    cur = id
+    while parent_of(by_id, cur)
+      path.unshift(child_index(nodes, by_id, cur))
+      cur = parent_of(by_id, cur)
     end
+    path << offset
+  end
+
+  # 辞書式比較。短いほうが prefix なら短いほうが小さい。
+  def lex_compare(a, b)
+    a.each_with_index do |x, i|
+      return 1 if i >= b.size
+
+      c = x <=> b[i]
+      return c unless c.zero?
+    end
+    a.size == b.size ? 0 : -1
+  end
+
+  # range を一つ作る。
+  #
+  # 3 回に 1 回は両端を同じ node に置き（従来と同じ形）、
+  # 残りは同じ root にある別々の node に置いて、key の辞書式順で start / end を決める。
+  # 別 node の range は tree order と `childTowards` を通るので、
+  # mutation の後の boundary point position を突き合わせられる。
+  def random_range(rng, nodes, by_id, candidates)
+    a = candidates.sample(random: rng)
+    same_node = rng.rand < 0.34
+    b =
+      if same_node
+        a
+      else
+        root = root_of(by_id, a["id"])
+        pool = candidates.select { |n| root_of(by_id, n["id"]) == root }
+        pool.sample(random: rng) || a
+      end
+
+    if a["id"] == b["id"]
+      len = length_of(a, nodes)
+      s = rng.rand(len + 1)
+      e = s + rng.rand(len - s + 1)
+      return { "start" => { "node" => a["id"], "offset" => s },
+               "end" => { "node" => a["id"], "offset" => e } }
+    end
+
+    ao = rng.rand(length_of(a, nodes) + 1)
+    bo = rng.rand(length_of(b, nodes) + 1)
+    first = { "node" => a["id"], "offset" => ao }
+    second = { "node" => b["id"], "offset" => bo }
+    ka = bp_key(nodes, by_id, a["id"], ao)
+    kb = bp_key(nodes, by_id, b["id"], bo)
+    first, second = second, first if lex_compare(ka, kb).positive?
+    { "start" => first, "end" => second }
+  end
+
+  def random_ranges(rng, nodes, count)
+    candidates = boundary_candidates(nodes)
+    return [] if candidates.empty?
+
+    by_id = index_by_id(nodes)
+    Array.new(count) { random_range(rng, nodes, by_id, candidates) }
   end
 
   # iterator を動かす操作。受け手が node ではないので kind の絞り込みは要らない。
@@ -226,18 +315,22 @@ end
 
 if $PROGRAM_NAME == __FILE__
   require "optparse"
-  opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0 }
+  opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0,
+           ranges: 2, iterators: 1 }
   OptionParser.new do |o|
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
     o.on("--nodes N", Integer) { |v| opts[:nodes] = v }
     o.on("--ops N", Integer) { |v| opts[:ops] = v }
     o.on("--move") { opts[:move] = true }
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
+    o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
+    o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
   end.parse!
   ops = opts[:move] ? Generate::OPS + ["moveBefore"] : Generate::OPS
   rng = Random.new(opts[:seed])
   puts JSON.pretty_generate(
     Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops], ops: ops,
-                           doctype_prob: opts[:doctype])
+                           doctype_prob: opts[:doctype], range_count: opts[:ranges],
+                           iterator_count: opts[:iterators])
   )
 end
