@@ -288,4 +288,18 @@ theorem length_insertBefore {α : Type _} [DecidableEq α] (l : List α) (child 
   | none => simp
   | some c => simpa using length_insertBeforeFirst c a l
 
+/-- 最後の要素。空なら既定値。名前の揺れを避けるため自前で定義する。 -/
+def lastD {α : Type _} : List α → α → α
+  | [], d => d
+  | [x], _ => x
+  | _ :: rest, d => lastD rest d
+
+theorem lastD_mem_or {α : Type _} : ∀ (l : List α) (d : α), lastD l d ∈ l ∨ lastD l d = d
+  | [], _ => Or.inr rfl
+  | [x], d => Or.inl (by simp [lastD])
+  | x :: y :: rest, d => by
+    rcases lastD_mem_or (y :: rest) d with h | h
+    · exact Or.inl (List.mem_cons_of_mem _ (by simpa [lastD] using h))
+    · exact Or.inr (by simpa [lastD] using h)
+
 end Dom.ListUtil

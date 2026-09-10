@@ -530,8 +530,72 @@ Phase 4 で見つかった 4 種類に加えて次が見つかった（Dommy `fd
    実装が実際にそこで食い違っていた。木の形は両者一致しているので、
    Range を比較対象に入れて初めて見える不一致である。
 
+## Phase 6（NodeIterator）— 一巡した
+
+`PLAN.md` §9 の定義・調整・証明・differential testing を実装した。
+
+### 実装した定義（`Dom/Traversal/NodeIterator.lean`）
+
+| 定義 | 対応する仕様 |
+| --- | --- |
+| `iteratorCollection` | §6.1 iterator collection |
+| `firstFollowingOutside` | "adjust a node pointer" step 2.1 |
+| `adjustNodePointer` | "adjust a node pointer" |
+| `iteratorPreRemoveOne`, `iteratorPreRemove` | "NodeIterator pre-remove steps"（remove step 4 / move step 11） |
+| `nextNode`, `previousNode` | `nextNode()` / `previousNode()` |
+| `ValidIterator`, `IteratorsValid`, `checkIteratorsValid` | PLAN §9.2 |
+
+Phase 3 で恒等関数の hook として置いてあった `iteratorPreRemove` にそのまま中身が入った。
+Range のときと同様、algorithm と public API のコードは変えていない。
+
+filter（`whatToShow` と `NodeFilter`）は扱わない。
+`SHOW_ALL` かつ filter が null の場合、すなわち iterator collection が
+すべての node に一致する場合だけを model にする。
+仕様の traverse は filter が accept するまで繰り返すが、
+filter が無ければ 1 周で決まるので `nextNode` / `previousNode` は候補を一つ求める形になる。
+仕様の candidate reference は traverse の途中でしか非 null にならないので状態には持たない。
+
+### 証明した theorem（`Dom/Properties/Iterator.lean`）
+
+| PLAN §9.2 | theorem |
+| --- | --- |
+| `IteratorsValid`（reference が木にあり root の inclusive descendant） | `ValidIterator` の定義と `checkIteratorsValid` |
+| `remove_preserves_iterators_valid` | 同名 |
+| 削除された node の inclusive descendant は reference にならない | `remove_iterators_leave_subtree`, `move_iterators_leave_subtree` |
+
+中心になるのは次の二つである。
+
+* `ancestor_detach_of_not_below` — `detach` が外す辺が経路上に無ければ ancestor 関係は残る。
+  「経路上にある」は「削除する node が下端の inclusive ancestor であり、
+  かつ上端がその ancestor である」と書ける。
+* `adjustNodePointer_spec` — root が生き残る場合、調整後の pointer は
+  削除される部分木の外にあり、root の inclusive descendant である。
+  仕様の step 2（後続を探す）と step 3-4（parent か前の兄弟の最後の子孫）の
+  両方について示す。
+
+前提として `OtherDocumentIteratorsOutside` を置いている。
+仕様は「root の node document が削除する node の node document と同じ」iterator だけを
+調整するので、それ以外の iterator が削除される部分木を指していないことは
+node document が木の構造と整合していれば成り立つが、
+`WellFormed` はそれを要求していないためである。
+
+### differential testing
+
+scenario の `iterators` は仕様の `createNodeIterator` に合わせて
+`(root, true)` から始める形にした（Dommy に reference の setter が無いため）。
+操作 `iteratorNext` / `iteratorPrevious` で動かす。
+
+`iterator-adjust-on-remove.json` と `iterator-adjust-pointer-before.json` で、
+pre-remove steps の step 3-4（parent へ）と step 2（後続へ）の両方を通し、
+Dommy と一致することを確認した。生成 scenario でも iterator 由来の不一致は出ていない。
+**Dommy の NodeIterator の pre-remove steps は仕様どおりに動いている。**
+
+見つかった小さな抜けが一つある。
+`NodeIterator#referenceNode` と `#pointerBeforeReferenceNode` が
+Ruby の method として公開されておらず、`__js_get__` 経由でしか読めない。
+Dommy の Ruby API は他が snake_case で揃っているので、そこだけ不揃いである。
+runner は `__js_get__` へ fallback するようにしてある。
+
 ## 未着手
 
-Phase 6 以降（`Dom/Traversal/`, `Dom/CharacterData/`）は、
-`IteratorState` の構造体を `Dom/Basic/State.lean` に用意しただけで、意味論はまだ無い。
-`Dom/Traversal/` と `Dom/CharacterData/` の module 自体がまだ無い。
+Phase 7（`Dom/CharacterData/`）はまだ無い。

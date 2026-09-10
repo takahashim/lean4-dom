@@ -177,7 +177,7 @@ if $PROGRAM_NAME == __FILE__
   end
 
   unless opts[:fixed_only]
-    ops = Generate::OPS.dup
+    ops = Generate::OPS + Generate::ITERATOR_OPS
     ops << "moveBefore" if opts[:move]
     allow = opts[:all] ? nil : Difftest.allow_lambda
     rng = Random.new(opts[:seed])

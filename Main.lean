@@ -56,10 +56,11 @@ def sample : Tree :=
         |>.insert dtype2 { kind := .documentType, ownerDocument := doc }
         |>.insert otherDoc { kind := .document, ownerDocument := otherDoc } }
 
-/-- `sample` を初期状態とする `DOMState`。range を一つ持たせてある。 -/
+/-- `sample` を初期状態とする `DOMState`。range と iterator を一つずつ持たせてある。 -/
 def state : DOMState :=
   { tree := sample
-    ranges := [{ start := { node := body, offset := 0 }, «end» := { node := body, offset := 1 } }] }
+    ranges := [{ start := { node := body, offset := 0 }, «end» := { node := body, offset := 1 } }]
+    iterators := [{ root := html, reference := html, pointerBeforeReference := true }] }
 
 /-- children の並びだけを見た木の要約。 -/
 def summary (t : Tree) : String :=
@@ -77,6 +78,25 @@ def describe : Except DOMException DOMState → String
 def describeRange : Except DOMException DOMState → String
   | .error e => s!"error {e}"
   | .ok s => s!"ok ranges={rangeSummary s} valid={checkRangesValid s}"
+
+def iterSummary (s : DOMState) : String :=
+  String.intercalate "," <| s.iterators.map fun it =>
+    s!"(root={it.root} ref={it.reference} before={it.pointerBeforeReference})"
+
+def describeIter : Except DOMException DOMState → String
+  | .error e => s!"error {e}"
+  | .ok s => s!"ok {iterSummary s} valid={checkIteratorsValid s}"
+
+/-- iterator を `n` 回進めた状態。 -/
+def advance (s : DOMState) : Nat → DOMState
+  | 0 => s
+  | k + 1 =>
+    match s.iterators.head? with
+    | none => s
+    | some it =>
+      match nextNode s.tree it with
+      | none => s
+      | some (_, it') => advance { s with iterators := [it'] } k
 
 end Dom.Demo
 
@@ -127,6 +147,14 @@ def demo : IO Unit := do
   IO.println s!"appendChild body orphan      : {describeRange (appendChild state body orphan)}"
   IO.println s!"insertBefore body orphan @0  : {describeRange (insertBefore state body orphan (some hello))}"
   IO.println s!"removeChild html body        : {describeRange (removeChild state html body)}"
+  IO.println ""
+  IO.println "-- Phase 6: NodeIterator の追随 --"
+  IO.println s!"初期 iterator                : {iterSummary state}"
+  IO.println s!"nextNode x1                  : {iterSummary (advance state 1)}"
+  IO.println s!"nextNode x2                  : {iterSummary (advance state 2)}"
+  IO.println s!"nextNode x3                  : {iterSummary (advance state 3)}"
+  IO.println s!"x2 の後で removeChild html head : {describeIter (removeChild (advance state 2) html head)}"
+  IO.println s!"x3 の後で removeChild html body : {describeIter (removeChild (advance state 3) html body)}"
 
 /-- scenario file 一つを評価して、結果の JSON を返す。 -/
 def evalFile (path : System.FilePath) : IO (Except String String) := do

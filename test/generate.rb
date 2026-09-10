@@ -115,8 +115,13 @@ module Generate
     b.nodes
   end
 
-  def random_operation(rng, ids, ops)
+  def random_operation(rng, ids, ops, iterator_count = 0)
     op = ops.sample(random: rng)
+    if ITERATOR_OPS.include?(op)
+      return nil if iterator_count.zero?
+
+      return { "op" => op, "iterator" => rng.rand(iterator_count) }
+    end
     pick = -> { ids.sample(random: rng) }
     # 存在しない id をたまに混ぜて notFoundError を誘う。
     maybe = -> { rng.rand < 0.15 ? ids.max + 1 + rng.rand(3) : pick.call }
@@ -165,10 +170,22 @@ module Generate
     end
   end
 
+  # iterator を動かす操作。受け手が node ではないので kind の絞り込みは要らない。
+  ITERATOR_OPS = %w[iteratorNext iteratorPrevious].freeze
+
+  # 仕様の `createNodeIterator` は reference を (root, true) に初期化する。
+  # Dommy に setter が無いので、生成する iterator もこの状態から始める。
+  def random_iterators(rng, nodes, count)
+    Array.new(count) do
+      spec = nodes.sample(random: rng)
+      { "root" => spec["id"], "reference" => spec["id"], "pointerBeforeReference" => true }
+    end
+  end
+
   # `allow` は `(op, receiver_kind) -> Boolean`。
   # Dommy が実装していない (kind, op) の組を避けたいときに渡す。
   def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0,
-               range_count: 2)
+               range_count: 2, iterator_count: 1)
     nodes = build_tree(rng, node_count, doctype_prob: doctype_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
@@ -176,7 +193,12 @@ module Generate
     attempts = 0
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
-      op = random_operation(rng, ids, ops)
+      op = random_operation(rng, ids, ops, iterator_count)
+      next if op.nil?
+      if ITERATOR_OPS.include?(op["op"])
+        operations << op
+        next
+      end
       kind = kinds[receiver_id(op)]
       # 仕様がその kind に定めていない操作は生成しない。
       next if kind.nil? || !spec_has?(kind, op["op"])
@@ -185,7 +207,7 @@ module Generate
       operations << op
     end
     { "nodes" => nodes, "ranges" => random_ranges(rng, nodes, range_count),
-      "iterators" => [], "operations" => operations }
+      "iterators" => random_iterators(rng, nodes, iterator_count), "operations" => operations }
   end
 end
 

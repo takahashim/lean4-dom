@@ -55,13 +55,30 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
 
 /-! ## 操作の適用 -/
 
-/-- 初期状態を組み立てる。range の両端が木の中にあることも検査する。 -/
+/-- 初期状態を組み立てる。range と iterator が valid であることも検査する。 -/
 def buildState (sc : Scenario) : Except String DOMState := do
   let t ← buildTree sc.nodes
-  let s : DOMState := { tree := t, ranges := sc.ranges }
+  let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators }
   unless checkRangesValid s do
     throw "初期状態の range が valid でない"
+  unless checkIteratorsValid s do
+    throw "初期状態の iterator が valid でない"
   return s
+
+/--
+`nextNode()` / `previousNode()` を i 番目の iterator に適用する。
+
+collection の端で `null` が返る場合、仕様では iterator は変わらない。
+index が範囲外の場合も何もしない。
+-/
+def stepIterator (s : DOMState) (i : Nat)
+    (f : Tree → IteratorState → Option (NodeId × IteratorState)) : DOMState :=
+  match s.iterators[i]? with
+  | none => s
+  | some it =>
+    match f s.tree it with
+    | none => s
+    | some (_, it') => { s with iterators := s.iterators.set i it' }
 
 /-- 一つの操作を public API に割り当てる。 -/
 def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
@@ -75,6 +92,8 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .replaceWith tgt n => replaceWith s ⟨tgt⟩ ⟨n⟩
   | .remove tgt => nodeRemove s ⟨tgt⟩
   | .moveBefore p n c => moveBefore s ⟨p⟩ ⟨n⟩ (c.map NodeId.mk)
+  | .iteratorNext i => .ok (stepIterator s i nextNode)
+  | .iteratorPrevious i => .ok (stepIterator s i previousNode)
 
 /--
 操作列を順に適用する。例外が起きた step で打ち切る（PLAN §7.2）。
@@ -89,6 +108,7 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
     | .ok s' =>
       if !s'.tree.checkWellFormed then ([.ok s'], some (i, "wellFormed"))
       else if !checkRangesValid s' then ([.ok s'], some (i, "rangesValid"))
+      else if !checkIteratorsValid s' then ([.ok s'], some (i, "iteratorsValid"))
       else
         let (rest, viol) := runOperations s' ops (i + 1)
         (.ok s' :: rest, viol)

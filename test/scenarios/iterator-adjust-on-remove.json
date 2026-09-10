@@ -1,0 +1,18 @@
+{
+  "_note": "iterator の reference が削除される node を指しているときの pre-remove steps。pointerBefore=false なので step 3-4 に落ち、reference は削除 node の parent になる。",
+  "nodes": [
+    {"id": 0, "kind": "document"},
+    {"id": 1, "kind": "element", "parent": 0},
+    {"id": 2, "kind": "element", "parent": 1},
+    {"id": 3, "kind": "element", "parent": 1}
+  ],
+  "ranges": [],
+  "iterators": [
+    {"root": 1, "reference": 1, "pointerBeforeReference": true}
+  ],
+  "operations": [
+    {"op": "iteratorNext", "iterator": 0},
+    {"op": "iteratorNext", "iterator": 0},
+    {"op": "removeChild", "parent": 1, "node": 2}
+  ]
+}

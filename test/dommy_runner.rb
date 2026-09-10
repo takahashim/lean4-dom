@@ -149,6 +149,39 @@ module DommyRunner
     ""
   end
 
+  # scenario の iterator を Dommy の NodeIterator として作る。
+  #
+  # 仕様の `createNodeIterator` は reference を (root, true) に初期化する。
+  # Dommy には reference の setter が無いので、
+  # scenario 側もこの初期状態から始めることを求める。
+  def build_iterators(objects, documents, specs)
+    (specs || []).map do |spec|
+      unless spec["reference"] == spec["root"] && spec["pointerBeforeReference"] != false
+        raise "iterator の初期状態は (root, true) でなければならない: #{spec.inspect}"
+      end
+
+      doc = documents.values.first or raise "document が無いので NodeIterator を作れない"
+      doc.create_node_iterator(objects.fetch(spec["root"]))
+    end
+  end
+
+  # Dommy は referenceNode / pointerBeforeReferenceNode を Ruby の method として
+  # 公開しておらず、JS bridge 経由でしか読めない。
+  def iterator_attr(it, name)
+    snake = name.gsub(/([A-Z])/) { "_#{Regexp.last_match(1).downcase}" }
+    return it.public_send(snake) if it.respond_to?(snake)
+
+    it.__js_get__(name)
+  end
+
+  def iterator_snapshot(objects, iterators)
+    iterators.map do |it|
+      { "root" => node_id(objects, it.root),
+        "reference" => node_id(objects, iterator_attr(it, "referenceNode")),
+        "pointerBeforeReference" => iterator_attr(it, "pointerBeforeReferenceNode") }
+    end
+  end
+
   # scenario の range を Dommy の Range として作る。
   def build_ranges(objects, documents, specs)
     (specs || []).map do |spec|
@@ -168,7 +201,7 @@ module DommyRunner
     end
   end
 
-  def snapshot(objects, kinds, ranges = [])
+  def snapshot(objects, kinds, ranges = [], iterators = [])
     nodes = objects.keys.sort.map do |id|
       node = objects[id]
       {
@@ -179,7 +212,8 @@ module DommyRunner
         "data" => data_of(node)
       }
     end
-    { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges), "iterators" => [] }
+    { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),
+      "iterators" => iterator_snapshot(objects, iterators) }
   end
 
   # 操作の受け手（method を呼ぶ相手）の id。
@@ -187,7 +221,14 @@ module DommyRunner
     op.key?("target") ? op["target"] : op["parent"]
   end
 
-  def apply(objects, op)
+  def apply(objects, op, iterators = [])
+    case op["op"]
+    when "iteratorNext", "iteratorPrevious"
+      it = iterators[op["iterator"]]
+      raise NotImplementedError, "iterator index" if it.nil?
+
+      return op["op"] == "iteratorNext" ? it.next_node : it.previous_node
+    end
     o = ->(key) { key.nil? ? nil : objects[key] }
     receiver = objects[receiver_id(op)]
     method = OP_METHOD.fetch(op["op"]) { raise "未知の op #{op['op'].inspect}" }
@@ -240,11 +281,12 @@ module DommyRunner
     builder = Builder.new(scenario["nodes"])
     objects = builder.build
     ranges = build_ranges(objects, builder.documents, scenario["ranges"])
-    initial = snapshot(objects, kinds, ranges)
+    iterators = build_iterators(objects, builder.documents, scenario["iterators"])
+    initial = snapshot(objects, kinds, ranges, iterators)
     steps = []
     (scenario["operations"] || []).each do |op|
       begin
-        apply(objects, op)
+        apply(objects, op, iterators)
       rescue NotImplementedError, NoMethodError
         steps << { "ok" => false, "exception" => UNSUPPORTED }
         break
@@ -252,7 +294,7 @@ module DommyRunner
         steps << { "ok" => false, "exception" => exception_name(e) }
         break
       end
-      steps << snapshot(objects, kinds, ranges).merge("ok" => true)
+      steps << snapshot(objects, kinds, ranges, iterators).merge("ok" => true)
     end
     { "initial" => initial, "steps" => steps }
   end

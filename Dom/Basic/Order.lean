@@ -1,4 +1,5 @@
 import Dom.Basic.Tree
+import Dom.Util.List
 
 /-!
 # Tree order と実行可能な走査
@@ -102,6 +103,26 @@ DOM Standard §4.2 の tree order による先行関係。
 -/
 def precedes (t : Tree) (a b : NodeId) : Bool :=
   precedesIn (treeOrder t a) a b
+
+/-! ## 兄弟 -/
+
+/-- `n` の次の兄弟。 -/
+def nextSibling (t : Tree) (n : NodeId) : Option NodeId :=
+  match parentOf t n with
+  | none => none
+  | some p =>
+    match Dom.ListUtil.splitAt? (childrenOf t p) n with
+    | none => none
+    | some (_, after) => after.head?
+
+/-- `n` の前の兄弟。 -/
+def previousSibling (t : Tree) (n : NodeId) : Option NodeId :=
+  match parentOf t n with
+  | none => none
+  | some p =>
+    match Dom.ListUtil.splitAt? (childrenOf t p) n with
+    | none => none
+    | some (before, _) => before.getLast?
 
 /-! ## ancestor 関係の決定手続き -/
 

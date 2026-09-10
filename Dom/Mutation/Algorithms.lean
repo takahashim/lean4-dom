@@ -2,6 +2,7 @@ import Dom.Mutation.Detach
 import Dom.Mutation.Insert
 import Dom.Mutation.Adopt
 import Dom.Range.Adjust
+import Dom.Traversal.NodeIterator
 
 /-!
 # WHATWG の mutation algorithm
@@ -17,7 +18,7 @@ Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）は木だけ�
 `Tree` の上に残し、ここでは `DOMState` に持ち上げて使う。
 
 live object の調整は `liveRangePreRemove` / `liveRangeInsertAdjust`（`Dom/Range/Adjust.lean`）と
-`iteratorPreRemove`（Phase 6 で中身を入れる）で行う。
+`iteratorPreRemove`（`Dom/Traversal/NodeIterator.lean`）で行う。
 hook の位置は仕様の step 順序に合わせてある（PLAN §6.1）。
 
 本 model は Shadow DOM を扱わないので、仕様の
@@ -32,39 +33,7 @@ namespace Dom
 
 open Dom.ListUtil
 
-/-! ## live object の調整 hook -/
-
-/--
-DOM Standard §4.2.3 remove step 4 / move step 11（NodeIterator pre-remove steps）。
-Phase 6 で中身を入れる。
--/
-def iteratorPreRemove (s : DOMState) (_node : NodeId) : DOMState := s
-
-@[simp] theorem iteratorPreRemove_tree (s : DOMState) (n : NodeId) :
-    (iteratorPreRemove s n).tree = s.tree := rfl
-
-@[simp] theorem iteratorPreRemove_ranges (s : DOMState) (n : NodeId) :
-    (iteratorPreRemove s n).ranges = s.ranges := rfl
-
 /-! ## 木の走査に使う補助定義 -/
-
-/-- `n` の次の兄弟。 -/
-def nextSibling (t : Tree) (n : NodeId) : Option NodeId :=
-  match parentOf t n with
-  | none => none
-  | some p =>
-    match splitAt? (childrenOf t p) n with
-    | none => none
-    | some (_, after) => after.head?
-
-/-- `n` の前の兄弟。 -/
-def previousSibling (t : Tree) (n : NodeId) : Option NodeId :=
-  match parentOf t n with
-  | none => none
-  | some p =>
-    match splitAt? (childrenOf t p) n with
-    | none => none
-    | some (before, _) => before.getLast?
 
 /-- `nodes` に含まれない、`n` の最初の preceding sibling（DOM Standard §4.2.9）。 -/
 def viablePreviousSibling (t : Tree) (n : NodeId) (nodes : List NodeId) : Option NodeId :=
