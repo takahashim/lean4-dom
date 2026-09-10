@@ -159,19 +159,28 @@ theorem adjustNodePointer_spec {t : Tree} {root tbr p node : NodeId} {before : B
 
 /-! ## remove と iterator -/
 
-theorem remove_iterators {s s' : DOMState} {n p : NodeId} (hp : parentOf s.tree n = some p)
-    (h : remove s n = .ok s') :
+theorem remove_iterators {s s' : DOMState} {n p : NodeId} {b : Bool}
+    (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     s'.iterators = s.iterators.map fun it =>
       if ownerDocumentOf s.tree it.root == ownerDocumentOf s.tree n then
         iteratorPreRemoveOne s.tree n it
       else it := by
   simp only [remove, hp] at h
-  unfold detachWithLiveAdjust at h
-  obtain ⟨_, hs⟩ := DOMState.mapTree_eq_ok h
-  rw [hs]
-  show (iteratorPreRemove (liveRangePreRemove s n) n).iterators = _
-  unfold iteratorPreRemove
-  simp
+  split at h
+  · simp at h
+  · next sd hd =>
+    -- step 20-21 は iterator を変えない。
+    have hi : s'.iterators = sd.iterators := by
+      split at h
+      · rw [← Except.ok.inj h]; simp
+      · rw [← Except.ok.inj h]; simp
+    rw [hi]
+    unfold detachWithLiveAdjust at hd
+    obtain ⟨_, hs⟩ := DOMState.mapTree_eq_ok hd
+    rw [hs]
+    show (iteratorPreRemove (liveRangePreRemove s n) n).iterators = _
+    unfold iteratorPreRemove
+    simp
 
 /-- 対象になった iterator は、`remove` の後も valid のままである。 -/
 theorem iteratorPreRemoveOne_valid {t t' : Tree} {n p : NodeId} {it : IteratorState}

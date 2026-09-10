@@ -12,6 +12,7 @@ import Dom.Mutation.Adopt
 import Dom.Range.BoundaryPoint
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
+import Dom.Observer.Record
 import Dom.CharacterData.ReplaceData
 import Dom.Mutation.Algorithms
 import Dom.Mutation.Api
@@ -27,5 +28,6 @@ import Dom.Properties.CharacterData
 # Lean 4 による WHATWG DOM Standard の形式化
 
 `PLAN.md` の Phase 1（node tree）、Phase 2（primitive mutation）、
-Phase 3（WHATWG の mutation algorithm）、Phase 5（Range）、Phase 6（NodeIterator）、Phase 7（CharacterData）に対応する module を re-export する。
+Phase 3（WHATWG の mutation algorithm）、Phase 5（Range）、Phase 6（NodeIterator）、
+Phase 7（CharacterData）、Phase 8（MutationObserver の record）に対応する module を re-export する。
 -/

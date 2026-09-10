@@ -93,18 +93,36 @@ theorem lengthOf_detach_parent {t t' : Tree} {n p : NodeId}
   rw [lengthOf_eq_children hlen', lengthOf_eq_children hlen, hch]
   exact length_removeAll hnd hmem
 
+/-! ## 状態の射影が同じなら性質も移る -/
+
+/-- record を積む step のように木と range を変えない step の後でも、両端の validity は残る。 -/
+theorem rangeEndpointsValid_congr {s₁ s₂ : DOMState} (ht : s₁.tree = s₂.tree)
+    (hr : s₁.ranges = s₂.ranges) (h : RangeEndpointsValid s₂) : RangeEndpointsValid s₁ := by
+  intro r hrm
+  rw [ht]
+  exact h r (by rw [← hr]; exact hrm)
+
 /-! ## remove と range -/
 
-theorem remove_ranges {s s' : DOMState} {n p : NodeId} (hp : parentOf s.tree n = some p)
-    (h : remove s n = .ok s') :
+theorem remove_ranges {s s' : DOMState} {n p : NodeId} {b : Bool}
+    (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     s'.ranges = s.ranges.map (liveRangePreRemoveRange s.tree n p ((index s.tree n).getD 0)) := by
   simp only [remove, hp] at h
-  unfold detachWithLiveAdjust at h
-  obtain ⟨_, hs⟩ := DOMState.mapTree_eq_ok h
-  rw [hs]
-  show (iteratorPreRemove (liveRangePreRemove s n) n).ranges = _
-  rw [iteratorPreRemove_ranges]
-  simp only [liveRangePreRemove, hp]
+  split at h
+  · simp at h
+  · next sd hd =>
+    -- step 20-21 は range を変えない。
+    have hr : s'.ranges = sd.ranges := by
+      split at h
+      · rw [← Except.ok.inj h]; simp
+      · rw [← Except.ok.inj h]; simp
+    rw [hr]
+    unfold detachWithLiveAdjust at hd
+    obtain ⟨_, hs⟩ := DOMState.mapTree_eq_ok hd
+    rw [hs]
+    show (iteratorPreRemove (liveRangePreRemove s n) n).ranges = _
+    rw [iteratorPreRemove_ranges]
+    simp only [liveRangePreRemove, hp]
 
 /--
 `remove` の後も boundary point は木の中にある。
@@ -197,10 +215,10 @@ theorem liveRangePreRemoveBP_outside {t : Tree} {n p : NodeId} {i : Nat}
 /-! ## remove の定理 -/
 
 /-- PLAN §8.3。`remove` は range の両端が木の中にあることを保つ。 -/
-theorem remove_preserves_endpoints {s s' : DOMState} {n p : NodeId}
+theorem remove_preserves_endpoints {s s' : DOMState} {n p : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p)
     (hlen : ChildCountKind s.tree p) (hv : RangeEndpointsValid s)
-    (h : remove s n = .ok s') : RangeEndpointsValid s' := by
+    (h : remove s n b = .ok s') : RangeEndpointsValid s' := by
   obtain ⟨i, hi⟩ := index_isSome hwf hp
   have hd := (remove_ok h).2
   have hranges : s'.ranges = s.ranges.map (liveRangePreRemoveRange s.tree n p i) := by
@@ -220,8 +238,8 @@ PLAN §8.3 / `memo.md` §7。削除された node の inclusive descendant を�
 public API はすべて `remove` を経由するので（`Dom/Properties/Algorithms.lean`）、
 どの API から始めてもこの性質は成り立つ。
 -/
-theorem remove_leaves_subtree {s s' : DOMState} {n p : NodeId}
-    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n = .ok s') :
+theorem remove_leaves_subtree {s s' : DOMState} {n p : NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     ∀ r ∈ s'.ranges,
       isInclusiveAncestorOf s.tree n r.start.node = false ∧
         isInclusiveAncestorOf s.tree n r.«end».node = false := by
@@ -595,11 +613,11 @@ theorem rangeValidUpTo_liveRangeInsertAdjust {s : DOMState} {parent : NodeId}
 
 /-- `remove` の列は、既に parent を持たない node の parent を変えない。 -/
 theorem removeEach_keeps_none :
-    ∀ (ns : List NodeId) {s s' : DOMState} {n : NodeId},
-      parentOf s.tree n = none → removeEach s ns = .ok s' → parentOf s'.tree n = none
-  | [], s, s', n, hn, h => by rw [removeEach] at h; rw [← Except.ok.inj h]; exact hn
-  | m :: ms, s, s', n, hn, h => by
-    rw [removeEach] at h
+    ∀ (ns : List NodeId) {s s' : DOMState} {n : NodeId} {b : Bool},
+      parentOf s.tree n = none → removeEach s ns b = .ok s' → parentOf s'.tree n = none
+  | [], s, s', n, b, hn, h => by rw [← Except.ok.inj h]; exact hn
+  | m :: ms, s, s', n, b, hn, h => by
+    simp only [removeEach] at h
     split at h
     · simp at h
     · next s₁ hr =>
@@ -615,18 +633,17 @@ theorem removeEach_keeps_none :
 `insert` が DocumentFragment の children を先に外す step 4 に対応する。
 -/
 theorem removeEach_from_parent :
-    ∀ (ns : List NodeId) {s s' : DOMState} {p : NodeId},
+    ∀ (ns : List NodeId) {s s' : DOMState} {p : NodeId} {b : Bool},
       WellFormed s.tree → ChildCountKind s.tree p → ns.Nodup →
       (∀ n ∈ ns, parentOf s.tree n = some p) →
-      RangeEndpointsValid s → removeEach s ns = .ok s' →
+      RangeEndpointsValid s → removeEach s ns b = .ok s' →
       RangeEndpointsValid s' ∧ (∀ n ∈ ns, parentOf s'.tree n = none) ∧
         WellFormed s'.tree ∧ ChildCountKind s'.tree p ∧ KindPreserving s.tree s'.tree
-  | [], s, s', p, hwf, hlen, _, _, hv, h => by
-    rw [removeEach] at h
+  | [], s, s', p, b, hwf, hlen, _, _, hv, h => by
     rw [← Except.ok.inj h]
     exact ⟨hv, by simp, hwf, hlen, KindPreserving.refl _⟩
-  | n :: ns, s, s', p, hwf, hlen, hnd, hpar, hv, h => by
-    rw [removeEach] at h
+  | n :: ns, s, s', p, b, hwf, hlen, hnd, hpar, hv, h => by
+    simp only [removeEach] at h
     split at h
     · simp at h
     · next s₁ hr =>
@@ -692,17 +709,28 @@ theorem insert_fragment_preserves_endpoints {s s' : DOMState} {node parent : Nod
           removeEach_from_parent nd.children hwf hfrag hnodup hpar hv hre
         have hlen₁ : ChildCountKind s₁.tree parent := hlen.map hkp
         -- step 5 と 7
-        unfold insertNodesAt insertEachAt at h
+        unfold insertNodesAt at h
+        simp only at h
         split at h
         · simp at h
-        · next pd hpd =>
-          refine insertEach_valid_of_no_parent nd.children ?_ ?_ ?_ hnodup ?_ ?_ h
-          · simpa using hwf₁
-          · exact isDocument_ownerDocument (by simpa using hwf₁) hpd
-          · simpa using hlen₁
-          · intro m hm
-            simpa using hnone m hm
-          · exact rangeValidUpTo_liveRangeInsertAdjust hv₁
+        · next sx hx =>
+          have hproj : s'.tree = sx.tree ∧ s'.ranges = sx.ranges := by
+            split at h
+            · rw [← Except.ok.inj h]; exact ⟨rfl, rfl⟩
+            · rw [← Except.ok.inj h]; exact ⟨by simp, by simp⟩
+          refine rangeEndpointsValid_congr hproj.1 hproj.2 ?_
+          unfold insertEachAt at hx
+          split at hx
+          · simp at hx
+          · next pd hpd =>
+            refine insertEach_valid_of_no_parent nd.children ?_ ?_ ?_ hnodup ?_ ?_ hx
+            · simpa using hwf₁
+            · exact isDocument_ownerDocument (by simpa using hwf₁) hpd
+            · simpa using hlen₁
+            · intro m hm
+              simpa using hnone m hm
+            · exact rangeValidUpTo_liveRangeInsertAdjust
+                (rangeEndpointsValid_congr (by simp) (by simp) hv₁)
 
 /-! ## parent を持つ node の insert -/
 
@@ -983,10 +1011,15 @@ theorem rangeShiftAfterInsert_mono {parent : NodeId} {idx k : Nat} {a b : Bounda
   · rw [if_neg (fun hc => hq hc.1), if_neg (fun hc => hq (by rw [hnode]; exact hc.1))]
     exact ⟨hnode, hle⟩
 
+theorem rangesSameNodeOrdered_congr {s₁ s₂ : DOMState} (hr : s₁.ranges = s₂.ranges)
+    (h : RangesSameNodeOrdered s₂) : RangesSameNodeOrdered s₁ := by
+  intro r hrm
+  exact h r (by rw [← hr]; exact hrm)
+
 /-! ## 各 algorithm が同じ node の上の順序を保つこと -/
 
-theorem remove_preserves_sameNodeOrdered {s s' : DOMState} {n p : NodeId}
-    (hp : parentOf s.tree n = some p) (h : remove s n = .ok s')
+theorem remove_preserves_sameNodeOrdered {s s' : DOMState} {n p : NodeId} {b : Bool}
+    (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s')
     (hv : RangesSameNodeOrdered s) : RangesSameNodeOrdered s' := by
   intro r hr
   rw [remove_ranges hp h] at hr
@@ -996,11 +1029,11 @@ theorem remove_preserves_sameNodeOrdered {s s' : DOMState} {n p : NodeId}
   exact liveRangePreRemoveBP_mono hn ho
 
 theorem removeEach_preserves_sameNodeOrdered :
-    ∀ (ns : List NodeId) {s s' : DOMState},
-      RangesSameNodeOrdered s → removeEach s ns = .ok s' → RangesSameNodeOrdered s'
-  | [], s, s', hv, h => by rw [removeEach] at h; rw [← Except.ok.inj h]; exact hv
-  | n :: ns, s, s', hv, h => by
-    rw [removeEach] at h
+    ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool},
+      RangesSameNodeOrdered s → removeEach s ns b = .ok s' → RangesSameNodeOrdered s'
+  | [], s, s', b, hv, h => by rw [← Except.ok.inj h]; exact hv
+  | n :: ns, s, s', b, hv, h => by
+    simp only [removeEach] at h
     split at h
     · simp at h
     · next s₁ hr =>
@@ -1063,18 +1096,30 @@ theorem insert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId
     have hstep : ∀ (u : DOMState) (ns : List NodeId), RangesSameNodeOrdered u →
         insertNodesAt u parent child ns = .ok s' → RangesSameNodeOrdered s' := by
       intro u ns hu hun
-      unfold insertNodesAt insertEachAt at hun
+      unfold insertNodesAt at hun
+      simp only at hun
       split at hun
       · simp at hun
-      · exact insertEach_preserves_sameNodeOrdered ns
-          (liveRangeInsertAdjust_preserves_sameNodeOrdered hu) hun
+      · next sx hx =>
+        have hrx : s'.ranges = sx.ranges := by
+          split at hun
+          · rw [← Except.ok.inj hun]
+          · rw [← Except.ok.inj hun]; simp
+        intro r hr
+        rw [hrx] at hr
+        unfold insertEachAt at hx
+        split at hx
+        · simp at hx
+        · exact insertEach_preserves_sameNodeOrdered ns
+            (liveRangeInsertAdjust_preserves_sameNodeOrdered hu) hx r hr
     split at h
     · split at h
       · rw [← Except.ok.inj h]; exact hv
       · split at h
         · simp at h
         · next s₁ hre =>
-          exact hstep s₁ _ (removeEach_preserves_sameNodeOrdered _ hv hre) h
+          exact hstep _ _ (rangesSameNodeOrdered_congr (by simp)
+            (removeEach_preserves_sameNodeOrdered _ hv hre)) h
     · exact hstep s _ hv h
 
 /-- `remove` の後も、両端が同じ node を指す range は正しく並んでいる。 -/

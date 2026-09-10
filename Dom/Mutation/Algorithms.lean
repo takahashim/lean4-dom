@@ -3,6 +3,7 @@ import Dom.Mutation.Insert
 import Dom.Mutation.Adopt
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
+import Dom.Observer.Record
 
 /-!
 # WHATWG の mutation algorithm
@@ -114,18 +115,34 @@ step 1-2 は parent が非 null であることの assert なので、model で�
 parent が無ければ `notFoundError` を返す。
 step 15 の removing steps は他仕様のための拡張点なので扱わない。
 -/
-def remove (s : DOMState) (node : NodeId) : Except DOMException DOMState :=
+def remove (s : DOMState) (node : NodeId) (suppressObservers : Bool := false) :
+    Except DOMException DOMState :=
   match parentOf s.tree node with
   | none => .error .notFoundError
-  | some _ => detachWithLiveAdjust s node
+  | some parent =>
+    -- step 12-13。木を変える前の兄弟を控える。
+    let oldPreviousSibling := previousSibling s.tree node
+    let oldNextSibling := nextSibling s.tree node
+    match detachWithLiveAdjust s node with
+    | .error e => .error e
+    | .ok s₁ =>
+      -- step 20。外す部分木の中の変更も subtree observer が配送まで見続けられるようにする。
+      -- `parent` の ancestor は node を外しても変わらないので、
+      -- 仕様どおり step 14 の後で数えてよい。
+      let s₂ := addTransientObservers s₁ node parent
+      -- step 21
+      if suppressObservers then .ok s₂
+      else .ok (queueTreeMutationRecord s₂ parent [] [node] oldPreviousSibling oldNextSibling)
 
 /-- node の列を順に remove する。DOM Standard §4.2.3 insert step 4 などで使う。 -/
-def removeEach : DOMState → List NodeId → Except DOMException DOMState
-  | s, [] => .ok s
-  | s, n :: ns =>
-    match remove s n with
+def removeEach (s : DOMState) (ns : List NodeId) (suppressObservers : Bool := false) :
+    Except DOMException DOMState :=
+  match ns with
+  | [] => .ok s
+  | n :: rest =>
+    match remove s n suppressObservers with
     | .error e => .error e
-    | .ok s' => removeEach s' ns
+    | .ok s' => removeEach s' rest suppressObservers
 
 /-! ## adopt -/
 
@@ -251,18 +268,29 @@ def insertEachAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
   | none => .error .notFoundError
   | some pd => insertEach s parent child pd.ownerDocument nodes
 
-/-- DOM Standard §4.2.3 insert step 5 と 7。 -/
+/-- DOM Standard §4.2.3 insert step 5-9。 -/
 def insertNodesAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
-    (nodes : List NodeId) : Except DOMException DOMState :=
-  insertEachAt (liveRangeInsertAdjust s parent child nodes.length) parent child nodes
+    (nodes : List NodeId) (suppressObservers : Bool := false) :
+    Except DOMException DOMState :=
+  -- step 6。木を変える前に決める。
+  let prev := match child with
+    | some c => previousSibling s.tree c
+    | none => (childrenOf s.tree parent).getLast?
+  -- step 5, 7
+  match insertEachAt (liveRangeInsertAdjust s parent child nodes.length) parent child nodes with
+  | .error e => .error e
+  | .ok s' =>
+    -- step 9
+    if suppressObservers then .ok s'
+    else .ok (queueTreeMutationRecord s' parent nodes [] prev child)
 
 /--
 DOM Standard §4.2.3 "insert"。
 
 DocumentFragment を渡すと、その children を展開して順に挿入する。
 -/
-def insert (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
-    Except DOMException DOMState :=
+def insert (s : DOMState) (node parent : NodeId) (child : Option NodeId)
+    (suppressObservers : Bool := false) : Except DOMException DOMState :=
   match s.tree.get? node with
   | none => .error .notFoundError
   | some nd =>
@@ -271,12 +299,15 @@ def insert (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
       if nd.children.isEmpty then .ok s  -- step 2-3
       else
         -- step 4：fragment の children を先に外す
-        match removeEach s nd.children with
+        match removeEach s nd.children true with
         | .error e => .error e
-        | .ok s₁ => insertNodesAt s₁ parent child nd.children
+        | .ok s₁ =>
+          -- step 4.2。suppressObservers に関わらず fragment に record を積む。
+          insertNodesAt (queueTreeMutationRecord s₁ node [] nd.children none none)
+            parent child nd.children suppressObservers
     else
       -- step 1-3：nodes は « node » なので空にならない
-      insertNodesAt s parent child [node]
+      insertNodesAt s parent child [node] suppressObservers
 
 /-! ## pre-insert / append / pre-remove / replace / replace all -/
 
@@ -316,18 +347,29 @@ def replace (s : DOMState) (child node parent : NodeId) : Except DOMException DO
     match s.tree.get? parent with
     | none => .error .notFoundError
     | some pd =>
+      -- step 4。record に載せる previousSibling は木を変える前の値。
+      let previousSibling₀ := previousSibling s.tree child
+      -- step 8。nodes は fragment なら children、そうでなければ « node »。
+      let nodes := match s.tree.get? node with
+        | some nd => if nd.kind == .documentFragment then nd.children else [node]
+        | none => [node]
       -- step 6
       match adopt s node pd.ownerDocument with
       | .error e => .error e
       | .ok s₁ =>
-        -- step 7
+        -- step 7。removedNodes は child が実際に外れたときだけ « child »。
+        let removed := if (parentOf s₁.tree child).isSome then [child] else []
         match (match parentOf s₁.tree child with
                | none => (.ok s₁ : Except DOMException DOMState)
-               | some _ => remove s₁ child) with
+               | some _ => remove s₁ child true) with
         | .error e => .error e
         | .ok s₂ =>
-          -- step 9
-          insert s₂ node parent referenceChild
+          -- step 9。record は step 10 でまとめて積むので、ここでは抑制する。
+          match insert s₂ node parent referenceChild true with
+          | .error e => .error e
+          | .ok s₃ =>
+            -- step 10
+            .ok (queueTreeMutationRecord s₃ parent nodes removed previousSibling₀ referenceChild)
 
 /--
 DOM Standard §4.2.3 "replace all"。
@@ -336,14 +378,26 @@ DOM Standard §4.2.3 "replace all"。
 -/
 def replaceAll (s : DOMState) (node : Option NodeId) (parent : NodeId) :
     Except DOMException DOMState :=
-  -- step 1, 4
-  match removeEach s (childrenOf s.tree parent) with
+  -- step 1-3
+  let removedNodes := childrenOf s.tree parent
+  let addedNodes := match node with
+    | none => []
+    | some n =>
+      match s.tree.get? n with
+      | some nd => if nd.kind == .documentFragment then nd.children else [n]
+      | none => [n]
+  -- step 4
+  match removeEach s removedNodes true with
   | .error e => .error e
   | .ok s₁ =>
     -- step 5
-    match node with
-    | none => .ok s₁
-    | some n => insert s₁ n parent none
+    match (match node with
+           | none => (.ok s₁ : Except DOMException DOMState)
+           | some n => insert s₁ n parent none true) with
+    | .error e => .error e
+    | .ok s₂ =>
+      -- step 6-7
+      .ok (queueTreeMutationRecord s₂ parent addedNodes removedNodes none none)
 
 /-! ## move -/
 
@@ -399,12 +453,27 @@ def move (s : DOMState) (node newParent : NodeId) (child : Option NodeId) :
     match parentOf s.tree node with
     | none => .error .hierarchyRequestError
     | some _ =>
+      -- step 12-13
+      let oldPreviousSibling := previousSibling s.tree node
+      let oldNextSibling := nextSibling s.tree node
+      let oldParent := parentOf s.tree node
       -- step 10-11, 14
       match detachWithLiveAdjust s node with
       | .error e => .error e
       | .ok s₁ =>
+        -- step 17。挿入前の兄弟。
+        let newPreviousSibling := match child with
+          | some c => previousSibling s₁.tree c
+          | none => (childrenOf s₁.tree newParent).getLast?
         -- step 16-18
-        (liveRangeInsertAdjust s₁ newParent child 1).mapTree fun t =>
-          insertAt t newParent node child
+        match (liveRangeInsertAdjust s₁ newParent child 1).mapTree fun t =>
+          insertAt t newParent node child with
+        | .error e => .error e
+        | .ok s₂ =>
+          -- step 23-24。旧 parent に removal、新 parent に addition の二つ。
+          let s₃ := match oldParent with
+            | none => s₂
+            | some p => queueTreeMutationRecord s₂ p [] [node] oldPreviousSibling oldNextSibling
+          .ok (queueTreeMutationRecord s₃ newParent [node] [] newPreviousSibling child)
 
 end Dom

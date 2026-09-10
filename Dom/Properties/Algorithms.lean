@@ -98,51 +98,69 @@ theorem detachWithLiveAdjust_tree {s s' : DOMState} {n : NodeId}
   have := (DOMState.mapTree_eq_ok h).1
   simpa using this
 
-/-- `remove` が成功したなら parent があり、木の効果は `detach` と同じである。 -/
-theorem remove_ok {s s' : DOMState} {n : NodeId} (h : remove s n = .ok s') :
+/--
+`remove` が成功したなら parent があり、木の効果は `detach` と同じである。
+
+mutation record を積む step（20-21）は木を変えないので、
+`suppressObservers` の値に依らず成り立つ。
+-/
+theorem remove_ok {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :
     (∃ p, parentOf s.tree n = some p) ∧ detach s.tree n = .ok s'.tree := by
   unfold remove at h
   split at h
   · simp at h
-  · next p hp => exact ⟨⟨p, hp⟩, detachWithLiveAdjust_tree h⟩
+  · next p hp =>
+    simp only at h
+    split at h
+    · simp at h
+    · next s₁ hd =>
+      refine ⟨⟨p, hp⟩, ?_⟩
+      have htree : s'.tree = s₁.tree := by
+        split at h
+        · rw [← Except.ok.inj h]; simp
+        · rw [← Except.ok.inj h]; simp
+      rw [htree]
+      exact detachWithLiveAdjust_tree hd
 
-theorem remove_preserves_wellformed {s s' : DOMState} {n : NodeId}
-    (hwf : WellFormed s.tree) (h : remove s n = .ok s') : WellFormed s'.tree :=
+theorem remove_preserves_wellformed {s s' : DOMState} {n : NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (h : remove s n b = .ok s') : WellFormed s'.tree :=
   detach_preserves_wellformed hwf (remove_ok h).2
 
-theorem kindPreserving_remove {s s' : DOMState} {n : NodeId} (h : remove s n = .ok s') :
+theorem kindPreserving_remove {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :
     KindPreserving s.tree s'.tree :=
   kindPreserving_detach (remove_ok h).2
 
 /-- PLAN §6.3。`remove` した node は parent を持たない。 -/
-theorem remove_parentOf {s s' : DOMState} {n : NodeId} (h : remove s n = .ok s') :
+theorem remove_parentOf {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :
     parentOf s'.tree n = none :=
   detach_parentOf (remove_ok h).2
 
 /-- PLAN §6.3。`remove` の後、node は旧 parent の children に現れない。 -/
-theorem remove_not_mem_childrenOf {s s' : DOMState} {n p : NodeId}
-    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n = .ok s') :
+theorem remove_not_mem_childrenOf {s s' : DOMState} {n p : NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     n ∉ childrenOf s'.tree p := by
   rw [detach_childrenOf hwf hp (remove_ok h).2]
   exact ListUtil.not_mem_removeAll _ _
 
 theorem removeEach_preserves_wellformed :
-    ∀ (ns : List NodeId) {s s' : DOMState}, WellFormed s.tree → removeEach s ns = .ok s' →
-      WellFormed s'.tree
-  | [], _, _, hwf, h => by rw [removeEach] at h; rw [← Except.ok.inj h]; exact hwf
-  | n :: ns, s, s', hwf, h => by
-    rw [removeEach] at h
+    ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool}, WellFormed s.tree →
+      removeEach s ns b = .ok s' → WellFormed s'.tree
+  | [], _, _, _, hwf, h => by
+    simp only [removeEach] at h; rw [← Except.ok.inj h]; exact hwf
+  | n :: ns, s, s', b, hwf, h => by
+    simp only [removeEach] at h
     split at h
     · simp at h
     · next s₁ hr =>
       exact removeEach_preserves_wellformed ns (remove_preserves_wellformed hwf hr) h
 
 theorem kindPreserving_removeEach :
-    ∀ (ns : List NodeId) {s s' : DOMState}, removeEach s ns = .ok s' →
+    ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool}, removeEach s ns b = .ok s' →
       KindPreserving s.tree s'.tree
-  | [], _, _, h => by rw [removeEach] at h; rw [← Except.ok.inj h]; exact KindPreserving.refl _
-  | n :: ns, s, s', h => by
-    rw [removeEach] at h
+  | [], _, _, _, h => by
+    simp only [removeEach] at h; rw [← Except.ok.inj h]; exact KindPreserving.refl _
+  | n :: ns, s, s', b, h => by
+    simp only [removeEach] at h
     split at h
     · simp at h
     · next s₁ hr =>
@@ -253,23 +271,40 @@ theorem kindPreserving_insertEachAt {s s' : DOMState} {parent : NodeId} {child :
   · exact kindPreserving_insertEach _ h
 
 theorem insertNodesAt_preserves_wellformed {s s' : DOMState} {parent : NodeId}
-    {child : Option NodeId} {nodes : List NodeId}
-    (hwf : WellFormed s.tree) (h : insertNodesAt s parent child nodes = .ok s') :
+    {child : Option NodeId} {nodes : List NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (h : insertNodesAt s parent child nodes b = .ok s') :
     WellFormed s'.tree := by
   unfold insertNodesAt at h
-  exact insertEachAt_preserves_wellformed (by simpa using hwf) h
+  simp only at h
+  split at h
+  · simp at h
+  · next s₁ hi =>
+    have htree : s'.tree = s₁.tree := by
+      split at h
+      · rw [← Except.ok.inj h]
+      · rw [← Except.ok.inj h]; simp
+    rw [htree]
+    exact insertEachAt_preserves_wellformed (by simpa using hwf) hi
 
 theorem kindPreserving_insertNodesAt {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
-    {nodes : List NodeId} (h : insertNodesAt s parent child nodes = .ok s') :
+    {nodes : List NodeId} {b : Bool} (h : insertNodesAt s parent child nodes b = .ok s') :
     KindPreserving s.tree s'.tree := by
   unfold insertNodesAt at h
-  have := kindPreserving_insertEachAt h
-  simpa using this
+  simp only at h
+  split at h
+  · simp at h
+  · next s₁ hi =>
+    have htree : s'.tree = s₁.tree := by
+      split at h
+      · rw [← Except.ok.inj h]
+      · rw [← Except.ok.inj h]; simp
+    rw [htree]
+    simpa using kindPreserving_insertEachAt hi
 
 /-- PLAN §6.3。`insert` は well-formedness を保つ。 -/
 theorem insert_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} (hwf : WellFormed s.tree) (h : insert s node parent child = .ok s') :
-    WellFormed s'.tree := by
+    {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
+    (h : insert s node parent child b = .ok s') : WellFormed s'.tree := by
   unfold insert at h
   split at h
   · simp at h
@@ -280,11 +315,12 @@ theorem insert_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
       · split at h
         · simp at h
         · next s₁ hr =>
-          exact insertNodesAt_preserves_wellformed (removeEach_preserves_wellformed _ hwf hr) h
+          exact insertNodesAt_preserves_wellformed
+            (by simpa using removeEach_preserves_wellformed _ hwf hr) h
     · exact insertNodesAt_preserves_wellformed hwf h
 
 theorem kindPreserving_insert {s s' : DOMState} {node parent : NodeId} {child : Option NodeId}
-    (h : insert s node parent child = .ok s') : KindPreserving s.tree s'.tree := by
+    {b : Bool} (h : insert s node parent child b = .ok s') : KindPreserving s.tree s'.tree := by
   unfold insert at h
   split at h
   · simp at h
@@ -295,7 +331,8 @@ theorem kindPreserving_insert {s s' : DOMState} {node parent : NodeId} {child : 
       · split at h
         · simp at h
         · next s₁ hr =>
-          exact (kindPreserving_removeEach _ hr).trans (kindPreserving_insertNodesAt h)
+          exact (kindPreserving_removeEach _ hr).trans
+            (by simpa using kindPreserving_insertNodesAt h)
     · exact kindPreserving_insertNodesAt h
 
 /-! ## 残りの algorithm の preservation -/
@@ -328,6 +365,7 @@ theorem replace_preserves_wellformed {s s' : DOMState} {child node parent : Node
   · split at h
     · simp at h
     · next pd hpd =>
+      simp only at h
       split at h
       · simp at h
       · next s₁ ha =>
@@ -339,21 +377,55 @@ theorem replace_preserves_wellformed {s s' : DOMState} {child node parent : Node
             revert hr; split
             · intro hr; rw [← Except.ok.inj hr]; exact hwf₁
             · intro hr; exact remove_preserves_wellformed hwf₁ (by simpa using hr)
-          exact insert_preserves_wellformed hwf₂ h
+          split at h
+          · simp at h
+          · next s₃ hi =>
+            rw [← Except.ok.inj h]
+            simpa using insert_preserves_wellformed hwf₂ hi
 
 theorem replaceAll_preserves_wellformed {s s' : DOMState} {node : Option NodeId}
     {parent : NodeId} (hwf : WellFormed s.tree) (h : replaceAll s node parent = .ok s') :
     WellFormed s'.tree := by
   unfold replaceAll at h
+  simp only at h
   split at h
   · simp at h
   · next s₁ hr =>
     have hwf₁ := removeEach_preserves_wellformed _ hwf hr
     split at h
-    · rw [← Except.ok.inj h]; exact hwf₁
-    · exact insert_preserves_wellformed hwf₁ h
+    · simp at h
+    · next s₂ hi =>
+      have hwf₂ : WellFormed s₂.tree := by
+        revert hi; split
+        · intro hi; rw [← Except.ok.inj hi]; exact hwf₁
+        · intro hi; exact insert_preserves_wellformed hwf₁ (by simpa using hi)
+      rw [← Except.ok.inj h]
+      simpa using hwf₂
 
 /-! ## move -/
+
+/--
+`remove` は `detachWithLiveAdjust` の結果に record と transient observer を足しただけである。
+
+足す step は木・range・iterator を変えないので、`move` の証明ではこの形で使う。
+-/
+theorem remove_eq_of_detach {s sd : DOMState} {n p : NodeId} {b : Bool}
+    (hp : parentOf s.tree n = some p) (hd : detachWithLiveAdjust s n = .ok sd) :
+    ∃ s₁, remove s n b = .ok s₁ ∧ s₁.tree = sd.tree ∧ s₁.ranges = sd.ranges ∧
+      s₁.iterators = sd.iterators := by
+  unfold remove
+  rw [hp]
+  simp only [hd]
+  cases b
+  · exact ⟨_, rfl, by simp, by simp, by simp⟩
+  · exact ⟨_, rfl, by simp, by simp, by simp⟩
+
+/-- 挿入側の range 調整は、木と range が同じ状態に対して同じ結果を返す。 -/
+theorem liveRangeInsertAdjust_ranges_congr {s₁ s₂ : DOMState} {p : NodeId}
+    {c : Option NodeId} {k : Nat} (ht : s₁.tree = s₂.tree) (hr : s₁.ranges = s₂.ranges) :
+    (liveRangeInsertAdjust s₁ p c k).ranges = (liveRangeInsertAdjust s₂ p c k).ranges := by
+  unfold liveRangeInsertAdjust
+  cases c <;> simp [ht, hr]
 
 /--
 PLAN §6.2 / `memo.md` の `move_equivalent_to_remove_insert`（木への射影）。
@@ -376,10 +448,19 @@ theorem move_eq_remove_insertAt {s s' : DOMState} {node newParent : NodeId}
     · next p hp =>
       split at h
       · simp at h
-      · next s₁ hd =>
-        refine ⟨s₁, by simp only [remove, hp]; exact hd, ?_⟩
-        have hm := (DOMState.mapTree_eq_ok h).1
-        simpa using hm
+      · next sd hd =>
+        obtain ⟨s₁, hrm, ht, _, _⟩ := remove_eq_of_detach (b := false) hp hd
+        refine ⟨s₁, hrm, ?_⟩
+        simp only at h
+        split at h
+        · simp at h
+        · next s₂ hi =>
+          have he : s'.tree = s₂.tree := by
+            rw [← Except.ok.inj h]
+            simp only [queueTreeMutationRecord_tree]
+            split <;> simp
+          rw [he, ht]
+          simpa using (DOMState.mapTree_eq_ok hi).1
 
 /-- `move` の後の range は、`remove` の後の range に挿入側の調整をかけたものである。 -/
 theorem move_ranges {s s' : DOMState} {node newParent : NodeId} {child : Option NodeId}
@@ -394,10 +475,19 @@ theorem move_ranges {s s' : DOMState} {node newParent : NodeId} {child : Option 
     · next p hp =>
       split at h
       · simp at h
-      · next s₁ hd =>
-        refine ⟨s₁, by simp only [remove, hp]; exact hd, ?_⟩
-        rw [(DOMState.mapTree_eq_ok h).2]
-        rfl
+      · next sd hd =>
+        obtain ⟨s₁, hrm, ht, hr, _⟩ := remove_eq_of_detach (b := false) hp hd
+        refine ⟨s₁, hrm, ?_⟩
+        simp only at h
+        split at h
+        · simp at h
+        · next s₂ hi =>
+          have he : s'.ranges = s₂.ranges := by
+            rw [← Except.ok.inj h]
+            simp only [queueTreeMutationRecord_ranges]
+            split <;> simp
+          rw [he, (DOMState.mapTree_eq_ok hi).2, DOMState.withTree_ranges]
+          exact liveRangeInsertAdjust_ranges_congr ht.symm hr.symm
 
 /-- PLAN §6.3。`move` は well-formedness を保つ。 -/
 theorem move_preserves_wellformed {s s' : DOMState} {node newParent : NodeId}
@@ -499,23 +589,37 @@ theorem insert_single {s s' : DOMState} {node parent : NodeId} {child : Option N
     cases hnd'
     split at h
     · next hf => exact absurd hf hk
-    · unfold insertNodesAt insertEachAt at h
-      simp only [List.length_cons, List.length_nil, liveRangeInsertAdjust_tree] at h
+    · unfold insertNodesAt at h
+      simp only at h
       split at h
       · simp at h
-      · next pd hpd =>
-        rw [insertEach] at h
-        split at h
-        · simp at h
-        · next s₁ ha =>
+      · next sx hx =>
+        -- step 9 の record は木も range も変えない。
+        have ht : s'.tree = sx.tree := by
           split at h
-          · simp at h
-          · next s₂ hi =>
-            rw [insertEach] at h
-            obtain ⟨hi₁, hi₂⟩ := DOMState.mapTree_eq_ok hi
-            refine ⟨pd, s₁, hpd, ha, ?_, ?_⟩
-            · rw [← Except.ok.inj h]; exact hi₁
-            · rw [← Except.ok.inj h, hi₂]; rfl
+          · rw [← Except.ok.inj h]
+          · rw [← Except.ok.inj h]; simp
+        have hr : s'.ranges = sx.ranges := by
+          split at h
+          · rw [← Except.ok.inj h]
+          · rw [← Except.ok.inj h]; simp
+        unfold insertEachAt at hx
+        simp only [List.length_cons, List.length_nil, liveRangeInsertAdjust_tree] at hx
+        split at hx
+        · simp at hx
+        · next pd hpd =>
+          rw [insertEach] at hx
+          split at hx
+          · simp at hx
+          · next s₁ ha =>
+            split at hx
+            · simp at hx
+            · next s₂ hi =>
+              rw [insertEach] at hx
+              obtain ⟨hi₁, hi₂⟩ := DOMState.mapTree_eq_ok hi
+              refine ⟨pd, s₁, hpd, ha, ?_, ?_⟩
+              · rw [ht, ← Except.ok.inj hx]; exact hi₁
+              · rw [hr, ← Except.ok.inj hx, hi₂]; rfl
 
 /--
 PLAN §6.3。fragment でない node を `insert` すると、

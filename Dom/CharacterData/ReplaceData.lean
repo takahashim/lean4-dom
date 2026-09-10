@@ -1,4 +1,5 @@
 import Dom.Range.Adjust
+import Dom.Observer.Record
 
 /-!
 # CharacterData
@@ -63,7 +64,7 @@ DOM Standard §4.10 "replace data"。
 本 model は node を kind で区別するので、
 CharacterData 以外に対しては `invalidNodeTypeError` を返す。
 
-mutation record、ProcessingInstruction の attribute 更新、children changed steps は扱わない。
+ProcessingInstruction の attribute 更新と children changed steps は扱わない。
 -/
 def replaceData (s : DOMState) (n : NodeId) (offset count : Nat) (data : String) :
     Except DOMException DOMState :=
@@ -76,12 +77,15 @@ def replaceData (s : DOMState) (n : NodeId) (offset count : Nat) (data : String)
     else
       -- step 3
       let c := adjustedCount d.length offset count
-      .ok { tree :=
-              { s.tree with
-                  nodes := s.tree.nodes.insert n
-                    { d with data := spliceData d.data offset c data } }
-            ranges := s.ranges.map (replaceDataAdjustRange n offset c data.length)
-            iterators := s.iterators }
+      -- step 4。record は data を変える前に、変える前の値を oldValue として積む。
+      let s₀ := queueCharacterDataRecord s n d.data
+      -- step 5-9
+      .ok { s₀ with
+              tree :=
+                { s.tree with
+                    nodes := s.tree.nodes.insert n
+                      { d with data := spliceData d.data offset c data } }
+              ranges := s.ranges.map (replaceDataAdjustRange n offset c data.length) }
 
 /-! ## `CharacterData` の method -/
 

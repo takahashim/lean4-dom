@@ -36,11 +36,71 @@ structure IteratorState where
   pointerBeforeReference : Bool
 deriving DecidableEq, Repr, Inhabited
 
+/-! ## MutationObserver -/
+
+/--
+DOM Standard §4.3.1 の `MutationRecord` の type。
+
+model は attribute を持たないので、`attributes` は扱わない。
+-/
+inductive RecordType where
+  | childList
+  | characterData
+deriving DecidableEq, Repr, Inhabited
+
+/--
+DOM Standard §4.3.1 の `MutationRecord`。
+
+`attributeName` / `attributeNamespace` は model が attribute を扱わないので省く。
+-/
+structure MutationRecord where
+  type : RecordType
+  target : NodeId
+  addedNodes : List NodeId := []
+  removedNodes : List NodeId := []
+  previousSibling : Option NodeId := none
+  nextSibling : Option NodeId := none
+  oldValue : Option String := none
+deriving DecidableEq, Repr, Inhabited
+
+/--
+DOM Standard §4.3.3 の registered observer。
+
+仕様では node ごとの registered observer list だが、model では
+`node` を持つ一つの list にまとめる。同じ node の登録は list の順に並ぶので、
+仕様の「node の registered observer list を順に見る」はその部分列を見ることになる。
+
+`transient` は transient registered observer であることを表す（remove step 20）。
+`observer` は `DOMState.observers` の index である。
+-/
+structure Registration where
+  node : NodeId
+  observer : Nat
+  subtree : Bool := false
+  childList : Bool := false
+  characterData : Bool := false
+  characterDataOldValue : Bool := false
+  transient : Bool := false
+deriving DecidableEq, Repr, Inhabited
+
+/--
+DOM Standard §4.3.2 の `MutationObserver`。
+
+callback は model の対象外なので、record queue だけを持つ。
+配送（queue a mutation observer microtask）も扱わないので、
+record は `takeRecords` で取り出すまで貯まる。
+-/
+structure ObserverState where
+  records : List MutationRecord := []
+deriving DecidableEq, Repr, Inhabited
+
 /-- 木と live object を合わせた状態。 -/
 structure DOMState where
   tree : Tree
   ranges : List RangeState := []
   iterators : List IteratorState := []
+  observers : List ObserverState := []
+  registrations : List Registration := []
 deriving Repr, Inhabited
 
 namespace DOMState
@@ -54,6 +114,12 @@ def withTree (s : DOMState) (t : Tree) : DOMState := { s with tree := t }
 
 @[simp] theorem withTree_iterators (s : DOMState) (t : Tree) :
     (s.withTree t).iterators = s.iterators := rfl
+
+@[simp] theorem withTree_observers (s : DOMState) (t : Tree) :
+    (s.withTree t).observers = s.observers := rfl
+
+@[simp] theorem withTree_registrations (s : DOMState) (t : Tree) :
+    (s.withTree t).registrations = s.registrations := rfl
 
 /-- 木だけを変える操作を状態に持ち上げる。 -/
 def mapTree (s : DOMState) (f : Tree → Except DOMException Tree) : Except DOMException DOMState :=
