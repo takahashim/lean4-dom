@@ -118,25 +118,27 @@ module Difftest
     current
   end
 
+  # 仕様がその kind に定めている操作のうち、Dommy に無いもの。
+  # 仕様上そもそも無い操作（Document の ChildNode method など）は挙げない。
+  def missing_operations
+    capabilities.to_h { |kind, ops| [kind, Generate::SPEC_OPS.fetch(kind, []) - ops] }
+  end
+
   def report_capabilities
-    puts "Dommy が実装している操作（kind ごとに、仕様にあって Dommy に無いもの）:"
-    all = Compare::UNSUPPORTED # placeholder to keep requires honest
-    op_names = %w[appendChild insertBefore replaceChild removeChild replaceChildren
-                  before after replaceWith remove moveBefore]
-    capabilities.each do |kind, ops|
-      missing = op_names - ops
+    puts "仕様がその kind に定めている操作のうち、Dommy に無いもの:"
+    missing_operations.each do |kind, missing|
       puts format("  %-22s %s", kind, missing.empty? ? "(なし)" : missing.join(", "))
     end
     puts
-    all
   end
 end
 
 if $PROGRAM_NAME == __FILE__
   # doctype を初期状態に置く確率。既定は 0。
-  # `document.appendChild(doctype)` が Dommy では何もしないため
-  # （test/scenarios/doctype-append-to-empty-document.json に記録）、
-  # 既定で混ぜると初期状態の時点でほぼ全部が不一致になり、
+  # `DOMImplementation#createDocumentType` が作った wrapper が wrapper cache に
+  # 登録されないため、`document.childNodes` が別の Ruby object を返し、
+  # runner が node を同定できない（test/scenarios/doctype-wrapper-identity.json）。
+  # 既定で混ぜると初期状態の時点で多数が不一致になり、
   # 操作の意味論の比較ができなくなる。
   opts = { count: 50, seed: Random.new_seed, nodes: 8, ops: 6,
            move: false, all: false, fixed_only: false, doctype: 0.0 }

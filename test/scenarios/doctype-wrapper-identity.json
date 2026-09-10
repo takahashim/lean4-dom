@@ -1,0 +1,22 @@
+{
+  "_note": "DOMImplementation#createDocumentType が作った wrapper が wrapper cache に登録されないため、appendChild は成功しても document.childNodes が別の Ruby object を返し、node を同定できない。",
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "appendChild",
+      "parent": 0,
+      "node": 1
+    }
+  ]
+}

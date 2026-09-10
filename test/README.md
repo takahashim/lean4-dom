@@ -26,6 +26,12 @@ lake build
 export BUNDLE_GEMFILE=/path/to/Gemfile
 export DOMMY_CMD="bundle exec ruby $PWD/test/dommy_runner.rb"
 
+# makiri は RubyGems の公開版を使う。
+# ローカル checkout から build したものだと
+# `Makiri::Document#create_document_type` を持たないことがあり、
+# その場合 Dommy が node-backed でない DocumentType にフォールバックして
+# doctype がそもそも木に入らなくなる（症状が変わるので比較結果を誤読しやすい）。
+
 # 固定 scenario だけ
 ruby test/difftest.rb --fixed-only
 

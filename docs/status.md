@@ -244,6 +244,167 @@ Lean 側は各 step の後で `checkWellFormed` を走らせ、
 invariant が破れていれば出力に `invariantViolation` を足す（PLAN §3.5）。
 これまでの実行で一度も立っていない。
 
+### 突き合わせた相手
+
+| | 版 |
+| --- | --- |
+| Dommy | commit `fd501e0` |
+| makiri | RubyGems 公開版 0.8.0（`x86_64-linux`） |
+
+makiri をローカル checkout から build して使う場合は注意が要る。
+`Makiri::Document#create_document_type` を持たない build だと、
+Dommy は `DOMImplementation#createDocumentType` で node-backed でない
+`DocumentType` にフォールバックし（`backend/makiri_adapter.rb:188`、`document.rb:266`）、
+`appendChild` が backend に届かなくなる。
+この差で下の 2 番の症状が変わるので、公開版を使うか、
+`Makiri::Document#create_document_type` があることを確かめてから使う。
+
+### Dommy 側で見つかった不一致
+
+代表例を `test/scenarios/` に固定 scenario として残した。
+
+1. **`before()` / `after()` / `replaceWith()` / `replaceChildren()` が
+   ensure pre-insert validity を通っていない。**
+   `appendChild` / `insertBefore` / `replaceChild` は正しく検査するのに、
+   ChildNode と ParentNode の便利 method は検査を迂回する。結果として
+   * 仕様が禁じる木を作れてしまう
+     （`element.after(text)` で Text が Document の子になる。
+     `childnode-after-bypasses-validity.json`、`replacewith-bypasses-validity.json`）
+   * backend の `Makiri::Error` がそのまま外に出る
+     （`text.before(自分の parent)`。`childnode-before-leaks-backend-error.json`、
+     `replacechildren-bypasses-validity.json`）
+
+   これは `memo.md` §7 が想定していた「どの API から始めても検査が迂回されない」
+   という性質が破れている例である。
+   model 側では public API がすべて `ensurePreInsertionValidity` を通る構造になっており、
+   その保存は `Dom/Properties/Algorithms.lean` で証明してある。
+2. **`DOMImplementation#createDocumentType` が作った wrapper の同一性が保たれない。**
+   `appendChild` 自体は成功し、`doctype.parentNode` も document を返す。
+   しかし `document.childNodes` が返す `DocumentType` は append したものと別の Ruby object で、
+   `equal?` も `==` も false になる。
+   `createDocumentType` が node-backed wrapper を作りながら wrapper cache に
+   登録していないためである（`document.rb:266`。`clone_node` は `document.rb:169` で登録している）。
+   Element では同一性が保たれる。
+   DOM では node の同一性は観測可能なので、これ自体が仕様との不一致である。
+   `doctype-wrapper-identity.json`
+
+   runner は同定できなかった node を `"?"` として出すので、
+   `children=["?"]` という形で不一致が見える。
+   `--doctype-prob 0.5` を付けると 80 本中 40 本が「initial 状態が一致しない」で落ちる
+   （Phase 4 時点の生成器では 38 本）。これが既定で doctype を混ぜない理由である。
+3. **XML document（`implementation.createDocument(null, null, null)`）の
+   DocumentFragment に `appendChild` すると `Makiri::Error` になる。**
+   HTML document の fragment なら通る。
+   runner はこれを避けて、HTML document の子を外して空にしたものを使っている。
+4. **API の実装漏れ。** `dommy_runner.rb --capabilities` で一覧できる。
+   下の表は、仕様がその interface に定めている操作のうち Dommy に無いものだけを挙げる
+   （`Node` はすべての node、`ParentNode` は Document / DocumentFragment / Element、
+   `ChildNode` は DocumentType / Element / CharacterData）。
+
+   | kind | 仕様にあって Dommy に無いもの |
+   | --- | --- |
+   | `Document` | insertBefore, replaceChild, removeChild, replaceChildren, moveBefore |
+   | `Element` | replaceWith, moveBefore |
+   | `DocumentFragment` | moveBefore |
+   | CharacterData と `DocumentType` | appendChild, insertBefore, replaceChild, removeChild |
+
+   CharacterData と DocumentType は `before` / `after` / `replaceWith` / `remove` を持っている。
+   無いのは `Node` の四つと、`childNodes`（空の `NodeList` を返すべき）である。
+   `Document#nodeType` と `DocumentType#nodeName` の欠落も確認した。
+
+### 現状の一致状況
+
+既定オプション（HTML document を使い、Dommy が実装している (kind, 操作) の組だけを生成し、
+doctype を初期状態に置かない）でも一致しない。
+seed 7、80 本、1 本あたり操作 8 個で、**mismatch 19 / match 36 / unsupported 25** である。
+19 本はすべて 1 番（validity の迂回）が原因で、
+`before` / `after` / `replaceWith` / `replaceChildren` に分かれる。
+
+1 番を避ける option は無いので、「上の 4 種類を避ければ一致する」とは言えない。
+他の mode では次のようになる。
+
+| 実行 | 結果 |
+| --- | --- |
+| 既定 | mismatch 19 / match 36 / unsupported 25 |
+| `--doctype-prob 0.5` | mismatch 40 / match 22 / unsupported 11 / error 7 |
+| `--all-ops` | mismatch 10 / match 13 / unsupported 57 |
+
+`--all-ops` は仕様上の全 API を生成するので unsupported が増え、
+そのぶん比較まで進む本数が減る。不一致の内訳は既定と同じく 1 番である。
+
+## `moveBefore()` の扱い（PLAN §6.2 の宿題）
+
+仕様本文を確認した結果、**model に含めた**。確認した内容は次のとおり。
+
+* 現行の Living Standard には `ParentNode.moveBefore(node, child)` と、
+  対応する **`move` algorithm**（§4.2.3）が step 付きで本文に入っている。
+  PLAN §6.2 の「仕様本文で step を確認できていない」という保留は解消した。
+* `move` は **live range pre-remove steps（step 10）と NodeIterator pre-remove steps（step 11）、
+  および挿入側の live range offset 調整（step 16）を走らせる**。
+  走らせないのは removing steps と insertion steps だけで、
+  これらは他仕様のための拡張点なので本 model の対象外である。
+  したがって木・Range・NodeIterator に射影した観測結果は remove と insert の合成と一致する。
+* `move` は **node document を付け替えない**。step 1 が
+  「newParent の root と node の root が同じ」ことを要求するためである。
+  そのため一致するのは `insert`（adopt を含む）ではなく primitive の `insertAt` との合成になる。
+  これを `move_eq_remove_insertAt` として証明した。
+* validity の検査は `ensure pre-insert validity` とは別物で、step 1-6 の独自のものである
+  （同じ root、inclusive ancestor でない、child の parent、node は Element か CharacterData、
+  Text を document に入れない、document の子の element/doctype 制約）。
+* step 8 の「Assert: oldParent is non-null」は step 1 と step 2 から従う。
+  parent を持たない node は自分自身が root なので、step 1 を通るには newParent の root と
+  一致する必要があり、そのとき step 2 に引っかかる。
+  model では到達しない分岐として `hierarchyRequestError` を返している。
+
+## PLAN §6 の見直しで分かったこと
+
+* **`ensure pre-insert validity` の引数が計画時点と違う。**
+  現行の仕様は `childrenToExclude` を取る形で、`replace` が « child » を渡す。
+  以前の版で `replace` の側に inline で書かれていた例外条件がここにまとめられている。
+  model はこの形に合わせた。
+* **Phase 5 に向けた注意：`insert` と `move` で live range 調整の順序が違う。**
+  `insert` は step 5（child の index を使った offset 調整）を step 7 の adopt → remove の
+  **前** に走らせるが、`move` は step 16 の調整を step 14 の removal の **後** に走らせる。
+  oldParent と newParent が同じときは child の index が両者で変わるので、
+  Range の観測結果が変わりうる。Phase 5 で hook に中身を入れるときは、
+  この順序をそのまま model に反映する必要がある。
+  現在の hook はいずれも恒等関数なので、Phase 3 の範囲では差が出ない。
+* **`replaceWith` の step 5 の検査は本 model では常に真になる。**
+  仕様が「this's parent is parent」を確かめるのは step 4 の
+  "converting nodes into a node" が `this` を `node` の中へ移しうるためだが、
+  本 model は node を生成しないのでこの経路が無い。
+* **可変長引数の API は「まとめた後の node」を受け取る形にした。**
+  `before` / `after` / `replaceWith` / `replaceChildren` は
+  "converting nodes into a node" で DocumentFragment を生成するが、
+  本 model は node を生成しないので、生成済みの node を引数に取る。
+
+## Phase 4（Dommy との differential testing）— 一巡した
+
+`PLAN.md` §7 の仕組みを用意し、実際に Dommy と突き合わせて不一致を検出した。
+
+### 実装したもの
+
+| file | 役割 |
+| --- | --- |
+| `Dom/Exec/Json.lean` | scenario の JSON 入出力（§7.1, §7.2） |
+| `Dom/Exec/Scenario.lean` | 初期状態の構築と操作列の評価 |
+| `Main.lean` | `dom-model SCENARIO.json` と `dom-model --batch DIR` |
+| `test/dommy_runner.rb` | Dommy 側の評価。`--capabilities` で実装状況も出す |
+| `test/compare.rb` | 出力の比較（parent / children / tree order / 例外） |
+| `test/generate.rb` | scenario の乱数生成（§7.3） |
+| `test/difftest.rb` | driver。生成・評価・比較・最小化 |
+| `test/scenarios/*.json` | 固定 scenario |
+
+使い方は `test/README.md` にまとめた。
+
+JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使う。
+`Lean` への依存は `Dom/Exec/` に閉じており、`Dom.lean` からも `Dom/Properties/` からも
+import しないので、証明側の build には影響しない。
+
+Lean 側は各 step の後で `checkWellFormed` を走らせ、
+invariant が破れていれば出力に `invariantViolation` を足す（PLAN §3.5）。
+これまでの実行で一度も立っていない。
+
 ### Dommy 側で見つかった不一致
 
 生成 scenario 80 本（seed 7、1 本あたり操作 8 個）で 22 本が不一致になり、
@@ -347,7 +508,7 @@ Range に追随するようになった。
 ## Phase 5 で見つかった Dommy の不一致
 
 range を differential testing の比較対象に加えたところ、
-Phase 4 で見つかった 4 種類に加えて次が見つかった。
+Phase 4 で見つかった 4 種類に加えて次が見つかった（Dommy `fd501e0` / makiri 0.8.0）。
 
 5. **移動する node の中を指す range の offset が 1 ずれる。**
    `test/scenarios/range-adjust-order-on-move.json`
@@ -371,5 +532,6 @@ Phase 4 で見つかった 4 種類に加えて次が見つかった。
 
 ## 未着手
 
-Phase 6 以降（`Dom/Traversal/`, `Dom/CharacterData/`）は
-`IteratorState` の構造体を用意しただけで、意味論はまだ無い。
+Phase 6 以降（`Dom/Traversal/`, `Dom/CharacterData/`）は、
+`IteratorState` の構造体を `Dom/Basic/State.lean` に用意しただけで、意味論はまだ無い。
+`Dom/Traversal/` と `Dom/CharacterData/` の module 自体がまだ無い。

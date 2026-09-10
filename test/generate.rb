@@ -24,6 +24,30 @@ module Generate
   OPS = %w[appendChild insertBefore replaceChild removeChild replaceChildren
            before after replaceWith remove].freeze
 
+  # 仕様上どの interface がどの操作を持つか。
+  #   Node        すべての node
+  #   ParentNode  Document / DocumentFragment / Element
+  #   ChildNode   DocumentType / Element / CharacterData
+  NODE_OPS = %w[appendChild insertBefore replaceChild removeChild].freeze
+  PARENT_NODE_OPS = %w[replaceChildren moveBefore].freeze
+  CHILD_NODE_OPS = %w[before after replaceWith remove].freeze
+
+  SPEC_OPS = {
+    "document" => NODE_OPS + PARENT_NODE_OPS,
+    "documentFragment" => NODE_OPS + PARENT_NODE_OPS,
+    "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS,
+    "text" => NODE_OPS + CHILD_NODE_OPS,
+    "comment" => NODE_OPS + CHILD_NODE_OPS,
+    "processingInstruction" => NODE_OPS + CHILD_NODE_OPS,
+    "cdataSection" => NODE_OPS + CHILD_NODE_OPS,
+    "documentType" => NODE_OPS + CHILD_NODE_OPS
+  }.freeze
+
+  # 仕様がその kind に定めている操作か。
+  def self.spec_has?(kind, op)
+    SPEC_OPS.fetch(kind, []).include?(op)
+  end
+
   class Builder
     attr_reader :nodes
 
@@ -153,7 +177,10 @@ module Generate
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
       op = random_operation(rng, ids, ops)
-      next if allow && !allow.call(op, kinds[receiver_id(op)])
+      kind = kinds[receiver_id(op)]
+      # 仕様がその kind に定めていない操作は生成しない。
+      next if kind.nil? || !spec_has?(kind, op["op"])
+      next if allow && !allow.call(op, kind)
 
       operations << op
     end

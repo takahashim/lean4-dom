@@ -119,12 +119,18 @@ module DommyRunner
     end
   end
 
+  # scenario の id へ引き直す。
+  # Dommy が別の wrapper object を返して同定できない場合は "?" を返す。
+  # `nil`（parent が無い）と区別できるようにするためで、
+  # DOM では node の同一性は観測可能なので、これ自体が不一致として報告される。
+  UNKNOWN_NODE = "?"
+
   def node_id(objects, node)
     return nil if node.nil?
 
     objects.each { |id, obj| return id if obj.equal?(node) }
     objects.each { |id, obj| return id if obj == node }
-    nil
+    UNKNOWN_NODE
   end
 
   # Dommy は class によって `parent_node` / `child_nodes` を持たないことがある。
