@@ -927,7 +927,7 @@ sweep 中に一度も「初期状態の range が valid でない」は出てい
 これは Ruby 側の辞書式比較と Lean 側の `bpPosition` が一致していることの
 実験的な裏付けになっている。
 
-## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`, `f461486`, `d604752`）
+## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`, `f461486`, `d604752`, `c6ce3c3`）
 
 finding 1（validity の迂回）と finding 2（range 調整の順序）を直した。
 あわせて、同じ sweep で新たに出た五つも直した。全部で七つある。
@@ -1061,15 +1061,62 @@ model は `[]` を渡していたので、既に document element がある docu
 
 Dommy は最初から `ignore_existing: true` で正しく実装していた。
 
+## doctype 周り（finding 3、Dommy commit `c6ce3c3`）
+
+### 10. `createDocumentType` の wrapper が cache に載らない
+
+`Document#createDocumentType` は wrapper cache を通さずに直接
+`DocumentType` を作っていたので、cache に登録されていなかった。
+その結果、あとから木を経由して取り出した doctype
+（`document.childNodes` / `document.doctype` / NodeIterator）は
+factory が返したものとは **別の object** になり、`equal?` / `isSameNode` が false だった。
+他の `create*` と同じように cache に seed するようにした。
+
+### 11. doctype の `before` / `after` / `replaceWith` が専用経路だった
+
+validity 検査を一切通さず、childList record も積まず、
+挿入位置を doctype の実際の位置ではなく heuristic
+（document element、あるいは最初の子）で決めていた。
+そのため Text を document の子にできてしまい、
+`doctype.replaceWith(documentElement)` は backend まで届いて生の error が漏れていた。
+
+node backed な doctype は document の普通の ChildNode なので、
+共有の `Internal::ChildNode` の実装を使うようにした。
+これで親（Document）の ensure-pre-insertion-validity が走り
+（`replaceWith` では仕様の replace どおり doctype を個数から除外する）、
+live range の insert steps も走る。
+backend が doctype node を作れないときの synthetic doctype は従来どおりにした
+（木の中に無いので、仕様ならこれらの method は step 2 で return する）。
+
+これで `--doctype-prob 0.5` でも不一致は出なくなった。
+
+## finding 4（XML document の DocumentFragment）— Makiri 側の制約
+
+切り分けた結果、二層あることが分かった。
+
+1. **Dommy**: `Backend.fragment(html, owner_doc:)` は Makiri 版が `owner_doc` を無視して
+   `Makiri::DocumentFragment.parse` を呼ぶので、XML document の
+   `createDocumentFragment` が **HTML arena の** fragment を返す。
+   そこへ XML arena の element を入れようとすると
+   `TypeError: wrong argument type Makiri::XML::Node (expected Makiri::HTML::Node)` になる。
+2. **Makiri 0.8.0**: 正しく XML document の arena で fragment を作っても
+   （`xml_doc.fragment("")`）、その fragment への `add_child` は
+   text / comment / element のいずれでも
+   `Makiri::Error: invalid placement` になる。
+   一方 `xml_doc.fragment("<a/>")` のように **parse で作れば** 子を持てる。
+   つまり fragment node 自体は子を保持できるが、後から足せない。
+
+1 だけ直しても error の種類が変わるだけなので、2 が先である。
+2 は Makiri repo の話であり、ここでは扱わない。
+
 ## 残っている Dommy の不一致
 
-* **finding 3（`createDocumentType` の wrapper identity）**。
-  `test/scenarios/doctype-wrapper-identity.json`。
-* **finding 4（XML document で fragment の `appendChild` が `Makiri::Error`）**。
+* **finding 4**（上記）。Makiri 側の `XML::DocumentFragment#add_child`。
 * **`moveBefore` が未実装**。仕様 §4.2.3 の move algorithm（2025 年追加）で、
   remove + insert の合成とは違う（removing / insertion steps を走らせない、
   node document を付け替えない、validity が独自）。
   model 側には実装と証明があるので、Dommy に入れば差分テストの対象になる。
+  差分テストの `unsupported` はいまこれだけが理由である。
 
 ## 未着手
 
