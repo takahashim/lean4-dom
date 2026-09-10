@@ -1,0 +1,14 @@
+name = "dom"
+version = "0.1.0"
+defaultTargets = ["Dom", "dom-model"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[lean_lib]]
+name = "Dom"
+
+[[lean_exe]]
+name = "dom-model"
+root = "Main"
