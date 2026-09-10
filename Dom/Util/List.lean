@@ -240,4 +240,52 @@ theorem splitAt?_eq_some {α : Type _} [DecidableEq α] {a : α} :
       rw [← he.1, ← he.2, splitAt?_eq_some hq]
       rfl
 
+theorem removeAll_eq_self {α : Type _} [DecidableEq α] {l : List α} {a : α} (h : a ∉ l) :
+    removeAll l a = l := by
+  unfold removeAll
+  refine List.filter_eq_self.mpr ?_
+  intro x hx
+  simp only [decide_eq_true_eq, ne_eq]
+  intro he
+  exact h (he ▸ hx)
+
+/-- 重複が無い list から要素を一つ取り除くと、長さがちょうど 1 減る。 -/
+theorem length_removeAll {α : Type _} [DecidableEq α] :
+    ∀ {l : List α} {a : α}, l.Nodup → a ∈ l → (removeAll l a).length + 1 = l.length
+  | [], _, _, h => absurd h (by simp)
+  | x :: rest, a, hnd, hmem => by
+    have hrest : rest.Nodup := (List.nodup_cons.mp hnd).2
+    have hx : x ∉ rest := (List.nodup_cons.mp hnd).1
+    by_cases he : x = a
+    · subst he
+      have h1 : removeAll (x :: rest) x = removeAll rest x := by
+        simp [removeAll]
+      rw [h1, removeAll_eq_self hx]
+      simp
+    · have hmem' : a ∈ rest := by
+        rcases List.mem_cons.mp hmem with h | h
+        · exact absurd h.symm he
+        · exact h
+      have h1 : removeAll (x :: rest) a = x :: removeAll rest a := by
+        simp [removeAll, he]
+      have ih := length_removeAll hrest hmem'
+      rw [h1]
+      simp only [List.length_cons]
+      omega
+
+theorem length_insertBeforeFirst {α : Type _} [DecidableEq α] (c a : α) :
+    ∀ (l : List α), (insertBeforeFirst l c a).length = l.length + 1
+  | [] => rfl
+  | x :: rest => by
+    by_cases h : x = c
+    · rw [insertBeforeFirst_cons_self h]; simp
+    · rw [insertBeforeFirst_cons_ne h]
+      simp [length_insertBeforeFirst c a rest]
+
+theorem length_insertBefore {α : Type _} [DecidableEq α] (l : List α) (child : Option α) (a : α) :
+    (insertBefore l child a).length = l.length + 1 := by
+  cases child with
+  | none => simp
+  | some c => simpa using length_insertBeforeFirst c a l
+
 end Dom.ListUtil

@@ -1,6 +1,7 @@
 import Dom.Mutation.Detach
 import Dom.Mutation.Insert
 import Dom.Mutation.Adopt
+import Dom.Range.Adjust
 
 /-!
 # WHATWG の mutation algorithm
@@ -11,10 +12,13 @@ Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）の上に組�
 参照した仕様の版は `docs/spec-version.md` のとおり。
 各定義の doc comment に仕様の step 番号を残す。
 
-Range と NodeIterator はまだ無いので、live object の調整 step は
-`liveRangePreRemove` / `iteratorPreRemove` / `liveRangeInsertAdjust` という
-恒等関数の hook として置く。hook の位置は仕様の step 順序に合わせてある（PLAN §6.1）。
-Phase 5 と 6 でこの hook に処理を足す。
+状態は木だけでなく live object も含む `DOMState` である（PLAN §8.1）。
+Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）は木だけを変えるので
+`Tree` の上に残し、ここでは `DOMState` に持ち上げて使う。
+
+live object の調整は `liveRangePreRemove` / `liveRangeInsertAdjust`（`Dom/Range/Adjust.lean`）と
+`iteratorPreRemove`（Phase 6 で中身を入れる）で行う。
+hook の位置は仕様の step 順序に合わせてある（PLAN §6.1）。
 
 本 model は Shadow DOM を扱わないので、仕様の
 「host-including inclusive ancestor」は `InclusiveAncestor`、
@@ -31,23 +35,16 @@ open Dom.ListUtil
 /-! ## live object の調整 hook -/
 
 /--
-DOM Standard §4.2.3 remove step 3 / move step 10（live range pre-remove steps）。
-Phase 5 で中身を入れる。
--/
-def liveRangePreRemove (t : Tree) (_node : NodeId) : Tree := t
-
-/--
 DOM Standard §4.2.3 remove step 4 / move step 11（NodeIterator pre-remove steps）。
 Phase 6 で中身を入れる。
 -/
-def iteratorPreRemove (t : Tree) (_node : NodeId) : Tree := t
+def iteratorPreRemove (s : DOMState) (_node : NodeId) : DOMState := s
 
-/--
-DOM Standard §4.2.3 insert step 5 / move step 16（live range の offset 調整）。
-Phase 5 で中身を入れる。
--/
-def liveRangeInsertAdjust (t : Tree) (_parent : NodeId) (_child : Option NodeId)
-    (_count : Nat) : Tree := t
+@[simp] theorem iteratorPreRemove_tree (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).tree = s.tree := rfl
+
+@[simp] theorem iteratorPreRemove_ranges (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).ranges = s.ranges := rfl
 
 /-! ## 木の走査に使う補助定義 -/
 
@@ -138,8 +135,8 @@ def childHasParent (t : Tree) (child : Option NodeId) (parent : NodeId) : Bool :
 remove と move が共有する部分。
 仕様の remove step 3,4,7 と move step 10,11,14 に対応する。
 -/
-def detachWithLiveAdjust (t : Tree) (node : NodeId) : Except DOMException Tree :=
-  detach (iteratorPreRemove (liveRangePreRemove t node) node) node
+def detachWithLiveAdjust (s : DOMState) (node : NodeId) : Except DOMException DOMState :=
+  (iteratorPreRemove (liveRangePreRemove s node) node).mapTree fun t => detach t node
 
 /--
 DOM Standard §4.2.3 "remove"。
@@ -148,18 +145,18 @@ step 1-2 は parent が非 null であることの assert なので、model で�
 parent が無ければ `notFoundError` を返す。
 step 15 の removing steps は他仕様のための拡張点なので扱わない。
 -/
-def remove (t : Tree) (node : NodeId) : Except DOMException Tree :=
-  match parentOf t node with
+def remove (s : DOMState) (node : NodeId) : Except DOMException DOMState :=
+  match parentOf s.tree node with
   | none => .error .notFoundError
-  | some _ => detachWithLiveAdjust t node
+  | some _ => detachWithLiveAdjust s node
 
 /-- node の列を順に remove する。DOM Standard §4.2.3 insert step 4 などで使う。 -/
-def removeEach : Tree → List NodeId → Except DOMException Tree
-  | t, [] => .ok t
-  | t, n :: ns =>
-    match remove t n with
+def removeEach : DOMState → List NodeId → Except DOMException DOMState
+  | s, [] => .ok s
+  | s, n :: ns =>
+    match remove s n with
     | .error e => .error e
-    | .ok t' => removeEach t' ns
+    | .ok s' => removeEach s' ns
 
 /-! ## adopt -/
 
@@ -170,19 +167,20 @@ step 2 の removal は素の detach ではなく完全な `remove` を呼ぶ。
 `memo.md` が指摘する「explicit remove は adjustment を通るが
 move 中の implicit removal は通らない」という不一致は、この構造で防がれる（PLAN §6.1）。
 -/
-def adopt (t : Tree) (node doc : NodeId) : Except DOMException Tree :=
+def adopt (s : DOMState) (node doc : NodeId) : Except DOMException DOMState :=
   -- step 1
-  match ownerDocumentOf t node with
+  match ownerDocumentOf s.tree node with
   | none => .error .notFoundError
   | some oldDocument =>
     -- step 2
-    match (match parentOf t node with
-           | none => (.ok t : Except DOMException Tree)
-           | some _ => remove t node) with
+    match (match parentOf s.tree node with
+           | none => (.ok s : Except DOMException DOMState)
+           | some _ => remove s node) with
     | .error e => .error e
-    | .ok t₁ =>
+    | .ok s₁ =>
       -- step 3
-      if doc = oldDocument then .ok t₁ else .ok (setOwnerDocument t₁ node doc)
+      if doc = oldDocument then .ok s₁
+      else .ok (s₁.withTree (setOwnerDocument s₁.tree node doc))
 
 /-! ## ensure pre-insert validity -/
 
@@ -221,6 +219,7 @@ DOM Standard §4.2.3 "ensure pre-insert validity"。
 
 現行の仕様は `childrenToExclude` を取る形になっている。
 `pre-insert` は « » を、`replace` は « child » を渡す。
+木だけを見る検査なので `Tree` の上に置く。
 -/
 def ensurePreInsertionValidity (t : Tree) (node parent : NodeId) (child : Option NodeId)
     (childrenToExclude : List NodeId) : Except DOMException Unit :=
@@ -265,117 +264,117 @@ def ensurePreInsertionValidity (t : Tree) (node parent : NodeId) (child : Option
 /-! ## insert -/
 
 /-- DOM Standard §4.2.3 insert step 7。各 node を adopt してから parent に入れる。 -/
-def insertEach : Tree → NodeId → Option NodeId → NodeId → List NodeId →
-    Except DOMException Tree
-  | t, _, _, _, [] => .ok t
-  | t, parent, child, doc, n :: ns =>
-    match adopt t n doc with
+def insertEach : DOMState → NodeId → Option NodeId → NodeId → List NodeId →
+    Except DOMException DOMState
+  | s, _, _, _, [] => .ok s
+  | s, parent, child, doc, n :: ns =>
+    match adopt s n doc with
     | .error e => .error e
-    | .ok t₁ =>
-      match insertAt t₁ parent n child with
+    | .ok s₁ =>
+      match s₁.mapTree fun t => insertAt t parent n child with
       | .error e => .error e
-      | .ok t₂ => insertEach t₂ parent child doc ns
+      | .ok s₂ => insertEach s₂ parent child doc ns
 
 /-- DOM Standard §4.2.3 insert step 7。parent の node document を取り出して各 node を入れる。 -/
-def insertEachAt (t : Tree) (parent : NodeId) (child : Option NodeId) (nodes : List NodeId) :
-    Except DOMException Tree :=
-  match t.get? parent with
+def insertEachAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
+    (nodes : List NodeId) : Except DOMException DOMState :=
+  match s.tree.get? parent with
   | none => .error .notFoundError
-  | some pd => insertEach t parent child pd.ownerDocument nodes
+  | some pd => insertEach s parent child pd.ownerDocument nodes
 
 /-- DOM Standard §4.2.3 insert step 5 と 7。 -/
-def insertNodesAt (t : Tree) (parent : NodeId) (child : Option NodeId) (nodes : List NodeId) :
-    Except DOMException Tree :=
-  insertEachAt (liveRangeInsertAdjust t parent child nodes.length) parent child nodes
+def insertNodesAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
+    (nodes : List NodeId) : Except DOMException DOMState :=
+  insertEachAt (liveRangeInsertAdjust s parent child nodes.length) parent child nodes
 
 /--
 DOM Standard §4.2.3 "insert"。
 
 DocumentFragment を渡すと、その children を展開して順に挿入する。
 -/
-def insert (t : Tree) (node parent : NodeId) (child : Option NodeId) :
-    Except DOMException Tree :=
-  match t.get? node with
+def insert (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
+    Except DOMException DOMState :=
+  match s.tree.get? node with
   | none => .error .notFoundError
   | some nd =>
     if nd.kind == .documentFragment then
       -- step 1：nodes は fragment の children
-      if nd.children.isEmpty then .ok t  -- step 2-3
+      if nd.children.isEmpty then .ok s  -- step 2-3
       else
         -- step 4：fragment の children を先に外す
-        match removeEach t nd.children with
+        match removeEach s nd.children with
         | .error e => .error e
-        | .ok t₁ => insertNodesAt t₁ parent child nd.children
+        | .ok s₁ => insertNodesAt s₁ parent child nd.children
     else
       -- step 1-3：nodes は « node » なので空にならない
-      insertNodesAt t parent child [node]
+      insertNodesAt s parent child [node]
 
 /-! ## pre-insert / append / pre-remove / replace / replace all -/
 
 /-- DOM Standard §4.2.3 "pre-insert"。 -/
-def preInsert (t : Tree) (node parent : NodeId) (child : Option NodeId) :
-    Except DOMException Tree :=
+def preInsert (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
+    Except DOMException DOMState :=
   -- step 1
-  match ensurePreInsertionValidity t node parent child [] with
+  match ensurePreInsertionValidity s.tree node parent child [] with
   | .error e => .error e
   | .ok () =>
     -- step 2-3
-    let referenceChild := if child = some node then nextSibling t node else child
+    let referenceChild := if child = some node then nextSibling s.tree node else child
     -- step 4
-    insert t node parent referenceChild
+    insert s node parent referenceChild
 
 /-- DOM Standard §4.2.3 "append"。 -/
-def append (t : Tree) (node parent : NodeId) : Except DOMException Tree :=
-  preInsert t node parent none
+def append (s : DOMState) (node parent : NodeId) : Except DOMException DOMState :=
+  preInsert s node parent none
 
 /-- DOM Standard §4.2.3 "pre-remove"。 -/
-def preRemove (t : Tree) (child parent : NodeId) : Except DOMException Tree :=
+def preRemove (s : DOMState) (child parent : NodeId) : Except DOMException DOMState :=
   -- step 1
-  if parentOf t child ≠ some parent then .error .notFoundError
+  if parentOf s.tree child ≠ some parent then .error .notFoundError
   -- step 2
-  else remove t child
+  else remove s child
 
 /-- DOM Standard §4.2.3 "replace"。 -/
-def replace (t : Tree) (child node parent : NodeId) : Except DOMException Tree :=
+def replace (s : DOMState) (child node parent : NodeId) : Except DOMException DOMState :=
   -- step 1
-  match ensurePreInsertionValidity t node parent (some child) [child] with
+  match ensurePreInsertionValidity s.tree node parent (some child) [child] with
   | .error e => .error e
   | .ok () =>
     -- step 2-3
-    let referenceChild₀ := nextSibling t child
-    let referenceChild := if referenceChild₀ = some node then nextSibling t node
+    let referenceChild₀ := nextSibling s.tree child
+    let referenceChild := if referenceChild₀ = some node then nextSibling s.tree node
                           else referenceChild₀
-    match t.get? parent with
+    match s.tree.get? parent with
     | none => .error .notFoundError
     | some pd =>
       -- step 6
-      match adopt t node pd.ownerDocument with
+      match adopt s node pd.ownerDocument with
       | .error e => .error e
-      | .ok t₁ =>
+      | .ok s₁ =>
         -- step 7
-        match (match parentOf t₁ child with
-               | none => (.ok t₁ : Except DOMException Tree)
-               | some _ => remove t₁ child) with
+        match (match parentOf s₁.tree child with
+               | none => (.ok s₁ : Except DOMException DOMState)
+               | some _ => remove s₁ child) with
         | .error e => .error e
-        | .ok t₂ =>
+        | .ok s₂ =>
           -- step 9
-          insert t₂ node parent referenceChild
+          insert s₂ node parent referenceChild
 
 /--
 DOM Standard §4.2.3 "replace all"。
 
 仕様どおり、この algorithm 自身は node tree の制約を検査しない。
 -/
-def replaceAll (t : Tree) (node : Option NodeId) (parent : NodeId) :
-    Except DOMException Tree :=
+def replaceAll (s : DOMState) (node : Option NodeId) (parent : NodeId) :
+    Except DOMException DOMState :=
   -- step 1, 4
-  match removeEach t (childrenOf t parent) with
+  match removeEach s (childrenOf s.tree parent) with
   | .error e => .error e
-  | .ok t₁ =>
+  | .ok s₁ =>
     -- step 5
     match node with
-    | none => .ok t₁
-    | some n => insert t₁ n parent none
+    | none => .ok s₁
+    | some n => insert s₁ n parent none
 
 /-! ## move -/
 
@@ -391,7 +390,7 @@ remove と insert の合成と違う点は次の三つである。
 live range と NodeIterator の pre-remove steps（step 10-11）と
 挿入側の offset 調整（step 16）は走らせる。
 したがって木・Range・NodeIterator に射影した結果は remove と insert の合成と一致する。
-これを `move_eq_remove_insertAt`（Phase 3 では木のみ）で示す。
+これを `move_eq_remove_insertAt` で示す。
 -/
 def moveValidity (t : Tree) (node newParent : NodeId) (child : Option NodeId) :
     Except DOMException Unit :=
@@ -422,20 +421,21 @@ def moveValidity (t : Tree) (node newParent : NodeId) (child : Option NodeId) :
       else .ok ()
 
 /-- DOM Standard §4.2.3 "move" の step 1-6（validity）と step 7-18（本体）。 -/
-def move (t : Tree) (node newParent : NodeId) (child : Option NodeId) :
-    Except DOMException Tree :=
-  match moveValidity t node newParent child with
+def move (s : DOMState) (node newParent : NodeId) (child : Option NodeId) :
+    Except DOMException DOMState :=
+  match moveValidity s.tree node newParent child with
   | .error e => .error e
   | .ok () =>
     -- step 7-9（oldParent が非 null であることの assert。step 1-2 から従う）
-    match parentOf t node with
+    match parentOf s.tree node with
     | none => .error .hierarchyRequestError
     | some _ =>
       -- step 10-11, 14
-      match detachWithLiveAdjust t node with
+      match detachWithLiveAdjust s node with
       | .error e => .error e
-      | .ok t₁ =>
+      | .ok s₁ =>
         -- step 16-18
-        insertAt (liveRangeInsertAdjust t₁ newParent child 1) newParent node child
+        (liveRangeInsertAdjust s₁ newParent child 1).mapTree fun t =>
+          insertAt t newParent node child
 
 end Dom

@@ -120,9 +120,31 @@ module Generate
     op.key?("target") ? op["target"] : op["parent"]
   end
 
+  # scenario の node から length を求める（`NodeData.length` と同じ規則）。
+  def length_of(spec, nodes)
+    kind = spec["kind"]
+    return spec["data"].to_s.length if CHARACTER_DATA.include?(kind)
+    return 0 if kind == "documentType"
+
+    nodes.count { |n| n["parent"] == spec["id"] }
+  end
+
+  # 同じ node の中に収まる range を作る。start ≤ end はこの作り方で保証される。
+  def random_ranges(rng, nodes, count)
+    Array.new(count) do
+      spec = nodes.sample(random: rng)
+      len = length_of(spec, nodes)
+      a = rng.rand(len + 1)
+      b = a + rng.rand(len - a + 1)
+      { "start" => { "node" => spec["id"], "offset" => a },
+        "end" => { "node" => spec["id"], "offset" => b } }
+    end
+  end
+
   # `allow` は `(op, receiver_kind) -> Boolean`。
   # Dommy が実装していない (kind, op) の組を避けたいときに渡す。
-  def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0)
+  def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0,
+               range_count: 2)
     nodes = build_tree(rng, node_count, doctype_prob: doctype_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
@@ -135,7 +157,8 @@ module Generate
 
       operations << op
     end
-    { "nodes" => nodes, "ranges" => [], "iterators" => [], "operations" => operations }
+    { "nodes" => nodes, "ranges" => random_ranges(rng, nodes, range_count),
+      "iterators" => [], "operations" => operations }
   end
 end
 

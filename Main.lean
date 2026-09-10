@@ -56,14 +56,27 @@ def sample : Tree :=
         |>.insert dtype2 { kind := .documentType, ownerDocument := doc }
         |>.insert otherDoc { kind := .document, ownerDocument := otherDoc } }
 
+/-- `sample` を初期状態とする `DOMState`。range を一つ持たせてある。 -/
+def state : DOMState :=
+  { tree := sample
+    ranges := [{ start := { node := body, offset := 0 }, «end» := { node := body, offset := 1 } }] }
+
 /-- children の並びだけを見た木の要約。 -/
 def summary (t : Tree) : String :=
   String.intercalate " " <|
     [doc, html, body, frag].map fun n => s!"{n}:{reprStr (childrenOf t n)}"
 
-def describe : Except DOMException Tree → String
+def rangeSummary (s : DOMState) : String :=
+  String.intercalate "," <| s.ranges.map fun r =>
+    s!"({r.start.node},{r.start.offset})-({r.end.node},{r.end.offset})"
+
+def describe : Except DOMException DOMState → String
   | .error e => s!"error {e}"
-  | .ok t => s!"ok wf={t.checkWellFormed} {summary t}"
+  | .ok s => s!"ok wf={s.tree.checkWellFormed} {summary s.tree}"
+
+def describeRange : Except DOMException DOMState → String
+  | .error e => s!"error {e}"
+  | .ok s => s!"ok ranges={rangeSummary s} valid={checkRangesValid s}"
 
 end Dom.Demo
 
@@ -78,35 +91,42 @@ def demo : IO Unit := do
   IO.println s!"precedes head body     = {precedes sample head body}"
   IO.println ""
   IO.println "-- Phase 2: primitive mutation --"
-  IO.println s!"detach hello           : {describe (detach sample hello)}"
-  IO.println s!"insertAt body/orphan   : {describe (insertAt sample body orphan none)}"
-  IO.println s!"insertAt cycle         : {describe (insertAt sample hello body none)}"
+  IO.println s!"detach hello           : {describe ((detach sample hello).map state.withTree)}"
+  IO.println s!"insertAt body/orphan   : {describe ((insertAt sample body orphan none).map state.withTree)}"
+  IO.println s!"insertAt cycle         : {describe ((insertAt sample hello body none).map state.withTree)}"
   IO.println ""
   IO.println "-- Phase 3: WHATWG mutation algorithms --"
-  IO.println s!"appendChild body orphan     : {describe (appendChild sample body orphan)}"
-  IO.println s!"removeChild html hello      : {describe (removeChild sample html hello)}"
-  IO.println s!"replaceChild html orphan hd : {describe (replaceChild sample html orphan head)}"
-  IO.println s!"replaceChildren body orphan : {describe (replaceChildren sample body (some orphan))}"
-  IO.println s!"before hello orphan         : {describe (before sample hello orphan)}"
-  IO.println s!"after hello orphan          : {describe (after sample hello orphan)}"
+  IO.println s!"appendChild body orphan     : {describe (appendChild state body orphan)}"
+  IO.println s!"removeChild html hello      : {describe (removeChild state html hello)}"
+  IO.println s!"replaceChild html orphan hd : {describe (replaceChild state html orphan head)}"
+  IO.println s!"replaceChildren body orphan : {describe (replaceChildren state body (some orphan))}"
+  IO.println s!"before hello orphan         : {describe (before state hello orphan)}"
+  IO.println s!"after hello orphan          : {describe (after state hello orphan)}"
   IO.println ""
   IO.println "-- DocumentFragment の展開 --"
-  IO.println s!"appendChild body frag       : {describe (appendChild sample body frag)}"
-  IO.println s!"appendChild doc frag        : {describe (appendChild sample doc frag)}"
+  IO.println s!"appendChild body frag       : {describe (appendChild state body frag)}"
+  IO.println s!"appendChild doc frag        : {describe (appendChild state doc frag)}"
   IO.println ""
   IO.println "-- Document の子に対する制約 --"
-  IO.println s!"appendChild doc orphan (2nd element) : {describe (appendChild sample doc orphan)}"
-  IO.println s!"appendChild doc loose  (text)        : {describe (appendChild sample doc loose)}"
-  IO.println s!"appendChild doc dtype2 (2nd doctype) : {describe (appendChild sample doc dtype2)}"
-  IO.println s!"insertBefore doc dtype2 before html  : {describe (insertBefore sample doc dtype2 (some html))}"
-  IO.println s!"insertBefore doc orphan before dtype : {describe (insertBefore sample doc orphan (some dtype))}"
+  IO.println s!"appendChild doc orphan (2nd element) : {describe (appendChild state doc orphan)}"
+  IO.println s!"appendChild doc loose  (text)        : {describe (appendChild state doc loose)}"
+  IO.println s!"appendChild doc dtype2 (2nd doctype) : {describe (appendChild state doc dtype2)}"
+  IO.println s!"insertBefore doc dtype2 before html  : {describe (insertBefore state doc dtype2 (some html))}"
+  IO.println s!"insertBefore doc orphan before dtype : {describe (insertBefore state doc orphan (some dtype))}"
   IO.println ""
   IO.println "-- moveBefore --"
-  IO.println s!"moveBefore body head none    : {describe (moveBefore sample body head none)}"
-  IO.println s!"moveBefore head hello none   : {describe (moveBefore sample head hello none)}"
-  IO.println s!"moveBefore otherDoc head none: {describe (moveBefore sample otherDoc head none)}"
-  IO.println s!"moveBefore body orphan none  : {describe (moveBefore sample body orphan none)}"
-  IO.println s!"moveBefore body html none    : {describe (moveBefore sample body html none)}"
+  IO.println s!"moveBefore body head none    : {describe (moveBefore state body head none)}"
+  IO.println s!"moveBefore head hello none   : {describe (moveBefore state head hello none)}"
+  IO.println s!"moveBefore otherDoc head none: {describe (moveBefore state otherDoc head none)}"
+  IO.println s!"moveBefore body orphan none  : {describe (moveBefore state body orphan none)}"
+  IO.println s!"moveBefore body html none    : {describe (moveBefore state body html none)}"
+  IO.println ""
+  IO.println "-- Phase 5: Range の追随 --"
+  IO.println s!"初期 range                   : {rangeSummary state}"
+  IO.println s!"removeChild body hello       : {describeRange (removeChild state body hello)}"
+  IO.println s!"appendChild body orphan      : {describeRange (appendChild state body orphan)}"
+  IO.println s!"insertBefore body orphan @0  : {describeRange (insertBefore state body orphan (some hello))}"
+  IO.println s!"removeChild html body        : {describeRange (removeChild state html body)}"
 
 /-- scenario file 一つを評価して、結果の JSON を返す。 -/
 def evalFile (path : System.FilePath) : IO (Except String String) := do

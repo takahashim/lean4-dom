@@ -16,80 +16,80 @@ live object の調整が迂回されない」ことの土台になる。
 namespace Dom
 
 /-- DOM Standard §4.4 `Node.appendChild(node)`。 -/
-def appendChild (t : Tree) (parent node : NodeId) : Except DOMException Tree :=
-  append t node parent
+def appendChild (s : DOMState) (parent node : NodeId) : Except DOMException DOMState :=
+  append s node parent
 
 /-- DOM Standard §4.4 `Node.insertBefore(node, child)`。 -/
-def insertBefore (t : Tree) (parent node : NodeId) (child : Option NodeId) :
-    Except DOMException Tree :=
-  preInsert t node parent child
+def insertBefore (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
+    Except DOMException DOMState :=
+  preInsert s node parent child
 
 /-- DOM Standard §4.4 `Node.replaceChild(node, child)`。 -/
-def replaceChild (t : Tree) (parent node child : NodeId) : Except DOMException Tree :=
-  replace t child node parent
+def replaceChild (s : DOMState) (parent node child : NodeId) : Except DOMException DOMState :=
+  replace s child node parent
 
 /-- DOM Standard §4.4 `Node.removeChild(child)`。 -/
-def removeChild (t : Tree) (parent child : NodeId) : Except DOMException Tree :=
-  preRemove t child parent
+def removeChild (s : DOMState) (parent child : NodeId) : Except DOMException DOMState :=
+  preRemove s child parent
 
 /--
 DOM Standard §4.2.6 `ParentNode.replaceChildren(nodes)`。
 
 step 2 で `ensure pre-insert validity` を通してから replace all を行う。
 -/
-def replaceChildren (t : Tree) (parent : NodeId) (node : Option NodeId) :
-    Except DOMException Tree :=
+def replaceChildren (s : DOMState) (parent : NodeId) (node : Option NodeId) :
+    Except DOMException DOMState :=
   match node with
-  | none => replaceAll t none parent
+  | none => replaceAll s none parent
   | some n =>
-    match ensurePreInsertionValidity t n parent none [] with
+    match ensurePreInsertionValidity s.tree n parent none [] with
     | .error e => .error e
-    | .ok () => replaceAll t (some n) parent
+    | .ok () => replaceAll s (some n) parent
 
 /-- DOM Standard §4.2.9 `ChildNode.before(nodes)`。 -/
-def before (t : Tree) (this node : NodeId) : Except DOMException Tree :=
+def before (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
   -- step 1-2
-  match parentOf t this with
-  | none => .ok t
+  match parentOf s.tree this with
+  | none => .ok s
   | some parent =>
     -- step 3, 5, 6
-    preInsert t node parent
-      (match viablePreviousSibling t this [node] with
-       | none => (childrenOf t parent).head?
-       | some v => nextSibling t v)
+    preInsert s node parent
+      (match viablePreviousSibling s.tree this [node] with
+       | none => (childrenOf s.tree parent).head?
+       | some v => nextSibling s.tree v)
 
 /-- DOM Standard §4.2.9 `ChildNode.after(nodes)`。 -/
-def after (t : Tree) (this node : NodeId) : Except DOMException Tree :=
+def after (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
   -- step 1-2
-  match parentOf t this with
-  | none => .ok t
+  match parentOf s.tree this with
+  | none => .ok s
   | some parent =>
     -- step 3, 5
-    preInsert t node parent (viableNextSibling t this [node])
+    preInsert s node parent (viableNextSibling s.tree this [node])
 
 /-- DOM Standard §4.2.9 `ChildNode.replaceWith(nodes)`。 -/
-def replaceWith (t : Tree) (this node : NodeId) : Except DOMException Tree :=
+def replaceWith (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
   -- step 1-2
-  match parentOf t this with
-  | none => .ok t
+  match parentOf s.tree this with
+  | none => .ok s
   | some parent =>
     -- step 5-6（step 3 の viableNextSibling は else 側でのみ使う）
-    if parentOf t this = some parent then replace t this node parent
-    else preInsert t node parent (viableNextSibling t this [node])
+    if parentOf s.tree this = some parent then replace s this node parent
+    else preInsert s node parent (viableNextSibling s.tree this [node])
 
 /-- DOM Standard §4.2.9 `ChildNode.remove()`。 -/
-def nodeRemove (t : Tree) (this : NodeId) : Except DOMException Tree :=
+def nodeRemove (s : DOMState) (this : NodeId) : Except DOMException DOMState :=
   -- step 1-2
-  match parentOf t this with
-  | none => .ok t
-  | some _ => remove t this
+  match parentOf s.tree this with
+  | none => .ok s
+  | some _ => remove s this
 
 /-- DOM Standard §4.2.6 `ParentNode.moveBefore(node, child)`。 -/
-def moveBefore (t : Tree) (parent node : NodeId) (child : Option NodeId) :
-    Except DOMException Tree :=
+def moveBefore (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
+    Except DOMException DOMState :=
   -- step 1-2
-  let referenceChild := if child = some node then nextSibling t node else child
+  let referenceChild := if child = some node then nextSibling s.tree node else child
   -- step 3
-  move t node parent referenceChild
+  move s node parent referenceChild
 
 end Dom

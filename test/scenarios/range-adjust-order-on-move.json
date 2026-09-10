@@ -1,0 +1,16 @@
+{
+  "_note": "range が「移動する node の中」を指しているとき、insert の live range 調整（仕様 insert step 5）は adopt→remove（step 7）より前に走る。Dommy は逆順に適用しているらしく offset が 1 多くなる。仕様どおりなら (1,1)-(1,1)。",
+  "nodes": [
+    {"id": 0, "kind": "document"},
+    {"id": 1, "kind": "element", "parent": 0},
+    {"id": 2, "kind": "text", "parent": 1, "data": "ab"},
+    {"id": 3, "kind": "comment", "parent": 1, "data": "c"}
+  ],
+  "ranges": [
+    {"start": {"node": 3, "offset": 0}, "end": {"node": 3, "offset": 1}}
+  ],
+  "iterators": [],
+  "operations": [
+    {"op": "insertBefore", "parent": 1, "node": 3, "child": 2}
+  ]
+}

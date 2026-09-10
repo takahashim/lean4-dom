@@ -52,6 +52,8 @@ module DommyRunner
       doc
     end
 
+    attr_reader :documents
+
     def build
       default_doc_id = @specs.find { |s| s["kind"] == "document" }&.fetch("id")
       @specs.each { |s| create(s, default_doc_id) }
@@ -141,7 +143,26 @@ module DommyRunner
     ""
   end
 
-  def snapshot(objects, kinds)
+  # scenario の range を Dommy の Range として作る。
+  def build_ranges(objects, documents, specs)
+    (specs || []).map do |spec|
+      start_node = objects.fetch(spec["start"]["node"])
+      doc = documents.values.first or raise "document が無いので Range を作れない"
+      range = doc.create_range
+      range.set_start(start_node, spec["start"]["offset"])
+      range.set_end(objects.fetch(spec["end"]["node"]), spec["end"]["offset"])
+      range
+    end
+  end
+
+  def range_snapshot(objects, ranges)
+    ranges.map do |r|
+      { "start" => { "node" => node_id(objects, r.start_container), "offset" => r.start_offset },
+        "end" => { "node" => node_id(objects, r.end_container), "offset" => r.end_offset } }
+    end
+  end
+
+  def snapshot(objects, kinds, ranges = [])
     nodes = objects.keys.sort.map do |id|
       node = objects[id]
       {
@@ -152,7 +173,7 @@ module DommyRunner
         "data" => data_of(node)
       }
     end
-    { "nodes" => nodes, "ranges" => [], "iterators" => [] }
+    { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges), "iterators" => [] }
   end
 
   # 操作の受け手（method を呼ぶ相手）の id。
@@ -210,8 +231,10 @@ module DommyRunner
 
   def run(scenario)
     kinds = scenario["nodes"].to_h { |s| [s["id"], s["kind"]] }
-    objects = Builder.new(scenario["nodes"]).build
-    initial = snapshot(objects, kinds)
+    builder = Builder.new(scenario["nodes"])
+    objects = builder.build
+    ranges = build_ranges(objects, builder.documents, scenario["ranges"])
+    initial = snapshot(objects, kinds, ranges)
     steps = []
     (scenario["operations"] || []).each do |op|
       begin
@@ -223,7 +246,7 @@ module DommyRunner
         steps << { "ok" => false, "exception" => exception_name(e) }
         break
       end
-      steps << snapshot(objects, kinds).merge("ok" => true)
+      steps << snapshot(objects, kinds, ranges).merge("ok" => true)
     end
     { "initial" => initial, "steps" => steps }
   end

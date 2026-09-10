@@ -1,5 +1,6 @@
 import Lean.Data.Json
 import Dom.Mutation.Api
+import Dom.Range.Adjust
 
 /-!
 # scenario の入出力
@@ -34,7 +35,8 @@ JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使�
 * `ownerDocument` は省略できる。省略した場合、kind が `document` の node は自分自身、
   それ以外は配列中の最初の `document` node を node document とする。
 * `data` は CharacterData 以外では無視する。
-* `ranges` と `iterators` は Phase 5 以降で使う。形式だけ予約する。
+* `ranges` は `{"start": {"node": 1, "offset": 0}, "end": {"node": 1, "offset": 2}}` の形。
+* `iterators` は Phase 6 で使う。形式だけ予約する。
 
 ## 出力形式
 
@@ -83,6 +85,7 @@ deriving Repr
 /-- 一つの scenario。 -/
 structure Scenario where
   nodes : List NodeSpec
+  ranges : List RangeState := []
   operations : List Operation
 deriving Repr
 
@@ -153,6 +156,14 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .moveBefore (← natField j "parent") (← natField j "node") (← natField? j "child")
   | _ => .error s!"未知の op `{op}`"
 
+def boundaryPointOfJson (j : Json) : Except String BoundaryPoint := do
+  return { node := ⟨← natField j "node"⟩, offset := ← natField j "offset" }
+
+def rangeOfJson (j : Json) : Except String RangeState := do
+  let some st := field? j "start" | .error "range に `start` がない"
+  let some en := field? j "end" | .error "range に `end` がない"
+  return { start := ← boundaryPointOfJson st, «end» := ← boundaryPointOfJson en }
+
 def scenarioOfJson (j : Json) : Except String Scenario := do
   let nodesJson ← match field? j "nodes" with
     | none => .error "`nodes` がない"
@@ -160,9 +171,13 @@ def scenarioOfJson (j : Json) : Except String Scenario := do
   let opsJson ← match field? j "operations" with
     | none => pure #[]
     | some v => v.getArr?
+  let rangesJson ← match field? j "ranges" with
+    | none => pure #[]
+    | some v => v.getArr?
   let nodes ← nodesJson.toList.mapM nodeSpecOfJson
+  let ranges ← rangesJson.toList.mapM rangeOfJson
   let operations ← opsJson.toList.mapM operationOfJson
-  return { nodes, operations }
+  return { nodes, ranges, operations }
 
 def scenarioOfString (s : String) : Except String Scenario := do
   scenarioOfJson (← Json.parse s)
@@ -189,23 +204,29 @@ def nodeJson (t : Tree) (n : NodeId) (d : NodeData) : Json :=
     , ("children", Json.arr ((childrenOf t n).map fun c => natJson c.id).toArray)
     , ("data", Json.str d.data) ]
 
-/-- 木全体の観測可能な状態。node は id の昇順に並べる。 -/
-def treeJson (t : Tree) : Json :=
-  let ids := (t.nodes.keys.map (·.id)).mergeSort (· ≤ ·)
+def boundaryPointJson (bp : BoundaryPoint) : Json :=
+  Json.mkObj [("node", natJson bp.node.id), ("offset", natJson bp.offset)]
+
+def rangeJson (r : RangeState) : Json :=
+  Json.mkObj [("start", boundaryPointJson r.start), ("end", boundaryPointJson r.«end»)]
+
+/-- 状態全体の観測可能な部分。node は id の昇順に並べる。 -/
+def stateJson (s : DOMState) : Json :=
+  let ids := (s.tree.nodes.keys.map (·.id)).mergeSort (· ≤ ·)
   Json.mkObj
     [ ("nodes", Json.arr (ids.filterMap fun i =>
-        (t.get? ⟨i⟩).map fun d => nodeJson t ⟨i⟩ d).toArray)
-    , ("ranges", Json.arr #[])
+        (s.tree.get? ⟨i⟩).map fun d => nodeJson s.tree ⟨i⟩ d).toArray)
+    , ("ranges", Json.arr (s.ranges.map rangeJson).toArray)
     , ("iterators", Json.arr #[]) ]
 
 /-- 一 step の結果。 -/
 inductive StepResult where
-  | ok (t : Tree)
+  | ok (s : DOMState)
   | failed (e : DOMException)
 
 def stepJson : StepResult → Json
-  | .ok t =>
-    match treeJson t with
+  | .ok s =>
+    match stateJson s with
     | Json.obj fields => Json.obj (fields.insert "ok" (Json.bool true))
     | other => other
   | .failed e =>

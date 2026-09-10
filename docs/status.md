@@ -292,12 +292,84 @@ invariant が破れていれば出力に `invariantViolation` を足す（PLAN �
 doctype を初期状態に置かない）では、生成 scenario は一致する。
 `--all-ops` や `--doctype-prob 0.5` を付けると、上の不一致が再現する。
 
+## Phase 5（Range）— 一巡した
+
+`PLAN.md` §8 の定義・調整・証明・differential testing を実装した。
+
+### `DOMState` への持ち上げ
+
+PLAN §8.1 に従い、状態を `DOMState`（tree + ranges + iterators）にした。
+Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）は木だけを変えるので
+`Tree` の上に残し、§4.2.3 の algorithm と public API を `DOMState` に持ち上げた。
+Phase 1・2 の定理はそのままで、Phase 3 の定理は結論を `s'.tree` について述べる形に直した。
+
+### 実装した定義
+
+| 定義 | module |
+| --- | --- |
+| `BoundaryPoint`, `RangeState`, `IteratorState`, `DOMState` | `Dom/Basic/State.lean` |
+| `ValidBoundaryPoint`, `bpPosition`, `BoundaryLE`, `RangeValid`, `RangesValid`, `checkRangesValid` | `Dom/Range/BoundaryPoint.lean` |
+| `liveRangePreRemove`（仕様の live range pre-remove steps）、`liveRangeInsertAdjust`（insert step 5 / move step 16） | `Dom/Range/Adjust.lean` |
+
+Phase 3 で恒等関数の hook として置いてあった位置に、そのまま中身が入った。
+hook の位置は仕様の step 順序に合わせてあるので、
+`remove` / `insert` / `replace` / `replaceAll` / `move` と public API 10 個は変更なしで
+Range に追随するようになった。
+
+### 証明した theorem（`Dom/Properties/Range.lean`）
+
+| PLAN §8.3 | theorem |
+| --- | --- |
+| `remove_preserves_ranges_valid`（両端が木の中にある部分） | `remove_preserves_endpoints` |
+| 削除された node を端点に持つ range は操作後に存在しない | `remove_leaves_subtree`, `move_leaves_subtree` |
+| `insert_preserves_ranges_valid`（同上、parent を持たない node の場合） | `insert_preserves_endpoints` |
+| public API への持ち上げ | `preRemove_`, `removeChild_`, `nodeRemove_preserves_endpoints` |
+
+補助として `valid_liveRangePreRemoveBP`（削除側の調整）と
+`valid_rangeShiftAfterInsert` / `valid_of_insertAt`（挿入側の調整）を証明した。
+
+`ChildCountKind`（node の length が children の個数で決まる kind であること）を前提に置いている。
+仕様の pre-insertion validity は parent を Document / DocumentFragment / Element に限るので
+子を持つ node ではつねに成り立つが、`WellFormed` はこれを要求していないためである。
+
+### 証明できていない部分
+
+* **`BoundaryLE`（start ≤ end の順序）の保存。**
+  `RangeValid` のうち順序の部分は、mutation の後の tree order について
+  まとまった理論が要る。定義と実行時検査（`checkRangesValid`）は用意してあり、
+  differential testing の各 step で確認しているが、証明はしていない。
+* **parent を持つ node の `insert` についての端点の保存。**
+  仕様は挿入側の調整（insert step 5）を adopt → remove（step 7）より前に置いているため、
+  その途中では offset が parent の length を一時的に超えうる。
+  最終状態では valid になるが、合成の証明には length の増減を追う補題がもう一段要る。
+* **DocumentFragment を展開する `insert` についての端点の保存。**
+
+## Phase 5 で見つかった Dommy の不一致
+
+range を differential testing の比較対象に加えたところ、
+Phase 4 で見つかった 4 種類に加えて次が見つかった。
+
+5. **移動する node の中を指す range の offset が 1 ずれる。**
+   `test/scenarios/range-adjust-order-on-move.json`
+
+   ```text
+   element(1) の children = [text(2), comment(3)]、range は comment(3) の中
+   insertBefore(parent=1, node=3, child=2)   # comment を text の前へ移す
+   → 仕様: range = (1,1)-(1,1)   Dommy: (1,2)-(1,2)
+   ```
+
+   仕様の `insert` は step 5（child の index を使った live range の offset 調整）を
+   step 7 の adopt → remove より **前** に走らせる。
+   step 5 の時点で child(2) の index は 0 なので、offset 0 の range は増えない。
+   その後 remove の pre-remove steps が range を `(parent, 削除時の index=1)` に移す。
+   Dommy はこの順序が逆になっているらしく、移した後で +1 している。
+
+   この順序の危うさは Phase 3 で仕様を読んだ時点で気づいて
+   `docs/status.md` に「Phase 5 に向けた注意」として書いておいたもので、
+   実装が実際にそこで食い違っていた。木の形は両者一致しているので、
+   Range を比較対象に入れて初めて見える不一致である。
+
 ## 未着手
 
-Phase 5 以降（`Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`）は
-directory を用意しただけで、まだ空である。
-
-PLAN §7.4 の完了条件は「tree mutation の範囲で Lean と Dommy の出力が一致すること」だが、
-現時点では Dommy 側の不具合により一致していない。
-model と仕様を読み直した結果、いずれも Dommy 側を直すべきものと判断した。
-Phase 5（Range）に進むか、先に Dommy の修正を待つかは別途決める。
+Phase 6 以降（`Dom/Traversal/`, `Dom/CharacterData/`）は
+`IteratorState` の構造体を用意しただけで、意味論はまだ無い。

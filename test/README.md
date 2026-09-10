@@ -77,7 +77,9 @@ Dommy を読み込んでいない process の仕事にしてある。
 * `nodes` の並び順が children の順序を決める。
 * `ownerDocument` は省略できる（`document` は自分自身、それ以外は最初の document node）。
 * `data` は CharacterData 以外では無視する。
-* `ranges` と `iterators` は Phase 5 以降で使う。形式だけ予約してある。
+* `ranges` は `{"start": {"node": 1, "offset": 0}, "end": {"node": 1, "offset": 2}}` の形。
+  Lean 側は読み込み時に両端の validity（node が木にあり offset が length 以下）を検査する。
+* `iterators` は Phase 6 で使う。形式だけ予約してある。
 * `_` で始まる key（`_note` など）は無視されるので、注記を書いてよい。
 
 `kind` は `document` / `documentType` / `documentFragment` / `element` /
@@ -117,12 +119,12 @@ Dommy を読み込んでいない process の仕事にしてある。
 ```
 
 例外が起きた step で評価を打ち切る。
-Lean 側は各 step の後で `checkWellFormed` を実行し、
-破れていれば `"invariantViolation": <step 番号>` を足す。
+Lean 側は各 step の後で `checkWellFormed` と `checkRangesValid` を実行し、
+破れていれば `"invariantViolation": {"step": N, "invariant": "wellFormed"|"rangesValid"}` を足す。
 
 Dommy が実装していない操作は `{"ok": false, "exception": "__unsupported__"}` として報告し、
 仕様上の例外との不一致と区別する。
 
 比較は node の `parent` と `children`、そこから導いた tree order、
-`kind`、`data`、および例外の名前について行う。
+`kind`、`data`、range の boundary point、および例外の名前について行う。
 tree order は children から導けるので出力には含めず、比較側で導出する。
