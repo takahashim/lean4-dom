@@ -328,77 +328,10 @@ theorem valid_rangeShiftAfterInsert {t t' : Tree} {parent node : NodeId} {child 
     exact ⟨pd', by show t'.get? bp.node = some pd'; rw [hcond.1]; exact hpd', by
       show bp.offset + 1 ≤ pd'.length; omega⟩
   · have hres : rangeShiftAfterInsert parent idx 1 bp = bp := by
-      simp only [rangeShiftAfterInsert, Bool.and_eq_true, decide_eq_true_eq]
+      unfold rangeShiftAfterInsert
       rw [if_neg hcond]
     rw [hres]
     exact valid_of_insertAt hwf hlen h hbp
-
-/--
-PLAN §8.3。parent を持たない node の `insert` は range の両端を木の中に保つ。
-
-parent を持つ node の場合は、`insert` の中で `adopt` が `remove` を呼ぶので、
-挿入側の調整と削除側の調整が続けて走る。
-仕様は挿入側の調整（step 5）を adopt（step 7）より前に置いているため、
-その途中では offset が parent の length を一時的に超えうる。
-合成の証明は残りとして `docs/status.md` に記す。
--/
-theorem insert_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} {nd : NodeData}
-    (hwf : WellFormed s.tree) (hnd : s.tree.get? node = some nd)
-    (hk : ¬ (nd.kind == NodeKind.documentFragment) = true)
-    (hnp : nd.parent = none) (hlen : ChildCountKind s.tree parent)
-    (hv : RangeEndpointsValid s) (h : insert s node parent child = .ok s') :
-    RangeEndpointsValid s' := by
-  obtain ⟨pd, s₁, hpd, ha, hi, hsr⟩ := insert_single hnd hk h
-  -- node に parent が無いので adopt は remove を呼ばない
-  have hnpar : parentOf (liveRangeInsertAdjust s parent child 1).tree node = none := by
-    simp only [liveRangeInsertAdjust_tree, parentOf, hnd]
-    simpa using hnp
-  obtain ⟨s₀, hstep, hfinal⟩ := adopt_ok_cases ha
-  have hs₀ : s₀ = liveRangeInsertAdjust s parent child 1 := by
-    rcases hstep with ⟨_, he⟩ | hr
-    · exact he
-    · exfalso
-      obtain ⟨⟨q, hq⟩, _⟩ := remove_ok hr
-      rw [hnpar] at hq
-      simp at hq
-  -- s₁ の tree は s.tree か、その node document を付け替えたもの
-  have hs₁ : s₁.ranges = (liveRangeInsertAdjust s parent child 1).ranges ∧
-      ∀ bp, ValidBoundaryPoint s.tree bp → ValidBoundaryPoint s₁.tree bp := by
-    rcases hfinal with he | he
-    · rw [he, hs₀]
-      exact ⟨rfl, fun bp hbp => by simpa using hbp⟩
-    · rw [he, hs₀]
-      refine ⟨rfl, fun bp hbp => ?_⟩
-      show ValidBoundaryPoint (Dom.setOwnerDocument _ node pd.ownerDocument) bp
-      exact ValidBoundaryPoint.setOwnerDocument (by simpa using hbp)
-  have hlen₁ : ChildCountKind s₁.tree parent := by
-    rcases hfinal with he | he
-    · rw [he, hs₀]; simpa using hlen
-    · rw [he, hs₀]
-      exact (show ChildCountKind s.tree parent from hlen).map
-        (by simpa using kindPreserving_setOwnerDocument s.tree node pd.ownerDocument)
-  have hwf₁ : WellFormed s₁.tree :=
-    adopt_preserves_wellformed (by simpa using hwf)
-      (by simpa using isDocument_ownerDocument hwf hpd) ha
-  intro r hr
-  rw [hsr, hs₁.1] at hr
-  -- child が指定されているかで、range が調整されるかが決まる
-  cases hc : child with
-  | none =>
-    rw [hc] at hr
-    simp only [liveRangeInsertAdjust] at hr
-    obtain ⟨hstart, hend⟩ := hv r hr
-    exact ⟨valid_of_insertAt hwf₁ hlen₁ hi (hs₁.2 _ hstart),
-      valid_of_insertAt hwf₁ hlen₁ hi (hs₁.2 _ hend)⟩
-  | some c =>
-    rw [hc] at hr
-    simp only [liveRangeInsertAdjust] at hr
-    obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hr
-    obtain ⟨hstart, hend⟩ := hv r₀ hr₀
-    rw [← hrr]
-    exact ⟨valid_rangeShiftAfterInsert hwf₁ hlen₁ hi (hs₁.2 _ hstart),
-      valid_rangeShiftAfterInsert hwf₁ hlen₁ hi (hs₁.2 _ hend)⟩
 
 /-! ## public API への持ち上げ -/
 
@@ -451,5 +384,779 @@ theorem move_leaves_subtree {s s' : DOMState} {node newParent p : NodeId}
   obtain ⟨r₀, hr₀, hstart, hend⟩ := liveRangeInsertAdjust_nodes s₁ newParent child 1 r hrmem
   obtain ⟨h1, h2⟩ := remove_leaves_subtree hwf hp hr r₀ hr₀
   exact ⟨by rw [hstart]; exact h1, by rw [hend]; exact h2⟩
+
+/-! ## insert の途中で許す「余裕」つきの validity -/
+
+/--
+`parent` を指す boundary point については offset が `length + slack` 以下であればよい、
+という緩めた validity。
+
+仕様の `insert` は step 5 で「これから入る node の個数」だけ offset を先に増やしてから
+step 7 で実際に挿入する。その途中では offset が parent の length を一時的に超えるので、
+この形で不変量を持ち回る。`slack = 0` のときはちょうど `ValidBoundaryPoint` になる。
+-/
+def BoundaryValidUpTo (t : Tree) (parent : NodeId) (slack : Nat) (bp : BoundaryPoint) : Prop :=
+  ∃ d, t.get? bp.node = some d ∧
+    bp.offset ≤ d.length + (if bp.node = parent then slack else 0)
+
+def RangeValidUpTo (s : DOMState) (parent : NodeId) (slack : Nat) : Prop :=
+  ∀ r ∈ s.ranges,
+    BoundaryValidUpTo s.tree parent slack r.start ∧ BoundaryValidUpTo s.tree parent slack r.«end»
+
+theorem boundaryValidUpTo_zero {t : Tree} {parent : NodeId} {bp : BoundaryPoint} :
+    BoundaryValidUpTo t parent 0 bp ↔ ValidBoundaryPoint t bp := by
+  unfold BoundaryValidUpTo ValidBoundaryPoint
+  constructor
+  · rintro ⟨d, hd, hoff⟩
+    exact ⟨d, hd, by split at hoff <;> omega⟩
+  · rintro ⟨d, hd, hoff⟩
+    exact ⟨d, hd, by split <;> omega⟩
+
+theorem rangeValidUpTo_zero {s : DOMState} {parent : NodeId} :
+    RangeValidUpTo s parent 0 ↔ RangeEndpointsValid s := by
+  unfold RangeValidUpTo RangeEndpointsValid EndpointsValid
+  constructor
+  · intro h r hr
+    exact ⟨boundaryValidUpTo_zero.mp (h r hr).1, boundaryValidUpTo_zero.mp (h r hr).2⟩
+  · intro h r hr
+    exact ⟨boundaryValidUpTo_zero.mpr (h r hr).1, boundaryValidUpTo_zero.mpr (h r hr).2⟩
+
+theorem boundaryValidUpTo_mono {t : Tree} {parent : NodeId} {a b : Nat} {bp : BoundaryPoint}
+    (hab : a ≤ b) (h : BoundaryValidUpTo t parent a bp) : BoundaryValidUpTo t parent b bp := by
+  obtain ⟨d, hd, hoff⟩ := h
+  exact ⟨d, hd, by split at hoff <;> split <;> omega⟩
+
+/-! ## setOwnerDocument は長さを変えない -/
+
+theorem length_setOwnerDocument {t : Tree} {n doc m : NodeId} {d : NodeData}
+    (h : (Dom.setOwnerDocument t n doc).get? m = some d) :
+    ∃ d₀, t.get? m = some d₀ ∧ d.length = d₀.length := by
+  rw [get?_setOwnerDocument] at h
+  cases h₀ : t.get? m with
+  | none => rw [h₀] at h; simp at h
+  | some d₀ =>
+    rw [h₀] at h
+    by_cases hm : m ∈ preorder t n
+    · simp only [Option.map_some, if_pos hm] at h
+      exact ⟨d₀, rfl, by rw [← Option.some.inj h]; simp [NodeData.length]⟩
+    · simp only [Option.map_some, if_neg hm] at h
+      exact ⟨d₀, rfl, by rw [← Option.some.inj h]⟩
+
+theorem boundaryValidUpTo_setOwnerDocument {t : Tree} {n doc parent : NodeId} {slack : Nat}
+    {bp : BoundaryPoint} (h : BoundaryValidUpTo t parent slack bp) :
+    BoundaryValidUpTo (Dom.setOwnerDocument t n doc) parent slack bp := by
+  obtain ⟨d, hd, hoff⟩ := h
+  obtain ⟨d', hd', hlen⟩ : ∃ d', (Dom.setOwnerDocument t n doc).get? bp.node = some d' ∧
+      d'.length = d.length := by
+    rw [get?_setOwnerDocument, hd]
+    by_cases hm : bp.node ∈ preorder t n
+    · exact ⟨{ d with ownerDocument := doc }, by simp [hm], rfl⟩
+    · exact ⟨d, by simp [hm], rfl⟩
+  exact ⟨d', hd', by rw [hlen]; exact hoff⟩
+
+/-! ## insertAt と余裕つき validity -/
+
+theorem parentOf_insertAt_other {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
+    (h : insertAt t parent node child = .ok t') {m : NodeId} (hm : m ≠ node) :
+    parentOf t' m = parentOf t m := by
+  obtain ⟨pd, nd, hpd, hnd, _, _, _, ht⟩ := insertAt_ok_cases h
+  rw [ht, parentOf_insertAtIn hpd, if_neg hm]
+
+/-- `insertAt` は parent の children を一つ増やすので、余裕を一つ使える。 -/
+theorem boundaryValidUpTo_insertAt {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
+    {slack : Nat} {bp : BoundaryPoint} (hwf : WellFormed t) (hlen : ChildCountKind t parent)
+    (h : insertAt t parent node child = .ok t')
+    (hv : BoundaryValidUpTo t parent (slack + 1) bp) :
+    BoundaryValidUpTo t' parent slack bp := by
+  by_cases hbn : bp.node = parent
+  · obtain ⟨d, hd, hoff⟩ := hv
+    rw [if_pos hbn] at hoff
+    have hgrow : lengthOf t' parent = lengthOf t parent + 1 :=
+      lengthOf_insertAt_parent hwf hlen h
+    have hdlen : lengthOf t parent = d.length := by unfold lengthOf; rw [← hbn, hd]
+    obtain ⟨pd', hpd'⟩ : ∃ pd', t'.get? parent = some pd' := by
+      have hk := kindPreserving_insertAt h parent
+      obtain ⟨pd, hpd⟩ : ∃ pd, t.get? parent = some pd := ⟨d, by rw [← hbn]; exact hd⟩
+      rw [hpd] at hk
+      cases hq : t'.get? parent with
+      | none => rw [hq] at hk; simp at hk
+      | some pd' => exact ⟨pd', rfl⟩
+    have hpd'len : pd'.length = lengthOf t' parent := by unfold lengthOf; rw [hpd']
+    exact ⟨pd', by rw [hbn]; exact hpd', by rw [if_pos hbn]; omega⟩
+  · have hvalid : ValidBoundaryPoint t bp := by
+      obtain ⟨d, hd, hoff⟩ := hv
+      rw [if_neg hbn] at hoff
+      exact ⟨d, hd, by omega⟩
+    exact boundaryValidUpTo_mono (Nat.zero_le _)
+      (boundaryValidUpTo_zero.mpr (valid_of_insertAt hwf hlen h hvalid))
+
+/-! ## 親を持たない node の列を入れる -/
+
+theorem adopt_of_no_parent {s s₁ : DOMState} {node doc : NodeId}
+    (hp : parentOf s.tree node = none) (h : adopt s node doc = .ok s₁) :
+    s₁.ranges = s.ranges ∧
+      (s₁.tree = s.tree ∨ s₁.tree = Dom.setOwnerDocument s.tree node doc) := by
+  obtain ⟨s₀, hstep, hfinal⟩ := adopt_ok_cases h
+  have hs₀ : s₀ = s := by
+    rcases hstep with ⟨_, he⟩ | hr
+    · exact he
+    · exfalso
+      obtain ⟨⟨q, hq⟩, _⟩ := remove_ok hr
+      rw [hp] at hq
+      simp at hq
+  subst hs₀
+  rcases hfinal with he | he <;> rw [he]
+  · exact ⟨rfl, Or.inl rfl⟩
+  · exact ⟨rfl, Or.inr rfl⟩
+
+/--
+parent を持たない node の列を順に入れるとき、
+`insert` の step 5 で先に足しておいた余裕がちょうど使い切られる。
+-/
+theorem insertEach_valid_of_no_parent :
+    ∀ (nodes : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+      {doc : NodeId},
+      WellFormed s.tree → IsDocument s.tree doc → ChildCountKind s.tree parent → nodes.Nodup →
+      (∀ n ∈ nodes, parentOf s.tree n = none) →
+      RangeValidUpTo s parent nodes.length →
+      insertEach s parent child doc nodes = .ok s' →
+      RangeEndpointsValid s'
+  | [], s, s', parent, child, doc, _, _, _, _, _, hv, h => by
+    rw [insertEach] at h
+    rw [← Except.ok.inj h]
+    exact rangeValidUpTo_zero.mp (by simpa using hv)
+  | n :: ns, s, s', parent, child, doc, hwf, hdoc, hlen, hnd, hnp, hv, h => by
+    rw [insertEach] at h
+    split at h
+    · simp at h
+    · next s₁ ha =>
+      obtain ⟨hr₁, ht₁⟩ := adopt_of_no_parent (hnp n (List.mem_cons_self ..)) ha
+      split at h
+      · simp at h
+      · next s₂ hi =>
+        obtain ⟨hi', hi₂⟩ := DOMState.mapTree_eq_ok hi
+        have hwf₁ : WellFormed s₁.tree := adopt_preserves_wellformed hwf hdoc ha
+        have hdoc₁ : IsDocument s₁.tree doc := hdoc.map (kindPreserving_adopt ha)
+        have hlen₁ : ChildCountKind s₁.tree parent := hlen.map (kindPreserving_adopt ha)
+        have hv₁ : RangeValidUpTo s₁ parent (ns.length + 1) := by
+          intro r hr
+          rw [hr₁] at hr
+          obtain ⟨h1, h2⟩ := hv r hr
+          simp only [List.length_cons] at h1 h2
+          rcases ht₁ with he | he
+          · rw [he]; exact ⟨h1, h2⟩
+          · rw [he]
+            exact ⟨boundaryValidUpTo_setOwnerDocument h1, boundaryValidUpTo_setOwnerDocument h2⟩
+        have hv₂ : RangeValidUpTo s₂ parent ns.length := by
+          intro r hr
+          rw [hi₂] at hr ⊢
+          simp only [DOMState.withTree_ranges, DOMState.withTree_tree] at hr ⊢
+          obtain ⟨h1, h2⟩ := hv₁ r hr
+          exact ⟨boundaryValidUpTo_insertAt hwf₁ hlen₁ hi' h1,
+            boundaryValidUpTo_insertAt hwf₁ hlen₁ hi' h2⟩
+        have hnp₂ : ∀ n' ∈ ns, parentOf s₂.tree n' = none := by
+          intro n' hn'
+          have hne : n' ≠ n := fun he => (List.nodup_cons.mp hnd).1 (he ▸ hn')
+          have h1 : parentOf s₂.tree n' = parentOf s₁.tree n' := by
+            rw [hi₂]
+            exact parentOf_insertAt_other hi' hne
+          have h2 : parentOf s₁.tree n' = parentOf s.tree n' := by
+            rcases ht₁ with he | he
+            · rw [he]
+            · rw [he, parentOf_setOwnerDocument]
+          rw [h1, h2]
+          exact hnp n' (List.mem_cons_of_mem _ hn')
+        refine insertEach_valid_of_no_parent ns ?_ ?_ ?_ ?_ hnp₂ hv₂ h
+        · rw [hi₂]; exact insertAt_preserves_wellformed hwf₁ hi'
+        · rw [hi₂]; exact hdoc₁.map (kindPreserving_insertAt hi')
+        · rw [hi₂]; exact hlen₁.map (kindPreserving_insertAt hi')
+        · exact (List.nodup_cons.mp hnd).2
+
+/-! ## step 5 の調整が作る余裕 -/
+
+theorem boundaryValidUpTo_rangeShiftAfterInsert {t : Tree} {parent : NodeId} {idx k : Nat}
+    {bp : BoundaryPoint} (hv : ValidBoundaryPoint t bp) :
+    BoundaryValidUpTo t parent k (rangeShiftAfterInsert parent idx k bp) := by
+  obtain ⟨d, hd, hoff⟩ := hv
+  unfold rangeShiftAfterInsert
+  by_cases hc : bp.node = parent ∧ idx < bp.offset
+  · rw [if_pos hc]
+    refine ⟨d, hd, ?_⟩
+    show bp.offset + k ≤ d.length + (if bp.node = parent then k else 0)
+    rw [if_pos hc.1]
+    omega
+  · rw [if_neg hc]
+    exact ⟨d, hd, by split <;> omega⟩
+
+/-- `insert` の step 5 は、parent を指す boundary point に `count` だけの余裕を作る。 -/
+theorem rangeValidUpTo_liveRangeInsertAdjust {s : DOMState} {parent : NodeId}
+    {child : Option NodeId} {k : Nat} (hv : RangeEndpointsValid s) :
+    RangeValidUpTo (liveRangeInsertAdjust s parent child k) parent k := by
+  intro r hr
+  unfold liveRangeInsertAdjust at hr ⊢
+  split at hr
+  · obtain ⟨h1, h2⟩ := hv r hr
+    exact ⟨boundaryValidUpTo_mono (Nat.zero_le _) (boundaryValidUpTo_zero.mpr h1),
+      boundaryValidUpTo_mono (Nat.zero_le _) (boundaryValidUpTo_zero.mpr h2)⟩
+  · obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hr
+    obtain ⟨h1, h2⟩ := hv r₀ hr₀
+    rw [← hrr]
+    exact ⟨boundaryValidUpTo_rangeShiftAfterInsert h1,
+      boundaryValidUpTo_rangeShiftAfterInsert h2⟩
+
+/-! ## 同じ parent からまとめて外す -/
+
+/-- `remove` の列は、既に parent を持たない node の parent を変えない。 -/
+theorem removeEach_keeps_none :
+    ∀ (ns : List NodeId) {s s' : DOMState} {n : NodeId},
+      parentOf s.tree n = none → removeEach s ns = .ok s' → parentOf s'.tree n = none
+  | [], s, s', n, hn, h => by rw [removeEach] at h; rw [← Except.ok.inj h]; exact hn
+  | m :: ms, s, s', n, hn, h => by
+    rw [removeEach] at h
+    split at h
+    · simp at h
+    · next s₁ hr =>
+      refine removeEach_keeps_none ms ?_ h
+      rw [parentOf_detach (remove_ok hr).2]
+      split
+      · rfl
+      · exact hn
+
+/--
+同じ parent を持つ node の列を順に `remove` する。
+
+`insert` が DocumentFragment の children を先に外す step 4 に対応する。
+-/
+theorem removeEach_from_parent :
+    ∀ (ns : List NodeId) {s s' : DOMState} {p : NodeId},
+      WellFormed s.tree → ChildCountKind s.tree p → ns.Nodup →
+      (∀ n ∈ ns, parentOf s.tree n = some p) →
+      RangeEndpointsValid s → removeEach s ns = .ok s' →
+      RangeEndpointsValid s' ∧ (∀ n ∈ ns, parentOf s'.tree n = none) ∧
+        WellFormed s'.tree ∧ ChildCountKind s'.tree p ∧ KindPreserving s.tree s'.tree
+  | [], s, s', p, hwf, hlen, _, _, hv, h => by
+    rw [removeEach] at h
+    rw [← Except.ok.inj h]
+    exact ⟨hv, by simp, hwf, hlen, KindPreserving.refl _⟩
+  | n :: ns, s, s', p, hwf, hlen, hnd, hpar, hv, h => by
+    rw [removeEach] at h
+    split at h
+    · simp at h
+    · next s₁ hr =>
+      have hpn : parentOf s.tree n = some p := hpar n (List.mem_cons_self ..)
+      have hwf₁ : WellFormed s₁.tree := remove_preserves_wellformed hwf hr
+      have hkp : KindPreserving s.tree s₁.tree := kindPreserving_remove hr
+      have hlen₁ : ChildCountKind s₁.tree p := hlen.map hkp
+      have hv₁ : RangeEndpointsValid s₁ := remove_preserves_endpoints hwf hpn hlen hv hr
+      have hnone : parentOf s₁.tree n = none := remove_parentOf hr
+      have hpar₁ : ∀ m ∈ ns, parentOf s₁.tree m = some p := by
+        intro m hm
+        have hne : m ≠ n := fun he => (List.nodup_cons.mp hnd).1 (he ▸ hm)
+        rw [parentOf_detach (remove_ok hr).2, if_neg hne]
+        exact hpar m (List.mem_cons_of_mem _ hm)
+      obtain ⟨hv', hnone', hwf', hlen', hkp'⟩ :=
+        removeEach_from_parent ns hwf₁ hlen₁ (List.nodup_cons.mp hnd).2 hpar₁ hv₁ h
+      refine ⟨hv', ?_, hwf', hlen', hkp.trans hkp'⟩
+      intro m hm
+      rcases List.mem_cons.mp hm with rfl | hm
+      · exact removeEach_keeps_none ns hnone h
+      · exact hnone' m hm
+
+/-! ## DocumentFragment を展開する insert -/
+
+/--
+PLAN §8.3。DocumentFragment を展開する `insert` も range の両端を木の中に保つ。
+
+step 4 で fragment の children をすべて外してから step 7 で入れ直すので、
+step 7 の時点ではどの node も parent を持たない。
+step 5 で足した余裕はちょうど children の個数ぶんで、それが使い切られる。
+-/
+theorem insert_fragment_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {nd : NodeData}
+    (hwf : WellFormed s.tree) (hnd : s.tree.get? node = some nd)
+    (hk : (nd.kind == NodeKind.documentFragment) = true)
+    (hlen : ChildCountKind s.tree parent)
+    (hv : RangeEndpointsValid s) (h : insert s node parent child = .ok s') :
+    RangeEndpointsValid s' := by
+  unfold insert at h
+  split at h
+  · next hn => rw [hnd] at hn; simp at hn
+  · next nd' hnd' =>
+    rw [hnd] at hnd'
+    cases hnd'
+    rw [if_pos hk] at h
+    split at h
+    · rw [← Except.ok.inj h]; exact hv
+    · split at h
+      · simp at h
+      · next s₁ hre =>
+        -- fragment の children は fragment を parent に持つ
+        have hfrag : ChildCountKind s.tree node := by
+          refine childCountKind_of_kind ?_
+          intro d hd
+          rw [hnd] at hd
+          cases hd
+          exact Or.inr (Or.inl (by simpa using hk))
+        have hnodup : nd.children.Nodup := hwf.children_nodup node nd hnd
+        have hpar : ∀ m ∈ nd.children, parentOf s.tree m = some node := by
+          intro m hm
+          exact parentOf_of_mem_childrenOf hwf (by rw [childrenOf_eq hnd]; exact hm)
+        obtain ⟨hv₁, hnone, hwf₁, _, hkp⟩ :=
+          removeEach_from_parent nd.children hwf hfrag hnodup hpar hv hre
+        have hlen₁ : ChildCountKind s₁.tree parent := hlen.map hkp
+        -- step 5 と 7
+        unfold insertNodesAt insertEachAt at h
+        split at h
+        · simp at h
+        · next pd hpd =>
+          refine insertEach_valid_of_no_parent nd.children ?_ ?_ ?_ hnodup ?_ ?_ h
+          · simpa using hwf₁
+          · exact isDocument_ownerDocument (by simpa using hwf₁) hpd
+          · simpa using hlen₁
+          · intro m hm
+            simpa using hnone m hm
+          · exact rangeValidUpTo_liveRangeInsertAdjust hv₁
+
+/-! ## parent を持つ node の insert -/
+
+/--
+削除側の調整も、余裕つきの validity を保つ。
+
+`parent` がちょうど削除元だった場合は、children が一つ減るのと同時に
+offset も一つ減るので、余裕はそのまま残る。
+-/
+theorem boundaryValidUpTo_liveRangePreRemoveBP {t t' : Tree} {n q parent : NodeId}
+    {i slack : Nat} {bp : BoundaryPoint}
+    (hwf : WellFormed t) (hp : parentOf t n = some q) (hi : index t n = some i)
+    (hlenq : ChildCountKind t q) (hnotanc : isInclusiveAncestorOf t n parent = false)
+    (hd : detach t n = .ok t')
+    (hv : BoundaryValidUpTo t parent slack bp) :
+    BoundaryValidUpTo t' parent slack (liveRangePreRemoveBP t n q i bp) := by
+  by_cases hbp : bp.node = parent
+  · obtain ⟨d, hdd, hoff⟩ := hv
+    rw [if_pos hbp] at hoff
+    have hnotin : isInclusiveAncestorOf t n bp.node = false := by rw [hbp]; exact hnotanc
+    have hmove : liveRangePreRemoveBP t n q i bp = rangeShiftAfterRemove q i bp := by
+      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
+      rw [if_neg (by simp [hnotin])]
+    rw [hmove]
+    have hpn : parent ≠ n := by
+      intro he
+      rw [← he,
+        (isInclusiveAncestorOf_iff hwf parent parent).mpr (Or.inl rfl)] at hnotanc
+      simp at hnotanc
+    have hlenpd : lengthOf t parent = d.length := by unfold lengthOf; rw [← hbp, hdd]
+    by_cases hq : q = parent
+    · subst hq
+      have hshrink : lengthOf t' q + 1 = lengthOf t q := lengthOf_detach_parent hwf hp hd hlenq
+      have hiq : i < lengthOf t q := by
+        rw [lengthOf_eq_children hlenq]; exact index_lt_children_length hp hi
+      obtain ⟨pd', hpd'⟩ : ∃ pd', t'.get? q = some pd' := by
+        obtain ⟨pd, hpd⟩ := exists_data_of_parentOf hwf hp
+        have hkk := kindPreserving_detach hd q
+        rw [hpd] at hkk
+        cases hqq : t'.get? q with
+        | none => rw [hqq] at hkk; simp at hkk
+        | some pd' => exact ⟨pd', rfl⟩
+      have hpd'len : pd'.length = lengthOf t' q := by unfold lengthOf; rw [hpd']
+      unfold rangeShiftAfterRemove
+      by_cases hgt : bp.node = q ∧ i < bp.offset
+      · rw [if_pos hgt]
+        refine ⟨pd', by show t'.get? bp.node = some pd'; rw [hbp]; exact hpd', ?_⟩
+        show bp.offset - 1 ≤ pd'.length + (if bp.node = q then slack else 0)
+        rw [if_pos hbp]
+        omega
+      · rw [if_neg hgt]
+        have hle : bp.offset ≤ i := by
+          rcases Nat.lt_or_ge i bp.offset with hlt | hge
+          · exact (hgt ⟨hbp, hlt⟩).elim
+          · exact hge
+        refine ⟨pd', by show t'.get? bp.node = some pd'; rw [hbp]; exact hpd', ?_⟩
+        show bp.offset ≤ pd'.length + (if bp.node = q then slack else 0)
+        rw [if_pos hbp]
+        omega
+    · have hres : rangeShiftAfterRemove q i bp = bp := by
+        unfold rangeShiftAfterRemove
+        exact if_neg (fun hc => hq (by rw [← hc.1, hbp]))
+      rw [hres]
+      have hframe : t'.get? bp.node = t.get? bp.node := by
+        refine detach_frame hd (by rw [hbp]; exact hpn) ?_
+        intro q' hq'
+        rw [hp] at hq'
+        cases hq'
+        rw [hbp]
+        exact fun he => hq he.symm
+      exact ⟨d, by rw [hframe]; exact hdd, by rw [if_pos hbp]; exact hoff⟩
+  · have hvalid : ValidBoundaryPoint t bp := by
+      obtain ⟨d, hdd, hoff⟩ := hv
+      rw [if_neg hbp] at hoff
+      exact ⟨d, hdd, by omega⟩
+    exact boundaryValidUpTo_mono (Nat.zero_le _)
+      (boundaryValidUpTo_zero.mpr (valid_liveRangePreRemoveBP hwf hp hi hlenq hd hvalid))
+
+/--
+PLAN §8.3。fragment でない node の `insert` は、node が parent を持っていても
+range の両端を木の中に保つ。
+
+仕様は挿入側の調整（step 5）を adopt → remove（step 7）より前に置くので、
+その途中では offset が parent の length を一時的に超える。
+`BoundaryValidUpTo` の「余裕」として持ち回ると、
+削除側の調整（parent がちょうど削除元なら length と offset が同時に一つ減る）と
+挿入（length が一つ増える）を通って、最後にちょうど valid に戻ることが示せる。
+-/
+theorem insert_single_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {nd : NodeData}
+    (hwf : WellFormed s.tree) (hnd : s.tree.get? node = some nd)
+    (hk : ¬ (nd.kind == NodeKind.documentFragment) = true)
+    (hlen : ChildCountKind s.tree parent)
+    (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
+    (hv : RangeEndpointsValid s) (h : insert s node parent child = .ok s') :
+    RangeEndpointsValid s' := by
+  obtain ⟨pd, s₁, hpd, ha, hi, hsr⟩ := insert_single hnd hk h
+  obtain ⟨pd', nd', hpd', hnd', hnp', hanc1, _, _⟩ := insertAt_ok_cases hi
+  have hwf0 : WellFormed (liveRangeInsertAdjust s parent child 1).tree := by simpa using hwf
+  have hdoc0 : IsDocument (liveRangeInsertAdjust s parent child 1).tree pd.ownerDocument := by
+    simpa using isDocument_ownerDocument hwf hpd
+  have hwf1 : WellFormed s₁.tree := adopt_preserves_wellformed hwf0 hdoc0 ha
+  -- node が parent の inclusive ancestor でないことを、insertAt の検査から引き戻す
+  have hanc : isInclusiveAncestorOf s.tree node parent = false := by
+    cases hb : isInclusiveAncestorOf s.tree node parent with
+    | false => rfl
+    | true =>
+      exfalso
+      have hia : InclusiveAncestor s.tree node parent :=
+        (isInclusiveAncestorOf_iff hwf node parent).mp hb
+      obtain ⟨s₀', hstep, hfinal⟩ := adopt_ok_cases ha
+      have hstep' : InclusiveAncestor s₀'.tree node parent := by
+        rcases hstep with ⟨_, he⟩ | hr
+        · rw [he]; simpa using hia
+        · rcases hia with heq | hanc' 
+          · exact Or.inl heq
+          · refine Or.inr (ancestor_detach_of_not_below (remove_ok hr).2 (by simpa using hanc') ?_)
+            rintro ⟨_, hcyc⟩
+            exact hwf.acyclic node (by simpa using hcyc)
+      have hia1 : InclusiveAncestor s₁.tree node parent := by
+        rcases hfinal with he | he
+        · rw [he]; exact hstep'
+        · rw [he]
+          rcases hstep' with heq | hanc'
+          · exact Or.inl heq
+          · exact Or.inr (ancestor_setOwnerDocument.mpr hanc')
+      rw [(isInclusiveAncestorOf_iff hwf1 node parent).mpr hia1] at hanc1
+      simp at hanc1
+  -- step 5 の調整で余裕を一つ作る
+  have hv0 : RangeValidUpTo (liveRangeInsertAdjust s parent child 1) parent 1 :=
+    rangeValidUpTo_liveRangeInsertAdjust hv
+  -- adopt を通しても余裕つき validity は保たれる
+  have hv1 : RangeValidUpTo s₁ parent 1 := by
+    obtain ⟨s₀', hstep, hfinal⟩ := adopt_ok_cases ha
+    have hv0' : RangeValidUpTo s₀' parent 1 := by
+      rcases hstep with ⟨_, he⟩ | hr
+      · rw [he]; exact hv0
+      · obtain ⟨⟨q, hq⟩, hdd⟩ := remove_ok hr
+        have hq' : parentOf s.tree node = some q := by simpa using hq
+        obtain ⟨i, hidx⟩ := index_isSome hwf hq'
+        have hrng := remove_ranges hq hr
+        intro r hr'
+        rw [hrng] at hr'
+        obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hr'
+        obtain ⟨h1, h2⟩ := hv0 r₀ hr₀
+        rw [← hrr]
+        have hidx' : (index (liveRangeInsertAdjust s parent child 1).tree node).getD 0 = i := by
+          simp only [liveRangeInsertAdjust_tree, hidx]; rfl
+        rw [hidx']
+        constructor
+        · exact boundaryValidUpTo_liveRangePreRemoveBP hwf0 hq (by simpa using hidx)
+            (by simpa using hlenq q hq') (by simpa using hanc) hdd h1
+        · exact boundaryValidUpTo_liveRangePreRemoveBP hwf0 hq (by simpa using hidx)
+            (by simpa using hlenq q hq') (by simpa using hanc) hdd h2
+    rcases hfinal with he | he
+    · rw [he]; exact hv0'
+    · rw [he]
+      intro r hr'
+      obtain ⟨h1, h2⟩ := hv0' r hr'
+      exact ⟨boundaryValidUpTo_setOwnerDocument h1, boundaryValidUpTo_setOwnerDocument h2⟩
+  -- 最後の insertAt で余裕を使い切る
+  have hlen1 : ChildCountKind s₁.tree parent :=
+    (show ChildCountKind (liveRangeInsertAdjust s parent child 1).tree parent by simpa using hlen
+      ).map (kindPreserving_adopt ha)
+  intro r hrmem
+  rw [hsr] at hrmem
+  obtain ⟨h1, h2⟩ := hv1 r hrmem
+  exact ⟨boundaryValidUpTo_zero.mp (boundaryValidUpTo_insertAt hwf1 hlen1 hi h1),
+    boundaryValidUpTo_zero.mp (boundaryValidUpTo_insertAt hwf1 hlen1 hi h2)⟩
+
+/--
+PLAN §8.3。`insert` は range の両端を木の中に保つ。
+
+DocumentFragment を展開する場合とそうでない場合の両方を含む。
+-/
+theorem insert_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} (hwf : WellFormed s.tree)
+    (hlen : ChildCountKind s.tree parent)
+    (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
+    (hv : RangeEndpointsValid s) (h : insert s node parent child = .ok s') :
+    RangeEndpointsValid s' := by
+  cases hnd : s.tree.get? node with
+  | none => rw [insert, hnd] at h; simp at h
+  | some nd =>
+    by_cases hk : (nd.kind == NodeKind.documentFragment) = true
+    · exact insert_fragment_preserves_endpoints hwf hnd hk hlen hv h
+    · exact insert_single_preserves_endpoints hwf hnd hk hlen hlenq hv h
+
+/-! ## boundary point の順序（両端が同じ node の場合） -/
+
+/--
+両端が同じ node を指す boundary point の順序は、offset の比較そのものである。
+
+仕様の boundary point position は step 2 で「nodeA が nodeB なら offset を比べる」と
+決めているので、この場合は木の形に依らない。
+-/
+theorem boundaryLE_same_node {t : Tree} {a b : BoundaryPoint} (h : a.node = b.node) :
+    BoundaryLE t a b ↔ a.offset ≤ b.offset := by
+  unfold BoundaryLE bpPosition
+  rw [if_pos h]
+  constructor
+  · rintro ⟨_, hne⟩
+    exact Nat.compare_ne_gt.mp hne
+  · intro hle
+    exact ⟨by rw [h], Nat.compare_ne_gt.mpr hle⟩
+
+/--
+両端が同じ node を指し、順序も正しい range の集まり。
+
+`BoundaryLE` の保存は一般には示せていないが、この形の range については示せる。
+生成器が作る range もこの形である。
+-/
+def RangesSameNodeOrdered (s : DOMState) : Prop :=
+  ∀ r ∈ s.ranges, r.start.node = r.«end».node ∧ r.start.offset ≤ r.«end».offset
+
+theorem boundaryLE_of_sameNodeOrdered {s : DOMState} (h : RangesSameNodeOrdered s) :
+    ∀ r ∈ s.ranges, BoundaryLE s.tree r.start r.«end» :=
+  fun r hr => (boundaryLE_same_node (h r hr).1).mpr (h r hr).2
+
+/-! ## 調整は同じ node の上で単調である -/
+
+theorem rangeShiftAfterRemove_mono {q : NodeId} {i : Nat} {a b : BoundaryPoint}
+    (hnode : a.node = b.node) (hle : a.offset ≤ b.offset) :
+    (rangeShiftAfterRemove q i a).node = (rangeShiftAfterRemove q i b).node ∧
+      (rangeShiftAfterRemove q i a).offset ≤ (rangeShiftAfterRemove q i b).offset := by
+  unfold rangeShiftAfterRemove
+  by_cases hq : a.node = q
+  · by_cases h1 : i < a.offset
+    · rw [if_pos ⟨hq, h1⟩, if_pos ⟨by rw [← hnode]; exact hq, by omega⟩]
+      exact ⟨hnode, by show a.offset - 1 ≤ b.offset - 1; omega⟩
+    · rw [if_neg (fun hc => h1 hc.2)]
+      by_cases h2 : i < b.offset
+      · rw [if_pos ⟨by rw [← hnode]; exact hq, h2⟩]
+        exact ⟨hnode, by show a.offset ≤ b.offset - 1; omega⟩
+      · rw [if_neg (fun hc => h2 hc.2)]
+        exact ⟨hnode, hle⟩
+  · rw [if_neg (fun hc => hq hc.1), if_neg (fun hc => hq (by rw [hnode]; exact hc.1))]
+    exact ⟨hnode, hle⟩
+
+theorem liveRangePreRemoveBP_mono {t : Tree} {n q : NodeId} {i : Nat} {a b : BoundaryPoint}
+    (hnode : a.node = b.node) (hle : a.offset ≤ b.offset) :
+    (liveRangePreRemoveBP t n q i a).node = (liveRangePreRemoveBP t n q i b).node ∧
+      (liveRangePreRemoveBP t n q i a).offset ≤ (liveRangePreRemoveBP t n q i b).offset := by
+  by_cases hin : isInclusiveAncestorOf t n a.node = true
+  · have ha : liveRangePreRemoveBP t n q i a = rangeShiftAfterRemove q i ⟨q, i⟩ := by
+      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
+      rw [if_pos hin]
+    have hb : liveRangePreRemoveBP t n q i b = rangeShiftAfterRemove q i ⟨q, i⟩ := by
+      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
+      rw [if_pos (by rw [← hnode]; exact hin)]
+    rw [ha, hb]
+    exact ⟨rfl, Nat.le_refl _⟩
+  · have ha : liveRangePreRemoveBP t n q i a = rangeShiftAfterRemove q i a := by
+      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
+      rw [if_neg hin]
+    have hb : liveRangePreRemoveBP t n q i b = rangeShiftAfterRemove q i b := by
+      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
+      rw [if_neg (by rw [← hnode]; exact hin)]
+    rw [ha, hb]
+    exact rangeShiftAfterRemove_mono hnode hle
+
+theorem rangeShiftAfterInsert_mono {parent : NodeId} {idx k : Nat} {a b : BoundaryPoint}
+    (hnode : a.node = b.node) (hle : a.offset ≤ b.offset) :
+    (rangeShiftAfterInsert parent idx k a).node = (rangeShiftAfterInsert parent idx k b).node ∧
+      (rangeShiftAfterInsert parent idx k a).offset ≤
+        (rangeShiftAfterInsert parent idx k b).offset := by
+  unfold rangeShiftAfterInsert
+  by_cases hq : a.node = parent
+  · by_cases h1 : idx < a.offset
+    · rw [if_pos ⟨hq, h1⟩, if_pos ⟨by rw [← hnode]; exact hq, by omega⟩]
+      exact ⟨hnode, by show a.offset + k ≤ b.offset + k; omega⟩
+    · rw [if_neg (fun hc => h1 hc.2)]
+      by_cases h2 : idx < b.offset
+      · rw [if_pos ⟨by rw [← hnode]; exact hq, h2⟩]
+        exact ⟨hnode, by show a.offset ≤ b.offset + k; omega⟩
+      · rw [if_neg (fun hc => h2 hc.2)]
+        exact ⟨hnode, hle⟩
+  · rw [if_neg (fun hc => hq hc.1), if_neg (fun hc => hq (by rw [hnode]; exact hc.1))]
+    exact ⟨hnode, hle⟩
+
+/-! ## 各 algorithm が同じ node の上の順序を保つこと -/
+
+theorem remove_preserves_sameNodeOrdered {s s' : DOMState} {n p : NodeId}
+    (hp : parentOf s.tree n = some p) (h : remove s n = .ok s')
+    (hv : RangesSameNodeOrdered s) : RangesSameNodeOrdered s' := by
+  intro r hr
+  rw [remove_ranges hp h] at hr
+  obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hr
+  obtain ⟨hn, ho⟩ := hv r₀ hr₀
+  rw [← hrr]
+  exact liveRangePreRemoveBP_mono hn ho
+
+theorem removeEach_preserves_sameNodeOrdered :
+    ∀ (ns : List NodeId) {s s' : DOMState},
+      RangesSameNodeOrdered s → removeEach s ns = .ok s' → RangesSameNodeOrdered s'
+  | [], s, s', hv, h => by rw [removeEach] at h; rw [← Except.ok.inj h]; exact hv
+  | n :: ns, s, s', hv, h => by
+    rw [removeEach] at h
+    split at h
+    · simp at h
+    · next s₁ hr =>
+      obtain ⟨⟨p, hp⟩, _⟩ := remove_ok hr
+      exact removeEach_preserves_sameNodeOrdered ns
+        (remove_preserves_sameNodeOrdered hp hr hv) h
+
+theorem adopt_preserves_sameNodeOrdered {s s' : DOMState} {node doc : NodeId}
+    (hv : RangesSameNodeOrdered s) (h : adopt s node doc = .ok s') :
+    RangesSameNodeOrdered s' := by
+  obtain ⟨s₀, hstep, hfinal⟩ := adopt_ok_cases h
+  have hv₀ : RangesSameNodeOrdered s₀ := by
+    rcases hstep with ⟨_, he⟩ | hr
+    · rw [he]; exact hv
+    · obtain ⟨⟨p, hp⟩, _⟩ := remove_ok hr
+      exact remove_preserves_sameNodeOrdered hp hr hv
+  rcases hfinal with he | he <;> rw [he]
+  · exact hv₀
+  · intro r hr; exact hv₀ r hr
+
+theorem insertEach_preserves_sameNodeOrdered :
+    ∀ (nodes : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+      {doc : NodeId},
+      RangesSameNodeOrdered s → insertEach s parent child doc nodes = .ok s' →
+      RangesSameNodeOrdered s'
+  | [], s, s', _, _, _, hv, h => by rw [insertEach] at h; rw [← Except.ok.inj h]; exact hv
+  | n :: ns, s, s', parent, child, doc, hv, h => by
+    rw [insertEach] at h
+    split at h
+    · simp at h
+    · next s₁ ha =>
+      split at h
+      · simp at h
+      · next s₂ hi =>
+        refine insertEach_preserves_sameNodeOrdered ns ?_ h
+        rw [(DOMState.mapTree_eq_ok hi).2]
+        intro r hr
+        exact adopt_preserves_sameNodeOrdered hv ha r hr
+
+theorem liveRangeInsertAdjust_preserves_sameNodeOrdered {s : DOMState} {parent : NodeId}
+    {child : Option NodeId} {k : Nat} (hv : RangesSameNodeOrdered s) :
+    RangesSameNodeOrdered (liveRangeInsertAdjust s parent child k) := by
+  intro r hr
+  unfold liveRangeInsertAdjust at hr
+  split at hr
+  · exact hv r hr
+  · obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hr
+    obtain ⟨hn, ho⟩ := hv r₀ hr₀
+    rw [← hrr]
+    exact rangeShiftAfterInsert_mono hn ho
+
+/-- PLAN §8.3。`insert` は「両端が同じ node を指す range」の順序を保つ。 -/
+theorem insert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} (hv : RangesSameNodeOrdered s)
+    (h : insert s node parent child = .ok s') : RangesSameNodeOrdered s' := by
+  unfold insert at h
+  split at h
+  · simp at h
+  · next nd hnd =>
+    have hstep : ∀ (u : DOMState) (ns : List NodeId), RangesSameNodeOrdered u →
+        insertNodesAt u parent child ns = .ok s' → RangesSameNodeOrdered s' := by
+      intro u ns hu hun
+      unfold insertNodesAt insertEachAt at hun
+      split at hun
+      · simp at hun
+      · exact insertEach_preserves_sameNodeOrdered ns
+          (liveRangeInsertAdjust_preserves_sameNodeOrdered hu) hun
+    split at h
+    · split at h
+      · rw [← Except.ok.inj h]; exact hv
+      · split at h
+        · simp at h
+        · next s₁ hre =>
+          exact hstep s₁ _ (removeEach_preserves_sameNodeOrdered _ hv hre) h
+    · exact hstep s _ hv h
+
+/-- `remove` の後も、両端が同じ node を指す range は正しく並んでいる。 -/
+theorem remove_preserves_boundaryLE {s s' : DOMState} {n p : NodeId}
+    (hp : parentOf s.tree n = some p) (h : remove s n = .ok s')
+    (hv : RangesSameNodeOrdered s) :
+    ∀ r ∈ s'.ranges, BoundaryLE s'.tree r.start r.«end» :=
+  boundaryLE_of_sameNodeOrdered (remove_preserves_sameNodeOrdered hp h hv)
+
+/-- `move` も `remove` と挿入側の調整を通るだけなので、同じ node の上の順序を保つ。 -/
+theorem move_preserves_sameNodeOrdered {s s' : DOMState} {node newParent : NodeId}
+    {child : Option NodeId} (hv : RangesSameNodeOrdered s)
+    (h : move s node newParent child = .ok s') : RangesSameNodeOrdered s' := by
+  obtain ⟨s₁, hr, hranges⟩ := move_ranges h
+  obtain ⟨⟨p, hp⟩, _⟩ := remove_ok hr
+  intro r hrmem
+  rw [hranges] at hrmem
+  exact liveRangeInsertAdjust_preserves_sameNodeOrdered
+    (remove_preserves_sameNodeOrdered hp hr hv) r hrmem
+
+/-- `insert` の後も、両端が同じ node を指す range は正しく並んでいる。 -/
+theorem insert_preserves_boundaryLE {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} (hv : RangesSameNodeOrdered s)
+    (h : insert s node parent child = .ok s') :
+    ∀ r ∈ s'.ranges, BoundaryLE s'.tree r.start r.«end» :=
+  boundaryLE_of_sameNodeOrdered (insert_preserves_sameNodeOrdered hv h)
+
+/-! ## insert 側の public API への持ち上げ -/
+
+theorem preInsert_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} (hwf : WellFormed s.tree)
+    (hlen : ChildCountKind s.tree parent)
+    (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
+    (hv : RangeEndpointsValid s) (h : preInsert s node parent child = .ok s') :
+    RangeEndpointsValid s' := by
+  unfold preInsert at h
+  split at h
+  · simp at h
+  · exact insert_preserves_endpoints hwf hlen hlenq hv h
+
+theorem appendChild_preserves_endpoints {s s' : DOMState} {parent node : NodeId}
+    (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
+    (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
+    (hv : RangeEndpointsValid s) (h : appendChild s parent node = .ok s') :
+    RangeEndpointsValid s' :=
+  preInsert_preserves_endpoints hwf hlen hlenq hv h
+
+theorem insertBefore_preserves_endpoints {s s' : DOMState} {parent node : NodeId}
+    {child : Option NodeId} (hwf : WellFormed s.tree)
+    (hlen : ChildCountKind s.tree parent)
+    (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
+    (hv : RangeEndpointsValid s) (h : insertBefore s parent node child = .ok s') :
+    RangeEndpointsValid s' :=
+  preInsert_preserves_endpoints hwf hlen hlenq hv h
+
+theorem preInsert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} (hv : RangesSameNodeOrdered s)
+    (h : preInsert s node parent child = .ok s') : RangesSameNodeOrdered s' := by
+  unfold preInsert at h
+  split at h
+  · simp at h
+  · exact insert_preserves_sameNodeOrdered hv h
+
+theorem preRemove_preserves_sameNodeOrdered {s s' : DOMState} {child parent : NodeId}
+    (hv : RangesSameNodeOrdered s) (h : preRemove s child parent = .ok s') :
+    RangesSameNodeOrdered s' := by
+  unfold preRemove at h
+  split at h
+  · simp at h
+  · next hp => exact remove_preserves_sameNodeOrdered (by simpa using hp) h hv
 
 end Dom

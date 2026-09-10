@@ -16,54 +16,6 @@ namespace Dom
 
 open Dom.ListUtil
 
-/-! ## detach と ancestor 関係 -/
-
-theorem parentOf_detach {t t' : Tree} {n : NodeId} (hd : detach t n = .ok t') (m : NodeId) :
-    parentOf t' m = if m = n then none else parentOf t m := by
-  rcases detach_ok_cases hd with ⟨d, hdd, hdp, rfl⟩ | ⟨d, p, pd, hdd, hdp, hpd, rfl⟩
-  · by_cases hm : m = n
-    · rw [if_pos hm, hm]; simp [parentOf, hdd, hdp]
-    · rw [if_neg hm]
-  · exact parentOf_detachFrom hpd m
-
-/--
-`detach` が外す辺が経路上に無ければ、ancestor 関係は残る。
-
-`n` の親への辺だけが消えるので、`x` から `a` へ登る経路がその辺を通らなければよい。
-経路がその辺を通るのは「`n` が `x` の inclusive ancestor」かつ「`a` が `n` の ancestor」のときである。
--/
-theorem ancestor_detach_of_not_below {t t' : Tree} {n a : NodeId}
-    (hd : detach t n = .ok t') {x : NodeId} (h : Ancestor t a x) :
-    ¬ (InclusiveAncestor t n x ∧ Ancestor t a n) → Ancestor t' a x := by
-  induction h with
-  | @step m hp =>
-    intro hnot
-    have hmn : m ≠ n := by
-      intro he
-      exact hnot ⟨Or.inl he.symm, by rw [← he]; exact Ancestor.step hp⟩
-    refine Ancestor.step ?_
-    rw [parentOf_detach hd, if_neg hmn]
-    exact hp
-  | @trans m b hp hprev ih =>
-    -- hp : parentOf t b = some m（b が下、m がその parent）
-    intro hnot
-    have hbn : b ≠ n := by
-      intro he
-      exact hnot ⟨Or.inl he.symm, by rw [← he]; exact Ancestor.trans hp hprev⟩
-    refine Ancestor.trans (by rw [parentOf_detach hd, if_neg hbn]; exact hp) (ih ?_)
-    rintro ⟨hnm, han⟩
-    refine hnot ⟨?_, han⟩
-    rcases hnm with he | ha
-    · exact Or.inr (by rw [← he] at hp; exact Ancestor.step hp)
-    · exact Or.inr (ha.trans_ancestor (Ancestor.step hp))
-
-theorem inclusiveAncestor_detach_of_not_below {t t' : Tree} {n r x : NodeId}
-    (hd : detach t n = .ok t') (h : InclusiveAncestor t r x)
-    (hnot : ¬ (InclusiveAncestor t n x ∧ Ancestor t r n)) : InclusiveAncestor t' r x := by
-  rcases h with rfl | h
-  · exact Or.inl rfl
-  · exact Or.inr (ancestor_detach_of_not_below hd h hnot)
-
 /-! ## adjust a node pointer の性質 -/
 
 /-- 削除する node は自分の parent の inclusive ancestor ではない。 -/

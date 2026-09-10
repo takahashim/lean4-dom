@@ -28,7 +28,7 @@ DOM Standard §5.5 "live range pre-remove steps" の step 5-6。
 `parent` を指し、offset が `index` より大きい boundary point の offset を 1 減らす。
 -/
 def rangeShiftAfterRemove (parent : NodeId) (index : Nat) (bp : BoundaryPoint) : BoundaryPoint :=
-  if bp.node = parent && index < bp.offset then { bp with offset := bp.offset - 1 } else bp
+  if bp.node = parent ∧ index < bp.offset then { bp with offset := bp.offset - 1 } else bp
 
 /--
 DOM Standard §5.5 "live range pre-remove steps"。
@@ -67,7 +67,7 @@ DOM Standard §4.2.3 insert step 5 / move step 16。
 -/
 def rangeShiftAfterInsert (parent : NodeId) (index count : Nat)
     (bp : BoundaryPoint) : BoundaryPoint :=
-  if bp.node = parent && index < bp.offset then { bp with offset := bp.offset + count } else bp
+  if bp.node = parent ∧ index < bp.offset then { bp with offset := bp.offset + count } else bp
 
 def liveRangeInsertAdjustRange (parent : NodeId) (index count : Nat)
     (r : RangeState) : RangeState :=

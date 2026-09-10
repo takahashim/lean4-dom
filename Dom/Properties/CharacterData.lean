@@ -226,4 +226,78 @@ theorem setData_preserves_endpoints {s s' : DOMState} {n : NodeId} {data : Strin
   · simp at h
   · exact replaceData_preserves_endpoints hv h
 
+/-! ## 同じ node の上の順序 -/
+
+theorem replaceDataAdjustBP_at {n : NodeId} {offset count newLen : Nat} {bp : BoundaryPoint}
+    (h : bp.node = n) :
+    replaceDataAdjustBP n offset count newLen bp =
+      if offset < bp.offset ∧ bp.offset ≤ offset + count then { bp with offset := offset }
+      else if offset + count < bp.offset then { bp with offset := bp.offset + newLen - count }
+      else bp := by
+  unfold replaceDataAdjustBP
+  rw [if_neg (by simpa using h)]
+
+theorem replaceDataAdjustBP_other {n : NodeId} {offset count newLen : Nat} {bp : BoundaryPoint}
+    (h : bp.node ≠ n) : replaceDataAdjustBP n offset count newLen bp = bp := by
+  unfold replaceDataAdjustBP
+  rw [if_pos h]
+
+theorem replaceDataAdjustBP_mono {n : NodeId} {offset count newLen : Nat} {a b : BoundaryPoint}
+    (hnode : a.node = b.node) (hle : a.offset ≤ b.offset) :
+    (replaceDataAdjustBP n offset count newLen a).node =
+        (replaceDataAdjustBP n offset count newLen b).node ∧
+      (replaceDataAdjustBP n offset count newLen a).offset ≤
+        (replaceDataAdjustBP n offset count newLen b).offset := by
+  by_cases hne : a.node = n
+  · have hbn : b.node = n := by rw [← hnode]; exact hne
+    have ha := replaceDataAdjustBP_at (n := n) (offset := offset) (count := count)
+      (newLen := newLen) hne
+    have hb := replaceDataAdjustBP_at (n := n) (offset := offset) (count := count)
+      (newLen := newLen) hbn
+    rw [ha, hb]
+    by_cases h1 : offset < a.offset ∧ a.offset ≤ offset + count
+    · rw [if_pos h1]
+      by_cases h2 : offset < b.offset ∧ b.offset ≤ offset + count
+      · rw [if_pos h2]; exact ⟨hnode, Nat.le_refl _⟩
+      · rw [if_neg h2]
+        by_cases h3 : offset + count < b.offset
+        · rw [if_pos h3]
+          exact ⟨hnode, by show offset ≤ b.offset + newLen - count; omega⟩
+        · rw [if_neg h3]; exact ⟨hnode, by show offset ≤ b.offset; omega⟩
+    · rw [if_neg h1]
+      by_cases h3 : offset + count < a.offset
+      · rw [if_pos h3]
+        rw [if_neg (show ¬(offset < b.offset ∧ b.offset ≤ offset + count) from fun hc => by omega),
+          if_pos (show offset + count < b.offset by omega)]
+        exact ⟨hnode, by show a.offset + newLen - count ≤ b.offset + newLen - count; omega⟩
+      · rw [if_neg h3]
+        by_cases h2 : offset < b.offset ∧ b.offset ≤ offset + count
+        · rw [if_pos h2]; exact ⟨hnode, by show a.offset ≤ offset; omega⟩
+        · rw [if_neg h2]
+          by_cases h4 : offset + count < b.offset
+          · rw [if_pos h4]
+            exact ⟨hnode, by show a.offset ≤ b.offset + newLen - count; omega⟩
+          · rw [if_neg h4]; exact ⟨hnode, hle⟩
+  · have hbn : b.node ≠ n := by rw [← hnode]; exact hne
+    rw [replaceDataAdjustBP_other hne, replaceDataAdjustBP_other hbn]
+    exact ⟨hnode, hle⟩
+
+/-- PLAN §8.3 / §10.2。`replaceData` は「両端が同じ node を指す range」の順序を保つ。 -/
+theorem replaceData_preserves_sameNodeOrdered {s s' : DOMState} {n : NodeId}
+    {offset count : Nat} {data : String} (hv : RangesSameNodeOrdered s)
+    (h : replaceData s n offset count data = .ok s') : RangesSameNodeOrdered s' := by
+  obtain ⟨d, hd, hk, hoff, ht, hr, _⟩ := replaceData_ok h
+  intro r hrmem
+  rw [hr] at hrmem
+  obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hrmem
+  obtain ⟨hn, ho⟩ := hv r₀ hr₀
+  rw [← hrr]
+  exact replaceDataAdjustBP_mono hn ho
+
+theorem replaceData_preserves_boundaryLE {s s' : DOMState} {n : NodeId} {offset count : Nat}
+    {data : String} (hv : RangesSameNodeOrdered s)
+    (h : replaceData s n offset count data = .ok s') :
+    ∀ r ∈ s'.ranges, BoundaryLE s'.tree r.start r.«end» :=
+  boundaryLE_of_sameNodeOrdered (replaceData_preserves_sameNodeOrdered hv h)
+
 end Dom

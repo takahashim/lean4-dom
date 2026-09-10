@@ -493,17 +493,10 @@ Range に追随するようになった。
 仕様の pre-insertion validity は parent を Document / DocumentFragment / Element に限るので
 子を持つ node ではつねに成り立つが、`WellFormed` はこれを要求していないためである。
 
-### 証明できていない部分
+### 残りだった三点（後から証明した）
 
-* **`BoundaryLE`（start ≤ end の順序）の保存。**
-  `RangeValid` のうち順序の部分は、mutation の後の tree order について
-  まとまった理論が要る。定義と実行時検査（`checkRangesValid`）は用意してあり、
-  differential testing の各 step で確認しているが、証明はしていない。
-* **parent を持つ node の `insert` についての端点の保存。**
-  仕様は挿入側の調整（insert step 5）を adopt → remove（step 7）より前に置いているため、
-  その途中では offset が parent の length を一時的に超えうる。
-  最終状態では valid になるが、合成の証明には length の増減を追う補題がもう一段要る。
-* **DocumentFragment を展開する `insert` についての端点の保存。**
+Phase 5 の時点で残していた三点のうち、二つは完全に、一つは部分的に証明した。
+詳しくは後述の「残り三点の解消」を参照。
 
 ## Phase 5 で見つかった Dommy の不一致
 
@@ -669,7 +662,78 @@ step 8-11 の三つの場合をどれも `omega` で片づけられる。
 いずれも定義と実行時検査（`checkRangesValid`）は用意してあり、
 differential testing の各 step で確認している。
 
+## 残り三点の解消
+
+Phase 5 と 7 で残していた三点に取り組んだ。
+
+### 1. DocumentFragment を展開する `insert`（完全に証明した）
+
+`insert_fragment_preserves_endpoints`。
+
+要になったのは、仕様の step 4 が fragment の children を **先に全部外す** ことである。
+そのため step 7 の時点ではどの node も parent を持たず、
+`insertEach` の中で removal が起きない。
+step 5 で足した余裕（children の個数）が、
+`insertAt` 一回につき一つずつちょうど使い切られる。
+
+用意した補助は次のとおり。
+
+* `removeEach_from_parent` — 同じ parent を持つ node の列をまとめて外す。
+  外した後どの node も parent を持たないことも返す。
+* `insertEach_valid_of_no_parent` — parent を持たない node の列を入れる。
+
+### 2. parent を持つ node の `insert`（完全に証明した）
+
+`insert_single_preserves_endpoints`、および fragment と合わせた
+`insert_preserves_endpoints`。
+
+仕様は挿入側の調整（step 5）を adopt → remove（step 7）より前に置くので、
+途中では offset が parent の length を一時的に超える。
+これを扱うために **余裕つきの validity** を導入した。
+
+```lean
+def BoundaryValidUpTo (t : Tree) (parent : NodeId) (slack : Nat) (bp : BoundaryPoint) : Prop :=
+  ∃ d, t.get? bp.node = some d ∧
+    bp.offset ≤ d.length + (if bp.node = parent then slack else 0)
+```
+
+`slack = 0` はちょうど `ValidBoundaryPoint` になる。
+step 5 が余裕を一つ作り（`rangeValidUpTo_liveRangeInsertAdjust`）、
+削除側の調整が余裕を保ち（`boundaryValidUpTo_liveRangePreRemoveBP`。
+parent がちょうど削除元なら length と offset が同時に一つ減る）、
+最後の `insertAt` が余裕を使い切る（`boundaryValidUpTo_insertAt`）。
+
+`insertAt` の成功から「node は parent の inclusive ancestor でない」を
+削除前の木へ引き戻すのに `ancestor_detach_of_not_below`（Phase 6 で作った補題）を使った。
+
+### 3. `BoundaryLE`（start ≤ end の順序）の保存（部分的に証明した）
+
+**両端が同じ node を指す range については証明した。**
+
+`boundaryLE_same_node` により、この場合の順序は offset の比較そのものになる
+（仕様の boundary point position の step 2）。
+あとは調整が同じ node の上で単調であることを示せばよい。
+
+* `rangeShiftAfterRemove_mono`, `liveRangePreRemoveBP_mono`
+* `rangeShiftAfterInsert_mono`
+* `replaceDataAdjustBP_mono`
+
+これらから `remove` / `insert` / `move` / `replaceData` と
+public API について `RangesSameNodeOrdered` の保存を示し、
+`remove_preserves_boundaryLE`, `insert_preserves_boundaryLE`,
+`replaceData_preserves_boundaryLE` を得た。
+differential testing の生成器が作る range もこの形である。
+
+**両端が別の node を指す場合は未証明。**
+仕様の boundary point position は step 3-4 で tree order（`precedes`）と
+`childTowards` を使うので、mutation の後の tree order を追う理論が要る。
+具体的には「部分木を外したとき、外に残る node どうしの tree order は変わらない」
+という定理と、そのための「preorder における部分木は連続した区間である」という補題が要る。
+実行時検査（`checkRangesValid`）はこの場合も含めて確認しており、
+differential testing で不一致は出ていない。
+
 ## 未着手
 
-Phase 8（`PLAN.md` §11）の再評価。MutationObserver と Shadow DOM に進むかどうかを、
-Phase 4-7 の differential testing で見つかった不一致の傾向から判断する。
+* `BoundaryLE` の保存のうち、両端が別の node を指す場合。
+* Phase 8（`PLAN.md` §11）の再評価。MutationObserver と Shadow DOM に進むかどうかを、
+  Phase 4-7 の differential testing で見つかった不一致の傾向から判断する。
