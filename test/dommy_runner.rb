@@ -49,13 +49,14 @@ module DommyRunner
 
     # scenario の document node に対応する、空の Document を作る。
     #
-    # `Dommy::Document.new` は doctype と <html> を持った状態で生まれるので、
-    # 子を外して空にしてから使う。
+    # `Window` 経由で作るのは `MutationObserver` が window を要るためである。
+    # 生まれたときは doctype と <html> を持っているので、子を外して空にしてから使う。
     # `implementation.create_document(nil, nil, nil)` なら最初から空だが、
     # そちらは XML document になり `documentFragment.appendChild` が
     # `Makiri::Error` になるため使えない。
     def new_empty_document
-      doc = Dommy::Document.new
+      win = Dommy::Window.new
+      doc = win.document
       doc.child_nodes.to_a.each { |n| n.remove if n.respond_to?(:remove) }
       doc
     end
@@ -202,6 +203,52 @@ module DommyRunner
     end
   end
 
+  # scenario の observer を Dommy の MutationObserver として作る。
+  #
+  # Dommy の `MutationObserver.new` は window を要る。scenario の document は
+  # `Dommy::Document.new` 由来なので `default_view` から取る。
+  # callback は呼ばない（scheduler を回さない）ので、record は queue に貯まり、
+  # `takeRecords` で取り出せる。model 側も配送を扱わないので、これで揃う。
+  def build_observers(objects, documents, specs)
+    (specs || []).map do |spec|
+      target = objects.fetch(spec["target"])
+      doc = documents.values.first or raise "document が無いので MutationObserver を作れない"
+      win = doc.default_view or raise "window が無いので MutationObserver を作れない"
+      obs = Dommy::MutationObserver.new(win, proc { |_records| nil })
+      options = {
+        "childList" => !!spec["childList"],
+        "subtree" => !!spec["subtree"],
+        "characterData" => !!spec["characterData"],
+        "characterDataOldValue" => !!spec["characterDataOldValue"]
+      }
+      obs.__js_call__("observe", [target, options])
+      obs
+    end
+  end
+
+  # model と同じく、これまでに積まれた record を全部並べる。
+  # Dommy 側は `takeRecords` が queue を空にするので、こちらで貯めておく。
+  def take_records(objects, observers, accumulated)
+    observers.each_with_index do |obs, i|
+      obs.__js_call__("takeRecords", []).each do |rec|
+        accumulated[i] << record_snapshot(objects, rec)
+      end
+    end
+    accumulated.map(&:dup)
+  end
+
+  def record_snapshot(objects, rec)
+    nodes = ->(key) { (rec.__js_get__(key) || []).to_a.map { |n| node_id(objects, n) } }
+    old_value = rec.__js_get__("oldValue")
+    { "type" => rec.__js_get__("type"),
+      "target" => node_id(objects, rec.__js_get__("target")),
+      "addedNodes" => nodes.call("addedNodes"),
+      "removedNodes" => nodes.call("removedNodes"),
+      "previousSibling" => node_id(objects, rec.__js_get__("previousSibling")),
+      "nextSibling" => node_id(objects, rec.__js_get__("nextSibling")),
+      "oldValue" => old_value.nil? ? nil : old_value.to_s }
+  end
+
   def range_snapshot(objects, ranges)
     ranges.map do |r|
       { "start" => { "node" => node_id(objects, r.start_container), "offset" => r.start_offset },
@@ -209,7 +256,7 @@ module DommyRunner
     end
   end
 
-  def snapshot(objects, kinds, ranges = [], iterators = [])
+  def snapshot(objects, kinds, ranges = [], iterators = [], observers = nil)
     nodes = objects.keys.sort.map do |id|
       node = objects[id]
       {
@@ -220,8 +267,10 @@ module DommyRunner
         "data" => data_of(node)
       }
     end
-    { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),
-      "iterators" => iterator_snapshot(objects, iterators) }
+    out = { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),
+            "iterators" => iterator_snapshot(objects, iterators) }
+    out["observers"] = observers if observers
+    out
   end
 
   # 操作の受け手（method を呼ぶ相手）の id。
@@ -307,7 +356,10 @@ module DommyRunner
     objects = builder.build
     ranges = build_ranges(objects, builder.documents, scenario["ranges"])
     iterators = build_iterators(objects, builder.documents, scenario["iterators"])
-    initial = snapshot(objects, kinds, ranges, iterators)
+    observers = build_observers(objects, builder.documents, scenario["observers"])
+    accumulated = observers.map { [] }
+    initial = snapshot(objects, kinds, ranges, iterators,
+                       observers.empty? ? nil : take_records(objects, observers, accumulated))
     steps = []
     (scenario["operations"] || []).each do |op|
       begin
@@ -319,7 +371,8 @@ module DommyRunner
         steps << { "ok" => false, "exception" => exception_name(e) }
         break
       end
-      steps << snapshot(objects, kinds, ranges, iterators).merge("ok" => true)
+      recs = observers.empty? ? nil : take_records(objects, observers, accumulated)
+      steps << snapshot(objects, kinds, ranges, iterators, recs).merge("ok" => true)
     end
     { "initial" => initial, "steps" => steps }
   end

@@ -1152,12 +1152,92 @@ harness が「存在しない id を指した引数」を意図的に飛ばし�
 
 * **finding 4**（上記）。Makiri 側の `XML::DocumentFragment#add_child`。
 
+## Phase 8：MutationObserver の record（一巡した）
+
+`PLAN.md` §11 の判断材料は「Phase 4-7 の不一致の傾向」である。
+そこまでに見つかった 12 件はすべて tree mutation と Range で、
+**record の内容と積む位置は同じ「step の順序」の材料** だった。
+Dommy の直前の commit 二つ（`8c6d030`, `a06fd1e`）も normalize の record の話であり、
+実際に動いている領域でもある。よって MutationObserver に進んだ。
+Shadow DOM は node tree そのものを広げるので、いまは対象にしていない。
+
+### model（`Dom/Observer/Record.lean`）
+
+仕様 §4.3.4 の "queue a mutation record"（target の inclusive ancestor を上へ辿り、
+各 node の registered observer list を順に見て、
+**初出順の map** に集め oldValue を上書きする step 2）、
+"queue a tree mutation record"、および remove step 20 の
+transient registered observer を実装した。
+
+`DOMState` に observer ごとの record queue と、
+node を持つ一本の registered observer list を足した。
+配送（mutation observer microtask と "notify mutation observers"）は対象外なので、
+record は取り出すまで貯まり、transient registration は消えない。
+
+algorithm 側は `suppressObservers` を持つようになり、
+record を仕様の位置で積む。
+
+| step | 位置 |
+| --- | --- |
+| remove step 21 | detach の後 |
+| insert step 4.2 | fragment の children を外した直後（`suppressObservers` に関わらず積む） |
+| insert step 9 | previousSibling は step 6 の位置、つまり **木を変える前** に決める |
+| replace step 10 | 一つにまとめる（古い子の除去と insert は抑制する） |
+| replace all step 7 | 同上 |
+| move step 23-24 | 旧 parent と新 parent に一つずつ |
+| replace data step 4 | data を変える **前** に、変える前の値を oldValue として積む |
+
+書いていて分かったことが二つある。
+
+* remove step 20（transient observer）は step 14 の後にあり、
+  「parent の ancestor は子を一つ外しても変わらない」ので detach の後に置いてよい。
+  こうすると `detachWithLiveAdjust` が remove と move の共有部分のまま残り、
+  既存の木 / range / iterator の定理は flag を一般化して record の wrapper を剥がすだけ
+  （`remove_eq_of_detach`）で通る。
+* `replaceData` は `DOMState` を field ごとに組み立てていたので、
+  新しい二つの field を黙って落とすところだった。`{ s with … }` に直した。
+
+### harness
+
+scenario に `observers` を足した（`target` と `subtree` / `childList` /
+`characterData` / `characterDataOldValue`）。
+`observe(target, options)` を一度呼んだ状態にあたる。
+出力は observer ごとの record 列で、Dommy 側は callback を呼ばない
+（scheduler を回さない）まま `takeRecords` で取り出して貯める。
+model も配送を扱わないので、これで両側が揃う。
+
+生成器は `--observers N` を取り、
+仕様の `observe` が「childList / attributes / characterData のどれかは true」
+を要求するので、少なくとも一方を立てる。
+
+### 見つかった Dommy の不一致（Dommy commit `faaeb63`）
+
+12. **Document の subtree observer が木の外の node にも当たる。**
+    `matches_document?` が subtree なら無条件に true を返していた。
+    仕様は target の inclusive ancestor を辿って registration に届くので、
+    切り離された node や fragment の中の node は document の registration に届かない。
+    切り離された comment の `data` を変えると characterData record が積まれていた。
+13. **childList record の previousSibling / nextSibling が空。**
+    `before` / `after` / `append` / `prepend` / `appendChild` が渡していなかったので、
+    coordinator が「入った後の位置」から推測していた。
+    仕様は insert step 6、つまり **木を変える前** の挿入位置から取る。
+    `parent.appendChild(parent.lastChild)` は previousSibling が
+    **その node 自身** になり、後追いの推測では出せない値である。
+14. **`takeRecords()` が transient registered observer を消していた。**
+    仕様の `takeRecords` は「queue を複製し、空にし、返す」の三 step だけで、
+    transient を終わらせるのは microtask checkpoint のほうである。
+    手で record を汲むと、外した部分木の観測が黙って止まっていた。
+15. **`Fragment#removeChild` が record を積まない。**
+    `detach_node` を直接呼んでいた。remove step 21 は parent に record を積み、
+    fragment も parent である。
+
+修正後、`--observers 3 --move` で seed 6 個 × 各 50 scenario、不一致ゼロ。
+
 ## 未着手
 
-* Phase 8（`PLAN.md` §11）の再評価。MutationObserver と Shadow DOM に進むかどうかを、
-  Phase 4-7 の differential testing で見つかった不一致の傾向から判断する。
-  Dommy は両方とも実装しており（`lib/dommy/mutation_observer.rb` 336 行、
-  `lib/dommy/shadow_root.rb` 320 行）、突き合わせる相手はいる。
-  MutationObserver は record の内容と順序が仕様で決まっていて、
-  ここまでで見つかった不一致（validity の迂回、range 調整の順序）と
-  同じ「step の順序」の問題が出やすいので、進むならこちらが先である。
+* Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
+  model の骨格（`Tree` と `WellFormed`）から広げることになる。
+  MutationObserver と違って既存の定理の多くに影響する。
+* MutationObserver の配送（mutation observer microtask、
+  `disconnect` / `observe` の再登録、attribute 関連）。
+  いまの model は record を積むところまでで、配送は扱っていない。

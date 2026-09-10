@@ -65,7 +65,12 @@ mutation の後については `checkRangeEndpointsValid` しか要求しない
 -/
 def buildState (sc : Scenario) : Except String DOMState := do
   let t ← buildTree sc.nodes
-  let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators }
+  let observers : List ObserverState := sc.observers.map fun _ => {}
+  let registrations : List Registration := sc.observers.zipIdx.map fun (o, i) =>
+    { node := ⟨o.target⟩, observer := i, subtree := o.subtree, childList := o.childList,
+      characterData := o.characterData, characterDataOldValue := o.characterDataOldValue }
+  let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators,
+                        observers, registrations }
   unless checkRangesValid s do
     throw "初期状態の range が valid でない"
   unless checkIteratorsValid s do

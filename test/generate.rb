@@ -284,10 +284,31 @@ module Generate
     end
   end
 
+  # MutationObserver を作る。
+  #
+  # 一つの observer が一つの node を観測する形だけを作る（`observe` を一度呼んだ状態）。
+  # 仕様の `observe` は childList / attributes / characterData が
+  # どれも true でなければ TypeError を投げるので、少なくとも一方は立てる。
+  # model は attribute を扱わないので、選べるのは childList と characterData である。
+  def random_observers(rng, nodes, count)
+    return [] if count.zero? || nodes.empty?
+
+    Array.new(count) do
+      spec = nodes.sample(random: rng)
+      child_list = rng.rand < 0.7
+      character_data = child_list ? rng.rand < 0.6 : true
+      { "target" => spec["id"],
+        "subtree" => rng.rand < 0.6,
+        "childList" => child_list,
+        "characterData" => character_data,
+        "characterDataOldValue" => character_data && rng.rand < 0.7 }
+    end
+  end
+
   # `allow` は `(op, receiver_kind) -> Boolean`。
   # Dommy が実装していない (kind, op) の組を避けたいときに渡す。
   def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0,
-               range_count: 2, iterator_count: 1)
+               range_count: 2, iterator_count: 1, observer_count: 0)
     nodes = build_tree(rng, node_count, doctype_prob: doctype_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
@@ -309,14 +330,16 @@ module Generate
       operations << op
     end
     { "nodes" => nodes, "ranges" => random_ranges(rng, nodes, range_count),
-      "iterators" => random_iterators(rng, nodes, iterator_count), "operations" => operations }
+      "iterators" => random_iterators(rng, nodes, iterator_count),
+      "observers" => random_observers(rng, nodes, observer_count),
+      "operations" => operations }
   end
 end
 
 if $PROGRAM_NAME == __FILE__
   require "optparse"
   opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0,
-           ranges: 2, iterators: 1 }
+           ranges: 2, iterators: 1, observers: 0 }
   OptionParser.new do |o|
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
     o.on("--nodes N", Integer) { |v| opts[:nodes] = v }
@@ -325,12 +348,13 @@ if $PROGRAM_NAME == __FILE__
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
+    o.on("--observers N", Integer) { |v| opts[:observers] = v }
   end.parse!
   ops = opts[:move] ? Generate::OPS + ["moveBefore"] : Generate::OPS
   rng = Random.new(opts[:seed])
   puts JSON.pretty_generate(
     Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops], ops: ops,
                            doctype_prob: opts[:doctype], range_count: opts[:ranges],
-                           iterator_count: opts[:iterators])
+                           iterator_count: opts[:iterators], observer_count: opts[:observers])
   )
 end

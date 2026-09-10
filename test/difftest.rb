@@ -142,7 +142,7 @@ if $PROGRAM_NAME == __FILE__
   # 操作の意味論の比較ができなくなる。
   opts = { count: 50, seed: Random.new_seed, nodes: 8, ops: 6,
            move: false, all: false, fixed_only: false, doctype: 0.0,
-           ranges: 2, iterators: 1 }
+           ranges: 2, iterators: 1, observers: 0 }
   OptionParser.new do |o|
     o.on("--count N", Integer) { |v| opts[:count] = v }
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
@@ -154,6 +154,7 @@ if $PROGRAM_NAME == __FILE__
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
+    o.on("--observers N", Integer) { |v| opts[:observers] = v }
   end.parse!
 
   Difftest.report_capabilities
@@ -187,7 +188,8 @@ if $PROGRAM_NAME == __FILE__
     generated = Array.new(opts[:count]) do
       Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops],
                              ops: ops, allow: allow, doctype_prob: opts[:doctype],
-                             range_count: opts[:ranges], iterator_count: opts[:iterators])
+                             range_count: opts[:ranges], iterator_count: opts[:iterators],
+                             observer_count: opts[:observers])
     end
     puts "生成 scenario（seed=#{opts[:seed]}, count=#{opts[:count]}）:"
     stats = Hash.new(0)

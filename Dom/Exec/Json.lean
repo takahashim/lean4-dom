@@ -91,11 +91,26 @@ inductive Operation where
   | setData (node : Nat) (data : String)
 deriving Repr
 
+/--
+scenario での MutationObserver。
+
+一つの observer が一つの node を観測する形だけを扱う。
+仕様の `observe(target, options)` を一度だけ呼んだ状態にあたる。
+-/
+structure ObserverSpec where
+  target : Nat
+  subtree : Bool := false
+  childList : Bool := false
+  characterData : Bool := false
+  characterDataOldValue : Bool := false
+deriving Repr
+
 /-- 一つの scenario。 -/
 structure Scenario where
   nodes : List NodeSpec
   ranges : List RangeState := []
   iterators : List IteratorState := []
+  observers : List ObserverSpec := []
   operations : List Operation
 deriving Repr
 
@@ -193,6 +208,18 @@ def rangeOfJson (j : Json) : Except String RangeState := do
   let some en := field? j "end" | .error "range に `end` がない"
   return { start := ← boundaryPointOfJson st, «end» := ← boundaryPointOfJson en }
 
+def observerOfJson (j : Json) : Except String ObserverSpec := do
+  let target ← natField j "target"
+  let flag (name : String) : Except String Bool :=
+    match field? j name with
+    | none => pure false
+    | some v => v.getBool?
+  return { target
+           subtree := ← flag "subtree"
+           childList := ← flag "childList"
+           characterData := ← flag "characterData"
+           characterDataOldValue := ← flag "characterDataOldValue" }
+
 def scenarioOfJson (j : Json) : Except String Scenario := do
   let nodesJson ← match field? j "nodes" with
     | none => .error "`nodes` がない"
@@ -206,11 +233,15 @@ def scenarioOfJson (j : Json) : Except String Scenario := do
   let itersJson ← match field? j "iterators" with
     | none => pure #[]
     | some v => v.getArr?
+  let obsJson ← match field? j "observers" with
+    | none => pure #[]
+    | some v => v.getArr?
   let nodes ← nodesJson.toList.mapM nodeSpecOfJson
   let ranges ← rangesJson.toList.mapM rangeOfJson
   let iterators ← itersJson.toList.mapM iteratorOfJson
+  let observers ← obsJson.toList.mapM observerOfJson
   let operations ← opsJson.toList.mapM operationOfJson
-  return { nodes, ranges, iterators, operations }
+  return { nodes, ranges, iterators, observers, operations }
 
 def scenarioOfString (s : String) : Except String Scenario := do
   scenarioOfJson (← Json.parse s)
@@ -249,6 +280,24 @@ def iteratorJson (it : IteratorState) : Json :=
     , ("reference", natJson it.reference.id)
     , ("pointerBeforeReference", Json.bool it.pointerBeforeReference) ]
 
+def recordTypeName : RecordType → String
+  | .childList => "childList"
+  | .characterData => "characterData"
+
+def recordJson (r : MutationRecord) : Json :=
+  Json.mkObj
+    [ ("type", Json.str (recordTypeName r.type))
+    , ("target", natJson r.target.id)
+    , ("addedNodes", Json.arr (r.addedNodes.map fun n => natJson n.id).toArray)
+    , ("removedNodes", Json.arr (r.removedNodes.map fun n => natJson n.id).toArray)
+    , ("previousSibling", optNatJson r.previousSibling)
+    , ("nextSibling", optNatJson r.nextSibling)
+    , ("oldValue", match r.oldValue with | none => Json.null | some v => Json.str v) ]
+
+/-- observer ごとの record queue。配送は扱わないので、積まれたものが全部残る。 -/
+def observerJson (o : ObserverState) : Json :=
+  Json.arr (o.records.map recordJson).toArray
+
 /-- 状態全体の観測可能な部分。node は id の昇順に並べる。 -/
 def stateJson (s : DOMState) : Json :=
   let ids := (s.tree.nodes.keys.map (·.id)).mergeSort (· ≤ ·)
@@ -256,7 +305,8 @@ def stateJson (s : DOMState) : Json :=
     [ ("nodes", Json.arr (ids.filterMap fun i =>
         (s.tree.get? ⟨i⟩).map fun d => nodeJson s.tree ⟨i⟩ d).toArray)
     , ("ranges", Json.arr (s.ranges.map rangeJson).toArray)
-    , ("iterators", Json.arr (s.iterators.map iteratorJson).toArray) ]
+    , ("iterators", Json.arr (s.iterators.map iteratorJson).toArray)
+    , ("observers", Json.arr (s.observers.map observerJson).toArray) ]
 
 /-- 一 step の結果。 -/
 inductive StepResult where

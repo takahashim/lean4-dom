@@ -41,7 +41,8 @@ module Compare
       "nodes" => nodes.map { |n| n.slice("id", "kind", "parent", "children", "data") },
       "treeOrder" => tree_order(nodes),
       "ranges" => state["ranges"] || [],
-      "iterators" => state["iterators"] || []
+      "iterators" => state["iterators"] || [],
+      "observers" => state["observers"] || []
     }
   end
 
@@ -61,6 +62,11 @@ module Compare
     end
     if na["treeOrder"] != nb["treeOrder"]
       details << "  treeOrder: lean=#{na['treeOrder']} dommy=#{nb['treeOrder']}"
+    end
+    if na["observers"] != nb["observers"]
+      na["observers"].zip(nb["observers"]).each_with_index do |(x, y), i|
+        details << "  observer #{i}: lean=#{x.inspect} dommy=#{y.inspect}" if x != y
+      end
     end
     details.join("\n")
   end
