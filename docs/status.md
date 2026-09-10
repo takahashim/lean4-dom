@@ -927,7 +927,7 @@ sweep 中に一度も「初期状態の range が valid でない」は出てい
 これは Ruby 側の辞書式比較と Lean 側の `bpPosition` が一致していることの
 実験的な裏付けになっている。
 
-## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`, `f461486`）
+## Dommy 側の修正（Dommy commit `87432de`, `f2af31a`, `f461486`, `d604752`）
 
 finding 1（validity の迂回）と finding 2（range 調整の順序）を直した。
 あわせて、同じ sweep で新たに出た五つも直した。全部で七つある。
@@ -1012,15 +1012,64 @@ parent 判定を validity より前に置いていたので、
 
 Dommy の既存 suite は 3909 runs / 0 failures。
 
+## API の欠落（finding 5、Dommy commit `d604752`）
+
+`unsupported` の主因だった Ruby API の欠落を埋めた。
+仕様では `appendChild` / `insertBefore` / `replaceChild` / `removeChild` は
+`Node` の method なのですべての node が持つが、
+Dommy は JS bridge にはあって Ruby には無い、という状態だった。
+
+* **CharacterData と DocumentType** に四つとも無かった。
+  共有 module `Internal::LeafNode` にまとめた。leaf を parent にした挿入は
+  `HierarchyRequestError`（pre-insert / replace とも step 1 で parent の型を見るので、
+  reference child より先に決まる）、`removeChild` は `NotFoundError`、
+  いずれも WebIDL の引数 coercion が先。
+  両 class の JS bridge もここへ dispatch するようにしたので、二つの surface がずれない。
+* **Document** は `appendChild` しか無かった。
+  `insertBefore` / `replaceChild` / `removeChild` / `replaceChildren` /
+  `append` / `prepend` を `document_*` の実装へ転送する形で足した。
+* **Element** に `replace_with` を足した（`replace_with_nodes` は既存の呼び出しがあるので残した）。
+
+これで **仕様がその kind に定めている操作のうち Dommy に無いのは `moveBefore` だけ** になった。
+
+### 8. Document を parent としたときの step 2 が無い（`d604752`）
+
+上の API を足して差分テストから届くようになった直後に出た。
+「node が parent の inclusive ancestor」（step 2）の検査が Document parent に対して無く、
+`document.replaceChild(document, x)`（x は document の子でない）が
+step 3 の `NotFoundError` になっていた。仕様では step 2 が先なので
+`HierarchyRequestError` である。
+Document にとっての step 2 は「document を自分自身に入れられない」に帰着する。
+
+### 9. `replaceChildren` の validity は既存の children を除外する（**model 側の不具合**）
+
+同じ sweep で `document.replaceChildren(element)` が
+Lean は `HierarchyRequestError`、Dommy は成功、という不一致が出た。
+確認したところ **Lean の model が間違っていた**。
+
+仕様の `replaceChildren` step 2 は
+
+> Ensure pre-insert validity given node, this, null, and **this's children**.
+
+で、第四引数の `childrenToExclude` に自分の children を渡す。
+直後の replace all がそれらを外すので、
+「element は高々一つ」などの個数の制約から除いてよい（whatwg/dom#1045）。
+model は `[]` を渡していたので、既に document element がある document に対して
+`replaceChildren(element)` を弾いてしまっていた。
+`Dom/Mutation/Api.lean` の `replaceChildren` を
+`childrenOf s.tree parent` を渡すように直した。
+
+Dommy は最初から `ignore_existing: true` で正しく実装していた。
+
 ## 残っている Dommy の不一致
 
 * **finding 3（`createDocumentType` の wrapper identity）**。
   `test/scenarios/doctype-wrapper-identity.json`。
 * **finding 4（XML document で fragment の `appendChild` が `Makiri::Error`）**。
-* **finding 5（API の欠落）**。`--all-ops` の `unsupported` の主因。
-  `Element#replaceWith`（`replace_with_nodes` はあるが `replace_with` が無い）、
-  `Element#nodeName`、`moveBefore`、
-  Document の `insertBefore` / `replaceChild` / `removeChild` / `replaceChildren` など。
+* **`moveBefore` が未実装**。仕様 §4.2.3 の move algorithm（2025 年追加）で、
+  remove + insert の合成とは違う（removing / insertion steps を走らせない、
+  node document を付け替えない、validity が独自）。
+  model 側には実装と証明があるので、Dommy に入れば差分テストの対象になる。
 
 ## 未着手
 

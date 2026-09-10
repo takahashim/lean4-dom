@@ -42,7 +42,10 @@ def replaceChildren (s : DOMState) (parent : NodeId) (node : Option NodeId) :
   match node with
   | none => replaceAll s none parent
   | some n =>
-    match ensurePreInsertionValidity s.tree n parent none [] with
+    -- step 2。仕様は childrenToExclude に `this` の children を渡す。
+    -- 直後の replace all がそれらを外すので、個数の制約から除いてよい
+    -- （whatwg/dom#1045）。
+    match ensurePreInsertionValidity s.tree n parent none (childrenOf s.tree parent) with
     | .error e => .error e
     | .ok () => replaceAll s (some n) parent
 
