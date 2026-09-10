@@ -51,6 +51,17 @@ DOM Standard §4.2.3 pre-insertion validity で「element または CharacterDat
 def isElementOrCharacterData (k : NodeKind) : Bool :=
   k == .element || k.isCharacterData
 
+/--
+children を持てる種別か。
+
+DOM Standard §4.2.3 "ensure pre-insertion validity" step 1 が parent に許す
+Document / DocumentFragment / Element の三つである。
+それ以外は仕様上 leaf であり、children は常に空でなければならない。
+-/
+def canHaveChildren : NodeKind → Bool
+  | .document | .documentFragment | .element => true
+  | _ => false
+
 end NodeKind
 
 /--

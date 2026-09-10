@@ -16,6 +16,10 @@ import Dom.Observer.Record
 import Dom.CharacterData.ReplaceData
 import Dom.Mutation.Algorithms
 import Dom.Mutation.Api
+import Dom.Validity.Structural
+import Dom.Validity.NodeDocument
+import Dom.Validity.DocumentTree
+import Dom.Validity.State
 import Dom.Properties.Tree
 import Dom.Properties.Mutation
 import Dom.Properties.Algorithms
@@ -23,6 +27,7 @@ import Dom.Properties.Path
 import Dom.Properties.Range
 import Dom.Properties.Iterator
 import Dom.Properties.CharacterData
+import Dom.Validity.Derived
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

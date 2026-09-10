@@ -58,10 +58,14 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
 /--
 初期状態を組み立てる。range と iterator が valid であることも検査する。
 
-初期状態については順序（`BoundaryLE`）も要求する。scenario の range は
-`setStart` / `setEnd` で作れるものに限りたいからである。
-mutation の後については `checkRangeEndpointsValid` しか要求しない
-（順序は仕様の invariant ではない。`runOperations` の註を参照）。
+要求するのは **admissible な状態** であること、すなわち両端が木の中にあることだけである。
+順序（`BoundaryLE`）は仕様の invariant ではないので要求しない
+（`notes/research-foundation-roadmap.md` §4。反例探索のために loader は
+admissible な状態を広く受理してよい）。
+
+ただし differential testing に使う scenario は、Dommy 側が
+`setStart` / `setEnd` で range を組み立てる以上、順序の付いたものに限る必要がある。
+それは loader の制約ではなく harness の制約なので、生成器の側で守る。
 -/
 def buildState (sc : Scenario) : Except String DOMState := do
   let t ← buildTree sc.nodes
@@ -71,8 +75,8 @@ def buildState (sc : Scenario) : Except String DOMState := do
       characterData := o.characterData, characterDataOldValue := o.characterDataOldValue }
   let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators,
                         observers, registrations }
-  unless checkRangesValid s do
-    throw "初期状態の range が valid でない"
+  unless checkRangeEndpointsValid s do
+    throw "初期状態の range の端点が木の中にない"
   unless checkIteratorsValid s do
     throw "初期状態の iterator が valid でない"
   return s
