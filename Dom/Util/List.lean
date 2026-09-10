@@ -100,4 +100,144 @@ theorem mem_split {α : Type _} : ∀ {l : List α} {a : α}, a ∈ l → ∃ s 
     · obtain ⟨s, u, hu⟩ := mem_split h
       exact ⟨x :: s, u, by rw [hu]; rfl⟩
 
+/--
+`l` に最初に現れる `c` の直前に `a` を挿入する。`c` が無ければ末尾に加える。
+
+DOM Standard §4.2.3 insert の「child の直前に挿入する」step に対応する。
+-/
+def insertBeforeFirst {α : Type _} [DecidableEq α] : List α → α → α → List α
+  | [], _, a => [a]
+  | x :: rest, c, a => if x = c then a :: x :: rest else x :: insertBeforeFirst rest c a
+
+/-- `child` の直前（`child` が `none` なら末尾）に `a` を挿入する。 -/
+def insertBefore {α : Type _} [DecidableEq α] (l : List α) (child : Option α) (a : α) : List α :=
+  match child with
+  | none => l ++ [a]
+  | some c => insertBeforeFirst l c a
+
+@[simp] theorem insertBefore_none {α : Type _} [DecidableEq α] (l : List α) (a : α) :
+    insertBefore l none a = l ++ [a] := rfl
+
+@[simp] theorem insertBefore_some {α : Type _} [DecidableEq α] (l : List α) (c a : α) :
+    insertBefore l (some c) a = insertBeforeFirst l c a := rfl
+
+@[simp] theorem insertBeforeFirst_nil {α : Type _} [DecidableEq α] (c a : α) :
+    insertBeforeFirst ([] : List α) c a = [a] := rfl
+
+theorem insertBeforeFirst_cons_self {α : Type _} [DecidableEq α] {y c : α} (h : y = c)
+    (rest : List α) (a : α) : insertBeforeFirst (y :: rest) c a = a :: y :: rest := by
+  simp [insertBeforeFirst, h]
+
+theorem insertBeforeFirst_cons_ne {α : Type _} [DecidableEq α] {y c : α} (h : y ≠ c)
+    (rest : List α) (a : α) :
+    insertBeforeFirst (y :: rest) c a = y :: insertBeforeFirst rest c a := by
+  simp [insertBeforeFirst, h]
+
+theorem mem_insertBeforeFirst {α : Type _} [DecidableEq α] (c a x : α) :
+    ∀ (l : List α), x ∈ insertBeforeFirst l c a ↔ x = a ∨ x ∈ l
+  | [] => by simp
+  | y :: rest => by
+    by_cases h : y = c
+    · rw [insertBeforeFirst_cons_self h]; simp
+    · rw [insertBeforeFirst_cons_ne h]
+      simp only [List.mem_cons, mem_insertBeforeFirst c a x rest]
+      exact or_left_comm
+
+theorem mem_insertBefore {α : Type _} [DecidableEq α] (l : List α) (child : Option α) (a x : α) :
+    x ∈ insertBefore l child a ↔ x = a ∨ x ∈ l := by
+  cases child with
+  | none => simp only [insertBefore_none, List.mem_append, List.mem_singleton]; exact Or.comm
+  | some c => rw [insertBefore_some]; exact mem_insertBeforeFirst c a x l
+
+theorem nodup_insertBeforeFirst {α : Type _} [DecidableEq α] {a : α} (c : α) :
+    ∀ (l : List α), l.Nodup → a ∉ l → (insertBeforeFirst l c a).Nodup
+  | [], _, _ => by simp
+  | y :: rest, hnd, hnot => by
+    have hnd' : rest.Nodup := (List.nodup_cons.mp hnd).2
+    have hy : y ∉ rest := (List.nodup_cons.mp hnd).1
+    have hay : a ≠ y := fun he => hnot (he ▸ List.mem_cons_self ..)
+    have hanot : a ∉ rest := fun he => hnot (List.mem_cons_of_mem _ he)
+    by_cases h : y = c
+    · rw [insertBeforeFirst_cons_self h]
+      exact List.nodup_cons.mpr ⟨hnot, hnd⟩
+    · rw [insertBeforeFirst_cons_ne h]
+      refine List.nodup_cons.mpr ⟨?_, nodup_insertBeforeFirst c rest hnd' hanot⟩
+      intro hmem
+      rcases (mem_insertBeforeFirst c a y rest).mp hmem with he | he
+      · exact hay he.symm
+      · exact hy he
+
+theorem nodup_insertBefore {α : Type _} [DecidableEq α] {l : List α} {a : α}
+    (child : Option α) (hnd : l.Nodup) (hnot : a ∉ l) : (insertBefore l child a).Nodup := by
+  cases child with
+  | none =>
+    rw [insertBefore_none]
+    refine List.nodup_append.mpr ⟨hnd, by simp, ?_⟩
+    intro x hx y hy hxy
+    subst hxy
+    have hxa : x = a := by simpa using hy
+    subst hxa
+    exact hnot hx
+  | some c => exact nodup_insertBeforeFirst c l hnd hnot
+
+/-- `c` が `l` に現れるなら、`a` はちょうど `c` の直前に入る。 -/
+theorem insertBeforeFirst_eq_of_mem {α : Type _} [DecidableEq α] {c : α} (a : α) :
+    ∀ {l : List α}, c ∈ l →
+      ∃ s₁ s₂, l = s₁ ++ c :: s₂ ∧ insertBeforeFirst l c a = s₁ ++ a :: c :: s₂
+  | [], h => absurd h (by simp)
+  | y :: rest, h => by
+    by_cases hy : y = c
+    · exact ⟨[], rest, by rw [hy]; rfl, by rw [insertBeforeFirst_cons_self hy, hy]; rfl⟩
+    · have hrest : c ∈ rest := by
+        rcases List.mem_cons.mp h with he | he
+        · exact absurd he.symm hy
+        · exact he
+      obtain ⟨s₁, s₂, h₁, h₂⟩ := insertBeforeFirst_eq_of_mem a hrest
+      exact ⟨y :: s₁, s₂, by rw [h₁]; rfl, by rw [insertBeforeFirst_cons_ne hy, h₂]; rfl⟩
+
+/--
+`l` から `a` をすべて取り除く。
+
+`List.erase` は最初の一つしか取り除かないが、model では children の重複が
+`WellFormed.children_nodup` で排除されているため結果は同じである。
+すべて取り除く形にしておくと `a ∉ removeAll l a` が重複の無さを仮定せずに成り立ち、
+証明が短くなる。
+-/
+def removeAll {α : Type _} [DecidableEq α] (l : List α) (a : α) : List α :=
+  l.filter fun x => decide (x ≠ a)
+
+theorem mem_removeAll {α : Type _} [DecidableEq α] (l : List α) (a x : α) :
+    x ∈ removeAll l a ↔ x ≠ a ∧ x ∈ l := by
+  simp only [removeAll, List.mem_filter, decide_eq_true_eq]
+  exact And.comm
+
+theorem not_mem_removeAll {α : Type _} [DecidableEq α] (l : List α) (a : α) :
+    a ∉ removeAll l a := by
+  simp [mem_removeAll]
+
+theorem nodup_removeAll {α : Type _} [DecidableEq α] {l : List α} (h : l.Nodup) (a : α) :
+    (removeAll l a).Nodup :=
+  List.Pairwise.filter _ h
+
+/-- `l` を最初に現れる `a` の直前で二つに分ける。`a` が無ければ `none`。 -/
+def splitAt? {α : Type _} [DecidableEq α] : List α → α → Option (List α × List α)
+  | [], _ => none
+  | x :: rest, a =>
+    if x = a then some ([], rest)
+    else (splitAt? rest a).map fun q => (x :: q.1, q.2)
+
+theorem splitAt?_eq_some {α : Type _} [DecidableEq α] {a : α} :
+    ∀ {l : List α} {s₁ s₂ : List α}, splitAt? l a = some (s₁, s₂) → l = s₁ ++ a :: s₂
+  | [], _, _, h => by simp [splitAt?] at h
+  | x :: rest, s₁, s₂, h => by
+    by_cases hx : x = a
+    · simp only [splitAt?, if_pos hx, Option.some.injEq, Prod.mk.injEq] at h
+      rw [← h.1, ← h.2, hx]; rfl
+    · simp only [splitAt?, if_neg hx, Option.map_eq_some_iff] at h
+      obtain ⟨q, hq, he⟩ := h
+      obtain ⟨u, v⟩ := q
+      simp only [Prod.mk.injEq] at he
+      rw [← he.1, ← he.2, splitAt?_eq_some hq]
+      rfl
+
 end Dom.ListUtil

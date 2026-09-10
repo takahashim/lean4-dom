@@ -4,10 +4,19 @@ import Dom.Basic.Store
 import Dom.Basic.Tree
 import Dom.Basic.Order
 import Dom.Basic.WellFormed
+import Dom.Basic.Exception
+import Dom.Mutation.Detach
+import Dom.Mutation.Insert
+import Dom.Mutation.Adopt
+import Dom.Mutation.Algorithms
+import Dom.Mutation.Api
 import Dom.Properties.Tree
+import Dom.Properties.Mutation
+import Dom.Properties.Algorithms
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化
 
-`PLAN.md` の Phase 1（node tree の model）に対応する module を re-export する。
+`PLAN.md` の Phase 1（node tree）、Phase 2（primitive mutation）、
+Phase 3（WHATWG の mutation algorithm）に対応する module を re-export する。
 -/

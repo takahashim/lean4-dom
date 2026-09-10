@@ -886,4 +886,102 @@ theorem checkWellFormed_iff (t : Tree) : t.checkWellFormed = true ↔ WellFormed
       checkAcyclic_complete hwf⟩,
       (checkOwnerDocument_iff t).mpr hwf.ownerDocument_is_document⟩
 
+/-! ## ancestor 関係の決定可能性 -/
+
+/-- fuel を使い切っていない祖先の連鎖は、ancestor をすべて含む。 -/
+theorem mem_ancestorChain_of_ancestor {t : Tree} {a n : NodeId} (h : Ancestor t a n) :
+    ∀ (f : Nat), (ancestorChain t f n).length < f → a ∈ ancestorChain t f n := by
+  induction h with
+  | @step m hp =>
+    intro f hf
+    cases f with
+    | zero => simp at hf
+    | succ f => rw [ancestorChain_succ_some hp]; exact List.mem_cons_self ..
+  | @trans m b hp _ ih =>
+    intro f hf
+    cases f with
+    | zero => simp at hf
+    | succ f =>
+      rw [ancestorChain_succ_some hp] at hf ⊢
+      simp only [List.length_cons] at hf
+      exact List.mem_cons_of_mem _ (ih f (by omega))
+
+/-- `ancestors` は ancestor をちょうど列挙する。 -/
+theorem mem_ancestors_iff (hwf : WellFormed t) (n a : NodeId) :
+    a ∈ ancestors t n ↔ Ancestor t a n := by
+  constructor
+  · exact mem_ancestorChain_ancestor t.size n a
+  · intro h
+    obtain ⟨p, hp⟩ := h.parent_isSome
+    obtain ⟨d, hd, _⟩ := parentOf_eq_some hp
+    exact mem_ancestorChain_of_ancestor h t.size (ancestorChain_length_lt_size hwf hd t.size)
+
+/-- PLAN §3.5。`isAncestorOf` の健全性と完全性。 -/
+theorem isAncestorOf_iff (hwf : WellFormed t) (a n : NodeId) :
+    isAncestorOf t a n = true ↔ Ancestor t a n := by
+  simp only [isAncestorOf, decide_eq_true_eq]
+  exact mem_ancestors_iff hwf n a
+
+/-- `isInclusiveAncestorOf` の健全性と完全性。 -/
+theorem isInclusiveAncestorOf_iff (hwf : WellFormed t) (a n : NodeId) :
+    isInclusiveAncestorOf t a n = true ↔ InclusiveAncestor t a n := by
+  simp only [isInclusiveAncestorOf, Bool.or_eq_true, decide_eq_true_eq, isAncestorOf_iff hwf]
+
+/-! ## 二つの木の間で ancestor 関係を比べる -/
+
+/-- parent が減る向きの変更では、ancestor 関係も減る。 -/
+theorem ancestor_of_parentOf_subset {t t' : Tree}
+    (h : ∀ x y, parentOf t' x = some y → parentOf t x = some y) {a n : NodeId}
+    (ha : Ancestor t' a n) : Ancestor t a n := by
+  induction ha with
+  | @step m hp => exact Ancestor.step (h _ _ hp)
+  | @trans m b hp _ ih => exact Ancestor.trans (h _ _ hp) ih
+
+/--
+parent の辺を一本だけ足したときの ancestor 関係。
+
+`t'` は `t` に「`node` の parent は `parent`」という辺だけを足した木とする。
+このとき `t'` の ancestor 関係は、`t` の ancestor 関係か、
+足した辺を一度通る経路のどちらかである。
+
+`insertAt` の acyclicity 保存の証明に使う。
+-/
+theorem ancestor_of_parentOf_insert {t t' : Tree} {node parent : NodeId}
+    (hnode : parentOf t' node = some parent)
+    (hother : ∀ x, x ≠ node → parentOf t' x = parentOf t x) {a b : NodeId}
+    (h : Ancestor t' a b) :
+    Ancestor t a b ∨ (InclusiveAncestor t node b ∧ InclusiveAncestor t a parent) := by
+  induction h with
+  | @step m hp =>
+    by_cases hm : m = node
+    · subst hm
+      rw [hnode] at hp
+      have : a = parent := (Option.some.inj hp).symm
+      subst this
+      exact Or.inr ⟨Or.inl rfl, Or.inl rfl⟩
+    · exact Or.inl (Ancestor.step (by rw [← hother m hm]; exact hp))
+  | @trans m c hp _ ih =>
+    by_cases hc : c = node
+    · have hmp : m = parent := by
+        rw [hc, hnode] at hp
+        exact (Option.some.inj hp).symm
+      subst hmp
+      refine Or.inr ⟨?_, ?_⟩
+      · rw [hc]; exact Or.inl rfl
+      · rcases ih with hac | ⟨_, hap⟩
+        · exact Or.inr hac
+        · exact hap
+    · have hp' : parentOf t c = some m := by rw [← hother c hc]; exact hp
+      rcases ih with hac | ⟨hnm, hap⟩
+      · exact Or.inl (Ancestor.trans hp' hac)
+      · exact Or.inr ⟨Or.inr (Ancestor.of_parent_inclusive hp' hnm), hap⟩
+
+theorem InclusiveAncestor.trans_inclusive {t : Tree} {a b c : NodeId}
+    (hab : InclusiveAncestor t a b) (hbc : InclusiveAncestor t b c) : InclusiveAncestor t a c := by
+  rcases hab with rfl | hab
+  · exact hbc
+  · rcases hbc with rfl | hbc
+    · exact Or.inr hab
+    · exact Or.inr (hab.trans_ancestor hbc)
+
 end Dom

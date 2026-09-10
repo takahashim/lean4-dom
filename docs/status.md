@@ -57,10 +57,171 @@ Phase 2 以降で再利用する補題として、次のものも用意した。
 - **`NodeId` の `Repr`**。derive せず、識別子の数値だけを表示する instance を手で定義した。
   Phase 4 の oracle 出力を読みやすくするためである。
 
+## Phase 2（primitive mutation）— 完了
+
+`PLAN.md` §5 の定義と theorem を実装し、`sorry` なしで build が通る。
+
+### 実装した定義
+
+| 定義 | module |
+| --- | --- |
+| `DOMException` とその `name` | `Dom/Basic/Exception.lean` |
+| `detachFrom`, `detach` | `Dom/Mutation/Detach.lean` |
+| `insertAtIn`, `insertAt` | `Dom/Mutation/Insert.lean` |
+| `setOwnerDocument` | `Dom/Mutation/Adopt.lean` |
+| `isAncestorOf`, `isInclusiveAncestorOf` | `Dom/Basic/Order.lean` |
+| `insertBefore`, `removeAll` などの list 補助 | `Dom/Util/List.lean` |
+
+### 証明した theorem（`Dom/Properties/Mutation.lean`）
+
+PLAN §5.2 が要求する三種類を、三つの primitive すべてについて証明した。
+
+| | preservation | effect | frame |
+| --- | --- | --- | --- |
+| `detach` | `detach_preserves_wellformed` | `detach_parentOf`, `detach_childrenOf` | `detach_frame` |
+| `insertAt` | `insertAt_preserves_wellformed` | `insertAt_parentOf`, `insertAt_childrenOf`, `insertAt_children_split` | `insertAt_frame` |
+| `setOwnerDocument` | `setOwnerDocument_preserves_wellformed` | `ownerDocumentOf_setOwnerDocument` | `get?_setOwnerDocument_of_not_mem` |
+
+PLAN §5.3 の完了条件である `detach_preserves_wellformed` と
+`insertAt_preserves_wellformed`（`memo.md` の最小 milestone）を含む。
+いずれも `propext` / `Classical.choice` / `Quot.sound` 以外の axiom に依存しない。
+
+Phase 3 で使う補題として次のものも用意した。
+
+- `wellFormed_of` — parent と children の一致・重複の無さ・acyclicity・node document から `WellFormed` を組み立てる
+- `mem_childrenOf_iff` — `WellFormed` から parent 関係と children 関係の一致を取り出す
+- `ownerDocument_is_document_of` — node document と kind を保つ変更は最後の条件を保つ
+- `ancestor_of_parentOf_subset` — parent が減る変更では ancestor 関係も減る
+- `ancestor_of_parentOf_insert` — parent の辺を一本足したときの ancestor 関係
+- `get?_detachFrom` / `get?_insertAtIn` / `get?_setOwnerDocument` — 結果の `get?` の完全な場合分け
+
+## PLAN §5 の見直し（PLAN §14 の指示による）
+
+実際に定義と証明を書いた結果、PLAN §5 について次のことが分かった。
+
+- **`insertAt` の前提条件 4 は invariant のためではない。**
+  PLAN §5.1 は四つの前提条件を挙げているが、そのうち
+  「child が指定されていれば parent の子である」は well-formedness の保存には要らなかった。
+  `insertBefore` は child が見つからなければ末尾に挿入するので、
+  検査を省いても木は well-formed のままである。
+  したがってこの検査は仕様準拠（`NotFoundError` を投げること）のためのものであり、
+  `insertAtIn_preserves_wellformed` はこの前提を取らない。
+  Phase 3 で `preInsert` を組み立てるとき、この検査が
+  `ensurePreInsertionValidity` と二重にならないか確認する必要がある。
+- **`setOwnerDocument` には前提が要る。**
+  PLAN §5.1 はこの primitive を無条件の `Tree → Tree` としているが、
+  `WellFormed` の `ownerDocument_is_document` を保つには
+  「付け替え先 `doc` が document node として木に存在する」という前提が要る。
+  Phase 3 の `adopt` では呼び出し側でこれを保証する。
+- **`WellFormed` の前二条件は一つの同値にまとめられる。**
+  `parent_child` と `child_parent` は
+  「`parentOf t c = some p ↔ c ∈ childrenOf t p`」と等価である（`mem_childrenOf_iff`, `wellFormed_of`）。
+  PLAN §3.3 の形はそのまま残したうえで、preservation の証明はこの同値を通す。
+  三つの primitive すべてでこの形が効いた。
+- **`Ancestor` の決定手続きが Phase 2 の時点で必要になった。**
+  `insertAt` の前提条件 3（node が parent の inclusive ancestor でない）を計算するため、
+  `isAncestorOf` / `isInclusiveAncestorOf` を追加し、
+  健全性と完全性（`isAncestorOf_iff`, `isInclusiveAncestorOf_iff`）を示した。
+  PLAN §4.1 には無い定義だが、Phase 3 の `ensurePreInsertionValidity` でも使う。
+- **children からの除去は `List.erase` ではなく `removeAll` を使った。**
+  `List.erase` は最初の一つしか除かないため、重複が無いことを仮定しないと
+  「除去後に含まれない」が言えない。すべて除く `removeAll` にすると無条件で言えて証明が短くなる。
+  `children_nodup` の下では両者は同じ list である。
+
+## Phase 3（WHATWG の mutation algorithm）— 完了
+
+`PLAN.md` §6 の algorithm と theorem を実装し、`sorry` なしで build が通る。
+仕様は `docs/spec-version.md` の版の本文から step を写した。
+
+### 実装した定義
+
+| 定義 | module |
+| --- | --- |
+| live object 調整の hook（`liveRangePreRemove`, `iteratorPreRemove`, `liveRangeInsertAdjust`） | `Dom/Mutation/Algorithms.lean` |
+| `remove`, `removeEach`, `adopt` | 同上 |
+| `ensurePreInsertionValidity`（`checkElementInsertion`, `checkDoctypeInsertion`, `childHasParent`） | 同上 |
+| `insert`, `insertEach`, `insertEachAt`, `insertNodesAt` | 同上 |
+| `preInsert`, `append`, `preRemove`, `replace`, `replaceAll` | 同上 |
+| `moveValidity`, `move` | 同上 |
+| `nextSibling`, `previousSibling`, `viablePreviousSibling`, `viableNextSibling`, `elementChildren`, `doctypeChildren`, `textChildren`, `doctypeFollows`, `elementPrecedes` | 同上 |
+| `appendChild`, `insertBefore`, `replaceChild`, `removeChild`, `replaceChildren`, `before`, `after`, `replaceWith`, `nodeRemove`, `moveBefore` | `Dom/Mutation/Api.lean` |
+
+public API はすべて §4.2.3 の algorithm の薄い wrapper であり、
+primitive（`detach`, `insertAt`）を直接呼ばない（PLAN §6.1）。
+
+### 証明した theorem（`Dom/Properties/Algorithms.lean`）
+
+PLAN §6.3 との対応は次のとおり。
+
+| PLAN §6.3 | theorem |
+| --- | --- |
+| 各 algorithm の preservation | `remove_`, `adopt_`, `insert_`, `preInsert_`, `append_`, `preRemove_`, `replace_`, `replaceAll_`, `move_` + `*_preserves_wellformed`、および public API 10 個ぶん |
+| `ensurePreInsertionValidity` が ok なら `insertAt` の前提条件が成り立つ | `ensurePreInsertionValidity_ok`, `insertAt_isOk_of_validity` |
+| `insert` の後、node は child の直前にある | `insert_children_split`, `insert_parentOf` |
+| `remove` の後、node は parent を持たず旧 parent の children に現れない | `remove_parentOf`, `remove_not_mem_childrenOf` |
+| 既存 node の `insert` と `remove` ∘ `insert` の同値 | `insert_factors_through_remove` |
+| PLAN §6.2 の `move_equivalent_to_remove_insert` | `move_eq_remove_insertAt`, `moveBefore_eq_remove_insertAt`, `move_childrenOf` |
+
+補助として `KindPreserving` / `IsDocument` を導入した。
+`adopt` の preservation には「付け替え先が document node である」ことが要るので、
+この前提を algorithm の合成の間じゅう持ち回るために使う。
+
+`lake exe dom-model` で PLAN §6.4 の完了条件を実際に確認できる。
+DocumentFragment の展開、および Document の子に対する制約
+（element は高々一つ、doctype は高々一つ、doctype より前に element を置けない、Text は不可）が
+例外の種類込みで仕様どおりに動く。
+
+## `moveBefore()` の扱い（PLAN §6.2 の宿題）
+
+仕様本文を確認した結果、**model に含めた**。確認した内容は次のとおり。
+
+* 現行の Living Standard には `ParentNode.moveBefore(node, child)` と、
+  対応する **`move` algorithm**（§4.2.3）が step 付きで本文に入っている。
+  PLAN §6.2 の「仕様本文で step を確認できていない」という保留は解消した。
+* `move` は **live range pre-remove steps（step 10）と NodeIterator pre-remove steps（step 11）、
+  および挿入側の live range offset 調整（step 16）を走らせる**。
+  走らせないのは removing steps と insertion steps だけで、
+  これらは他仕様のための拡張点なので本 model の対象外である。
+  したがって木・Range・NodeIterator に射影した観測結果は remove と insert の合成と一致する。
+* `move` は **node document を付け替えない**。step 1 が
+  「newParent の root と node の root が同じ」ことを要求するためである。
+  そのため一致するのは `insert`（adopt を含む）ではなく primitive の `insertAt` との合成になる。
+  これを `move_eq_remove_insertAt` として証明した。
+* validity の検査は `ensure pre-insert validity` とは別物で、step 1-6 の独自のものである
+  （同じ root、inclusive ancestor でない、child の parent、node は Element か CharacterData、
+  Text を document に入れない、document の子の element/doctype 制約）。
+* step 8 の「Assert: oldParent is non-null」は step 1 と step 2 から従う。
+  parent を持たない node は自分自身が root なので、step 1 を通るには newParent の root と
+  一致する必要があり、そのとき step 2 に引っかかる。
+  model では到達しない分岐として `hierarchyRequestError` を返している。
+
+## PLAN §6 の見直しで分かったこと
+
+* **`ensure pre-insert validity` の引数が計画時点と違う。**
+  現行の仕様は `childrenToExclude` を取る形で、`replace` が « child » を渡す。
+  以前の版で `replace` の側に inline で書かれていた例外条件がここにまとめられている。
+  model はこの形に合わせた。
+* **Phase 5 に向けた注意：`insert` と `move` で live range 調整の順序が違う。**
+  `insert` は step 5（child の index を使った offset 調整）を step 7 の adopt → remove の
+  **前** に走らせるが、`move` は step 16 の調整を step 14 の removal の **後** に走らせる。
+  oldParent と newParent が同じときは child の index が両者で変わるので、
+  Range の観測結果が変わりうる。Phase 5 で hook に中身を入れるときは、
+  この順序をそのまま model に反映する必要がある。
+  現在の hook はいずれも恒等関数なので、Phase 3 の範囲では差が出ない。
+* **`replaceWith` の step 5 の検査は本 model では常に真になる。**
+  仕様が「this's parent is parent」を確かめるのは step 4 の
+  "converting nodes into a node" が `this` を `node` の中へ移しうるためだが、
+  本 model は node を生成しないのでこの経路が無い。
+* **可変長引数の API は「まとめた後の node」を受け取る形にした。**
+  `before` / `after` / `replaceWith` / `replaceChildren` は
+  "converting nodes into a node" で DocumentFragment を生成するが、
+  本 model は node を生成しないので、生成済みの node を引数に取る。
+
 ## 未着手
 
-Phase 2 以降（`Dom/Mutation/`, `Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`, `Dom/Exec/`）は
+Phase 4 以降（`Dom/Exec/`, `Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`）は
 directory を用意しただけで、まだ空である。
 
-`PLAN.md` §14 の最後にあるとおり、Phase 2 に入る前に PLAN §5 以降を
-実際の定義（特に `NodeStore` の interface と `WellFormed` の形）に合わせて見直す必要がある。
+次は Phase 4 の differential testing（PLAN §7）で、
+scenario の JSON 入出力（`Dom/Exec/Json.lean`, `Dom/Exec/Scenario.lean`）と
+Dommy 側の runner を用意する。

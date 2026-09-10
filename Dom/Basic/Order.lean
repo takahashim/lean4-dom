@@ -103,6 +103,21 @@ DOM Standard §4.2 の tree order による先行関係。
 def precedes (t : Tree) (a b : NodeId) : Bool :=
   precedesIn (treeOrder t a) a b
 
+/-! ## ancestor 関係の決定手続き -/
+
+/--
+`a` が `n` の ancestor かを判定する。
+
+`Ancestor` は `Prop` なので、mutation algorithm の前提条件検査にはこの boolean 版を使う。
+well-formed な木で `Ancestor` と一致することを `isAncestorOf_iff` で示す。
+-/
+def isAncestorOf (t : Tree) (a n : NodeId) : Bool :=
+  decide (a ∈ ancestors t n)
+
+/-- `a` が `n` の inclusive ancestor かを判定する。 -/
+def isInclusiveAncestorOf (t : Tree) (a n : NodeId) : Bool :=
+  decide (a = n) || isAncestorOf t a n
+
 /-! ## invariant の実行時検査で使う述語 -/
 
 /-- `n` から parent をたどると `fuel` 段以内に parent を持たない node に到達するか。 -/
