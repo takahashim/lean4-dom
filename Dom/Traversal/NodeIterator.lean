@@ -6,12 +6,13 @@ import Dom.Basic.Order
 
 DOM Standard §6.1 `NodeIterator` のうち、本 model が扱う部分を定義する。
 
-filter（`whatToShow` と `NodeFilter`）は扱わない。
-`whatToShow` が `SHOW_ALL` で filter が null の場合、すなわち
-iterator collection がすべての node に一致する場合だけを model にする。
-仕様の traverse は filter が accept するまで繰り返すが、
-filter が無ければ 1 回で決まるので、`nextNode` / `previousNode` は
-候補を一つ求めるだけの形になる。
+`NodeFilter` の callback は model の外なので、filter は常に null として扱う。
+`whatToShow` は node type の bitmask で純粋に決まるので、そのまま model にする。
+
+仕様の iterator collection は「root を根とし、filter がどの node にも一致する collection」、
+すなわち root の inclusive descendant 全部である。`whatToShow` はそこには効かず、
+traverse の中の "filter" で効く（accept するまで繰り返す）。
+その繰り返しは、filter が null なら「bit の立っている最初の候補を探す」ことになる。
 
 仕様の candidate reference は traverse の途中でしか非 null にならないので、
 状態としては持たない（`IteratorState` は root と reference だけを持つ）。
@@ -27,6 +28,17 @@ root の inclusive descendant を tree order に並べたものになる。
 -/
 def iteratorCollection (t : Tree) (root : NodeId) : List NodeId :=
   preorder t root
+
+/--
+DOM Standard §6.1 "filter"、ただし `filter` は null。
+
+step 1-2 だけが残り、node type の bit が立っていれば FILTER_ACCEPT、
+立っていなければ FILTER_SKIP になる。
+-/
+def showsNode (t : Tree) (whatToShow : Nat) (n : NodeId) : Bool :=
+  match kindOf t n with
+  | none => false
+  | some k => whatToShow.testBit (k.nodeType - 1)
 
 /--
 `n` より tree order で後ろにある node のうち、
@@ -103,27 +115,26 @@ filter が無いので、仕様の traverse は 1 周で決まる。
 返り値は「返した node と、更新後の iterator」。collection の終端なら `none`。
 -/
 def nextNode (t : Tree) (it : IteratorState) : Option (NodeId × IteratorState) :=
-  if it.pointerBeforeReference then
-    some (it.reference, { it with pointerBeforeReference := false })
-  else
-    match Dom.ListUtil.splitAt? (iteratorCollection t it.root) it.reference with
+  match Dom.ListUtil.splitAt? (iteratorCollection t it.root) it.reference with
+  | none => none
+  | some (_, after) =>
+    -- pointer が reference の前にあるなら、step 3.1 は beforeNode を倒すだけで
+    -- node を動かさないので、reference 自身が最初の候補になる。
+    match (if it.pointerBeforeReference then it.reference :: after else after).find?
+        (showsNode t it.whatToShow) with
     | none => none
-    | some (_, after) =>
-      match after.head? with
-      | none => none
-      | some n => some (n, { it with reference := n, pointerBeforeReference := false })
+    | some n => some (n, { it with reference := n, pointerBeforeReference := false })
 
 /-- DOM Standard §6.1 `previousNode()`。 -/
 def previousNode (t : Tree) (it : IteratorState) : Option (NodeId × IteratorState) :=
-  if !it.pointerBeforeReference then
-    some (it.reference, { it with pointerBeforeReference := true })
-  else
-    match Dom.ListUtil.splitAt? (iteratorCollection t it.root) it.reference with
+  match Dom.ListUtil.splitAt? (iteratorCollection t it.root) it.reference with
+  | none => none
+  | some (before, _) =>
+    -- 逆向き。pointer が reference の後ろにあるなら reference 自身が最初の候補になる。
+    match (if it.pointerBeforeReference then before.reverse
+           else it.reference :: before.reverse).find? (showsNode t it.whatToShow) with
     | none => none
-    | some (before, _) =>
-      match Dom.ListUtil.lastD (before.map some) none with
-      | none => none
-      | some n => some (n, { it with reference := n, pointerBeforeReference := true })
+    | some n => some (n, { it with reference := n, pointerBeforeReference := true })
 
 /-! ## validity -/
 

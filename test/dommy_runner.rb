@@ -17,6 +17,9 @@ require "dommy"
 module DommyRunner
   UNSUPPORTED = "__unsupported__"
 
+  # NodeFilter.SHOW_ALL。
+  SHOW_ALL = 0xFFFFFFFF
+
   # 各操作が呼び出す Dommy の method 名。capability 判定にも使う。
   OP_METHOD = {
     "appendChild" => :append_child,
@@ -200,7 +203,8 @@ module DommyRunner
       end
 
       doc = documents.values.first or raise "document が無いので NodeIterator を作れない"
-      doc.create_node_iterator(objects.fetch(spec["root"]))
+      what = spec["whatToShow"] || SHOW_ALL
+      doc.create_node_iterator(objects.fetch(spec["root"]), what, nil)
     end
   end
 
@@ -217,7 +221,8 @@ module DommyRunner
     iterators.map do |it|
       { "root" => node_id(objects, it.root),
         "reference" => node_id(objects, iterator_attr(it, "referenceNode")),
-        "pointerBeforeReference" => iterator_attr(it, "pointerBeforeReferenceNode") }
+        "pointerBeforeReference" => iterator_attr(it, "pointerBeforeReferenceNode"),
+        "whatToShow" => iterator_attr(it, "whatToShow") }
     end
   end
 

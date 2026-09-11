@@ -379,52 +379,48 @@ theorem validIterator_nextNode {t : Tree} (hwf : WellFormed t) {it it' : Iterato
     ValidIterator t it' := by
   unfold nextNode at hstep
   split at hstep
-  · simp only [Option.some.injEq, Prod.mk.injEq] at hstep
-    rw [← hstep.2]
-    exact h
-  · split at hstep
+  · simp at hstep
+  · next u v hq =>
+    split at hstep
     · simp at hstep
-    · next u v hq =>
-      split at hstep
-      · simp at hstep
-      · next m hm =>
-        simp only [Option.some.injEq, Prod.mk.injEq] at hstep
-        rw [← hstep.2]
-        have hmv : m ∈ v := List.mem_of_mem_head? hm
-        have hmem : m ∈ iteratorCollection t it.root := by
-          rw [ListUtil.splitAt?_eq_some hq]
-          exact List.mem_append_right _ (List.mem_cons_of_mem _ hmv)
-        obtain ⟨d, hd, hdesc⟩ := validIterator_of_mem_collection hwf h hmem
-        exact ⟨⟨d, hd⟩, hdesc⟩
+    · next m hm =>
+      simp only [Option.some.injEq, Prod.mk.injEq] at hstep
+      rw [← hstep.2]
+      -- 候補はどれも collection の要素である。
+      have hmem : m ∈ iteratorCollection t it.root := by
+        have hmc : m ∈ (if it.pointerBeforeReference then it.reference :: v else v) :=
+          List.mem_of_find?_eq_some hm
+        rw [ListUtil.splitAt?_eq_some hq]
+        split at hmc
+        · rcases List.mem_cons.mp hmc with rfl | hmv
+          · exact List.mem_append_right _ List.mem_cons_self
+          · exact List.mem_append_right _ (List.mem_cons_of_mem _ hmv)
+        · exact List.mem_append_right _ (List.mem_cons_of_mem _ hmc)
+      obtain ⟨d, hd, hdesc⟩ := validIterator_of_mem_collection hwf h hmem
+      exact ⟨⟨d, hd⟩, hdesc⟩
 
 theorem validIterator_previousNode {t : Tree} (hwf : WellFormed t) {it it' : IteratorState}
     {n : NodeId} (h : ValidIterator t it) (hstep : previousNode t it = some (n, it')) :
     ValidIterator t it' := by
   unfold previousNode at hstep
   split at hstep
-  · simp only [Option.some.injEq, Prod.mk.injEq] at hstep
-    rw [← hstep.2]
-    exact h
-  · split at hstep
+  · simp at hstep
+  · next u v hq =>
+    split at hstep
     · simp at hstep
-    · next u v hq =>
-      split at hstep
-      · simp at hstep
-      · next m hm =>
-        simp only [Option.some.injEq, Prod.mk.injEq] at hstep
-        rw [← hstep.2]
-        have hmu : m ∈ u := by
-          rcases ListUtil.lastD_mem_or (u.map some) none with hx | hx
-          · rw [hm] at hx
-            obtain ⟨y, hy, hye⟩ := List.mem_map.mp hx
-            rw [← Option.some.inj hye]
-            exact hy
-          · rw [hm] at hx
-            simp at hx
-        have hmem : m ∈ iteratorCollection t it.root := by
-          rw [ListUtil.splitAt?_eq_some hq]
-          exact List.mem_append_left _ hmu
-        obtain ⟨d, hd, hdesc⟩ := validIterator_of_mem_collection hwf h hmem
-        exact ⟨⟨d, hd⟩, hdesc⟩
+    · next m hm =>
+      simp only [Option.some.injEq, Prod.mk.injEq] at hstep
+      rw [← hstep.2]
+      have hmem : m ∈ iteratorCollection t it.root := by
+        have hmc : m ∈ (if it.pointerBeforeReference then u.reverse
+                        else it.reference :: u.reverse) := List.mem_of_find?_eq_some hm
+        rw [ListUtil.splitAt?_eq_some hq]
+        split at hmc
+        · exact List.mem_append_left _ (List.mem_reverse.mp hmc)
+        · rcases List.mem_cons.mp hmc with rfl | hmu
+          · exact List.mem_append_right _ List.mem_cons_self
+          · exact List.mem_append_left _ (List.mem_reverse.mp hmu)
+      obtain ⟨d, hd, hdesc⟩ := validIterator_of_mem_collection hwf h hmem
+      exact ⟨⟨d, hd⟩, hdesc⟩
 
 end Dom

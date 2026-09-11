@@ -541,7 +541,8 @@ Phase 4 で見つかった 4 種類に加えて次が見つかった（Dommy `fd
 Phase 3 で恒等関数の hook として置いてあった `iteratorPreRemove` にそのまま中身が入った。
 Range のときと同様、algorithm と public API のコードは変えていない。
 
-filter（`whatToShow` と `NodeFilter`）は扱わない。
+filter は扱わない（`whatToShow` は後で入れた。この節の後の
+「NodeIterator の `whatToShow`」を参照）。
 `SHOW_ALL` かつ filter が null の場合、すなわち iterator collection が
 すべての node に一致する場合だけを model にする。
 仕様の traverse は filter が accept するまで繰り返すが、
@@ -1733,8 +1734,58 @@ scenario で、Dommy 側は `NoMethodError` になるため比較対象外）と
 `DOMException` に `typeError` が入ったので、`moveBefore` の receiver が `ParentNode` で
 ないときの例外を HierarchyRequestError の代用から本来の TypeError に直した。
 
+## NodeIterator の `whatToShow`（対象外だったものの一つ）
+
+`NodeFilter` の callback は model の外にあるので filter は常に null のままだが、
+`whatToShow` は node type の bitmask で純粋に決まるので、これは model にできる。
+
+仕様の iterator collection は「root を根とし、filter がどの node にも一致する collection」、
+すなわち root の inclusive descendant 全部であって、`whatToShow` はそこには効かない。
+効くのは traverse の中の "filter" で、bit の立っていない node は FILTER_SKIP になり、
+accept するまで先へ進む（traverse step 3.1-3.3）。
+filter が null なら、これは「bit の立っている最初の候補を探す」ことになる。
+
+| 仕様 | 定義 |
+| --- | --- |
+| `nodeType` の数値 | `NodeKind.nodeType`（`Dom/Basic/NodeId.lean`） |
+| filter（filter は null なので step 1-2 だけ） | `showsNode` |
+| traverse（next / previous） | `nextNode`, `previousNode` |
+
+`IteratorState` に `whatToShow : Nat`（既定は `SHOW_ALL`）を足した。
+`ValidIterator` は変わらない（reference が木にあり root の inclusive descendant であること）。
+候補は collection の部分列から選ぶので、`validIterator_nextNode` /
+`validIterator_previousNode` も同じ形で通る。
+
+生成器は半分を `SHOW_ALL`、残りを element / text / comment などの組にする。
+固定 scenario は `iterator-whattoshow-skips`。
+
+### 見つかった Dommy の不一致（Dommy commit `40db924`）
+
+25. **Document を parent とする `replaceChild` に DocumentFragment の分岐が無い。**
+    `Document#replaceChild` は fragment を adopt してその 1 node を入れていたので、
+    fragment の children が取り出されないままだった。
+    "replace" step 9 の insert は step 1 で fragment の children を取り除く。
+    これは suppressObservers にかからない removal なので、
+    live range と NodeIterator の pre-remove steps が走り、
+    fragment には childList record が積まれる。飛ばしていた結果、
+
+    * fragment の中を指していた live range が、動いた後の子を指したまま残る
+    * insert step 5 の range のずれが children の個数ではなく 1 になる
+    * childList record の addedNodes が children ではなく fragment になる
+
+    `Element#replaceChild` は共通の経路を通っていて正しく、
+    Document 固有の実装だけが抜けていた。
+    `document_insert_before` と同じ helper を使い、取り出しを
+    step 7（置き換えられる child の removal）の後に置くようにした。
+    iterator を 3 本に増やした sweep で出た（それまでは 1 本だったので当たらなかった）。
+
+固定 scenario は `document-replacechild-fragment`。
+
 ## 未着手
 
+* ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
+  element の attribute list とは別の仕組みで、attribute の mutation record を積まない。
+  Dommy も未実装なので差分テストで裏を取れない。
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
   model の骨格（`Tree` と `WellFormed`）から広げることになる。
   MutationObserver と違って既存の定理の多くに影響する。

@@ -291,8 +291,11 @@ def iteratorOfJson (j : Json) : Except String IteratorState := do
     | none => pure false
     | some (Json.bool b) => pure b
     | some _ => .error "pointerBeforeReference は boolean でなければならない"
+  let whatToShow ← match field? j "whatToShow" with
+    | none => pure 0xFFFFFFFF
+    | some v => v.getNat?
   return { root := ⟨← natField j "root"⟩, reference := ⟨← natField j "reference"⟩,
-           pointerBeforeReference := pb }
+           pointerBeforeReference := pb, whatToShow }
 
 def rangeOfJson (j : Json) : Except String RangeState := do
   let some st := field? j "start" | .error "range に `start` がない"
@@ -384,7 +387,8 @@ def iteratorJson (it : IteratorState) : Json :=
   Json.mkObj
     [ ("root", natJson it.root.id)
     , ("reference", natJson it.reference.id)
-    , ("pointerBeforeReference", Json.bool it.pointerBeforeReference) ]
+    , ("pointerBeforeReference", Json.bool it.pointerBeforeReference)
+    , ("whatToShow", natJson it.whatToShow) ]
 
 def recordTypeName : RecordType → String
   | .attributes => "attributes"

@@ -63,6 +63,23 @@ def isText : NodeKind → Bool
   | _ => false
 
 /--
+DOM Standard §4.4 の `nodeType` の数値。
+
+`NodeFilter` の `whatToShow` はこの値から 1 を引いた bit を見る。
+attribute (2) と、歴史的な entity reference (5) / entity (6) / notation (12) は
+`NodeKind` に無いので現れない。
+-/
+def nodeType : NodeKind → Nat
+  | .element => 1
+  | .text => 3
+  | .cdataSection => 4
+  | .processingInstruction => 7
+  | .comment => 8
+  | .document => 9
+  | .documentType => 10
+  | .documentFragment => 11
+
+/--
 children を持てる種別か。
 
 DOM Standard §4.2.3 "ensure pre-insertion validity" step 1 が parent に許す

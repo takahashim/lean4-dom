@@ -37,6 +37,7 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | object identity と戻り値 | model は node を生成しないので wrapper の同一性を観測できない |
 | 文字列の内部表現 | `data` は Lean の `String`。UTF-16 の code unit 境界は扱わない |
 | MutationObserver の callback 本体 | callback は model の外。どの observer にどの record が配送されるかまでは比べる |
+| `NodeFilter` の callback | 同じく callback なので filter は常に null。`whatToShow` は純粋なので扱う |
 | `Attr` を node として扱う API | model の attribute は element の状態で、node tree に入らない |
 | element の namespace と local name | 無いので attribute 名の HTML lowercase が走らない |
 | Shadow tree | 対象外 |

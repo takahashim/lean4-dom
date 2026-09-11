@@ -1,0 +1,87 @@
+{
+  "_note": "Document を parent とする replaceChild に DocumentFragment を渡すと、insert step 1-4 が fragment の children を取り出す。これは suppressObservers に かからない removal なので、live range の pre-remove steps が走り、fragment には childList record が積まれる。続く step 5 は **children の個数** だけ document 上の range を後ろへずらす。ここでは range 1 が (3,1)-(2,2) から (2,0)-(2,0) になり、range 2 が (0,2) から 1 を外して (0,1)、そこへ 2 個入って (0,3) になる。fragment を単一の node として扱うと、前者は動かず後者は (0,2) になる（`docs/status.md` の finding 25）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "replace",
+      "insert",
+      "remove"
+    ],
+    "steps": "replace 7-10 / insert 1-5 / remove 4-7",
+    "note": "insert step 1 が fragment の children を取り出すのは replace 経由でも同じである。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 0,
+      "data": "tail"
+    },
+    {
+      "id": 2,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c"
+    },
+    {
+      "id": 4,
+      "kind": "comment",
+      "parent": 2,
+      "data": "d"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 1
+      },
+      "end": {
+        "node": 2,
+        "offset": 2
+      }
+    },
+    {
+      "start": {
+        "node": 0,
+        "offset": 2
+      },
+      "end": {
+        "node": 0,
+        "offset": 2
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 0,
+      "childList": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "replaceChild",
+      "parent": 0,
+      "node": 2,
+      "child": 1
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

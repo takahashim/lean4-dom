@@ -104,8 +104,11 @@ Dommy を読み込んでいない process の仕事にしてある。
 * `data` は CharacterData 以外では無視する。
 * `ranges` は `{"start": {"node": 1, "offset": 0}, "end": {"node": 1, "offset": 2}}` の形。
   Lean 側は読み込み時に両端の validity（node が木にあり offset が length 以下）を検査する。
-* `iterators` は `{"root": 1, "reference": 1, "pointerBeforeReference": true}` の形。
+* `iterators` は `{"root": 1, "reference": 1, "pointerBeforeReference": true,
+  "whatToShow": 4294967295}` の形。
   仕様の `createNodeIterator` は reference を (root, true) に初期化する。
+  `whatToShow` は node type − 1 の bit を見る bitmask で、省略すると `SHOW_ALL`。
+  `filter` は callback なので常に null として扱う。
 * `observers` は `observe(target, options)` を一度呼んだ状態を作る。
   `{"target": 1, "subtree": true, "childList": true, "attributes": true,
   "attributeOldValue": true, "attributeFilter": ["a"], "characterData": true,

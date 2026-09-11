@@ -29,11 +29,18 @@ structure RangeState where
   «end» : BoundaryPoint
 deriving DecidableEq, Repr, Inhabited
 
-/-- DOM Standard §6.1 の `NodeIterator`。Phase 6 で意味論を入れる。 -/
+/--
+DOM Standard §6.1 の `NodeIterator`。
+
+`filter` は callback なので model の外にあり、常に null として扱う。
+`whatToShow` は node type の bitmask なので純粋であり、そのまま持つ
+（既定は `SHOW_ALL`）。
+-/
 structure IteratorState where
   root : NodeId
   reference : NodeId
   pointerBeforeReference : Bool
+  whatToShow : Nat := 0xFFFFFFFF
 deriving DecidableEq, Repr, Inhabited
 
 /-! ## MutationObserver -/

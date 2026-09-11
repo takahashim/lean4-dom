@@ -51,7 +51,8 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 | live range pre-remove steps | 1-4 | `liveRangePreRemove` | `remove_preserves_endpoints`, `valid_liveRangePreRemoveBP`, `boundaryLE_detach` | `iterator-adjust-on-remove` | `test_wpt_range_mutations.rb` | 済 |
 | live range の insert 側調整 | insert step 5 | `liveRangeInsertAdjust` | `rangeValidUpTo_liveRangeInsertAdjust` | `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb` | 済 |
 | NodeIterator pre-remove steps | 1-5 | `iteratorPreRemove`, `iteratorPreRemoveOne` | `remove_preserves_iterators_valid`, `remove_iterators_leave_subtree`, `adjustNodePointer_spec` | `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_node_edges.rb` | 済 |
-| nextNode / previousNode | §6.1 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before` | `test_wpt_node_edges.rb` | 済 |
+| nextNode / previousNode（traverse） | traverse 1-6 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before`, `iterator-whattoshow-skips` | `test_wpt_node_edges.rb` | 済（filter は null） |
+| filter（`whatToShow`、filter は null） | filter 1-3 | `showsNode`, `NodeKind.nodeType` | 同上 | `iterator-whattoshow-skips` | 同上 | 済 |
 
 ## §4.3 MutationObserver
 
@@ -153,12 +154,12 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
 | `Attr` を node として扱う API（`setAttributeNode`、`attributes` の `NamedNodeMap`、"set an attribute" と "replace an attribute"） | 対象外 | model の attribute は element の状態で、node tree に入らない |
 | element の namespace と local name | 対象外 | 無いので "get an attribute by name" step 1 と `setAttribute` step 2 の HTML lowercase は走らない。model の element は HTML namespace に無いものとして扱う |
-| ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない |
+| ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の code unit 境界 | 対象外 | roadmap §13.1。`data` は Lean の `String` |
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
-| NodeIterator の filter | 対象外 | roadmap §13.4 |
+| `NodeFilter` の callback | 対象外 | roadmap §13.4。callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
 | WebIDL の TypeError | 近似 | `observe` の step 3-6、attribute の method の receiver が Element でない場合、`moveBefore` の receiver が ParentNode でない場合（`move-receiver-must-be-parentnode`）を `DOMException.typeError` で表す。名前は一致するが実際には `DOMException` ではない |
 
 ## 仕様改訂時の手順

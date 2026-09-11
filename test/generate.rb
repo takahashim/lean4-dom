@@ -362,10 +362,27 @@ module Generate
 
   # 仕様の `createNodeIterator` は reference を (root, true) に初期化する。
   # Dommy に setter が無いので、生成する iterator もこの状態から始める。
+  # NodeFilter の定数。`whatToShow` は nodeType − 1 の bit を見る bitmask である。
+  SHOW_ALL = 0xFFFFFFFF
+  SHOW_ELEMENT = 0x1
+  SHOW_TEXT = 0x4
+  SHOW_COMMENT = 0x80
+  SHOW_DOCUMENT = 0x100
+
   def random_iterators(rng, nodes, count)
     Array.new(count) do
       spec = nodes.sample(random: rng)
-      { "root" => spec["id"], "reference" => spec["id"], "pointerBeforeReference" => true }
+      # 半分は SHOW_ALL。残りは一部の node type だけを通す組にして、
+      # traverse が accept するまで繰り返す分岐を撫でる。
+      what =
+        if rng.rand < 0.5
+          SHOW_ALL
+        else
+          [SHOW_ELEMENT, SHOW_TEXT, SHOW_ELEMENT | SHOW_TEXT,
+           SHOW_COMMENT, SHOW_ELEMENT | SHOW_COMMENT | SHOW_DOCUMENT].sample(random: rng)
+        end
+      { "root" => spec["id"], "reference" => spec["id"], "pointerBeforeReference" => true,
+        "whatToShow" => what }
     end
   end
 
