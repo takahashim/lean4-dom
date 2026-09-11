@@ -87,7 +87,7 @@ variable (u : Url) (s : String)
 @[simp] theorem shortenPath_hasOpaquePath :
     (shortenPath u).hasOpaquePath = u.hasOpaquePath := by
   rcases shortenPath_spec u with h | ⟨segs, hp, h⟩ <;> rw [h]
-  simp [Url.hasOpaquePath, hp]
+  simp [Url.hasOpaquePath, Path.isOpaque, hp]
 
 @[simp] theorem appendSegment_scheme : (appendSegment u s).scheme = u.scheme := by
   rcases appendSegment_spec u s with h | ⟨_, _, h⟩ <;> rw [h]
@@ -107,7 +107,7 @@ variable (u : Url) (s : String)
 @[simp] theorem appendSegment_hasOpaquePath :
     (appendSegment u s).hasOpaquePath = u.hasOpaquePath := by
   rcases appendSegment_spec u s with h | ⟨segs, hp, h⟩ <;> rw [h]
-  simp [Url.hasOpaquePath, hp]
+  simp [Url.hasOpaquePath, Path.isOpaque, hp]
 
 @[simp] theorem appendOpaque_scheme : (appendOpaque u s).scheme = u.scheme := by
   rcases appendOpaque_spec u s with h | ⟨_, _, h⟩ <;> rw [h]
@@ -127,7 +127,7 @@ variable (u : Url) (s : String)
 @[simp] theorem appendOpaque_hasOpaquePath :
     (appendOpaque u s).hasOpaquePath = u.hasOpaquePath := by
   rcases appendOpaque_spec u s with h | ⟨o, hp, h⟩ <;> rw [h]
-  simp [Url.hasOpaquePath, hp]
+  simp [Url.hasOpaquePath, Path.isOpaque, hp]
 
 @[simp] theorem shortenPath_isSpecial : (shortenPath u).isSpecial = u.isSpecial := by
   simp [Url.isSpecial]
@@ -151,6 +151,138 @@ variable (u : Url) (s : String)
   simp [Url.includesCredentials]
 
 end
+
+/-! ### path state が作る url -/
+
+/-- `pathStepUrl` は path 以外の成分を変えない。 -/
+theorem pathStepUrl_spec (u : Url) (slash : Bool) (buffer : List Char) :
+    ∃ p, pathStepUrl u slash buffer = { u with path := p } := by
+  unfold pathStepUrl
+  split
+  · split
+    · rcases shortenPath_spec u with h | ⟨_, _, h⟩ <;> exact ⟨_, by rw [h]⟩
+    · rcases appendSegment_spec (shortenPath u) "" with h | ⟨_, _, h⟩ <;>
+        rcases shortenPath_spec u with h' | ⟨_, _, h'⟩ <;> exact ⟨_, by rw [h, h']⟩
+  · split
+    · split
+      · exact ⟨u.path, rfl⟩
+      · rcases appendSegment_spec u "" with h | ⟨_, _, h⟩ <;> exact ⟨_, by rw [h]⟩
+    · rcases appendSegment_spec u _ with h | ⟨_, _, h⟩ <;> exact ⟨_, by rw [h]⟩
+
+@[simp] theorem pathStepUrl_scheme (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).scheme = u.scheme := by
+  obtain ⟨_, h⟩ := pathStepUrl_spec u slash buffer; rw [h]
+
+@[simp] theorem pathStepUrl_host (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).host = u.host := by
+  obtain ⟨_, h⟩ := pathStepUrl_spec u slash buffer; rw [h]
+
+@[simp] theorem pathStepUrl_port (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).port = u.port := by
+  obtain ⟨_, h⟩ := pathStepUrl_spec u slash buffer; rw [h]
+
+@[simp] theorem pathStepUrl_username (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).username = u.username := by
+  obtain ⟨_, h⟩ := pathStepUrl_spec u slash buffer; rw [h]
+
+@[simp] theorem pathStepUrl_password (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).password = u.password := by
+  obtain ⟨_, h⟩ := pathStepUrl_spec u slash buffer; rw [h]
+
+@[simp] theorem pathStepUrl_query (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).query = u.query := by
+  obtain ⟨_, h⟩ := pathStepUrl_spec u slash buffer; rw [h]
+
+@[simp] theorem pathStepUrl_isSpecial (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).isSpecial = u.isSpecial := by
+  simp [Url.isSpecial]
+
+@[simp] theorem pathStepUrl_includesCredentials (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).includesCredentials = u.includesCredentials := by
+  simp [Url.includesCredentials]
+
+/-! ### `Path.isOpaque` の形に揃える
+
+`Url.hasOpaquePath` は `path.isOpaque` を当てるだけなので、
+record 更新をまたぐときは path の側で見たほうが simp が噛む。
+-/
+
+@[simp] theorem shortenPath_path_isOpaque (u : Url) :
+    (shortenPath u).path.isOpaque = u.path.isOpaque := shortenPath_hasOpaquePath u
+
+@[simp] theorem appendSegment_path_isOpaque (u : Url) (s : String) :
+    (appendSegment u s).path.isOpaque = u.path.isOpaque := appendSegment_hasOpaquePath u s
+
+@[simp] theorem appendOpaque_path_isOpaque (u : Url) (s : String) :
+    (appendOpaque u s).path.isOpaque = u.path.isOpaque := appendOpaque_hasOpaquePath u s
+
+/-- segment を確定させても path が opaque かどうかは変わらない。 -/
+@[simp] theorem pathStepUrl_path_isOpaque (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).path.isOpaque = u.path.isOpaque := by
+  unfold pathStepUrl
+  split
+  · split <;> simp
+  · split
+    · split <;> simp
+    · simp
+
+@[simp] theorem pathStepUrl_hasOpaquePath (u : Url) (slash : Bool) (buffer : List Char) :
+    (pathStepUrl u slash buffer).hasOpaquePath = u.hasOpaquePath :=
+  pathStepUrl_path_isOpaque u slash buffer
+
+/-! ### file state が base から引き継ぐときの url -/
+
+@[simp] theorem fileBasePath_scheme (u : Url) (input : List Char) :
+    (fileBasePath u input).scheme = u.scheme := by
+  unfold fileBasePath; split <;> simp
+
+@[simp] theorem fileBasePath_host (u : Url) (input : List Char) :
+    (fileBasePath u input).host = u.host := by
+  unfold fileBasePath; split <;> simp
+
+@[simp] theorem fileBasePath_port (u : Url) (input : List Char) :
+    (fileBasePath u input).port = u.port := by
+  unfold fileBasePath; split <;> simp
+
+@[simp] theorem fileBasePath_username (u : Url) (input : List Char) :
+    (fileBasePath u input).username = u.username := by
+  unfold fileBasePath; split <;> simp
+
+@[simp] theorem fileBasePath_password (u : Url) (input : List Char) :
+    (fileBasePath u input).password = u.password := by
+  unfold fileBasePath; split <;> simp
+
+/-- base の path が opaque でなければ、引き継いだ後も opaque でない。 -/
+@[simp] theorem fileBasePath_path_isOpaque (u : Url) (input : List Char)
+    (h : u.path.isOpaque = false) : (fileBasePath u input).path.isOpaque = false := by
+  unfold fileBasePath
+  split
+  · simp [Path.isOpaque]
+  · rw [shortenPath_path_isOpaque]; exact h
+
+@[simp] theorem fileSlashDrive_scheme (u : Url) (p : Path) (input : List Char) :
+    (fileSlashDrive u p input).scheme = u.scheme := by
+  unfold fileSlashDrive; split <;> (try split) <;> simp
+
+@[simp] theorem fileSlashDrive_host (u : Url) (p : Path) (input : List Char) :
+    (fileSlashDrive u p input).host = u.host := by
+  unfold fileSlashDrive; split <;> (try split) <;> simp
+
+@[simp] theorem fileSlashDrive_port (u : Url) (p : Path) (input : List Char) :
+    (fileSlashDrive u p input).port = u.port := by
+  unfold fileSlashDrive; split <;> (try split) <;> simp
+
+@[simp] theorem fileSlashDrive_username (u : Url) (p : Path) (input : List Char) :
+    (fileSlashDrive u p input).username = u.username := by
+  unfold fileSlashDrive; split <;> (try split) <;> simp
+
+@[simp] theorem fileSlashDrive_password (u : Url) (p : Path) (input : List Char) :
+    (fileSlashDrive u p input).password = u.password := by
+  unfold fileSlashDrive; split <;> (try split) <;> simp
+
+@[simp] theorem fileSlashDrive_path_isOpaque (u : Url) (p : Path) (input : List Char) :
+    (fileSlashDrive u p input).path.isOpaque = u.path.isOpaque := by
+  unfold fileSlashDrive; split <;> (try split) <;> simp
 
 /-! ### `portDone` -/
 
@@ -242,6 +374,22 @@ theorem userinfoFold_spec (buf : List Char) (p : Url × Bool) :
     (buf.foldl userinfoStep p).1.hasOpaquePath = p.1.hasOpaquePath := by
   simp [Url.hasOpaquePath]
 
+/-! ### `ValidUrl` が見ていない成分 -/
+
+/-- `ValidUrl` の六条件はどれも query に触れない。 -/
+@[simp] theorem validUrl_setQuery (u : Url) (q : Option String) :
+    ValidUrl { u with query := q } ↔ ValidUrl u := by
+  constructor <;> intro h <;>
+    exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
+      h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost⟩
+
+/-- fragment についても同じ。 -/
+@[simp] theorem validUrl_setFragment (u : Url) (f : Option String) :
+    ValidUrl { u with fragment := f } ↔ ValidUrl u := by
+  constructor <;> intro h <;>
+    exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
+      h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost⟩
+
 /-! ## state で添字づけた不変条件 -/
 
 /-- opaque path を持てる state。opaque path を作る scheme state の分岐の行き先である。 -/
@@ -252,6 +400,25 @@ def mayOpaque : PState → Bool
 /-- host が null のまま credentials を持てる state。authority state が書き、host state が閉じる。 -/
 def mayCred : PState → Bool
   | .authority | .host => true
+  | _ => false
+
+/-- host がまだ決まっていない state。opaque path を作る scheme state の足場になる。 -/
+def freshHost : PState → Bool
+  | .schemeStart | .scheme | .noScheme => true
+  | _ => false
+
+/--
+credentials も port もまだ書かれていない state。
+
+credentials を書くのは authority state、port を書くのは port state で、
+どちらもここに挙げた state より後にある。base から成分を写す state
+（no scheme / file / file slash）が、写さない成分について
+`ValidUrl` を出すのにこれが要る。
+-/
+def freshCredPort : PState → Bool
+  | .schemeStart | .scheme | .noScheme | .specialRelativeOrAuthority
+  | .relative | .relativeSlash | .specialAuthoritySlashes | .specialAuthorityIgnoreSlashes
+  | .pathOrAuthority | .file | .fileSlash | .fileHost => true
   | _ => false
 
 /-- base の path をそのまま取り込む state。 -/
@@ -290,6 +457,17 @@ structure PInv (base : Option Url) (st : PState) (ctx : PCtx) : Prop where
   そこへは host state が host を入れてからしか来ないが、それは state についての事実である。
   -/
   portHost : st = .port → ctx.url.host.isSome = true
+  /--
+  scheme state までは host が決まっていない。
+
+  opaque path を作るのは scheme state の一分岐で、そこで `opaqueNoHost` を
+  出すのにこれが要る。host を書く state はすべて scheme state の後にあり、
+  そこから scheme state へ戻る道は無い。
+  -/
+  schemeNoHost : freshHost st = true → ctx.url.host = none
+  /-- host を決める前の state には credentials も port も無い。 -/
+  freshState : freshCredPort st = true →
+    ctx.url.includesCredentials = false ∧ ctx.url.port = none
 
 /-- `mayOpaque` が false の state では path は opaque でない。 -/
 theorem PInv.notOpaque {base st ctx} (h : PInv base st ctx) (hm : mayOpaque st = false) :
@@ -322,6 +500,145 @@ theorem valid_of_inv {u : Url}
   | false => rfl
   | true => exact (hcs hh hc).elim
 
+/-- port state から path start state への遷移は `PInv` を保つ。 -/
+theorem PInv.portStep {base : Option Url} {ctx ctx2 : PCtx} (h : PInv base .port ctx)
+    (hp : portDone ctx = some ctx2) : PInv base .pathStart ctx2 := by
+  obtain ⟨p, hu, ho⟩ := portDone_spec hp
+  have hop : ctx.url.hasOpaquePath = false := h.notOpaque (by decide)
+  have hs : ctx2.url.hasOpaquePath = false := by rw [hu]; exact hop
+  have hh : ctx2.url.host = ctx.url.host := by rw [hu]
+  have hsome : ctx.url.host.isSome = true := h.portHost rfl
+  have hne : ctx2.url.host ≠ none := by
+    rw [hh]; intro hn; rw [hn] at hsome; simp at hsome
+  refine ⟨by rw [ho]; exact h.noOverride, h.baseValid, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    ?_⟩
+  · intro hb; exact absurd hb (by decide)
+  · intro _; exact hs
+  · intro hn; exact absurd hn hne
+  · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
+  · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
+  · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
+  · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
+  · intro hn; exact absurd hn hne
+  · intro he; exact absurd he (by decide)
+  · intro he; exact absurd he (by decide)
+  · intro he; exact absurd he (by decide)
+
+/-! ## 帰納段
+
+`run.induct`（functional induction）で 113 の case に分かれる。
+自動化は三段に分けてある。
+
+1. url を変えない遷移と、失敗・即 `ok` の終端。
+2. `isSpecial` / `hasOpaquePath` / `includesCredentials` を開いて判定するもの。
+3. 遷移ごとの移送補題（`portStep`、`fileBasePath`、`pathStepUrl` ほか）が要るもの。
+
+`step` の等式 lemma で畳めない case があるので、`eq_def` へ落とす経路も用意してある
+（`match base with` が残る case がそれで、`rw [step]` は「equation theorems で
+書き換えられない」と言って失敗する）。
+
+この証明の elaborate に 5 分ほどかかる。
+-/
+
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 0 in
+theorem run_valid (base : Option Url) :
+    ∀ (st : PState) (input : List Char) (ctx : PCtx),
+      PInv base st ctx → ∀ u, run base st input ctx = .ok u → ValidUrl u := by
+  apply run.induct base
+    (motive1 := fun st input ctx =>
+      PInv base st ctx → ∀ u, run base st input ctx = .ok u → ValidUrl u)
+    (motive2 := fun st c rest input ctx =>
+      PInv base st ctx → ∀ u, step base st c rest input ctx = .ok u → ValidUrl u)
+  all_goals intros
+  all_goals rename_i hinv u heq
+  all_goals (try rename_i ih)
+  all_goals have hov := hinv.noOverride
+  all_goals have hbv := hinv.baseValid
+  all_goals have hbp := hinv.basePathList
+  all_goals have hsp := hinv.specialHasList
+  all_goals have hnp := hinv.nullHostNoPort
+  all_goals have hoc := hinv.opaqueNoCredentials
+  all_goals have hopo := hinv.opaqueNoPort
+  all_goals have hoh := hinv.opaqueNoHost
+  all_goals have hos := hinv.opaqueState
+  all_goals have hcs := hinv.credState
+  all_goals have hph := hinv.portHost
+  all_goals have hsn := hinv.schemeNoHost
+  all_goals have hfs := hinv.freshState
+  -- base の妥当性は六つに分けておく。simp は structure の中を見られないが、
+  -- `base = some b` が文脈にあれば ∀ の側は具体化してくれる。
+  all_goals have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
+  all_goals have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
+  all_goals have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
+  all_goals have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
+  all_goals have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
+  all_goals have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  -- 等式 lemma で畳めない case があるので `eq_def` へ落とす。
+  all_goals (first | rw [run] at heq | rw [step] at heq
+                   | simp only [run.eq_def] at heq | simp only [step.eq_def] at heq | skip)
+  -- 第一段：url を変えない遷移と、失敗・即 ok の終端。
+  all_goals
+    (try (first
+      | (refine absurd heq ?_
+         simp [fail, hov]
+         done)
+      | (refine ih ?_ u ?_
+         all_goals (try constructor)
+         all_goals (try simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail])
+         all_goals (try (split at heq <;> simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail]))
+         done)
+      | (simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail]
+         first
+           | done
+           | (exact valid_of_inv hsp hnp hoc hopo hoh hcs)
+           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> simp_all +zetaDelta))))
+  -- 第二段：`isSpecial` / `hasOpaquePath` / `includesCredentials` を開いて判定する。
+  all_goals
+    (try (first
+      | (refine ih ?_ u ?_
+         all_goals (try constructor)
+         all_goals (try simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials])
+         all_goals (try (intros; simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]))
+         all_goals (try (split at heq <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]))
+         done)
+      | (simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]
+         first
+           | done
+           | (exact valid_of_inv hsp hnp hoc hopo hoh hcs)
+           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]))))
+  -- 第三段：遷移ごとの移送補題が要るもの。
+  all_goals
+    (try (first
+      | (refine ih (hinv.portStep ?_) u ?_
+         all_goals (first | assumption | simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])
+         done)
+      | (split at heq <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
+         done)
+      | (simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
+         subst heq
+         first
+           | (simpa using hbv)
+           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])
+         done)
+      | (refine ih ?_ u ?_
+         · constructor <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
+         · split at heq
+           · simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
+           · split at heq <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
+           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])))
+
 /-! ## 入口 -/
 
 /--
@@ -334,9 +651,9 @@ theorem valid_of_inv {u : Url}
 theorem PInv_empty {base : Option Url} {st : PState} (hb : ∀ b, base = some b → ValidUrl b)
     (h1 : usesBasePath st = false) (h2 : st ≠ .port) :
     PInv base st { url := {} } := by
-  refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-    simp_all [Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme,
-      defaultPort]
+  refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    simp_all [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
+      isSpecialScheme, defaultPort]
 
 theorem PInv_schemeStart {base : Option Url} (hb : ∀ b, base = some b → ValidUrl b) :
     PInv base .schemeStart { url := {} } :=
@@ -349,11 +666,8 @@ theorem PInv_noScheme {base : Option Url} (hb : ∀ b, base = some b → ValidUr
 /--
 `PInv` が state machine の 1 歩で保たれれば、parse の結果は `ValidUrl` を満たす。
 
-つまり **残っているのは帰納段だけ**である。入口（空の record が `PInv` を満たすこと）と
-出口（`PInv` から `ValidUrl` が出ること）と "start over" の扱いはここで閉じている。
-
-帰納段は `run.induct` による functional induction で 113 の case に分かれ、
-いまの自動化で 62 が閉じる。残りの内訳と手当ては `docs/url-status.md` に書いてある。
+入口（空の record が `PInv` を満たすこと）と出口（`PInv` から `ValidUrl` が出ること）と
+"start over" の扱いをここでまとめる。帰納段は `run_valid` が与える。
 -/
 theorem basicUrlParse_valid_of_step
     (hstep : ∀ (base : Option Url) (st : PState) (input : List Char) (ctx : PCtx),
@@ -367,5 +681,29 @@ theorem basicUrlParse_valid_of_step
   · split at h
     · next u' he => exact Option.some.inj h ▸ hstep _ _ _ _ (PInv_noScheme hb) u' he
     · simp at h
+
+/--
+**basic URL parser は `ValidUrl` を保つ。**
+
+base が妥当なら、parse が成功したときの URL record は §4.1 の不変条件をすべて満たす。
+`checkValidUrl` を WPT の全 case で走らせていたものが、これで証明になった。
+-/
+theorem basicUrlParse_valid {input : String} {base : Option Url}
+    (hb : ∀ b, base = some b → ValidUrl b) {u : Url}
+    (h : basicUrlParse input base = some u) : ValidUrl u :=
+  basicUrlParse_valid_of_step (fun b st i c hi u' he => run_valid b st i c hi u' he) hb h
+
+/-- `URL(url, base)` の入口についても同じ。base も parse で作るので妥当である。 -/
+theorem parseUrl_valid {input : String} {base : Option String} {u : Url}
+    (h : parseUrl input base = some u) : ValidUrl u := by
+  unfold parseUrl at h
+  split at h
+  · exact basicUrlParse_valid (fun b hb => absurd hb (by simp)) h
+  · split at h
+    · simp at h
+    · next bu hbu =>
+      refine basicUrlParse_valid (fun b hb => ?_) h
+      rw [← Option.some.inj hb]
+      exact basicUrlParse_valid (fun b' hb' => absurd hb' (by simp)) hbu
 
 end Url

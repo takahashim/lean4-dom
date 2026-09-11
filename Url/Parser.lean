@@ -183,6 +183,49 @@ def isTerminator (special : Bool) : Cp → Bool
   | none => true
   | some c => c == '/' || c == '?' || c == '#' || (special && c == '\\')
 
+/--
+path state が segment を確定させるときの url。
+
+`..` なら一つ短くし、`.` なら何も足さず、それ以外は buffer を segment として足す。
+どの枝でも path 以外の成分は変わらない。
+-/
+def pathStepUrl (u : Url) (slash : Bool) (buffer : List Char) : Url :=
+  if isDoubleDot buffer then
+    if slash then shortenPath u else appendSegment (shortenPath u) ""
+  else if isSingleDot buffer then
+    if slash then u else appendSegment u ""
+  else appendSegment u (String.ofList (windowsDriveBuffer u buffer))
+where
+  /-- file URL の先頭 segment に来た `c|` は `c:` に直す。 -/
+  windowsDriveBuffer (u : Url) (buffer : List Char) : List Char :=
+    if u.scheme == "file" && (match u.path with | .list [] => true | _ => false) &&
+        isWindowsDrive buffer then
+      (match buffer with | [a, _] => [a, ':'] | b => b)
+    else buffer
+
+/--
+file state が base の path を引き継ぐときの url。
+
+入力が Windows drive letter で始まるなら base の path は捨てる
+（`file:///c:/` の `c:` が base の path の後ろに付かないようにする）。
+-/
+def fileBasePath (u : Url) (input : List Char) : Url :=
+  if startsWithWindowsDrive input then { u with path := .list [] } else shortenPath u
+
+/--
+file slash state が base の Windows drive letter を引き継ぐときの url。
+
+base の path の先頭が正規化された Windows drive letter で、
+入力がそうでないときだけ、その drive letter を path の先頭に足す。
+-/
+def fileSlashDrive (u : Url) (basePath : Path) (input : List Char) : Url :=
+  match basePath with
+  | .list (s :: _) =>
+    if !startsWithWindowsDrive input && isNormalizedWindowsDrive s.toList then
+      appendSegment u s
+    else u
+  | _ => u
+
 /-- 1 文字を percent-encode して文字列にする。 -/
 def encChar (set : Char → Bool) (c : Char) : String :=
   String.ofList (utf8PercentEncode set [c])
@@ -463,10 +506,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
               run base .fragment rest { ctx with url := { u2 with fragment := some "" } }
             | none => .ok u2
             | some _ =>
-              let u3 := { u2 with query := none }
-              let u4 := if startsWithWindowsDrive input then { u3 with path := .list [] }
-                        else shortenPath u3
-              run base .path input { ctx with url := u4 }
+              run base .path input { ctx with url := fileBasePath { u2 with query := none } input }
           else run base .path input { ctx with url := u }
         | none => run base .path input { ctx with url := u }
     | .fileSlash =>
@@ -476,15 +516,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
         | some b =>
           if b.scheme == "file" then
             let u := { ctx.url with host := b.host }
-            let u2 := if !startsWithWindowsDrive input &&
-                (match b.path with
-                 | .list (s :: _) => isNormalizedWindowsDrive s.toList
-                 | _ => false) then
-                (match b.path with
-                 | .list (s :: _) => appendSegment u s
-                 | _ => u)
-              else u
-            run base .path input { ctx with url := u2 }
+            run base .path input { ctx with url := fileSlashDrive u b.path input }
           else run base .path input ctx
         | none => run base .path input ctx
     | .fileHost =>
@@ -529,19 +561,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
       if c == none || c == some '/' || (special && c == some '\\') ||
           (ctx.over.isNone && (c == some '?' || c == some '#')) then
         let slash := c == some '/' || (special && c == some '\\')
-        let u :=
-          if isDoubleDot ctx.buffer then
-            let u1 := shortenPath ctx.url
-            if slash then u1 else appendSegment u1 ""
-          else if isSingleDot ctx.buffer then
-            if slash then ctx.url else appendSegment ctx.url ""
-          else
-            let buf := if ctx.url.scheme == "file" &&
-                (match ctx.url.path with | .list [] => true | _ => false) &&
-                isWindowsDrive ctx.buffer then
-                (match ctx.buffer with | [a, _] => [a, ':'] | b => b)
-              else ctx.buffer
-            appendSegment ctx.url (String.ofList buf)
+        let u := pathStepUrl ctx.url slash ctx.buffer
         let ctx2 : PCtx := { ctx with url := u, buffer := [] }
         match c with
         | some '?' => run base .query rest { ctx2 with url := { u with query := some "" } }

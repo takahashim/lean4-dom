@@ -159,7 +159,7 @@ open Dom.Audit
   Url.setPassword_valid
   Url.setPort_empty_valid
 
--- URL Standard §4.4 parser の不変条件（帰納段は未着手）
+-- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms
   Url.shortenPath_spec
   Url.appendSegment_spec
@@ -170,7 +170,11 @@ open Dom.Audit
   Url.PInv.valid
   Url.valid_of_inv
   Url.PInv_empty
+  Url.PInv.portStep
   Url.basicUrlParse_valid_of_step
+  Url.run_valid
+  Url.basicUrlParse_valid
+  Url.parseUrl_valid
 
 -- URL Standard §3.2 host / §1.3 percent-encoding
 #audit_axioms

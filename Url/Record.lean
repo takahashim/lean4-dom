@@ -48,11 +48,13 @@ def Url.isSpecial (u : Url) : Bool := isSpecialScheme u.scheme
 /-- URL Standard §4.2「URL includes credentials」。 -/
 def Url.includesCredentials (u : Url) : Bool := !u.username.isEmpty || !u.password.isEmpty
 
-/-- URL Standard §4.2「URL has an opaque path」。 -/
-def Url.hasOpaquePath (u : Url) : Bool :=
-  match u.path with
+/-- path が opaque か。`hasOpaquePath` はこれを path に当てるだけである。 -/
+def Path.isOpaque : Path → Bool
   | .opaque _ => true
   | .list _ => false
+
+/-- URL Standard §4.2「URL has an opaque path」。 -/
+def Url.hasOpaquePath (u : Url) : Bool := u.path.isOpaque
 
 /-- URL Standard §4.3 URL path serializer。 -/
 def pathSerializer : Path → String

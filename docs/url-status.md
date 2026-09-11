@@ -39,7 +39,7 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §5.1 urlencoded parser、§5.2 serializer | `parseUrlencoded`, `serializeUrlencoded` | `Url/Urlencoded.lean` |
 | §4.4 state override | `SOverride`, `basicUrlParseOverride` | `Url/Parser.lean` |
 | §6.1 `URL` の getter と setter | `Url.href` ほか、`Url.setProtocol` ほか | `Url/Api.lean` |
-| §4.4 parser の不変条件（帰納段は未着手） | `PInv`, `PInv_empty`, `basicUrlParse_valid_of_step` | `Url/Invariant.lean` |
+| §4.4 parser が `ValidUrl` を保つこと | `PInv`, `run_valid`, `basicUrlParse_valid` | `Url/Invariant.lean` |
 
 ## state override をどう通したか
 
@@ -148,7 +148,8 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `portDone_spec` | port state の終わりは port 以外の成分を変えない |
 | `userinfoFold_spec` | authority state の振り分けは username / password 以外を変えない |
 | `PInv_empty`, `PInv.valid`, `valid_of_inv` | 不変条件の入口と出口 |
-| `basicUrlParse_valid_of_step` | 帰納段が示せれば parse の結果は `ValidUrl` を満たす |
+| `run_valid` | **state machine の 1 歩が `PInv` を保つ**（`run.induct` の 113 case） |
+| `basicUrlParse_valid`, `parseUrl_valid` | **parse が成功したら結果は `ValidUrl` を満たす** |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -209,6 +210,58 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
    `cannotHaveCredentials` が `sc:///` で false になり、
    `sc:///` に username が付いてしまった。`opaqueHostParser` の側で `.empty` に正規化した。
 
+## `ValidUrl` の保存
+
+parse が成功したときの URL record が §4.1 の不変条件をすべて満たすことを証明した
+（`basicUrlParse_valid`、`parseUrl_valid`）。`checkValidUrl` を WPT の全 case で
+走らせていたものが、これで証明に上がった。実行時の検査は交差検証として残してある。
+
+### `ValidUrl` 単独では帰納的でない
+
+`ValidUrl` をそのまま「parse の途中でも成り立つ」としても帰納法は回らない。
+`PInv` は破れるところを state で添字づけて緩めたものである。
+
+* **authority state は host が決まる前に credentials を書く。**
+  `http://user@host/` の `@` を見た時点で username に `user` が入るが host はまだ null。
+  `mayCred` が true の state（authority と host）だけこれを許す。
+* **`specialHasList` が保たれる理由が state に依る。**
+  scheme state が `scheme := buffer` と書く瞬間、path が opaque だったら
+  新しい scheme が special のときに破れる。実際には破れないが、その根拠は
+  「opaque path を作るのは scheme state の一分岐だけで、そこから戻る道が無い」
+  という state についての事実である。`mayOpaque` が true の三つ
+  （opaquePath / query / fragment）だけ opaque path を許す。
+
+証明を書いていて、さらに三つ要ることが分かった。
+
+* **port state に入るのは host が決まった後だけ**（`portHost`）。
+  これが無いと `nullHostNoPort` が帰納的にならない。
+* **scheme state までは host が決まっていない**（`schemeNoHost`）。
+  opaque path をそこで作るとき `opaqueNoHost` を出すのに要る。
+* **host を決める前の state には credentials も port も無い**（`freshState`）。
+  base から一部の成分だけ写す state（no scheme / file / file slash）が、
+  写さない成分について `ValidUrl` を出すのに要る。
+
+### 帰納段の回し方
+
+`run.induct` は 113 の case に分かれる。自動化は三段。
+
+1. url を変えない遷移と、失敗・即 `ok` の終端。
+2. `isSpecial` / `hasOpaquePath` / `includesCredentials` を開いて判定するもの。
+3. 遷移ごとの移送補題（`portStep`、`fileBasePath`、`fileSlashDrive`、`pathStepUrl` ほか）。
+
+詰まったところは二つあった。
+
+* **`rw [step]` が通らない case がある。** 等式 lemma で畳めないものがあり、
+  `rw` は「equation theorems で書き換えられない」と言って失敗する。
+  `simp only [step.eq_def]` へ落とす経路を用意した。これを入れるまで残り 51 だったものが
+  22 まで落ちた。
+* **record 更新をまたぐと simp が噛まない。** `Url.hasOpaquePath` を
+  `Path.isOpaque` 経由にして正規形を揃え、path をいじる操作
+  （`shortenPath` / `appendSegment` / `pathStepUrl` / `fileBasePath` / `fileSlashDrive`）を
+  名前のある定義に切り出して成分保存の補題を付けた。
+
+この証明の elaborate に約 5 分かかる。
+
 ## `ValidUrl` に足した条件
 
 setter の保存を書こうとして、`ValidUrl` に一つ足りないことが分かった。
@@ -228,56 +281,6 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 実行時に検査していて、違反はない。
 
 ## 未着手
-
-* **`ValidUrl` の保存（帰納段）。** 述語（`ValidUrl`）と決定手続き（`checkValidUrl`、
-  `checkValidUrl_iff`）は入れて、**WPT の全 case で実行時に検査している**
-  （`url-model --wpt` の `ValidUrl: 違反 0`、`--setters` の `ValidUrl（setter 後）: 違反 0`）。
-  DOM 側の `dom-model --check` と同じ形である。
-
-  証明は `Url/Invariant.lean` で、**帰納段だけが残っている**。
-  入口・出口・"start over" の扱いは閉じていて、それは
-  `basicUrlParse_valid_of_step` が形にしてある。残る義務はこの一文である。
-
-  > `∀ base st input ctx, PInv base st ctx → ∀ u, run base st input ctx = .ok u → ValidUrl u`
-
-  ### 不変条件の形
-
-  `ValidUrl` をそのまま「parse の途中でも成り立つ」としても帰納法は回らない。
-  二か所で実際に破れるからで、`PInv` はそこを state で添字づけて緩めてある。
-
-  * **authority state は host が決まる前に credentials を書く。**
-    `http://user@host/` の `@` を見た時点で username に `user` が入るが host はまだ null。
-    `mayCred` が true の state（authority と host）だけこれを許す。
-  * **`specialHasList` が保たれる理由が state に依る。**
-    scheme state が `scheme := buffer` と書く瞬間、path が opaque だったら
-    新しい scheme が special のときに破れる。実際には破れないが、その根拠は
-    「opaque path を作るのは scheme state の一分岐だけで、そこから戻る道が無い」
-    という state についての事実である。`mayOpaque` が true の三つの state
-    （opaquePath / query / fragment）だけ opaque path を許す。
-
-  証明を書いていて、この二つに加えてもう一つ要ることが分かった。
-
-  * **port state に入るのは host が決まった後だけ**（`PInv.portHost`）。
-    port を書くのは port state だけで、そこへは host state が host を入れてからしか
-    来ないが、それも state についての事実である。これが無いと
-    `nullHostNoPort` が帰納的にならない。
-
-  ### 帰納段の進み具合
-
-  `run.induct`（functional induction）は 113 の case に分かれ、
-  いまの自動化で 62 が閉じる。残り 51 の内訳は
-
-  | state | 件数 | 要るもの |
-  | --- | --- | --- |
-  | relative / relativeSlash / noScheme | 16 | base の record をそのまま写す遷移。`ValidUrl base` の移送 |
-  | file / fileSlash / fileHost | 15 | 同上。`file` が special であることから base の path が list だと出す |
-  | host | 6 | `hostParser` の結果を入れた後、host が null でなくなることの利用 |
-  | path / pathStart | 8 | `appendSegment` / `shortenPath` の補題は入れた。分岐が多い |
-  | port / scheme / query | 6 | `portDone_spec` は入れた。残りは分岐の整理 |
-
-  path をいじる三つの補題（`shortenPath_spec` ほか）、`portDone_spec`、
-  `userinfoFold_spec` は入れてある。`portDone` と authority state の畳み込みは
-  そのために `Url/Parser.lean` 側で名前のある定義に切り出した。
 
 * **`URLSearchParams` の API**（`get` / `getAll` / `append` / `sort` ほか）。
   parser と serializer（§5）は入れたが、IDL の側はまだ。
