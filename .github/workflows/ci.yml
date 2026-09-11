@@ -5,7 +5,8 @@ on:
   pull_request:
 
 jobs:
-  build:
+  proofs:
+    name: 証明の検査
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +21,7 @@ jobs:
       - name: Build
         run: lake build 2>&1 | tee build.log
 
-      # PLAN §2.3: `sorry` が残っていないことを CI で確認する。
+      # roadmap §11.1: `sorry` が残っていないことを CI で確認する。
       # `lake build` は `sorry` を warning として報告するので、それを error として扱う。
       - name: Reject sorry
         run: |
@@ -29,6 +30,18 @@ jobs:
             grep -n "declaration uses 'sorry'" build.log
             exit 1
           fi
+
+      # roadmap §11.1: 公開主定理が propext / Classical.choice / Quot.sound 以外の
+      # axiom に依存していないことを確認する。`sorryAx` もここで落ちる。
+      - name: Axiom audit
+        run: lake env lean Audit.lean
+
+      # roadmap §11.1: 固定 scenario が loader を通り、どの step でも
+      # invariant 違反を出さないことを確認する。
+      # `Dom/Exec/Invariant.lean` の `runOperations_no_violation` により、
+      # 違反が出るなら harness 側の誤りである。
+      - name: Fixed scenarios
+        run: lake exe dom-model --check test/scenarios
 
       - name: Run oracle
         run: lake exe dom-model

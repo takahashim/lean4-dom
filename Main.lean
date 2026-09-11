@@ -11,6 +11,7 @@ scenario file の path を渡すと、それを評価して結果の JSON を標
 lake exe dom-model                          # demo
 lake exe dom-model test/scenarios/x.json    # scenario 一つを評価して標準出力へ
 lake exe dom-model --batch DIR              # DIR/*.json をまとめて評価し DIR/*.lean.json へ書く
+lake exe dom-model --check DIR              # DIR/*.json を検査し、loader 拒否と invariant 違反を報告する
 ```
 -/
 
@@ -201,10 +202,36 @@ def runBatch (dir : System.FilePath) : IO UInt32 := do
         IO.FS.writeFile (dir / (System.FilePath.mk (base ++ ".lean.json"))) out
   return failed
 
+/--
+`DIR/*.json` をまとめて評価し、loader が拒否したものと invariant 違反を報告する。
+
+`Dom/Exec/Invariant.lean` の `runOperations_no_violation` があるので、
+違反が出るとすれば harness 側の誤りである。CI の proof 層から呼ぶ。
+-/
+def checkBatch (dir : System.FilePath) : IO UInt32 := do
+  let entries ← dir.readDir
+  let mut failed : UInt32 := 0
+  let mut count : Nat := 0
+  for e in entries.qsort (fun a b => a.fileName < b.fileName) do
+    if isScenarioFile e.path then
+      count := count + 1
+      let src ← IO.FS.readFile e.path
+      match Dom.Exec.checkScenarioString src with
+      | .error msg =>
+        IO.eprintln s!"{e.path}: 読み込めない: {msg}"
+        failed := 1
+      | .ok none => pure ()
+      | .ok (some (i, what)) =>
+        IO.eprintln s!"{e.path}: step {i} で invariant 違反: {what}"
+        failed := 1
+  IO.println s!"scenario {count} 件を検査した"
+  return failed
+
 def main (args : List String) : IO UInt32 := do
   match args with
   | [] => demo; return 0
   | ["--batch", dir] => runBatch dir
+  | ["--check", dir] => checkBatch dir
   | [path] =>
     match ← evalFile path with
     | .error e =>
@@ -214,5 +241,5 @@ def main (args : List String) : IO UInt32 := do
       IO.println out
       return 0
   | _ =>
-    IO.eprintln "usage: dom-model [SCENARIO.json | --batch DIR]"
+    IO.eprintln "usage: dom-model [SCENARIO.json | --batch DIR | --check DIR]"
     return 2

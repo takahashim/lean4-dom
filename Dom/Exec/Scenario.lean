@@ -171,4 +171,18 @@ def runScenarioString (s : String) : Except String String := do
   let sc ← scenarioOfString s
   return (← runScenario sc).compress
 
+/--
+scenario を評価して、invariant 違反があればその step 番号と名前を返す。
+
+`Dom/Exec/Invariant.lean` の `runOperations_no_violation` により、
+初期状態が admissible ならこれは必ず `none` である。
+`some` が返るのは harness 側（初期状態の構築や操作の割り当て）の誤りを意味する。
+-/
+def checkScenario (sc : Scenario) : Except String (Option (Nat × String)) := do
+  let s ← buildState sc
+  return (runOperations s sc.operations 0).2
+
+def checkScenarioString (s : String) : Except String (Option (Nat × String)) := do
+  checkScenario (← scenarioOfString s)
+
 end Dom.Exec
