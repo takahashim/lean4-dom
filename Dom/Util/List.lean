@@ -616,4 +616,8 @@ theorem splitAt?_removeAll_none {α : Type _} [DecidableEq α] {a c : α}
   rw [hs] at h
   simp at h
 
+/-- `removeAll` は filter なので sublist である。 -/
+theorem removeAll_sublist {α : Type _} [DecidableEq α] (l : List α) (a : α) :
+    (removeAll l a).Sublist l := List.filter_sublist
+
 end Dom.ListUtil

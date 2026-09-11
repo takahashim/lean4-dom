@@ -1816,6 +1816,297 @@ theorem documentTreesValid_insert {s s' : DOMState} {node parent : NodeId}
       rw [hkn] at hk
       exact ⟨(f4 (Option.some.inj hk)).2.1, (f4 (Option.some.inj hk)).2.2⟩
 
+
+/-! ## replace -/
+
+/--
+`replace` は adopt → （必要なら）child の remove → insert という三段である。
+
+`ensure pre-insertion validity` は元の tree に対して `child` を除外して走るので、
+`insert` に渡す前提は kind に関する三つの事実として持ち回る。
+-/
+theorem structurallyValid_replace {s s' : DOMState} {child node parent : NodeId}
+    (hwf : WellFormed s.tree) (h : StructurallyValid s.tree)
+    (hr : replace s child node parent = .ok s') : StructurallyValid s'.tree := by
+  unfold replace at hr
+  split at hr
+  · simp at hr
+  · next hv =>
+    split at hr
+    · simp at hr
+    · next pd hpd =>
+      simp only at hr
+      split at hr
+      · simp at hr
+      · next s₁ ha =>
+        have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
+        have h₁ : StructurallyValid s₁.tree := structurallyValid_adopt h
+          (isDocument_ownerDocument hwf hpd) ha
+        have hkp₁ : KindPreserving s.tree s₁.tree := kindPreserving_adopt ha
+        split at hr
+        · simp at hr
+        · next s₂ hrm =>
+          have hstep : StructurallyValid s₂.tree ∧ KindPreserving s₁.tree s₂.tree ∧
+              WellFormed s₂.tree := by
+            revert hrm; split
+            · intro hrm
+              rw [← Except.ok.inj hrm]
+              exact ⟨h₁, KindPreserving.refl _, hwf₁⟩
+            · intro hrm
+              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
+              exact ⟨structurallyValid_remove h₁ hrm', kindPreserving_remove hrm',
+                remove_preserves_wellformed hwf₁ hrm'⟩
+          obtain ⟨h₂, hkp₂, hwf₂⟩ := hstep
+          have hkp : KindPreserving s.tree s₂.tree := hkp₁.trans hkp₂
+          split at hr
+          · simp at hr
+          · next s₃ hi =>
+            have f1 := kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+              (ensurePreInsertionValidity_parentCanHaveChildren hv)
+            have f2 := kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+              (ensurePreInsertionValidity_nodeNotDocument hv)
+            have f3 := doctypeFact_of_kindPreserving hkp
+              (ensurePreInsertionValidity_doctypeParentIsDocument hv)
+            have h₃ : StructurallyValid s₃.tree :=
+              structurallyValid_insert_of_facts h₂ f1 f2 f3 hi
+            rw [← Except.ok.inj hr]
+            simpa using h₃
+
+theorem nodeDocumentsValid_replace {s s' : DOMState} {child node parent : NodeId}
+    (hwf : WellFormed s.tree) (hsv : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
+    (hr : replace s child node parent = .ok s') : NodeDocumentsValid s'.tree := by
+  unfold replace at hr
+  split at hr
+  · simp at hr
+  · next hv =>
+    split at hr
+    · simp at hr
+    · next pd hpd =>
+      simp only at hr
+      split at hr
+      · simp at hr
+      · next s₁ ha =>
+        have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
+        have hs₁ : StructurallyValid s₁.tree := structurallyValid_adopt hsv
+          (isDocument_ownerDocument hwf hpd) ha
+        have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_adopt hsv h
+          (isDocument_ownerDocument hwf hpd) (ensurePreInsertionValidity_nodeNotDocument hv) ha
+        have hkp₁ : KindPreserving s.tree s₁.tree := kindPreserving_adopt ha
+        split at hr
+        · simp at hr
+        · next s₂ hrm =>
+          have hstep : NodeDocumentsValid s₂.tree ∧ StructurallyValid s₂.tree ∧
+              KindPreserving s₁.tree s₂.tree ∧ WellFormed s₂.tree := by
+            revert hrm; split
+            · intro hrm
+              rw [← Except.ok.inj hrm]
+              exact ⟨h₁, hs₁, KindPreserving.refl _, hwf₁⟩
+            · intro hrm
+              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
+              exact ⟨nodeDocumentsValid_remove hwf₁ h₁ hrm', structurallyValid_remove hs₁ hrm',
+                kindPreserving_remove hrm', remove_preserves_wellformed hwf₁ hrm'⟩
+          obtain ⟨h₂, hs₂, hkp₂, hwf₂⟩ := hstep
+          have hkp : KindPreserving s.tree s₂.tree := hkp₁.trans hkp₂
+          split at hr
+          · simp at hr
+          · next s₃ hi =>
+            have f1 := kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+              (ensurePreInsertionValidity_parentCanHaveChildren hv)
+            have f2 := kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+              (ensurePreInsertionValidity_nodeNotDocument hv)
+            have f3 := doctypeFact_of_kindPreserving hkp
+              (ensurePreInsertionValidity_doctypeParentIsDocument hv)
+            have h₃ : NodeDocumentsValid s₃.tree :=
+              nodeDocumentsValid_insert_of_facts hs₂ h₂ f1 f2 f3 hi
+            rw [← Except.ok.inj hr]
+            simpa using h₃
+
+
+/-! ## replace all -/
+
+/-- `removeEach` は children を減らすだけで、外した node はどこの children にも残らない。 -/
+theorem removeEach_childrenOf_sub :
+    ∀ (ms : List NodeId) {s s' : DOMState} {b : Bool}, WellFormed s.tree →
+      removeEach s ms b = .ok s' →
+      ∀ p, (childrenOf s'.tree p).Sublist (childrenOf s.tree p) ∧
+        (∀ m ∈ ms, m ∉ childrenOf s'.tree p)
+  | [], _, _, _, _, hr, p => by
+    rw [← Except.ok.inj hr]
+    exact ⟨List.Sublist.refl _, fun m hm => absurd hm (by simp)⟩
+  | n :: ms, s, s', b, hwf, hr, p => by
+    simp only [removeEach] at hr
+    split at hr
+    · simp at hr
+    · next s₁ h₁ =>
+      have hch : childrenOf s₁.tree p = ListUtil.removeAll (childrenOf s.tree p) n :=
+        detach_childrenOf_removeAll hwf (remove_ok h₁).2 p
+      have hwf₁ := remove_preserves_wellformed hwf h₁
+      obtain ⟨hsub, hnot⟩ := removeEach_childrenOf_sub ms hwf₁ hr p
+      have hsub' : (childrenOf s₁.tree p).Sublist (childrenOf s.tree p) := by
+        rw [hch]; exact ListUtil.removeAll_sublist _ _
+      refine ⟨hsub.trans hsub', fun m hm => ?_⟩
+      rcases List.mem_cons.mp hm with rfl | hm'
+      · intro hmem
+        have hx₁ := hsub.subset hmem
+        rw [hch] at hx₁
+        exact ((ListUtil.mem_removeAll _ _ _).mp hx₁).1 rfl
+      · exact hnot m hm'
+
+/-- §4.2.3 replace all step 4 の後、parent の children は空になる。 -/
+theorem removeEach_childrenOf_nil {s s' : DOMState} {parent : NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (hr : removeEach s (childrenOf s.tree parent) b = .ok s') :
+    childrenOf s'.tree parent = [] := by
+  obtain ⟨hsub, hnot⟩ := removeEach_childrenOf_sub _ hwf hr parent
+  cases hl : childrenOf s'.tree parent with
+  | nil => rfl
+  | cons y l =>
+    exfalso
+    have hy : y ∈ childrenOf s'.tree parent := by rw [hl]; simp
+    exact hnot y (hsub.subset hy) hy
+
+/--
+`replace all` は node tree の制約を自分では検査しない。
+
+したがって `insert` に必要な kind の事実は仮定として受け取る。
+呼び出し側（`replaceChildren` など）が `ensure pre-insertion validity` で確立する。
+-/
+theorem structurallyValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
+    (h : StructurallyValid s.tree)
+    (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
+    (hnk : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document)
+    (hdtf : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
+      nd.kind = NodeKind.documentType →
+      ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
+    (hr : replaceAll s node parent = .ok s') : StructurallyValid s'.tree := by
+  unfold replaceAll at hr
+  simp only at hr
+  split at hr
+  · simp at hr
+  · next s₁ hre =>
+    have h₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
+    have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+    split at hr
+    · simp at hr
+    · next s₂ hins =>
+      have h₂ : StructurallyValid s₂.tree := by
+        revert hins
+        split
+        · intro hins; rw [← Except.ok.inj hins]; exact h₁
+        · next _ _ m =>
+          intro hins
+          refine structurallyValid_insert_of_facts h₁ ?_ ?_ ?_ (by simpa using hins)
+          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true) hpk
+          · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+              (hnk m rfl)
+          · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
+      rw [← Except.ok.inj hr]
+      simpa using h₂
+
+theorem nodeDocumentsValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
+    (hwf : WellFormed s.tree) (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
+    (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
+    (hnk : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document)
+    (hdtf : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
+      nd.kind = NodeKind.documentType →
+      ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
+    (hr : replaceAll s node parent = .ok s') : NodeDocumentsValid s'.tree := by
+  unfold replaceAll at hr
+  simp only at hr
+  split at hr
+  · simp at hr
+  · next s₁ hre =>
+    have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ hs hre
+    have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_removeEach _ hs h hre
+    have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+    split at hr
+    · simp at hr
+    · next s₂ hins =>
+      have h₂ : NodeDocumentsValid s₂.tree := by
+        revert hins
+        split
+        · intro hins; rw [← Except.ok.inj hins]; exact h₁
+        · next _ _ m =>
+          intro hins
+          refine nodeDocumentsValid_insert_of_facts hs₁ h₁ ?_ ?_ ?_ (by simpa using hins)
+          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true) hpk
+          · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+              (hnk m rfl)
+          · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
+      rw [← Except.ok.inj hr]
+      simpa using h₂
+
+/--
+`replace all` は parent の children を空にしてから入れるので、
+Document の制約には「入れる node の側」の条件しか要らない。
+-/
+theorem documentTreesValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
+    (hwf : WellFormed s.tree) (h : DocumentTreesValid s.tree)
+    (hok : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
+      (∀ m ∈ (if nd.kind = NodeKind.documentFragment then nd.children else [n]),
+        ∀ k, kindOf s.tree m = some k → k.isText = false) ∧
+      (((if nd.kind = NodeKind.documentFragment then nd.children else [n]).filter fun m =>
+          kindOf s.tree m == some NodeKind.element).length +
+        ((if nd.kind = NodeKind.documentFragment then nd.children else [n]).filter fun m =>
+          kindOf s.tree m == some NodeKind.documentType).length ≤ 1))
+    (hr : replaceAll s node parent = .ok s') : DocumentTreesValid s'.tree := by
+  unfold replaceAll at hr
+  simp only at hr
+  split at hr
+  · simp at hr
+  · next s₁ hre =>
+    have hwf₁ : WellFormed s₁.tree := removeEach_preserves_wellformed _ hwf hre
+    have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_removeEach _ hwf h hre
+    have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+    have hnil : childrenOf s₁.tree parent = [] := removeEach_childrenOf_nil hwf hre
+    have helemnil : elementChildren s₁.tree parent = [] := by
+      unfold elementChildren; rw [hnil]; rfl
+    have hdtnil : doctypeChildren s₁.tree parent = [] := by
+      unfold doctypeChildren; rw [hnil]; rfl
+    split at hr
+    · simp at hr
+    · next s₂ hins =>
+      have h₂ : DocumentTreesValid s₂.tree := by
+        revert hins
+        split
+        · intro hins; rw [← Except.ok.inj hins]; exact h₁
+        · next _ _ m =>
+          intro hins
+          refine documentTreesValid_insert_of_seqOk hwf₁ h₁ ?_ (by simpa using hins)
+          intro nd hnd
+          obtain ⟨nd₀, hnd₀, hkd⟩ := kindPreserving_get? hkp hnd
+          obtain ⟨g1, g2⟩ := hok m rfl nd₀ hnd₀
+          have hkind : ∀ x, kindOf s₁.tree x = kindOf s.tree x := hkp
+          -- 入れる node の列は `removeEach` で縮むだけである。
+          have hsl : ((if nd.kind = NodeKind.documentFragment then nd.children
+                else [m])).Sublist
+              (if nd₀.kind = NodeKind.documentFragment then nd₀.children else [m]) := by
+            by_cases hk : nd.kind = NodeKind.documentFragment
+            · rw [if_pos hk, if_pos (by rw [hkd]; exact hk)]
+              have hs := (removeEach_childrenOf_sub _ hwf hre m).1
+              rw [childrenOf_eq hnd, childrenOf_eq hnd₀] at hs
+              exact hs
+            · rw [if_neg hk, if_neg (by rw [hkd]; exact hk)]
+              exact List.Sublist.refl _
+          intro _
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+          · intro x hx k hk
+            exact g1 x (hsl.subset hx) k (by rw [← hkind x]; exact hk)
+          · simp only [hkind]
+            exact Nat.le_trans (Nat.add_le_add (hsl.filter _).length_le
+              (hsl.filter _).length_le) g2
+          · rw [helemnil]
+            simp only [hkind, List.length_nil, Nat.zero_add]
+            exact Nat.le_trans (Nat.le_trans (hsl.filter _).length_le (Nat.le_add_right _ _)) g2
+          · rw [hdtnil]
+            simp only [hkind, List.length_nil, Nat.zero_add]
+            exact Nat.le_trans (Nat.le_trans (hsl.filter _).length_le (Nat.le_add_left _ _)) g2
+          · intro _ _ _ c hc
+            exact absurd hc (by simp)
+          · intro _ _ _
+            exact ⟨fun c hc => absurd hc (by simp), fun _ => helemnil⟩
+      rw [← Except.ok.inj hr]
+      simpa using h₂
+
 /-! ## replaceData -/
 
 /--
