@@ -178,7 +178,7 @@ Dommy を読み込んでいない process の仕事にしてある。
   "initial": {"nodes": [...], "ranges": [], "iterators": [], "observers": []},
   "steps": [
     {"ok": true, "nodes": [...], "ranges": [], "iterators": [],
-     "observers": [[]], "delivered": []},
+     "observers": [[]], "delivered": [], "returned": {"kind": "undefined"}},
     {"ok": false, "exception": "NotFoundError"}
   ]
 }
@@ -189,6 +189,10 @@ Dommy を読み込んでいない process の仕事にしてある。
 `observers` は observer ごとの record queue（`takeRecords()` が返すもの）、
 `delivered` は microtask checkpoint で callback に配送された record を
 **呼ばれた順に** 並べたものである（`notify` 以外の step では空）。
+
+`returned` は操作の戻り値で、`kind` は `undefined` / `node` / `boolean` / `records` の
+いずれか。`null` を返すことと `undefined` を返すことを取り違えないよう kind を添える。
+失敗した step には戻り値が無いので field ごと出さない。
 
 Lean 側は各 step の後で `AdmissibleDOMState` の七成分を実行時に検査し、
 破れていれば `"invariantViolation": {"step": N, "invariant": NAME}` を足す。
@@ -204,8 +208,8 @@ Dommy が実装していない操作は `{"ok": false, "exception": "__unsupport
 
 比較するのは、node の `kind` / `parent` / `children` / `nodeDocument` / `data` /
 `attributes`、そこから導いた tree order、live Range の両端、NodeIterator の
-root と reference と pointer-before-reference flag、observer ごとの record queue、
-配送された record、および例外の名前である。
+root と reference と pointer-before-reference flag と whatToShow、
+observer ごとの record queue、配送された record、操作の戻り値、および例外の名前である。
 tree order は children から導けるので出力には含めず、比較側で導出する。
 比較しないものは `Dom/Observation.lean` の doc comment に列挙してある。
 

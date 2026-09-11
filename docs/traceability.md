@@ -159,7 +159,9 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | roadmap §13.1。長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。node は scenario が初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
-| object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
+| method の戻り値 | 済 | `returnValueOf`（`Dom/Exec/Scenario.lean`）。`Node?` / boolean / record 列を kind つきで観測する。`undefined` と `null` は区別する |
+| wrapper の object identity | 対象外 | roadmap §13.3。model は node を生成しないので wrapper を作る API の同一性は観測できない。node を返す method の戻り値は `NodeId` で比べるので「返ってきたのは渡した node そのものか」は観測できる |
+| `Attr` の identity | 対象外 | `setAttributeNode` / `NamedNodeMap` / `InUseAttributeError` が要求する。attribute は element の状態なので object にならない |
 | `NodeFilter` の callback | 対象外 | roadmap §13.4。callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
 | WebIDL の TypeError | 近似 | `observe` の step 3-6、attribute の method の receiver が Element でない場合、`moveBefore` の receiver が ParentNode でない場合（`move-receiver-must-be-parentnode`）を `DOMException.typeError` で表す。名前は一致するが実際には `DOMException` ではない |
 

@@ -1914,6 +1914,49 @@ pair をまたぐ削除と挿入、offset 調整）と
     `docs/status.md` の finding 9 に続く、二件目の model 側の不具合である。
     固定 scenario は `transient-observer-chains-through-removals`。
 
+## 戻り値（object identity のうち観測できる部分）
+
+observation は `ok` / 例外 / 状態しか比べておらず、**method の戻り値を捨てていた**。
+`toggleAttribute` の `Bool` は model がすでに計算していたのに
+`applyOperation` が `Prod.fst` で落としていたし、
+`nextNode()` / `previousNode()` が返す node も `stepIterator` が捨てていた。
+つまり `toggleAttribute` の返り値も iterator の返り値も、
+全部間違っていても差分テストは通る状態だった。
+
+戻り値はどれも **操作前の状態と操作だけ** で決まるので、
+すでにあった `deliveredBy` と同じ形で `returnValueOf` を足した。
+`applyOperation` の型も `admissible_applyOperation` も
+`runOperations_no_violation` も変えていない。
+
+| 操作 | 戻り値 | 仕様 |
+| --- | --- | --- |
+| `appendChild` / `insertBefore` | 入れた node | pre-insert step 5 |
+| `replaceChild` / `removeChild` | 取り除いた側の child | replace step 11 / pre-remove step 3 |
+| `nextNode()` / `previousNode()` | traverse が返した node、端なら null | traverse step 6 |
+| `toggleAttribute` | attribute が結果として付いているか | toggleAttribute step 4-6 |
+| `takeRecords()` | 空にする前の record queue | takeRecords step 1-3 |
+| それ以外 | `undefined` | |
+
+観測には kind を添える。`null` を返すことと `undefined` を返すことは別で、
+`removeChild` が null を返したら不一致だが `remove()` が undefined を返すのは正しい。
+失敗した step には戻り値が無いので、その step では field ごと出さない。
+
+`Attr` の identity（`setAttributeNode`、`NamedNodeMap`、`InUseAttributeError`）は入れていない。
+attribute を element の状態から object に変える構造変更が要るわりに、対象 API が狭い。
+
+### node の identity
+
+harness は Dommy の object を `equal?` で id に引いている。
+`==` のフォールバックを外した。
+WHATWG の adopt は node を作り変えずに動かすので、
+wrapper が作り直されたら不一致になるべきである
+（Makiri は arena をまたいで node を移動できないため、Dommy はここを明示的に維持している）。
+
+固定 scenario は `return-values`。
+`toggleAttribute` の step 4-6 の四通り（attribute の有無 × force の有無）、
+collection の端で null を返す `nextNode()`、
+空にする前後の `takeRecords()`、`undefined` との区別を通す。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

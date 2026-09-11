@@ -122,6 +122,41 @@ def buildState (sc : Scenario) : Except String DOMState := do
   return s
 
 /--
+操作の戻り値。
+
+どれも **操作前の状態と操作だけ** で決まるので、`applyOperation` の型を変えずに済む
+（`deliveredBy` と同じ形）。失敗した step では使わない。
+
+IDL の戻り値は次のとおり。
+
+* `appendChild` / `insertBefore` — 入れた node（pre-insert step 5 が node を返す）
+* `replaceChild` / `removeChild` — 取り除いた側の child（replace step 11 / pre-remove step 3）
+* `nextNode()` / `previousNode()` — traverse が返した node、終端なら null
+* `toggleAttribute` — attribute が結果として付いているか
+* `takeRecords()` — 空にする前の record queue
+* それ以外 — `undefined`
+-/
+def returnValueOf (s : DOMState) : Operation → ReturnValue
+  | .appendChild _ n => .node (some ⟨n⟩)
+  | .insertBefore _ n _ => .node (some ⟨n⟩)
+  | .replaceChild _ _ c => .node (some ⟨c⟩)
+  | .removeChild _ n => .node (some ⟨n⟩)
+  | .iteratorNext i =>
+    .node (match s.iterators[i]? with
+           | none => none
+           | some it => (nextNode s.tree it).map Prod.fst)
+  | .iteratorPrevious i =>
+    .node (match s.iterators[i]? with
+           | none => none
+           | some it => (previousNode s.tree it).map Prod.fst)
+  | .toggleAttribute e qn f =>
+    match toggleAttribute s ⟨e⟩ qn f with
+    | .error _ => .unit
+    | .ok (_, b) => .bool b
+  | .takeRecords mo => .records (MutationObserver.takeRecords s mo).2
+  | _ => .unit
+
+/--
 その操作が microtask checkpoint なら、配送される record を返す。
 
 `notifyMutationObservers` は状態の純関数なので、操作を適用する前の状態から計算できる。
@@ -193,23 +228,24 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
     | .error e => ([.failed s e], none)
     | .ok s' =>
       let delivered := deliveredBy s op
-      if !s'.tree.checkWellFormed then ([.ok s' delivered], some (i, "wellFormed"))
+      let returned := returnValueOf s op
+      if !s'.tree.checkWellFormed then ([.ok s' delivered returned], some (i, "wellFormed"))
       else if !checkStructurallyValid s'.tree then
-        ([.ok s' delivered], some (i, "structurallyValid"))
+        ([.ok s' delivered returned], some (i, "structurallyValid"))
       else if !checkNodeDocumentsValid s'.tree then
-        ([.ok s' delivered], some (i, "nodeDocumentsValid"))
+        ([.ok s' delivered returned], some (i, "nodeDocumentsValid"))
       else if !checkDocumentTreesValid s'.tree then
-        ([.ok s' delivered], some (i, "documentTreesValid"))
+        ([.ok s' delivered returned], some (i, "documentTreesValid"))
       else if !checkRangeEndpointsValid s' then
-        ([.ok s' delivered], some (i, "rangeEndpointsValid"))
-      else if !checkIteratorsValid s' then ([.ok s' delivered], some (i, "iteratorsValid"))
+        ([.ok s' delivered returned], some (i, "rangeEndpointsValid"))
+      else if !checkIteratorsValid s' then ([.ok s' delivered returned], some (i, "iteratorsValid"))
       else if !checkObserverRegistrationsValid s' then
-        ([.ok s' delivered], some (i, "observerRegistrationsValid"))
+        ([.ok s' delivered returned], some (i, "observerRegistrationsValid"))
       else if !checkAttributesValid s'.tree then
-        ([.ok s' delivered], some (i, "attributesValid"))
+        ([.ok s' delivered returned], some (i, "attributesValid"))
       else
         let (rest, viol) := runOperations s' ops (i + 1)
-        (.ok s' delivered :: rest, viol)
+        (.ok s' delivered returned :: rest, viol)
 
 /-! ## scenario 全体の評価 -/
 

@@ -23,14 +23,18 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
 * NodeIterator の root / reference / pointer-before-reference flag
 * MutationObserver に積まれた record の列
 * microtask checkpoint で各 observer の callback に配送された record
+* 操作の **戻り値**（返す node、boolean、record の列）
 * 操作の成否と例外
 * 例外が起きた場合に状態が変わらないこと（`observe` に前の状態を渡すことで表す）
 
 ## 比較しない
 
 * store の表現（entry の並び、id の割り当て方）。`observe` は id の昇順に正規化する。
-* object identity。model は node を生成しないので wrapper の同一性は観測できない
-  （roadmap §13.3）。
+* object identity のうち wrapper そのもの。model は node を生成しないので
+  wrapper を作る API の同一性は観測できない（roadmap §13.3）。
+  node を返す method の戻り値は `NodeId` で比べるので、
+  「返ってきたのは渡した node そのものか」は観測できる。
+* `Attr` の identity。`setAttributeNode` と `NamedNodeMap` はそれを要求するので扱わない。
 * 文字列の内部表現。`data` は Lean の `String` として比べる。UTF-16 の code unit 境界は
   扱わない（roadmap §13.1）。
 * `Attr` node としての attribute。model の attribute は element の状態であり
@@ -63,6 +67,23 @@ inductive OperationResult where
   | failed (e : DOMException)
 deriving DecidableEq, Repr, Inhabited
 
+/--
+操作の戻り値。
+
+IDL が `undefined` を返す操作は `unit`。
+`Node?` を返す操作（`appendChild` / `insertBefore` / `replaceChild` / `removeChild` と
+`NodeIterator` の走査）は `node`、`toggleAttribute` は `bool`、
+`takeRecords` は `records` である。
+
+失敗した step には戻り値が無いので `unit` にする。
+-/
+inductive ReturnValue where
+  | unit
+  | node (n : Option NodeId)
+  | bool (b : Bool)
+  | records (rs : List MutationRecord)
+deriving DecidableEq, Repr, Inhabited
+
 /-- 一 step の観測。 -/
 structure Observation where
   nodes : List ObservedNode
@@ -72,6 +93,8 @@ structure Observation where
   records : List (List MutationRecord)
   /-- microtask checkpoint で callback に渡された record。配送が無い step では空。 -/
   delivered : List (Nat × List MutationRecord) := []
+  /-- 操作の戻り値。 -/
+  returned : ReturnValue := .unit
   result : OperationResult
 deriving DecidableEq, Repr, Inhabited
 
@@ -122,12 +145,14 @@ def observedNodes (s : DOMState) : List ObservedNode :=
 `s` に **操作前の状態** を渡して「変わっていないこと」も比較対象に含める。
 -/
 def observe (s : DOMState) (result : OperationResult)
-    (delivered : List (Nat × List MutationRecord) := []) : Observation where
+    (delivered : List (Nat × List MutationRecord) := [])
+    (returned : ReturnValue := .unit) : Observation where
   nodes := observedNodes s
   ranges := s.ranges
   iterators := s.iterators
   records := s.observers.map (·.records)
   delivered := delivered
+  returned := returned
   result := result
 
 /-! ## 観測は木を落とさないし、木に無いものを作らない -/

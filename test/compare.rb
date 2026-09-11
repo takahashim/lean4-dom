@@ -54,7 +54,8 @@ module Compare
       "ranges" => state["ranges"] || [],
       "iterators" => state["iterators"] || [],
       "observers" => state["observers"] || [],
-      "delivered" => state["delivered"] || []
+      "delivered" => state["delivered"] || [],
+      "returned" => state["returned"]
     }
   end
 
@@ -82,6 +83,9 @@ module Compare
     end
     if na["delivered"] != nb["delivered"]
       details << "  delivered: lean=#{na['delivered'].inspect} dommy=#{nb['delivered'].inspect}"
+    end
+    if na["returned"] != nb["returned"]
+      details << "  returned: lean=#{na['returned'].inspect} dommy=#{nb['returned'].inspect}"
     end
     details.join("\n")
   end

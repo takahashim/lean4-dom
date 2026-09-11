@@ -428,6 +428,20 @@ def recordJson (r : MutationRecord) : Json :=
     , ("oldValue", optStrJson r.oldValue) ]
 
 /--
+戻り値の外部表現。
+
+`kind` を添えるのは、`undefined` と `null` を返す操作を取り違えないためである
+（`removeChild` が null を返したら不一致、`remove()` が undefined を返すのは正しい）。
+-/
+def returnValueJson : ReturnValue → Json
+  | .unit => Json.mkObj [("kind", Json.str "undefined")]
+  | .node n => Json.mkObj [("kind", Json.str "node"), ("node", optNatJson n)]
+  | .bool b => Json.mkObj [("kind", Json.str "boolean"), ("value", Json.bool b)]
+  | .records rs =>
+    Json.mkObj [("kind", Json.str "records"),
+                ("records", Json.arr (rs.map recordJson).toArray)]
+
+/--
 `Observation` の外部表現。
 
 `result` は `ok` / `exception` として並べる。
@@ -439,7 +453,12 @@ def observationFields (o : Observation) : List (String × Json) :=
     match o.result with
     | .ok => [("ok", Json.bool true)]
     | .failed e => [("ok", Json.bool false), ("exception", Json.str e.name)]
-  resultFields ++
+  -- 失敗した操作に戻り値は無いので、その step では field ごと出さない。
+  let returnedFields : List (String × Json) :=
+    match o.result with
+    | .ok => [("returned", returnValueJson o.returned)]
+    | .failed _ => []
+  resultFields ++ returnedFields ++
     [ ("nodes", Json.arr (o.nodes.map observedNodeJson).toArray)
     , ("ranges", Json.arr (o.ranges.map rangeJson).toArray)
     , ("iterators", Json.arr (o.iterators.map iteratorJson).toArray)
@@ -454,7 +473,8 @@ def observationJson (o : Observation) : Json :=
 
 /-- 初期状態の観測。まだ操作していないので `ok` / `exception` は出さない。 -/
 def stateJson (s : DOMState) : Json :=
-  Json.mkObj ((observationFields (observe s .ok)).filter fun p => p.1 ≠ "ok")
+  Json.mkObj ((observationFields (observe s .ok)).filter fun p =>
+    p.1 ≠ "ok" && p.1 ≠ "returned")
 
 /--
 一 step の結果。
@@ -463,11 +483,11 @@ def stateJson (s : DOMState) : Json :=
 Dommy は木をその場で書き換えるので、失敗した操作が状態を変えていないことも比較対象になる。
 -/
 inductive StepResult where
-  | ok (s : DOMState) (delivered : List (Nat × List MutationRecord))
+  | ok (s : DOMState) (delivered : List (Nat × List MutationRecord)) (returned : ReturnValue)
   | failed (before : DOMState) (e : DOMException)
 
 def stepJson : StepResult → Json
-  | .ok s delivered => observationJson (observe s .ok delivered)
+  | .ok s delivered returned => observationJson (observe s .ok delivered returned)
   | .failed before e => observationJson (observe before (.failed e))
 
 end Dom.Exec

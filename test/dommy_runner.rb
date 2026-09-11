@@ -165,6 +165,27 @@ module DommyRunner
 
   module_function
 
+  # IDL の戻り値のうち、どの kind として比べるか。
+  #
+  # `undefined` と `null` を取り違えないよう kind を添える
+  # （`removeChild` が null を返したら不一致、`remove()` が undefined を返すのは正しい）。
+  NODE_RETURNING_OPS = %w[appendChild insertBefore replaceChild removeChild
+                          iteratorNext iteratorPrevious].freeze
+
+  def return_value_snapshot(objects, op, returned)
+    case op["op"]
+    when *NODE_RETURNING_OPS
+      { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
+    when "toggleAttribute"
+      { "kind" => "boolean", "value" => !!returned }
+    when "takeRecords"
+      { "kind" => "records",
+        "records" => (returned || []).to_a.map { |rec| record_snapshot(objects, rec) } }
+    else
+      { "kind" => "undefined" }
+    end
+  end
+
   # Dommy が「表現できない」と言ったものか。
   #
   # Ruby の UTF-8 String は lone surrogate を持てないので、`Dommy::Internal::Utf16`
@@ -191,11 +212,15 @@ module DommyRunner
   # DOM では node の同一性は観測可能なので、これ自体が不一致として報告される。
   UNKNOWN_NODE = "?"
 
+  # scenario が作った node のうち、`node` と **同一の object** のもの。
+  #
+  # `equal?` で引く。`==` に落とすと、adopt が wrapper を作り直しても気付けない
+  # （WHATWG の adopt は node を作り変えず、同じ node を動かす）。
+  # 同一のものが無ければ `UNKNOWN_NODE` で、比較は不一致になる。
   def node_id(objects, node)
     return nil if node.nil?
 
     objects.each { |id, obj| return id if obj.equal?(node) }
-    objects.each { |id, obj| return id if obj == node }
     UNKNOWN_NODE
   end
 
@@ -531,7 +556,7 @@ module DommyRunner
     (scenario["operations"] || []).each do |op|
       delivery_log.clear
       begin
-        apply(objects, op, iterators, ctx)
+        returned = apply(objects, op, iterators, ctx)
       rescue NotImplementedError, NoMethodError => e
         # この harness で比べられない step。理由を残しておくと、
         # harness の制約と Dommy の実装漏れを取り違えずに済む。
@@ -549,7 +574,8 @@ module DommyRunner
       end
       recs = observers.empty? ? nil : queued_records(objects, observers)
       steps << snapshot(objects, kinds, ranges, iterators, recs)
-               .merge("ok" => true, "delivered" => delivered_snapshot(delivery_log))
+               .merge("ok" => true, "delivered" => delivered_snapshot(delivery_log),
+                      "returned" => return_value_snapshot(objects, op, returned))
     end
     { "initial" => initial, "steps" => steps }
   end

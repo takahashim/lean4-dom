@@ -1,0 +1,132 @@
+{
+  "_note": "IDL の戻り値を固定する。`appendChild` / `insertBefore` は入れた node、`replaceChild` / `removeChild` は **取り除いた側** の child、`toggleAttribute` は attribute が結果として付いているか、`nextNode()` は traverse が返した node（collection の端なら null）、`takeRecords()` は空にする前の record queue である。`remove()` や `setAttribute` は undefined を返す。null を返すことと undefined を返すことは別なので、観測は kind を添えて区別する。`toggleAttribute` は step 4-6 の四通り（attribute の有無 × force の有無）をすべて通る。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "pre-insert",
+      "replace",
+      "pre-remove",
+      "toggleAttribute",
+      "NodeIterator.nextNode",
+      "MutationObserver.takeRecords"
+    ],
+    "steps": "pre-insert 5 / replace 11 / pre-remove 3 / toggleAttribute 4-6 / traverse 6",
+    "note": "戻り値は仕様が明示している観測対象である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "t"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "comment",
+      "data": "loose"
+    }
+  ],
+  "ranges": [],
+  "iterators": [
+    {
+      "root": 1,
+      "reference": 1,
+      "pointerBeforeReference": true,
+      "whatToShow": 1
+    }
+  ],
+  "observers": [
+    {
+      "target": 1,
+      "subtree": true,
+      "childList": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "appendChild",
+      "parent": 1,
+      "node": 4
+    },
+    {
+      "op": "replaceChild",
+      "parent": 1,
+      "node": 4,
+      "child": 2
+    },
+    {
+      "op": "removeChild",
+      "parent": 1,
+      "node": 3
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "a"
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "a"
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "b",
+      "force": false
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "b",
+      "force": true
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "b",
+      "force": true
+    },
+    {
+      "op": "setAttribute",
+      "element": 1,
+      "name": "c",
+      "value": "1"
+    },
+    {
+      "op": "iteratorNext",
+      "iterator": 0
+    },
+    {
+      "op": "iteratorNext",
+      "iterator": 0
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    },
+    {
+      "op": "remove",
+      "target": 4
+    }
+  ]
+}

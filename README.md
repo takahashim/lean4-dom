@@ -131,8 +131,8 @@ Lean 4 のみ。Mathlib も Batteries も使わない。
    トレーサビリティと差分テストで緩和しているが、仕様の読み違いは検出できない。
 2. 差分テストは **有限の生成 trace 上の観測の一致** であり、
    一般の observational equivalence ではない。
-3. 比較対象に入れていないものがある（object identity、lone surrogate、
-   MutationObserver の callback 本体、`Attr` node としての attribute、Shadow tree）。
+3. 比較対象に入れていないものがある（wrapper の object identity、lone surrogate、
+   MutationObserver の callback 本体、`Attr` の identity、Shadow tree）。
    `Dom/Observation.lean` に列挙してある。
 
 ## ライセンス
