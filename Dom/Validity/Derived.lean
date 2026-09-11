@@ -48,19 +48,24 @@ theorem AdmissibleDOMState.childCountKind {s : DOMState} (h : AdmissibleDOMState
 `NodeDocumentsValid` から同じ木の node は同じ node document を持つので、
 node document が違うという仮定と矛盾する。
 -/
-theorem AdmissibleDOMState.otherDocumentIteratorsOutside {s : DOMState}
-    (h : AdmissibleDOMState s) (n : NodeId) : OtherDocumentIteratorsOutside s n := by
-  intro it hit hne
+theorem otherDocumentIteratorsOutside_of {s : DOMState} (hwf : WellFormed s.tree)
+    (hnd : NodeDocumentsValid s.tree) (hit : IteratorsValid s) (n : NodeId) :
+    OtherDocumentIteratorsOutside s n := by
+  intro it hmem hne
   cases hb : isInclusiveAncestorOf s.tree n it.reference with
   | false => rfl
   | true =>
     exfalso
     have hanc : InclusiveAncestor s.tree n it.reference :=
-      (isInclusiveAncestorOf_iff h.wellFormed n it.reference).mp hb
-    have hroot : InclusiveAncestor s.tree it.root it.reference := (h.iterators it hit).2
+      (isInclusiveAncestorOf_iff hwf n it.reference).mp hb
+    have hroot : InclusiveAncestor s.tree it.root it.reference := (hit it hmem).2
     refine hne ?_
     rcases inclusive_ancestor_linear hroot hanc with hle | hle
-    · exact (h.nodeDocuments.ownerDocument_eq_of_inclusiveAncestor hle).symm
-    · exact h.nodeDocuments.ownerDocument_eq_of_inclusiveAncestor hle
+    · exact (hnd.ownerDocument_eq_of_inclusiveAncestor hle).symm
+    · exact hnd.ownerDocument_eq_of_inclusiveAncestor hle
+
+theorem AdmissibleDOMState.otherDocumentIteratorsOutside {s : DOMState}
+    (h : AdmissibleDOMState s) (n : NodeId) : OtherDocumentIteratorsOutside s n :=
+  otherDocumentIteratorsOutside_of h.wellFormed h.nodeDocuments h.iterators n
 
 end Dom

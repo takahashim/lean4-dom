@@ -231,10 +231,10 @@ def OtherDocumentIteratorsOutside (s : DOMState) (n : NodeId) : Prop :=
       isInclusiveAncestorOf s.tree n it.reference = false
 
 /-- PLAN §9.2。`remove` は iterator の reference を木の中かつ root の inclusive descendant に保つ。 -/
-theorem remove_preserves_iterators_valid {s s' : DOMState} {n p : NodeId}
+theorem remove_preserves_iterators_valid {s s' : DOMState} {n p : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p)
     (hv : IteratorsValid s) (hother : OtherDocumentIteratorsOutside s n)
-    (h : remove s n = .ok s') : IteratorsValid s' := by
+    (h : remove s n b = .ok s') : IteratorsValid s' := by
   have hd := (remove_ok h).2
   intro it hit
   rw [remove_iterators hp h] at hit

@@ -552,6 +552,32 @@ theorem move_moveValidity {s s' : DOMState} {node newParent : NodeId} {child : O
   · simp at h
   · next u hv => exact hv
 
+/-- `move` の後の iterator は、`remove` の後の iterator と同じである。 -/
+theorem move_iterators {s s' : DOMState} {node newParent : NodeId} {child : Option NodeId}
+    (h : move s node newParent child = .ok s') :
+    ∃ s₁, remove s node = .ok s₁ ∧ s'.iterators = s₁.iterators := by
+  unfold move at h
+  split at h
+  · simp at h
+  · split at h
+    · simp at h
+    · next p hp =>
+      split at h
+      · simp at h
+      · next sd hd =>
+        obtain ⟨s₁, hrm, _, _, hit⟩ := remove_eq_of_detach (b := false) hp hd
+        refine ⟨s₁, hrm, ?_⟩
+        simp only at h
+        split at h
+        · simp at h
+        · next s₂ hi =>
+          have he : s'.iterators = s₂.iterators := by
+            rw [← Except.ok.inj h]
+            simp only [queueTreeMutationRecord_iterators]
+            split <;> simp
+          rw [he, (DOMState.mapTree_eq_ok hi).2, DOMState.withTree_iterators,
+            liveRangeInsertAdjust_iterators, hit]
+
 /-- PLAN §6.3。`move` は well-formedness を保つ。 -/
 theorem move_preserves_wellformed {s s' : DOMState} {node newParent : NodeId}
     {child : Option NodeId} (hwf : WellFormed s.tree)

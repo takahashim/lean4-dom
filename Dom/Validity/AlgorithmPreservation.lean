@@ -2543,7 +2543,7 @@ theorem structurallyValid_replaceAll {s s' : DOMState} {node : Option NodeId} {p
       simpa using h₂
 
 theorem nodeDocumentsValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
-    (hwf : WellFormed s.tree) (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
+    (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
     (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
     (hnk : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document)
     (hdtf : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
