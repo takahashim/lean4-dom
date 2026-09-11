@@ -604,9 +604,6 @@ theorem run_valid (base : Option Url) :
   -- 第一段：url を変えない遷移と、失敗・即 ok の終端。
   all_goals
     (try (first
-      | (refine absurd heq ?_
-         simp [fail, hov]
-         done)
       | (refine ih ?_ u ?_
          all_goals (try constructor)
          all_goals (try url_simp_state)
