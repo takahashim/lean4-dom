@@ -8,6 +8,7 @@ import Url.Urlencoded
 import Url.UrlencodedRoundtrip
 import Url.Api
 import Url.Punycode
+import Url.Idna
 import Url.Invariant
 import Url.ApiValid
 import Url.SearchParams

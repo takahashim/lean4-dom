@@ -111,12 +111,14 @@ def Url.setPassword (u : Url) (v : String) : Url :=
   if u.cannotHaveCredentials then u else { u with password := userinfoEncode v }
 
 /-- §6.1 `host` setter。 -/
-def Url.setHost (u : Url) (v : String) : Url :=
-  if u.hasOpaquePath then u else (basicUrlParseOverride v u .host).getD u
+def Url.setHost (u : Url) (v : String)
+    (toAscii : List Char → Option String := asciiDomainToASCII) : Url :=
+  if u.hasOpaquePath then u else (basicUrlParseOverride v u .host toAscii).getD u
 
 /-- §6.1 `hostname` setter。 -/
-def Url.setHostname (u : Url) (v : String) : Url :=
-  if u.hasOpaquePath then u else (basicUrlParseOverride v u .hostname).getD u
+def Url.setHostname (u : Url) (v : String)
+    (toAscii : List Char → Option String := asciiDomainToASCII) : Url :=
+  if u.hasOpaquePath then u else (basicUrlParseOverride v u .hostname toAscii).getD u
 
 /-- §6.1 `port` setter。空文字列は port を消す。 -/
 def Url.setPort (u : Url) (v : String) : Url :=
@@ -150,7 +152,8 @@ def Url.setHash (u : Url) (v : String) : Url :=
       { u with fragment := some "" }
 
 /-- §6.1 `href` setter。base なしで parse し直す。失敗は例外（ここでは `none`）。 -/
-def Url.setHref (v : String) : Option Url := basicUrlParse v none
+def Url.setHref (v : String) (toAscii : List Char → Option String := asciiDomainToASCII) :
+    Option Url := basicUrlParse v none toAscii
 
 /-! ## 名前で引く -/
 
@@ -169,14 +172,15 @@ def Url.getAttr (u : Url) : String → Option String
   | _ => none
 
 /-- setter を属性名で引く。`href` だけは失敗しうるので、失敗したら元の record を返す。 -/
-def Url.setAttr (u : Url) (name v : String) : Option Url :=
+def Url.setAttr (u : Url) (name v : String)
+    (toAscii : List Char → Option String := asciiDomainToASCII) : Option Url :=
   match name with
-  | "href" => some ((Url.setHref v).getD u)
+  | "href" => some ((Url.setHref v toAscii).getD u)
   | "protocol" => some (u.setProtocol v)
   | "username" => some (u.setUsername v)
   | "password" => some (u.setPassword v)
-  | "host" => some (u.setHost v)
-  | "hostname" => some (u.setHostname v)
+  | "host" => some (u.setHost v toAscii)
+  | "hostname" => some (u.setHostname v toAscii)
   | "port" => some (u.setPort v)
   | "pathname" => some (u.setPathname v)
   | "search" => some (u.setSearch v)

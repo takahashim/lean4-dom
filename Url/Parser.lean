@@ -90,6 +90,14 @@ structure PCtx where
   passwordTokenSeen : Bool := false
   /-- state override。setter から呼ばれたときだけ `some`。 -/
   over : Option SOverride := none
+  /--
+  domain parser の ToASCII（UTS #46）。
+
+  仕様が別仕様へ委譲している hook なので、model も外から受け取る。
+  既定は `asciiDomainToASCII`（ASCII だけの domain について仕様どおりに振る舞う）。
+  実行時に本物の表を渡すとそれが使われる。
+  -/
+  toAscii : List Char → Option String := asciiDomainToASCII
 
 /--
 state の順位。停止性の測度の第一成分。
@@ -451,7 +459,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
         -- hostname setter は port を読まない。
         else if ctx.over == some .hostname then PResult.ok ctx.url
         else
-          match hostParser asciiDomainToASCII ctx.buffer (!special) with
+          match hostParser ctx.toAscii ctx.buffer (!special) with
           | none => fail ctx
           | some h =>
             let u := { ctx.url with host := some h }
@@ -462,7 +470,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
         else if ctx.over.isSome && ctx.buffer.isEmpty &&
             (ctx.url.includesCredentials || ctx.url.port.isSome) then PResult.ok ctx.url
         else
-          match hostParser asciiDomainToASCII ctx.buffer (!special) with
+          match hostParser ctx.toAscii ctx.buffer (!special) with
           | none => fail ctx
           | some h =>
             let u := { ctx.url with host := some h }
@@ -528,7 +536,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
           if ctx.over.isSome then PResult.ok u
           else run base .pathStart input { ctx with url := u }
         else
-          match hostParser asciiDomainToASCII ctx.buffer (!special) with
+          match hostParser ctx.toAscii ctx.buffer (!special) with
           | none => fail ctx
           | some h =>
             let h2 := if hostSerializer h == "localhost" then Host.empty else h
@@ -625,13 +633,14 @@ def preprocess (input : String) : List Char :=
   let l := input.toList.dropWhile isC0ControlOrSpace
   stripTabNewline (l.reverse.dropWhile isC0ControlOrSpace).reverse
 
-def basicUrlParse (input : String) (base : Option Url := none) : Option Url :=
+def basicUrlParse (input : String) (base : Option Url := none)
+    (toAscii : List Char → Option String := asciiDomainToASCII) : Option Url :=
   -- "start over" は高々一度。no scheme state から scheme start state へ戻る道は無い。
-  match run base .schemeStart (preprocess input) { url := {} } with
+  match run base .schemeStart (preprocess input) { url := {}, toAscii } with
   | .ok u => some u
   | .failure => none
   | .startOver =>
-    match run base .noScheme (preprocess input) { url := {} } with
+    match run base .noScheme (preprocess input) { url := {}, toAscii } with
     | .ok u => some u
     | _ => none
 
@@ -643,19 +652,22 @@ url と state override を与えた basic URL parser。setter だけが使う。
 override があると scheme state は "start over" せず失敗するので、
 ここでやり直しは要らない。
 -/
-def basicUrlParseOverride (input : String) (u : Url) (over : SOverride) : Option Url :=
-  match run none over.start (stripTabNewline input.toList) { url := u, over := some over } with
+def basicUrlParseOverride (input : String) (u : Url) (over : SOverride)
+    (toAscii : List Char → Option String := asciiDomainToASCII) : Option Url :=
+  match run none over.start (stripTabNewline input.toList)
+    { url := u, over := some over, toAscii } with
   | .ok u' => some u'
   | _ => none
 
 /-- `URL(url, base)` に当たる入口。失敗したら `none`。 -/
-def parseUrl (input : String) (base : Option String := none) : Option Url :=
+def parseUrl (input : String) (base : Option String := none)
+    (toAscii : List Char → Option String := asciiDomainToASCII) : Option Url :=
   match base with
-  | none => basicUrlParse input none
+  | none => basicUrlParse input none toAscii
   | some b =>
-    match basicUrlParse b none with
+    match basicUrlParse b none toAscii with
     | none => none
-    | some bu => basicUrlParse input (some bu)
+    | some bu => basicUrlParse input (some bu) toAscii
 
 /-! ## origin -/
 

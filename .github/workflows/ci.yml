@@ -56,6 +56,14 @@ jobs:
       - name: URL setters against WPT
         run: lake exe url-model --setters test/url/wpt-setters.json
 
+      # UTS #46 の表を渡すと、非 ASCII の host も対象に入る。
+      # 表は証明の中ではなく実行時の fixture で、`checkResolved` が仮定を検査する。
+      - name: URL against WPT with the UTS #46 table
+        run: lake exe url-model --wpt test/url/wpt-ascii.json test/url/uts46-table.json
+
+      - name: URL setters against WPT with the UTS #46 table
+        run: lake exe url-model --setters test/url/wpt-setters.json test/url/uts46-table.json
+
       # §6.2 の `sort` は WPT が配列リテラルで期待値を持っている。
       - name: URLSearchParams against WPT
         run: lake exe url-model --searchparams test/url/wpt-searchparams-sort.json

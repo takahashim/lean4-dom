@@ -141,7 +141,7 @@ RFC 3492 §7.1 の sample strings 19 件を、符号化と復号の両方で通�
 `decode (encode s) = s` は未着手である。19 件で往復することは確かめたが、
 適応バイアスを挟んだ双方向の対応を一般に示すのは `ValidUrl` の保存より重いと見ている。
 
-### 表は入れない
+### 表は証明の外に置く
 
 `domain parser` は Unicode の ToASCII（UTS #46）に委ねている。
 UTS #46 の残りは表に依存する。`IdnaMappingTable.txt` が 9,262 項目、
@@ -151,16 +151,43 @@ NFC の正準分解と結合クラスが約 4,500 項目、Joining_Type が 542�
 * ビルド時間が現実的でなくなる（いま一番重い証明が 113 case で 5 分である）
 * Unicode の版ごとに書き換えが要る
 
-一方で、それで閉じるのは WPT の 4 件と setter の 2 件だけである。
 表は規定データであって規則から導けるものではないので、Lean に導出させることもできない。
 `native_decide` で判定する手もあるが、`Lean.ofReduceBool` が入るので axiom 監査の方針に反する。
 
+そこで **算法は Lean に、表は実行時の fixture に** 置いた（`Url/Idna.lean`）。
+
+境界は `IdnaTable` である。
+
+```lean
+structure IdnaTable where
+  status : Char → IdnaStatus        -- valid / ignored / mapped / disallowed
+  mapped : Char → List Char
+  outOfModel : Char → Bool          -- 正規化・Bidi が要る code point の印
+
+def IdnaTable.Resolved (t : IdnaTable) : Prop :=
+  ∀ c, t.status c = .mapped → ∀ d ∈ t.mapped c, t.status d = .valid
+```
+
+`mapAll` / `labelToASCII` / `toASCII` は **どんな `IdnaTable` についても** 定義してあり、
+性質は `Resolved` を仮定して証明する。表そのものは証明に現れない。
+
+実行時は `tableOfRanges` が `IdnaRange` の配列（`test/url/uts46-table.json`、8,509 範囲）を
+二分探索する `IdnaTable` に変える。`checkResolved` がその配列について `Resolved` を確かめ、
+満たさなければ実行を止める。仮定はこうして実行時に検査される。
+
+`outOfModel` の印が付いた code point を含む domain では `toASCII` が `none` を返す。
+正規化（NFC）と Bidi 検査をこの model が持たないためで、
+「持っていない規則を持っているふりをしない」ようにしてある。
+
 仕様自身が別仕様へ委譲していること、この model の他の hook
 （custom element の steps、MutationObserver の callback、NodeFilter の callback）と
-同じ扱いであることから、`hostParser` は **ToASCII を引数で受け取る**。
+同じ扱いであることから、`hostParser` と basic URL parser は
+**ToASCII を引数で受け取る**（`PCtx.toAscii`）。既定は `asciiDomainToASCII` で、
+ASCII だけの domain は model 内で閉じる（UTS #46 の写像は ASCII では ASCII lowercase に
+一致し、Punycode も走らない）。表を渡したときだけ非 ASCII の domain が通る。
 
-ASCII だけの domain は `asciiDomainToASCII` が仕様どおりに振る舞う（UTS #46 の写像は
-ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、そちらは model 内で閉じる。
+`ValidUrl` の保存（113 case）は `toAscii` について一般に証明してある。
+`ValidUrl` は host の中身に条件を置かないので、hook を差し替えても保存は変わらない。
 
 ## 証明したもの
 
@@ -220,7 +247,19 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 WPT: 一致 816 / 不一致 0 / 対象外 4
 ```
 
-残る 4 件は percent-encode された非 ASCII host で UTS #46 が要るもの。
+残る 4 件は percent-encode された非 ASCII host で UTS #46 の表が要るものである。
+表を渡すとこの 4 件も対象に入る。
+
+```
+$ lake exe url-model --wpt test/url/wpt-ascii.json test/url/uts46-table.json
+UTS #46 の表: 8509 範囲、Resolved を満たす
+WPT: 一致 820 / 不一致 0 / 対象外 0
+ValidUrl: 違反 0
+origin: 一致 376 / 不一致 0
+```
+
+`Resolved` は `IdnaTable` の仮定（`mapAll_valid` などが使う）で、
+それを満たすことを読み込み時に確かめてから使う。満たさなければ実行を止める。
 
 **対象外かどうかは fixture の `out_of_model` が決める。実行結果から推測しない。**
 以前は「不一致 かつ 非 ASCII を含む かつ model が失敗した」を対象外に分類していたが、
@@ -255,6 +294,13 @@ ValidUrl（setter 後）: 違反 0
 
 対象外の 6 件（2 case × 3 属性）は host / hostname に `a%C2%ADb` を入れるもので、
 UTS #46 が soft hyphen を落とすことを期待している。こちらも `out_of_model` で明示する。
+表を渡すとこの 6 件も通る。setter も同じ hook を受け取るようにしてある。
+
+```
+$ lake exe url-model --setters test/url/wpt-setters.json test/url/uts46-table.json
+setters: 一致 705 / 不一致 0 / 対象外 0
+ValidUrl（setter 後）: 違反 0
+```
 
 `URLSearchParams`（§6.2）は、`sort` だけ WPT が
 `urlsearchparams-sort.any.js` に配列リテラルで期待値を持っている。
@@ -381,17 +427,12 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 
 ## 未着手
 
-* **残りの setter の `ValidUrl` 保存。** `protocol` / `host` / `hostname` /
-  非空の `port` / `pathname` は host や port や path を書くので、
-  `run_valid` の不変条件を override 付きに広げる必要がある。
-  いまの `PInv` は `over = none` を要求している。広げるときに要るのは
-
-  * override 付きでは authority state に入らないこと（credentials の緩めが不要になる）
-  * `host` / `fileHost` / `port` / `pathStart` / `path` state に override で入るのは
-    path が opaque でないときだけであること（setter 側の guard がそれを保証する）
-  * port state に override で入るのは host が決まっているときだけであること
-
-  実行時の検査は `--setters` の全 258 件で通っている（`ValidUrl（setter 後）: 違反 0`）。
-
-* **IDNA / UTS #46 そのもの。** 上記の理由で抽象化したままにする。
+* **`Punycode.decode (encode s) = s`。** 19 件で往復することは確かめたが、
+  適応バイアスを挟んだ双方向の対応を一般に示すのは `ValidUrl` の保存より重いと見ている。
+* **UTS #46 の写像表・NFC・Bidi。** 規定データなので `IdnaTable` の仮定に押し込み、
+  実行時の fixture から与える。`Resolved` は `checkResolved` が実行時に検査する。
+  `outOfModel` の印が付いた code point（結合クラス ≠ 0、NFC_QC ≠ Yes、
+  Bidi_Class ∈ {R, AL, AN}、Hangul、deviation）を含む domain は `none` を返す。
 * **encoding override。** HTML 由来の legacy 引数。UTF-8 に固定している。
+  34 の索引に 91,504 項目あり、UTS #46 の表と同じ理由で入れていない。
+  影響するのは query の符号化だけで、WPT の機械可読の表には `encoding` 欄が無い。

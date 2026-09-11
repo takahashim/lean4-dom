@@ -42,7 +42,51 @@ def caseOfJson (j : Json) : Except String Case := do
     | .error _ => pure none
   return { input, base, failure, href, origin, outOfModel }
 
-def runWpt (path : String) : IO UInt32 := do
+/-! ## UTS #46 の表 -/
+
+def idnaRangeOfJson (j : Json) : Except String IdnaRange := do
+  let arr ← j.getArr?
+  match arr.toList with
+  | loJ :: hiJ :: stJ :: oomJ :: rest =>
+    let lo ← loJ.getNat?
+    let hi ← hiJ.getNat?
+    let st ← stJ.getNat?
+    let oom ← oomJ.getNat?
+    let mapping ← match rest with
+      | [m] => do let ma ← m.getArr?; ma.toList.mapM (fun x => x.getNat?)
+      | _ => pure []
+    let status := match st with
+      | 0 => IdnaStatus.valid
+      | 1 => IdnaStatus.ignored
+      | 2 => IdnaStatus.mapped
+      | _ => IdnaStatus.disallowed
+    return { lo, hi, status, oom := oom != 0, mapping }
+  | _ => throw "範囲が 4 要素以上の配列ではない"
+
+/-- UTS #46 の表を読む。`Resolved` を実行時に確かめる。 -/
+def loadIdnaTable (path : String) : IO (Option (Array IdnaRange)) := do
+  let text ← IO.FS.readFile path
+  let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return none
+  let .ok rangesJson := json.getObjVal? "ranges"
+    | do IO.eprintln s!"{path}: `ranges` がない"; return none
+  let .ok arr := rangesJson.getArr? | do IO.eprintln s!"{path}: `ranges` が配列ではない"; return none
+  let mut rs : Array IdnaRange := #[]
+  for j in arr do
+    match idnaRangeOfJson j with
+    | .error e => IO.eprintln s!"範囲を読めない: {e}"; return none
+    | .ok r => rs := rs.push r
+  if !checkResolved rs then
+    IO.eprintln s!"{path}: 写像先が valid でない項がある（IdnaTable.Resolved を満たさない）"
+    return none
+  IO.println s!"UTS #46 の表: {rs.size} 範囲、Resolved を満たす"
+  return some rs
+
+/-- 表があればそれを使う ToASCII、無ければ ASCII だけの既定。 -/
+def toAsciiOf : Option (Array IdnaRange) → (List Char → Option String)
+  | none => asciiDomainToASCII
+  | some rs => toASCII (tableOfRanges rs)
+
+def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
   let text ← IO.FS.readFile path
   let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
   let .ok casesJson := json.getObjVal? "cases"
@@ -60,11 +104,11 @@ def runWpt (path : String) : IO UInt32 := do
     match caseOfJson j with
     | .error e => IO.eprintln s!"case を読めない: {e}"; bad := bad + 1
     | .ok c =>
-      let got := parseUrl c.input c.base
+      let got := parseUrl c.input c.base (toAsciiOf idna)
       let expected : Option String := if c.failure then none else c.href
       let actual : Option String := got.map (fun u => urlSerializer u)
-      -- parse が成功したなら、結果の record は `ValidUrl` を満たすはずである
-      -- （証明は未着手。`docs/url-status.md`）。DOM 側の `--check` と同じ役割。
+      -- parse が成功したなら、結果の record は `ValidUrl` を満たす（`basicUrlParse_valid`）。
+      -- 証明は付いたが、実装と証明が同じ定義を見ていることの検査として走らせ続ける。
       match got with
       | some u =>
         if !checkValidUrl u then
@@ -85,7 +129,8 @@ def runWpt (path : String) : IO UInt32 := do
       | _, _ => pure ()
       -- 対象外かどうかは fixture が明示する。実行結果から推測しない
       -- （推測にすると、対象外でない case の退行が対象外に吸収されてしまう）。
-      match c.outOfModel with
+      -- 表を渡したときは IDNA の印を無視して一致を要求する。
+      match (if idna.isSome then none else c.outOfModel) with
       | some reason =>
         if actual == expected then
           stale := stale + 1
@@ -137,7 +182,7 @@ WPT の `setters_tests.json`（ASCII だけの 258 件）を通す。
 各 case は「この URL を parse し、この setter にこの値を入れ、
 各 IDL 属性がこうなる」という形。`href` が parse できることも一緒に確かめる。
 -/
-def runSetters (path : String) : IO UInt32 := do
+def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
   let text ← IO.FS.readFile path
   let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
   let .ok casesJson := json.getObjVal? "cases"
@@ -153,17 +198,17 @@ def runSetters (path : String) : IO UInt32 := do
     match setterCaseOfJson j with
     | .error e => IO.eprintln s!"case を読めない: {e}"; bad := bad + 1
     | .ok c =>
-      match parseUrl c.href none with
+      match parseUrl c.href none (toAsciiOf idna) with
       | none =>
         bad := bad + 1
         IO.println s!"SETTER base を parse できない href={repr c.href}"
       | some u0 =>
-        match u0.setAttr c.setter c.newValue with
+        match u0.setAttr c.setter c.newValue (toAsciiOf idna) with
         | none =>
           bad := bad + 1
           IO.println s!"SETTER 未知の setter {repr c.setter}"
         | some u =>
-          -- setter を通した後も record は `ValidUrl` を満たすはずである。
+          -- setter を通した後も record は `ValidUrl` を満たす（`setAttr_valid`）。
           if !checkValidUrl u then
             invalid := invalid + 1
             IO.println s!"INVALID setter={c.setter} href={repr c.href} value={repr c.newValue}"
@@ -179,7 +224,7 @@ def runSetters (path : String) : IO UInt32 := do
                 ok := ok + 1
               else
                 anyMismatch := true
-                match c.outOfModel with
+                match (if idna.isSome then none else c.outOfModel) with
                 | some _ => skipped := skipped + 1
                 | none =>
                   bad := bad + 1
@@ -187,7 +232,7 @@ def runSetters (path : String) : IO UInt32 := do
                     shown := shown + 1
                     IO.println s!"SETTER {c.setter} href={repr c.href} value={repr c.newValue}"
                     IO.println s!"  {name}: expected={repr want} actual={repr got}"
-          match c.outOfModel with
+          match (if idna.isSome then none else c.outOfModel) with
           | some reason =>
             if !anyMismatch then
               stale := stale + 1
@@ -382,13 +427,21 @@ def runUrlencoded : IO UInt32 := do
 def main (args : List String) : IO UInt32 := do
   match args with
   | ["--wpt", path] => do
-    let a ← runWpt path
+    let a ← runWpt path none
     let b ← runUrlencoded
     return if a == 0 && b == 0 then 0 else 1
-  | ["--setters", path] => runSetters path
+  | ["--wpt", path, tablePath] => do
+    match ← loadIdnaTable tablePath with
+    | none => return 1
+    | some rs => runWpt path (some rs)
+  | ["--setters", path] => runSetters path none
+  | ["--setters", path, tablePath] => do
+    match ← loadIdnaTable tablePath with
+    | none => return 1
+    | some rs => runSetters path (some rs)
   | ["--searchparams", path] => runSearchParams path
   | ["--punycode", path] => runPunycode path
   | ["--urlencoded"] => runUrlencoded
   | _ =>
-    IO.println "usage: url-model --wpt FILE | --setters FILE | --searchparams FILE | --punycode FILE | --urlencoded"
+    IO.println "usage: url-model --wpt FILE [UTS46] | --setters FILE [UTS46] | --searchparams FILE | --punycode FILE | --urlencoded"
     return 1

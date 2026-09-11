@@ -657,19 +657,22 @@ theorem run_valid (base : Option Url) :
 `basicUrlParse` が state machine を回し始める二か所（scheme start state と、
 "start over" した後の no scheme state）がこれに当たる。
 -/
-theorem PInv_empty {base : Option Url} {st : PState} (hb : ∀ b, base = some b → ValidUrl b)
+theorem PInv_empty {base : Option Url} {st : PState}
+    {toAscii : List Char → Option String} (hb : ∀ b, base = some b → ValidUrl b)
     (h1 : usesBasePath st = false) (h2 : st ≠ .port) :
-    PInv base st { url := {} } := by
+    PInv base st { url := {}, toAscii } := by
   refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp_all [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort]
 
-theorem PInv_schemeStart {base : Option Url} (hb : ∀ b, base = some b → ValidUrl b) :
-    PInv base .schemeStart { url := {} } :=
+theorem PInv_schemeStart {base : Option Url} {toAscii : List Char → Option String}
+    (hb : ∀ b, base = some b → ValidUrl b) :
+    PInv base .schemeStart { url := {}, toAscii } :=
   PInv_empty hb (by decide) (by decide)
 
-theorem PInv_noScheme {base : Option Url} (hb : ∀ b, base = some b → ValidUrl b) :
-    PInv base .noScheme { url := {} } :=
+theorem PInv_noScheme {base : Option Url} {toAscii : List Char → Option String}
+    (hb : ∀ b, base = some b → ValidUrl b) :
+    PInv base .noScheme { url := {}, toAscii } :=
   PInv_empty hb (by decide) (by decide)
 
 /--
@@ -681,8 +684,9 @@ theorem PInv_noScheme {base : Option Url} (hb : ∀ b, base = some b → ValidUr
 theorem basicUrlParse_valid_of_step
     (hstep : ∀ (base : Option Url) (st : PState) (input : List Char) (ctx : PCtx),
       PInv base st ctx → ∀ u, run base st input ctx = .ok u → ValidUrl u)
-    {input : String} {base : Option Url} (hb : ∀ b, base = some b → ValidUrl b)
-    {u : Url} (h : basicUrlParse input base = some u) : ValidUrl u := by
+    {input : String} {base : Option Url} {toAscii : List Char → Option String}
+    (hb : ∀ b, base = some b → ValidUrl b)
+    {u : Url} (h : basicUrlParse input base toAscii = some u) : ValidUrl u := by
   unfold basicUrlParse at h
   split at h
   · next u' he => exact Option.some.inj h ▸ hstep _ _ _ _ (PInv_schemeStart hb) u' he
@@ -698,13 +702,15 @@ base が妥当なら、parse が成功したときの URL record は §4.1 の�
 `checkValidUrl` を WPT の全 case で走らせていたものが、これで証明になった。
 -/
 theorem basicUrlParse_valid {input : String} {base : Option Url}
+    {toAscii : List Char → Option String}
     (hb : ∀ b, base = some b → ValidUrl b) {u : Url}
-    (h : basicUrlParse input base = some u) : ValidUrl u :=
+    (h : basicUrlParse input base toAscii = some u) : ValidUrl u :=
   basicUrlParse_valid_of_step (fun b st i c hi u' he => run_valid b st i c hi u' he) hb h
 
 /-- `URL(url, base)` の入口についても同じ。base も parse で作るので妥当である。 -/
-theorem parseUrl_valid {input : String} {base : Option String} {u : Url}
-    (h : parseUrl input base = some u) : ValidUrl u := by
+theorem parseUrl_valid {input : String} {base : Option String}
+    {toAscii : List Char → Option String} {u : Url}
+    (h : parseUrl input base toAscii = some u) : ValidUrl u := by
   unfold parseUrl at h
   split at h
   · exact basicUrlParse_valid (fun b hb => absurd hb (by simp)) h

@@ -209,6 +209,16 @@ open Dom.Audit
   Url.Punycode.decodeDigits_length
   Url.Punycode.encode_ascii
 
+-- UTS #46 ToASCII（表は仮定 `IdnaTable.Resolved` に押し込んである）
+#audit_axioms
+  Url.mapAll_valid
+  Url.mapAll_idempotent
+  Url.labelToASCII_ascii
+  Url.asciiDomainCheck_ne_empty
+  Url.asciiDomainCheck_no_forbidden
+  Url.toASCII_ne_empty
+  Url.toASCII_no_forbidden
+
 -- UTF-8 の往復（Infra）
 #audit_axioms
   Infra.lor_add

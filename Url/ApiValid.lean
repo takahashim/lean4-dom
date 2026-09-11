@@ -432,13 +432,14 @@ theorem setProtocol_valid {u : Url} (h : ValidUrl u) (v : String) :
     · simp at he
 
 /-- **`host` setter は `ValidUrl` を保つ。** -/
-theorem setHost_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.setHost v) := by
+theorem setHost_valid {u : Url} (h : ValidUrl u) (v : String)
+    (toAscii : List Char → Option String) : ValidUrl (u.setHost v toAscii) := by
   unfold Url.setHost
   split
   · exact h
   · next hop =>
     have ho : u.hasOpaquePath = false := by simpa using hop
-    cases he : basicUrlParseOverride v u .host with
+    cases he : basicUrlParseOverride v u .host toAscii with
     | none => simpa [he] using h
     | some u' =>
       simp only [he, Option.getD_some]
@@ -450,14 +451,14 @@ theorem setHost_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.setH
       · simp at he
 
 /-- **`hostname` setter は `ValidUrl` を保つ。** -/
-theorem setHostname_valid {u : Url} (h : ValidUrl u) (v : String) :
-    ValidUrl (u.setHostname v) := by
+theorem setHostname_valid {u : Url} (h : ValidUrl u) (v : String)
+    (toAscii : List Char → Option String) : ValidUrl (u.setHostname v toAscii) := by
   unfold Url.setHostname
   split
   · exact h
   · next hop =>
     have ho : u.hasOpaquePath = false := by simpa using hop
-    cases he : basicUrlParseOverride v u .hostname with
+    cases he : basicUrlParseOverride v u .hostname toAscii with
     | none => simpa [he] using h
     | some u' =>
       simp only [he, Option.getD_some]
@@ -517,14 +518,15 @@ theorem setPathname_valid {u : Url} (h : ValidUrl u) (v : String) :
       · simp at he
 
 /-- **どの IDL setter も `ValidUrl` を保つ。** -/
-theorem setAttr_valid {u : Url} (h : ValidUrl u) (name v : String) (u' : Url)
-    (hs : u.setAttr name v = some u') : ValidUrl u' := by
+theorem setAttr_valid {u : Url} (h : ValidUrl u) (name v : String)
+    (toAscii : List Char → Option String) (u' : Url)
+    (hs : u.setAttr name v toAscii = some u') : ValidUrl u' := by
   unfold Url.setAttr at hs
   split at hs
   · -- href は base 無しで parse し直す
     rw [← Option.some.inj hs]
     unfold Url.setHref
-    cases hp : basicUrlParse v none with
+    cases hp : basicUrlParse v none toAscii with
     | none => simpa [hp] using h
     | some w =>
       simp only [hp, Option.getD_some]
@@ -532,8 +534,8 @@ theorem setAttr_valid {u : Url} (h : ValidUrl u) (name v : String) (u' : Url)
   · rw [← Option.some.inj hs]; exact setProtocol_valid h v
   · rw [← Option.some.inj hs]; exact setUsername_valid h v
   · rw [← Option.some.inj hs]; exact setPassword_valid h v
-  · rw [← Option.some.inj hs]; exact setHost_valid h v
-  · rw [← Option.some.inj hs]; exact setHostname_valid h v
+  · rw [← Option.some.inj hs]; exact setHost_valid h v toAscii
+  · rw [← Option.some.inj hs]; exact setHostname_valid h v toAscii
   · rw [← Option.some.inj hs]; exact setPort_valid h v
   · rw [← Option.some.inj hs]; exact setPathname_valid h v
   · rw [← Option.some.inj hs]; exact setSearch_valid h v
