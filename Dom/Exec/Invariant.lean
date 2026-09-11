@@ -8,8 +8,8 @@ import Dom.Validity.Admissible
 `runOperations_never_reports_invariant_violation`。
 
 `Dom/Exec/Scenario.lean` の `runOperations` は各 step の後に
-`AdmissibleDOMState` の六つの成分を実行時に検査し、
-破れていればその step 番号を返す。
+`AdmissibleDOMState` の七つの成分を実行時に検査し、
+破れていればその step 番号と成分の名前を返す。
 
 `Dom/Validity/Admissible.lean` の preservation 定理から、
 初期状態が admissible なら **この検査は決して発火しない**ことが従う。

@@ -26,8 +26,8 @@ MutationObserver の登録の整合性。
 * registration が指す observer は `observers` の範囲内にある。
 * registration が指す node は木の中にある。
 
-配送を扱わないので transient registration は消えないが、
-指す先が壊れていないことはここで要求する。
+transient registration は配送（"notify mutation observers" step 5）まで残るので、
+その間も指す先が壊れていないことをここで要求する。
 -/
 def ObserverRegistrationsValid (s : DOMState) : Prop :=
   ∀ r ∈ s.registrations, r.observer < s.observers.length ∧ (s.tree.get? r.node).isSome

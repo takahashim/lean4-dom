@@ -1,18 +1,59 @@
 {
+  "_note": "\"queue a mutation record\" step 2.3.3 は条件を満たす registration を **すべて** 回り、old value を要求するものがあれば interestedObservers[mo] に oldValue を入れる。observer 0 は node 2 に characterDataOldValue 無しの registration を持ち、node 1 に characterDataOldValue 付きの registration を持つので、record の oldValue は \"t5\" になる。探索が最初に当たった registration だけを見ると null になる（`docs/status.md` の finding 22）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "queue a mutation record",
+      "observe",
+      "replace data"
+    ],
+    "steps": "queue a mutation record 2.3.3 / observe 7 / replace data 4",
+    "note": "oldValue は registration 単位ではなく observer 単位で決まる。"
+  },
   "nodes": [
-    { "id": 0, "kind": "document" },
-    { "id": 1, "kind": "element", "parent": 0 },
-    { "id": 2, "kind": "text", "parent": 1, "data": "t5" }
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "t5"
+    }
   ],
   "ranges": [],
   "iterators": [],
   "observers": [
-    { "target": 2, "subtree": false, "characterData": true, "characterDataOldValue": false }
+    {
+      "target": 2,
+      "subtree": false,
+      "characterData": true,
+      "characterDataOldValue": false
+    }
   ],
   "operations": [
-    { "op": "observe", "observer": 0, "target": 1, "subtree": true,
-      "characterData": true, "characterDataOldValue": true },
-    { "op": "appendData", "node": 2, "data": "yz" },
-    { "op": "notify" }
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 1,
+      "subtree": true,
+      "characterData": true,
+      "characterDataOldValue": true
+    },
+    {
+      "op": "appendData",
+      "node": 2,
+      "data": "yz"
+    },
+    {
+      "op": "notify"
+    }
   ]
 }

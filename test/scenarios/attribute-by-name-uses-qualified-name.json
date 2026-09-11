@@ -1,18 +1,57 @@
 {
+  "_note": "§4.9 の by-name の一族（`getAttribute` / `setAttribute` / `removeAttribute` / `hasAttribute` / `toggleAttribute`）は attribute を **qualified name** で同定する。`xml:b` の qualified name は \"xml:b\" なので、element は \"b\" という attribute を持たない。したがって toggleAttribute(\"b\") は追加して true を返し、setAttribute(\"b\", \"zz\") は `xml:b` を書き換えずに二つ目を足し、removeAttribute(\"b\") はその二つ目だけを外す。local name で引くと三つとも `xml:b` に当たる（`docs/status.md` の finding 24）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "get an attribute by name",
+      "setAttribute",
+      "toggleAttribute",
+      "remove an attribute by name",
+      "append an attribute",
+      "remove an attribute"
+    ],
+    "steps": "get an attribute by name 2 / setAttribute 4-7 / toggleAttribute 3-4 / remove an attribute by name 1-2",
+    "note": "qualified name と local name が食い違うのは prefix が付いているときである。"
+  },
   "nodes": [
-    { "id": 0, "kind": "document" },
-    { "id": 1, "kind": "element", "parent": 0,
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
       "attributes": [
-        { "namespace": "http://www.w3.org/XML/1998/namespace", "prefix": "xml",
-          "localName": "b", "value": "vv" }
-      ] }
+        {
+          "namespace": "http://www.w3.org/XML/1998/namespace",
+          "prefix": "xml",
+          "localName": "b",
+          "value": "vv"
+        }
+      ]
+    }
   ],
   "ranges": [],
   "iterators": [],
   "observers": [],
   "operations": [
-    { "op": "toggleAttribute", "element": 1, "name": "b" },
-    { "op": "setAttribute", "element": 1, "name": "b", "value": "zz" },
-    { "op": "removeAttribute", "element": 1, "name": "b" }
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "b"
+    },
+    {
+      "op": "setAttribute",
+      "element": 1,
+      "name": "b",
+      "value": "zz"
+    },
+    {
+      "op": "removeAttribute",
+      "element": 1,
+      "name": "b"
+    }
   ]
 }

@@ -19,8 +19,8 @@ theorem checkAdmissibleDOMState_iff (s : DOMState) :
     checkAdmissibleDOMState s = true ↔ AdmissibleDOMState s
 ```
 
-`AdmissibleDOMState` は六つの成分（構造・node document・Document の children・
-Range の端点・NodeIterator・observer registration）の連言である。
+`AdmissibleDOMState` は七つの成分（構造・node document・Document の children・
+Range の端点・NodeIterator・observer registration・attribute list）の連言である。
 boolean の checker と `Prop` が一致するので、
 evaluator は実行時に同じ条件を検査できる。
 
@@ -161,7 +161,7 @@ theorem runOperations_no_violation :
       AdmissibleDOMState s → (runOperations s ops i).2 = none
 ```
 
-evaluator は各 step の後で `AdmissibleDOMState` の六成分を実行時に検査する。
+evaluator は各 step の後で `AdmissibleDOMState` の七成分を実行時に検査する。
 admissible な初期状態から始めれば、この検査は決して発火しない。
 `invariantViolation` が出たら harness 側の誤りである。
 

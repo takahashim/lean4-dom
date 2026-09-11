@@ -1,18 +1,63 @@
 {
+  "_note": "外された node に付く transient registered observer は、その node の registered observer list の 末尾に足される（remove step 20）。したがって、その node に元から付いていた registration より後に来る。ここでは node 2 自身の registration（observer 1）が先、node 1 の subtree observer から来た transient（observer 0）が後になる。observer の生成順で並べると逆になる（`docs/status.md` の finding 20）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "remove",
+      "queue a mutation record",
+      "notify mutation observers"
+    ],
+    "steps": "remove 20 / queue a mutation record 2 / notify mutation observers 5",
+    "note": "inclusive ancestor の walk と、各 node の registered observer list の順で配送順が決まる。"
+  },
   "nodes": [
-    { "id": 0, "kind": "document" },
-    { "id": 1, "kind": "element", "parent": 0 },
-    { "id": 2, "kind": "comment", "parent": 1, "data": "t" }
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "comment",
+      "parent": 1,
+      "data": "t"
+    }
   ],
   "ranges": [],
   "iterators": [],
   "observers": [
-    { "target": 1, "subtree": true,  "childList": false, "characterData": true, "characterDataOldValue": true },
-    { "target": 2, "subtree": false, "childList": true,  "characterData": true, "characterDataOldValue": true }
+    {
+      "target": 1,
+      "subtree": true,
+      "childList": false,
+      "characterData": true,
+      "characterDataOldValue": true
+    },
+    {
+      "target": 2,
+      "subtree": false,
+      "childList": true,
+      "characterData": true,
+      "characterDataOldValue": true
+    }
   ],
   "operations": [
-    { "op": "remove", "target": 2 },
-    { "op": "appendData", "node": 2, "data": "yz" },
-    { "op": "notify" }
+    {
+      "op": "remove",
+      "target": 2
+    },
+    {
+      "op": "appendData",
+      "node": 2,
+      "data": "yz"
+    },
+    {
+      "op": "notify"
+    }
   ]
 }

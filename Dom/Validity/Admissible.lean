@@ -8,10 +8,11 @@ import Dom.Observer.Deliver
 `notes/research-foundation-roadmap.md` Phase A の完了条件
 「全対象 operation の `preserves_admissible`」。
 
-六つの成分のうち木に関する三つ（`Dom/Validity/AlgorithmPreservation.lean`）、
+七つの成分のうち木に関する三つ（`Dom/Validity/AlgorithmPreservation.lean`）、
 iterator（`Dom/Validity/Iterators.lean`）、
-observer registration（`Dom/Validity/Observers.lean`）は個別に示してある。
-ここでは残る range の端点を埋めてから、六つをまとめる。
+observer registration（`Dom/Validity/Observers.lean`）、
+attribute（`Dom/Validity/Attributes.lean`）は個別に示してある。
+ここでは残る range の端点を埋めてから、七つをまとめる。
 
 `ChildCountKind`（node length が children の個数であること）は
 `StructurallyValid` から出る（`Dom/Validity/Derived.lean`）ので、

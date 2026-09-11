@@ -1726,8 +1726,12 @@ public API の保存は `admissible_setAttribute` / `_setAttributeNS` / `_remove
 
 ### 一致状況
 
-固定 scenario 41 本（うち `move-receiver-must-be-parentnode` は model 固有で比較対象外）と、
+固定 scenario 41 本（うち `move-receiver-must-be-parentnode` は IDL 由来の検査を固定する
+scenario で、Dommy 側は `NoMethodError` になるため比較対象外）と、
 生成 scenario 2000 本（seed 10 個 × 200 本、`--observers 3 --move`）で不一致ゼロ。
+
+`DOMException` に `typeError` が入ったので、`moveBefore` の receiver が `ParentNode` で
+ないときの例外を HierarchyRequestError の代用から本来の TypeError に直した。
 
 ## 未着手
 

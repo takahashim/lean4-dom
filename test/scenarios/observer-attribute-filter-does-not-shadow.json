@@ -1,17 +1,61 @@
 {
+  "_note": "attributeFilter は \"queue a mutation record\" step 2.3 の条件の一部（三つ目の bullet）であって、observer 単位の後置きの絞り込みではない。observer 0 は node 2 に attributeFilter [\"a\"] の registration を持ち、node 1 に filter 無しの registration を持つので、attribute \"b\" の変更でも record が積まれる（`docs/status.md` の finding 23）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "queue a mutation record",
+      "observe",
+      "setAttribute",
+      "handle attribute changes"
+    ],
+    "steps": "queue a mutation record 2.3 / observe 5, 7 / setAttribute 6-7 / handle attribute changes 1",
+    "note": "filter がこの attribute を含まない registration が、含む registration を隠さないこと。"
+  },
   "nodes": [
-    { "id": 0, "kind": "document" },
-    { "id": 1, "kind": "element", "parent": 0 },
-    { "id": 2, "kind": "element", "parent": 1 }
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    }
   ],
   "ranges": [],
   "iterators": [],
   "observers": [
-    { "target": 2, "subtree": false, "attributes": true, "attributeFilter": ["a"] }
+    {
+      "target": 2,
+      "subtree": false,
+      "attributes": true,
+      "attributeFilter": [
+        "a"
+      ]
+    }
   ],
   "operations": [
-    { "op": "observe", "observer": 0, "target": 1, "subtree": true, "attributes": true },
-    { "op": "setAttribute", "element": 2, "name": "b", "value": "1" },
-    { "op": "notify" }
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 1,
+      "subtree": true,
+      "attributes": true
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "b",
+      "value": "1"
+    },
+    {
+      "op": "notify"
+    }
   ]
 }

@@ -1,17 +1,60 @@
 {
+  "_note": "\"queue a mutation record\" step 2.3 は registration ごとに scope と record type を同時に見る。observer 0 は node 2 に childList だけの registration を持ち、node 1 に subtree + characterData の registration を持つ。前者はこの characterData を求めていないので、後者を隠してはならない（`docs/status.md` の finding 21）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "queue a mutation record",
+      "observe"
+    ],
+    "steps": "queue a mutation record 2.3 / observe 7",
+    "note": "一つの observer が同じ木に二度登録している場合の step 2.3。"
+  },
   "nodes": [
-    { "id": 0, "kind": "document" },
-    { "id": 1, "kind": "element", "parent": 0 },
-    { "id": 2, "kind": "text", "parent": 1, "data": "t5" }
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "t5"
+    }
   ],
   "ranges": [],
   "iterators": [],
   "observers": [
-    { "target": 2, "subtree": false, "childList": true, "characterData": false, "characterDataOldValue": false }
+    {
+      "target": 2,
+      "subtree": false,
+      "childList": true,
+      "characterData": false,
+      "characterDataOldValue": false
+    }
   ],
   "operations": [
-    { "op": "observe", "observer": 0, "target": 1, "subtree": true, "childList": false, "characterData": true, "characterDataOldValue": false },
-    { "op": "setData", "node": 2, "data": "rstu" },
-    { "op": "notify" }
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 1,
+      "subtree": true,
+      "childList": false,
+      "characterData": true,
+      "characterDataOldValue": false
+    },
+    {
+      "op": "setData",
+      "node": 2,
+      "data": "rstu"
+    },
+    {
+      "op": "notify"
+    }
   ]
 }

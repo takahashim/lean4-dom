@@ -26,8 +26,9 @@ theorem Dom.Exec.run_preserves_admissibility :
       AdmissibleDOMState s → run s ops = .ok s' → AdmissibleDOMState s'
 ```
 
-`AdmissibleDOMState` は六つの成分の連言である。木の構造、node document、
-Document の children の制約、live Range の端点、NodeIterator、observer registration。
+`AdmissibleDOMState` は七つの成分の連言である。木の構造、node document、
+Document の children の制約、live Range の端点、NodeIterator、observer registration、
+element の attribute list。
 `checkAdmissibleDOMState_iff` により boolean の checker と一致するので、
 evaluator は実行時に同じ条件を検査できる。
 
@@ -39,7 +40,7 @@ theorem Dom.Exec.runOperations_no_violation :
       AdmissibleDOMState s → (runOperations s ops i).2 = none
 ```
 
-evaluator は各 step の後で六成分を実行時に検査する。
+evaluator は各 step の後で七成分を実行時に検査する。
 admissible な初期状態から始めればこの検査は決して発火しない。
 `invariantViolation` が出たら model の algorithm ではなく harness を疑えばよい。
 

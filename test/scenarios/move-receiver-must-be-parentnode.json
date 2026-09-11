@@ -1,5 +1,5 @@
 {
-  "_note": "moveBefore の receiver は IDL により ParentNode に限られる。move algorithm の step 1-6 にはこの検査が無いので、model は API の側で表す。実際の DOM では Text に moveBefore という method がそもそも無く、呼ぶと DOMException ではなく WebIDL の TypeError になる。model の DOMException には TypeError が無いので HierarchyRequestError で近似している。この step は差分比較できない（Dommy 側は NoMethodError になり harness が skip する）。",
+  "_note": "moveBefore の receiver は IDL により ParentNode に限られる。move algorithm の step 1-6 にはこの検査が無いので、model は API の側で表す。実際の DOM では Text に moveBefore という method がそもそも無く、呼ぶと DOMException ではなく WebIDL の TypeError になるので、model も TypeError を返す。この step は差分比較できない（Dommy 側は NoMethodError になり harness が skip する）。",
   "_basis": {
     "kind": "model",
     "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
@@ -7,7 +7,7 @@
       "moveBefore"
     ],
     "steps": "IDL",
-    "note": "model 固有の近似を固定する scenario。差分比較の対象ではない。",
+    "note": "IDL 由来の検査を固定する scenario。差分比較の対象ではない。",
     "comparable": false
   },
   "nodes": [

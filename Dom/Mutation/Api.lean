@@ -97,7 +97,8 @@ def moveBefore (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
     -- Document / DocumentFragment / Element に限られる。
     -- move algorithm 自身にはこの検査が無いので（step 1-6 を参照）、
     -- API の側で表す。`Dom/Basic/NodeId.lean` の `canHaveChildren` がその三つである。
-    if !pd.kind.canHaveChildren then .error .hierarchyRequestError
+    -- IDL が method を持たない receiver に対して投げるのは WebIDL の TypeError である。
+    if !pd.kind.canHaveChildren then .error .typeError
     else
       -- step 1-2
       let referenceChild := if child = some node then nextSibling s.tree node else child

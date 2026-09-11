@@ -118,7 +118,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 
 | step | 分岐 | 固定 scenario |
 | --- | --- | --- |
-| IDL | receiver が ParentNode でない | `move-receiver-must-be-parentnode`（差分比較の対象外） |
+| IDL | receiver が ParentNode でない（TypeError） | `move-receiver-must-be-parentnode`（差分比較の対象外） |
 | 1 | root が違う | `move-step1-different-root` |
 | 2 | cycle | `move-step2-cycle` |
 | 3 | reference child が新しい parent の子でない | `move-step3-foreign-reference-child` |
@@ -159,7 +159,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
 | NodeIterator の filter | 対象外 | roadmap §13.4 |
-| WebIDL の TypeError | 一部 | `observe` の step 3-6 と、attribute の method の receiver が Element でない場合は `DOMException.typeError` で表す。`moveBefore` の receiver が ParentNode でない場合は HierarchyRequestError で代用する（`move-receiver-must-be-parentnode`） |
+| WebIDL の TypeError | 近似 | `observe` の step 3-6、attribute の method の receiver が Element でない場合、`moveBefore` の receiver が ParentNode でない場合（`move-receiver-must-be-parentnode`）を `DOMException.typeError` で表す。名前は一致するが実際には `DOMException` ではない |
 
 ## 仕様改訂時の手順
 

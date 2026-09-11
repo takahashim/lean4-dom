@@ -37,7 +37,25 @@ ruby test/difftest.rb --fixed-only
 
 # 固定 scenario ＋ 乱数生成 100 本
 ruby test/difftest.rb --count 100 --seed 1
+
+# live object と observer を混ぜる（生成 scenario の規模は既定より大きくなる）
+ruby test/difftest.rb --count 200 --seed 1 --ranges 4 --iterators 2 --observers 3 --move
 ```
+
+生成側の option：
+
+| option | 意味 |
+| --- | --- |
+| `--count N` / `--seed N` | 生成する本数と乱数の種 |
+| `--nodes N` / `--ops N` | 一本あたりの node 数と操作数 |
+| `--ranges N` / `--iterators N` / `--observers N` | 初期状態に置く live Range / NodeIterator / MutationObserver の数 |
+| `--move` | `moveBefore` を生成する |
+| `--doctype-prob F` | document に doctype を置く確率 |
+| `--all-ops` | Dommy の実装状況で操作を絞らない |
+| `--fixed-only` | 生成をせず固定 scenario だけ走らせる |
+
+`--observers N` を指定したときだけ、`observe` / `disconnect` / `takeRecords` /
+`notify`（microtask checkpoint）も生成される。
 
 `makiri` を AddressSanitizer 付きで build している場合は、
 Dommy 側の command にだけ preload を指定する。
@@ -73,6 +91,7 @@ Dommy を読み込んでいない process の仕事にしてある。
   ],
   "ranges": [],
   "iterators": [],
+  "observers": [],
   "operations": [
     {"op": "insertBefore", "parent": 1, "node": 3, "child": null},
     {"op": "removeChild", "parent": 1, "node": 2}
@@ -85,8 +104,19 @@ Dommy を読み込んでいない process の仕事にしてある。
 * `data` は CharacterData 以外では無視する。
 * `ranges` は `{"start": {"node": 1, "offset": 0}, "end": {"node": 1, "offset": 2}}` の形。
   Lean 側は読み込み時に両端の validity（node が木にあり offset が length 以下）を検査する。
-* `iterators` は Phase 6 で使う。形式だけ予約してある。
-* `_` で始まる key（`_note` など）は無視されるので、注記を書いてよい。
+* `iterators` は `{"root": 1, "reference": 1, "pointerBeforeReference": true}` の形。
+  仕様の `createNodeIterator` は reference を (root, true) に初期化する。
+* `observers` は `observe(target, options)` を一度呼んだ状態を作る。
+  `{"target": 1, "subtree": true, "childList": true, "attributes": true,
+  "attributeOldValue": true, "attributeFilter": ["a"], "characterData": true,
+  "characterDataOldValue": true}` の形で、`target` を省くと registration を持たない
+  observer だけができる（scenario 側で `observe` 操作を使う場合はこちら）。
+* element の `attributes` は
+  `{"namespace": null, "prefix": null, "localName": "a", "value": "1"}` の list。
+  Element 以外に置いても無視される。
+  prefix を付けるなら namespace も要る（`AttributesValid`）。
+* `_` で始まる key（`_note`、`_basis` など）は無視されるので、注記を書いてよい。
+  固定 scenario には期待結果の根拠を `_basis` に書く（`docs/traceability.md`）。
 
 `kind` は `document` / `documentType` / `documentFragment` / `element` /
 `text` / `cdataSection` / `processingInstruction` / `comment`。
@@ -103,6 +133,25 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `before` / `after` / `replaceWith` | `target`, `node` |
 | `remove` | `target` |
 | `moveBefore` | `parent`, `node`, `child`（null 可） |
+| `replaceData` | `node`, `offset`, `count`, `data` |
+| `appendData` | `node`, `data` |
+| `insertData` | `node`, `offset`, `data` |
+| `deleteData` | `node`, `offset`, `count` |
+| `setData` | `node`, `data` |
+| `setAttribute` | `element`, `name`, `value` |
+| `setAttributeNS` | `element`, `namespace`（null 可）, `name`, `value` |
+| `removeAttribute` | `element`, `name` |
+| `removeAttributeNS` | `element`, `namespace`（null 可）, `name` |
+| `toggleAttribute` | `element`, `name`, `force`（null 可） |
+| `iteratorNext` / `iteratorPrevious` | `iterator`（`iterators` の index） |
+| `observe` | `observer`（`observers` の index）, `target`, および `MutationObserverInit` の各 key |
+| `disconnect` / `takeRecords` | `observer` |
+| `notify` | 無し（microtask checkpoint。"notify mutation observers" を走らせる） |
+
+`observe` の options は、省略と `false` を区別する。
+`attributes` と `characterData` は IDL に既定値が無く、`observe` の step 1-2 が
+「存在しないなら true にする」ので、書かないことに意味がある。
+`attributeFilter` も存在の有無が条件になる。
 
 仕様の `before()` / `after()` / `replaceWith()` / `replaceChildren()` は
 可変長引数を "converting nodes into a node" で一つの node にまとめるが、
@@ -116,24 +165,39 @@ Dommy を読み込んでいない process の仕事にしてある。
 
 ```json
 {
-  "initial": {"nodes": [...], "ranges": [], "iterators": []},
+  "initial": {"nodes": [...], "ranges": [], "iterators": [], "observers": []},
   "steps": [
-    {"ok": true, "nodes": [...], "ranges": [], "iterators": []},
+    {"ok": true, "nodes": [...], "ranges": [], "iterators": [],
+     "observers": [[]], "delivered": []},
     {"ok": false, "exception": "NotFoundError"}
   ]
 }
 ```
 
 例外が起きた step で評価を打ち切る。
-Lean 側は各 step の後で `checkWellFormed` と `checkRangesValid` を実行し、
-破れていれば `"invariantViolation": {"step": N, "invariant": "wellFormed"|"rangesValid"}` を足す。
+
+`observers` は observer ごとの record queue（`takeRecords()` が返すもの）、
+`delivered` は microtask checkpoint で callback に配送された record を
+**呼ばれた順に** 並べたものである（`notify` 以外の step では空）。
+
+Lean 側は各 step の後で `AdmissibleDOMState` の七成分を実行時に検査し、
+破れていれば `"invariantViolation": {"step": N, "invariant": NAME}` を足す。
+`NAME` は `wellFormed` / `structurallyValid` / `nodeDocumentsValid` /
+`documentTreesValid` / `rangeEndpointsValid` / `iteratorsValid` /
+`observerRegistrationsValid` / `attributesValid` のいずれかである。
+初期状態が admissible なら発火しないことは
+`Dom.Exec.runOperations_no_violation` で証明してあるので、
+発火したら harness 側を疑う。
 
 Dommy が実装していない操作は `{"ok": false, "exception": "__unsupported__"}` として報告し、
 仕様上の例外との不一致と区別する。
 
-比較は node の `parent` と `children`、そこから導いた tree order、
-`kind`、`data`、range の boundary point、および例外の名前について行う。
+比較するのは、node の `kind` / `parent` / `children` / `nodeDocument` / `data` /
+`attributes`、そこから導いた tree order、live Range の両端、NodeIterator の
+root と reference と pointer-before-reference flag、observer ごとの record queue、
+配送された record、および例外の名前である。
 tree order は children から導けるので出力には含めず、比較側で導出する。
+比較しないものは `Dom/Observation.lean` の doc comment に列挙してある。
 
 ## 固定する version
 
@@ -148,8 +212,8 @@ Dommy の checkout と native gem の build が要るので、`lake build` の C
 既定では走らない。
 
 * `deterministic` — 手動起動。固定 scenario 全件と、固定 seed の生成 scenario 100 本。
-* `exploration` — nightly。node 数・操作数・Range 数・Iterator 数を三通りに変え、
-  seed 10 個 × 各 100 本。
+* `exploration` — nightly。node 数・操作数・Range 数・Iterator 数・observer 数を
+  三通りに変え、seed 10 個 × 各 100 本。
 
 不一致が出ると最小化した scenario が `test/scenarios/failing-*.json` に書かれ、
 artifact として上がる。内容を確認したうえで固定 scenario に昇格させる。
