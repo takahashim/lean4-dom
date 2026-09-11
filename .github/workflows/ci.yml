@@ -45,3 +45,9 @@ jobs:
 
       - name: Run oracle
         run: lake exe dom-model
+
+      # URL Standard 側は WPT の `urltestdata.json` が期待値の表なので、
+      # 固定 scenario を自分で書かずにそのまま通せる。
+      # IDNA（UTS #46）が要る case は model の対象外として別に数える。
+      - name: URL against WPT
+        run: lake exe url-model --wpt test/url/wpt-ascii.json

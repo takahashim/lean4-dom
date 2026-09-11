@@ -44,6 +44,19 @@ inductive PState where
   | query | fragment
 deriving DecidableEq, Repr, Inhabited
 
+/--
+state machine の結果。
+
+`startOver` は scheme state が `:` を見つけられなかったときの
+「先頭から no scheme state でやり直す」（step 2.1 の最後）である。
+これだけは入力が先頭へ戻るので、再帰の外で一度だけ扱う。
+-/
+inductive PResult where
+  | ok (u : Url)
+  | failure
+  | startOver
+deriving Repr
+
 /-- parser が持ち回る状態。 -/
 structure PCtx where
   url : Url
@@ -51,6 +64,34 @@ structure PCtx where
   atSignSeen : Bool := false
   insideBrackets : Bool := false
   passwordTokenSeen : Bool := false
+
+/--
+state の順位。停止性の測度の第一成分。
+
+どの遷移も順位を下げるか、同じ順位のまま入力を 1 つ消費する。
+唯一の例外が `startOver` で、それは再帰の外に出してある。
+-/
+def stateRank : PState → Nat
+  | .schemeStart => 19
+  | .scheme => 18
+  | .noScheme => 17
+  | .specialRelativeOrAuthority => 16
+  | .relative => 15
+  | .relativeSlash => 14
+  | .specialAuthoritySlashes => 13
+  | .specialAuthorityIgnoreSlashes => 12
+  | .pathOrAuthority => 11
+  | .authority => 10
+  | .host => 9
+  | .port => 8
+  | .file => 7
+  | .fileSlash => 6
+  | .fileHost => 5
+  | .pathStart => 4
+  | .path => 3
+  | .opaquePath => 2
+  | .query => 1
+  | .fragment => 0
 
 /-! ## 補助 -/
 
@@ -127,14 +168,27 @@ state machine 本体。
 
 `input` はこの state が読む位置からの残り。`none` を返したら失敗。
 
-`fuel` は入力長の 2 倍 + 定数で足りる。各 state は入力を 1 つ消費するか、
-buffer を入力へ戻して state を先へ進めるかのどちらかで、
-後者は state の順序に沿って高々定数回しか続かないためである。
-well-founded な測度への置き換えはこれからの作業（`docs/url-status.md`）。
+## 停止性
+
+`stateRank` が示すとおり、どの遷移も
+
+* state の順位を下げるか、
+* 順位を変えずに入力を 1 つ消費する
+
+かのどちらかである。入力を消費しない遷移（`decrease pointer by 1` と
+authority/host の巻き戻し）は必ず順位を下げ、順位を変えない遷移
+（buffer に 1 文字積む自己ループ）は必ず入力を 1 つ消費する。
+したがって `(stateRank st, 残りの入力長)` の辞書式順序が減る。
+
+いまはこれを fuel として回している。`decreasing_by` に
+「入力が空でないこと」を渡す形がまだ定まっていないためで、
+測度による定義への置き換えは残っている作業である（`docs/url-status.md`）。
+fuel の大きさは巻き戻しのぶんを見込んで入力長の 40 倍 + 定数にしてある
+（巻き戻しは authority から host への一度だけで、
+そのとき読み直す文字は buffer に積んだぶんに限られる）。
 -/
-def run (base : Option Url) (orig : List Char) :
-    Nat → PState → List Char → PCtx → Option Url
-  | 0, _, _, _ => none
+def run (base : Option Url) : Nat → PState → List Char → PCtx → PResult
+  | 0, _, _, _ => PResult.failure
   | fuel + 1, st, input, ctx =>
     let c : Cp := input.head?
     let rest : List Char := input.drop 1
@@ -144,88 +198,86 @@ def run (base : Option Url) (orig : List Char) :
       match c with
       | some ch =>
         if isAsciiAlpha ch then
-          run base orig fuel .scheme rest
+          run base fuel .scheme rest
             { ctx with buffer := ctx.buffer ++ (asciiLowercase (String.ofList [ch])).toList }
-        else run base orig fuel .noScheme input ctx
-      | none => run base orig fuel .noScheme input ctx
+        else run base fuel .noScheme input ctx
+      | none => run base fuel .noScheme input ctx
     | .scheme =>
       match c with
       | some ch =>
         if isAsciiAlphanumeric ch || ch == '+' || ch == '-' || ch == '.' then
-          run base orig fuel .scheme rest
+          run base fuel .scheme rest
             { ctx with buffer := ctx.buffer ++ (asciiLowercase (String.ofList [ch])).toList }
         else if ch == ':' then
           let u := { ctx.url with scheme := String.ofList ctx.buffer }
           let ctx2 : PCtx := { ctx with url := u, buffer := [] }
-          if u.scheme == "file" then run base orig fuel .file rest ctx2
+          if u.scheme == "file" then run base fuel .file rest ctx2
           else if u.isSpecial &&
               (match base with | some b => b.scheme == u.scheme | none => false) then
-            run base orig fuel .specialRelativeOrAuthority rest ctx2
-          else if u.isSpecial then run base orig fuel .specialAuthoritySlashes rest ctx2
+            run base fuel .specialRelativeOrAuthority rest ctx2
+          else if u.isSpecial then run base fuel .specialAuthoritySlashes rest ctx2
           else
             match rest with
-            | '/' :: rest2 => run base orig fuel .pathOrAuthority rest2 ctx2
-            | _ => run base orig fuel .opaquePath rest { ctx2 with url := { u with path := .opaque "" } }
+            | '/' :: rest2 => run base fuel .pathOrAuthority rest2 ctx2
+            | _ => run base fuel .opaquePath rest { ctx2 with url := { u with path := .opaque "" } }
         else
-          -- "start over"：buffer を捨てて先頭から no scheme state でやり直す。
-          -- ここへ来られるのは scheme state から一度だけで、
-          -- no scheme state から scheme start state へ戻る道は無い。
-          run base orig fuel .noScheme orig { ctx with buffer := [] }
+          -- "start over"。入力が先頭へ戻る唯一の遷移なので、再帰の外へ返す。
+          PResult.startOver
       -- EOF も「alphanumeric でも `:` でもない」に当たるので、同じく start over する。
-      | none => run base orig fuel .noScheme orig { ctx with buffer := [] }
+      | none => PResult.startOver
     | .noScheme =>
       match base with
-      | none => none
+      | none => PResult.failure
       | some b =>
-        if b.hasOpaquePath && c != some '#' then none
+        if b.hasOpaquePath && c != some '#' then PResult.failure
         else if b.hasOpaquePath then
           let u := { ctx.url with scheme := b.scheme, path := b.path, query := b.query }
-          run base orig fuel .fragment rest { ctx with url := { u with fragment := some "" } }
-        else if b.scheme != "file" then run base orig fuel .relative input ctx
-        else run base orig fuel .file input ctx
+          run base fuel .fragment rest { ctx with url := { u with fragment := some "" } }
+        else if b.scheme != "file" then run base fuel .relative input ctx
+        else run base fuel .file input ctx
     | .specialRelativeOrAuthority =>
       match c, rest with
-      | some '/', '/' :: rest2 => run base orig fuel .specialAuthorityIgnoreSlashes rest2 ctx
-      | _, _ => run base orig fuel .relative input ctx
+      | some '/', '/' :: rest2 => run base fuel .specialAuthorityIgnoreSlashes rest2 ctx
+      | _, _ => run base fuel .relative input ctx
     | .pathOrAuthority =>
-      if c == some '/' then run base orig fuel .authority rest ctx
-      else run base orig fuel .path input ctx
+      if c == some '/' then run base fuel .authority rest ctx
+      else run base fuel .path input ctx
     | .relative =>
       match base with
-      | none => none
+      | none => PResult.failure
       | some b =>
         let u := { ctx.url with scheme := b.scheme }
-        if c == some '/' then run base orig fuel .relativeSlash rest { ctx with url := u }
+        if c == some '/' then run base fuel .relativeSlash rest { ctx with url := u }
         else if u.isSpecial && c == some '\\' then
-          run base orig fuel .relativeSlash rest { ctx with url := u }
+          run base fuel .relativeSlash rest { ctx with url := u }
         else
           let u1 := { u with username := b.username, password := b.password }
           let u2 := { u1 with host := b.host, port := b.port, path := b.path, query := b.query }
           match c with
           | some '?' =>
-            run base orig fuel .query rest { ctx with url := { u2 with query := some "" } }
+            run base fuel .query rest { ctx with url := { u2 with query := some "" } }
           | some '#' =>
-            run base orig fuel .fragment rest { ctx with url := { u2 with fragment := some "" } }
-          | none => some u2
+            run base fuel .fragment rest { ctx with url := { u2 with fragment := some "" } }
+          | none => .ok u2
           | some _ =>
-            run base orig fuel .path input { ctx with url := shortenPath { u2 with query := none } }
+            run base fuel .path input { ctx with url := shortenPath { u2 with query := none } }
     | .relativeSlash =>
       if special && (c == some '/' || c == some '\\') then
-        run base orig fuel .specialAuthorityIgnoreSlashes rest ctx
-      else if c == some '/' then run base orig fuel .authority rest ctx
+        run base fuel .specialAuthorityIgnoreSlashes rest ctx
+      else if c == some '/' then run base fuel .authority rest ctx
       else
         match base with
-        | none => none
+        | none => PResult.failure
         | some b =>
           let u1 := { ctx.url with username := b.username, password := b.password }
-          run base orig fuel .path input { ctx with url := { u1 with host := b.host, port := b.port } }
+          run base fuel .path input { ctx with url := { u1 with host := b.host, port := b.port } }
     | .specialAuthoritySlashes =>
       match c, rest with
-      | some '/', '/' :: rest2 => run base orig fuel .specialAuthorityIgnoreSlashes rest2 ctx
-      | _, _ => run base orig fuel .specialAuthorityIgnoreSlashes input ctx
+      | some '/', '/' :: rest2 => run base fuel .specialAuthorityIgnoreSlashes rest2 ctx
+      | _, _ => run base fuel .specialAuthorityIgnoreSlashes input ctx
     | .specialAuthorityIgnoreSlashes =>
-      if c != some '/' && c != some '\\' then run base orig fuel .authority input ctx
-      else run base orig fuel .specialAuthorityIgnoreSlashes rest ctx
+      if c != some '/' && c != some '\\' then run base fuel .authority input ctx
+      else run base fuel .specialAuthorityIgnoreSlashes rest ctx
     | .authority =>
       if c == some '@' then
         let buf := if ctx.atSignSeen then "%40".toList ++ ctx.buffer else ctx.buffer
@@ -237,54 +289,54 @@ def run (base : Option Url) (orig : List Char) :
             else ({ acc.1 with username := acc.1.username ++ enc }, acc.2))
           (ctx.url, ctx.passwordTokenSeen)
         let ctx2 : PCtx := { ctx with url := r.1, buffer := [], atSignSeen := true }
-        run base orig fuel .authority rest { ctx2 with passwordTokenSeen := r.2 }
+        run base fuel .authority rest { ctx2 with passwordTokenSeen := r.2 }
       else if isTerminator special c then
-        if ctx.atSignSeen && ctx.buffer.isEmpty then none
-        else run base orig fuel .host (ctx.buffer ++ input) { ctx with buffer := [] }
+        if ctx.atSignSeen && ctx.buffer.isEmpty then PResult.failure
+        else run base fuel .host (ctx.buffer ++ input) { ctx with buffer := [] }
       else
         match c with
-        | none => none
-        | some ch => run base orig fuel .authority rest { ctx with buffer := ctx.buffer ++ [ch] }
+        | none => PResult.failure
+        | some ch => run base fuel .authority rest { ctx with buffer := ctx.buffer ++ [ch] }
     | .host =>
       if c == some ':' && !ctx.insideBrackets then
-        if ctx.buffer.isEmpty then none
+        if ctx.buffer.isEmpty then PResult.failure
         else
           match hostParser asciiDomainToASCII ctx.buffer (!special) with
-          | none => none
+          | none => PResult.failure
           | some h =>
             let u := { ctx.url with host := some h }
-            run base orig fuel .port rest { ctx with url := u, buffer := [] }
+            run base fuel .port rest { ctx with url := u, buffer := [] }
       else if isTerminator special c then
-        if special && ctx.buffer.isEmpty then none
+        if special && ctx.buffer.isEmpty then PResult.failure
         else
           match hostParser asciiDomainToASCII ctx.buffer (!special) with
-          | none => none
+          | none => PResult.failure
           | some h =>
             let u := { ctx.url with host := some h }
-            run base orig fuel .pathStart input { ctx with url := u, buffer := [] }
+            run base fuel .pathStart input { ctx with url := u, buffer := [] }
       else
         match c with
-        | none => none
+        | none => PResult.failure
         | some ch =>
           let ib := if ch == '[' then true else if ch == ']' then false else ctx.insideBrackets
-          run base orig fuel .host rest { ctx with buffer := ctx.buffer ++ [ch], insideBrackets := ib }
+          run base fuel .host rest { ctx with buffer := ctx.buffer ++ [ch], insideBrackets := ib }
     | .port =>
       match c with
       | some ch =>
-        if isAsciiDigit ch then run base orig fuel .port rest { ctx with buffer := ctx.buffer ++ [ch] }
+        if isAsciiDigit ch then run base fuel .port rest { ctx with buffer := ctx.buffer ++ [ch] }
         else if isTerminator special c then
           match portDone ctx with
-          | none => none
-          | some ctx2 => run base orig fuel .pathStart input ctx2
-        else none
+          | none => PResult.failure
+          | some ctx2 => run base fuel .pathStart input ctx2
+        else PResult.failure
       | none =>
         match portDone ctx with
-        | none => none
-        | some ctx2 => run base orig fuel .pathStart input ctx2
+        | none => PResult.failure
+        | some ctx2 => run base fuel .pathStart input ctx2
     | .file =>
       let u := { ctx.url with scheme := "file", host := some Host.empty }
       if c == some '/' || c == some '\\' then
-        run base orig fuel .fileSlash rest { ctx with url := u }
+        run base fuel .fileSlash rest { ctx with url := u }
       else
         match base with
         | some b =>
@@ -292,19 +344,19 @@ def run (base : Option Url) (orig : List Char) :
             let u2 := { u with host := b.host, path := b.path, query := b.query }
             match c with
             | some '?' =>
-              run base orig fuel .query rest { ctx with url := { u2 with query := some "" } }
+              run base fuel .query rest { ctx with url := { u2 with query := some "" } }
             | some '#' =>
-              run base orig fuel .fragment rest { ctx with url := { u2 with fragment := some "" } }
-            | none => some u2
+              run base fuel .fragment rest { ctx with url := { u2 with fragment := some "" } }
+            | none => .ok u2
             | some _ =>
               let u3 := { u2 with query := none }
               let u4 := if startsWithWindowsDrive input then { u3 with path := .list [] }
                         else shortenPath u3
-              run base orig fuel .path input { ctx with url := u4 }
-          else run base orig fuel .path input { ctx with url := u }
-        | none => run base orig fuel .path input { ctx with url := u }
+              run base fuel .path input { ctx with url := u4 }
+          else run base fuel .path input { ctx with url := u }
+        | none => run base fuel .path input { ctx with url := u }
     | .fileSlash =>
-      if c == some '/' || c == some '\\' then run base orig fuel .fileHost rest ctx
+      if c == some '/' || c == some '\\' then run base fuel .fileHost rest ctx
       else
         match base with
         | some b =>
@@ -318,39 +370,39 @@ def run (base : Option Url) (orig : List Char) :
                  | .list (s :: _) => appendSegment u s
                  | _ => u)
               else u
-            run base orig fuel .path input { ctx with url := u2 }
-          else run base orig fuel .path input ctx
-        | none => run base orig fuel .path input ctx
+            run base fuel .path input { ctx with url := u2 }
+          else run base fuel .path input ctx
+        | none => run base fuel .path input ctx
     | .fileHost =>
       if c == none || c == some '/' || c == some '\\' || c == some '?' || c == some '#' then
-        if isWindowsDrive ctx.buffer then run base orig fuel .path input ctx
+        if isWindowsDrive ctx.buffer then run base fuel .path input ctx
         else if ctx.buffer.isEmpty then
           let u := { ctx.url with host := some Host.empty }
-          run base orig fuel .pathStart input { ctx with url := u }
+          run base fuel .pathStart input { ctx with url := u }
         else
           match hostParser asciiDomainToASCII ctx.buffer (!special) with
-          | none => none
+          | none => PResult.failure
           | some h =>
             let h2 := if hostSerializer h == "localhost" then Host.empty else h
             let u := { ctx.url with host := some h2 }
-            run base orig fuel .pathStart input { ctx with url := u, buffer := [] }
+            run base fuel .pathStart input { ctx with url := u, buffer := [] }
       else
         match c with
-        | none => none
-        | some ch => run base orig fuel .fileHost rest { ctx with buffer := ctx.buffer ++ [ch] }
+        | none => PResult.failure
+        | some ch => run base fuel .fileHost rest { ctx with buffer := ctx.buffer ++ [ch] }
     | .pathStart =>
       if special then
-        if c == some '/' || c == some '\\' then run base orig fuel .path rest ctx
-        else run base orig fuel .path input ctx
+        if c == some '/' || c == some '\\' then run base fuel .path rest ctx
+        else run base fuel .path input ctx
       else if c == some '?' then
-        run base orig fuel .query rest { ctx with url := { ctx.url with query := some "" } }
+        run base fuel .query rest { ctx with url := { ctx.url with query := some "" } }
       else if c == some '#' then
-        run base orig fuel .fragment rest { ctx with url := { ctx.url with fragment := some "" } }
+        run base fuel .fragment rest { ctx with url := { ctx.url with fragment := some "" } }
       else
         match c with
-        | none => some ctx.url
-        | some ch => if ch == '/' then run base orig fuel .path rest ctx
-                     else run base orig fuel .path input ctx
+        | none => .ok ctx.url
+        | some ch => if ch == '/' then run base fuel .path rest ctx
+                     else run base fuel .path input ctx
     | .path =>
       if c == none || c == some '/' || (special && c == some '\\') ||
           c == some '?' || c == some '#' then
@@ -370,43 +422,43 @@ def run (base : Option Url) (orig : List Char) :
             appendSegment ctx.url (String.ofList buf)
         let ctx2 : PCtx := { ctx with url := u, buffer := [] }
         match c with
-        | some '?' => run base orig fuel .query rest { ctx2 with url := { u with query := some "" } }
-        | some '#' => run base orig fuel .fragment rest { ctx2 with url := { u with fragment := some "" } }
-        | none => some u
-        | some _ => run base orig fuel .path rest ctx2
+        | some '?' => run base fuel .query rest { ctx2 with url := { u with query := some "" } }
+        | some '#' => run base fuel .fragment rest { ctx2 with url := { u with fragment := some "" } }
+        | none => .ok u
+        | some _ => run base fuel .path rest ctx2
       else
         match c with
-        | none => none
+        | none => PResult.failure
         | some ch =>
-          run base orig fuel .path rest { ctx with buffer := ctx.buffer ++ (encChar pathSet ch).toList }
+          run base fuel .path rest { ctx with buffer := ctx.buffer ++ (encChar pathSet ch).toList }
     | .opaquePath =>
       match c with
-      | some '?' => run base orig fuel .query rest { ctx with url := { ctx.url with query := some "" } }
+      | some '?' => run base fuel .query rest { ctx with url := { ctx.url with query := some "" } }
       | some '#' =>
-        run base orig fuel .fragment rest { ctx with url := { ctx.url with fragment := some "" } }
+        run base fuel .fragment rest { ctx with url := { ctx.url with fragment := some "" } }
       | some ' ' =>
         let addition := match rest.head? with
           | some '?' => "%20"
           | some '#' => "%20"
           | _ => " "
-        run base orig fuel .opaquePath rest { ctx with url := appendOpaque ctx.url addition }
+        run base fuel .opaquePath rest { ctx with url := appendOpaque ctx.url addition }
       | some ch =>
-        run base orig fuel .opaquePath rest
+        run base fuel .opaquePath rest
           { ctx with url := appendOpaque ctx.url (encChar c0ControlSet ch) }
-      | none => some ctx.url
+      | none => .ok ctx.url
     | .query =>
       match c with
-      | none => some { ctx.url with query := some (queryOf ctx) }
+      | none => .ok { ctx.url with query := some (queryOf ctx) }
       | some '#' =>
         let u := { ctx.url with query := some (queryOf ctx), fragment := some "" }
-        run base orig fuel .fragment rest { ctx with url := u, buffer := [] }
-      | some ch => run base orig fuel .query rest { ctx with buffer := ctx.buffer ++ [ch] }
+        run base fuel .fragment rest { ctx with url := u, buffer := [] }
+      | some ch => run base fuel .query rest { ctx with buffer := ctx.buffer ++ [ch] }
     | .fragment =>
       match c with
-      | none => some ctx.url
+      | none => .ok ctx.url
       | some ch =>
         let f := (ctx.url.fragment.getD "") ++ encChar fragmentSet ch
-        run base orig fuel .fragment rest { ctx with url := { ctx.url with fragment := some f } }
+        run base fuel .fragment rest { ctx with url := { ctx.url with fragment := some f } }
 where
   /-- port state の終わり方。buffer を 10 進として読み、既定 port なら null にする。 -/
   portDone (ctx : PCtx) : Option PCtx :=
@@ -437,8 +489,15 @@ def basicUrlParse (input : String) (base : Option Url := none) : Option Url :=
   let l := l.dropWhile isC0ControlOrSpace
   let l := (l.reverse.dropWhile isC0ControlOrSpace).reverse
   let l := l.filter (fun c => !(c.toNat == 0x09 || c.toNat == 0x0A || c.toNat == 0x0D))
-  -- fuel は入力長の 3 倍 + 定数。"start over" が一度起きるぶんを見込む。
-  run base l (3 * l.length + 16) .schemeStart l { url := {} }
+  -- "start over" は高々一度。no scheme state から scheme start state へ戻る道は無い。
+  let fuel := 40 * l.length + 64
+  match run base fuel .schemeStart l { url := {} } with
+  | .ok u => some u
+  | .failure => none
+  | .startOver =>
+    match run base fuel .noScheme l { url := {} } with
+    | .ok u => some u
+    | _ => none
 
 /-- `URL(url, base)` に当たる入口。失敗したら `none`。 -/
 def parseUrl (input : String) (base : Option String := none) : Option Url :=

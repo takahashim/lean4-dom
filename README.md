@@ -1,18 +1,40 @@
 # lean4-dom
 
-WHATWG DOM Standard の structural mutation と live object を、
-Lean 4 で実行可能に形式化したものである。
-
-対象は node tree と document tree、mutation algorithms、
-mutation に追随する live Range、NodeIterator、CharacterData mutation である。
-Shadow DOM と Web Components は対象に含めない。
+WHATWG の仕様を Lean 4 で実行可能に形式化したものである。
+いまのところ **DOM Standard** と **URL Standard** が入っている。
 
 形式化した model は **executable oracle** でもある。
-同じ操作列を Ruby の DOM 実装 [Dommy](https://github.com/takahashim/dommy) と
+同じ入力を Ruby の実装 [Dommy](https://github.com/takahashim/dommy) と
 この model の両方で走らせ、観測を突き合わせる差分テストに使っている。
+
+## DOM Standard
+
+対象は node tree と document tree、mutation algorithms、
+mutation に追随する live Range、NodeIterator、CharacterData mutation、
+element の attribute、MutationObserver（record と配送）である。
+Shadow DOM と Web Components は対象に含めない。
 
 参照する仕様は `docs/spec-version.md` に固定した
 [`dom.bs`](https://github.com/whatwg/dom) の commit である。
+
+## URL Standard
+
+対象は percent-encoding、IPv4 / IPv6 parser、host parser、basic URL parser である。
+IDNA（UTS #46）は仕様自身が別仕様へ委譲しているので、
+`hostParser` が ToASCII を引数で受け取る形にして境界を引いた。
+
+DOM と違って状態を持たない純関数なので、中心の定理も
+「操作列に沿った invariant の保存」ではなく
+「parser の停止性」と「結果の record の妥当性」になる。
+期待値は WPT の `urltestdata.json` がそのまま使える
+（`lake exe url-model --wpt test/url/wpt-ascii.json` で 820 件中 816 件一致、
+残り 4 件は IDNA が要るので対象外）。
+詳しくは `docs/url-status.md` と `docs/url-traceability.md`。
+
+## 共有している部分
+
+ASCII の判定、大文字小文字、byte 列と UTF-8 は Infra Standard のもので、
+`Infra/` に置いて両方から使う。差分の相手（Dommy）も、CI も、axiom 監査も一つで済む。
 
 ## 何が示してあるか
 
@@ -96,6 +118,9 @@ lake env lean Audit.lean
 # 固定 scenario を loader に通し、invariant 違反が無いことを検査する
 lake exe dom-model --check test/scenarios
 
+# URL 側を WPT の期待値表に通す
+lake exe url-model --wpt test/url/wpt-ascii.json
+
 # 一つの scenario を評価して観測を JSON で出す
 lake exe dom-model test/scenarios/basic-insert-remove.json
 ```
@@ -114,6 +139,8 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 | `Dom/Validity/` | `AdmissibleDOMState` とその保存 |
 | `Dom/Observation.lean` | 差分テストの比較対象を型で固定する |
 | `Dom/Exec/` | scenario の読み書きと evaluator |
+| `Infra/` | Infra Standard の語彙（ASCII、byte 列、UTF-8）。`Dom` と `Url` が共有する |
+| `Url/` | URL Standard（percent-encoding、IPv4 / IPv6、host parser、basic URL parser） |
 | `test/` | 固定 scenario、生成器、Dommy runner、比較器 |
 | `docs/` | 状況、主定理の一覧、仕様トレーサビリティ、threats to validity |
 
