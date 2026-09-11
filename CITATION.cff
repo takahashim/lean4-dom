@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "lean4-dom: an executable Lean 4 formalization of WHATWG DOM mutation and live objects"
+message: "If you use this work, please cite it as below."
+type: software
+authors:
+  - family-names: Takahashi
+    given-names: Masayoshi
+repository-code: "https://github.com/takahashim/lean4-dom"
+license: MIT
+abstract: >-
+  An executable formalization in Lean 4 of the structural mutation
+  algorithms of the WHATWG DOM Standard together with the live objects
+  that follow them: live Range, NodeIterator and CharacterData mutation.
+  Admissibility of a DOM state is decidable and is proved preserved by
+  every modeled operation and by any finite sequence of them. The model
+  doubles as an executable oracle for differential testing against the
+  Ruby DOM implementation Dommy, which surfaced nineteen conformance
+  defects. The formalization also yields a negative result: the live
+  Range ordering start <= end, which one would expect to be an
+  invariant, is not preserved by insert, and the counterexample is a
+  kernel-checked theorem.
+keywords:
+  - Lean 4
+  - formal verification
+  - WHATWG DOM
+  - differential testing
