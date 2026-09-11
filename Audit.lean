@@ -1,5 +1,6 @@
 import Lean
 import Dom
+import Url
 import Dom.Exec.Invariant
 
 /-!
@@ -128,6 +129,11 @@ open Dom.Audit
   Dom.setAttribute_getAttribute
   Dom.removeAttribute_erases
   Dom.validateAndExtractAttribute_ok
+
+-- URL Standard §3.3 IPv4
+#audit_axioms
+  Url.ipv4Parser_lt
+  Url.foldl_base256_lt
 
 -- boolean checker と Prop の対応
 #audit_axioms

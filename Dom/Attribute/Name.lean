@@ -1,4 +1,5 @@
 import Dom.Basic.Exception
+import Infra.Ascii
 
 /-!
 # 名前の検査と namespace の切り出し
@@ -16,9 +17,8 @@ valid element local name は element の local name を model が持たないの
 
 namespace Dom
 
-/-- Infra の ASCII whitespace。TAB / LF / FF / CR / SPACE。 -/
-def isAsciiWhitespace (c : Char) : Bool :=
-  c.toNat == 0x09 || c.toNat == 0x0A || c.toNat == 0x0C || c.toNat == 0x0D || c.toNat == 0x20
+-- Infra Standard の語彙は `Infra/Ascii.lean` にある（URL Standard と共有する）。
+export Infra (isAsciiWhitespace asciiLowercase asciiUppercase)
 
 /--
 DOM Standard §1.3 valid namespace prefix。
@@ -48,16 +48,6 @@ def normalizeNamespace : Option String → Option String
   cases ns with
   | none => rfl
   | some n => by_cases h : n.isEmpty <;> simp [normalizeNamespace, h]
-
-/-- ASCII の大文字を小文字にする（Infra の "ASCII lowercase"）。 -/
-def asciiLowercase (s : String) : String :=
-  String.ofList (s.toList.map fun c =>
-    if 'A' ≤ c && c ≤ 'Z' then Char.ofNat (c.toNat + 32) else c)
-
-/-- ASCII の小文字を大文字にする（Infra の "ASCII uppercase"）。 -/
-def asciiUppercase (s : String) : String :=
-  String.ofList (s.toList.map fun c =>
-    if 'a' ≤ c && c ≤ 'z' then Char.ofNat (c.toNat - 32) else c)
 
 /-- Infra の HTML namespace。 -/
 def htmlNamespace : String := "http://www.w3.org/1999/xhtml"

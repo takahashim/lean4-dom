@@ -1,14 +1,25 @@
 name = "dom"
 version = "0.1.0"
-defaultTargets = ["Dom", "dom-model"]
+defaultTargets = ["Infra", "Dom", "Url", "dom-model", "url-model"]
 
 [leanOptions]
 autoImplicit = false
 relaxedAutoImplicit = false
 
+# WHATWG Infra Standard の語彙。`Dom` と `Url` が共有する。
+[[lean_lib]]
+name = "Infra"
+
 [[lean_lib]]
 name = "Dom"
+
+[[lean_lib]]
+name = "Url"
 
 [[lean_exe]]
 name = "dom-model"
 root = "Main"
+
+[[lean_exe]]
+name = "url-model"
+root = "UrlMain"
