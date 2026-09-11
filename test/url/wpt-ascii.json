@@ -1,0 +1,4930 @@
+{
+ "_note": "WPT の urltestdata.json から、input と base が ASCII だけの case を抜いたもの。非 ASCII を含むものは IDNA（UTS #46）が要るので外してある。setter 用の relativeTo を持つ case も外した。",
+ "_source": {
+  "repository": "https://github.com/web-platform-tests/wpt",
+  "path": "url/resources/urltestdata.json",
+  "commit": "c23755a1449cc9c5a9131378c13ecf073c0885c6"
+ },
+ "cases": [
+  {
+   "input": "http://example\t.\norg",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/"
+  },
+  {
+   "input": "http://user:pass@foo:21/bar;par?b#c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://user:pass@foo:21/bar;par?b#c"
+  },
+  {
+   "input": "https://test:@test",
+   "base": null,
+   "failure": false,
+   "href": "https://test@test/"
+  },
+  {
+   "input": "https://:@test",
+   "base": null,
+   "failure": false,
+   "href": "https://test/"
+  },
+  {
+   "input": "non-special://test:@test/x",
+   "base": null,
+   "failure": false,
+   "href": "non-special://test@test/x"
+  },
+  {
+   "input": "non-special://:@test/x",
+   "base": null,
+   "failure": false,
+   "href": "non-special://test/x"
+  },
+  {
+   "input": "http:foo.com",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/foo.com"
+  },
+  {
+   "input": "\t   :foo.com   \n",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:foo.com"
+  },
+  {
+   "input": " foo.com  ",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/foo.com"
+  },
+  {
+   "input": "a:\t foo.com",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "a: foo.com"
+  },
+  {
+   "input": "http://f:21/ b ? d # e ",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://f:21/%20b%20?%20d%20#%20e"
+  },
+  {
+   "input": "lolscheme:x x#x x",
+   "base": null,
+   "failure": false,
+   "href": "lolscheme:x x#x%20x"
+  },
+  {
+   "input": "http://f:/c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://f/c"
+  },
+  {
+   "input": "http://f:0/c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://f:0/c"
+  },
+  {
+   "input": "http://f:00000000000000/c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://f:0/c"
+  },
+  {
+   "input": "http://f:00000000000000000000080/c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://f/c"
+  },
+  {
+   "input": "http://f:b/c",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://f: /c",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://f:\n/c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://f/c"
+  },
+  {
+   "input": "http://f:fifty-two/c",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://f:999999/c",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "non-special://f:999999/c",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://f: 21 / b ? d # e ",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar"
+  },
+  {
+   "input": "  \t",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar"
+  },
+  {
+   "input": ":foo.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:foo.com/"
+  },
+  {
+   "input": ":foo.com\\",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:foo.com/"
+  },
+  {
+   "input": ":",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:"
+  },
+  {
+   "input": ":a",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:a"
+  },
+  {
+   "input": ":/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:/"
+  },
+  {
+   "input": ":\\",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:/"
+  },
+  {
+   "input": ":#",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:#"
+  },
+  {
+   "input": "#",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar#"
+  },
+  {
+   "input": "#/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar#/"
+  },
+  {
+   "input": "#\\",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar#\\"
+  },
+  {
+   "input": "#;?",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar#;?"
+  },
+  {
+   "input": "?",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar?"
+  },
+  {
+   "input": "/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/"
+  },
+  {
+   "input": ":23",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:23"
+  },
+  {
+   "input": "/:23",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/:23"
+  },
+  {
+   "input": "\\x",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/x"
+  },
+  {
+   "input": "\\\\x\\hello",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://x/hello"
+  },
+  {
+   "input": "::",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/::"
+  },
+  {
+   "input": "::23",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/::23"
+  },
+  {
+   "input": "foo://",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "foo://"
+  },
+  {
+   "input": "http://a:b@c:29/d",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://a:b@c:29/d"
+  },
+  {
+   "input": "http::@c:29",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/:@c:29"
+  },
+  {
+   "input": "http://&a:foo(b]c@d:2/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://&a:foo(b%5Dc@d:2/"
+  },
+  {
+   "input": "http://::@c@d:2",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://:%3A%40c@d:2/"
+  },
+  {
+   "input": "http://foo.com:b@d/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://foo.com:b@d/"
+  },
+  {
+   "input": "http://foo.com/\\@",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://foo.com//@"
+  },
+  {
+   "input": "http:\\\\foo.com\\",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://foo.com/"
+  },
+  {
+   "input": "http:\\\\a\\b:c\\d@foo.com\\",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://a/b:c/d@foo.com/"
+  },
+  {
+   "input": "http://a:b@c\\",
+   "base": null,
+   "failure": false,
+   "href": "http://a:b@c/"
+  },
+  {
+   "input": "ws://a@b\\c",
+   "base": null,
+   "failure": false,
+   "href": "ws://a@b/c"
+  },
+  {
+   "input": "foo:/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "foo:/"
+  },
+  {
+   "input": "foo:/bar.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "foo:/bar.com/"
+  },
+  {
+   "input": "foo://///////",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "foo://///////"
+  },
+  {
+   "input": "foo://///////bar.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "foo://///////bar.com/"
+  },
+  {
+   "input": "foo:////://///",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "foo:////://///"
+  },
+  {
+   "input": "c:/foo",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "c:/foo"
+  },
+  {
+   "input": "//foo/bar",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://foo/bar"
+  },
+  {
+   "input": "http://foo/path;a??e#f#g",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://foo/path;a??e#f#g"
+  },
+  {
+   "input": "http://foo/abcd?efgh?ijkl",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://foo/abcd?efgh?ijkl"
+  },
+  {
+   "input": "http://foo/abcd#foo?bar",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://foo/abcd#foo?bar"
+  },
+  {
+   "input": "[61:24:74]:98",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/[61:24:74]:98"
+  },
+  {
+   "input": "http:[61:27]/:foo",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/[61:27]/:foo"
+  },
+  {
+   "input": "http://[1::2]:3:4",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://2001::1",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://2001::1]",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://2001::1]:80",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[2001::1]",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://[2001::1]/"
+  },
+  {
+   "input": "http://[::127.0.0.1]",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://[::7f00:1]/"
+  },
+  {
+   "input": "http://[::127.0.0.1.]",
+   "base": "http://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[0:0:0:0:0:0:13.1.68.3]",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://[::d01:4403]/"
+  },
+  {
+   "input": "http://[2001::1]:80",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://[2001::1]/"
+  },
+  {
+   "input": "http:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/example.com/"
+  },
+  {
+   "input": "http:/",
+   "base": "http://example.com/",
+   "failure": false,
+   "href": "http://example.com/"
+  },
+  {
+   "input": "ftp:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "ftp://example.com/"
+  },
+  {
+   "input": "https:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "https://example.com/"
+  },
+  {
+   "input": "madeupscheme:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "madeupscheme:/example.com/"
+  },
+  {
+   "input": "file:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "file:///example.com/"
+  },
+  {
+   "input": "file://example:1/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://example:test/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://example%/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://[example]/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "ftps:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "ftps:/example.com/"
+  },
+  {
+   "input": "gopher:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "gopher:/example.com/"
+  },
+  {
+   "input": "ws:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "ws://example.com/"
+  },
+  {
+   "input": "wss:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "wss://example.com/"
+  },
+  {
+   "input": "data:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "data:/example.com/"
+  },
+  {
+   "input": "javascript:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "javascript:/example.com/"
+  },
+  {
+   "input": "mailto:/example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "mailto:/example.com/"
+  },
+  {
+   "input": "http:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/example.com/"
+  },
+  {
+   "input": "ftp:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "ftp://example.com/"
+  },
+  {
+   "input": "https:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "https://example.com/"
+  },
+  {
+   "input": "madeupscheme:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "madeupscheme:example.com/"
+  },
+  {
+   "input": "ftps:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "ftps:example.com/"
+  },
+  {
+   "input": "gopher:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "gopher:example.com/"
+  },
+  {
+   "input": "ws:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "ws://example.com/"
+  },
+  {
+   "input": "wss:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "wss://example.com/"
+  },
+  {
+   "input": "data:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "data:example.com/"
+  },
+  {
+   "input": "javascript:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "javascript:example.com/"
+  },
+  {
+   "input": "mailto:example.com/",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "mailto:example.com/"
+  },
+  {
+   "input": "/a/b/c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/a/b/c"
+  },
+  {
+   "input": "/a/ /c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/a/%20/c"
+  },
+  {
+   "input": "/a%2fc",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/a%2fc"
+  },
+  {
+   "input": "/a/%2f/c",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/a/%2f/c"
+  },
+  {
+   "input": "data:text/html,test#test",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "data:text/html,test#test"
+  },
+  {
+   "input": "tel:1234567890",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "tel:1234567890"
+  },
+  {
+   "input": "ssh://example.com/foo/bar.git",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "ssh://example.com/foo/bar.git"
+  },
+  {
+   "input": "file:c:\\foo\\bar.html",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///c:/foo/bar.html"
+  },
+  {
+   "input": "  File:c|////foo\\bar.html",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///c:////foo/bar.html"
+  },
+  {
+   "input": "C|/foo/bar",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///C:/foo/bar"
+  },
+  {
+   "input": "/C|\\foo\\bar",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///C:/foo/bar"
+  },
+  {
+   "input": "//C|/foo/bar",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///C:/foo/bar"
+  },
+  {
+   "input": "//server/file",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file://server/file"
+  },
+  {
+   "input": "\\\\server\\file",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file://server/file"
+  },
+  {
+   "input": "/\\server/file",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file://server/file"
+  },
+  {
+   "input": "file:///foo/bar.txt",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///foo/bar.txt"
+  },
+  {
+   "input": "file:///home/me",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///home/me"
+  },
+  {
+   "input": "//",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "///",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "///test",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///test"
+  },
+  {
+   "input": "file://test",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file://test/"
+  },
+  {
+   "input": "file://localhost",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "file://localhost/",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "file://localhost/test",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///test"
+  },
+  {
+   "input": "test",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///tmp/mock/test"
+  },
+  {
+   "input": "file:test",
+   "base": "file:///tmp/mock/path",
+   "failure": false,
+   "href": "file:///tmp/mock/test"
+  },
+  {
+   "input": "file:///w|m",
+   "base": null,
+   "failure": false,
+   "href": "file:///w|m"
+  },
+  {
+   "input": "file:///w||m",
+   "base": null,
+   "failure": false,
+   "href": "file:///w||m"
+  },
+  {
+   "input": "file:///w|/m",
+   "base": null,
+   "failure": false,
+   "href": "file:///w:/m"
+  },
+  {
+   "input": "file:C|/m/",
+   "base": null,
+   "failure": false,
+   "href": "file:///C:/m/"
+  },
+  {
+   "input": "file:C||/m/",
+   "base": null,
+   "failure": false,
+   "href": "file:///C||/m/"
+  },
+  {
+   "input": "http://example.com/././foo",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo"
+  },
+  {
+   "input": "http://example.com/./.foo",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/.foo"
+  },
+  {
+   "input": "http://example.com/foo/.",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/"
+  },
+  {
+   "input": "http://example.com/foo/./",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/"
+  },
+  {
+   "input": "http://example.com/foo/bar/..",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/"
+  },
+  {
+   "input": "http://example.com/foo/bar/../",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/"
+  },
+  {
+   "input": "http://example.com/foo/..bar",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/..bar"
+  },
+  {
+   "input": "http://example.com/foo/bar/../ton",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/ton"
+  },
+  {
+   "input": "http://example.com/foo/bar/../ton/../../a",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/a"
+  },
+  {
+   "input": "http://example.com/foo/../../..",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/"
+  },
+  {
+   "input": "http://example.com/foo/../../../ton",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/ton"
+  },
+  {
+   "input": "http://example.com/foo/%2e",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/"
+  },
+  {
+   "input": "http://example.com/foo/%2e%2",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/%2e%2"
+  },
+  {
+   "input": "http://example.com/foo/%2e./%2e%2e/.%2e/%2e.bar",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%2e.bar"
+  },
+  {
+   "input": "http://example.com////../..",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com//"
+  },
+  {
+   "input": "http://example.com/foo/bar//../..",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/"
+  },
+  {
+   "input": "http://example.com/foo/bar//..",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo/bar/"
+  },
+  {
+   "input": "http://example.com/foo",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo"
+  },
+  {
+   "input": "http://example.com/%20foo",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%20foo"
+  },
+  {
+   "input": "http://example.com/foo%",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo%"
+  },
+  {
+   "input": "http://example.com/foo%2",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo%2"
+  },
+  {
+   "input": "http://example.com/foo%2zbar",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo%2zbar"
+  },
+  {
+   "input": "http://example.com/foo%41%7a",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo%41%7a"
+  },
+  {
+   "input": "http://example.com/foo%00%51",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo%00%51"
+  },
+  {
+   "input": "http://example.com/(%28:%3A%29)",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/(%28:%3A%29)"
+  },
+  {
+   "input": "http://example.com/%3A%3a%3C%3c",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%3A%3a%3C%3c"
+  },
+  {
+   "input": "http://example.com/foo\tbar",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foobar"
+  },
+  {
+   "input": "http://example.com\\\\foo\\\\bar",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com//foo//bar"
+  },
+  {
+   "input": "http://example.com/%7Ffp3%3Eju%3Dduvgw%3Dd",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%7Ffp3%3Eju%3Dduvgw%3Dd"
+  },
+  {
+   "input": "http://example.com/@asdf%40",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/@asdf%40"
+  },
+  {
+   "input": "http://www.google.com/foo?bar=baz#",
+   "base": null,
+   "failure": false,
+   "href": "http://www.google.com/foo?bar=baz#"
+  },
+  {
+   "input": "http://www.google.com",
+   "base": null,
+   "failure": false,
+   "href": "http://www.google.com/"
+  },
+  {
+   "input": "http://192.0x00A80001",
+   "base": null,
+   "failure": false,
+   "href": "http://192.168.0.1/"
+  },
+  {
+   "input": "http://www/foo%2Ehtml",
+   "base": null,
+   "failure": false,
+   "href": "http://www/foo%2Ehtml"
+  },
+  {
+   "input": "http://www/foo/%2E/html",
+   "base": null,
+   "failure": false,
+   "href": "http://www/foo/html"
+  },
+  {
+   "input": "http://user:pass@/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://%25DOMAIN:foobar@foodomain.com/",
+   "base": null,
+   "failure": false,
+   "href": "http://%25DOMAIN:foobar@foodomain.com/"
+  },
+  {
+   "input": "http:\\\\www.google.com\\foo",
+   "base": null,
+   "failure": false,
+   "href": "http://www.google.com/foo"
+  },
+  {
+   "input": "http://foo:80/",
+   "base": null,
+   "failure": false,
+   "href": "http://foo/"
+  },
+  {
+   "input": "http://foo:81/",
+   "base": null,
+   "failure": false,
+   "href": "http://foo:81/"
+  },
+  {
+   "input": "httpa://foo:80/",
+   "base": null,
+   "failure": false,
+   "href": "httpa://foo:80/"
+  },
+  {
+   "input": "http://foo:-80/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://foo:443/",
+   "base": null,
+   "failure": false,
+   "href": "https://foo/"
+  },
+  {
+   "input": "https://foo:80/",
+   "base": null,
+   "failure": false,
+   "href": "https://foo:80/"
+  },
+  {
+   "input": "ftp://foo:21/",
+   "base": null,
+   "failure": false,
+   "href": "ftp://foo/"
+  },
+  {
+   "input": "ftp://foo:80/",
+   "base": null,
+   "failure": false,
+   "href": "ftp://foo:80/"
+  },
+  {
+   "input": "gopher://foo:70/",
+   "base": null,
+   "failure": false,
+   "href": "gopher://foo:70/"
+  },
+  {
+   "input": "gopher://foo:443/",
+   "base": null,
+   "failure": false,
+   "href": "gopher://foo:443/"
+  },
+  {
+   "input": "ws://foo:80/",
+   "base": null,
+   "failure": false,
+   "href": "ws://foo/"
+  },
+  {
+   "input": "ws://foo:81/",
+   "base": null,
+   "failure": false,
+   "href": "ws://foo:81/"
+  },
+  {
+   "input": "ws://foo:443/",
+   "base": null,
+   "failure": false,
+   "href": "ws://foo:443/"
+  },
+  {
+   "input": "ws://foo:815/",
+   "base": null,
+   "failure": false,
+   "href": "ws://foo:815/"
+  },
+  {
+   "input": "wss://foo:80/",
+   "base": null,
+   "failure": false,
+   "href": "wss://foo:80/"
+  },
+  {
+   "input": "wss://foo:81/",
+   "base": null,
+   "failure": false,
+   "href": "wss://foo:81/"
+  },
+  {
+   "input": "wss://foo:443/",
+   "base": null,
+   "failure": false,
+   "href": "wss://foo/"
+  },
+  {
+   "input": "wss://foo:815/",
+   "base": null,
+   "failure": false,
+   "href": "wss://foo:815/"
+  },
+  {
+   "input": "http:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/"
+  },
+  {
+   "input": "ftp:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "ftp://example.com/"
+  },
+  {
+   "input": "https:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "https://example.com/"
+  },
+  {
+   "input": "madeupscheme:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "madeupscheme:/example.com/"
+  },
+  {
+   "input": "file:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "file:///example.com/"
+  },
+  {
+   "input": "ftps:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "ftps:/example.com/"
+  },
+  {
+   "input": "gopher:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "gopher:/example.com/"
+  },
+  {
+   "input": "ws:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "ws://example.com/"
+  },
+  {
+   "input": "wss:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "wss://example.com/"
+  },
+  {
+   "input": "data:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "data:/example.com/"
+  },
+  {
+   "input": "javascript:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "javascript:/example.com/"
+  },
+  {
+   "input": "mailto:/example.com/",
+   "base": null,
+   "failure": false,
+   "href": "mailto:/example.com/"
+  },
+  {
+   "input": "http:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/"
+  },
+  {
+   "input": "ftp:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "ftp://example.com/"
+  },
+  {
+   "input": "https:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "https://example.com/"
+  },
+  {
+   "input": "madeupscheme:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "madeupscheme:example.com/"
+  },
+  {
+   "input": "ftps:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "ftps:example.com/"
+  },
+  {
+   "input": "gopher:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "gopher:example.com/"
+  },
+  {
+   "input": "ws:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "ws://example.com/"
+  },
+  {
+   "input": "wss:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "wss://example.com/"
+  },
+  {
+   "input": "data:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "data:example.com/"
+  },
+  {
+   "input": "javascript:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "javascript:example.com/"
+  },
+  {
+   "input": "mailto:example.com/",
+   "base": null,
+   "failure": false,
+   "href": "mailto:example.com/"
+  },
+  {
+   "input": "https://example.com/aaa/bbb/%2e%2e?query",
+   "base": null,
+   "failure": false,
+   "href": "https://example.com/aaa/?query"
+  },
+  {
+   "input": "http:@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://www.example.com/"
+  },
+  {
+   "input": "http:/@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://www.example.com/"
+  },
+  {
+   "input": "http://@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://www.example.com/"
+  },
+  {
+   "input": "http:a:b@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://a:b@www.example.com/"
+  },
+  {
+   "input": "http:/a:b@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://a:b@www.example.com/"
+  },
+  {
+   "input": "http://a:b@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://a:b@www.example.com/"
+  },
+  {
+   "input": "http://@pple.com",
+   "base": null,
+   "failure": false,
+   "href": "http://pple.com/"
+  },
+  {
+   "input": "http::b@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://:b@www.example.com/"
+  },
+  {
+   "input": "http:/:b@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://:b@www.example.com/"
+  },
+  {
+   "input": "http://:b@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://:b@www.example.com/"
+  },
+  {
+   "input": "http://user@/www.example.com",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://@/www.example.com",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a:b@/www.example.com",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http:a:@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://a@www.example.com/"
+  },
+  {
+   "input": "http:/a:@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://a@www.example.com/"
+  },
+  {
+   "input": "http://a:@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://a@www.example.com/"
+  },
+  {
+   "input": "http://www.@pple.com",
+   "base": null,
+   "failure": false,
+   "href": "http://www.@pple.com/"
+  },
+  {
+   "input": "http://@:www.example.com",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://:@www.example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://www.example.com/"
+  },
+  {
+   "input": "/",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/"
+  },
+  {
+   "input": "/test.txt",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/test.txt"
+  },
+  {
+   "input": ".",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/"
+  },
+  {
+   "input": "..",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/"
+  },
+  {
+   "input": "test.txt",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/test.txt"
+  },
+  {
+   "input": "./test.txt",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/test.txt"
+  },
+  {
+   "input": "../test.txt",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/test.txt"
+  },
+  {
+   "input": "../aaa/test.txt",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/aaa/test.txt"
+  },
+  {
+   "input": "../../test.txt",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/test.txt"
+  },
+  {
+   "input": "http://www.example2.com",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example2.com/"
+  },
+  {
+   "input": "//www.example2.com",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example2.com/"
+  },
+  {
+   "input": "file:...",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "file:///..."
+  },
+  {
+   "input": "file:..",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "file:a",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "file:///a"
+  },
+  {
+   "input": "file:.",
+   "base": null,
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "file:.",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "http://ExAmPlE.CoM",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://example.com/"
+  },
+  {
+   "input": "http://example example.com",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://Goo%20 goo%7C|.com",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[:]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "\u0000\u001b\u0004\u0012 http://example.com/\u001f \r ",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/"
+  },
+  {
+   "input": "non-special:opaque  ",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque"
+  },
+  {
+   "input": "non-special:opaque  ?hi",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque %20?hi"
+  },
+  {
+   "input": "non-special:opaque  #hi",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque %20#hi"
+  },
+  {
+   "input": "non-special:opaque  x?hi",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque  x?hi"
+  },
+  {
+   "input": "non-special:opaque  x#hi",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque  x#hi"
+  },
+  {
+   "input": "non-special:opaque \t\t  \t#hi",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque  %20#hi"
+  },
+  {
+   "input": "non-special:opaque \t\t  #hi",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque  %20#hi"
+  },
+  {
+   "input": "non-special:opaque\t\t  \r #hi",
+   "base": null,
+   "failure": false,
+   "href": "non-special:opaque  %20#hi"
+  },
+  {
+   "input": "http://%ef%b7%90zyx.com",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://%EF%BF%BD",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a.b.c.xn--pokxncvks",
+   "base": null,
+   "failure": false,
+   "href": "http://a.b.c.xn--pokxncvks/"
+  },
+  {
+   "input": "http://10.0.0.xn--pokxncvks",
+   "base": null,
+   "failure": false,
+   "href": "http://10.0.0.xn--pokxncvks/"
+  },
+  {
+   "input": "http://a.b.c.XN--pokxncvks",
+   "base": null,
+   "failure": false,
+   "href": "http://a.b.c.xn--pokxncvks/"
+  },
+  {
+   "input": "http://a.b.c.Xn--pokxncvks",
+   "base": null,
+   "failure": false,
+   "href": "http://a.b.c.xn--pokxncvks/"
+  },
+  {
+   "input": "http://10.0.0.XN--pokxncvks",
+   "base": null,
+   "failure": false,
+   "href": "http://10.0.0.xn--pokxncvks/"
+  },
+  {
+   "input": "http://10.0.0.xN--pokxncvks",
+   "base": null,
+   "failure": false,
+   "href": "http://10.0.0.xn--pokxncvks/"
+  },
+  {
+   "input": "http://%ef%bc%85%ef%bc%94%ef%bc%91.com",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://%ef%bc%85%ef%bc%90%ef%bc%90.com",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://%zz%66%a.com",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://%25",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://hello%00",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://%30%78%63%30%2e%30%32%35%30.01",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://192.168.0.1/"
+  },
+  {
+   "input": "http://%30%78%63%30%2e%30%32%35%30.01%2e",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://192.168.0.1/"
+  },
+  {
+   "input": "http://192.168.0.257",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://%3g%78%63%30%2e%30%32%35%30%2E.01",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://192.168.0.1 hello",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://x x:12",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://./",
+   "base": null,
+   "failure": false,
+   "href": "http://./"
+  },
+  {
+   "input": "http://../",
+   "base": null,
+   "failure": false,
+   "href": "http://../"
+  },
+  {
+   "input": "h://.",
+   "base": null,
+   "failure": false,
+   "href": "h://."
+  },
+  {
+   "input": "http://[www.google.com]/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[google.com]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[::1.2.3.4x]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[::1.2.3.]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[::1.2.]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[::.1.2]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[::1.]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[::.1]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[::%31]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://%5B::1]",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "#",
+   "base": "test:test",
+   "failure": false,
+   "href": "test:test#"
+  },
+  {
+   "input": "#x",
+   "base": "mailto:x@x.com",
+   "failure": false,
+   "href": "mailto:x@x.com#x"
+  },
+  {
+   "input": "#x",
+   "base": "data:,",
+   "failure": false,
+   "href": "data:,#x"
+  },
+  {
+   "input": "#x",
+   "base": "about:blank",
+   "failure": false,
+   "href": "about:blank#x"
+  },
+  {
+   "input": "#x:y",
+   "base": "about:blank",
+   "failure": false,
+   "href": "about:blank#x:y"
+  },
+  {
+   "input": "#",
+   "base": "test:test?test",
+   "failure": false,
+   "href": "test:test?test#"
+  },
+  {
+   "input": "https://@test@test@example:800/",
+   "base": "http://doesnotmatter/",
+   "failure": false,
+   "href": "https://%40test%40test@example:800/"
+  },
+  {
+   "input": "https://@@@example",
+   "base": "http://doesnotmatter/",
+   "failure": false,
+   "href": "https://%40%40@example/"
+  },
+  {
+   "input": "http://`{}:`{}@h/`{}?`{}",
+   "base": "http://doesnotmatter/",
+   "failure": false,
+   "href": "http://%60%7B%7D:%60%7B%7D@h/%60%7B%7D?`{}"
+  },
+  {
+   "input": "http://host/?'",
+   "base": null,
+   "failure": false,
+   "href": "http://host/?%27"
+  },
+  {
+   "input": "notspecial://host/?'",
+   "base": null,
+   "failure": false,
+   "href": "notspecial://host/?'"
+  },
+  {
+   "input": "/some/path",
+   "base": "http://user@example.org/smth",
+   "failure": false,
+   "href": "http://user@example.org/some/path"
+  },
+  {
+   "input": "",
+   "base": "http://user:pass@example.org:21/smth",
+   "failure": false,
+   "href": "http://user:pass@example.org:21/smth"
+  },
+  {
+   "input": "/some/path",
+   "base": "http://user:pass@example.org:21/smth",
+   "failure": false,
+   "href": "http://user:pass@example.org:21/some/path"
+  },
+  {
+   "input": "i",
+   "base": "sc:sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "i",
+   "base": "sc:sd/sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "i",
+   "base": "sc:/pa/pa",
+   "failure": false,
+   "href": "sc:/pa/i"
+  },
+  {
+   "input": "i",
+   "base": "sc://ho/pa",
+   "failure": false,
+   "href": "sc://ho/i"
+  },
+  {
+   "input": "i",
+   "base": "sc:///pa/pa",
+   "failure": false,
+   "href": "sc:///pa/i"
+  },
+  {
+   "input": "../i",
+   "base": "sc:sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "../i",
+   "base": "sc:sd/sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "../i",
+   "base": "sc:/pa/pa",
+   "failure": false,
+   "href": "sc:/i"
+  },
+  {
+   "input": "../i",
+   "base": "sc://ho/pa",
+   "failure": false,
+   "href": "sc://ho/i"
+  },
+  {
+   "input": "../i",
+   "base": "sc:///pa/pa",
+   "failure": false,
+   "href": "sc:///i"
+  },
+  {
+   "input": "/i",
+   "base": "sc:sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "/i",
+   "base": "sc:sd/sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "/i",
+   "base": "sc:/pa/pa",
+   "failure": false,
+   "href": "sc:/i"
+  },
+  {
+   "input": "/i",
+   "base": "sc://ho/pa",
+   "failure": false,
+   "href": "sc://ho/i"
+  },
+  {
+   "input": "/i",
+   "base": "sc:///pa/pa",
+   "failure": false,
+   "href": "sc:///i"
+  },
+  {
+   "input": "?i",
+   "base": "sc:sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "?i",
+   "base": "sc:sd/sd",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "?i",
+   "base": "sc:/pa/pa",
+   "failure": false,
+   "href": "sc:/pa/pa?i"
+  },
+  {
+   "input": "?i",
+   "base": "sc://ho/pa",
+   "failure": false,
+   "href": "sc://ho/pa?i"
+  },
+  {
+   "input": "?i",
+   "base": "sc:///pa/pa",
+   "failure": false,
+   "href": "sc:///pa/pa?i"
+  },
+  {
+   "input": "#i",
+   "base": "sc:sd",
+   "failure": false,
+   "href": "sc:sd#i"
+  },
+  {
+   "input": "#i",
+   "base": "sc:sd/sd",
+   "failure": false,
+   "href": "sc:sd/sd#i"
+  },
+  {
+   "input": "#i",
+   "base": "sc:/pa/pa",
+   "failure": false,
+   "href": "sc:/pa/pa#i"
+  },
+  {
+   "input": "#i",
+   "base": "sc://ho/pa",
+   "failure": false,
+   "href": "sc://ho/pa#i"
+  },
+  {
+   "input": "#i",
+   "base": "sc:///pa/pa",
+   "failure": false,
+   "href": "sc:///pa/pa#i"
+  },
+  {
+   "input": "about:/../",
+   "base": null,
+   "failure": false,
+   "href": "about:/"
+  },
+  {
+   "input": "data:/../",
+   "base": null,
+   "failure": false,
+   "href": "data:/"
+  },
+  {
+   "input": "javascript:/../",
+   "base": null,
+   "failure": false,
+   "href": "javascript:/"
+  },
+  {
+   "input": "mailto:/../",
+   "base": null,
+   "failure": false,
+   "href": "mailto:/"
+  },
+  {
+   "input": "sc://%/",
+   "base": null,
+   "failure": false,
+   "href": "sc://%/"
+  },
+  {
+   "input": "sc://@/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://te@s:t@/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://:/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://:12/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc:\\../",
+   "base": null,
+   "failure": false,
+   "href": "sc:\\../"
+  },
+  {
+   "input": "sc::a@example.net",
+   "base": null,
+   "failure": false,
+   "href": "sc::a@example.net"
+  },
+  {
+   "input": "wow:%NBD",
+   "base": null,
+   "failure": false,
+   "href": "wow:%NBD"
+  },
+  {
+   "input": "wow:%1G",
+   "base": null,
+   "failure": false,
+   "href": "wow:%1G"
+  },
+  {
+   "input": "sc://a\u0000b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a<b",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a>b",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a[b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a\\b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a]b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a^b",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://a|b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "foo://ho\tst/",
+   "base": null,
+   "failure": false,
+   "href": "foo://host/"
+  },
+  {
+   "input": "foo://ho\nst/",
+   "base": null,
+   "failure": false,
+   "href": "foo://host/"
+  },
+  {
+   "input": "foo://ho\rst/",
+   "base": null,
+   "failure": false,
+   "href": "foo://host/"
+  },
+  {
+   "input": "http://a\u0000b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0001b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0002b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0003b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0004b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0005b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0006b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0007b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\bb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u000bb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\fb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u000eb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u000fb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0010b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0011b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0012b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0013b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0014b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0015b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0016b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0017b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0018b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u0019b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u001ab/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u001bb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u001cb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u001db/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u001eb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a\u001fb/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a%b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a<b",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a>b",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a[b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a]b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a^b",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://a|b/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ab/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho\tst/",
+   "base": null,
+   "failure": false,
+   "href": "http://host/"
+  },
+  {
+   "input": "http://ho\nst/",
+   "base": null,
+   "failure": false,
+   "href": "http://host/"
+  },
+  {
+   "input": "http://ho\rst/",
+   "base": null,
+   "failure": false,
+   "href": "http://host/"
+  },
+  {
+   "input": "http://ho%00st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%01st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%02st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%03st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%04st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%05st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%06st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%07st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%08st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%09st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%0Ast/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%0Bst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%0Cst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%0Dst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%0Est/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%0Fst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%10st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%11st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%12st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%13st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%14st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%15st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%16st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%17st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%18st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%19st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%1Ast/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%1Bst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%1Cst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%1Dst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%1Est/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%1Fst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%20st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%23st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%25st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%2Fst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%3Ast/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%3Cst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%3Est/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%3Fst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%40st/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%5Bst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%5Cst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%5Dst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%7Cst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://ho%7Fst/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://!\"$&'()*+,-.;=_`{}~/",
+   "base": null,
+   "failure": false,
+   "href": "http://!\"$&'()*+,-.;=_`{}~/"
+  },
+  {
+   "input": "sc://\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\u000b\f\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f!\"$%&'()*+,-.;=_`{}~/",
+   "base": null,
+   "failure": false,
+   "href": "sc://%01%02%03%04%05%06%07%08%0B%0C%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F!\"$%&'()*+,-.;=_`{}~/"
+  },
+  {
+   "input": "ftp://example.com%80/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "ftp://example.com%A0/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://example.com%80/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://example.com%A0/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "ftp://%e2%98%83",
+   "base": null,
+   "failure": false,
+   "href": "ftp://xn--n3h/"
+  },
+  {
+   "input": "https://%e2%98%83",
+   "base": null,
+   "failure": false,
+   "href": "https://xn--n3h/"
+  },
+  {
+   "input": "http://127.0.0.1:10100/relative_import.html",
+   "base": null,
+   "failure": false,
+   "href": "http://127.0.0.1:10100/relative_import.html"
+  },
+  {
+   "input": "http://facebook.com/?foo=%7B%22abc%22",
+   "base": null,
+   "failure": false,
+   "href": "http://facebook.com/?foo=%7B%22abc%22"
+  },
+  {
+   "input": "https://localhost:3000/jqueryui@1.2.3",
+   "base": null,
+   "failure": false,
+   "href": "https://localhost:3000/jqueryui@1.2.3"
+  },
+  {
+   "input": "h\tt\nt\rp://h\to\ns\rt:9\t0\n0\r0/p\ta\nt\rh?q\tu\ne\rry#f\tr\na\rg",
+   "base": null,
+   "failure": false,
+   "href": "http://host:9000/path?query#frag"
+  },
+  {
+   "input": "?a=b&c=d",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar?a=b&c=d"
+  },
+  {
+   "input": "??a=b&c=d",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar??a=b&c=d"
+  },
+  {
+   "input": "http:",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar"
+  },
+  {
+   "input": "http:",
+   "base": "https://example.org/foo/bar",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc:",
+   "base": "https://example.org/foo/bar",
+   "failure": false,
+   "href": "sc:"
+  },
+  {
+   "input": "http://foo.bar/baz?qux#foo\bbar",
+   "base": null,
+   "failure": false,
+   "href": "http://foo.bar/baz?qux#foo%08bar"
+  },
+  {
+   "input": "http://foo.bar/baz?qux#foo\"bar",
+   "base": null,
+   "failure": false,
+   "href": "http://foo.bar/baz?qux#foo%22bar"
+  },
+  {
+   "input": "http://foo.bar/baz?qux#foo<bar",
+   "base": null,
+   "failure": false,
+   "href": "http://foo.bar/baz?qux#foo%3Cbar"
+  },
+  {
+   "input": "http://foo.bar/baz?qux#foo>bar",
+   "base": null,
+   "failure": false,
+   "href": "http://foo.bar/baz?qux#foo%3Ebar"
+  },
+  {
+   "input": "http://foo.bar/baz?qux#foo`bar",
+   "base": null,
+   "failure": false,
+   "href": "http://foo.bar/baz?qux#foo%60bar"
+  },
+  {
+   "input": "http://1.2.3.4/",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://1.2.3.4/"
+  },
+  {
+   "input": "http://1.2.3.4./",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://1.2.3.4/"
+  },
+  {
+   "input": "http://192.168.257",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://192.168.1.1/"
+  },
+  {
+   "input": "http://192.168.257.",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://192.168.1.1/"
+  },
+  {
+   "input": "http://192.168.257.com",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://192.168.257.com/"
+  },
+  {
+   "input": "http://256",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://0.0.1.0/"
+  },
+  {
+   "input": "http://256.com",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://256.com/"
+  },
+  {
+   "input": "http://999999999",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://59.154.201.255/"
+  },
+  {
+   "input": "http://999999999.",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://59.154.201.255/"
+  },
+  {
+   "input": "http://999999999.com",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://999999999.com/"
+  },
+  {
+   "input": "http://10000000000",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://10000000000.com",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://10000000000.com/"
+  },
+  {
+   "input": "http://4294967295",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://255.255.255.255/"
+  },
+  {
+   "input": "http://4294967296",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://18446744073709551616",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://18446744075840258049",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://0xffffffff",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://255.255.255.255/"
+  },
+  {
+   "input": "http://0xffffffff1",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://256.256.256.256",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://0x.0x.0",
+   "base": null,
+   "failure": false,
+   "href": "https://0.0.0.0/"
+  },
+  {
+   "input": "https://0x.0x.0x.0x",
+   "base": null,
+   "failure": false,
+   "href": "https://0.0.0.0/"
+  },
+  {
+   "input": "https://00.00.00.00",
+   "base": null,
+   "failure": false,
+   "href": "https://0.0.0.0/"
+  },
+  {
+   "input": "https://0000000000000000000000000000000000000000177.0.0.1",
+   "base": null,
+   "failure": false,
+   "href": "https://127.0.0.1/"
+  },
+  {
+   "input": "https://0x100000000/test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://256.0.0.1/test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file:///C%3A/",
+   "base": null,
+   "failure": false,
+   "href": "file:///C%3A/"
+  },
+  {
+   "input": "file:///C%7C/",
+   "base": null,
+   "failure": false,
+   "href": "file:///C%7C/"
+  },
+  {
+   "input": "file://%43%3A",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://%43%7C",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://%43|",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://C%7C",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://%43%7C/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://%43%7C/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "asdf://%43|/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "asdf://%43%7C/",
+   "base": null,
+   "failure": false,
+   "href": "asdf://%43%7C/"
+  },
+  {
+   "input": "pix/submit.gif",
+   "base": "file:///C:/Users/Domenic/Dropbox/GitHub/tmpvar/jsdom/test/level2/html/files/anchor.html",
+   "failure": false,
+   "href": "file:///C:/Users/Domenic/Dropbox/GitHub/tmpvar/jsdom/test/level2/html/files/pix/submit.gif"
+  },
+  {
+   "input": "..",
+   "base": "file:///C:/",
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "..",
+   "base": "file:///",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "/",
+   "base": "file:///C:/a/b",
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "/",
+   "base": "file://h/C:/a/b",
+   "failure": false,
+   "href": "file://h/C:/"
+  },
+  {
+   "input": "/",
+   "base": "file://h/a/b",
+   "failure": false,
+   "href": "file://h/"
+  },
+  {
+   "input": "//d:",
+   "base": "file:///C:/a/b",
+   "failure": false,
+   "href": "file:///d:"
+  },
+  {
+   "input": "//d:/..",
+   "base": "file:///C:/a/b",
+   "failure": false,
+   "href": "file:///d:/"
+  },
+  {
+   "input": "..",
+   "base": "file:///ab:/",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "..",
+   "base": "file:///1:/",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "",
+   "base": "file:///test?test#test",
+   "failure": false,
+   "href": "file:///test?test"
+  },
+  {
+   "input": "file:",
+   "base": "file:///test?test#test",
+   "failure": false,
+   "href": "file:///test?test"
+  },
+  {
+   "input": "?x",
+   "base": "file:///test?test#test",
+   "failure": false,
+   "href": "file:///test?x"
+  },
+  {
+   "input": "file:?x",
+   "base": "file:///test?test#test",
+   "failure": false,
+   "href": "file:///test?x"
+  },
+  {
+   "input": "#x",
+   "base": "file:///test?test#test",
+   "failure": false,
+   "href": "file:///test?test#x"
+  },
+  {
+   "input": "file:#x",
+   "base": "file:///test?test#test",
+   "failure": false,
+   "href": "file:///test?test#x"
+  },
+  {
+   "input": "file:\\\\//",
+   "base": null,
+   "failure": false,
+   "href": "file:////"
+  },
+  {
+   "input": "file:\\\\\\\\",
+   "base": null,
+   "failure": false,
+   "href": "file:////"
+  },
+  {
+   "input": "file:\\\\\\\\?fox",
+   "base": null,
+   "failure": false,
+   "href": "file:////?fox"
+  },
+  {
+   "input": "file:\\\\\\\\#guppy",
+   "base": null,
+   "failure": false,
+   "href": "file:////#guppy"
+  },
+  {
+   "input": "file://spider///",
+   "base": null,
+   "failure": false,
+   "href": "file://spider///"
+  },
+  {
+   "input": "file:\\\\localhost//",
+   "base": null,
+   "failure": false,
+   "href": "file:////"
+  },
+  {
+   "input": "file:///localhost//cat",
+   "base": null,
+   "failure": false,
+   "href": "file:///localhost//cat"
+  },
+  {
+   "input": "file://\\/localhost//cat",
+   "base": null,
+   "failure": false,
+   "href": "file:////localhost//cat"
+  },
+  {
+   "input": "file://localhost//a//../..//",
+   "base": null,
+   "failure": false,
+   "href": "file://///"
+  },
+  {
+   "input": "/////mouse",
+   "base": "file:///elephant",
+   "failure": false,
+   "href": "file://///mouse"
+  },
+  {
+   "input": "\\//pig",
+   "base": "file://lion/",
+   "failure": false,
+   "href": "file:///pig"
+  },
+  {
+   "input": "\\/localhost//pig",
+   "base": "file://lion/",
+   "failure": false,
+   "href": "file:////pig"
+  },
+  {
+   "input": "//localhost//pig",
+   "base": "file://lion/",
+   "failure": false,
+   "href": "file:////pig"
+  },
+  {
+   "input": "/..//localhost//pig",
+   "base": "file://lion/",
+   "failure": false,
+   "href": "file://lion//localhost//pig"
+  },
+  {
+   "input": "file://",
+   "base": "file://ape/",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "/rooibos",
+   "base": "file://tea/",
+   "failure": false,
+   "href": "file://tea/rooibos"
+  },
+  {
+   "input": "/?chai",
+   "base": "file://tea/",
+   "failure": false,
+   "href": "file://tea/?chai"
+  },
+  {
+   "input": "C|",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/C:"
+  },
+  {
+   "input": "C|",
+   "base": "file://host/D:/dir1/dir2/file",
+   "failure": false,
+   "href": "file://host/C:"
+  },
+  {
+   "input": "C|#",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/C:#"
+  },
+  {
+   "input": "C|?",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/C:?"
+  },
+  {
+   "input": "C|/",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/C:/"
+  },
+  {
+   "input": "C|\n/",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/C:/"
+  },
+  {
+   "input": "C|\\",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/C:/"
+  },
+  {
+   "input": "C",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/dir/C"
+  },
+  {
+   "input": "C|a",
+   "base": "file://host/dir/file",
+   "failure": false,
+   "href": "file://host/dir/C|a"
+  },
+  {
+   "input": "/c:/foo/bar",
+   "base": "file:///c:/baz/qux",
+   "failure": false,
+   "href": "file:///c:/foo/bar"
+  },
+  {
+   "input": "/c|/foo/bar",
+   "base": "file:///c:/baz/qux",
+   "failure": false,
+   "href": "file:///c:/foo/bar"
+  },
+  {
+   "input": "file:\\c:\\foo\\bar",
+   "base": "file:///c:/baz/qux",
+   "failure": false,
+   "href": "file:///c:/foo/bar"
+  },
+  {
+   "input": "/c:/foo/bar",
+   "base": "file://host/path",
+   "failure": false,
+   "href": "file://host/c:/foo/bar"
+  },
+  {
+   "input": "..",
+   "base": "abc://x/y/z/C:/",
+   "failure": false,
+   "href": "abc://x/y/z/"
+  },
+  {
+   "input": "..",
+   "base": "file://x/C:/",
+   "failure": false,
+   "href": "file://x/C:/"
+  },
+  {
+   "input": "file://example.net/C:/",
+   "base": null,
+   "failure": false,
+   "href": "file://example.net/C:/"
+  },
+  {
+   "input": "file://1.2.3.4/C:/",
+   "base": null,
+   "failure": false,
+   "href": "file://1.2.3.4/C:/"
+  },
+  {
+   "input": "file://[1::8]/C:/",
+   "base": null,
+   "failure": false,
+   "href": "file://[1::8]/C:/"
+  },
+  {
+   "input": "C|/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file://host/C:/"
+  },
+  {
+   "input": "/C:/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file://host/C:/"
+  },
+  {
+   "input": "file:C:/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file://host/C:/"
+  },
+  {
+   "input": "file:/C:/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file://host/C:/"
+  },
+  {
+   "input": "//C:/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "file://C:/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "///C:/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "file:///C:/",
+   "base": "file://host/",
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "file:/C|/",
+   "base": null,
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "file://C|/",
+   "base": null,
+   "failure": false,
+   "href": "file:///C:/"
+  },
+  {
+   "input": "file:",
+   "base": null,
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "file:?q=v",
+   "base": null,
+   "failure": false,
+   "href": "file:///?q=v"
+  },
+  {
+   "input": "file:#frag",
+   "base": null,
+   "failure": false,
+   "href": "file:///#frag"
+  },
+  {
+   "input": "file:///Y:",
+   "base": null,
+   "failure": false,
+   "href": "file:///Y:"
+  },
+  {
+   "input": "file:///Y:/",
+   "base": null,
+   "failure": false,
+   "href": "file:///Y:/"
+  },
+  {
+   "input": "file:///./Y",
+   "base": null,
+   "failure": false,
+   "href": "file:///Y"
+  },
+  {
+   "input": "file:///./Y:",
+   "base": null,
+   "failure": false,
+   "href": "file:///Y:"
+  },
+  {
+   "input": "file:///y:",
+   "base": null,
+   "failure": false,
+   "href": "file:///y:"
+  },
+  {
+   "input": "file:///y:/",
+   "base": null,
+   "failure": false,
+   "href": "file:///y:/"
+  },
+  {
+   "input": "file:///./y",
+   "base": null,
+   "failure": false,
+   "href": "file:///y"
+  },
+  {
+   "input": "file:///./y:",
+   "base": null,
+   "failure": false,
+   "href": "file:///y:"
+  },
+  {
+   "input": "file://localhost//a//../..//foo",
+   "base": null,
+   "failure": false,
+   "href": "file://///foo"
+  },
+  {
+   "input": "file://localhost////foo",
+   "base": null,
+   "failure": false,
+   "href": "file://////foo"
+  },
+  {
+   "input": "file:////foo",
+   "base": null,
+   "failure": false,
+   "href": "file:////foo"
+  },
+  {
+   "input": "file:///one/two",
+   "base": "file:///",
+   "failure": false,
+   "href": "file:///one/two"
+  },
+  {
+   "input": "file:////one/two",
+   "base": "file:///",
+   "failure": false,
+   "href": "file:////one/two"
+  },
+  {
+   "input": "//one/two",
+   "base": "file:///",
+   "failure": false,
+   "href": "file://one/two"
+  },
+  {
+   "input": "///one/two",
+   "base": "file:///",
+   "failure": false,
+   "href": "file:///one/two"
+  },
+  {
+   "input": "////one/two",
+   "base": "file:///",
+   "failure": false,
+   "href": "file:////one/two"
+  },
+  {
+   "input": "file:///.//",
+   "base": "file:////",
+   "failure": false,
+   "href": "file:////"
+  },
+  {
+   "input": "file:.//p",
+   "base": null,
+   "failure": false,
+   "href": "file:////p"
+  },
+  {
+   "input": "file:/.//p",
+   "base": null,
+   "failure": false,
+   "href": "file:////p"
+  },
+  {
+   "input": "https://[0:1:2:3:4:5:192.0.02.1]/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[192.0.2.1::]/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[1:0::]",
+   "base": "http://example.net/",
+   "failure": false,
+   "href": "http://[1::]/"
+  },
+  {
+   "input": "http://[0:1:2:3:4:5:6:7:8]",
+   "base": "http://example.net/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[0::0::0]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[0:.0]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[0:0:]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[0:1:2:3:4:5:6:7.0.0.0.1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[0:1.00.0.0.0]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[0:1.290.0.0.0]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://[0:1.23.23]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://?",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://#",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://f:4294967377/c",
+   "base": "http://example.org/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://f:18446744073709551697/c",
+   "base": "http://example.org/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://f:340282366920938463463374607431768211537/c",
+   "base": "http://example.org/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "sc://?",
+   "base": null,
+   "failure": false,
+   "href": "sc://?"
+  },
+  {
+   "input": "sc://#",
+   "base": null,
+   "failure": false,
+   "href": "sc://#"
+  },
+  {
+   "input": "///",
+   "base": "sc://x/",
+   "failure": false,
+   "href": "sc:///"
+  },
+  {
+   "input": "////",
+   "base": "sc://x/",
+   "failure": false,
+   "href": "sc:////"
+  },
+  {
+   "input": "////x/",
+   "base": "sc://x/",
+   "failure": false,
+   "href": "sc:////x/"
+  },
+  {
+   "input": "tftp://foobar.com/someconfig;mode=netascii",
+   "base": null,
+   "failure": false,
+   "href": "tftp://foobar.com/someconfig;mode=netascii"
+  },
+  {
+   "input": "telnet://user:pass@foobar.com:23/",
+   "base": null,
+   "failure": false,
+   "href": "telnet://user:pass@foobar.com:23/"
+  },
+  {
+   "input": "ut2004://10.10.10.10:7777/Index.ut2",
+   "base": null,
+   "failure": false,
+   "href": "ut2004://10.10.10.10:7777/Index.ut2"
+  },
+  {
+   "input": "redis://foo:bar@somehost:6379/0?baz=bam&qux=baz",
+   "base": null,
+   "failure": false,
+   "href": "redis://foo:bar@somehost:6379/0?baz=bam&qux=baz"
+  },
+  {
+   "input": "rsync://foo@host:911/sup",
+   "base": null,
+   "failure": false,
+   "href": "rsync://foo@host:911/sup"
+  },
+  {
+   "input": "git://github.com/foo/bar.git",
+   "base": null,
+   "failure": false,
+   "href": "git://github.com/foo/bar.git"
+  },
+  {
+   "input": "irc://myserver.com:6999/channel?passwd",
+   "base": null,
+   "failure": false,
+   "href": "irc://myserver.com:6999/channel?passwd"
+  },
+  {
+   "input": "dns://fw.example.org:9999/foo.bar.org?type=TXT",
+   "base": null,
+   "failure": false,
+   "href": "dns://fw.example.org:9999/foo.bar.org?type=TXT"
+  },
+  {
+   "input": "ldap://localhost:389/ou=People,o=JNDITutorial",
+   "base": null,
+   "failure": false,
+   "href": "ldap://localhost:389/ou=People,o=JNDITutorial"
+  },
+  {
+   "input": "git+https://github.com/foo/bar",
+   "base": null,
+   "failure": false,
+   "href": "git+https://github.com/foo/bar"
+  },
+  {
+   "input": "urn:ietf:rfc:2648",
+   "base": null,
+   "failure": false,
+   "href": "urn:ietf:rfc:2648"
+  },
+  {
+   "input": "tag:joe@example.org,2001:foo/bar",
+   "base": null,
+   "failure": false,
+   "href": "tag:joe@example.org,2001:foo/bar"
+  },
+  {
+   "input": "non-spec:/.//",
+   "base": null,
+   "failure": false,
+   "href": "non-spec:/.//"
+  },
+  {
+   "input": "non-spec:/..//",
+   "base": null,
+   "failure": false,
+   "href": "non-spec:/.//"
+  },
+  {
+   "input": "non-spec:/a/..//",
+   "base": null,
+   "failure": false,
+   "href": "non-spec:/.//"
+  },
+  {
+   "input": "non-spec:/.//path",
+   "base": null,
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "non-spec:/..//path",
+   "base": null,
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "non-spec:/a/..//path",
+   "base": null,
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "/.//path",
+   "base": "non-spec:/p",
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "/..//path",
+   "base": "non-spec:/p",
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "..//path",
+   "base": "non-spec:/p",
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "a/..//path",
+   "base": "non-spec:/p",
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "",
+   "base": "non-spec:/..//p",
+   "failure": false,
+   "href": "non-spec:/.//p"
+  },
+  {
+   "input": "path",
+   "base": "non-spec:/..//p",
+   "failure": false,
+   "href": "non-spec:/.//path"
+  },
+  {
+   "input": "../path",
+   "base": "non-spec:/.//p",
+   "failure": false,
+   "href": "non-spec:/path"
+  },
+  {
+   "input": "non-special://%E2%80%A0/",
+   "base": null,
+   "failure": false,
+   "href": "non-special://%E2%80%A0/"
+  },
+  {
+   "input": "non-special://H%4fSt/path",
+   "base": null,
+   "failure": false,
+   "href": "non-special://H%4fSt/path"
+  },
+  {
+   "input": "non-special://[1:2:0:0:5:0:0:0]/",
+   "base": null,
+   "failure": false,
+   "href": "non-special://[1:2:0:0:5::]/"
+  },
+  {
+   "input": "non-special://[1:2:0:0:0:0:0:3]/",
+   "base": null,
+   "failure": false,
+   "href": "non-special://[1:2::3]/"
+  },
+  {
+   "input": "non-special://[1:2::3]:80/",
+   "base": null,
+   "failure": false,
+   "href": "non-special://[1:2::3]:80/"
+  },
+  {
+   "input": "non-special://[:80/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "blob:https://example.com:443/",
+   "base": null,
+   "failure": false,
+   "href": "blob:https://example.com:443/"
+  },
+  {
+   "input": "blob:http://example.org:88/",
+   "base": null,
+   "failure": false,
+   "href": "blob:http://example.org:88/"
+  },
+  {
+   "input": "blob:d3958f5c-0777-0845-9dcf-2cb28783acaf",
+   "base": null,
+   "failure": false,
+   "href": "blob:d3958f5c-0777-0845-9dcf-2cb28783acaf"
+  },
+  {
+   "input": "blob:",
+   "base": null,
+   "failure": false,
+   "href": "blob:"
+  },
+  {
+   "input": "blob:blob:",
+   "base": null,
+   "failure": false,
+   "href": "blob:blob:"
+  },
+  {
+   "input": "blob:blob:https://example.org/",
+   "base": null,
+   "failure": false,
+   "href": "blob:blob:https://example.org/"
+  },
+  {
+   "input": "blob:about:blank",
+   "base": null,
+   "failure": false,
+   "href": "blob:about:blank"
+  },
+  {
+   "input": "blob:file://host/path",
+   "base": null,
+   "failure": false,
+   "href": "blob:file://host/path"
+  },
+  {
+   "input": "blob:ftp://host/path",
+   "base": null,
+   "failure": false,
+   "href": "blob:ftp://host/path"
+  },
+  {
+   "input": "blob:ws://example.org/",
+   "base": null,
+   "failure": false,
+   "href": "blob:ws://example.org/"
+  },
+  {
+   "input": "blob:wss://example.org/",
+   "base": null,
+   "failure": false,
+   "href": "blob:wss://example.org/"
+  },
+  {
+   "input": "blob:http%3a//example.org/",
+   "base": null,
+   "failure": false,
+   "href": "blob:http%3a//example.org/"
+  },
+  {
+   "input": "http://0x7f.0.0.0x7g",
+   "base": null,
+   "failure": false,
+   "href": "http://0x7f.0.0.0x7g/"
+  },
+  {
+   "input": "http://0X7F.0.0.0X7G",
+   "base": null,
+   "failure": false,
+   "href": "http://0x7f.0.0.0x7g/"
+  },
+  {
+   "input": "http://[::127.0.0.0.1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://[0:1:0:1:0:1:0:1]",
+   "base": null,
+   "failure": false,
+   "href": "http://[0:1:0:1:0:1:0:1]/"
+  },
+  {
+   "input": "http://[1:0:1:0:1:0:1:0]",
+   "base": null,
+   "failure": false,
+   "href": "http://[1:0:1:0:1:0:1:0]/"
+  },
+  {
+   "input": "http://example.org/test?\"",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?%22"
+  },
+  {
+   "input": "http://example.org/test?#",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?#"
+  },
+  {
+   "input": "http://example.org/test?<",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?%3C"
+  },
+  {
+   "input": "http://example.org/test?>",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?%3E"
+  },
+  {
+   "input": "http://example.org/test?%23%23",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?%23%23"
+  },
+  {
+   "input": "http://example.org/test?%GH",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?%GH"
+  },
+  {
+   "input": "http://example.org/test?a#%EF",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?a#%EF"
+  },
+  {
+   "input": "http://example.org/test?a#%GH",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?a#%GH"
+  },
+  {
+   "input": "test-a-colon.html",
+   "base": "a:",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "test-a-colon-b.html",
+   "base": "a:b",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "test-a-colon-slash.html",
+   "base": "a:/",
+   "failure": false,
+   "href": "a:/test-a-colon-slash.html"
+  },
+  {
+   "input": "test-a-colon-slash-slash.html",
+   "base": "a://",
+   "failure": false,
+   "href": "a:///test-a-colon-slash-slash.html"
+  },
+  {
+   "input": "test-a-colon-slash-b.html",
+   "base": "a:/b",
+   "failure": false,
+   "href": "a:/test-a-colon-slash-b.html"
+  },
+  {
+   "input": "test-a-colon-slash-slash-b.html",
+   "base": "a://b",
+   "failure": false,
+   "href": "a://b/test-a-colon-slash-slash-b.html"
+  },
+  {
+   "input": "http://example.org/test?a#b\u0000c",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?a#b%00c"
+  },
+  {
+   "input": "non-spec://example.org/test?a#b\u0000c",
+   "base": null,
+   "failure": false,
+   "href": "non-spec://example.org/test?a#b%00c"
+  },
+  {
+   "input": "non-spec:/test?a#b\u0000c",
+   "base": null,
+   "failure": false,
+   "href": "non-spec:/test?a#b%00c"
+  },
+  {
+   "input": "10.0.0.7:8080/foo.html",
+   "base": "file:///some/dir/bar.html",
+   "failure": false,
+   "href": "file:///some/dir/10.0.0.7:8080/foo.html"
+  },
+  {
+   "input": "a!@$*=/foo.html",
+   "base": "file:///some/dir/bar.html",
+   "failure": false,
+   "href": "file:///some/dir/a!@$*=/foo.html"
+  },
+  {
+   "input": "a1234567890-+.:foo/bar",
+   "base": "http://example.com/dir/file",
+   "failure": false,
+   "href": "a1234567890-+.:foo/bar"
+  },
+  {
+   "input": "file://a%C2%ADb/p",
+   "base": null,
+   "failure": false,
+   "href": "file://ab/p"
+  },
+  {
+   "input": "file://%C2%AD/p",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "file://xn--/p",
+   "base": null,
+   "failure": false,
+   "href": "file://xn--/p"
+  },
+  {
+   "input": "#link",
+   "base": "https://example.org/##link",
+   "failure": false,
+   "href": "https://example.org/#link"
+  },
+  {
+   "input": "non-special:cannot-be-a-base-url-!\"$%&'()*+,-.;<=>@[\\]^_`{|}~@/",
+   "base": null,
+   "failure": false,
+   "href": "non-special:cannot-be-a-base-url-!\"$%&'()*+,-.;<=>@[\\]^_`{|}~@/"
+  },
+  {
+   "input": "https://www.example.com/path{path.html?query'=query#fragment<fragment",
+   "base": null,
+   "failure": false,
+   "href": "https://www.example.com/path%7B%7Fpath.html?query%27%7F=query#fragment%3C%7Ffragment"
+  },
+  {
+   "input": "https://user:pass[@foo/bar",
+   "base": "http://example.org",
+   "failure": false,
+   "href": "https://user:pass%5B%7F@foo/bar"
+  },
+  {
+   "input": "foo:// !\"$%&'()*+,-.;<=>@[\\]^_`{|}~@host/",
+   "base": null,
+   "failure": false,
+   "href": "foo://%20!%22$%&'()*+,-.%3B%3C%3D%3E%40%5B%5C%5D%5E_%60%7B%7C%7D~@host/"
+  },
+  {
+   "input": "wss:// !\"$%&'()*+,-.;<=>@[]^_`{|}~@host/",
+   "base": null,
+   "failure": false,
+   "href": "wss://%20!%22$%&'()*+,-.%3B%3C%3D%3E%40%5B%5D%5E_%60%7B%7C%7D~@host/"
+  },
+  {
+   "input": "foo://joe: !\"$%&'()*+,-.:;<=>@[\\]^_`{|}~@host/",
+   "base": null,
+   "failure": false,
+   "href": "foo://joe:%20!%22$%&'()*+,-.%3A%3B%3C%3D%3E%40%5B%5C%5D%5E_%60%7B%7C%7D~@host/"
+  },
+  {
+   "input": "wss://joe: !\"$%&'()*+,-.:;<=>@[]^_`{|}~@host/",
+   "base": null,
+   "failure": false,
+   "href": "wss://joe:%20!%22$%&'()*+,-.%3A%3B%3C%3D%3E%40%5B%5D%5E_%60%7B%7C%7D~@host/"
+  },
+  {
+   "input": "foo://!\"$%&'()*+,-.;=_`{}~/",
+   "base": null,
+   "failure": false,
+   "href": "foo://!\"$%&'()*+,-.;=_`{}~/"
+  },
+  {
+   "input": "wss://!\"$&'()*+,-.;=_`{}~/",
+   "base": null,
+   "failure": false,
+   "href": "wss://!\"$&'()*+,-.;=_`{}~/"
+  },
+  {
+   "input": "foo://host/ !\"$%&'()*+,-./:;<=>@[\\]^_`{|}~",
+   "base": null,
+   "failure": false,
+   "href": "foo://host/%20!%22$%&'()*+,-./:;%3C=%3E@[\\]%5E_%60%7B|%7D~"
+  },
+  {
+   "input": "wss://host/ !\"$%&'()*+,-./:;<=>@[\\]^_`{|}~",
+   "base": null,
+   "failure": false,
+   "href": "wss://host/%20!%22$%&'()*+,-./:;%3C=%3E@[/]%5E_%60%7B|%7D~"
+  },
+  {
+   "input": "foo://host/dir/? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+   "base": null,
+   "failure": false,
+   "href": "foo://host/dir/?%20!%22$%&'()*+,-./:;%3C=%3E?@[\\]^_`{|}~"
+  },
+  {
+   "input": "wss://host/dir/? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+   "base": null,
+   "failure": false,
+   "href": "wss://host/dir/?%20!%22$%&%27()*+,-./:;%3C=%3E?@[\\]^_`{|}~"
+  },
+  {
+   "input": "foo://host/dir/# !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+   "base": null,
+   "failure": false,
+   "href": "foo://host/dir/#%20!%22#$%&'()*+,-./:;%3C=%3E?@[\\]^_%60{|}~"
+  },
+  {
+   "input": "wss://host/dir/# !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+   "base": null,
+   "failure": false,
+   "href": "wss://host/dir/#%20!%22#$%&'()*+,-./:;%3C=%3E?@[\\]^_%60{|}~"
+  },
+  {
+   "input": "abc:rootless",
+   "base": "abc://host/path",
+   "failure": false,
+   "href": "abc:rootless"
+  },
+  {
+   "input": "abc:rootless",
+   "base": "abc:/path",
+   "failure": false,
+   "href": "abc:rootless"
+  },
+  {
+   "input": "abc:rootless",
+   "base": "abc:path",
+   "failure": false,
+   "href": "abc:rootless"
+  },
+  {
+   "input": "abc:/rooted",
+   "base": "abc://host/path",
+   "failure": false,
+   "href": "abc:/rooted"
+  },
+  {
+   "input": "http://1.2.3.4.5",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://1.2.3.4.5.",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://0..0x300/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://0..0x300./",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://256.256.256.256.256",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://256.256.256.256.256.",
+   "base": "http://other.com/",
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://1.2.3.08",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://1.2.3.08.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://1.2.3.09",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://09.2.3.4",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://09.2.3.4.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://01.2.3.4.5",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://01.2.3.4.5.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://0x100.2.3.4",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://0x100.2.3.4.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://0x1.2.3.4.5",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://0x1.2.3.4.5.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.1.2.3.4",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.1.2.3.4.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.2.3.4",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.2.3.4.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.09",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.09.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.0x4",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.0x4.",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.09..",
+   "base": null,
+   "failure": false,
+   "href": "http://foo.09../"
+  },
+  {
+   "input": "http://0999999999999999999/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.0x",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "http://foo.0XFfFfFfFfFfFfFfFfFfAcE123",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://\u0000y",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://x/\u0000y",
+   "base": null,
+   "failure": false,
+   "href": "https://x/%00y"
+  },
+  {
+   "input": "https://x/?\u0000y",
+   "base": null,
+   "failure": false,
+   "href": "https://x/?%00y"
+  },
+  {
+   "input": "https://x/?#\u0000y",
+   "base": null,
+   "failure": false,
+   "href": "https://x/?#%00y"
+  },
+  {
+   "input": "non-special:\u0000y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:%00y"
+  },
+  {
+   "input": "non-special:x/\u0000y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:x/%00y"
+  },
+  {
+   "input": "non-special:x/?\u0000y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:x/?%00y"
+  },
+  {
+   "input": "non-special:x/?#\u0000y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:x/?#%00y"
+  },
+  {
+   "input": "https://example.com/\"quoted\"",
+   "base": null,
+   "failure": false,
+   "href": "https://example.com/%22quoted%22"
+  },
+  {
+   "input": "https://a%C2%ADb/",
+   "base": null,
+   "failure": false,
+   "href": "https://ab/"
+  },
+  {
+   "input": "https://%C2%AD/",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "https://xn--/",
+   "base": null,
+   "failure": false,
+   "href": "https://xn--/"
+  },
+  {
+   "input": "data://example.com:8080/pathname?search#hash",
+   "base": null,
+   "failure": false,
+   "href": "data://example.com:8080/pathname?search#hash"
+  },
+  {
+   "input": "data:///test",
+   "base": null,
+   "failure": false,
+   "href": "data:///test"
+  },
+  {
+   "input": "data://test/a/../b",
+   "base": null,
+   "failure": false,
+   "href": "data://test/b"
+  },
+  {
+   "input": "data://:443",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "data://test:test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "data://[:1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "javascript://example.com:8080/pathname?search#hash",
+   "base": null,
+   "failure": false,
+   "href": "javascript://example.com:8080/pathname?search#hash"
+  },
+  {
+   "input": "javascript:///test",
+   "base": null,
+   "failure": false,
+   "href": "javascript:///test"
+  },
+  {
+   "input": "javascript://test/a/../b",
+   "base": null,
+   "failure": false,
+   "href": "javascript://test/b"
+  },
+  {
+   "input": "javascript://:443",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "javascript://test:test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "javascript://[:1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "mailto://example.com:8080/pathname?search#hash",
+   "base": null,
+   "failure": false,
+   "href": "mailto://example.com:8080/pathname?search#hash"
+  },
+  {
+   "input": "mailto:///test",
+   "base": null,
+   "failure": false,
+   "href": "mailto:///test"
+  },
+  {
+   "input": "mailto://test/a/../b",
+   "base": null,
+   "failure": false,
+   "href": "mailto://test/b"
+  },
+  {
+   "input": "mailto://:443",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "mailto://test:test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "mailto://[:1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "intent://example.com:8080/pathname?search#hash",
+   "base": null,
+   "failure": false,
+   "href": "intent://example.com:8080/pathname?search#hash"
+  },
+  {
+   "input": "intent:///test",
+   "base": null,
+   "failure": false,
+   "href": "intent:///test"
+  },
+  {
+   "input": "intent://test/a/../b",
+   "base": null,
+   "failure": false,
+   "href": "intent://test/b"
+  },
+  {
+   "input": "intent://:443",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "intent://test:test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "intent://[:1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "urn://example.com:8080/pathname?search#hash",
+   "base": null,
+   "failure": false,
+   "href": "urn://example.com:8080/pathname?search#hash"
+  },
+  {
+   "input": "urn:///test",
+   "base": null,
+   "failure": false,
+   "href": "urn:///test"
+  },
+  {
+   "input": "urn://test/a/../b",
+   "base": null,
+   "failure": false,
+   "href": "urn://test/b"
+  },
+  {
+   "input": "urn://:443",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "urn://test:test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "urn://[:1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "turn://example.com:8080/pathname?search#hash",
+   "base": null,
+   "failure": false,
+   "href": "turn://example.com:8080/pathname?search#hash"
+  },
+  {
+   "input": "turn:///test",
+   "base": null,
+   "failure": false,
+   "href": "turn:///test"
+  },
+  {
+   "input": "turn://test/a/../b",
+   "base": null,
+   "failure": false,
+   "href": "turn://test/b"
+  },
+  {
+   "input": "turn://:443",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "turn://test:test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "turn://[:1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "stun://example.com:8080/pathname?search#hash",
+   "base": null,
+   "failure": false,
+   "href": "stun://example.com:8080/pathname?search#hash"
+  },
+  {
+   "input": "stun:///test",
+   "base": null,
+   "failure": false,
+   "href": "stun:///test"
+  },
+  {
+   "input": "stun://test/a/../b",
+   "base": null,
+   "failure": false,
+   "href": "stun://test/b"
+  },
+  {
+   "input": "stun://:443",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "stun://test:test",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "stun://[:1]",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "w://x:0",
+   "base": null,
+   "failure": false,
+   "href": "w://x:0"
+  },
+  {
+   "input": "west://x:0",
+   "base": null,
+   "failure": false,
+   "href": "west://x:0"
+  },
+  {
+   "input": "android://x:0/a",
+   "base": null,
+   "failure": false,
+   "href": "android://x:0/a"
+  },
+  {
+   "input": "drivefs://x:0/a",
+   "base": null,
+   "failure": false,
+   "href": "drivefs://x:0/a"
+  },
+  {
+   "input": "chromeos-steam://x:0/a",
+   "base": null,
+   "failure": false,
+   "href": "chromeos-steam://x:0/a"
+  },
+  {
+   "input": "steam://x:0/a",
+   "base": null,
+   "failure": false,
+   "href": "steam://x:0/a"
+  },
+  {
+   "input": "materialized-view://x:0/a",
+   "base": null,
+   "failure": false,
+   "href": "materialized-view://x:0/a"
+  },
+  {
+   "input": "android-app://x:0",
+   "base": null,
+   "failure": false,
+   "href": "android-app://x:0"
+  },
+  {
+   "input": "chrome-distiller://x:0",
+   "base": null,
+   "failure": false,
+   "href": "chrome-distiller://x:0"
+  },
+  {
+   "input": "chrome-extension://x:0",
+   "base": null,
+   "failure": false,
+   "href": "chrome-extension://x:0"
+  },
+  {
+   "input": "chrome-native://x:0",
+   "base": null,
+   "failure": false,
+   "href": "chrome-native://x:0"
+  },
+  {
+   "input": "chrome-resource://x:0",
+   "base": null,
+   "failure": false,
+   "href": "chrome-resource://x:0"
+  },
+  {
+   "input": "chrome-search://x:0",
+   "base": null,
+   "failure": false,
+   "href": "chrome-search://x:0"
+  },
+  {
+   "input": "fuchsia-dir://x:0",
+   "base": null,
+   "failure": false,
+   "href": "fuchsia-dir://x:0"
+  },
+  {
+   "input": "isolated-app://x:0",
+   "base": null,
+   "failure": false,
+   "href": "isolated-app://x:0"
+  },
+  {
+   "input": "///test",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://test/"
+  },
+  {
+   "input": "///\\//\\//test",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://test/"
+  },
+  {
+   "input": "///example.org/path",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://example.org/path"
+  },
+  {
+   "input": "///example.org/../path",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://example.org/path"
+  },
+  {
+   "input": "///example.org/../../",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://example.org/"
+  },
+  {
+   "input": "///example.org/../path/../../",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://example.org/"
+  },
+  {
+   "input": "///example.org/../path/../../path",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://example.org/path"
+  },
+  {
+   "input": "/\\/\\//example.org/../path",
+   "base": "http://example.org/",
+   "failure": false,
+   "href": "http://example.org/path"
+  },
+  {
+   "input": "///abcdef/../",
+   "base": "file:///",
+   "failure": false,
+   "href": "file:///"
+  },
+  {
+   "input": "/\\//\\/a/../",
+   "base": "file:///",
+   "failure": false,
+   "href": "file://////"
+  },
+  {
+   "input": "//a/../",
+   "base": "file:///",
+   "failure": false,
+   "href": "file://a/"
+  },
+  {
+   "input": "non-special:\\\\opaque",
+   "base": null,
+   "failure": false,
+   "href": "non-special:\\\\opaque"
+  },
+  {
+   "input": "non-special:\\\\opaque/path",
+   "base": null,
+   "failure": false,
+   "href": "non-special:\\\\opaque/path"
+  },
+  {
+   "input": "non-special:\\\\opaque\\path",
+   "base": null,
+   "failure": false,
+   "href": "non-special:\\\\opaque\\path"
+  },
+  {
+   "input": "non-special:\\/opaque",
+   "base": null,
+   "failure": false,
+   "href": "non-special:\\/opaque"
+  },
+  {
+   "input": "non-special:/\\path",
+   "base": null,
+   "failure": false,
+   "href": "non-special:/\\path"
+  },
+  {
+   "input": "non-special://host\\a",
+   "base": null,
+   "failure": true,
+   "href": null
+  },
+  {
+   "input": "non-special://host/a\\b",
+   "base": null,
+   "failure": false,
+   "href": "non-special://host/a\\b"
+  },
+  {
+   "input": "\\a",
+   "base": "foo://foo/a",
+   "failure": false,
+   "href": "foo://foo/\\a"
+  },
+  {
+   "input": "\\/a",
+   "base": "foo://foo/a",
+   "failure": false,
+   "href": "foo://foo/\\/a"
+  },
+  {
+   "input": "\\\\a",
+   "base": "foo://foo/a",
+   "failure": false,
+   "href": "foo://foo/\\\\a"
+  },
+  {
+   "input": "data:text/plain,test#<foo> <bar>",
+   "base": null,
+   "failure": false,
+   "href": "data:text/plain,test#%3Cfoo%3E%20%3Cbar%3E"
+  },
+  {
+   "input": "about:blank#<foo> <bar>",
+   "base": null,
+   "failure": false,
+   "href": "about:blank#%3Cfoo%3E%20%3Cbar%3E"
+  }
+ ]
+}

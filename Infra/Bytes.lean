@@ -71,14 +71,14 @@ def utf8Decode : Bytes → List Char
     let n := b.toNat
     if n < 0x80 then charOfScalar n :: utf8Decode rest
     else if 0xC2 ≤ n && n ≤ 0xDF then
-      match hr : rest with
+      match _hr : rest with
       | b1 :: rest' =>
         match continuationBits b1 with
         | some v1 => charOfScalar (((n &&& 0x1F) <<< 6) ||| v1) :: utf8Decode rest'
         | none => replacementChar :: utf8Decode rest
       | [] => [replacementChar]
     else if 0xE0 ≤ n && n ≤ 0xEF then
-      match hr : rest with
+      match _hr : rest with
       | b1 :: b2 :: rest' =>
         match continuationBits b1, continuationBits b2 with
         | some v1, some v2 =>
@@ -88,7 +88,7 @@ def utf8Decode : Bytes → List Char
         | _, _ => replacementChar :: utf8Decode rest
       | _ => replacementChar :: utf8Decode rest
     else if 0xF0 ≤ n && n ≤ 0xF4 then
-      match hr : rest with
+      match _hr : rest with
       | b1 :: b2 :: b3 :: rest' =>
         match continuationBits b1, continuationBits b2, continuationBits b3 with
         | some v1, some v2, some v3 =>
