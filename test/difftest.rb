@@ -160,9 +160,22 @@ if $PROGRAM_NAME == __FILE__
   Difftest.report_capabilities
 
   scenarios_dir = File.join(__dir__, "scenarios")
-  fixed = Dir[File.join(scenarios_dir, "*.json")].reject do |p|
+  all_fixed = Dir[File.join(scenarios_dir, "*.json")].reject do |p|
     p.end_with?(".lean.json", ".dommy.json")
   end.sort
+  # `_basis.comparable` が false の scenario は model 固有の近似を固定するためのもので、
+  # Dommy と突き合わせる対象ではない（`docs/traceability.md` の「対象外」を参照）。
+  model_only, fixed = all_fixed.partition do |p|
+    JSON.parse(File.read(p)).dig("_basis", "comparable") == false
+  rescue StandardError
+    false
+  end
+
+  unless model_only.empty?
+    puts "model 固有（差分比較の対象外）:"
+    model_only.each { |p| puts "  #{File.basename(p, '.json')}" }
+    puts
+  end
   failures = 0
 
   unless fixed.empty?
