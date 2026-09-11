@@ -62,8 +62,9 @@ node 自身はその位置より前に入るので、start と end が逆転す�
 
 ## 何を見つけたか
 
-差分テストで Dommy の仕様不一致を 19 件見つけ、すべて修正につなげた。
-一覧は `docs/status.md` にある。例えば次のようなものである。
+差分テストで仕様との不一致を見つけ、修正につなげた。
+`docs/status.md` に通し番号 1-19 で並べてある。
+18 件が Dommy 側、1 件（番号 9）が model 側である。例えば次のようなものである。
 
 * `insertBefore` / `replaceChild` が mutation record の挿入点を木が動いた後に読んでいた。
   仕様は insert step 6 と replace step 4、つまり何も動く前の値である。
@@ -72,8 +73,9 @@ node 自身はその位置より前に入るので、start と end が逆転す�
 * `Node.ownerDocument` が Element と Attr にしか実装されていなかった。
 * live range の挿入側の調整が仕様の位置になかった。
 
-model 側の不具合も証明が押し返した。`move` step 5 の `Text` 判定が CDATASection を
-取りこぼしていたこと、`moveBefore` に IDL 由来の receiver 検査が無かったことなどである。
+証明も model 側の不具合を押し返した。`move` step 5 の `Text` 判定が CDATASection を
+取りこぼしていたこと、`moveBefore` に IDL 由来の receiver 検査が無かったことである。
+どちらも差分テストでは出ず、`AdmissibleDOMState` の保存を示そうとして初めて分かった。
 
 ## 使い方
 
