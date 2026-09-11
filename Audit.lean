@@ -188,6 +188,20 @@ open Dom.Audit
   Infra.utf8Decode_encode
   Infra.utf8DecodeString_encode
 
+-- URL Standard §5 成分の往復
+#audit_axioms
+  Url.utf8Encode_ofList_ascii
+  Url.percentDecodeBytes_cons_ne
+  Url.hexValue_hexDigitChar
+  Url.charOfByte_ascii
+  Url.percentDecode_encodeByte
+  Url.percentDecode_encodeBytes
+  Url.plusToSpace_encodeBytes
+  Url.not_set_bounds
+  Url.decode_encodeChar
+  Url.decode_encodeList
+  Url.decodeComponent
+
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms
   Infra.lexLt_self

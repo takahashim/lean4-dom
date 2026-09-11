@@ -105,7 +105,7 @@ theorem continuationBits_ofNat {v : Nat} (hv : v < 64) :
   have hq : (128 + v) / 64 = 2 := by omega
   rw [hq]
   norm_cast
-  simp [Nat.mod_eq_of_lt (show v < 64 by omega)]
+  simp
   omega
 
 /-! ## `Char` の往復 -/
@@ -163,7 +163,7 @@ theorem utf8Decode_encodeChar (c : Char) (rest : Bytes) :
       show ¬(192 + c.toNat / 64 < 128) by omega,
       show (decide (194 ≤ 192 + c.toNat / 64) && decide (192 + c.toNat / 64 ≤ 223)) = true by
         simp; omega,
-      Bool.false_eq_true, reduceIte, if_false]
+      reduceIte, if_false]
     have hand : (192 + c.toNat / 64) &&& 31 = c.toNat / 64 := by rw [and_1F]; omega
     have hlor : (c.toNat / 64) * 2 ^ 6 ||| c.toNat % 64 = c.toNat := by
       rw [lor_add (show c.toNat % 64 < 2 ^ 6 by omega)]; omega

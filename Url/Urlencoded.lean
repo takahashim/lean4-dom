@@ -34,11 +34,13 @@ URL Standard §5.2 の serializer が一つの成分に施す変換。
 
 space は `+`、それ以外で set に入るものは `%XX`。
 -/
-def urlencodedEncode (s : String) : List Char :=
-  s.toList.flatMap fun c =>
-    if c == ' ' then ['+']
-    else if urlencodedSet c then (utf8EncodeChar c).flatMap percentEncodeByte
-    else [c]
+def urlencodedEncodeChar (c : Char) : List Char :=
+  if c == ' ' then ['+']
+  else if urlencodedSet c then (utf8EncodeChar c).flatMap percentEncodeByte
+  else [c]
+
+/-- URL Standard §5.2 の serializer が一つの成分に施す変換。 -/
+def urlencodedEncode (s : String) : List Char := s.toList.flatMap urlencodedEncodeChar
 
 /-- URL Standard §5.2 application/x-www-form-urlencoded serializer。 -/
 def serializeUrlencoded (tuples : List (String × String)) : String :=
@@ -115,6 +117,7 @@ theorem urlencodedEncode_no_separator (s : String) :
   intro c hc
   unfold urlencodedEncode at hc
   obtain ⟨x, _, hx⟩ := List.mem_flatMap.mp hc
+  unfold urlencodedEncodeChar at hx
   split at hx
   · -- space は `+` になる
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hx

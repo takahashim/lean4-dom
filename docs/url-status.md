@@ -163,6 +163,9 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `Infra.utf8Decode_encode`, `Infra.utf8DecodeString_encode` | **文字列でも同じ** |
 | `Infra.lor_add`, `lor_low`, `lor3`, `lor4` | 上位を空けた値への `\|\|\|` は足し算。UTF-8 の byte はすべてその形 |
 | `Infra.charOfScalar_toNat` | `Char` の番号から作り直すと元に戻る |
+| `decodeComponent` | **§5 の成分の往復。** serialize した成分を読み戻すと元の文字列に戻る |
+| `percentDecode_encodeByte`, `percentDecode_encodeBytes` | percent-encode した byte は読み戻せる |
+| `decode_encodeChar` | serialize した一文字ぶんを読み戻すとその文字の UTF-8 になる |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -319,14 +322,20 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
   * `urlencodedEncode_no_separator` — serialize した成分に `&` も `=` も現れない
   * `Infra.utf8DecodeString_encode` — UTF-8 で符号化して読み直すと元の文字列に戻る
 
-  完全な往復（`parse (serialize l) = l`）にはまだ三つ要る。
+  **成分の往復は証明した**（`decodeComponent`、`Url/UrlencodedRoundtrip.lean`）。
 
-  1. **serialize の結果が ASCII だけからなること。** `utf8Encode` が
-     文字をそのまま byte にすることを使うため
-  2. **`&` での分割が intercalate の逆になること**、および最初の `=` での分割が
-     name と value を戻すこと（1 と `urlencodedEncode_no_separator` から出る）
-  3. **`percentDecodeBytes ∘ plusToSpace` が `urlencodedEncode` を戻すこと。**
-     space → `+` → 0x20、set の中身 → `%XX` → 元の byte、それ以外は素通し。
-     リテラルの `+` は `%2B` になるので `plusToSpace` を先に通しても壊れない
+      utf8DecodeString (percentDecodeBytes (plusToSpace (asciiBytes (urlencodedEncode s)))) = s
+
+  space → `+` → 0x20、set の中身 → `%XX` → 元の byte、それ以外は素通し。
+  リテラルの `+` は `%2B` になるので、parser が `plusToSpace` を先に通しても壊れない。
+
+  残るのは **分割の逆** だけである。
+
+  1. `&` での分割が `String.intercalate` の逆になること
+  2. 最初の `=` での分割が name と value を戻すこと
+
+  どちらも `urlencodedEncode_no_separator`（成分に `&` も `=` も現れない）が足場で、
+  あとは `String.intercalate` と `splitAmp` がどちらも accumulator で書かれているので、
+  その形の帰納法が要る。
 * **IDNA / UTS #46 そのもの。** 上記の理由で抽象化したままにする。
 * **encoding override。** HTML 由来の legacy 引数。UTF-8 に固定している。

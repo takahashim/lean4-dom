@@ -5,6 +5,7 @@ import Url.Host
 import Url.Record
 import Url.Parser
 import Url.Urlencoded
+import Url.UrlencodedRoundtrip
 import Url.Api
 import Url.Invariant
 import Url.SearchParams
