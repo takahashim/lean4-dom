@@ -53,12 +53,13 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
 | --- | --- | --- | --- | --- | --- |
-| URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl` | `checkValidUrl_iff`（決定可能性）。parser が保つことの証明は未着手で、WPT 全件で実行時検査している | wpt, wpt-set | 部分 |
+| URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl` | `checkValidUrl_iff`（決定可能性）、`basicUrlParse_valid_of_step`（帰納段が示せれば保たれる）。帰納段は未着手で、WPT 全件で実行時検査している | wpt, wpt-set | 部分 |
 | special scheme と既定の port | §4.2 | `isSpecialScheme`, `defaultPort` | `isSpecialScheme_of_defaultPort` | wpt | 済 |
 | URL path serializer | §4.3 | `pathSerializer` | — | wpt | 済 |
 | URL serializer | §4.3 1-7 | `urlSerializer` | — | wpt | 済 |
 | basic URL parser（全 state） | §4.4 1-3 | `run`, `step`, `basicUrlParse` | 停止性（`termination_by (stateRank st, 残りの文字数, 位相)`） | wpt | 済 |
 | state override（setter が使う入口） | §4.4 | `SOverride`, `basicUrlParseOverride`, `schemeOverride`, `fail` | — | wpt-set | 済 |
+| parse の途中の不変条件 | §4.1 / §4.4 | `PInv`, `mayOpaque`, `mayCred`, `usesBasePath` | `PInv_empty`（入口）、`PInv.valid`（出口）、`shortenPath_spec`, `portDone_spec`, `userinfoFold_spec`（遷移の成分保存） | — | 部分（帰納段が未着手） |
 | shorten a URL's path / single-dot / double-dot / Windows drive letter | §4.4 | `shortenPath`, `isSingleDot`, `isDoubleDot`, `isWindowsDrive` ほか | — | wpt | 済 |
 
 ## §4.7 origin

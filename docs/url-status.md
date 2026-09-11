@@ -39,6 +39,7 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §5.1 urlencoded parser、§5.2 serializer | `parseUrlencoded`, `serializeUrlencoded` | `Url/Urlencoded.lean` |
 | §4.4 state override | `SOverride`, `basicUrlParseOverride` | `Url/Parser.lean` |
 | §6.1 `URL` の getter と setter | `Url.href` ほか、`Url.setProtocol` ほか | `Url/Api.lean` |
+| §4.4 parser の不変条件（帰納段は未着手） | `PInv`, `PInv_empty`, `basicUrlParse_valid_of_step` | `Url/Invariant.lean` |
 
 ## state override をどう通したか
 
@@ -143,6 +144,11 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `setHost_opaque`, `setHostname_opaque`, `setPathname_opaque` | opaque path を持つ URL では、その setter は何もしない |
 | `not_opaque_of_canHaveCredentials` | credentials を置ける URL は host を持ち、opaque path でない |
 | `setUsername_valid`, `setPassword_valid`, `setPort_empty_valid` | record の中で閉じる setter は `ValidUrl` を保つ |
+| `shortenPath_spec`, `appendSegment_spec`, `appendOpaque_spec` | path をいじる三つは path 以外を変えず、path の種類も変えない |
+| `portDone_spec` | port state の終わりは port 以外の成分を変えない |
+| `userinfoFold_spec` | authority state の振り分けは username / password 以外を変えない |
+| `PInv_empty`, `PInv.valid`, `valid_of_inv` | 不変条件の入口と出口 |
+| `basicUrlParse_valid_of_step` | 帰納段が示せれば parse の結果は `ValidUrl` を満たす |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -223,31 +229,56 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 
 ## 未着手
 
-* **`ValidUrl` の保存。** 述語（`ValidUrl`）と決定手続き（`checkValidUrl`、
+* **`ValidUrl` の保存（帰納段）。** 述語（`ValidUrl`）と決定手続き（`checkValidUrl`、
   `checkValidUrl_iff`）は入れて、**WPT の全 case で実行時に検査している**
-  （`url-model --wpt` の `ValidUrl: 違反 0`）。DOM 側の `dom-model --check` と同じ形である。
+  （`url-model --wpt` の `ValidUrl: 違反 0`、`--setters` の `ValidUrl（setter 後）: 違反 0`）。
+  DOM 側の `dom-model --check` と同じ形である。
 
-  証明はまだ。`step.induct`（functional induction）は使えることを確かめてあり、
-  98 の case に分かれる。`intros` して最後の三つを `rename_i` で拾い、
-  `rw [run]`／`rw [step]` の後 `simp_all` に投げると **63 は自動で閉じる**。
+  証明は `Url/Invariant.lean` で、**帰納段だけが残っている**。
+  入口・出口・"start over" の扱いは閉じていて、それは
+  `basicUrlParse_valid_of_step` が形にしてある。残る義務はこの一文である。
 
-  残る 35 が本題で、**「special なら opaque path でない」は単独では帰納的でない**ことが分かった。
-  scheme state が `scheme := buffer` を書く時点で、もし path が opaque だったら
-  新しい scheme が special のときに崩れる。実際には崩れないが、
-  それは「opaque path を作るのが scheme state の一分岐だけで、
-  そこから scheme state へ戻る道が無い」という別の事実に依っている。
+  > `∀ base st input ctx, PInv base st ctx → ∀ u, run base st input ctx = .ok u → ValidUrl u`
 
-  したがって強めた不変条件が要る。形はこうなる。
+  ### 不変条件の形
 
-  > `opaquePath` / `query` / `fragment` 以外の state では、path は opaque でない。
+  `ValidUrl` をそのまま「parse の途中でも成り立つ」としても帰納法は回らない。
+  二か所で実際に破れるからで、`PInv` はそこを state で添字づけて緩めてある。
 
-  これに加えて base の妥当性が要る（`relative` と `file` は path を base から取る）。
-  authority state の「host が決まる前に credentials を入れる」も同じ性質の問題で、
-  そちらは state ごとに条件を分けることになる。
+  * **authority state は host が決まる前に credentials を書く。**
+    `http://user@host/` の `@` を見た時点で username に `user` が入るが host はまだ null。
+    `mayCred` が true の state（authority と host）だけこれを許す。
+  * **`specialHasList` が保たれる理由が state に依る。**
+    scheme state が `scheme := buffer` と書く瞬間、path が opaque だったら
+    新しい scheme が special のときに破れる。実際には破れないが、その根拠は
+    「opaque path を作るのは scheme state の一分岐だけで、そこから戻る道が無い」
+    という state についての事実である。`mayOpaque` が true の三つの state
+    （opaquePath / query / fragment）だけ opaque path を許す。
 
-  setter の側は、record の中で閉じる三つ（`username` / `password` / 空文字列の `port`）
-  について保存を証明した。残りは `basicUrlParseOverride` を通るので、
-  上の parser 側の保存に帰着する。
+  証明を書いていて、この二つに加えてもう一つ要ることが分かった。
+
+  * **port state に入るのは host が決まった後だけ**（`PInv.portHost`）。
+    port を書くのは port state だけで、そこへは host state が host を入れてからしか
+    来ないが、それも state についての事実である。これが無いと
+    `nullHostNoPort` が帰納的にならない。
+
+  ### 帰納段の進み具合
+
+  `run.induct`（functional induction）は 113 の case に分かれ、
+  いまの自動化で 62 が閉じる。残り 51 の内訳は
+
+  | state | 件数 | 要るもの |
+  | --- | --- | --- |
+  | relative / relativeSlash / noScheme | 16 | base の record をそのまま写す遷移。`ValidUrl base` の移送 |
+  | file / fileSlash / fileHost | 15 | 同上。`file` が special であることから base の path が list だと出す |
+  | host | 6 | `hostParser` の結果を入れた後、host が null でなくなることの利用 |
+  | path / pathStart | 8 | `appendSegment` / `shortenPath` の補題は入れた。分岐が多い |
+  | port / scheme / query | 6 | `portDone_spec` は入れた。残りは分岐の整理 |
+
+  path をいじる三つの補題（`shortenPath_spec` ほか）、`portDone_spec`、
+  `userinfoFold_spec` は入れてある。`portDone` と authority state の畳み込みは
+  そのために `Url/Parser.lean` 側で名前のある定義に切り出した。
+
 * **`URLSearchParams` の API**（`get` / `getAll` / `append` / `sort` ほか）。
   parser と serializer（§5）は入れたが、IDL の側はまだ。
 * **`serialize` と `parse` の往復定理。** `urlencodedEncode_no_separator` で

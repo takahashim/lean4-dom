@@ -189,15 +189,36 @@ def encChar (set : Char → Bool) (c : Char) : String :=
 
 /-! ## state machine -/
 
+/-- port state が積んだ 10 進の数字列の値。 -/
+def portValue (buf : List Char) : Nat :=
+  buf.foldl (fun acc c => acc * 10 + (digitValue c).getD 0) 0
+
+/-- 既定の port と同じなら null にする（§4.4 port state step 3.2）。 -/
+def portOf (scheme : String) (p : Nat) : Option Nat :=
+  if defaultPort scheme == some p then none else some p
+
+/-- port を書き込み、buffer を空にする。 -/
+def portSet (ctx : PCtx) (p : Option Nat) : PCtx :=
+  { ctx with url := { ctx.url with port := p }, buffer := [] }
+
 /-- port state の終わり方。buffer を 10 進として読み、既定 port なら null にする。 -/
 def portDone (ctx : PCtx) : Option PCtx :=
   if ctx.buffer.isEmpty then some { ctx with buffer := [] }
+  else if portValue ctx.buffer > 65535 then none
+  else some (portSet ctx (portOf ctx.url.scheme (portValue ctx.buffer)))
+
+/--
+authority state が `@` の手前を username と password に振り分ける 1 文字ぶん。
+
+`acc.2` は password token（`:`）を見たかどうか。最初の `:` だけが区切りで、
+それ以降の `:` は password の中身になる。
+-/
+def userinfoStep (acc : Url × Bool) (cp : Char) : Url × Bool :=
+  if cp == ':' && !acc.2 then (acc.1, true)
   else
-    let p := ctx.buffer.foldl (fun acc c => acc * 10 + (digitValue c).getD 0) 0
-    if p > 65535 then none
-    else
-      let port := if defaultPort ctx.url.scheme == some p then none else some p
-      some { ctx with url := { ctx.url with port }, buffer := [] }
+    let enc := encChar userinfoSet cp
+    if acc.2 then ({ acc.1 with password := acc.1.password ++ enc }, acc.2)
+    else ({ acc.1 with username := acc.1.username ++ enc }, acc.2)
 
 /-- query state が積んだ buffer を percent-encode したもの。 -/
 def queryOf (ctx : PCtx) : String :=
@@ -372,13 +393,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
       | some ch =>
         if ch == '@' then
           let buf := if ctx.atSignSeen then "%40".toList ++ ctx.buffer else ctx.buffer
-          let r := buf.foldl (fun (acc : Url × Bool) (cp : Char) =>
-            if cp == ':' && !acc.2 then (acc.1, true)
-            else
-              let enc := encChar userinfoSet cp
-              if acc.2 then ({ acc.1 with password := acc.1.password ++ enc }, acc.2)
-              else ({ acc.1 with username := acc.1.username ++ enc }, acc.2))
-            (ctx.url, ctx.passwordTokenSeen)
+          let r := buf.foldl userinfoStep (ctx.url, ctx.passwordTokenSeen)
           let ctx2 : PCtx := { ctx with url := r.1, buffer := [], atSignSeen := true }
           run base .authority rest { ctx2 with passwordTokenSeen := r.2 }
         else if isTerminator special (some ch) then
@@ -585,17 +600,18 @@ step 1 の前処理（前後の C0 control or space を落とし、tab と newli
 def stripTabNewline (l : List Char) : List Char :=
   l.filter (fun c => !(c.toNat == 0x09 || c.toNat == 0x0A || c.toNat == 0x0D))
 
+/-- §4.4 step 1-3 の前処理。前後の C0 control or space を落とし、tab と newline を落とす。 -/
+def preprocess (input : String) : List Char :=
+  let l := input.toList.dropWhile isC0ControlOrSpace
+  stripTabNewline (l.reverse.dropWhile isC0ControlOrSpace).reverse
+
 def basicUrlParse (input : String) (base : Option Url := none) : Option Url :=
-  let l := input.toList
-  let l := l.dropWhile isC0ControlOrSpace
-  let l := (l.reverse.dropWhile isC0ControlOrSpace).reverse
-  let l := stripTabNewline l
   -- "start over" は高々一度。no scheme state から scheme start state へ戻る道は無い。
-  match run base .schemeStart l { url := {} } with
+  match run base .schemeStart (preprocess input) { url := {} } with
   | .ok u => some u
   | .failure => none
   | .startOver =>
-    match run base .noScheme l { url := {} } with
+    match run base .noScheme (preprocess input) { url := {} } with
     | .ok u => some u
     | _ => none
 

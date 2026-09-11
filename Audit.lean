@@ -159,6 +159,19 @@ open Dom.Audit
   Url.setPassword_valid
   Url.setPort_empty_valid
 
+-- URL Standard §4.4 parser の不変条件（帰納段は未着手）
+#audit_axioms
+  Url.shortenPath_spec
+  Url.appendSegment_spec
+  Url.appendOpaque_spec
+  Url.portDone_spec
+  Url.userinfoFold_spec
+  Url.PInv.notOpaque
+  Url.PInv.valid
+  Url.valid_of_inv
+  Url.PInv_empty
+  Url.basicUrlParse_valid_of_step
+
 -- URL Standard §3.2 host / §1.3 percent-encoding
 #audit_axioms
   Url.opaqueHostParser_no_forbidden
