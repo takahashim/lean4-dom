@@ -133,11 +133,16 @@ DOM Standard §4.2.3 remove step 20。
 `parent` の inclusive ancestor に subtree 付きで登録されている observer を、
 取り除く `node` の registered observer list に transient として足す。
 これがあると、subtree observer は外された部分木の中の変更も配送まで見続ける。
+
+対象は registered observer list の **全部** である。
+仕様の transient registered observer は「source を持つ registered observer」なので、
+それ自身が registered observer list に入り、次の removal の source にもなる。
+すでに外れた部分木の中でさらに removal が起きても、追跡が途切れないのはこのためである。
 -/
 def addTransientObservers (s : DOMState) (node parent : NodeId) : DOMState :=
   let nodes := parent :: ancestors s.tree parent
   let added := nodes.flatMap fun n =>
-    (s.registrations.filter fun r => r.node == n && r.subtree && !r.transient).map fun r =>
+    (s.registrations.filter fun r => r.node == n && r.subtree).map fun r =>
       { r with node := node, transient := true, source := some r.node }
   -- transient を置いた node を、その observer の node list にも足す。
   -- こうしないと "notify mutation observers" step 5.2 と `observe` step 7.1 の掃除が

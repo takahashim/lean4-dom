@@ -382,7 +382,7 @@ theorem replaceAll_preserves_endpoints {s s' : DOMState} {node : Option NodeId} 
 theorem iterCtx_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (h : IterCtx s) (hr : replaceData s n offset count data = .ok s') :
     IterCtx s' := by
-  obtain ⟨d, hd, _, _, htree, _, hit⟩ := replaceData_ok hr
+  obtain ⟨d, _, hd, _, _, _, htree, _, hit⟩ := replaceData_ok hr
   refine ⟨structurallyValid_replaceData h.structural hr,
     nodeDocumentsValid_replaceData h.nodeDocuments hr, ?_⟩
   intro it hmem
@@ -397,27 +397,15 @@ theorem iterCtx_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
 theorem preservesRegs_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (hr : replaceData s n offset count data = .ok s') :
     PreservesRegs s s' := by
-  obtain ⟨d, hd, _, _, htree, _, _⟩ := replaceData_ok hr
+  obtain ⟨d, _, hd, _, _, _, htree, _, _⟩ := replaceData_ok hr
   refine preservesRegs_congr ?_ ?_ ?_
   · rw [htree]; exact shapePreserving_withData hd _
-  · unfold replaceData at hr
-    split at hr
-    · simp at hr
-    · split at hr
-      · simp at hr
-      · split at hr
-        · simp at hr
-        · rw [← Except.ok.inj hr]
-          simp
-  · unfold replaceData at hr
-    split at hr
-    · simp at hr
-    · split at hr
-      · simp at hr
-      · split at hr
-        · simp at hr
-        · rw [← Except.ok.inj hr]
-          simp
+  all_goals
+    unfold replaceData at hr
+    repeat' split at hr
+    all_goals first
+      | (rw [← Except.ok.inj hr]; simp)
+      | simp at hr
 
 /-! ## AdmissibleDOMState の保存 -/
 

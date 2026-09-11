@@ -29,6 +29,18 @@ inductive DOMException where
   `moveBefore` の receiver が `ParentNode` でない場合に使う。
   -/
   | typeError
+  /--
+  model の対象外。**仕様の例外ではない。**
+
+  `DOMString` は UTF-16 の code unit 列なので surrogate pair を割った切り出しも定義されるが、
+  Lean の `Char` は surrogate を含まないので `String` では表せない（roadmap §13.1）。
+  その切り出しを求められた操作はこれを返す。
+
+  名前を `__` で始めてあるのは、仕様の例外名と衝突させないためである。
+  差分テストはこの印が出た step 以降を比較しない。
+  実装がたまたま同じところで失敗しても、それは仕様適合の証拠にならない。
+  -/
+  | outsideModel
 deriving DecidableEq, Repr, Inhabited
 
 namespace DOMException
@@ -43,6 +55,7 @@ def name : DOMException → String
   | invalidCharacterError => "InvalidCharacterError"
   | namespaceError => "NamespaceError"
   | typeError => "TypeError"
+  | outsideModel => "__outsideModel__"
 
 end DOMException
 

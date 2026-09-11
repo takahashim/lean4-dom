@@ -611,8 +611,8 @@ CharacterData 以外に対しては `invalidNodeTypeError` を返す。
 
 **`data` の長さの単位に差がある。** 仕様は UTF-16 の code unit 数だが、
 Lean の `String.length` は code point 数である。
-BMP の範囲では両者は一致するので、本 model は BMP に限って仕様どおりになる。
-differential testing の生成器も BMP の文字しか使わない。
+BMP の範囲では両者は一致するので、当初は BMP に限って仕様どおりとしていた
+（後で code unit で数えるようにした。この節の後の「UTF-16 の code unit 境界」を参照）。
 astral 面の文字（surrogate pair）まで扱うには、`NodeData.length` と
 `spliceData` を UTF-16 の単位で定義し直す必要がある。
 
@@ -1842,34 +1842,77 @@ attribute の操作に渡す名前には大文字を混ぜる。
     ついでに record の newValue の読み戻しも、local name で引く
     `target_node[attr]` から namespace 込みの読みに直した。
 
-## UTF-16 の code unit 境界（入口で断るようにした）
+## UTF-16 の code unit 境界（(b) で対応した）
 
-仕様の offset は UTF-16 の code unit 数だが、本 model は Lean の `String` を使うので
-code point 数で数えている（roadmap §13.1）。両者が一致するのは BMP の範囲だけで、
-astral character が入ると食い違う。
-たとえば `"a😀b"` は仕様の length が 4、model では 3 になるので、
-`deleteData(3, 1)` は仕様では `"b"` を消すが model では何もしない。
-
-生成器が BMP の文字しか作らないのでこれまで表に出なかったが、
-loader は黙って受理していた。BMP 外の `data` を拒むようにして、
-「BMP に限る」という約束を文書ではなく検査にした。
-
+仕様の offset は UTF-16 の code unit の index である
+（`CharacterData.length`、CharacterData の offset と count、
+CharacterData node を指す Range の boundary point）。
+model は Lean の `String` を使うので code point で数えていて、
+一致するのは BMP の範囲だけだった。
+`"a😀b"` は仕様の length が 4、model では 3 になるので、
+`deleteData(3, 1)` は仕様では `"b"` を消すが model では何もしなかった。
 差分テストの相手である Dommy は `Dommy::Internal::Utf16` で code unit を数えているので、
-**この一点は model の側が仕様から外れている**。直すなら次の二択になる。
+食い違っていたのは model の側である。
 
-* **完全に忠実にする。** DOMString は 16-bit code unit の列なので lone surrogate を持ちうるが、
-  Lean の `Char` は surrogate を除いた Unicode scalar value なので `String` では表せない。
-  `NodeData.data` を `Array UInt16` のようなものに変えることになり、
-  scenario の JSON 形式と harness も同時に変わる。
-  Ruby の UTF-8 String も同じ制約を持ち、Dommy 自身が
-  「lone surrogate は表現できない」と明記している。
-* **Dommy と同じ線に合わせる。** 長さと offset を code unit で数え、
-  surrogate pair を割る操作は表現できないので拒む。
-  こちらなら差分テストで裏を取れる。BMP では `utf16Length` が `String.length` と一致するので
-  既存の固定 scenario は変わらないが、`length_spliceData` など
-  CharacterData と Range の中心の補題に「pair を割らない」という側条件が入る。
+**「UTF-16 として正しく動く範囲を明示した部分モデル」** にした。
+長さと offset は code unit で数え、切断は scalar 境界でだけ定義する。
 
-どちらを採るかは決めていない。
+| 仕様 | 定義 | module |
+| --- | --- | --- |
+| code point が占める code unit 数 | `Utf16.unitsOf` | `Dom/Basic/Utf16.lean` |
+| UTF-16 の code unit 数 | `Utf16.length`, `Utf16.lengthOfList` | 同上 |
+| code unit `n` で分ける（境界でなければ `none`） | `Utf16.splitAt?` | 同上 |
+| §4.10 replace data の step 5-7 | `spliceData?` | `Dom/CharacterData/ReplaceData.lean` |
+| §4.4 node length | `NodeData.length`（CharacterData は `Utf16.length data`） | `Dom/Basic/NodeId.lean` |
+
+### 側条件を Range へ持ち出さない
+
+boundary point が surrogate pair の途中を指すことと、そこで文字列を切ることは別である。
+仕様の boundary point は offset が node の長さ以下であることしか求めておらず、
+scalar 境界であることは要求しない。`"a😀b"` の offset 2 は妥当な boundary point で、
+数値として持ち回るだけなら文字列を切らないので model でもそのまま扱える。
+
+そこで境界の検査は切断の中だけに置いた。
+`spliceData?` が成功したことから長さの等式 `length_spliceData?` が出るので、
+Range の保存証明はその等式だけを使う。
+`replaceData_preserves_endpoints` はもともと `replaceData … = .ok s'` を前提にしていて、
+そこから等式を取り出せるため、**公開する保存定理に新しい側条件は増えていない**。
+
+### 対象外の印を仕様の例外と混ぜない
+
+surrogate pair を割った切り出しは、仕様では定義されているが
+Lean の `Char`（surrogate を除いた Unicode scalar value）では表せない。
+これを `IndexSizeError` などの仕様の例外にすると、
+「仕様どおりに失敗した」ことと区別がつかなくなる。
+`DOMException.outsideModel`（名前は `__outsideModel__`）という専用の印を返し、
+差分テストはその step 以降を比較しない。
+
+Ruby の UTF-8 String も lone surrogate を持てないので Dommy も同じところで断るが、
+**両者が同じところで失敗することは仕様適合の証拠にならない**。
+harness は Dommy 側のその失敗も `__unsupported__` として扱い、一致とは数えない。
+
+### 検証
+
+生成器は CharacterData の初期 data の 1/4 に astral character を混ぜ、
+`appendData` / `insertData` / `replaceData` / `setData` にも astral を渡す。
+pair をまたぐ offset と pair の途中を指す offset の両方が出る。
+
+astral を含む生成 scenario 89 本のうち 76 本が最後まで比較できて一致し、
+13 本は pair を割る操作の手前まで比較できた。
+固定 scenario は `characterdata-utf16-offsets`（pair の途中を指す boundary point、
+pair をまたぐ削除と挿入、offset 調整）と
+`characterdata-utf16-split-is-outside-model`（対象外の切断）。
+
+### 見つかった model の不具合
+
+27. **transient registered observer を transient の source にしていなかった。**
+    仕様の transient registered observer は「source を持つ registered observer」であり、
+    それ自身が registered observer list の要素である。
+    したがって remove step 20 の「inclusive ancestor の registered observer list を見る」は
+    transient も拾い、外れた部分木の中でさらに removal が起きても追跡が途切れない。
+    model は `!r.transient` で除いていたので、二段目の removal で record を落としていた。
+    `docs/status.md` の finding 9 に続く、二件目の model 側の不具合である。
+    固定 scenario は `transient-observer-chains-through-removals`。
 
 ## 未着手
 
@@ -1884,4 +1927,3 @@ loader は黙って受理していた。BMP 外の `data` を拒むようにし�
   model の attribute は element の状態なので、node として観測できない。
   `InUseAttributeError` は attribute の object identity で決まるが、
   identity は roadmap §13.3 で対象外としている。
-* UTF-16 の code unit 境界（上記）。

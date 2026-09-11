@@ -1,4 +1,5 @@
 import Dom.Util.List
+import Dom.Basic.Utf16
 import Dom.Basic.NodeId
 import Dom.Basic.Store
 import Dom.Basic.Tree

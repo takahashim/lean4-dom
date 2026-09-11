@@ -1,0 +1,95 @@
+{
+  "_note": "DOM の offset は UTF-16 の code unit の index である。node 2 の data \"a😀b\" は length 4（a=1、😀=2、b=1）、node 3 の \"😀\" は length 2。range 1 の start は offset 2、すなわち surrogate pair の **途中** を指すが、仕様の boundary point は offset が node の長さ以下であることしか求めないので、これは妥当である。文字列を切らない限り model でもそのまま扱える。ここでの切断（末尾の \"b\" を消す、末尾に足す、先頭に足す）はどれも scalar 境界なので成功し、replace data step 8-11 の offset 調整も code unit 単位で走る。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "CharacterData.length",
+      "replace data",
+      "Range boundary point"
+    ],
+    "steps": "replace data 1-11 / boundary point の妥当性",
+    "note": "offset は UTF-16 の code unit。boundary point に scalar 境界の制限は無い。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "a😀b"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 1,
+      "data": "😀"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 0
+      },
+      "end": {
+        "node": 2,
+        "offset": 4
+      }
+    },
+    {
+      "start": {
+        "node": 2,
+        "offset": 2
+      },
+      "end": {
+        "node": 3,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "subtree": true,
+      "characterData": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "deleteData",
+      "node": 2,
+      "offset": 3,
+      "count": 1
+    },
+    {
+      "op": "appendData",
+      "node": 2,
+      "data": "😀"
+    },
+    {
+      "op": "insertData",
+      "node": 3,
+      "offset": 0,
+      "data": "x"
+    },
+    {
+      "op": "setData",
+      "node": 2,
+      "data": "p😀"
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

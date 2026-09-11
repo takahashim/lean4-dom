@@ -165,8 +165,19 @@ module DommyRunner
 
   module_function
 
+  # Dommy が「表現できない」と言ったものか。
+  #
+  # Ruby の UTF-8 String は lone surrogate を持てないので、`Dommy::Internal::Utf16`
+  # は surrogate pair を割る切り出しを RuntimeError で断る。
+  # 仕様の例外ではないので、実装漏れと同じく `__unsupported__` として報告する。
+  def out_of_range_representation?(error)
+    error.is_a?(RuntimeError) && error.message.include?("surrogate pair")
+  end
+
   # Dommy の例外から仕様上の名前を取り出す。
   def exception_name(error)
+    return UNSUPPORTED if out_of_range_representation?(error)
+
     if error.respond_to?(:name) && error.name.is_a?(String) && !error.name.empty?
       error.name
     else

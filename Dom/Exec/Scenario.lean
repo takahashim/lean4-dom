@@ -64,15 +64,6 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
   let t : Tree := { nodes := entries.foldl (fun st p => st.insert p.1 p.2) NodeStore.empty }
   unless t.checkWellFormed do
     throw "初期状態が WellFormed を満たしていない"
-  -- BMP 外の文字を拒む。
-  --
-  -- 仕様の offset は UTF-16 の code unit 数だが、本 model は Lean の `String` を使うので
-  -- code point 数で数えている（roadmap §13.1）。両者が一致するのは BMP の範囲だけなので、
-  -- astral character を含む `data` を受けると offset がずれたまま答えを返してしまう。
-  -- 黙って間違えるより入口で断る。
-  for spec in specs do
-    if spec.data.any (fun c => Char.toNat c ≥ 0x10000) then
-      throw s!"node {spec.id} の data に BMP 外の文字がある。model の offset は code point 数なので、仕様の UTF-16 code unit と食い違う（roadmap §13.1）"
   -- element の名前の妥当性。node 生成は model の対象外（roadmap §13.2）なので、
   -- これを崩せる algorithm は無く、`AdmissibleDOMState` の成分にはしていない。
   for spec in specs do

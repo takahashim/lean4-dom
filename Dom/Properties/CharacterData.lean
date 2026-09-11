@@ -97,11 +97,12 @@ theorem wellFormed_withData {t : Tree} {n : NodeId} {d : NodeData} (hwf : WellFo
 /-- `replaceData` が成功したときの結果の形。 -/
 theorem replaceData_ok {s s' : DOMState} {n : NodeId} {offset count : Nat} {data : String}
     (h : replaceData s n offset count data = .ok s') :
-    ∃ d, s.tree.get? n = some d ∧ d.kind.isCharacterData = true ∧ offset ≤ d.length ∧
-      s'.tree = withData s.tree n d
-        (spliceData d.data offset (adjustedCount d.length offset count) data) ∧
+    ∃ d spliced, s.tree.get? n = some d ∧ d.kind.isCharacterData = true ∧ offset ≤ d.length ∧
+      spliceData? d.data offset (adjustedCount d.length offset count) data = some spliced ∧
+      s'.tree = withData s.tree n d spliced ∧
       s'.ranges = s.ranges.map
-        (replaceDataAdjustRange n offset (adjustedCount d.length offset count) data.length) ∧
+        (replaceDataAdjustRange n offset (adjustedCount d.length offset count)
+          (Utf16.length data)) ∧
       s'.iterators = s.iterators := by
   unfold replaceData at h
   split at h
@@ -113,14 +114,17 @@ theorem replaceData_ok {s s' : DOMState} {n : NodeId} {offset count : Nat} {data
       split at h
       · simp at h
       · next hlen =>
-        rw [← Except.ok.inj h]
-        exact ⟨d, hd, by simpa using hk, by omega, rfl, rfl, by simp⟩
+        split at h
+        · simp at h
+        · next spliced hsp =>
+          rw [← Except.ok.inj h]
+          exact ⟨d, spliced, hd, by simpa using hk, by omega, hsp, rfl, rfl, by simp⟩
 
 /-- `replace data` は `data` しか変えないので kind と attribute list は変わらない。 -/
 theorem shapePreserving_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (hr : replaceData s n offset count data = .ok s') :
     ShapePreserving s.tree s'.tree := by
-  obtain ⟨d, hd, _, _, htree, _, _⟩ := replaceData_ok hr
+  obtain ⟨d, _, hd, _, _, _, htree, _, _⟩ := replaceData_ok hr
   rw [htree]
   exact shapePreserving_withData hd _
 
@@ -128,7 +132,7 @@ theorem shapePreserving_replaceData {s s' : DOMState} {n : NodeId} {offset count
 theorem replaceData_preserves_wellformed {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (hwf : WellFormed s.tree) (h : replaceData s n offset count data = .ok s') :
     WellFormed s'.tree := by
-  obtain ⟨d, hd, _, _, ht, _, _⟩ := replaceData_ok h
+  obtain ⟨d, _, hd, _, _, _, ht, _, _⟩ := replaceData_ok h
   rw [ht]
   exact wellFormed_withData hwf hd _
 
@@ -136,18 +140,19 @@ theorem replaceData_preserves_wellformed {s s' : DOMState} {n : NodeId} {offset 
 theorem replaceData_preserves_endpoints {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (hv : RangeEndpointsValid s)
     (h : replaceData s n offset count data = .ok s') : RangeEndpointsValid s' := by
-  obtain ⟨d, hd, hk, hoff, ht, hr, _⟩ := replaceData_ok h
+  obtain ⟨d, spliced, hd, hk, hoff, hsp, ht, hr, _⟩ := replaceData_ok h
   obtain ⟨c, hc⟩ : ∃ c, c = adjustedCount d.length offset count := ⟨_, rfl⟩
-  rw [← hc] at ht hr
-  have hdlen : d.length = d.data.length := NodeData.length_characterData hk
-  have hoff' : offset ≤ d.data.length := by rw [← hdlen]; exact hoff
-  have hsum : offset + c ≤ d.data.length := by
+  rw [← hc] at hr hsp
+  have hdlen : d.length = Utf16.length d.data := NodeData.length_characterData hk
+  -- 切断が成功したことから長さの等式が出る。
+  -- 「pair を割らない」という条件をここから先へ持ち出す必要はない。
+  have hnew : Utf16.length spliced + c = Utf16.length d.data + Utf16.length data :=
+    length_spliceData? hsp
+  have hsum : offset + c ≤ Utf16.length d.data := by
     rw [← hdlen, hc]; exact adjustedCount_le hoff
-  have hnew : (spliceData d.data offset c data).length + c = d.data.length + data.length :=
-    length_spliceData hoff' hsum
   -- 各 boundary point について
   have hbp : ∀ bp, ValidBoundaryPoint s.tree bp →
-      ValidBoundaryPoint s'.tree (replaceDataAdjustBP n offset c data.length bp) := by
+      ValidBoundaryPoint s'.tree (replaceDataAdjustBP n offset c (Utf16.length data) bp) := by
     intro bp hbpv
     obtain ⟨db, hdb, hoffb⟩ := hbpv
     unfold replaceDataAdjustBP
@@ -158,20 +163,18 @@ theorem replaceData_preserves_endpoints {s s' : DOMState} {n : NodeId} {offset c
       rw [if_neg hne]
       have hdbd : d = db := by rw [heq, hd] at hdb; exact Option.some.inj hdb
       subst hdbd
-      have hnode : s'.tree.get? bp.node =
-          some { d with data := spliceData d.data offset c data } := by
+      have hnode : s'.tree.get? bp.node = some { d with data := spliced } := by
         rw [ht, get?_withData hd, if_pos heq]
-      have hnlen : ({ d with data := spliceData d.data offset c data } : NodeData).length =
-          (spliceData d.data offset c data).length :=
+      have hnlen : ({ d with data := spliced } : NodeData).length = Utf16.length spliced :=
         NodeData.length_characterData hk
-      have hb : bp.offset ≤ d.data.length := by rw [← hdlen]; exact hoffb
+      have hb : bp.offset ≤ Utf16.length d.data := by rw [← hdlen]; exact hoffb
       by_cases h1 : offset < bp.offset ∧ bp.offset ≤ offset + c
       · rw [if_pos h1]
         exact ⟨_, hnode, by show offset ≤ _; rw [hnlen]; omega⟩
       · rw [if_neg h1]
         by_cases h2 : offset + c < bp.offset
         · rw [if_pos h2]
-          exact ⟨_, hnode, by show bp.offset + data.length - c ≤ _; rw [hnlen]; omega⟩
+          exact ⟨_, hnode, by show bp.offset + Utf16.length data - c ≤ _; rw [hnlen]; omega⟩
         · rw [if_neg h2]
           have hle : bp.offset ≤ offset := by
             rcases Nat.lt_or_ge offset bp.offset with hlt | hge
@@ -294,7 +297,7 @@ theorem replaceDataAdjustBP_mono {n : NodeId} {offset count newLen : Nat} {a b :
 theorem replaceData_preserves_sameNodeOrdered {s s' : DOMState} {n : NodeId}
     {offset count : Nat} {data : String} (hv : RangesSameNodeOrdered s)
     (h : replaceData s n offset count data = .ok s') : RangesSameNodeOrdered s' := by
-  obtain ⟨d, hd, hk, hoff, ht, hr, _⟩ := replaceData_ok h
+  obtain ⟨d, _, hd, hk, hoff, _, ht, hr, _⟩ := replaceData_ok h
   intro r hrmem
   rw [hr] at hrmem
   obtain ⟨r₀, hr₀, hrr⟩ := List.mem_map.mp hrmem

@@ -2730,12 +2730,11 @@ theorem documentTreesValid_replaceAll {s s' : DOMState} {node : Option NodeId} {
 theorem structurallyValid_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (h : StructurallyValid s.tree)
     (hr : replaceData s n offset count data = .ok s') : StructurallyValid s'.tree := by
-  obtain ⟨d, hd, _, _, htree, _, _⟩ := replaceData_ok hr
+  obtain ⟨d, spliced, hd, _, _, _, htree, _, _⟩ := replaceData_ok hr
   -- 新しい木の `get?` は、`n` のところだけ `data` が変わった値を返す。
   obtain ⟨nw, hget⟩ : ∃ nw, ∀ m, s'.tree.get? m =
       if m = n then some { d with data := nw } else s.tree.get? m :=
-    ⟨spliceData d.data offset (adjustedCount d.length offset count) data,
-      fun m => by rw [htree]; exact get?_withData hd _ m⟩
+    ⟨spliced, fun m => by rw [htree]; exact get?_withData hd _ m⟩
   -- `n` の kind / parent / children は変わらない。
   have hsame : ∀ m dm, s'.tree.get? m = some dm →
       ∃ d₀, s.tree.get? m = some d₀ ∧ dm.kind = d₀.kind ∧ dm.parent = d₀.parent ∧
@@ -2762,9 +2761,8 @@ theorem structurallyValid_replaceData {s s' : DOMState} {n : NodeId} {offset cou
 theorem nodeDocumentsValid_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (h : NodeDocumentsValid s.tree)
     (hr : replaceData s n offset count data = .ok s') : NodeDocumentsValid s'.tree := by
-  obtain ⟨d, hd, _, _, htree, _, _⟩ := replaceData_ok hr
-  have hget := get?_withData (t := s.tree) (n := n) (d := d) hd
-    (spliceData d.data offset (adjustedCount d.length offset count) data)
+  obtain ⟨d, spliced, hd, _, _, _, htree, _, _⟩ := replaceData_ok hr
+  have hget := get?_withData (t := s.tree) (n := n) (d := d) hd spliced
   have hown : ∀ m, ownerDocumentOf s'.tree m = ownerDocumentOf s.tree m := by
     intro m
     rw [htree]
@@ -2787,7 +2785,7 @@ theorem nodeDocumentsValid_replaceData {s s' : DOMState} {n : NodeId} {offset co
 theorem documentTreesValid_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
     {data : String} (h : DocumentTreesValid s.tree)
     (hr : replaceData s n offset count data = .ok s') : DocumentTreesValid s'.tree := by
-  obtain ⟨d, hd, _, _, htree, _, _⟩ := replaceData_ok hr
+  obtain ⟨d, spliced, hd, _, _, _, htree, _, _⟩ := replaceData_ok hr
   refine documentTreesValid_of_sameShape ?_ ?_ h
   · intro m; rw [htree]; exact (shapePreserving_withData hd _).kind m
   · intro m; rw [htree]; exact childrenOf_withData hd _ m

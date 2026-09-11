@@ -115,8 +115,18 @@ module Generate
   # CharacterData だけが data を持つ。
   CHARACTER_DATA = %w[text comment processingInstruction cdataSection].freeze
 
-  def data_for(kind, tag)
-    CHARACTER_DATA.include?(kind) ? tag : ""
+  # CharacterData の初期 data。
+  #
+  # 1/4 は astral character（surrogate pair）を混ぜる。仕様の offset は UTF-16 の
+  # code unit なので、pair をまたぐ offset と pair の途中を指す offset の両方が出る。
+  # 後者で切ろうとする操作は model の対象外になり、比較から外れる。
+  ASTRAL = "\u{1F600}"
+
+  def data_for(kind, tag, rng = nil)
+    return "" unless CHARACTER_DATA.include?(kind)
+    return tag if rng.nil? || rng.rand >= 0.25
+
+    ["#{ASTRAL}#{tag}", "#{tag}#{ASTRAL}", "#{tag[0]}#{ASTRAL}#{tag[-1]}"].sample(random: rng)
   end
 
   # element が最初から持っている attribute。
@@ -146,7 +156,7 @@ module Generate
     frag = b.add("documentFragment")
     rng.rand(3).times do
       kind = CHILD_KINDS.sample(random: rng)
-      b.add(kind, parent: frag, data: data_for(kind, "f"))
+      b.add(kind, parent: frag, data: data_for(kind, "f", rng))
     end
 
     remaining = [node_count - b.nodes.size, 0].max
@@ -161,7 +171,7 @@ module Generate
           candidates = [root].compact if candidates.empty?
           candidates.empty? ? nil : candidates.sample(random: rng)
         end
-      b.add(kind, parent: parent, data: data_for(kind, "t#{b.ids.size}"))
+      b.add(kind, parent: parent, data: data_for(kind, "t#{b.ids.size}", rng))
     end
     b.nodes.each do |spec|
       next unless spec["kind"] == "element"
@@ -213,13 +223,17 @@ module Generate
     when "remove" then { "op" => op, "target" => pick.call }
     when "replaceData"
       { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4),
-        "data" => %w[x yz abc][rng.rand(3)] }
-    when "appendData" then { "op" => op, "node" => pick.call, "data" => %w[x yz][rng.rand(2)] }
+        "data" => ["x", "yz", "abc", ASTRAL][rng.rand(4)] }
+    when "appendData"
+      { "op" => op, "node" => pick.call, "data" => ["x", "yz", ASTRAL][rng.rand(3)] }
     when "insertData"
-      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "data" => %w[x yz][rng.rand(2)] }
+      { "op" => op, "node" => pick.call, "offset" => rng.rand(5),
+        "data" => ["x", "yz", ASTRAL][rng.rand(3)] }
     when "deleteData"
       { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4) }
-    when "setData" then { "op" => op, "node" => pick.call, "data" => %w[[] pq rstu][rng.rand(3)] }
+    when "setData"
+      { "op" => op, "node" => pick.call,
+        "data" => ["", "pq", "rstu", ASTRAL, "p#{ASTRAL}q"][rng.rand(5)] }
     when "setAttribute"
       { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng),
         "value" => ATTR_VALUES.sample(random: rng) }
@@ -263,9 +277,14 @@ module Generate
   end
 
   # scenario の node から length を求める（`NodeData.length` と同じ規則）。
+  # UTF-16 の code unit 数。仕様の `CharacterData.length` と `NodeData.length` はこれ。
+  def utf16_length(str)
+    str.to_s.encode(Encoding::UTF_16LE).bytesize / 2
+  end
+
   def length_of(spec, nodes)
     kind = spec["kind"]
-    return spec["data"].to_s.length if CHARACTER_DATA.include?(kind)
+    return utf16_length(spec["data"]) if CHARACTER_DATA.include?(kind)
     return 0 if kind == "documentType"
 
     nodes.count { |n| n["parent"] == spec["id"] }

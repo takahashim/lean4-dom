@@ -124,6 +124,7 @@ open Dom.Audit
   Dom.moveValidity_step2
   Dom.moveValidity_step3
   Dom.moveValidity_step4
+  Dom.length_spliceData?
   Dom.setAttribute_getAttribute
   Dom.removeAttribute_erases
   Dom.validateAndExtractAttribute_ok

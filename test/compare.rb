@@ -21,6 +21,12 @@ require "json"
 module Compare
   UNSUPPORTED = "__unsupported__"
 
+  # model 側が「この step は model の対象外」と言った印（`DOMException.outsideModel`）。
+  #
+  # 仕様の例外ではないので、実装側が同じところで失敗したとしても
+  # 一致とは数えない。その step 以降を比較対象から外す。
+  OUTSIDE_MODEL = "__outsideModel__"
+
   module_function
 
   # children から tree order（preorder）を導く。root は parent が nil の node。
@@ -100,6 +106,12 @@ module Compare
     [ls.size, ds.size].max.times do |i|
       l = ls[i]
       d = ds[i]
+      if l && l["ok"] == false && l["exception"] == OUTSIDE_MODEL
+        unsupported = true
+        messages << "step #{i}: model の対象外なので比べられない" \
+                    "（dommy=#{d && (d['ok'] ? 'ok' : d['exception'])}）"
+        break
+      end
       if d && d["ok"] == false && d["exception"] == UNSUPPORTED
         unsupported = true
         messages << "step #{i}: この harness では比べられない" \

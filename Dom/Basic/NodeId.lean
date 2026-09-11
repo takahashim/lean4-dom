@@ -1,3 +1,5 @@
+import Dom.Basic.Utf16
+
 /-!
 # Node の識別子と node data
 
@@ -193,9 +195,11 @@ DOM Standard §4.4 の node length。
 
 CharacterData なら data の長さ、DocumentType なら 0、それ以外は children の個数。
 Phase 5 の boundary point validity で使うが、定義は node data だけで決まるためここに置く。
+
+data の長さは仕様どおり **UTF-16 の code unit 数** である（`Dom.Utf16.length`）。
 -/
 def length (d : NodeData) : Nat :=
-  if d.kind.isCharacterData then d.data.length
+  if d.kind.isCharacterData then Dom.Utf16.length d.data
   else if d.kind == .documentType then 0
   else d.children.length
 

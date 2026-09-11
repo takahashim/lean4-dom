@@ -1,0 +1,66 @@
+{
+  "_note": "transient registered observer は「source を持つ registered observer」なので、それ自身が registered observer list に入り、次の removal の source にもなる。step 0 で node 1 を document から外すと、subtree observer の transient が node 1 に付く。step 1 の replaceChildren は replace all step 3 で node 2 を node 1 から外すので、その transient を source として node 2 にも transient が付く。続く insert step 7.1 の adopt が node 3 を node 2 から外す — これは suppressObservers に かからない removal なので record が積まれ、node 2 に付いた transient がそれを拾う。transient を source から除くと、この三つ目の record が落ちる（model 側の不具合）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "remove",
+      "replace all",
+      "insert",
+      "adopt",
+      "queue a mutation record"
+    ],
+    "steps": "remove 20-21 / replace all 3-4 / insert 7.1 / adopt 2",
+    "note": "transient registered observer 自身が registered observer list の要素である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2
+    },
+    {
+      "id": 3,
+      "kind": "processingInstruction",
+      "parent": 2,
+      "data": "pi"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 0,
+      "subtree": true,
+      "childList": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "remove",
+      "target": 1
+    },
+    {
+      "op": "replaceChildren",
+      "parent": 1,
+      "node": 3
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

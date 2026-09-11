@@ -6,16 +6,16 @@ import Dom.Observer.Record
 
 DOM Standard §4.10 `CharacterData` の `replace data` と、その wrapper を定義する。
 
-`data` の長さは仕様では UTF-16 の code unit 数だが、
-Lean の `String.length` は code point 数である。
-BMP の範囲では両者は一致するので、本 model は BMP に限って仕様どおりになる。
-differential testing の生成器も BMP の文字しか使わない。
+offset と長さは仕様どおり UTF-16 の code unit で数える（`Dom.Utf16`）。
+surrogate pair の途中で文字列を切る操作だけは Lean の `String` で表せないので、
+`DOMException.outsideModel` を返して model の対象外であることを示す。
+boundary point が pair の途中を指すこと自体は扱える（数値として持つだけで文字列を切らない）。
 -/
 
 namespace Dom
 
 theorem NodeData.length_characterData {d : NodeData} (h : d.kind.isCharacterData = true) :
-    d.length = d.data.length := by
+    d.length = Utf16.length d.data := by
   simp [NodeData.length, h]
 
 /-- DOM Standard §4.10 replace data の step 3。count を length − offset で切り詰める。 -/
@@ -30,18 +30,45 @@ theorem adjustedCount_le {length offset count : Nat} (h : offset ≤ length) :
 /--
 DOM Standard §4.10 replace data の step 5-7。
 
-`offset` の直後に `data` を挿入し、そこから `count` 文字を取り除く。
+code unit の `offset` の直後に `data` を挿入し、そこから `count` code unit を取り除く。
+`offset` か `offset + count` が surrogate pair の途中なら、
+結果は lone surrogate を含む列になり `String` では表せないので `none` を返す。
 -/
-def spliceData (old : String) (offset count : Nat) (data : String) : String :=
-  String.ofList (old.toList.take offset ++ data.toList ++ old.toList.drop (offset + count))
+def spliceData? (old : String) (offset count : Nat) (data : String) : Option String :=
+  match Utf16.splitAt? old.toList offset with
+  | none => none
+  | some (pre, rest) =>
+    match Utf16.splitAt? rest count with
+    | none => none
+    | some (_, post) => some (String.ofList (pre ++ data.toList ++ post))
 
-theorem length_spliceData {old : String} {offset count : Nat} {data : String}
-    (h1 : offset ≤ old.length) (h2 : offset + count ≤ old.length) :
-    (spliceData old offset count data).length + count = old.length + data.length := by
-  unfold spliceData
-  rw [String.length_ofList]
-  simp only [List.length_append, List.length_take, List.length_drop, String.length_toList]
-  omega
+/--
+切れたなら、長さの等式が従う。
+
+Range の保存証明はこの等式だけを使うので、
+「pair を割らない」という条件を Range 側へ持ち出す必要はない。
+-/
+theorem length_spliceData? {old : String} {offset count : Nat} {data : String} {s : String}
+    (h : spliceData? old offset count data = some s) :
+    Utf16.length s + count = Utf16.length old + Utf16.length data := by
+  unfold spliceData? at h
+  split at h
+  · simp at h
+  · next pre rest hpre =>
+    split at h
+    · simp at h
+    · next mid post hmid =>
+      rw [← Option.some.inj h]
+      have hpre' := Utf16.splitAt?_spec hpre
+      have hmid' := Utf16.splitAt?_spec hmid
+      have hrest := Utf16.splitAt?_le hmid
+      have hold := Utf16.splitAt?_le hpre
+      show Utf16.lengthOfList (String.ofList (pre ++ data.toList ++ post)).toList + count = _
+      rw [String.toList_ofList, Utf16.lengthOfList_append, Utf16.lengthOfList_append,
+        hpre'.2]
+      show _ = Utf16.length old + Utf16.length data
+      unfold Utf16.length
+      omega
 
 /-- DOM Standard §4.10 replace data の step 8-11。 -/
 def replaceDataAdjustBP (n : NodeId) (offset count newLen : Nat) (bp : BoundaryPoint) :
@@ -76,16 +103,20 @@ def replaceData (s : DOMState) (n : NodeId) (offset count : Nat) (data : String)
     else if d.length < offset then .error .indexSizeError
     else
       -- step 3
-      let c := adjustedCount d.length offset count
-      -- step 4。record は data を変える前に、変える前の値を oldValue として積む。
-      let s₀ := queueCharacterDataRecord s n d.data
-      -- step 5-9
-      .ok { s₀ with
-              tree :=
-                { s.tree with
-                    nodes := s.tree.nodes.insert n
-                      { d with data := spliceData d.data offset c data } }
-              ranges := s.ranges.map (replaceDataAdjustRange n offset c data.length) }
+      match spliceData? d.data offset (adjustedCount d.length offset count) data with
+      -- surrogate pair の途中で切る要求。仕様は定義しているが model では表せない。
+      | none => .error .outsideModel
+      | some spliced =>
+        let c := adjustedCount d.length offset count
+        -- step 4。record は data を変える前に、変える前の値を oldValue として積む。
+        let s₀ := queueCharacterDataRecord s n d.data
+        -- step 5-9
+        .ok { s₀ with
+                tree :=
+                  { s.tree with
+                      nodes := s.tree.nodes.insert n
+                        { d with data := spliced } }
+                ranges := s.ranges.map (replaceDataAdjustRange n offset c (Utf16.length data)) }
 
 /-! ## `CharacterData` の method -/
 
@@ -121,6 +152,13 @@ def substringData (t : Tree) (n : NodeId) (offset count : Nat) : Except DOMExcep
   | some d =>
     if !d.kind.isCharacterData then .error .invalidNodeTypeError
     else if d.length < offset then .error .indexSizeError
-    else .ok (String.ofList ((d.data.toList.drop offset).take (adjustedCount d.length offset count)))
+    else
+      -- 切り出しも scalar 境界でしか定義できない。
+      match Utf16.splitAt? d.data.toList offset with
+      | none => .error .outsideModel
+      | some (_, rest) =>
+        match Utf16.splitAt? rest (adjustedCount d.length offset count) with
+        | none => .error .outsideModel
+        | some (mid, _) => .ok (String.ofList mid)
 
 end Dom
