@@ -1,0 +1,20 @@
+{
+  "_note": "差分テストを再現するために固定する version（notes/research-foundation-roadmap.md §11.2）。更新するときは、固定 scenario と生成 scenario を両方通してから上げる。",
+  "spec": {
+    "repository": "https://github.com/whatwg/dom",
+    "commit": "a2331a45360129e8645ef7e0a04740241b6e3726",
+    "date": "2026-08-25"
+  },
+  "dommy": {
+    "repository": "https://github.com/takahashim/dommy",
+    "commit": "40e1a33493e7aababd64fba1fb1950c7a381cf97",
+    "path": "gems/dommy"
+  },
+  "makiri": {
+    "source": "rubygems",
+    "version": "0.8.0",
+    "_note": "RubyGems の公開版を使う。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。"
+  },
+  "ruby": "3.4",
+  "lean": "leanprover/lean4:v4.33.1"
+}

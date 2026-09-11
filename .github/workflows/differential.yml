@@ -1,0 +1,165 @@
+name: Differential
+
+# roadmap §11.2 / §11.3。
+#
+# Dommy と makiri を固定した差分テスト。`lake build` の CI（ci.yml）とは分けてある。
+# Dommy の checkout と native gem の build が要るので、既定では走らせない。
+#
+#   deterministic  固定 scenario 全件 ＋ 固定 seed の生成 scenario
+#   exploration    nightly で seed を増やし、設定を変えて広く探索する
+#
+# 固定する version は `test/pinned-versions.json` に書いてある。
+on:
+  workflow_dispatch:
+  schedule:
+    # 毎日 18:00 UTC（JST 03:00）。exploration の job だけが走る。
+    - cron: "0 18 * * *"
+
+jobs:
+  deterministic:
+    name: 決定的な差分テスト
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned versions
+        id: pins
+        run: |
+          echo "dommy_commit=$(jq -r .dommy.commit test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "dommy_path=$(jq -r .dommy.path test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "makiri=$(jq -r .makiri.version test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "ruby=$(jq -r .ruby test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Dommy
+        uses: actions/checkout@v4
+        with:
+          repository: takahashim/dommy
+          ref: ${{ steps.pins.outputs.dommy_commit }}
+          path: dommy
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ steps.pins.outputs.ruby }}
+
+      - name: Install elan
+        run: |
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build the oracle
+        run: lake build
+
+      - name: Bundle Dommy
+        run: |
+          mkdir -p difftest
+          cat > difftest/Gemfile <<EOF
+          source "https://rubygems.org"
+          gem "dommy", path: "$GITHUB_WORKSPACE/dommy/${{ steps.pins.outputs.dommy_path }}"
+          gem "makiri", "${{ steps.pins.outputs.makiri }}"
+          gem "minitest", "~> 5.16"
+          gem "bigdecimal"
+          EOF
+          cd difftest && bundle install
+
+      - name: Fixed scenarios
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+          DOMMY_CMD: bundle exec ruby ${{ github.workspace }}/test/dommy_runner.rb
+        run: ruby test/difftest.rb --fixed-only
+
+      - name: Generated scenarios (fixed seed)
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+          DOMMY_CMD: bundle exec ruby ${{ github.workspace }}/test/dommy_runner.rb
+        run: |
+          ruby test/difftest.rb --count 100 --seed 1 \
+            --ranges 4 --iterators 2 --observers 3 --move
+
+      # 不一致が出たら、最小化した scenario が test/scenarios に書かれる。
+      - name: Upload counterexamples
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counterexamples
+          path: test/scenarios/failing-*.json
+          if-no-files-found: ignore
+
+  exploration:
+    name: 広い探索
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { nodes: 6, ops: 4, ranges: 2, iterators: 1, observers: 1 }
+          - { nodes: 8, ops: 6, ranges: 4, iterators: 2, observers: 3 }
+          - { nodes: 12, ops: 10, ranges: 4, iterators: 3, observers: 3 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned versions
+        id: pins
+        run: |
+          echo "dommy_commit=$(jq -r .dommy.commit test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "dommy_path=$(jq -r .dommy.path test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "makiri=$(jq -r .makiri.version test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "ruby=$(jq -r .ruby test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Dommy
+        uses: actions/checkout@v4
+        with:
+          repository: takahashim/dommy
+          ref: ${{ steps.pins.outputs.dommy_commit }}
+          path: dommy
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ steps.pins.outputs.ruby }}
+
+      - name: Install elan
+        run: |
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build the oracle
+        run: lake build
+
+      - name: Bundle Dommy
+        run: |
+          mkdir -p difftest
+          cat > difftest/Gemfile <<EOF
+          source "https://rubygems.org"
+          gem "dommy", path: "$GITHUB_WORKSPACE/dommy/${{ steps.pins.outputs.dommy_path }}"
+          gem "makiri", "${{ steps.pins.outputs.makiri }}"
+          gem "minitest", "~> 5.16"
+          gem "bigdecimal"
+          EOF
+          cd difftest && bundle install
+
+      - name: Explore
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+          DOMMY_CMD: bundle exec ruby ${{ github.workspace }}/test/dommy_runner.rb
+        run: |
+          status=0
+          for seed in 1 2 3 4 5 6 7 8 9 10; do
+            ruby test/difftest.rb --count 100 --seed "$seed" \
+              --nodes ${{ matrix.nodes }} --ops ${{ matrix.ops }} \
+              --ranges ${{ matrix.ranges }} --iterators ${{ matrix.iterators }} \
+              --observers ${{ matrix.observers }} --move || status=1
+          done
+          exit "$status"
+
+      - name: Upload counterexamples
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counterexamples-${{ matrix.nodes }}-${{ matrix.ops }}
+          path: test/scenarios/failing-*.json
+          if-no-files-found: ignore

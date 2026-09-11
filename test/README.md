@@ -134,3 +134,22 @@ Dommy が実装していない操作は `{"ok": false, "exception": "__unsupport
 比較は node の `parent` と `children`、そこから導いた tree order、
 `kind`、`data`、range の boundary point、および例外の名前について行う。
 tree order は children から導けるので出力には含めず、比較側で導出する。
+
+## 固定する version
+
+再現のために固定する version は `test/pinned-versions.json` にある。
+dom.bs の commit、Dommy の commit、makiri の version、Ruby と Lean の toolchain である。
+上げるときは固定 scenario と生成 scenario を両方通してからにする。
+
+## CI
+
+差分テストは `.github/workflows/differential.yml` にある。
+Dommy の checkout と native gem の build が要るので、`lake build` の CI とは分けてあり、
+既定では走らない。
+
+* `deterministic` — 手動起動。固定 scenario 全件と、固定 seed の生成 scenario 100 本。
+* `exploration` — nightly。node 数・操作数・Range 数・Iterator 数を三通りに変え、
+  seed 10 個 × 各 100 本。
+
+不一致が出ると最小化した scenario が `test/scenarios/failing-*.json` に書かれ、
+artifact として上がる。内容を確認したうえで固定 scenario に昇格させる。
