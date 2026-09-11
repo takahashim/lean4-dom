@@ -225,8 +225,10 @@ DocumentFragment の展開、および Document の子に対する制約
 
 | file | 役割 |
 | --- | --- |
+| `Dom/Exec/Types.lean` | scenario の型（操作列と step の結果）。JSON を知らない |
+| `Dom/Exec/Eval.lean` | 初期状態の構築と操作列の評価。JSON を知らない |
 | `Dom/Exec/Json.lean` | scenario の JSON 入出力（§7.1, §7.2） |
-| `Dom/Exec/Scenario.lean` | 初期状態の構築と操作列の評価 |
+| `Dom/Exec/Scenario.lean` | 上の二つをつないで scenario 一つを走らせる入口 |
 | `Main.lean` | `dom-model SCENARIO.json` と `dom-model --batch DIR` |
 | `test/dommy_runner.rb` | Dommy 側の評価。`--capabilities` で実装状況も出す |
 | `test/compare.rb` | 出力の比較（parent / children / tree order / 例外） |
@@ -237,7 +239,7 @@ DocumentFragment の展開、および Document の子に対する制約
 使い方は `test/README.md` にまとめた。
 
 JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使う。
-`Lean` への依存は `Dom/Exec/` に閉じており、`Dom.lean` からも `Dom/Properties/` からも
+`Lean` への依存は `Dom/Exec/Json.lean` 一つに閉じており、`Dom.lean` からも `Dom/Properties/` からも
 import しないので、証明側の build には影響しない。
 
 Lean 側は各 step の後で `checkWellFormed` を走らせ、
@@ -386,8 +388,10 @@ seed 7、80 本、1 本あたり操作 8 個で、**mismatch 19 / match 36 / uns
 
 | file | 役割 |
 | --- | --- |
+| `Dom/Exec/Types.lean` | scenario の型（操作列と step の結果）。JSON を知らない |
+| `Dom/Exec/Eval.lean` | 初期状態の構築と操作列の評価。JSON を知らない |
 | `Dom/Exec/Json.lean` | scenario の JSON 入出力（§7.1, §7.2） |
-| `Dom/Exec/Scenario.lean` | 初期状態の構築と操作列の評価 |
+| `Dom/Exec/Scenario.lean` | 上の二つをつないで scenario 一つを走らせる入口 |
 | `Main.lean` | `dom-model SCENARIO.json` と `dom-model --batch DIR` |
 | `test/dommy_runner.rb` | Dommy 側の評価。`--capabilities` で実装状況も出す |
 | `test/compare.rb` | 出力の比較（parent / children / tree order / 例外） |
@@ -398,7 +402,7 @@ seed 7、80 本、1 本あたり操作 8 個で、**mismatch 19 / match 36 / uns
 使い方は `test/README.md` にまとめた。
 
 JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使う。
-`Lean` への依存は `Dom/Exec/` に閉じており、`Dom.lean` からも `Dom/Properties/` からも
+`Lean` への依存は `Dom/Exec/Json.lean` 一つに閉じており、`Dom.lean` からも `Dom/Properties/` からも
 import しないので、証明側の build には影響しない。
 
 Lean 側は各 step の後で `checkWellFormed` を走らせ、
@@ -886,7 +890,7 @@ element1.insertBefore(text3, comment2)
 
 * `Dom/Range/BoundaryPoint.lean` に `checkRangeEndpointsValid` を足した。
   両端が木の中にあることだけを見る。
-* `Dom/Exec/Scenario.lean` の各 step の invariant を
+* `Dom/Exec/Eval.lean` の各 step の invariant を
   `checkRangesValid` から `checkRangeEndpointsValid` に弱めた。
   初期状態については `checkRangesValid` のまま
   （scenario の range は `setStart` / `setEnd` で作れるものに限りたいため）。
@@ -1290,7 +1294,7 @@ reference child が `child` のあった位置の直後に来ること
 
 ### loader
 
-`Dom/Exec/Scenario.lean` は初期状態と各 step で
+`Dom/Exec/Eval.lean` は初期状態と各 step で
 `AdmissibleDOMState` の六つの成分をすべて検査するようになった。
 固定 scenario 13 本と、seed 10 個 × 各 100 本の生成 scenario
 （range 4 / iterator 2 / observer 3 / `moveBefore` あり）はすべて通り、

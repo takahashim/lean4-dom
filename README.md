@@ -143,7 +143,7 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 | `Dom/Properties/` | 効果・frame・契約・反例 |
 | `Dom/Validity/` | `AdmissibleDOMState` とその保存 |
 | `Dom/Observation.lean` | 差分テストの比較対象を型で固定する |
-| `Dom/Exec/` | scenario の読み書きと evaluator |
+| `Dom/Exec/` | scenario の型と評価（`Types` / `Eval`）、JSON 入出力（`Json`）、その入口（`Scenario`） |
 | `Infra/` | 共有する語彙（ASCII、byte 列、UTF-8、UTF-16 の code unit）。`Dom` と `Url` が使う |
 | `Url/` | URL Standard（percent-encoding、IPv4 / IPv6、host parser、basic URL parser、urlencoded、`URL` と `URLSearchParams` の IDL） |
 | `test/` | 固定 scenario、生成器、Dommy runner、比較器 |
@@ -153,7 +153,9 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 
 Lean 4 のみ。Mathlib も Batteries も使わない。
 必要な補題は `Dom/Util/List.lean` に自前で置いてある。
-`Lean.Data.Json` は `Dom/Exec/` と `Audit.lean` に閉じている。
+`Lean.Data.Json` は `Dom/Exec/Json.lean` と `Audit.lean` に閉じている。
+操作列の型と評価は `Dom/Exec/Types.lean` と `Dom/Exec/Eval.lean` にあり、
+状態遷移の証明が入出力形式に依存しない。
 
 ## 限界
 
