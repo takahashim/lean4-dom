@@ -16,6 +16,28 @@ import Dom.Properties.CharacterData
 
 namespace Dom
 
+/-- 述語を満たす要素が無ければ filter は空。 -/
+theorem filter_eq_nil_of_all_false {α : Type _} (l : List α) (p : α → Bool)
+    (h : ∀ x ∈ l, p x = false) : l.filter p = [] := by
+  cases hl : l.filter p with
+  | nil => rfl
+  | cons y r =>
+    exfalso
+    have hy : y ∈ l.filter p := by rw [hl]; simp
+    obtain ⟨hy1, hy2⟩ := List.mem_filter.mp hy
+    rw [h y hy1] at hy2
+    simp at hy2
+
+/-- 空でない filter からは、述語を満たす要素が取り出せる。 -/
+theorem exists_mem_of_filter_ne_nil {α : Type _} {l : List α} {p : α → Bool}
+    (h : l.filter p ≠ []) : ∃ x ∈ l, p x = true := by
+  cases hl : l.filter p with
+  | nil => exact absurd hl h
+  | cons y r =>
+    have hy : y ∈ l.filter p := by rw [hl]; simp
+    obtain ⟨hy1, hy2⟩ := List.mem_filter.mp hy
+    exact ⟨y, hy1, hy2⟩
+
 /-! ## 木の形を変えない操作 -/
 
 /--
@@ -1324,6 +1346,70 @@ theorem ensurePreInsertionValidity_documentFacts {t : Tree} {node parent : NodeI
                   · intro _
                     exact checkDoctypeInsertion_ok hv
 
+
+/--
+Document に入れる node の列は、Text を含まず、
+element と doctype を合わせて高々一つしか含まない。
+
+`insert` も `replace all` も、Document の children 制約に効くのはこの二つである。
+-/
+theorem insertNodes_textAndCount {t : Tree} {node parent : NodeId} {child : Option NodeId}
+    {excl : List NodeId} {pd nd : NodeData} (hsv : StructurallyValid t)
+    (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
+    (hpk : pd.kind = NodeKind.document)
+    (hv : ensurePreInsertionValidity t node parent child excl = .ok ()) :
+    (∀ m ∈ (if nd.kind = NodeKind.documentFragment then nd.children else [node]),
+      ∀ k, kindOf t m = some k → k.isText = false) ∧
+    (((if nd.kind = NodeKind.documentFragment then nd.children else [node]).filter fun m =>
+        kindOf t m == some NodeKind.element).length +
+      ((if nd.kind = NodeKind.documentFragment then nd.children else [node]).filter fun m =>
+        kindOf t m == some NodeKind.documentType).length ≤ 1) := by
+  obtain ⟨f1, f2, _, _⟩ := ensurePreInsertionValidity_documentFacts hpd hnd hpk hv
+  by_cases hfrag : nd.kind = NodeKind.documentFragment
+  · rw [if_pos hfrag]
+    obtain ⟨hlen, htx⟩ := f2 hfrag
+    have hchn : childrenOf t node = nd.children := childrenOf_eq hnd
+    have hnodt : ∀ m ∈ nd.children, (kindOf t m == some NodeKind.documentType) = false := by
+      intro m hm
+      have hne := child_not_doctype hsv hnd (by rw [hfrag]; simp) hm
+      cases hmd : t.get? m with
+      | none => simp [kindOf, hmd]
+      | some md => simp [kindOf, hmd, hne md hmd]
+    refine ⟨?_, ?_⟩
+    · intro m hm k hk
+      have hnot : m ∉ textChildren t node := by rw [htx]; simp
+      unfold textChildren at hnot
+      rw [hchn] at hnot
+      cases hik : k.isText with
+      | false => rfl
+      | true => exact absurd (List.mem_filter.mpr ⟨hm, by rw [hk]; exact hik⟩) hnot
+    · rw [filter_eq_nil_of_all_false _ _ hnodt]
+      simp only [List.length_nil, Nat.add_zero]
+      have helemfilter : (nd.children.filter fun m =>
+          kindOf t m == some NodeKind.element) = elementChildren t node := by
+        unfold elementChildren
+        rw [hchn]
+      rw [helemfilter]
+      exact hlen
+  · rw [if_neg hfrag]
+    have hkn : kindOf t node = some nd.kind := by rw [kindOf, hnd]; rfl
+    refine ⟨?_, ?_⟩
+    · intro m hm k hk
+      rcases List.mem_singleton.mp hm with rfl
+      rw [hkn] at hk
+      obtain rfl : k = nd.kind := (Option.some.inj hk).symm
+      exact f1
+    · by_cases hk : nd.kind = NodeKind.element
+      · have hb : (nd.kind == NodeKind.documentType) = false := by rw [hk]; rfl
+        have hb' : (nd.kind == NodeKind.element) = true := by rw [hk]; rfl
+        simp [List.filter, hkn, hb, hb']
+      · have hb : (nd.kind == NodeKind.element) = false := by simpa using hk
+        by_cases hk2 : nd.kind = NodeKind.documentType
+        · have hb2 : (nd.kind == NodeKind.documentType) = true := by rw [hk2]; rfl
+          simp [List.filter, hkn, hb, hb2]
+        · have hb2 : (nd.kind == NodeKind.documentType) = false := by simpa using hk2
+          simp [List.filter, hkn, hb, hb2]
+
 /-- `adopt` は children から adopt する node 自身を取り除くだけである。 -/
 theorem adopt_childrenOf {s s' : DOMState} {node doc : NodeId}
     (hwf : WellFormed s.tree) (ha : adopt s node doc = .ok s') (p : NodeId) :
@@ -2014,28 +2100,6 @@ theorem replace_reference_head {s : DOMState} {child node parent : NodeId}
       simp
 
 
-/-- 述語を満たす要素が無ければ filter は空。 -/
-theorem filter_eq_nil_of_all_false {α : Type _} (l : List α) (p : α → Bool)
-    (h : ∀ x ∈ l, p x = false) : l.filter p = [] := by
-  cases hl : l.filter p with
-  | nil => rfl
-  | cons y r =>
-    exfalso
-    have hy : y ∈ l.filter p := by rw [hl]; simp
-    obtain ⟨hy1, hy2⟩ := List.mem_filter.mp hy
-    rw [h y hy1] at hy2
-    simp at hy2
-
-/-- 空でない filter からは、述語を満たす要素が取り出せる。 -/
-theorem exists_mem_of_filter_ne_nil {α : Type _} {l : List α} {p : α → Bool}
-    (h : l.filter p ≠ []) : ∃ x ∈ l, p x = true := by
-  cases hl : l.filter p with
-  | nil => exact absurd hl h
-  | cons y r =>
-    have hy : y ∈ l.filter p := by rw [hl]; simp
-    obtain ⟨hy1, hy2⟩ := List.mem_filter.mp hy
-    exact ⟨y, hy1, hy2⟩
-
 /--
 `replace` が `insert` を呼ぶ時点で `InsertSeqOk` が成り立つ。
 
@@ -2512,7 +2576,8 @@ theorem removeEach_childrenOf_nil {s s' : DOMState} {parent : NodeId} {b : Bool}
 -/
 theorem structurallyValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (h : StructurallyValid s.tree)
-    (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
+    (hpk : ∀ n, node = some n → ∀ pd, s.tree.get? parent = some pd →
+      pd.kind.canHaveChildren = true)
     (hnk : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document)
     (hdtf : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
       nd.kind = NodeKind.documentType →
@@ -2535,7 +2600,8 @@ theorem structurallyValid_replaceAll {s s' : DOMState} {node : Option NodeId} {p
         · next _ _ m =>
           intro hins
           refine structurallyValid_insert_of_facts h₁ ?_ ?_ ?_ (by simpa using hins)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true) hpk
+          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+              (hpk m rfl)
           · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
               (hnk m rfl)
           · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
@@ -2544,7 +2610,8 @@ theorem structurallyValid_replaceAll {s s' : DOMState} {node : Option NodeId} {p
 
 theorem nodeDocumentsValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
-    (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
+    (hpk : ∀ n, node = some n → ∀ pd, s.tree.get? parent = some pd →
+      pd.kind.canHaveChildren = true)
     (hnk : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document)
     (hdtf : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
       nd.kind = NodeKind.documentType →
@@ -2568,7 +2635,8 @@ theorem nodeDocumentsValid_replaceAll {s s' : DOMState} {node : Option NodeId} {
         · next _ _ m =>
           intro hins
           refine nodeDocumentsValid_insert_of_facts hs₁ h₁ ?_ ?_ ?_ (by simpa using hins)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true) hpk
+          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+              (hpk m rfl)
           · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
               (hnk m rfl)
           · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
@@ -2581,7 +2649,8 @@ Document の制約には「入れる node の側」の条件しか要らない�
 -/
 theorem documentTreesValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hwf : WellFormed s.tree) (h : DocumentTreesValid s.tree)
-    (hok : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
+    (hok : kindOf s.tree parent = some NodeKind.document →
+      ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
       (∀ m ∈ (if nd.kind = NodeKind.documentFragment then nd.children else [n]),
         ∀ k, kindOf s.tree m = some k → k.isText = false) ∧
       (((if nd.kind = NodeKind.documentFragment then nd.children else [n]).filter fun m =>
@@ -2614,7 +2683,12 @@ theorem documentTreesValid_replaceAll {s s' : DOMState} {node : Option NodeId} {
           refine documentTreesValid_insert_of_seqOk hwf₁ h₁ ?_ (by simpa using hins)
           intro nd hnd
           obtain ⟨nd₀, hnd₀, hkd⟩ := kindPreserving_get? hkp hnd
-          obtain ⟨g1, g2⟩ := hok m rfl nd₀ hnd₀
+          intro hdocparent
+          have hdoc0 : kindOf s.tree parent = some NodeKind.document := by
+            have hkk : kindOf s₁.tree parent = kindOf s.tree parent := hkp parent
+            rw [← hkk]
+            exact hdocparent
+          obtain ⟨g1, g2⟩ := hok hdoc0 m rfl nd₀ hnd₀
           have hkind : ∀ x, kindOf s₁.tree x = kindOf s.tree x := hkp
           -- 入れる node の列は `removeEach` で縮むだけである。
           have hsl : ((if nd.kind = NodeKind.documentFragment then nd.children
@@ -2627,7 +2701,6 @@ theorem documentTreesValid_replaceAll {s s' : DOMState} {node : Option NodeId} {
               exact hs
             · rw [if_neg hk, if_neg (by rw [hkd]; exact hk)]
               exact List.Sublist.refl _
-          intro _
           refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
           · intro x hx k hk
             exact g1 x (hsl.subset hx) k (by rw [← hkind x]; exact hk)

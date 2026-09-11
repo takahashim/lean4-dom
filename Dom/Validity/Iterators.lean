@@ -320,7 +320,8 @@ theorem iterCtx_replace {s s' : DOMState} {child node parent : NodeId}
 
 theorem iterCtx_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (h : IterCtx s)
-    (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
+    (hpk : ∀ n, node = some n → ∀ pd, s.tree.get? parent = some pd →
+      pd.kind.canHaveChildren = true)
     (hnk : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document)
     (hdtf : ∀ n, node = some n → ∀ nd, s.tree.get? n = some nd →
       nd.kind = NodeKind.documentType →
@@ -343,7 +344,8 @@ theorem iterCtx_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : No
         · next _ _ m =>
           intro hins
           refine iterCtx_insert h₁ ?_ ?_ ?_ (by simpa using hins)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true) hpk
+          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+              (hpk m rfl)
           · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
               (hnk m rfl)
           · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
