@@ -42,6 +42,7 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §4.4 parser が `ValidUrl` を保つこと | `PInv`, `run_valid`, `basicUrlParse_valid` | `Url/Invariant.lean` |
 | §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean` |
 | UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
+| UTF-8 の往復 | `Infra.utf8Decode_encode` | `Infra/Utf8Roundtrip.lean` |
 
 ## state override をどう通したか
 
@@ -158,6 +159,10 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `Params.get_eq_head`, `Params.has_eq` | `get` は `getAll` の先頭、`has` は `getAll` が空でないこと |
 | `Params.length_sort` | `sort` は組を落とさない |
 | `Infra.ne_of_strLt` | code unit 順で小さいなら等しくない。安定性の証明で使う |
+| `Infra.utf8Decode_encodeChar` | 一文字を UTF-8 で符号化して読み直すと元に戻る |
+| `Infra.utf8Decode_encode`, `Infra.utf8DecodeString_encode` | **文字列でも同じ** |
+| `Infra.lor_add`, `lor_low`, `lor3`, `lor4` | 上位を空けた値への `\|\|\|` は足し算。UTF-8 の byte はすべてその形 |
+| `Infra.charOfScalar_toNat` | `Char` の番号から作り直すと元に戻る |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -309,10 +314,19 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 
 ## 未着手
 
-* **`serialize` と `parse` の往復定理。** `urlencodedEncode_no_separator` で
-  「区切りを作らない」ところまでは示した。完全な往復
-  （`parse (serialize l) = l`）には `utf8Decode (utf8Encode s) = s.toList` が要る。
-  UTF-8 の符号化はビット演算なので、`omega` では届かず、
-  `Nat.testBit` まで降りるか bitvector の自動化が要る。
+* **`serialize` と `parse` の往復定理。** 部品は二つ揃った。
+
+  * `urlencodedEncode_no_separator` — serialize した成分に `&` も `=` も現れない
+  * `Infra.utf8DecodeString_encode` — UTF-8 で符号化して読み直すと元の文字列に戻る
+
+  完全な往復（`parse (serialize l) = l`）にはまだ三つ要る。
+
+  1. **serialize の結果が ASCII だけからなること。** `utf8Encode` が
+     文字をそのまま byte にすることを使うため
+  2. **`&` での分割が intercalate の逆になること**、および最初の `=` での分割が
+     name と value を戻すこと（1 と `urlencodedEncode_no_separator` から出る）
+  3. **`percentDecodeBytes ∘ plusToSpace` が `urlencodedEncode` を戻すこと。**
+     space → `+` → 0x20、set の中身 → `%XX` → 元の byte、それ以外は素通し。
+     リテラルの `+` は `%2B` になるので `plusToSpace` を先に通しても壊れない
 * **IDNA / UTS #46 そのもの。** 上記の理由で抽象化したままにする。
 * **encoding override。** HTML 由来の legacy 引数。UTF-8 に固定している。

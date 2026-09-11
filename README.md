@@ -144,7 +144,7 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 | `Dom/Validity/` | `AdmissibleDOMState` とその保存 |
 | `Dom/Observation.lean` | 差分テストの比較対象を型で固定する |
 | `Dom/Exec/` | scenario の型と評価（`Types` / `Eval`）、JSON 入出力（`Json`）、その入口（`Scenario`） |
-| `Infra/` | 共有する語彙（ASCII、byte 列、UTF-8、UTF-16 の code unit）。`Dom` と `Url` が使う |
+| `Infra/` | 共有する語彙（ASCII、byte 列、UTF-8 とその往復、UTF-16 の code unit）。`Dom` と `Url` が使う |
 | `Url/` | URL Standard（percent-encoding、IPv4 / IPv6、host parser、basic URL parser、urlencoded、`URL` と `URLSearchParams` の IDL） |
 | `test/` | 固定 scenario、生成器、Dommy runner、比較器 |
 | `docs/` | 状況、主定理の一覧、仕様トレーサビリティ、threats to validity |

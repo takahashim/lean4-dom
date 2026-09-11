@@ -176,6 +176,18 @@ open Dom.Audit
   Url.basicUrlParse_valid
   Url.parseUrl_valid
 
+-- UTF-8 の往復（Infra）
+#audit_axioms
+  Infra.lor_add
+  Infra.lor_low
+  Infra.lor3
+  Infra.lor4
+  Infra.charOfScalar_toNat
+  Infra.continuationBits_ofNat
+  Infra.utf8Decode_encodeChar
+  Infra.utf8Decode_encode
+  Infra.utf8DecodeString_encode
+
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms
   Infra.lexLt_self
