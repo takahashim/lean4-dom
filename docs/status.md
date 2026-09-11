@@ -1725,6 +1725,17 @@ public API の保存は `admissible_setAttribute` / `_setAttributeNS` / `_remove
     `Attr#value` も同じ取り違えで、同名の二つが互いの値を報告していた。
     `Backend.attr_by_qualified_name` を足して、この一族をすべてそこへ通した。
 
+    この修正は Dommy 側で二つ目の不具合を表に出した。それまで backend が
+    `setAttribute("xmlns", …)` の書き込みを XMLNS namespace の attribute にしていたため、
+    XML serializer が「namespace で declaration を見分ける」実装でも動いていた。
+    仕様どおり null namespace に置くようにした結果、その attribute が
+    default namespace の declaration として扱われなくなり、
+    element の namespace と食い違うときに落とされないまま二重に出力されていた
+    （`<manifest xmlns="" xmlns="…opf"/>`、well-formed XML ではない）。
+    WPT の "Drop inconsistent xmlns=... by matching on local name" のとおり
+    local name で見分けるように直した（Dommy commit `ec859a9`）。
+    差分テストではなく WPT で出たものなので、通し番号は振っていない。
+
 ### 一致状況
 
 固定 scenario 41 本（うち `move-receiver-must-be-parentnode` は IDL 由来の検査を固定する
