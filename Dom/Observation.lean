@@ -16,6 +16,7 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
 * parent と順序付きの children（tree order はこの二つから決まる）
 * node document
 * CharacterData の data
+* Element の attribute list（順序も含む）
 * live Range の両端
 * NodeIterator の root / reference / pointer-before-reference flag
 * MutationObserver に積まれた record の列
@@ -30,6 +31,8 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
   （roadmap §13.3）。
 * 文字列の内部表現。`data` は Lean の `String` として比べる。UTF-16 の code unit 境界は
   扱わない（roadmap §13.1）。
+* `Attr` node としての attribute。model の attribute は element の状態であり
+  node tree には入らないので、`NamedNodeMap` や `Attr` の同一性は観測できない。
 * MutationObserver の callback そのもの。配送された record の列だけを見る。
 * Shadow tree。
 -/
@@ -44,6 +47,7 @@ structure ObservedNode where
   children : List NodeId
   nodeDocument : NodeId
   data : String
+  attributes : List Attr
 deriving DecidableEq, Repr, Inhabited
 
 /-- 操作の結果。 -/
@@ -93,6 +97,7 @@ def observedNodeOf (t : Tree) (n : NodeId) (d : NodeData) : ObservedNode where
   children := childrenOf t n
   nodeDocument := d.ownerDocument
   data := d.data
+  attributes := d.attributes
 
 /-- 木の観測。node は id の昇順に並べ、store の表現には依存させない。 -/
 def observedNodes (s : DOMState) : List ObservedNode :=

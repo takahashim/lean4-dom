@@ -72,6 +72,20 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | insertData n o d => exact admissible_insertData h hop
   | deleteData n o c => exact admissible_deleteData h hop
   | setData n d => exact admissible_setData h hop
+  | setAttribute e qn v => exact admissible_setAttribute h hop
+  | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
+  | removeAttribute e qn => exact admissible_removeAttribute h hop
+  | removeAttributeNS e ns ln => exact admissible_removeAttributeNS h hop
+  | toggleAttribute e qn f =>
+    -- `applyOperation` は返り値の `Bool` を捨てるので、`Except.map` を剥がす。
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · next res he =>
+      obtain ⟨s₁, b⟩ := res
+      have : s₁ = s' := by simpa using hop
+      subst this
+      exact admissible_toggleAttribute h he
   | observe mo target opts => exact admissible_observe h hop
   | disconnect mo =>
     rw [← Except.ok.inj hop]

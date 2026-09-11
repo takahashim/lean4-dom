@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0,
+      "attributes": [
+        { "namespace": "http://www.w3.org/XML/1998/namespace", "prefix": "xml",
+          "localName": "b", "value": "vv" }
+      ] }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "toggleAttribute", "element": 1, "name": "b" },
+    { "op": "setAttribute", "element": 1, "name": "b", "value": "zz" },
+    { "op": "removeAttribute", "element": 1, "name": "b" }
+  ]
+}

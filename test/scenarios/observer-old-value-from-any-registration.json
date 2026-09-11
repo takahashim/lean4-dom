@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0 },
+    { "id": 2, "kind": "text", "parent": 1, "data": "t5" }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    { "target": 2, "subtree": false, "characterData": true, "characterDataOldValue": false }
+  ],
+  "operations": [
+    { "op": "observe", "observer": 0, "target": 1, "subtree": true,
+      "characterData": true, "characterDataOldValue": true },
+    { "op": "appendData", "node": 2, "data": "yz" },
+    { "op": "notify" }
+  ]
+}

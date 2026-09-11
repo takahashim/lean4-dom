@@ -1,5 +1,6 @@
 import Lean.Data.Json
 import Dom.Mutation.Api
+import Dom.Attribute.Algorithms
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.CharacterData.ReplaceData
@@ -70,6 +71,8 @@ structure NodeSpec where
   parent : Option Nat := none
   ownerDocument : Option Nat := none
   data : String := ""
+  /-- 初期 attribute list。Element 以外に置くと loader が拒否する。 -/
+  attributes : List Attr := []
 deriving Repr
 
 /-- scenario が並べる操作。Phase 3 までの public API に対応する。 -/
@@ -91,6 +94,16 @@ inductive Operation where
   | insertData (node : Nat) (offset : Nat) (data : String)
   | deleteData (node : Nat) (offset count : Nat)
   | setData (node : Nat) (data : String)
+  /-- `Element.setAttribute(qualifiedName, value)`。 -/
+  | setAttribute (element : Nat) (qualifiedName value : String)
+  /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/
+  | setAttributeNS (element : Nat) («namespace» : Option String) (qualifiedName value : String)
+  /-- `Element.removeAttribute(qualifiedName)`。 -/
+  | removeAttribute (element : Nat) (qualifiedName : String)
+  /-- `Element.removeAttributeNS(namespace, localName)`。 -/
+  | removeAttributeNS (element : Nat) («namespace» : Option String) (localName : String)
+  /-- `Element.toggleAttribute(qualifiedName, force)`。 -/
+  | toggleAttribute (element : Nat) (qualifiedName : String) (force : Option Bool)
   /-- `MutationObserver.observe(target, options)`。 -/
   | observe (observer : Nat) (target : Nat) (opts : MutationObserverInit)
   /-- `MutationObserver.disconnect()`。 -/
@@ -117,6 +130,9 @@ structure ObserverSpec where
   target : Option Nat := none
   subtree : Bool := false
   childList : Bool := false
+  attributes : Bool := false
+  attributeOldValue : Bool := false
+  attributeFilter : Option (List String) := none
   characterData : Bool := false
   characterDataOldValue : Bool := false
 deriving Repr
@@ -169,6 +185,43 @@ private def strField (j : Json) (k : String) (dflt : String) : Except String Str
   | none => .ok dflt
   | some v => v.getStr?
 
+private def strField? (j : Json) (k : String) : Except String (Option String) :=
+  match field? j k with
+  | none => .ok none
+  | some v => (v.getStr?).map some
+
+private def boolField? (j : Json) (k : String) : Except String (Option Bool) :=
+  match field? j k with
+  | none => .ok none
+  | some v => (v.getBool?).map some
+
+private def strListField? (j : Json) (k : String) : Except String (Option (List String)) :=
+  match field? j k with
+  | none => .ok none
+  | some v => do
+    let arr ← v.getArr?
+    return some (← arr.toList.mapM (·.getStr?))
+
+def attrOfJson (j : Json) : Except String Attr := do
+  return { «namespace» := ← strField? j "namespace"
+           «prefix» := ← strField? j "prefix"
+           localName := ← strField j "localName" ""
+           value := ← strField j "value" "" }
+
+/-- `MutationObserverInit` の読み取り。省略と `false` は区別する（`observe` step 1-2）。 -/
+def observerInitOfJson (j : Json) : Except String MutationObserverInit := do
+  let flag (name : String) : Except String Bool :=
+    match field? j name with
+    | none => pure false
+    | some v => v.getBool?
+  return { childList := ← flag "childList"
+           subtree := ← flag "subtree"
+           attributes := ← boolField? j "attributes"
+           attributeOldValue := ← flag "attributeOldValue"
+           attributeFilter := ← strListField? j "attributeFilter"
+           characterData := ← boolField? j "characterData"
+           characterDataOldValue := ← flag "characterDataOldValue" }
+
 def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
   let id ← natField j "id"
   let kindStr ← strField j "kind" ""
@@ -177,7 +230,10 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
   let parent ← natField? j "parent"
   let ownerDocument ← natField? j "ownerDocument"
   let data ← strField j "data" ""
-  return { id, kind, parent, ownerDocument, data }
+  let attributes ← match field? j "attributes" with
+    | none => pure ([] : List Attr)
+    | some v => do (← v.getArr?).toList.mapM attrOfJson
+  return { id, kind, parent, ownerDocument, data, attributes }
 
 def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""
@@ -206,16 +262,22 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "deleteData" =>
     return .deleteData (← natField j "node") (← natField j "offset") (← natField j "count")
   | "setData" => return .setData (← natField j "node") (← strField j "data" "")
+  | "setAttribute" =>
+    return .setAttribute (← natField j "element") (← strField j "name" "")
+      (← strField j "value" "")
+  | "setAttributeNS" =>
+    return .setAttributeNS (← natField j "element") (← strField? j "namespace")
+      (← strField j "name" "") (← strField j "value" "")
+  | "removeAttribute" =>
+    return .removeAttribute (← natField j "element") (← strField j "name" "")
+  | "removeAttributeNS" =>
+    return .removeAttributeNS (← natField j "element") (← strField? j "namespace")
+      (← strField j "name" "")
+  | "toggleAttribute" =>
+    return .toggleAttribute (← natField j "element") (← strField j "name" "")
+      (← boolField? j "force")
   | "observe" =>
-    let flag (name : String) : Except String Bool :=
-      match field? j name with
-      | none => pure false
-      | some v => v.getBool?
-    return .observe (← natField j "observer") (← natField j "target")
-      { childList := ← flag "childList"
-        subtree := ← flag "subtree"
-        characterData := ← flag "characterData"
-        characterDataOldValue := ← flag "characterDataOldValue" }
+    return .observe (← natField j "observer") (← natField j "target") (← observerInitOfJson j)
   | "disconnect" => return .disconnect (← natField j "observer")
   | "takeRecords" => return .takeRecords (← natField j "observer")
   | "notify" => return .notify
@@ -246,6 +308,9 @@ def observerOfJson (j : Json) : Except String ObserverSpec := do
   return { target
            subtree := ← flag "subtree"
            childList := ← flag "childList"
+           attributes := ← flag "attributes"
+           attributeOldValue := ← flag "attributeOldValue"
+           attributeFilter := ← strListField? j "attributeFilter"
            characterData := ← flag "characterData"
            characterDataOldValue := ← flag "characterDataOldValue" }
 
@@ -288,6 +353,17 @@ private def optNatJson : Option NodeId → Json
 
 `Dom/Observation.lean` の `ObservedNode` の各 field をそのまま並べる。
 -/
+def optStrJson : Option String → Json
+  | none => Json.null
+  | some v => Json.str v
+
+def attrJson (a : Attr) : Json :=
+  Json.mkObj
+    [ ("namespace", optStrJson a.namespace)
+    , ("prefix", optStrJson a.prefix)
+    , ("localName", Json.str a.localName)
+    , ("value", Json.str a.value) ]
+
 def observedNodeJson (n : ObservedNode) : Json :=
   Json.mkObj
     [ ("id", natJson n.id.id)
@@ -295,7 +371,8 @@ def observedNodeJson (n : ObservedNode) : Json :=
     , ("parent", optNatJson n.parent)
     , ("children", Json.arr (n.children.map fun c => natJson c.id).toArray)
     , ("nodeDocument", natJson n.nodeDocument.id)
-    , ("data", Json.str n.data) ]
+    , ("data", Json.str n.data)
+    , ("attributes", Json.arr (n.attributes.map attrJson).toArray) ]
 
 def boundaryPointJson (bp : BoundaryPoint) : Json :=
   Json.mkObj [("node", natJson bp.node.id), ("offset", natJson bp.offset)]
@@ -322,7 +399,9 @@ def recordJson (r : MutationRecord) : Json :=
     , ("removedNodes", Json.arr (r.removedNodes.map fun n => natJson n.id).toArray)
     , ("previousSibling", optNatJson r.previousSibling)
     , ("nextSibling", optNatJson r.nextSibling)
-    , ("oldValue", match r.oldValue with | none => Json.null | some v => Json.str v) ]
+    , ("attributeName", optStrJson r.attributeName)
+    , ("attributeNamespace", optStrJson r.attributeNamespace)
+    , ("oldValue", optStrJson r.oldValue) ]
 
 /--
 `Observation` の外部表現。

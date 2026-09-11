@@ -23,7 +23,9 @@ module Generate
   # `moveBefore` は Dommy が未実装なので、既定では生成しない。
   OPS = %w[appendChild insertBefore replaceChild removeChild replaceChildren
            before after replaceWith remove
-           replaceData appendData insertData deleteData setData].freeze
+           replaceData appendData insertData deleteData setData
+           setAttribute setAttributeNS removeAttribute removeAttributeNS
+           toggleAttribute].freeze
 
   # 仕様上どの interface がどの操作を持つか。
   #   Node        すべての node
@@ -33,11 +35,24 @@ module Generate
   PARENT_NODE_OPS = %w[replaceChildren moveBefore].freeze
   CHILD_NODE_OPS = %w[before after replaceWith remove].freeze
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
+  ATTRIBUTE_OPS = %w[setAttribute setAttributeNS removeAttribute removeAttributeNS
+                     toggleAttribute].freeze
+
+  # attribute の local name は少ない候補から選ぶ。
+  # そうしないと `attributeFilter` も「同じ鍵への二度目の書き込み」も当たらない。
+  ATTR_NAMES = %w[a b data-x].freeze
+  ATTR_VALUES = ["", "1", "vv"].freeze
+
+  # `setAttributeNS` に渡す namespace。null と XML namespace のほかに、
+  # "validate and extract" の NamespaceError を踏ませるための組も混ぜる。
+  XML_NS = "http://www.w3.org/XML/1998/namespace"
+  XMLNS_NS = "http://www.w3.org/2000/xmlns/"
+  ATTR_NAMESPACES = [nil, "http://example.com/ns", XML_NS, XMLNS_NS].freeze
 
   SPEC_OPS = {
     "document" => NODE_OPS + PARENT_NODE_OPS,
     "documentFragment" => NODE_OPS + PARENT_NODE_OPS,
-    "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS,
+    "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS,
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -88,6 +103,24 @@ module Generate
     CHARACTER_DATA.include?(kind) ? tag : ""
   end
 
+  # element が最初から持っている attribute。
+  #
+  # 鍵の一意性は `AttributesValid` が要求するので、local name を重複させない。
+  # prefix を付ける場合は namespace も付ける（同じく `AttributesValid`）。
+  def initial_attributes(rng)
+    return [] if rng.rand < 0.6
+
+    ATTR_NAMES.sample(1 + rng.rand(2), random: rng).map do |name|
+      if rng.rand < 0.25
+        { "namespace" => XML_NS, "prefix" => "xml", "localName" => name,
+          "value" => ATTR_VALUES.sample(random: rng) }
+      else
+        { "namespace" => nil, "prefix" => nil, "localName" => name,
+          "value" => ATTR_VALUES.sample(random: rng) }
+      end
+    end
+  end
+
   def build_tree(rng, node_count, doctype_prob: 0.0)
     b = Builder.new(rng)
     doc = b.add("document")
@@ -114,6 +147,9 @@ module Generate
         end
       b.add(kind, parent: parent, data: data_for(kind, "t#{b.ids.size}"))
     end
+    b.nodes.each do |spec|
+      spec["attributes"] = initial_attributes(rng) if spec["kind"] == "element"
+    end
     b.nodes
   end
 
@@ -131,15 +167,9 @@ module Generate
       mo = rng.rand(observer_count)
       return { "op" => op, "observer" => mo } unless op == "observe"
 
-      # 仕様の `observe` は childList / characterData のどちらかが true でなければ
-      # TypeError になる。両方 false の組も稀に混ぜて、その分岐も撫でる。
-      child_list = rng.rand < 0.7
-      character_data = child_list ? rng.rand < 0.6 : rng.rand < 0.9
+      # `observe` の options は `random_observed_types` が作る。
       return { "op" => op, "observer" => mo, "target" => ids.sample(random: rng),
-               "subtree" => rng.rand < 0.6,
-               "childList" => child_list,
-               "characterData" => character_data,
-               "characterDataOldValue" => character_data && rng.rand < 0.7 }
+               "subtree" => rng.rand < 0.6 }.merge(random_observed_types(rng))
     end
     pick = -> { ids.sample(random: rng) }
     # 存在しない id をたまに混ぜて notFoundError を誘う。
@@ -171,15 +201,44 @@ module Generate
     when "deleteData"
       { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4) }
     when "setData" then { "op" => op, "node" => pick.call, "data" => %w[[] pq rstu][rng.rand(3)] }
+    when "setAttribute"
+      { "op" => op, "element" => pick.call, "name" => ATTR_NAMES.sample(random: rng),
+        "value" => ATTR_VALUES.sample(random: rng) }
+    when "setAttributeNS"
+      ns, qn = random_ns_and_qualified_name(rng)
+      { "op" => op, "element" => pick.call, "namespace" => ns, "name" => qn,
+        "value" => ATTR_VALUES.sample(random: rng) }
+    when "removeAttribute"
+      { "op" => op, "element" => pick.call, "name" => ATTR_NAMES.sample(random: rng) }
+    when "removeAttributeNS"
+      { "op" => op, "element" => pick.call,
+        "namespace" => ATTR_NAMESPACES.sample(random: rng),
+        "name" => ATTR_NAMES.sample(random: rng) }
+    when "toggleAttribute"
+      { "op" => op, "element" => pick.call, "name" => ATTR_NAMES.sample(random: rng),
+        "force" => [nil, true, false].sample(random: rng) }
     when "moveBefore"
       { "op" => op, "parent" => pick.call, "node" => maybe.call,
         "child" => rng.rand < 0.5 ? nil : maybe.call }
     end
   end
 
+  # `setAttributeNS` の (namespace, qualifiedName)。
+  #
+  # prefix 付きの qualified name を半分ほど混ぜて、"validate and extract" の
+  # step 8-11（prefix に namespace が要る、`xml` と `xmlns` の対応）を撫でる。
+  def random_ns_and_qualified_name(rng)
+    ns = ATTR_NAMESPACES.sample(random: rng)
+    local = ATTR_NAMES.sample(random: rng)
+    return [ns, local] if rng.rand < 0.5
+
+    [ns, "#{%w[p xml xmlns].sample(random: rng)}:#{local}"]
+  end
+
   # 操作の受け手（method を呼ぶ相手）の id。
   def receiver_id(op)
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
+    return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
 
     op.key?("target") ? op["target"] : op["parent"]
   end
@@ -314,21 +373,33 @@ module Generate
   #
   # 一つの observer が一つの node を観測する形だけを作る（`observe` を一度呼んだ状態）。
   # 仕様の `observe` は childList / attributes / characterData が
-  # どれも true でなければ TypeError を投げるので、少なくとも一方は立てる。
-  # model は attribute を扱わないので、選べるのは childList と characterData である。
+  # どれも true でなければ TypeError を投げるので、少なくとも一つは立てる。
   def random_observers(rng, nodes, count)
     return [] if count.zero? || nodes.empty?
 
     Array.new(count) do
       spec = nodes.sample(random: rng)
-      child_list = rng.rand < 0.7
-      character_data = child_list ? rng.rand < 0.6 : true
-      { "target" => spec["id"],
-        "subtree" => rng.rand < 0.6,
-        "childList" => child_list,
-        "characterData" => character_data,
-        "characterDataOldValue" => character_data && rng.rand < 0.7 }
+      { "target" => spec["id"], "subtree" => rng.rand < 0.6 }.merge(random_observed_types(rng))
     end
+  end
+
+  # 観測する record 種別の組。少なくとも一つは true になる。
+  #
+  # `attributeFilter` は「存在するだけで」絞り込みになるので、
+  # 空 list と非空 list の両方を混ぜる。
+  def random_observed_types(rng)
+    child_list = rng.rand < 0.6
+    attributes = rng.rand < 0.6
+    character_data = child_list || attributes ? rng.rand < 0.5 : true
+    out = { "childList" => child_list,
+            "attributes" => attributes,
+            "attributeOldValue" => attributes && rng.rand < 0.7,
+            "characterData" => character_data,
+            "characterDataOldValue" => character_data && rng.rand < 0.7 }
+    if attributes && rng.rand < 0.4
+      out["attributeFilter"] = ATTR_NAMES.sample(rng.rand(ATTR_NAMES.size + 1), random: rng)
+    end
+    out
   end
 
   # `allow` は `(op, receiver_kind) -> Boolean`。

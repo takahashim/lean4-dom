@@ -33,11 +33,20 @@ module DommyRunner
     "appendData" => :append_data,
     "insertData" => :insert_data,
     "deleteData" => :delete_data,
-    "setData" => :data=
+    "setData" => :data=,
+    "setAttribute" => :set_attribute,
+    "setAttributeNS" => :set_attribute_ns,
+    "removeAttribute" => :remove_attribute,
+    "removeAttributeNS" => :remove_attribute_ns,
+    "toggleAttribute" => :toggle_attribute
   }.freeze
 
   # 受け手が `node` である操作（CharacterData の method）。
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
+
+  # 受け手が `element` である操作（§4.9 の attribute）。
+  ATTRIBUTE_OPS = %w[setAttribute setAttributeNS removeAttribute removeAttributeNS
+                     toggleAttribute].freeze
 
   # scenario の kind から Dommy の node を作る。
   class Builder
@@ -103,7 +112,7 @@ module DommyRunner
       end
 
       doc = owner_document(spec, default_doc_id)
-      @objects[id] =
+      node =
         case spec["kind"]
         when "element" then doc.create_element("div")
         when "text" then doc.create_text_node(data)
@@ -114,6 +123,27 @@ module DommyRunner
         when "documentType" then doc.implementation.create_document_type("html", "", "")
         else raise "未知の kind #{spec['kind'].inspect}"
         end
+      apply_initial_attributes(node, spec["attributes"])
+      @objects[id] = node
+    end
+
+    # scenario が与えた初期 attribute を、mutation record を積む前に置く。
+    #
+    # `setAttributeNS` / `setAttribute` を通すのは、Dommy に attribute list を
+    # 直接差し込む口が無いためである。observer はまだ居ないので record は出ない。
+    def apply_initial_attributes(node, attrs)
+      return if attrs.nil? || attrs.empty?
+      raise NotImplementedError, "attributes on non-element" unless node.respond_to?(:set_attribute)
+
+      attrs.each do |a|
+        ns = a["namespace"]
+        qn = a["prefix"] ? "#{a['prefix']}:#{a['localName']}" : a["localName"].to_s
+        if ns
+          node.set_attribute_ns(ns, qn, a["value"].to_s)
+        else
+          node.set_attribute(qn, a["value"].to_s)
+        end
+      end
     end
   end
 
@@ -237,8 +267,24 @@ module DommyRunner
       "childList" => !!spec["childList"],
       "subtree" => !!spec["subtree"],
       "characterData" => !!spec["characterData"],
-      "characterDataOldValue" => !!spec["characterDataOldValue"]
-    }
+      "characterDataOldValue" => !!spec["characterDataOldValue"],
+      "attributes" => !!spec["attributes"],
+      "attributeOldValue" => !!spec["attributeOldValue"]
+    }.tap { |o| o["attributeFilter"] = spec["attributeFilter"] if spec["attributeFilter"] }
+  end
+
+  # element の attribute list を model と同じ形に並べる。
+  #
+  # Dommy は attribute を `Attr` node として持つので、
+  # namespace / prefix / local name / value だけを取り出す。
+  def attributes_of(node)
+    return [] unless node.respond_to?(:__js_get__) && node.__js_get__("nodeType") == 1
+    return [] unless node.respond_to?(:attributes)
+
+    node.attributes.to_a.map do |a|
+      { "namespace" => a.namespace_uri, "prefix" => a.prefix,
+        "localName" => a.local_name, "value" => a.value.to_s }
+    end
   end
 
   # microtask checkpoint。配送はここで走る。
@@ -272,6 +318,8 @@ module DommyRunner
       "removedNodes" => nodes.call("removedNodes"),
       "previousSibling" => node_id(objects, rec.__js_get__("previousSibling")),
       "nextSibling" => node_id(objects, rec.__js_get__("nextSibling")),
+      "attributeName" => rec.__js_get__("attributeName")&.to_s,
+      "attributeNamespace" => rec.__js_get__("attributeNamespace")&.to_s,
       "oldValue" => old_value.nil? ? nil : old_value.to_s }
   end
 
@@ -300,7 +348,8 @@ module DommyRunner
         "parent" => node_id(objects, parent_of(node)),
         "children" => children_of(node).map { |c| node_id(objects, c) },
         "nodeDocument" => node_document_id(objects, id, node, kinds),
-        "data" => data_of(node)
+        "data" => data_of(node),
+        "attributes" => attributes_of(node)
       }
     end
     out = { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),
@@ -312,6 +361,7 @@ module DommyRunner
   # 操作の受け手（method を呼ぶ相手）の id。
   def receiver_id(op)
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
+    return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
 
     op.key?("target") ? op["target"] : op["parent"]
   end
@@ -353,6 +403,26 @@ module DommyRunner
              when "insertData" then node.insert_data(op["offset"], op["data"].to_s)
              when "deleteData" then node.delete_data(op["offset"], op["count"])
              when "setData" then node.data = op["data"].to_s
+             end
+    end
+    if ATTRIBUTE_OPS.include?(op["op"])
+      element = objects[op["element"]]
+      method = OP_METHOD.fetch(op["op"])
+      raise NotImplementedError, op["op"] if element.nil? || !element.respond_to?(method)
+
+      name = op["name"].to_s
+      return case op["op"]
+             when "setAttribute" then element.set_attribute(name, op["value"].to_s)
+             when "setAttributeNS"
+               element.set_attribute_ns(op["namespace"], name, op["value"].to_s)
+             when "removeAttribute" then element.remove_attribute(name)
+             when "removeAttributeNS" then element.remove_attribute_ns(op["namespace"], name)
+             when "toggleAttribute"
+               if op.key?("force") && !op["force"].nil?
+                 element.toggle_attribute(name, op["force"])
+               else
+                 element.toggle_attribute(name)
+               end
              end
     end
     o = ->(key) { key.nil? ? nil : objects[key] }

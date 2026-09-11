@@ -49,7 +49,9 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         parent := s.parent.map NodeId.mk
         children
         ownerDocument := ⟨owner⟩
-        data := if s.kind.isCharacterData then s.data else "" })
+        data := if s.kind.isCharacterData then s.data else ""
+        -- attribute を持てるのは Element だけである（`AttributesValid`）。
+        attributes := if s.kind == .element then s.attributes else [] })
   let entries ← specs.mapM entry
   let t : Tree := { nodes := entries.foldl (fun st p => st.insert p.1 p.2) NodeStore.empty }
   unless t.checkWellFormed do
@@ -76,6 +78,8 @@ def buildState (sc : Scenario) : Except String DOMState := do
   let registrations : List Registration := sc.observers.zipIdx.filterMap fun (o, i) =>
     o.target.map fun t =>
       { node := ⟨t⟩, observer := i, subtree := o.subtree, childList := o.childList,
+        attributes := o.attributes, attributeOldValue := o.attributeOldValue,
+        attributeFilter := o.attributeFilter,
         characterData := o.characterData, characterDataOldValue := o.characterDataOldValue }
   -- `observe` を一度呼んだ状態にあたるので、node list にもその target を入れておく。
   let observers : List ObserverState := sc.observers.map fun o =>
@@ -142,6 +146,11 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .insertData n o d => insertData s ⟨n⟩ o d
   | .deleteData n o c => deleteData s ⟨n⟩ o c
   | .setData n d => setData s ⟨n⟩ d
+  | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
+  | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
+  | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn
+  | .removeAttributeNS e ns ln => removeAttributeNS s ⟨e⟩ ns ln
+  | .toggleAttribute e qn f => (toggleAttribute s ⟨e⟩ qn f).map Prod.fst
   | .observe mo target opts => MutationObserver.observe s mo ⟨target⟩ opts
   | .disconnect mo => .ok (MutationObserver.disconnect s mo)
   | .takeRecords mo => .ok (MutationObserver.takeRecords s mo).1

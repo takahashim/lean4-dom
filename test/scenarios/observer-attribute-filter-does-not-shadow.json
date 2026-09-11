@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0 },
+    { "id": 2, "kind": "element", "parent": 1 }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    { "target": 2, "subtree": false, "attributes": true, "attributeFilter": ["a"] }
+  ],
+  "operations": [
+    { "op": "observe", "observer": 0, "target": 1, "subtree": true, "attributes": true },
+    { "op": "setAttribute", "element": 2, "name": "b", "value": "1" },
+    { "op": "notify" }
+  ]
+}

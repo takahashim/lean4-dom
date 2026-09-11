@@ -40,7 +40,9 @@ module Compare
   def normalize_state(state)
     nodes = (state["nodes"] || []).sort_by { |n| n["id"] }
     {
-      "nodes" => nodes.map { |n| n.slice("id", "kind", "parent", "children", "nodeDocument", "data") },
+      "nodes" => nodes.map { |n|
+        n.slice("id", "kind", "parent", "children", "nodeDocument", "data", "attributes")
+      },
       "treeOrder" => tree_order(nodes),
       "ranges" => state["ranges"] || [],
       "iterators" => state["iterators"] || [],
