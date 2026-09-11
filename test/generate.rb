@@ -117,12 +117,29 @@ module Generate
     b.nodes
   end
 
-  def random_operation(rng, ids, ops, iterator_count = 0)
+  def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0)
     op = ops.sample(random: rng)
     if ITERATOR_OPS.include?(op)
       return nil if iterator_count.zero?
 
       return { "op" => op, "iterator" => rng.rand(iterator_count) }
+    end
+    if OBSERVER_OPS.include?(op)
+      return { "op" => "notify" } if op == "notify"
+      return nil if observer_count.zero?
+
+      mo = rng.rand(observer_count)
+      return { "op" => op, "observer" => mo } unless op == "observe"
+
+      # 仕様の `observe` は childList / characterData のどちらかが true でなければ
+      # TypeError になる。両方 false の組も稀に混ぜて、その分岐も撫でる。
+      child_list = rng.rand < 0.7
+      character_data = child_list ? rng.rand < 0.6 : rng.rand < 0.9
+      return { "op" => op, "observer" => mo, "target" => ids.sample(random: rng),
+               "subtree" => rng.rand < 0.6,
+               "childList" => child_list,
+               "characterData" => character_data,
+               "characterDataOldValue" => character_data && rng.rand < 0.7 }
     end
     pick = -> { ids.sample(random: rng) }
     # 存在しない id をたまに混ぜて notFoundError を誘う。
@@ -280,6 +297,10 @@ module Generate
   # iterator を動かす操作。受け手が node ではないので kind の絞り込みは要らない。
   ITERATOR_OPS = %w[iteratorNext iteratorPrevious].freeze
 
+  # MutationObserver の操作。`notify` は microtask checkpoint である。
+  # `observe` だけは受け手が node（target）なので、kind の絞り込みを通す。
+  OBSERVER_OPS = %w[observe disconnect takeRecords notify].freeze
+
   # 仕様の `createNodeIterator` は reference を (root, true) に初期化する。
   # Dommy に setter が無いので、生成する iterator もこの状態から始める。
   def random_iterators(rng, nodes, count)
@@ -321,9 +342,14 @@ module Generate
     attempts = 0
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
-      op = random_operation(rng, ids, ops, iterator_count)
+      op = random_operation(rng, ids, ops, iterator_count, observer_count)
       next if op.nil?
-      if ITERATOR_OPS.include?(op["op"])
+      if ITERATOR_OPS.include?(op["op"]) || %w[disconnect takeRecords notify].include?(op["op"])
+        operations << op
+        next
+      end
+      if op["op"] == "observe"
+        # `observe` の receiver は MutationObserver なので kind の絞り込みは無い。
         operations << op
         next
       end

@@ -195,6 +195,7 @@ if $PROGRAM_NAME == __FILE__
 
   unless opts[:fixed_only]
     ops = Generate::OPS + Generate::ITERATOR_OPS
+    ops += Generate::OBSERVER_OPS if opts[:observers].to_i.positive?
     ops << "moveBefore" if opts[:move]
     allow = opts[:all] ? nil : Difftest.allow_lambda
     rng = Random.new(opts[:seed])

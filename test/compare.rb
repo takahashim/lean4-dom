@@ -44,7 +44,8 @@ module Compare
       "treeOrder" => tree_order(nodes),
       "ranges" => state["ranges"] || [],
       "iterators" => state["iterators"] || [],
-      "observers" => state["observers"] || []
+      "observers" => state["observers"] || [],
+      "delivered" => state["delivered"] || []
     }
   end
 
@@ -69,6 +70,9 @@ module Compare
       na["observers"].zip(nb["observers"]).each_with_index do |(x, y), i|
         details << "  observer #{i}: lean=#{x.inspect} dommy=#{y.inspect}" if x != y
       end
+    end
+    if na["delivered"] != nb["delivered"]
+      details << "  delivered: lean=#{na['delivered'].inspect} dommy=#{nb['delivered'].inspect}"
     end
     details.join("\n")
   end

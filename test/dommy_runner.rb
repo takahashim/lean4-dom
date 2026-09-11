@@ -207,34 +207,60 @@ module DommyRunner
   #
   # Dommy の `MutationObserver.new` は window を要る。scenario の document は
   # `Dommy::Document.new` 由来なので `default_view` から取る。
-  # callback は呼ばない（scheduler を回さない）ので、record は queue に貯まり、
-  # `takeRecords` で取り出せる。model 側も配送を扱わないので、これで揃う。
+  # callback は配送された record をそのまま控える。`notify` 操作（microtask
+  # checkpoint）で呼ばれ、その step の観測として出す。
+  #
+  # `target` が無い spec は、registration を持たない observer を作るだけにする。
+  # scenario の側で `observe` 操作を使う場合がこれである。
+  #
+  # 戻り値は [observers, log]。log は配送された順に [observer index, records] を並べる。
+  # 配送の順序自体が観測対象なので、observer の index 順に並べ直してはいけない。
   def build_observers(objects, documents, specs)
-    (specs || []).map do |spec|
-      target = objects.fetch(spec["target"])
+    log = []
+    observers = (specs || []).each_with_index.map do |spec, index|
       doc = documents.values.first or raise "document が無いので MutationObserver を作れない"
       win = doc.default_view or raise "window が無いので MutationObserver を作れない"
-      obs = Dommy::MutationObserver.new(win, proc { |_records| nil })
-      options = {
-        "childList" => !!spec["childList"],
-        "subtree" => !!spec["subtree"],
-        "characterData" => !!spec["characterData"],
-        "characterDataOldValue" => !!spec["characterDataOldValue"]
-      }
-      obs.__js_call__("observe", [target, options])
+      obs = Dommy::MutationObserver.new(win, proc { |records|
+        log << { "observer" => index,
+                 "records" => records.to_a.map { |rec| record_snapshot(objects, rec) } }
+      })
+      if spec["target"]
+        obs.__js_call__("observe", [objects.fetch(spec["target"]), observe_options(spec)])
+      end
       obs
+    end
+    [observers, log]
+  end
+
+  def observe_options(spec)
+    {
+      "childList" => !!spec["childList"],
+      "subtree" => !!spec["subtree"],
+      "characterData" => !!spec["characterData"],
+      "characterDataOldValue" => !!spec["characterDataOldValue"]
+    }
+  end
+
+  # microtask checkpoint。配送はここで走る。
+  def run_microtask_checkpoint(documents)
+    doc = documents.values.first or return nil
+    win = doc.default_view or return nil
+    win.scheduler.perform_microtask_checkpoint
+    nil
+  end
+
+  # 現在 queue に積まれている record を、取り出さずに並べる。
+  # `takeRecords()` が返すものと同じで、配送が走ると空になる。
+  def queued_records(objects, observers)
+    observers.map do |obs|
+      obs.records.map { |rec| record_snapshot(objects, rec) }
     end
   end
 
-  # model と同じく、これまでに積まれた record を全部並べる。
-  # Dommy 側は `takeRecords` が queue を空にするので、こちらで貯めておく。
-  def take_records(objects, observers, accumulated)
-    observers.each_with_index do |obs, i|
-      obs.__js_call__("takeRecords", []).each do |rec|
-        accumulated[i] << record_snapshot(objects, rec)
-      end
-    end
-    accumulated.map(&:dup)
+  # その step で callback に配送された record。model の `delivered` に対応する。
+  # 配送された順に並ぶ。
+  def delivered_snapshot(log)
+    log.map { |entry| { "observer" => entry["observer"], "records" => entry["records"] } }
   end
 
   def record_snapshot(objects, rec)
@@ -290,13 +316,31 @@ module DommyRunner
     op.key?("target") ? op["target"] : op["parent"]
   end
 
-  def apply(objects, op, iterators = [])
+  def apply(objects, op, iterators = [], ctx = {})
     case op["op"]
     when "iteratorNext", "iteratorPrevious"
       it = iterators[op["iterator"]]
       raise NotImplementedError, "iterator index" if it.nil?
 
       return op["op"] == "iteratorNext" ? it.next_node : it.previous_node
+    when "observe"
+      obs = (ctx[:observers] || [])[op["observer"]]
+      raise NotImplementedError, "observer index" if obs.nil?
+      raise NotImplementedError, "missing target" if objects[op["target"]].nil?
+
+      return obs.__js_call__("observe", [objects[op["target"]], observe_options(op)])
+    when "disconnect"
+      obs = (ctx[:observers] || [])[op["observer"]]
+      raise NotImplementedError, "observer index" if obs.nil?
+
+      return obs.__js_call__("disconnect", [])
+    when "takeRecords"
+      obs = (ctx[:observers] || [])[op["observer"]]
+      raise NotImplementedError, "observer index" if obs.nil?
+
+      return obs.__js_call__("takeRecords", [])
+    when "notify"
+      return run_microtask_checkpoint(ctx[:documents] || {})
     end
     if CHARACTER_DATA_OPS.include?(op["op"])
       node = objects[op["node"]]
@@ -366,14 +410,17 @@ module DommyRunner
     objects = builder.build
     ranges = build_ranges(objects, builder.documents, scenario["ranges"])
     iterators = build_iterators(objects, builder.documents, scenario["iterators"])
-    observers = build_observers(objects, builder.documents, scenario["observers"])
-    accumulated = observers.map { [] }
+    observers, delivery_log = build_observers(objects, builder.documents, scenario["observers"])
+    ctx = { objects: objects, kinds: kinds, ranges: ranges, iterators: iterators,
+            observers: observers, documents: builder.documents }
     initial = snapshot(objects, kinds, ranges, iterators,
-                       observers.empty? ? nil : take_records(objects, observers, accumulated))
+                       observers.empty? ? nil : queued_records(objects, observers))
+                .merge("delivered" => [])
     steps = []
     (scenario["operations"] || []).each do |op|
+      delivery_log.clear
       begin
-        apply(objects, op, iterators)
+        apply(objects, op, iterators, ctx)
       rescue NotImplementedError, NoMethodError => e
         # この harness で比べられない step。理由を残しておくと、
         # harness の制約と Dommy の実装漏れを取り違えずに済む。
@@ -383,13 +430,15 @@ module DommyRunner
       rescue StandardError => e
         # 失敗した操作は状態を変えてはならない（roadmap §9）。
         # 変えていないことを比べられるように、失敗した step でも観測を出す。
-        recs = observers.empty? ? nil : take_records(objects, observers, accumulated)
+        recs = observers.empty? ? nil : queued_records(objects, observers)
         steps << snapshot(objects, kinds, ranges, iterators, recs)
-                 .merge("ok" => false, "exception" => exception_name(e))
+                 .merge("ok" => false, "exception" => exception_name(e),
+                        "delivered" => delivered_snapshot(delivery_log))
         break
       end
-      recs = observers.empty? ? nil : take_records(objects, observers, accumulated)
-      steps << snapshot(objects, kinds, ranges, iterators, recs).merge("ok" => true)
+      recs = observers.empty? ? nil : queued_records(objects, observers)
+      steps << snapshot(objects, kinds, ranges, iterators, recs)
+               .merge("ok" => true, "delivered" => delivered_snapshot(delivery_log))
     end
     { "initial" => initial, "steps" => steps }
   end
