@@ -1,5 +1,14 @@
 {
   "_note": "DOMImplementation#createDocumentType が作った wrapper が wrapper cache に登録されないため、appendChild は成功しても document.childNodes が別の Ruby object を返し、node を同定できない。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insert"
+    ],
+    "steps": "7",
+    "note": "createDocumentType で作った doctype も他の node と同じように木に入る。"
+  },
   "nodes": [
     {
       "id": 0,

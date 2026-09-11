@@ -1,17 +1,66 @@
 {
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insert",
+      "remove",
+      "pre-insert",
+      "pre-remove"
+    ],
+    "steps": "insert 1-9 / remove 1-21",
+    "note": "appendChild と removeChild の素直な往復。木・range・iterator が仕様どおり動くことの基準線。"
+  },
   "nodes": [
-    {"id": 0, "kind": "document"},
-    {"id": 1, "kind": "element", "parent": 0},
-    {"id": 2, "kind": "element", "parent": 1},
-    {"id": 3, "kind": "text", "parent": 2, "data": "abc"},
-    {"id": 4, "kind": "element"}
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "abc"
+    },
+    {
+      "id": 4,
+      "kind": "element"
+    }
   ],
   "ranges": [],
   "iterators": [],
   "operations": [
-    {"op": "appendChild", "parent": 2, "node": 4},
-    {"op": "insertBefore", "parent": 2, "node": 4, "child": 3},
-    {"op": "removeChild", "parent": 2, "node": 3},
-    {"op": "replaceChild", "parent": 1, "node": 4, "child": 2}
+    {
+      "op": "appendChild",
+      "parent": 2,
+      "node": 4
+    },
+    {
+      "op": "insertBefore",
+      "parent": 2,
+      "node": 4,
+      "child": 3
+    },
+    {
+      "op": "removeChild",
+      "parent": 2,
+      "node": 3
+    },
+    {
+      "op": "replaceChild",
+      "parent": 1,
+      "node": 4,
+      "child": 2
+    }
   ]
 }

@@ -1,16 +1,56 @@
 {
-  "_note": "仕様の insert は live range の start ≤ end を保たない。insert step 5（parent を指す offset の +count）は step 7 の adopt→remove より前に走るので、動かす node の中にあった boundary は step 5 の後に (parent, 旧 index) へ出る。node はその位置より前へ入るため、start と end が逆転する。ここでは start=(2,0)、end は (1,1) になり、node 2 は index 1 なので start が end より後になる。Dommy は調整を remove の後に回すので end=(1,2) となり、たまたま順序を保つ（Dommy 側の未修正 finding と同じ原因）。",
+  "_note": "仕様の insert は live range の start ≤ end を保たない。insert step 5（parent を指す offset の +count）は step 7 の adopt→remove より前に走るので、動かす node の中にあった boundary は step 5 の後に (parent, 旧 index) へ出る。node はその位置より前へ入るため、start と end が逆転する。ここでは start=(2,0)、end は (1,1) になり、node 2 は index 1 なので start が end より後になる。Dommy も調整を仕様の位置に直した後は同じ (1,1) を返す（`docs/status.md` の finding 5）。つまりこれは実装の不具合ではなく仕様の性質である。",
+  "_basis": {
+    "kind": "theorem",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insert"
+    ],
+    "steps": "5, 7",
+    "note": "start <= end が insert で壊れる最小例。Lean 側の定理は Dom.exists_insert_breaking_boundaryLE。"
+  },
   "nodes": [
-    {"id": 0, "kind": "document"},
-    {"id": 1, "kind": "element", "parent": 0},
-    {"id": 2, "kind": "comment", "parent": 1, "data": "cc"},
-    {"id": 3, "kind": "text", "parent": 1, "data": "tt"}
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "comment",
+      "parent": 1,
+      "data": "cc"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 1,
+      "data": "tt"
+    }
   ],
   "ranges": [
-    {"start": {"node": 2, "offset": 0}, "end": {"node": 3, "offset": 2}}
+    {
+      "start": {
+        "node": 2,
+        "offset": 0
+      },
+      "end": {
+        "node": 3,
+        "offset": 2
+      }
+    }
   ],
   "iterators": [],
   "operations": [
-    {"op": "insertBefore", "parent": 1, "node": 3, "child": 2}
+    {
+      "op": "insertBefore",
+      "parent": 1,
+      "node": 3,
+      "child": 2
+    }
   ]
 }

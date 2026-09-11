@@ -1,16 +1,56 @@
 {
   "_note": "range が「移動する node の中」を指しているとき、insert の live range 調整（仕様 insert step 5）は adopt→remove（step 7）より前に走る。Dommy は逆順に適用しているらしく offset が 1 多くなる。仕様どおりなら (1,1)-(1,1)。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insert"
+    ],
+    "steps": "5, 7",
+    "note": "同じ順序を、range が動かす node の中を指している場合で見る。"
+  },
   "nodes": [
-    {"id": 0, "kind": "document"},
-    {"id": 1, "kind": "element", "parent": 0},
-    {"id": 2, "kind": "text", "parent": 1, "data": "ab"},
-    {"id": 3, "kind": "comment", "parent": 1, "data": "c"}
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 1,
+      "data": "c"
+    }
   ],
   "ranges": [
-    {"start": {"node": 3, "offset": 0}, "end": {"node": 3, "offset": 1}}
+    {
+      "start": {
+        "node": 3,
+        "offset": 0
+      },
+      "end": {
+        "node": 3,
+        "offset": 1
+      }
+    }
   ],
   "iterators": [],
   "operations": [
-    {"op": "insertBefore", "parent": 1, "node": 3, "child": 2}
+    {
+      "op": "insertBefore",
+      "parent": 1,
+      "node": 3,
+      "child": 2
+    }
   ]
 }

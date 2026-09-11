@@ -1,13 +1,38 @@
 {
   "_note": "text.before(自分の parent) は仕様では HierarchyRequestError（step 2: node が parent の inclusive ancestor）。Dommy は backend の Makiri::Error をそのまま投げる。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "2",
+    "note": "node が parent の inclusive ancestor なら HierarchyRequestError。"
+  },
   "nodes": [
-    {"id": 0, "kind": "document"},
-    {"id": 1, "kind": "element", "parent": 0},
-    {"id": 2, "kind": "text", "parent": 1, "data": "x"}
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "x"
+    }
   ],
   "ranges": [],
   "iterators": [],
   "operations": [
-    {"op": "before", "target": 2, "node": 1}
+    {
+      "op": "before",
+      "target": 2,
+      "node": 1
+    }
   ]
 }
