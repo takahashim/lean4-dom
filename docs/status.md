@@ -1447,6 +1447,40 @@ seed あたり 100 本で比較できる scenario が 36-47 本から 89-95 本�
 
 修正後、seed 10 個 × 各 100 本（range 4 / iterator 2 / observer 3 / `moveBefore` あり）で不一致ゼロ。
 
+## 契約の棚卸し（roadmap §6）
+
+五種類の契約について、中心 algorithm ごとの現状を並べる。
+`—` は「この algorithm では意味を持たない」、空欄は未着手である。
+
+| algorithm | preservation | success | exception | effect | frame |
+| --- | --- | --- | --- | --- | --- |
+| `remove` | `admissible_remove` | `remove_succeeds_iff` | `remove_error_iff` | `remove_parentOf`, `remove_not_mem_childrenOf`, `detach_childrenOf`, `remove_ranges`, `remove_iterators` | `detach_frame` |
+| `insert` | `admissible_insert` | | `ensurePreInsertionValidity_step1/2/3`（順序） | `insert_parentOf`, `insert_children_split`, `insert_preserves_endpoints` | `insertAt_frame` |
+| `replace` | `admissible_replace` | | `replace_cycle_precedes_notFound` | `replace_reference_head` | `insertAt_frame`, `detach_frame` |
+| `replace all` | `admissible_replaceAll` | | — | `removeEach_childrenOf_nil` | `insertAt_frame`, `detach_frame` |
+| `move` | `admissible_move` | | `moveValidity_step1/2/3/4`（順序） | `move_eq_remove_insertAt`, `move_parentOf`, `move_childrenOf`, `move_ranges`, `move_iterators` | `insertAt_frame`, `detach_frame` |
+| `replace data` | `admissible_replaceData` | | | `replaceData_ok` | `get?_withData` |
+
+`*_succeeds_iff` を `insert` / `replace` / `move` に置いていないのは、
+`ensure pre-insertion validity` と `move` の step 1-6 をそのまま命題に写すだけになり、
+研究上の内容が増えないためである（roadmap §6 の但し書き）。
+代わりに **検査の順序** を残した。複数の違反が同時にあるときにどれが先に返るかは観測可能で、
+Dommy で実際に不一致が見つかった箇所でもある。
+
+```lean
+theorem replace_cycle_precedes_notFound :
+    replace s parent parent parent = .error .hierarchyRequestError
+```
+
+`parent.replaceChild(parent, parent)` は cycle（step 2）で止まるので
+HierarchyRequestError であり、NotFoundError ではない。
+親子関係を前もって見てしまう実装はここを取り違える。
+
+public API 側は preservation と委譲を置いた（`Dom/Properties/Contract.lean`）。
+`appendChild` / `insertBefore` / `replaceChild` / `removeChild` /
+`replaceChildren(null)` の委譲は definitional なので `rfl` で済む。
+`remove()` と `moveBefore` は分岐があるので、その条件付きで述べてある。
+
 ## 未着手
 
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、

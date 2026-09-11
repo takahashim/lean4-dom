@@ -33,6 +33,7 @@ import Dom.Validity.AlgorithmPreservation
 import Dom.Validity.Iterators
 import Dom.Validity.Observers
 import Dom.Validity.Admissible
+import Dom.Properties.Contract
 import Dom.Properties.Counterexample
 import Dom.Observation
 
