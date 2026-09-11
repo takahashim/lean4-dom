@@ -59,6 +59,13 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | basic URL parser（全 state） | §4.4 1-3 | `run`, `step`, `basicUrlParse` | 停止性（`termination_by (stateRank st, 残りの文字数, 位相)`） | wpt | 済（state override を除く） |
 | shorten a URL's path / single-dot / double-dot / Windows drive letter | §4.4 | `shortenPath`, `isSingleDot`, `isDoubleDot`, `isWindowsDrive` ほか | — | wpt | 済 |
 
+## §4.7 origin
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
+| --- | --- | --- | --- | --- | --- |
+| origin | §4.7 全 | `origin` | — | wpt（`origin` の欄、373 件一致） | 済（`blob` は blob URL entry を持たない前提） |
+| origin の serialize | HTML §origin | `originSerializer` | — | 同上 | 済 |
+
 ## 未対応と対象外
 
 | 項目 | 扱い | 根拠 |
@@ -67,8 +74,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | state override | 対象外 | `Location` と `URL` の setter 専用の引数。setter を入れるときに一緒に扱う |
 | encoding override | 対象外 | HTML 由来の legacy 引数。UTF-8 に固定している |
 | `URLSearchParams` | 未着手 | application/x-www-form-urlencoded の parse / serialize |
+| blob URL entry | 対象外 | §4.7 の `blob` の分岐。entry は HTML 側の概念なので、常に null として path を読み直す |
 | validation error | 対象外 | 仕様の validation error は parse の成否を変えない。`ipv4NumberParser` だけ、10 進でなかったことを boolean で返す |
-| origin | 未着手 | §4.7 |
 | `URLPattern` | 未着手 | 別仕様 |
 
 ## 仕様改訂時の手順

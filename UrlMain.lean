@@ -20,6 +20,7 @@ structure Case where
   base : Option String
   failure : Bool
   href : Option String
+  origin : Option String
 
 def caseOfJson (j : Json) : Except String Case := do
   let input ← (← j.getObjVal? "input").getStr?
@@ -32,7 +33,10 @@ def caseOfJson (j : Json) : Except String Case := do
   let href ← match j.getObjVal? "href" with
     | .ok v => if v.isNull then pure none else (v.getStr?).map some
     | .error _ => pure none
-  return { input, base, failure, href }
+  let origin ← match j.getObjVal? "origin" with
+    | .ok v => if v.isNull then pure none else (v.getStr?).map some
+    | .error _ => pure none
+  return { input, base, failure, href, origin }
 
 def runWpt (path : String) : IO UInt32 := do
   let text ← IO.FS.readFile path
@@ -44,6 +48,8 @@ def runWpt (path : String) : IO UInt32 := do
   let mut bad := 0
   let mut skipped := 0
   let mut invalid := 0
+  let mut originOk := 0
+  let mut originBad := 0
   let mut shown := 0
   for j in arr do
     match caseOfJson j with
@@ -65,6 +71,18 @@ def runWpt (path : String) : IO UInt32 := do
           invalid := invalid + 1
           IO.println s!"INVALID input={repr c.input} base={repr c.base} -> {urlSerializer u}"
       | none => pure ()
+      -- §4.7 origin。WPT の表が期待値を持っている case だけ見る。
+      match got, c.origin with
+      | some u, some expectedOrigin =>
+        if originSerializer (Url.origin u) == expectedOrigin then originOk := originOk + 1
+        else
+          originBad := originBad + 1
+          if shown < 20 then
+            shown := shown + 1
+            IO.println s!"ORIGIN input={repr c.input} base={repr c.base}"
+            IO.println s!"  expected={repr expectedOrigin}"
+            IO.println s!"  actual  ={repr (originSerializer (Url.origin u))}"
+      | _, _ => pure ()
       if actual == expected then ok := ok + 1
       else if needsIdna && actual == none then skipped := skipped + 1
       else
@@ -76,7 +94,8 @@ def runWpt (path : String) : IO UInt32 := do
           IO.println s!"  actual  ={repr actual}"
   IO.println s!"WPT: 一致 {ok} / 不一致 {bad} / IDNA が要る（model の対象外） {skipped}"
   IO.println s!"ValidUrl: 違反 {invalid}"
-  return if bad == 0 && invalid == 0 then 0 else 1
+  IO.println s!"origin: 一致 {originOk} / 不一致 {originBad}"
+  return if bad == 0 && invalid == 0 && originBad == 0 then 0 else 1
 
 def main (args : List String) : IO UInt32 := do
   match args with

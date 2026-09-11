@@ -518,4 +518,36 @@ def parseUrl (input : String) (base : Option String := none) : Option Url :=
     | none => none
     | some bu => basicUrlParse input (some bu)
 
+/-! ## origin -/
+
+/--
+URL Standard §4.7 の origin。
+
+`blob` は blob URL entry を持たない前提で、path を URL として読み直す
+（読み直した結果が http / https / file ならその origin、そうでなければ opaque）。
+`file` は仕様が「実装依存の opaque origin」としているので opaque にする。
+
+`blob:blob:...` のような入れ子は仕様上も一段だけ辿れば足りる
+（読み直した URL の scheme が `blob` なら http/https/file ではないので opaque になる）。
+-/
+def origin (u : Url) : Origin :=
+  if u.scheme == "ftp" || u.scheme == "http" || u.scheme == "https" ||
+      u.scheme == "ws" || u.scheme == "wss" then
+    match u.host with
+    | some h => some (u.scheme, h, u.port)
+    | none => none
+  else if u.scheme == "blob" then
+    match u.path with
+    | .opaque p =>
+      match basicUrlParse p none with
+      | none => none
+      | some p' =>
+        if p'.scheme == "http" || p'.scheme == "https" then
+          match p'.host with
+          | some h => some (p'.scheme, h, p'.port)
+          | none => none
+        else none
+    | .list _ => none
+  else none
+
 end Url

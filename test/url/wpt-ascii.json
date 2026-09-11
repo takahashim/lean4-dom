@@ -10,67 +10,78 @@
    "input": "http://example\t.\norg",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/"
+   "href": "http://example.org/",
+   "origin": "http://example.org"
   },
   {
    "input": "http://user:pass@foo:21/bar;par?b#c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://user:pass@foo:21/bar;par?b#c"
+   "href": "http://user:pass@foo:21/bar;par?b#c",
+   "origin": "http://foo:21"
   },
   {
    "input": "https://test:@test",
    "base": null,
    "failure": false,
-   "href": "https://test@test/"
+   "href": "https://test@test/",
+   "origin": "https://test"
   },
   {
    "input": "https://:@test",
    "base": null,
    "failure": false,
-   "href": "https://test/"
+   "href": "https://test/",
+   "origin": "https://test"
   },
   {
    "input": "non-special://test:@test/x",
    "base": null,
    "failure": false,
-   "href": "non-special://test@test/x"
+   "href": "non-special://test@test/x",
+   "origin": "null"
   },
   {
    "input": "non-special://:@test/x",
    "base": null,
    "failure": false,
-   "href": "non-special://test/x"
+   "href": "non-special://test/x",
+   "origin": "null"
   },
   {
    "input": "http:foo.com",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/foo.com"
+   "href": "http://example.org/foo/foo.com",
+   "origin": "http://example.org"
   },
   {
    "input": "\t   :foo.com   \n",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:foo.com"
+   "href": "http://example.org/foo/:foo.com",
+   "origin": "http://example.org"
   },
   {
    "input": " foo.com  ",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/foo.com"
+   "href": "http://example.org/foo/foo.com",
+   "origin": "http://example.org"
   },
   {
    "input": "a:\t foo.com",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "a: foo.com"
+   "href": "a: foo.com",
+   "origin": "null"
   },
   {
    "input": "http://f:21/ b ? d # e ",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://f:21/%20b%20?%20d%20#%20e"
+   "href": "http://f:21/%20b%20?%20d%20#%20e",
+   "origin": "http://f:21"
   },
   {
    "input": "lolscheme:x x#x x",
@@ -82,25 +93,29 @@
    "input": "http://f:/c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://f/c"
+   "href": "http://f/c",
+   "origin": "http://f"
   },
   {
    "input": "http://f:0/c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://f:0/c"
+   "href": "http://f:0/c",
+   "origin": "http://f:0"
   },
   {
    "input": "http://f:00000000000000/c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://f:0/c"
+   "href": "http://f:0/c",
+   "origin": "http://f:0"
   },
   {
    "input": "http://f:00000000000000000000080/c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://f/c"
+   "href": "http://f/c",
+   "origin": "http://f"
   },
   {
    "input": "http://f:b/c",
@@ -118,7 +133,8 @@
    "input": "http://f:\n/c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://f/c"
+   "href": "http://f/c",
+   "origin": "http://f"
   },
   {
    "input": "http://f:fifty-two/c",
@@ -148,265 +164,309 @@
    "input": "",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar"
+   "href": "http://example.org/foo/bar",
+   "origin": "http://example.org"
   },
   {
    "input": "  \t",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar"
+   "href": "http://example.org/foo/bar",
+   "origin": "http://example.org"
   },
   {
    "input": ":foo.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:foo.com/"
+   "href": "http://example.org/foo/:foo.com/",
+   "origin": "http://example.org"
   },
   {
    "input": ":foo.com\\",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:foo.com/"
+   "href": "http://example.org/foo/:foo.com/",
+   "origin": "http://example.org"
   },
   {
    "input": ":",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:"
+   "href": "http://example.org/foo/:",
+   "origin": "http://example.org"
   },
   {
    "input": ":a",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:a"
+   "href": "http://example.org/foo/:a",
+   "origin": "http://example.org"
   },
   {
    "input": ":/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:/"
+   "href": "http://example.org/foo/:/",
+   "origin": "http://example.org"
   },
   {
    "input": ":\\",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:/"
+   "href": "http://example.org/foo/:/",
+   "origin": "http://example.org"
   },
   {
    "input": ":#",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:#"
+   "href": "http://example.org/foo/:#",
+   "origin": "http://example.org"
   },
   {
    "input": "#",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar#"
+   "href": "http://example.org/foo/bar#",
+   "origin": "http://example.org"
   },
   {
    "input": "#/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar#/"
+   "href": "http://example.org/foo/bar#/",
+   "origin": "http://example.org"
   },
   {
    "input": "#\\",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar#\\"
+   "href": "http://example.org/foo/bar#\\",
+   "origin": "http://example.org"
   },
   {
    "input": "#;?",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar#;?"
+   "href": "http://example.org/foo/bar#;?",
+   "origin": "http://example.org"
   },
   {
    "input": "?",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar?"
+   "href": "http://example.org/foo/bar?",
+   "origin": "http://example.org"
   },
   {
    "input": "/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/"
+   "href": "http://example.org/",
+   "origin": "http://example.org"
   },
   {
    "input": ":23",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:23"
+   "href": "http://example.org/foo/:23",
+   "origin": "http://example.org"
   },
   {
    "input": "/:23",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/:23"
+   "href": "http://example.org/:23",
+   "origin": "http://example.org"
   },
   {
    "input": "\\x",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/x"
+   "href": "http://example.org/x",
+   "origin": "http://example.org"
   },
   {
    "input": "\\\\x\\hello",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://x/hello"
+   "href": "http://x/hello",
+   "origin": "http://x"
   },
   {
    "input": "::",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/::"
+   "href": "http://example.org/foo/::",
+   "origin": "http://example.org"
   },
   {
    "input": "::23",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/::23"
+   "href": "http://example.org/foo/::23",
+   "origin": "http://example.org"
   },
   {
    "input": "foo://",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "foo://"
+   "href": "foo://",
+   "origin": "null"
   },
   {
    "input": "http://a:b@c:29/d",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://a:b@c:29/d"
+   "href": "http://a:b@c:29/d",
+   "origin": "http://c:29"
   },
   {
    "input": "http::@c:29",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/:@c:29"
+   "href": "http://example.org/foo/:@c:29",
+   "origin": "http://example.org"
   },
   {
    "input": "http://&a:foo(b]c@d:2/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://&a:foo(b%5Dc@d:2/"
+   "href": "http://&a:foo(b%5Dc@d:2/",
+   "origin": "http://d:2"
   },
   {
    "input": "http://::@c@d:2",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://:%3A%40c@d:2/"
+   "href": "http://:%3A%40c@d:2/",
+   "origin": "http://d:2"
   },
   {
    "input": "http://foo.com:b@d/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://foo.com:b@d/"
+   "href": "http://foo.com:b@d/",
+   "origin": "http://d"
   },
   {
    "input": "http://foo.com/\\@",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://foo.com//@"
+   "href": "http://foo.com//@",
+   "origin": "http://foo.com"
   },
   {
    "input": "http:\\\\foo.com\\",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://foo.com/"
+   "href": "http://foo.com/",
+   "origin": "http://foo.com"
   },
   {
    "input": "http:\\\\a\\b:c\\d@foo.com\\",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://a/b:c/d@foo.com/"
+   "href": "http://a/b:c/d@foo.com/",
+   "origin": "http://a"
   },
   {
    "input": "http://a:b@c\\",
    "base": null,
    "failure": false,
-   "href": "http://a:b@c/"
+   "href": "http://a:b@c/",
+   "origin": "http://c"
   },
   {
    "input": "ws://a@b\\c",
    "base": null,
    "failure": false,
-   "href": "ws://a@b/c"
+   "href": "ws://a@b/c",
+   "origin": "ws://b"
   },
   {
    "input": "foo:/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "foo:/"
+   "href": "foo:/",
+   "origin": "null"
   },
   {
    "input": "foo:/bar.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "foo:/bar.com/"
+   "href": "foo:/bar.com/",
+   "origin": "null"
   },
   {
    "input": "foo://///////",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "foo://///////"
+   "href": "foo://///////",
+   "origin": "null"
   },
   {
    "input": "foo://///////bar.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "foo://///////bar.com/"
+   "href": "foo://///////bar.com/",
+   "origin": "null"
   },
   {
    "input": "foo:////://///",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "foo:////://///"
+   "href": "foo:////://///",
+   "origin": "null"
   },
   {
    "input": "c:/foo",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "c:/foo"
+   "href": "c:/foo",
+   "origin": "null"
   },
   {
    "input": "//foo/bar",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://foo/bar"
+   "href": "http://foo/bar",
+   "origin": "http://foo"
   },
   {
    "input": "http://foo/path;a??e#f#g",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://foo/path;a??e#f#g"
+   "href": "http://foo/path;a??e#f#g",
+   "origin": "http://foo"
   },
   {
    "input": "http://foo/abcd?efgh?ijkl",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://foo/abcd?efgh?ijkl"
+   "href": "http://foo/abcd?efgh?ijkl",
+   "origin": "http://foo"
   },
   {
    "input": "http://foo/abcd#foo?bar",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://foo/abcd#foo?bar"
+   "href": "http://foo/abcd#foo?bar",
+   "origin": "http://foo"
   },
   {
    "input": "[61:24:74]:98",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/[61:24:74]:98"
+   "href": "http://example.org/foo/[61:24:74]:98",
+   "origin": "http://example.org"
   },
   {
    "input": "http:[61:27]/:foo",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/[61:27]/:foo"
+   "href": "http://example.org/foo/[61:27]/:foo",
+   "origin": "http://example.org"
   },
   {
    "input": "http://[1::2]:3:4",
@@ -436,13 +496,15 @@
    "input": "http://[2001::1]",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://[2001::1]/"
+   "href": "http://[2001::1]/",
+   "origin": "http://[2001::1]"
   },
   {
    "input": "http://[::127.0.0.1]",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://[::7f00:1]/"
+   "href": "http://[::7f00:1]/",
+   "origin": "http://[::7f00:1]"
   },
   {
    "input": "http://[::127.0.0.1.]",
@@ -454,43 +516,50 @@
    "input": "http://[0:0:0:0:0:0:13.1.68.3]",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://[::d01:4403]/"
+   "href": "http://[::d01:4403]/",
+   "origin": "http://[::d01:4403]"
   },
   {
    "input": "http://[2001::1]:80",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://[2001::1]/"
+   "href": "http://[2001::1]/",
+   "origin": "http://[2001::1]"
   },
   {
    "input": "http:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/example.com/"
+   "href": "http://example.org/example.com/",
+   "origin": "http://example.org"
   },
   {
    "input": "http:/",
    "base": "http://example.com/",
    "failure": false,
-   "href": "http://example.com/"
+   "href": "http://example.com/",
+   "origin": "http://example.com"
   },
   {
    "input": "ftp:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "ftp://example.com/"
+   "href": "ftp://example.com/",
+   "origin": "ftp://example.com"
   },
   {
    "input": "https:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "https://example.com/"
+   "href": "https://example.com/",
+   "origin": "https://example.com"
   },
   {
    "input": "madeupscheme:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "madeupscheme:/example.com/"
+   "href": "madeupscheme:/example.com/",
+   "origin": "null"
   },
   {
    "input": "file:/example.com/",
@@ -526,151 +595,176 @@
    "input": "ftps:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "ftps:/example.com/"
+   "href": "ftps:/example.com/",
+   "origin": "null"
   },
   {
    "input": "gopher:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "gopher:/example.com/"
+   "href": "gopher:/example.com/",
+   "origin": "null"
   },
   {
    "input": "ws:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "ws://example.com/"
+   "href": "ws://example.com/",
+   "origin": "ws://example.com"
   },
   {
    "input": "wss:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "wss://example.com/"
+   "href": "wss://example.com/",
+   "origin": "wss://example.com"
   },
   {
    "input": "data:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "data:/example.com/"
+   "href": "data:/example.com/",
+   "origin": "null"
   },
   {
    "input": "javascript:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "javascript:/example.com/"
+   "href": "javascript:/example.com/",
+   "origin": "null"
   },
   {
    "input": "mailto:/example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "mailto:/example.com/"
+   "href": "mailto:/example.com/",
+   "origin": "null"
   },
   {
    "input": "http:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/example.com/"
+   "href": "http://example.org/foo/example.com/",
+   "origin": "http://example.org"
   },
   {
    "input": "ftp:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "ftp://example.com/"
+   "href": "ftp://example.com/",
+   "origin": "ftp://example.com"
   },
   {
    "input": "https:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "https://example.com/"
+   "href": "https://example.com/",
+   "origin": "https://example.com"
   },
   {
    "input": "madeupscheme:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "madeupscheme:example.com/"
+   "href": "madeupscheme:example.com/",
+   "origin": "null"
   },
   {
    "input": "ftps:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "ftps:example.com/"
+   "href": "ftps:example.com/",
+   "origin": "null"
   },
   {
    "input": "gopher:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "gopher:example.com/"
+   "href": "gopher:example.com/",
+   "origin": "null"
   },
   {
    "input": "ws:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "ws://example.com/"
+   "href": "ws://example.com/",
+   "origin": "ws://example.com"
   },
   {
    "input": "wss:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "wss://example.com/"
+   "href": "wss://example.com/",
+   "origin": "wss://example.com"
   },
   {
    "input": "data:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "data:example.com/"
+   "href": "data:example.com/",
+   "origin": "null"
   },
   {
    "input": "javascript:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "javascript:example.com/"
+   "href": "javascript:example.com/",
+   "origin": "null"
   },
   {
    "input": "mailto:example.com/",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "mailto:example.com/"
+   "href": "mailto:example.com/",
+   "origin": "null"
   },
   {
    "input": "/a/b/c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/a/b/c"
+   "href": "http://example.org/a/b/c",
+   "origin": "http://example.org"
   },
   {
    "input": "/a/ /c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/a/%20/c"
+   "href": "http://example.org/a/%20/c",
+   "origin": "http://example.org"
   },
   {
    "input": "/a%2fc",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/a%2fc"
+   "href": "http://example.org/a%2fc",
+   "origin": "http://example.org"
   },
   {
    "input": "/a/%2f/c",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/a/%2f/c"
+   "href": "http://example.org/a/%2f/c",
+   "origin": "http://example.org"
   },
   {
    "input": "data:text/html,test#test",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "data:text/html,test#test"
+   "href": "data:text/html,test#test",
+   "origin": "null"
   },
   {
    "input": "tel:1234567890",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "tel:1234567890"
+   "href": "tel:1234567890",
+   "origin": "null"
   },
   {
    "input": "ssh://example.com/foo/bar.git",
    "base": "http://example.org/",
    "failure": false,
-   "href": "ssh://example.com/foo/bar.git"
+   "href": "ssh://example.com/foo/bar.git",
+   "origin": "null"
   },
   {
    "input": "file:c:\\foo\\bar.html",
@@ -820,211 +914,246 @@
    "input": "http://example.com/././foo",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo"
+   "href": "http://example.com/foo",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/./.foo",
    "base": null,
    "failure": false,
-   "href": "http://example.com/.foo"
+   "href": "http://example.com/.foo",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/.",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/"
+   "href": "http://example.com/foo/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/./",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/"
+   "href": "http://example.com/foo/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/bar/..",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/"
+   "href": "http://example.com/foo/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/bar/../",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/"
+   "href": "http://example.com/foo/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/..bar",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/..bar"
+   "href": "http://example.com/foo/..bar",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/bar/../ton",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/ton"
+   "href": "http://example.com/foo/ton",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/bar/../ton/../../a",
    "base": null,
    "failure": false,
-   "href": "http://example.com/a"
+   "href": "http://example.com/a",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/../../..",
    "base": null,
    "failure": false,
-   "href": "http://example.com/"
+   "href": "http://example.com/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/../../../ton",
    "base": null,
    "failure": false,
-   "href": "http://example.com/ton"
+   "href": "http://example.com/ton",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/%2e",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/"
+   "href": "http://example.com/foo/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/%2e%2",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/%2e%2"
+   "href": "http://example.com/foo/%2e%2",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/%2e./%2e%2e/.%2e/%2e.bar",
    "base": null,
    "failure": false,
-   "href": "http://example.com/%2e.bar"
+   "href": "http://example.com/%2e.bar",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com////../..",
    "base": null,
    "failure": false,
-   "href": "http://example.com//"
+   "href": "http://example.com//",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/bar//../..",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/"
+   "href": "http://example.com/foo/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo/bar//..",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo/bar/"
+   "href": "http://example.com/foo/bar/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo"
+   "href": "http://example.com/foo",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/%20foo",
    "base": null,
    "failure": false,
-   "href": "http://example.com/%20foo"
+   "href": "http://example.com/%20foo",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo%",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo%"
+   "href": "http://example.com/foo%",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo%2",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo%2"
+   "href": "http://example.com/foo%2",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo%2zbar",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo%2zbar"
+   "href": "http://example.com/foo%2zbar",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo%41%7a",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo%41%7a"
+   "href": "http://example.com/foo%41%7a",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo%00%51",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foo%00%51"
+   "href": "http://example.com/foo%00%51",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/(%28:%3A%29)",
    "base": null,
    "failure": false,
-   "href": "http://example.com/(%28:%3A%29)"
+   "href": "http://example.com/(%28:%3A%29)",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/%3A%3a%3C%3c",
    "base": null,
    "failure": false,
-   "href": "http://example.com/%3A%3a%3C%3c"
+   "href": "http://example.com/%3A%3a%3C%3c",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/foo\tbar",
    "base": null,
    "failure": false,
-   "href": "http://example.com/foobar"
+   "href": "http://example.com/foobar",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com\\\\foo\\\\bar",
    "base": null,
    "failure": false,
-   "href": "http://example.com//foo//bar"
+   "href": "http://example.com//foo//bar",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/%7Ffp3%3Eju%3Dduvgw%3Dd",
    "base": null,
    "failure": false,
-   "href": "http://example.com/%7Ffp3%3Eju%3Dduvgw%3Dd"
+   "href": "http://example.com/%7Ffp3%3Eju%3Dduvgw%3Dd",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example.com/@asdf%40",
    "base": null,
    "failure": false,
-   "href": "http://example.com/@asdf%40"
+   "href": "http://example.com/@asdf%40",
+   "origin": "http://example.com"
   },
   {
    "input": "http://www.google.com/foo?bar=baz#",
    "base": null,
    "failure": false,
-   "href": "http://www.google.com/foo?bar=baz#"
+   "href": "http://www.google.com/foo?bar=baz#",
+   "origin": "http://www.google.com"
   },
   {
    "input": "http://www.google.com",
    "base": null,
    "failure": false,
-   "href": "http://www.google.com/"
+   "href": "http://www.google.com/",
+   "origin": "http://www.google.com"
   },
   {
    "input": "http://192.0x00A80001",
    "base": null,
    "failure": false,
-   "href": "http://192.168.0.1/"
+   "href": "http://192.168.0.1/",
+   "origin": "http://192.168.0.1"
   },
   {
    "input": "http://www/foo%2Ehtml",
    "base": null,
    "failure": false,
-   "href": "http://www/foo%2Ehtml"
+   "href": "http://www/foo%2Ehtml",
+   "origin": "http://www"
   },
   {
    "input": "http://www/foo/%2E/html",
    "base": null,
    "failure": false,
-   "href": "http://www/foo/html"
+   "href": "http://www/foo/html",
+   "origin": "http://www"
   },
   {
    "input": "http://user:pass@/",
@@ -1036,31 +1165,36 @@
    "input": "http://%25DOMAIN:foobar@foodomain.com/",
    "base": null,
    "failure": false,
-   "href": "http://%25DOMAIN:foobar@foodomain.com/"
+   "href": "http://%25DOMAIN:foobar@foodomain.com/",
+   "origin": "http://foodomain.com"
   },
   {
    "input": "http:\\\\www.google.com\\foo",
    "base": null,
    "failure": false,
-   "href": "http://www.google.com/foo"
+   "href": "http://www.google.com/foo",
+   "origin": "http://www.google.com"
   },
   {
    "input": "http://foo:80/",
    "base": null,
    "failure": false,
-   "href": "http://foo/"
+   "href": "http://foo/",
+   "origin": "http://foo"
   },
   {
    "input": "http://foo:81/",
    "base": null,
    "failure": false,
-   "href": "http://foo:81/"
+   "href": "http://foo:81/",
+   "origin": "http://foo:81"
   },
   {
    "input": "httpa://foo:80/",
    "base": null,
    "failure": false,
-   "href": "httpa://foo:80/"
+   "href": "httpa://foo:80/",
+   "origin": "null"
   },
   {
    "input": "http://foo:-80/",
@@ -1072,109 +1206,127 @@
    "input": "https://foo:443/",
    "base": null,
    "failure": false,
-   "href": "https://foo/"
+   "href": "https://foo/",
+   "origin": "https://foo"
   },
   {
    "input": "https://foo:80/",
    "base": null,
    "failure": false,
-   "href": "https://foo:80/"
+   "href": "https://foo:80/",
+   "origin": "https://foo:80"
   },
   {
    "input": "ftp://foo:21/",
    "base": null,
    "failure": false,
-   "href": "ftp://foo/"
+   "href": "ftp://foo/",
+   "origin": "ftp://foo"
   },
   {
    "input": "ftp://foo:80/",
    "base": null,
    "failure": false,
-   "href": "ftp://foo:80/"
+   "href": "ftp://foo:80/",
+   "origin": "ftp://foo:80"
   },
   {
    "input": "gopher://foo:70/",
    "base": null,
    "failure": false,
-   "href": "gopher://foo:70/"
+   "href": "gopher://foo:70/",
+   "origin": "null"
   },
   {
    "input": "gopher://foo:443/",
    "base": null,
    "failure": false,
-   "href": "gopher://foo:443/"
+   "href": "gopher://foo:443/",
+   "origin": "null"
   },
   {
    "input": "ws://foo:80/",
    "base": null,
    "failure": false,
-   "href": "ws://foo/"
+   "href": "ws://foo/",
+   "origin": "ws://foo"
   },
   {
    "input": "ws://foo:81/",
    "base": null,
    "failure": false,
-   "href": "ws://foo:81/"
+   "href": "ws://foo:81/",
+   "origin": "ws://foo:81"
   },
   {
    "input": "ws://foo:443/",
    "base": null,
    "failure": false,
-   "href": "ws://foo:443/"
+   "href": "ws://foo:443/",
+   "origin": "ws://foo:443"
   },
   {
    "input": "ws://foo:815/",
    "base": null,
    "failure": false,
-   "href": "ws://foo:815/"
+   "href": "ws://foo:815/",
+   "origin": "ws://foo:815"
   },
   {
    "input": "wss://foo:80/",
    "base": null,
    "failure": false,
-   "href": "wss://foo:80/"
+   "href": "wss://foo:80/",
+   "origin": "wss://foo:80"
   },
   {
    "input": "wss://foo:81/",
    "base": null,
    "failure": false,
-   "href": "wss://foo:81/"
+   "href": "wss://foo:81/",
+   "origin": "wss://foo:81"
   },
   {
    "input": "wss://foo:443/",
    "base": null,
    "failure": false,
-   "href": "wss://foo/"
+   "href": "wss://foo/",
+   "origin": "wss://foo"
   },
   {
    "input": "wss://foo:815/",
    "base": null,
    "failure": false,
-   "href": "wss://foo:815/"
+   "href": "wss://foo:815/",
+   "origin": "wss://foo:815"
   },
   {
    "input": "http:/example.com/",
    "base": null,
    "failure": false,
-   "href": "http://example.com/"
+   "href": "http://example.com/",
+   "origin": "http://example.com"
   },
   {
    "input": "ftp:/example.com/",
    "base": null,
    "failure": false,
-   "href": "ftp://example.com/"
+   "href": "ftp://example.com/",
+   "origin": "ftp://example.com"
   },
   {
    "input": "https:/example.com/",
    "base": null,
    "failure": false,
-   "href": "https://example.com/"
+   "href": "https://example.com/",
+   "origin": "https://example.com"
   },
   {
    "input": "madeupscheme:/example.com/",
    "base": null,
    "failure": false,
-   "href": "madeupscheme:/example.com/"
+   "href": "madeupscheme:/example.com/",
+   "origin": "null"
   },
   {
    "input": "file:/example.com/",
@@ -1186,175 +1338,204 @@
    "input": "ftps:/example.com/",
    "base": null,
    "failure": false,
-   "href": "ftps:/example.com/"
+   "href": "ftps:/example.com/",
+   "origin": "null"
   },
   {
    "input": "gopher:/example.com/",
    "base": null,
    "failure": false,
-   "href": "gopher:/example.com/"
+   "href": "gopher:/example.com/",
+   "origin": "null"
   },
   {
    "input": "ws:/example.com/",
    "base": null,
    "failure": false,
-   "href": "ws://example.com/"
+   "href": "ws://example.com/",
+   "origin": "ws://example.com"
   },
   {
    "input": "wss:/example.com/",
    "base": null,
    "failure": false,
-   "href": "wss://example.com/"
+   "href": "wss://example.com/",
+   "origin": "wss://example.com"
   },
   {
    "input": "data:/example.com/",
    "base": null,
    "failure": false,
-   "href": "data:/example.com/"
+   "href": "data:/example.com/",
+   "origin": "null"
   },
   {
    "input": "javascript:/example.com/",
    "base": null,
    "failure": false,
-   "href": "javascript:/example.com/"
+   "href": "javascript:/example.com/",
+   "origin": "null"
   },
   {
    "input": "mailto:/example.com/",
    "base": null,
    "failure": false,
-   "href": "mailto:/example.com/"
+   "href": "mailto:/example.com/",
+   "origin": "null"
   },
   {
    "input": "http:example.com/",
    "base": null,
    "failure": false,
-   "href": "http://example.com/"
+   "href": "http://example.com/",
+   "origin": "http://example.com"
   },
   {
    "input": "ftp:example.com/",
    "base": null,
    "failure": false,
-   "href": "ftp://example.com/"
+   "href": "ftp://example.com/",
+   "origin": "ftp://example.com"
   },
   {
    "input": "https:example.com/",
    "base": null,
    "failure": false,
-   "href": "https://example.com/"
+   "href": "https://example.com/",
+   "origin": "https://example.com"
   },
   {
    "input": "madeupscheme:example.com/",
    "base": null,
    "failure": false,
-   "href": "madeupscheme:example.com/"
+   "href": "madeupscheme:example.com/",
+   "origin": "null"
   },
   {
    "input": "ftps:example.com/",
    "base": null,
    "failure": false,
-   "href": "ftps:example.com/"
+   "href": "ftps:example.com/",
+   "origin": "null"
   },
   {
    "input": "gopher:example.com/",
    "base": null,
    "failure": false,
-   "href": "gopher:example.com/"
+   "href": "gopher:example.com/",
+   "origin": "null"
   },
   {
    "input": "ws:example.com/",
    "base": null,
    "failure": false,
-   "href": "ws://example.com/"
+   "href": "ws://example.com/",
+   "origin": "ws://example.com"
   },
   {
    "input": "wss:example.com/",
    "base": null,
    "failure": false,
-   "href": "wss://example.com/"
+   "href": "wss://example.com/",
+   "origin": "wss://example.com"
   },
   {
    "input": "data:example.com/",
    "base": null,
    "failure": false,
-   "href": "data:example.com/"
+   "href": "data:example.com/",
+   "origin": "null"
   },
   {
    "input": "javascript:example.com/",
    "base": null,
    "failure": false,
-   "href": "javascript:example.com/"
+   "href": "javascript:example.com/",
+   "origin": "null"
   },
   {
    "input": "mailto:example.com/",
    "base": null,
    "failure": false,
-   "href": "mailto:example.com/"
+   "href": "mailto:example.com/",
+   "origin": "null"
   },
   {
    "input": "https://example.com/aaa/bbb/%2e%2e?query",
    "base": null,
    "failure": false,
-   "href": "https://example.com/aaa/?query"
+   "href": "https://example.com/aaa/?query",
+   "origin": "https://example.com"
   },
   {
    "input": "http:@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://www.example.com/"
+   "href": "http://www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http:/@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://www.example.com/"
+   "href": "http://www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://www.example.com/"
+   "href": "http://www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http:a:b@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://a:b@www.example.com/"
+   "href": "http://a:b@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http:/a:b@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://a:b@www.example.com/"
+   "href": "http://a:b@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://a:b@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://a:b@www.example.com/"
+   "href": "http://a:b@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://@pple.com",
    "base": null,
    "failure": false,
-   "href": "http://pple.com/"
+   "href": "http://pple.com/",
+   "origin": "http://pple.com"
   },
   {
    "input": "http::b@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://:b@www.example.com/"
+   "href": "http://:b@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http:/:b@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://:b@www.example.com/"
+   "href": "http://:b@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://:b@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://:b@www.example.com/"
+   "href": "http://:b@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://user@/www.example.com",
@@ -1378,25 +1559,29 @@
    "input": "http:a:@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://a@www.example.com/"
+   "href": "http://a@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http:/a:@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://a@www.example.com/"
+   "href": "http://a@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://a:@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://a@www.example.com/"
+   "href": "http://a@www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://www.@pple.com",
    "base": null,
    "failure": false,
-   "href": "http://www.@pple.com/"
+   "href": "http://www.@pple.com/",
+   "origin": "http://pple.com"
   },
   {
    "input": "http://@:www.example.com",
@@ -1408,73 +1593,85 @@
    "input": "http://:@www.example.com",
    "base": null,
    "failure": false,
-   "href": "http://www.example.com/"
+   "href": "http://www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "/",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/"
+   "href": "http://www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "/test.txt",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/test.txt"
+   "href": "http://www.example.com/test.txt",
+   "origin": "http://www.example.com"
   },
   {
    "input": ".",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/"
+   "href": "http://www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "..",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/"
+   "href": "http://www.example.com/",
+   "origin": "http://www.example.com"
   },
   {
    "input": "test.txt",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/test.txt"
+   "href": "http://www.example.com/test.txt",
+   "origin": "http://www.example.com"
   },
   {
    "input": "./test.txt",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/test.txt"
+   "href": "http://www.example.com/test.txt",
+   "origin": "http://www.example.com"
   },
   {
    "input": "../test.txt",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/test.txt"
+   "href": "http://www.example.com/test.txt",
+   "origin": "http://www.example.com"
   },
   {
    "input": "../aaa/test.txt",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/aaa/test.txt"
+   "href": "http://www.example.com/aaa/test.txt",
+   "origin": "http://www.example.com"
   },
   {
    "input": "../../test.txt",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example.com/test.txt"
+   "href": "http://www.example.com/test.txt",
+   "origin": "http://www.example.com"
   },
   {
    "input": "http://www.example2.com",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example2.com/"
+   "href": "http://www.example2.com/",
+   "origin": "http://www.example2.com"
   },
   {
    "input": "//www.example2.com",
    "base": "http://www.example.com/test",
    "failure": false,
-   "href": "http://www.example2.com/"
+   "href": "http://www.example2.com/",
+   "origin": "http://www.example2.com"
   },
   {
    "input": "file:...",
@@ -1510,7 +1707,8 @@
    "input": "http://ExAmPlE.CoM",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://example.com/"
+   "href": "http://example.com/",
+   "origin": "http://example.com"
   },
   {
    "input": "http://example example.com",
@@ -1540,55 +1738,64 @@
    "input": "\u0000\u001b\u0004\u0012 http://example.com/\u001f \r ",
    "base": null,
    "failure": false,
-   "href": "http://example.com/"
+   "href": "http://example.com/",
+   "origin": "http://example.com"
   },
   {
    "input": "non-special:opaque  ",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque"
+   "href": "non-special:opaque",
+   "origin": "null"
   },
   {
    "input": "non-special:opaque  ?hi",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque %20?hi"
+   "href": "non-special:opaque %20?hi",
+   "origin": "null"
   },
   {
    "input": "non-special:opaque  #hi",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque %20#hi"
+   "href": "non-special:opaque %20#hi",
+   "origin": "null"
   },
   {
    "input": "non-special:opaque  x?hi",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque  x?hi"
+   "href": "non-special:opaque  x?hi",
+   "origin": "null"
   },
   {
    "input": "non-special:opaque  x#hi",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque  x#hi"
+   "href": "non-special:opaque  x#hi",
+   "origin": "null"
   },
   {
    "input": "non-special:opaque \t\t  \t#hi",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque  %20#hi"
+   "href": "non-special:opaque  %20#hi",
+   "origin": "null"
   },
   {
    "input": "non-special:opaque \t\t  #hi",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque  %20#hi"
+   "href": "non-special:opaque  %20#hi",
+   "origin": "null"
   },
   {
    "input": "non-special:opaque\t\t  \r #hi",
    "base": null,
    "failure": false,
-   "href": "non-special:opaque  %20#hi"
+   "href": "non-special:opaque  %20#hi",
+   "origin": "null"
   },
   {
    "input": "http://%ef%b7%90zyx.com",
@@ -1606,37 +1813,43 @@
    "input": "http://a.b.c.xn--pokxncvks",
    "base": null,
    "failure": false,
-   "href": "http://a.b.c.xn--pokxncvks/"
+   "href": "http://a.b.c.xn--pokxncvks/",
+   "origin": "http://a.b.c.xn--pokxncvks"
   },
   {
    "input": "http://10.0.0.xn--pokxncvks",
    "base": null,
    "failure": false,
-   "href": "http://10.0.0.xn--pokxncvks/"
+   "href": "http://10.0.0.xn--pokxncvks/",
+   "origin": "http://10.0.0.xn--pokxncvks"
   },
   {
    "input": "http://a.b.c.XN--pokxncvks",
    "base": null,
    "failure": false,
-   "href": "http://a.b.c.xn--pokxncvks/"
+   "href": "http://a.b.c.xn--pokxncvks/",
+   "origin": "http://a.b.c.xn--pokxncvks"
   },
   {
    "input": "http://a.b.c.Xn--pokxncvks",
    "base": null,
    "failure": false,
-   "href": "http://a.b.c.xn--pokxncvks/"
+   "href": "http://a.b.c.xn--pokxncvks/",
+   "origin": "http://a.b.c.xn--pokxncvks"
   },
   {
    "input": "http://10.0.0.XN--pokxncvks",
    "base": null,
    "failure": false,
-   "href": "http://10.0.0.xn--pokxncvks/"
+   "href": "http://10.0.0.xn--pokxncvks/",
+   "origin": "http://10.0.0.xn--pokxncvks"
   },
   {
    "input": "http://10.0.0.xN--pokxncvks",
    "base": null,
    "failure": false,
-   "href": "http://10.0.0.xn--pokxncvks/"
+   "href": "http://10.0.0.xn--pokxncvks/",
+   "origin": "http://10.0.0.xn--pokxncvks"
   },
   {
    "input": "http://%ef%bc%85%ef%bc%94%ef%bc%91.com",
@@ -1672,13 +1885,15 @@
    "input": "http://%30%78%63%30%2e%30%32%35%30.01",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://192.168.0.1/"
+   "href": "http://192.168.0.1/",
+   "origin": "http://192.168.0.1"
   },
   {
    "input": "http://%30%78%63%30%2e%30%32%35%30.01%2e",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://192.168.0.1/"
+   "href": "http://192.168.0.1/",
+   "origin": "http://192.168.0.1"
   },
   {
    "input": "http://192.168.0.257",
@@ -1708,19 +1923,22 @@
    "input": "http://./",
    "base": null,
    "failure": false,
-   "href": "http://./"
+   "href": "http://./",
+   "origin": "http://."
   },
   {
    "input": "http://../",
    "base": null,
    "failure": false,
-   "href": "http://../"
+   "href": "http://../",
+   "origin": "http://.."
   },
   {
    "input": "h://.",
    "base": null,
    "failure": false,
-   "href": "h://."
+   "href": "h://.",
+   "origin": "null"
   },
   {
    "input": "http://[www.google.com]/",
@@ -1786,85 +2004,99 @@
    "input": "#",
    "base": "test:test",
    "failure": false,
-   "href": "test:test#"
+   "href": "test:test#",
+   "origin": "null"
   },
   {
    "input": "#x",
    "base": "mailto:x@x.com",
    "failure": false,
-   "href": "mailto:x@x.com#x"
+   "href": "mailto:x@x.com#x",
+   "origin": "null"
   },
   {
    "input": "#x",
    "base": "data:,",
    "failure": false,
-   "href": "data:,#x"
+   "href": "data:,#x",
+   "origin": "null"
   },
   {
    "input": "#x",
    "base": "about:blank",
    "failure": false,
-   "href": "about:blank#x"
+   "href": "about:blank#x",
+   "origin": "null"
   },
   {
    "input": "#x:y",
    "base": "about:blank",
    "failure": false,
-   "href": "about:blank#x:y"
+   "href": "about:blank#x:y",
+   "origin": "null"
   },
   {
    "input": "#",
    "base": "test:test?test",
    "failure": false,
-   "href": "test:test?test#"
+   "href": "test:test?test#",
+   "origin": "null"
   },
   {
    "input": "https://@test@test@example:800/",
    "base": "http://doesnotmatter/",
    "failure": false,
-   "href": "https://%40test%40test@example:800/"
+   "href": "https://%40test%40test@example:800/",
+   "origin": "https://example:800"
   },
   {
    "input": "https://@@@example",
    "base": "http://doesnotmatter/",
    "failure": false,
-   "href": "https://%40%40@example/"
+   "href": "https://%40%40@example/",
+   "origin": "https://example"
   },
   {
    "input": "http://`{}:`{}@h/`{}?`{}",
    "base": "http://doesnotmatter/",
    "failure": false,
-   "href": "http://%60%7B%7D:%60%7B%7D@h/%60%7B%7D?`{}"
+   "href": "http://%60%7B%7D:%60%7B%7D@h/%60%7B%7D?`{}",
+   "origin": "http://h"
   },
   {
    "input": "http://host/?'",
    "base": null,
    "failure": false,
-   "href": "http://host/?%27"
+   "href": "http://host/?%27",
+   "origin": "http://host"
   },
   {
    "input": "notspecial://host/?'",
    "base": null,
    "failure": false,
-   "href": "notspecial://host/?'"
+   "href": "notspecial://host/?'",
+   "origin": "null"
   },
   {
    "input": "/some/path",
    "base": "http://user@example.org/smth",
    "failure": false,
-   "href": "http://user@example.org/some/path"
+   "href": "http://user@example.org/some/path",
+   "origin": "http://example.org"
   },
   {
    "input": "",
    "base": "http://user:pass@example.org:21/smth",
    "failure": false,
-   "href": "http://user:pass@example.org:21/smth"
+   "href": "http://user:pass@example.org:21/smth",
+   "origin": "http://example.org:21"
   },
   {
    "input": "/some/path",
    "base": "http://user:pass@example.org:21/smth",
    "failure": false,
-   "href": "http://user:pass@example.org:21/some/path"
+   "href": "http://user:pass@example.org:21/some/path",
+   "origin": "http://example.org:21"
   },
   {
    "input": "i",
@@ -1882,19 +2114,22 @@
    "input": "i",
    "base": "sc:/pa/pa",
    "failure": false,
-   "href": "sc:/pa/i"
+   "href": "sc:/pa/i",
+   "origin": "null"
   },
   {
    "input": "i",
    "base": "sc://ho/pa",
    "failure": false,
-   "href": "sc://ho/i"
+   "href": "sc://ho/i",
+   "origin": "null"
   },
   {
    "input": "i",
    "base": "sc:///pa/pa",
    "failure": false,
-   "href": "sc:///pa/i"
+   "href": "sc:///pa/i",
+   "origin": "null"
   },
   {
    "input": "../i",
@@ -1912,19 +2147,22 @@
    "input": "../i",
    "base": "sc:/pa/pa",
    "failure": false,
-   "href": "sc:/i"
+   "href": "sc:/i",
+   "origin": "null"
   },
   {
    "input": "../i",
    "base": "sc://ho/pa",
    "failure": false,
-   "href": "sc://ho/i"
+   "href": "sc://ho/i",
+   "origin": "null"
   },
   {
    "input": "../i",
    "base": "sc:///pa/pa",
    "failure": false,
-   "href": "sc:///i"
+   "href": "sc:///i",
+   "origin": "null"
   },
   {
    "input": "/i",
@@ -1942,19 +2180,22 @@
    "input": "/i",
    "base": "sc:/pa/pa",
    "failure": false,
-   "href": "sc:/i"
+   "href": "sc:/i",
+   "origin": "null"
   },
   {
    "input": "/i",
    "base": "sc://ho/pa",
    "failure": false,
-   "href": "sc://ho/i"
+   "href": "sc://ho/i",
+   "origin": "null"
   },
   {
    "input": "/i",
    "base": "sc:///pa/pa",
    "failure": false,
-   "href": "sc:///i"
+   "href": "sc:///i",
+   "origin": "null"
   },
   {
    "input": "?i",
@@ -1972,73 +2213,85 @@
    "input": "?i",
    "base": "sc:/pa/pa",
    "failure": false,
-   "href": "sc:/pa/pa?i"
+   "href": "sc:/pa/pa?i",
+   "origin": "null"
   },
   {
    "input": "?i",
    "base": "sc://ho/pa",
    "failure": false,
-   "href": "sc://ho/pa?i"
+   "href": "sc://ho/pa?i",
+   "origin": "null"
   },
   {
    "input": "?i",
    "base": "sc:///pa/pa",
    "failure": false,
-   "href": "sc:///pa/pa?i"
+   "href": "sc:///pa/pa?i",
+   "origin": "null"
   },
   {
    "input": "#i",
    "base": "sc:sd",
    "failure": false,
-   "href": "sc:sd#i"
+   "href": "sc:sd#i",
+   "origin": "null"
   },
   {
    "input": "#i",
    "base": "sc:sd/sd",
    "failure": false,
-   "href": "sc:sd/sd#i"
+   "href": "sc:sd/sd#i",
+   "origin": "null"
   },
   {
    "input": "#i",
    "base": "sc:/pa/pa",
    "failure": false,
-   "href": "sc:/pa/pa#i"
+   "href": "sc:/pa/pa#i",
+   "origin": "null"
   },
   {
    "input": "#i",
    "base": "sc://ho/pa",
    "failure": false,
-   "href": "sc://ho/pa#i"
+   "href": "sc://ho/pa#i",
+   "origin": "null"
   },
   {
    "input": "#i",
    "base": "sc:///pa/pa",
    "failure": false,
-   "href": "sc:///pa/pa#i"
+   "href": "sc:///pa/pa#i",
+   "origin": "null"
   },
   {
    "input": "about:/../",
    "base": null,
    "failure": false,
-   "href": "about:/"
+   "href": "about:/",
+   "origin": "null"
   },
   {
    "input": "data:/../",
    "base": null,
    "failure": false,
-   "href": "data:/"
+   "href": "data:/",
+   "origin": "null"
   },
   {
    "input": "javascript:/../",
    "base": null,
    "failure": false,
-   "href": "javascript:/"
+   "href": "javascript:/",
+   "origin": "null"
   },
   {
    "input": "mailto:/../",
    "base": null,
    "failure": false,
-   "href": "mailto:/"
+   "href": "mailto:/",
+   "origin": "null"
   },
   {
    "input": "sc://%/",
@@ -2074,25 +2327,29 @@
    "input": "sc:\\../",
    "base": null,
    "failure": false,
-   "href": "sc:\\../"
+   "href": "sc:\\../",
+   "origin": "null"
   },
   {
    "input": "sc::a@example.net",
    "base": null,
    "failure": false,
-   "href": "sc::a@example.net"
+   "href": "sc::a@example.net",
+   "origin": "null"
   },
   {
    "input": "wow:%NBD",
    "base": null,
    "failure": false,
-   "href": "wow:%NBD"
+   "href": "wow:%NBD",
+   "origin": "null"
   },
   {
    "input": "wow:%1G",
    "base": null,
    "failure": false,
-   "href": "wow:%1G"
+   "href": "wow:%1G",
+   "origin": "null"
   },
   {
    "input": "sc://a\u0000b/",
@@ -2692,13 +2949,15 @@
    "input": "http://!\"$&'()*+,-.;=_`{}~/",
    "base": null,
    "failure": false,
-   "href": "http://!\"$&'()*+,-.;=_`{}~/"
+   "href": "http://!\"$&'()*+,-.;=_`{}~/",
+   "origin": "http://!\"$&'()*+,-.;=_`{}~"
   },
   {
    "input": "sc://\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\u000b\f\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f!\"$%&'()*+,-.;=_`{}~/",
    "base": null,
    "failure": false,
-   "href": "sc://%01%02%03%04%05%06%07%08%0B%0C%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F!\"$%&'()*+,-.;=_`{}~/"
+   "href": "sc://%01%02%03%04%05%06%07%08%0B%0C%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F!\"$%&'()*+,-.;=_`{}~/",
+   "origin": "null"
   },
   {
    "input": "ftp://example.com%80/",
@@ -2728,55 +2987,64 @@
    "input": "ftp://%e2%98%83",
    "base": null,
    "failure": false,
-   "href": "ftp://xn--n3h/"
+   "href": "ftp://xn--n3h/",
+   "origin": "ftp://xn--n3h"
   },
   {
    "input": "https://%e2%98%83",
    "base": null,
    "failure": false,
-   "href": "https://xn--n3h/"
+   "href": "https://xn--n3h/",
+   "origin": "https://xn--n3h"
   },
   {
    "input": "http://127.0.0.1:10100/relative_import.html",
    "base": null,
    "failure": false,
-   "href": "http://127.0.0.1:10100/relative_import.html"
+   "href": "http://127.0.0.1:10100/relative_import.html",
+   "origin": "http://127.0.0.1:10100"
   },
   {
    "input": "http://facebook.com/?foo=%7B%22abc%22",
    "base": null,
    "failure": false,
-   "href": "http://facebook.com/?foo=%7B%22abc%22"
+   "href": "http://facebook.com/?foo=%7B%22abc%22",
+   "origin": "http://facebook.com"
   },
   {
    "input": "https://localhost:3000/jqueryui@1.2.3",
    "base": null,
    "failure": false,
-   "href": "https://localhost:3000/jqueryui@1.2.3"
+   "href": "https://localhost:3000/jqueryui@1.2.3",
+   "origin": "https://localhost:3000"
   },
   {
    "input": "h\tt\nt\rp://h\to\ns\rt:9\t0\n0\r0/p\ta\nt\rh?q\tu\ne\rry#f\tr\na\rg",
    "base": null,
    "failure": false,
-   "href": "http://host:9000/path?query#frag"
+   "href": "http://host:9000/path?query#frag",
+   "origin": "http://host:9000"
   },
   {
    "input": "?a=b&c=d",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar?a=b&c=d"
+   "href": "http://example.org/foo/bar?a=b&c=d",
+   "origin": "http://example.org"
   },
   {
    "input": "??a=b&c=d",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar??a=b&c=d"
+   "href": "http://example.org/foo/bar??a=b&c=d",
+   "origin": "http://example.org"
   },
   {
    "input": "http:",
    "base": "http://example.org/foo/bar",
    "failure": false,
-   "href": "http://example.org/foo/bar"
+   "href": "http://example.org/foo/bar",
+   "origin": "http://example.org"
   },
   {
    "input": "http:",
@@ -2788,97 +3056,113 @@
    "input": "sc:",
    "base": "https://example.org/foo/bar",
    "failure": false,
-   "href": "sc:"
+   "href": "sc:",
+   "origin": "null"
   },
   {
    "input": "http://foo.bar/baz?qux#foo\bbar",
    "base": null,
    "failure": false,
-   "href": "http://foo.bar/baz?qux#foo%08bar"
+   "href": "http://foo.bar/baz?qux#foo%08bar",
+   "origin": "http://foo.bar"
   },
   {
    "input": "http://foo.bar/baz?qux#foo\"bar",
    "base": null,
    "failure": false,
-   "href": "http://foo.bar/baz?qux#foo%22bar"
+   "href": "http://foo.bar/baz?qux#foo%22bar",
+   "origin": "http://foo.bar"
   },
   {
    "input": "http://foo.bar/baz?qux#foo<bar",
    "base": null,
    "failure": false,
-   "href": "http://foo.bar/baz?qux#foo%3Cbar"
+   "href": "http://foo.bar/baz?qux#foo%3Cbar",
+   "origin": "http://foo.bar"
   },
   {
    "input": "http://foo.bar/baz?qux#foo>bar",
    "base": null,
    "failure": false,
-   "href": "http://foo.bar/baz?qux#foo%3Ebar"
+   "href": "http://foo.bar/baz?qux#foo%3Ebar",
+   "origin": "http://foo.bar"
   },
   {
    "input": "http://foo.bar/baz?qux#foo`bar",
    "base": null,
    "failure": false,
-   "href": "http://foo.bar/baz?qux#foo%60bar"
+   "href": "http://foo.bar/baz?qux#foo%60bar",
+   "origin": "http://foo.bar"
   },
   {
    "input": "http://1.2.3.4/",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://1.2.3.4/"
+   "href": "http://1.2.3.4/",
+   "origin": "http://1.2.3.4"
   },
   {
    "input": "http://1.2.3.4./",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://1.2.3.4/"
+   "href": "http://1.2.3.4/",
+   "origin": "http://1.2.3.4"
   },
   {
    "input": "http://192.168.257",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://192.168.1.1/"
+   "href": "http://192.168.1.1/",
+   "origin": "http://192.168.1.1"
   },
   {
    "input": "http://192.168.257.",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://192.168.1.1/"
+   "href": "http://192.168.1.1/",
+   "origin": "http://192.168.1.1"
   },
   {
    "input": "http://192.168.257.com",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://192.168.257.com/"
+   "href": "http://192.168.257.com/",
+   "origin": "http://192.168.257.com"
   },
   {
    "input": "http://256",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://0.0.1.0/"
+   "href": "http://0.0.1.0/",
+   "origin": "http://0.0.1.0"
   },
   {
    "input": "http://256.com",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://256.com/"
+   "href": "http://256.com/",
+   "origin": "http://256.com"
   },
   {
    "input": "http://999999999",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://59.154.201.255/"
+   "href": "http://59.154.201.255/",
+   "origin": "http://59.154.201.255"
   },
   {
    "input": "http://999999999.",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://59.154.201.255/"
+   "href": "http://59.154.201.255/",
+   "origin": "http://59.154.201.255"
   },
   {
    "input": "http://999999999.com",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://999999999.com/"
+   "href": "http://999999999.com/",
+   "origin": "http://999999999.com"
   },
   {
    "input": "http://10000000000",
@@ -2890,13 +3174,15 @@
    "input": "http://10000000000.com",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://10000000000.com/"
+   "href": "http://10000000000.com/",
+   "origin": "http://10000000000.com"
   },
   {
    "input": "http://4294967295",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://255.255.255.255/"
+   "href": "http://255.255.255.255/",
+   "origin": "http://255.255.255.255"
   },
   {
    "input": "http://4294967296",
@@ -2920,7 +3206,8 @@
    "input": "http://0xffffffff",
    "base": "http://other.com/",
    "failure": false,
-   "href": "http://255.255.255.255/"
+   "href": "http://255.255.255.255/",
+   "origin": "http://255.255.255.255"
   },
   {
    "input": "http://0xffffffff1",
@@ -2938,25 +3225,29 @@
    "input": "https://0x.0x.0",
    "base": null,
    "failure": false,
-   "href": "https://0.0.0.0/"
+   "href": "https://0.0.0.0/",
+   "origin": "https://0.0.0.0"
   },
   {
    "input": "https://0x.0x.0x.0x",
    "base": null,
    "failure": false,
-   "href": "https://0.0.0.0/"
+   "href": "https://0.0.0.0/",
+   "origin": "https://0.0.0.0"
   },
   {
    "input": "https://00.00.00.00",
    "base": null,
    "failure": false,
-   "href": "https://0.0.0.0/"
+   "href": "https://0.0.0.0/",
+   "origin": "https://0.0.0.0"
   },
   {
    "input": "https://0000000000000000000000000000000000000000177.0.0.1",
    "base": null,
    "failure": false,
-   "href": "https://127.0.0.1/"
+   "href": "https://127.0.0.1/",
+   "origin": "https://127.0.0.1"
   },
   {
    "input": "https://0x100000000/test",
@@ -3028,7 +3319,8 @@
    "input": "asdf://%43%7C/",
    "base": null,
    "failure": false,
-   "href": "asdf://%43%7C/"
+   "href": "asdf://%43%7C/",
+   "origin": "null"
   },
   {
    "input": "pix/submit.gif",
@@ -3544,7 +3836,8 @@
    "input": "http://[1:0::]",
    "base": "http://example.net/",
    "failure": false,
-   "href": "http://[1::]/"
+   "href": "http://[1::]/",
+   "origin": "http://[1::]"
   },
   {
    "input": "http://[0:1:2:3:4:5:6:7:8]",
@@ -3658,73 +3951,85 @@
    "input": "tftp://foobar.com/someconfig;mode=netascii",
    "base": null,
    "failure": false,
-   "href": "tftp://foobar.com/someconfig;mode=netascii"
+   "href": "tftp://foobar.com/someconfig;mode=netascii",
+   "origin": "null"
   },
   {
    "input": "telnet://user:pass@foobar.com:23/",
    "base": null,
    "failure": false,
-   "href": "telnet://user:pass@foobar.com:23/"
+   "href": "telnet://user:pass@foobar.com:23/",
+   "origin": "null"
   },
   {
    "input": "ut2004://10.10.10.10:7777/Index.ut2",
    "base": null,
    "failure": false,
-   "href": "ut2004://10.10.10.10:7777/Index.ut2"
+   "href": "ut2004://10.10.10.10:7777/Index.ut2",
+   "origin": "null"
   },
   {
    "input": "redis://foo:bar@somehost:6379/0?baz=bam&qux=baz",
    "base": null,
    "failure": false,
-   "href": "redis://foo:bar@somehost:6379/0?baz=bam&qux=baz"
+   "href": "redis://foo:bar@somehost:6379/0?baz=bam&qux=baz",
+   "origin": "null"
   },
   {
    "input": "rsync://foo@host:911/sup",
    "base": null,
    "failure": false,
-   "href": "rsync://foo@host:911/sup"
+   "href": "rsync://foo@host:911/sup",
+   "origin": "null"
   },
   {
    "input": "git://github.com/foo/bar.git",
    "base": null,
    "failure": false,
-   "href": "git://github.com/foo/bar.git"
+   "href": "git://github.com/foo/bar.git",
+   "origin": "null"
   },
   {
    "input": "irc://myserver.com:6999/channel?passwd",
    "base": null,
    "failure": false,
-   "href": "irc://myserver.com:6999/channel?passwd"
+   "href": "irc://myserver.com:6999/channel?passwd",
+   "origin": "null"
   },
   {
    "input": "dns://fw.example.org:9999/foo.bar.org?type=TXT",
    "base": null,
    "failure": false,
-   "href": "dns://fw.example.org:9999/foo.bar.org?type=TXT"
+   "href": "dns://fw.example.org:9999/foo.bar.org?type=TXT",
+   "origin": "null"
   },
   {
    "input": "ldap://localhost:389/ou=People,o=JNDITutorial",
    "base": null,
    "failure": false,
-   "href": "ldap://localhost:389/ou=People,o=JNDITutorial"
+   "href": "ldap://localhost:389/ou=People,o=JNDITutorial",
+   "origin": "null"
   },
   {
    "input": "git+https://github.com/foo/bar",
    "base": null,
    "failure": false,
-   "href": "git+https://github.com/foo/bar"
+   "href": "git+https://github.com/foo/bar",
+   "origin": "null"
   },
   {
    "input": "urn:ietf:rfc:2648",
    "base": null,
    "failure": false,
-   "href": "urn:ietf:rfc:2648"
+   "href": "urn:ietf:rfc:2648",
+   "origin": "null"
   },
   {
    "input": "tag:joe@example.org,2001:foo/bar",
    "base": null,
    "failure": false,
-   "href": "tag:joe@example.org,2001:foo/bar"
+   "href": "tag:joe@example.org,2001:foo/bar",
+   "origin": "null"
   },
   {
    "input": "non-spec:/.//",
@@ -3844,43 +4149,50 @@
    "input": "blob:https://example.com:443/",
    "base": null,
    "failure": false,
-   "href": "blob:https://example.com:443/"
+   "href": "blob:https://example.com:443/",
+   "origin": "https://example.com"
   },
   {
    "input": "blob:http://example.org:88/",
    "base": null,
    "failure": false,
-   "href": "blob:http://example.org:88/"
+   "href": "blob:http://example.org:88/",
+   "origin": "http://example.org:88"
   },
   {
    "input": "blob:d3958f5c-0777-0845-9dcf-2cb28783acaf",
    "base": null,
    "failure": false,
-   "href": "blob:d3958f5c-0777-0845-9dcf-2cb28783acaf"
+   "href": "blob:d3958f5c-0777-0845-9dcf-2cb28783acaf",
+   "origin": "null"
   },
   {
    "input": "blob:",
    "base": null,
    "failure": false,
-   "href": "blob:"
+   "href": "blob:",
+   "origin": "null"
   },
   {
    "input": "blob:blob:",
    "base": null,
    "failure": false,
-   "href": "blob:blob:"
+   "href": "blob:blob:",
+   "origin": "null"
   },
   {
    "input": "blob:blob:https://example.org/",
    "base": null,
    "failure": false,
-   "href": "blob:blob:https://example.org/"
+   "href": "blob:blob:https://example.org/",
+   "origin": "null"
   },
   {
    "input": "blob:about:blank",
    "base": null,
    "failure": false,
-   "href": "blob:about:blank"
+   "href": "blob:about:blank",
+   "origin": "null"
   },
   {
    "input": "blob:file://host/path",
@@ -3892,25 +4204,29 @@
    "input": "blob:ftp://host/path",
    "base": null,
    "failure": false,
-   "href": "blob:ftp://host/path"
+   "href": "blob:ftp://host/path",
+   "origin": "null"
   },
   {
    "input": "blob:ws://example.org/",
    "base": null,
    "failure": false,
-   "href": "blob:ws://example.org/"
+   "href": "blob:ws://example.org/",
+   "origin": "null"
   },
   {
    "input": "blob:wss://example.org/",
    "base": null,
    "failure": false,
-   "href": "blob:wss://example.org/"
+   "href": "blob:wss://example.org/",
+   "origin": "null"
   },
   {
    "input": "blob:http%3a//example.org/",
    "base": null,
    "failure": false,
-   "href": "blob:http%3a//example.org/"
+   "href": "blob:http%3a//example.org/",
+   "origin": "null"
   },
   {
    "input": "http://0x7f.0.0.0x7g",
@@ -4090,91 +4406,106 @@
    "input": "non-special:cannot-be-a-base-url-!\"$%&'()*+,-.;<=>@[\\]^_`{|}~@/",
    "base": null,
    "failure": false,
-   "href": "non-special:cannot-be-a-base-url-!\"$%&'()*+,-.;<=>@[\\]^_`{|}~@/"
+   "href": "non-special:cannot-be-a-base-url-!\"$%&'()*+,-.;<=>@[\\]^_`{|}~@/",
+   "origin": "null"
   },
   {
    "input": "https://www.example.com/path{path.html?query'=query#fragment<fragment",
    "base": null,
    "failure": false,
-   "href": "https://www.example.com/path%7B%7Fpath.html?query%27%7F=query#fragment%3C%7Ffragment"
+   "href": "https://www.example.com/path%7B%7Fpath.html?query%27%7F=query#fragment%3C%7Ffragment",
+   "origin": "https://www.example.com"
   },
   {
    "input": "https://user:pass[@foo/bar",
    "base": "http://example.org",
    "failure": false,
-   "href": "https://user:pass%5B%7F@foo/bar"
+   "href": "https://user:pass%5B%7F@foo/bar",
+   "origin": "https://foo"
   },
   {
    "input": "foo:// !\"$%&'()*+,-.;<=>@[\\]^_`{|}~@host/",
    "base": null,
    "failure": false,
-   "href": "foo://%20!%22$%&'()*+,-.%3B%3C%3D%3E%40%5B%5C%5D%5E_%60%7B%7C%7D~@host/"
+   "href": "foo://%20!%22$%&'()*+,-.%3B%3C%3D%3E%40%5B%5C%5D%5E_%60%7B%7C%7D~@host/",
+   "origin": "null"
   },
   {
    "input": "wss:// !\"$%&'()*+,-.;<=>@[]^_`{|}~@host/",
    "base": null,
    "failure": false,
-   "href": "wss://%20!%22$%&'()*+,-.%3B%3C%3D%3E%40%5B%5D%5E_%60%7B%7C%7D~@host/"
+   "href": "wss://%20!%22$%&'()*+,-.%3B%3C%3D%3E%40%5B%5D%5E_%60%7B%7C%7D~@host/",
+   "origin": "wss://host"
   },
   {
    "input": "foo://joe: !\"$%&'()*+,-.:;<=>@[\\]^_`{|}~@host/",
    "base": null,
    "failure": false,
-   "href": "foo://joe:%20!%22$%&'()*+,-.%3A%3B%3C%3D%3E%40%5B%5C%5D%5E_%60%7B%7C%7D~@host/"
+   "href": "foo://joe:%20!%22$%&'()*+,-.%3A%3B%3C%3D%3E%40%5B%5C%5D%5E_%60%7B%7C%7D~@host/",
+   "origin": "null"
   },
   {
    "input": "wss://joe: !\"$%&'()*+,-.:;<=>@[]^_`{|}~@host/",
    "base": null,
    "failure": false,
-   "href": "wss://joe:%20!%22$%&'()*+,-.%3A%3B%3C%3D%3E%40%5B%5D%5E_%60%7B%7C%7D~@host/"
+   "href": "wss://joe:%20!%22$%&'()*+,-.%3A%3B%3C%3D%3E%40%5B%5D%5E_%60%7B%7C%7D~@host/",
+   "origin": "wss://host"
   },
   {
    "input": "foo://!\"$%&'()*+,-.;=_`{}~/",
    "base": null,
    "failure": false,
-   "href": "foo://!\"$%&'()*+,-.;=_`{}~/"
+   "href": "foo://!\"$%&'()*+,-.;=_`{}~/",
+   "origin": "null"
   },
   {
    "input": "wss://!\"$&'()*+,-.;=_`{}~/",
    "base": null,
    "failure": false,
-   "href": "wss://!\"$&'()*+,-.;=_`{}~/"
+   "href": "wss://!\"$&'()*+,-.;=_`{}~/",
+   "origin": "wss://!\"$&'()*+,-.;=_`{}~"
   },
   {
    "input": "foo://host/ !\"$%&'()*+,-./:;<=>@[\\]^_`{|}~",
    "base": null,
    "failure": false,
-   "href": "foo://host/%20!%22$%&'()*+,-./:;%3C=%3E@[\\]%5E_%60%7B|%7D~"
+   "href": "foo://host/%20!%22$%&'()*+,-./:;%3C=%3E@[\\]%5E_%60%7B|%7D~",
+   "origin": "null"
   },
   {
    "input": "wss://host/ !\"$%&'()*+,-./:;<=>@[\\]^_`{|}~",
    "base": null,
    "failure": false,
-   "href": "wss://host/%20!%22$%&'()*+,-./:;%3C=%3E@[/]%5E_%60%7B|%7D~"
+   "href": "wss://host/%20!%22$%&'()*+,-./:;%3C=%3E@[/]%5E_%60%7B|%7D~",
+   "origin": "wss://host"
   },
   {
    "input": "foo://host/dir/? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
    "base": null,
    "failure": false,
-   "href": "foo://host/dir/?%20!%22$%&'()*+,-./:;%3C=%3E?@[\\]^_`{|}~"
+   "href": "foo://host/dir/?%20!%22$%&'()*+,-./:;%3C=%3E?@[\\]^_`{|}~",
+   "origin": "null"
   },
   {
    "input": "wss://host/dir/? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
    "base": null,
    "failure": false,
-   "href": "wss://host/dir/?%20!%22$%&%27()*+,-./:;%3C=%3E?@[\\]^_`{|}~"
+   "href": "wss://host/dir/?%20!%22$%&%27()*+,-./:;%3C=%3E?@[\\]^_`{|}~",
+   "origin": "wss://host"
   },
   {
    "input": "foo://host/dir/# !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
    "base": null,
    "failure": false,
-   "href": "foo://host/dir/#%20!%22#$%&'()*+,-./:;%3C=%3E?@[\\]^_%60{|}~"
+   "href": "foo://host/dir/#%20!%22#$%&'()*+,-./:;%3C=%3E?@[\\]^_%60{|}~",
+   "origin": "null"
   },
   {
    "input": "wss://host/dir/# !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
    "base": null,
    "failure": false,
-   "href": "wss://host/dir/#%20!%22#$%&'()*+,-./:;%3C=%3E?@[\\]^_%60{|}~"
+   "href": "wss://host/dir/#%20!%22#$%&'()*+,-./:;%3C=%3E?@[\\]^_%60{|}~",
+   "origin": "wss://host"
   },
   {
    "input": "abc:rootless",
@@ -4426,13 +4757,15 @@
    "input": "https://example.com/\"quoted\"",
    "base": null,
    "failure": false,
-   "href": "https://example.com/%22quoted%22"
+   "href": "https://example.com/%22quoted%22",
+   "origin": "https://example.com"
   },
   {
    "input": "https://a%C2%ADb/",
    "base": null,
    "failure": false,
-   "href": "https://ab/"
+   "href": "https://ab/",
+   "origin": "https://ab"
   },
   {
    "input": "https://%C2%AD/",
@@ -4444,25 +4777,29 @@
    "input": "https://xn--/",
    "base": null,
    "failure": false,
-   "href": "https://xn--/"
+   "href": "https://xn--/",
+   "origin": "https://xn--"
   },
   {
    "input": "data://example.com:8080/pathname?search#hash",
    "base": null,
    "failure": false,
-   "href": "data://example.com:8080/pathname?search#hash"
+   "href": "data://example.com:8080/pathname?search#hash",
+   "origin": "null"
   },
   {
    "input": "data:///test",
    "base": null,
    "failure": false,
-   "href": "data:///test"
+   "href": "data:///test",
+   "origin": "null"
   },
   {
    "input": "data://test/a/../b",
    "base": null,
    "failure": false,
-   "href": "data://test/b"
+   "href": "data://test/b",
+   "origin": "null"
   },
   {
    "input": "data://:443",
@@ -4486,19 +4823,22 @@
    "input": "javascript://example.com:8080/pathname?search#hash",
    "base": null,
    "failure": false,
-   "href": "javascript://example.com:8080/pathname?search#hash"
+   "href": "javascript://example.com:8080/pathname?search#hash",
+   "origin": "null"
   },
   {
    "input": "javascript:///test",
    "base": null,
    "failure": false,
-   "href": "javascript:///test"
+   "href": "javascript:///test",
+   "origin": "null"
   },
   {
    "input": "javascript://test/a/../b",
    "base": null,
    "failure": false,
-   "href": "javascript://test/b"
+   "href": "javascript://test/b",
+   "origin": "null"
   },
   {
    "input": "javascript://:443",
@@ -4522,19 +4862,22 @@
    "input": "mailto://example.com:8080/pathname?search#hash",
    "base": null,
    "failure": false,
-   "href": "mailto://example.com:8080/pathname?search#hash"
+   "href": "mailto://example.com:8080/pathname?search#hash",
+   "origin": "null"
   },
   {
    "input": "mailto:///test",
    "base": null,
    "failure": false,
-   "href": "mailto:///test"
+   "href": "mailto:///test",
+   "origin": "null"
   },
   {
    "input": "mailto://test/a/../b",
    "base": null,
    "failure": false,
-   "href": "mailto://test/b"
+   "href": "mailto://test/b",
+   "origin": "null"
   },
   {
    "input": "mailto://:443",
@@ -4558,19 +4901,22 @@
    "input": "intent://example.com:8080/pathname?search#hash",
    "base": null,
    "failure": false,
-   "href": "intent://example.com:8080/pathname?search#hash"
+   "href": "intent://example.com:8080/pathname?search#hash",
+   "origin": "null"
   },
   {
    "input": "intent:///test",
    "base": null,
    "failure": false,
-   "href": "intent:///test"
+   "href": "intent:///test",
+   "origin": "null"
   },
   {
    "input": "intent://test/a/../b",
    "base": null,
    "failure": false,
-   "href": "intent://test/b"
+   "href": "intent://test/b",
+   "origin": "null"
   },
   {
    "input": "intent://:443",
@@ -4594,19 +4940,22 @@
    "input": "urn://example.com:8080/pathname?search#hash",
    "base": null,
    "failure": false,
-   "href": "urn://example.com:8080/pathname?search#hash"
+   "href": "urn://example.com:8080/pathname?search#hash",
+   "origin": "null"
   },
   {
    "input": "urn:///test",
    "base": null,
    "failure": false,
-   "href": "urn:///test"
+   "href": "urn:///test",
+   "origin": "null"
   },
   {
    "input": "urn://test/a/../b",
    "base": null,
    "failure": false,
-   "href": "urn://test/b"
+   "href": "urn://test/b",
+   "origin": "null"
   },
   {
    "input": "urn://:443",
@@ -4630,19 +4979,22 @@
    "input": "turn://example.com:8080/pathname?search#hash",
    "base": null,
    "failure": false,
-   "href": "turn://example.com:8080/pathname?search#hash"
+   "href": "turn://example.com:8080/pathname?search#hash",
+   "origin": "null"
   },
   {
    "input": "turn:///test",
    "base": null,
    "failure": false,
-   "href": "turn:///test"
+   "href": "turn:///test",
+   "origin": "null"
   },
   {
    "input": "turn://test/a/../b",
    "base": null,
    "failure": false,
-   "href": "turn://test/b"
+   "href": "turn://test/b",
+   "origin": "null"
   },
   {
    "input": "turn://:443",
@@ -4666,19 +5018,22 @@
    "input": "stun://example.com:8080/pathname?search#hash",
    "base": null,
    "failure": false,
-   "href": "stun://example.com:8080/pathname?search#hash"
+   "href": "stun://example.com:8080/pathname?search#hash",
+   "origin": "null"
   },
   {
    "input": "stun:///test",
    "base": null,
    "failure": false,
-   "href": "stun:///test"
+   "href": "stun:///test",
+   "origin": "null"
   },
   {
    "input": "stun://test/a/../b",
    "base": null,
    "failure": false,
-   "href": "stun://test/b"
+   "href": "stun://test/b",
+   "origin": "null"
   },
   {
    "input": "stun://:443",
@@ -4702,91 +5057,106 @@
    "input": "w://x:0",
    "base": null,
    "failure": false,
-   "href": "w://x:0"
+   "href": "w://x:0",
+   "origin": "null"
   },
   {
    "input": "west://x:0",
    "base": null,
    "failure": false,
-   "href": "west://x:0"
+   "href": "west://x:0",
+   "origin": "null"
   },
   {
    "input": "android://x:0/a",
    "base": null,
    "failure": false,
-   "href": "android://x:0/a"
+   "href": "android://x:0/a",
+   "origin": "null"
   },
   {
    "input": "drivefs://x:0/a",
    "base": null,
    "failure": false,
-   "href": "drivefs://x:0/a"
+   "href": "drivefs://x:0/a",
+   "origin": "null"
   },
   {
    "input": "chromeos-steam://x:0/a",
    "base": null,
    "failure": false,
-   "href": "chromeos-steam://x:0/a"
+   "href": "chromeos-steam://x:0/a",
+   "origin": "null"
   },
   {
    "input": "steam://x:0/a",
    "base": null,
    "failure": false,
-   "href": "steam://x:0/a"
+   "href": "steam://x:0/a",
+   "origin": "null"
   },
   {
    "input": "materialized-view://x:0/a",
    "base": null,
    "failure": false,
-   "href": "materialized-view://x:0/a"
+   "href": "materialized-view://x:0/a",
+   "origin": "null"
   },
   {
    "input": "android-app://x:0",
    "base": null,
    "failure": false,
-   "href": "android-app://x:0"
+   "href": "android-app://x:0",
+   "origin": "null"
   },
   {
    "input": "chrome-distiller://x:0",
    "base": null,
    "failure": false,
-   "href": "chrome-distiller://x:0"
+   "href": "chrome-distiller://x:0",
+   "origin": "null"
   },
   {
    "input": "chrome-extension://x:0",
    "base": null,
    "failure": false,
-   "href": "chrome-extension://x:0"
+   "href": "chrome-extension://x:0",
+   "origin": "null"
   },
   {
    "input": "chrome-native://x:0",
    "base": null,
    "failure": false,
-   "href": "chrome-native://x:0"
+   "href": "chrome-native://x:0",
+   "origin": "null"
   },
   {
    "input": "chrome-resource://x:0",
    "base": null,
    "failure": false,
-   "href": "chrome-resource://x:0"
+   "href": "chrome-resource://x:0",
+   "origin": "null"
   },
   {
    "input": "chrome-search://x:0",
    "base": null,
    "failure": false,
-   "href": "chrome-search://x:0"
+   "href": "chrome-search://x:0",
+   "origin": "null"
   },
   {
    "input": "fuchsia-dir://x:0",
    "base": null,
    "failure": false,
-   "href": "fuchsia-dir://x:0"
+   "href": "fuchsia-dir://x:0",
+   "origin": "null"
   },
   {
    "input": "isolated-app://x:0",
    "base": null,
    "failure": false,
-   "href": "isolated-app://x:0"
+   "href": "isolated-app://x:0",
+   "origin": "null"
   },
   {
    "input": "///test",
@@ -4858,31 +5228,36 @@
    "input": "non-special:\\\\opaque",
    "base": null,
    "failure": false,
-   "href": "non-special:\\\\opaque"
+   "href": "non-special:\\\\opaque",
+   "origin": "null"
   },
   {
    "input": "non-special:\\\\opaque/path",
    "base": null,
    "failure": false,
-   "href": "non-special:\\\\opaque/path"
+   "href": "non-special:\\\\opaque/path",
+   "origin": "null"
   },
   {
    "input": "non-special:\\\\opaque\\path",
    "base": null,
    "failure": false,
-   "href": "non-special:\\\\opaque\\path"
+   "href": "non-special:\\\\opaque\\path",
+   "origin": "null"
   },
   {
    "input": "non-special:\\/opaque",
    "base": null,
    "failure": false,
-   "href": "non-special:\\/opaque"
+   "href": "non-special:\\/opaque",
+   "origin": "null"
   },
   {
    "input": "non-special:/\\path",
    "base": null,
    "failure": false,
-   "href": "non-special:/\\path"
+   "href": "non-special:/\\path",
+   "origin": "null"
   },
   {
    "input": "non-special://host\\a",
@@ -4894,7 +5269,8 @@
    "input": "non-special://host/a\\b",
    "base": null,
    "failure": false,
-   "href": "non-special://host/a\\b"
+   "href": "non-special://host/a\\b",
+   "origin": "null"
   },
   {
    "input": "\\a",

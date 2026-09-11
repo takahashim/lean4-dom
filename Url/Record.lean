@@ -86,6 +86,17 @@ def urlSerializer (u : Url) (excludeFragment : Bool := false) : String :=
   | some f => if excludeFragment then out else out ++ "#" ++ f
   | none => out
 
+/-! ## origin -/
+
+/-- DOM Standard §4.7 の origin。tuple origin なら成分、opaque origin なら `none`。 -/
+abbrev Origin := Option (String × Host × Option Nat)
+
+/-- origin を `scheme://host[:port]` の形にする。opaque origin は "null"。 -/
+def originSerializer : Origin → String
+  | none => "null"
+  | some (scheme, h, port) =>
+    scheme ++ "://" ++ hostSerializer h ++ (match port with | none => "" | some p => ":" ++ toString p)
+
 /-! ## 妥当な URL record -/
 
 /--

@@ -34,7 +34,8 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §3.3 IPv6 parser、§3.5 IPv6 serializer | `ipv6Parser`, `ipv6Serializer`, `ipv6CompressIndex` | `Url/Ipv6.lean` |
 | §3.2 host parser / opaque-host parser / domain parser | `hostParser`, `opaqueHostParser`, `asciiDomainToASCII` | `Url/Host.lean` |
 | §4.1 URL record、§4.2 special scheme、§4.3 serializer | `Url`, `Path`, `isSpecialScheme`, `urlSerializer` | `Url/Record.lean` |
-| §4.4 basic URL parser | `run`, `basicUrlParse`, `parseUrl` | `Url/Parser.lean` |
+| §4.4 basic URL parser | `run`, `step`, `basicUrlParse`, `parseUrl` | `Url/Parser.lean` |
+| §4.7 origin | `origin`, `originSerializer`, `Origin` | `Url/Parser.lean`, `Url/Record.lean` |
 
 ## pointer を持たない書き方
 
@@ -120,6 +121,12 @@ WPT: 一致 816 / 不一致 0 / IDNA が要る（model の対象外） 4
 残る 4 件は percent-encode された非 ASCII host で UTS #46 が要るもの。
 **一致とは数えず、対象外として別に報告する。**
 
+origin（§4.7）も同じ表が期待値を持っている。
+
+```
+origin: 一致 373 / 不一致 0
+```
+
 IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
 host の 2 件が IDNA の境界で、それ以外は一致した。
 
@@ -136,14 +143,23 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
   `checkValidUrl_iff`）は入れて、**WPT の全 case で実行時に検査している**
   （`url-model --wpt` の `ValidUrl: 違反 0`）。DOM 側の `dom-model --check` と同じ形である。
 
-  証明はまだ。`step.induct`（functional induction）で 50 ほどの case に分かれる。
-  難所は、途中の状態では成り立たない条件があることである。
-  authority state は host が決まる前に credentials を入れるので、
-  「host が null なら credentials を持たない」は host state を抜けるまで成り立たない。
-  state ごとに条件を分けるか、`SpecialNotOpaque`（special なら opaque path でない）のように
-  途中でも成り立つものから順に示すことになる。
-  後者は opaque path を作るのが scheme state の一分岐だけなので、
-  base の妥当性を仮定すれば通る見込みがある。
+  証明はまだ。`step.induct`（functional induction）は使えることを確かめてあり、
+  98 の case に分かれる。`intros` して最後の三つを `rename_i` で拾い、
+  `rw [run]`／`rw [step]` の後 `simp_all` に投げると **63 は自動で閉じる**。
+
+  残る 35 が本題で、**「special なら opaque path でない」は単独では帰納的でない**ことが分かった。
+  scheme state が `scheme := buffer` を書く時点で、もし path が opaque だったら
+  新しい scheme が special のときに崩れる。実際には崩れないが、
+  それは「opaque path を作るのが scheme state の一分岐だけで、
+  そこから scheme state へ戻る道が無い」という別の事実に依っている。
+
+  したがって強めた不変条件が要る。形はこうなる。
+
+  > `opaquePath` / `query` / `fragment` 以外の state では、path は opaque でない。
+
+  これに加えて base の妥当性が要る（`relative` と `file` は path を base から取る）。
+  authority state の「host が決まる前に credentials を入れる」も同じ性質の問題で、
+  そちらは state ごとに条件を分けることになる。
 * **setter（state override）。** `Location` と `URL` の各 setter が使う引数。
 * **`URLSearchParams`**（application/x-www-form-urlencoded）。
 * **IDNA / UTS #46 そのもの。** 上記の理由で抽象化したままにする。
