@@ -248,6 +248,63 @@ theorem nodeDocumentsValid_adopt {s s' : DOMState} {node doc : NodeId}
       hstep'.2.2.2 ?_
     exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hstep'.2.2.1 hnk
 
+/-! ## adopt が node document に与える効果 -/
+
+/-- adopt の後、node の node document は `doc` になっている。 -/
+theorem adopt_ownerDocument_self {s s' : DOMState} {node doc : NodeId}
+    (hwf : WellFormed s.tree) (ha : adopt s node doc = .ok s')
+    {nd : NodeData} (hnd : s.tree.get? node = some nd) :
+    ownerDocumentOf s'.tree node = some doc := by
+  unfold adopt at ha
+  split at ha
+  · simp at ha
+  · next old hold =>
+    split at ha
+    · simp at ha
+    · next s₁ hr =>
+      have hown₁ : ownerDocumentOf s₁.tree node = some old := by
+        revert hr
+        split
+        · intro hr; rw [← Except.ok.inj hr]; exact hold
+        · intro hr
+          rw [ownerDocumentOf_detach (remove_ok hr).2]; exact hold
+      have hwf₁ : WellFormed s₁.tree := by
+        revert hr
+        split
+        · intro hr; rw [← Except.ok.inj hr]; exact hwf
+        · intro hr; exact remove_preserves_wellformed hwf hr
+      obtain ⟨nd₁, hnd₁⟩ : ∃ nd₁, s₁.tree.get? node = some nd₁ := by
+        cases h1 : s₁.tree.get? node with
+        | some x => exact ⟨x, rfl⟩
+        | none => rw [ownerDocumentOf, h1] at hown₁; simp at hown₁
+      split at ha
+      · next he => rw [← Except.ok.inj ha, hown₁, he]
+      · rw [← Except.ok.inj ha]
+        show ownerDocumentOf (setOwnerDocument s₁.tree node doc) node = some doc
+        rw [ownerDocumentOf_setOwnerDocument_eq, hnd₁]
+        simp [mem_preorder_self hwf₁ hnd₁]
+
+/-- adopt は「parent の node document が `doc` である」という条件を壊さない。 -/
+theorem adopt_ownerDocument_other {s s' : DOMState} {node doc parent : NodeId}
+    (ha : adopt s node doc = .ok s') (hp : ownerDocumentOf s.tree parent = some doc) :
+    ownerDocumentOf s'.tree parent = some doc := by
+  obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases ha
+  have hp₁ : ownerDocumentOf s₁.tree parent = some doc := by
+    rcases hstep with ⟨_, rfl⟩ | hr
+    · exact hp
+    · rw [ownerDocumentOf_detach (remove_ok hr).2]; exact hp
+  rcases hfinal with rfl | rfl
+  · exact hp₁
+  · show ownerDocumentOf (setOwnerDocument s₁.tree node doc) parent = some doc
+    rw [ownerDocumentOf_setOwnerDocument_eq]
+    cases h1 : s₁.tree.get? parent with
+    | none => rw [ownerDocumentOf, h1] at hp₁; simp at hp₁
+    | some pd =>
+      simp only [Option.map_some]
+      split
+      · rfl
+      · rw [ownerDocumentOf, h1] at hp₁; simpa using hp₁
+
 /-! ## insertEach -/
 
 /--
@@ -294,6 +351,66 @@ theorem structurallyValid_insertEach :
           exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
             (hnk m (List.mem_cons_of_mem _ hm))
         · exact hdoc.map hkp
+
+/--
+`insertEach` の node document 保存。
+
+ループ不変条件は「parent の node document が `doc` である」ことだけでよい。
+adopt はこれを壊さない（parent が部分木の外なら不変、中なら `doc` に揃う）。
+各 node は adopt の後 node document が `doc` になるので、
+`insertAt` が要求する「辺の両端が同じ node document」が満たされる。
+-/
+theorem nodeDocumentsValid_insertEach :
+    ∀ (ns : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+      {doc : NodeId},
+      StructurallyValid s.tree → NodeDocumentsValid s.tree →
+      IsDocument s.tree doc →
+      (∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true) →
+      ownerDocumentOf s.tree parent = some doc →
+      (∀ n ∈ ns, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ .document) →
+      insertEach s parent child doc ns = .ok s' → NodeDocumentsValid s'.tree
+  | [], s, s', parent, child, doc, _, h, _, _, _, _, hi => by
+    rw [insertEach] at hi; rw [← Except.ok.inj hi]; exact h
+  | n :: ns, s, s', parent, child, doc, hs, h, hdoc, hpk, hpar, hnk, hi => by
+    rw [insertEach] at hi
+    split at hi
+    · simp at hi
+    · next s₁ ha =>
+      split at hi
+      · simp at hi
+      · next s₂ hins =>
+        have hkp₁ : KindPreserving s.tree s₁.tree := kindPreserving_adopt ha
+        have hnkn := hnk n (List.mem_cons_self ..)
+        have hs₁ : StructurallyValid s₁.tree := structurallyValid_adopt hs hdoc ha
+        have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_adopt hs h hdoc hnkn ha
+        have hpar₁ : ownerDocumentOf s₁.tree parent = some doc :=
+          adopt_ownerDocument_other ha hpar
+        -- node が木の中にあることは adopt の成功から出る。
+        obtain ⟨nd, hnd⟩ : ∃ nd, s.tree.get? n = some nd := by
+          unfold adopt at ha
+          split at ha
+          · simp at ha
+          · next old hold =>
+            cases h1 : s.tree.get? n with
+            | some x => exact ⟨x, rfl⟩
+            | none => rw [ownerDocumentOf, h1] at hold; simp at hold
+        have hself : ownerDocumentOf s₁.tree n = some doc :=
+          adopt_ownerDocument_self hs.wellFormed ha hnd
+        have hi' := (DOMState.mapTree_eq_ok hins).1
+        have h₂ : NodeDocumentsValid s₂.tree :=
+          nodeDocumentsValid_insertAt h₁ (by rw [hself, hpar₁]) hi'
+        have hpk₁ : ∀ pd, s₁.tree.get? parent = some pd → pd.kind.canHaveChildren = true :=
+          kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp₁ hpk
+        have hs₂ : StructurallyValid s₂.tree :=
+          structurallyValid_insertAt hs₁ hpk₁
+            (kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp₁ hnkn) hi'
+        have hkp₂ : KindPreserving s₁.tree s₂.tree := kindPreserving_insertAt hi'
+        refine nodeDocumentsValid_insertEach ns hs₂ h₂ (hdoc.map (hkp₁.trans hkp₂)) ?_ ?_ ?_ hi
+        · exact kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp₂ hpk₁
+        · rw [ownerDocumentOf_insertAt hi']; exact hpar₁
+        · intro m hm
+          exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document)
+            (hkp₁.trans hkp₂) (hnk m (List.mem_cons_of_mem _ hm))
 
 /-! ## insert -/
 
@@ -367,6 +484,66 @@ theorem structurallyValid_insert {s s' : DOMState} {node parent : NodeId}
               (child_not_document h hnd hm)
     · -- 単独の node
       refine structurallyValid_insertNodesAt h hpk ?_ hi
+      intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      exact ensurePreInsertionValidity_nodeNotDocument hv
+
+theorem nodeDocumentsValid_insertNodesAt {s s' : DOMState} {parent : NodeId}
+    {child : Option NodeId} {nodes : List NodeId} {b : Bool}
+    (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
+    (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
+    (hnk : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ .document)
+    (hi : insertNodesAt s parent child nodes b = .ok s') : NodeDocumentsValid s'.tree := by
+  unfold insertNodesAt at hi
+  simp only at hi
+  split at hi
+  · simp at hi
+  · next sx hx =>
+    have htree : s'.tree = sx.tree := by
+      split at hi
+      · rw [← Except.ok.inj hi]
+      · rw [← Except.ok.inj hi]; simp
+    rw [htree]
+    unfold insertEachAt at hx
+    split at hx
+    · simp at hx
+    · next pd hpd =>
+      have hpd' : s.tree.get? parent = some pd := by simpa using hpd
+      refine nodeDocumentsValid_insertEach nodes (by simpa using hs) (by simpa using h)
+        ?_ (by simpa using hpk) ?_ (by simpa using hnk) hx
+      · exact ⟨_, by simpa using (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.1,
+          (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.2⟩
+      · simp only [liveRangeInsertAdjust_tree]
+        simp [ownerDocumentOf, hpd']
+
+/-- PLAN §6.3 の形。`insert` は node document の整合性を保つ。 -/
+theorem nodeDocumentsValid_insert {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {b : Bool}
+    (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
+    (hv : ensurePreInsertionValidity s.tree node parent child [] = .ok ())
+    (hi : insert s node parent child b = .ok s') : NodeDocumentsValid s'.tree := by
+  have hpk := ensurePreInsertionValidity_parentCanHaveChildren hv
+  unfold insert at hi
+  split at hi
+  · simp at hi
+  · next nd hnd =>
+    split at hi
+    · split at hi
+      · rw [← Except.ok.inj hi]; exact h
+      · split at hi
+        · simp at hi
+        · next s₁ hre =>
+          have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ hs hre
+          have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_removeEach _ hs h hre
+          have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+          refine nodeDocumentsValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
+            nd.children none none) (by simpa using hs₁) (by simpa using h₁) ?_ ?_ hi
+          · simpa using
+              kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
+          · intro m hm
+            simpa using kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
+              (child_not_document hs hnd hm)
+    · refine nodeDocumentsValid_insertNodesAt hs h hpk ?_ hi
       intro m hm
       rcases List.mem_singleton.mp hm with rfl
       exact ensurePreInsertionValidity_nodeNotDocument hv

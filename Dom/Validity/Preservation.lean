@@ -51,19 +51,22 @@ theorem structurallyValid_detach {t t' : Tree} {n : NodeId}
         · exact h.childrenOnlyUnderContainers m d hm hc
 
 /-- `detach` は node document を変えない。 -/
+theorem ownerDocumentOf_detach {t t' : Tree} {n : NodeId} (hd : detach t n = .ok t') (m : NodeId) :
+    ownerDocumentOf t' m = ownerDocumentOf t m := by
+  rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
+  · rfl
+  · simp only [ownerDocumentOf, get?_detachFrom]
+    split
+    · next he => rw [he, hnd]; rfl
+    · split
+      · next hne he => rw [he, hpd]; rfl
+      · rfl
+
+/-- `detach` は node document の整合性を保つ。 -/
 theorem nodeDocumentsValid_detach {t t' : Tree} {n : NodeId}
     (hwf : WellFormed t) (h : NodeDocumentsValid t) (hd : detach t n = .ok t') :
     NodeDocumentsValid t' := by
-  have hown : ∀ m, ownerDocumentOf t' m = ownerDocumentOf t m := by
-    intro m
-    rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
-    · rfl
-    · simp only [ownerDocumentOf, get?_detachFrom]
-      split
-      · next he => rw [he, hnd]; rfl
-      · split
-        · next hne he => rw [he, hpd]; rfl
-        · rfl
+  have hown : ∀ m, ownerDocumentOf t' m = ownerDocumentOf t m := ownerDocumentOf_detach hd
   refine ⟨?_, ?_⟩
   · intro m d hm hk
     rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
@@ -130,6 +133,18 @@ theorem structurallyValid_insertAt {t t' : Tree} {parent node : NodeId} {child :
         exact hpk pd hpd
       · exact h.childrenOnlyUnderContainers m d hm hc
 
+/-- `insertAt` は node document を変えない。 -/
+theorem ownerDocumentOf_insertAt {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
+    (hi : insertAt t parent node child = .ok t') (m : NodeId) :
+    ownerDocumentOf t' m = ownerDocumentOf t m := by
+  obtain ⟨pd, nd, hpd, hnd, hnone, hanc, hchild, rfl⟩ := insertAt_ok_cases hi
+  simp only [ownerDocumentOf, get?_insertAtIn]
+  split
+  · next he => rw [he, hnd]; rfl
+  · split
+    · next hne he => rw [he, hpd]; rfl
+    · rfl
+
 /--
 `insertAt` は node document を変えないので、
 辺の両端が同じ node document であるという条件だけを新しく要求する。
@@ -139,16 +154,8 @@ theorem nodeDocumentsValid_insertAt {t t' : Tree} {parent node : NodeId} {child 
     (h : NodeDocumentsValid t)
     (hown : ownerDocumentOf t node = ownerDocumentOf t parent)
     (hi : insertAt t parent node child = .ok t') : NodeDocumentsValid t' := by
+  have hown' : ∀ m, ownerDocumentOf t' m = ownerDocumentOf t m := ownerDocumentOf_insertAt hi
   obtain ⟨pd, nd, hpd, hnd, hnone, hanc, hchild, rfl⟩ := insertAt_ok_cases hi
-  have hown' : ∀ m, ownerDocumentOf (insertAtIn t parent node child pd nd) m
-      = ownerDocumentOf t m := by
-    intro m
-    simp only [ownerDocumentOf, get?_insertAtIn]
-    split
-    · next he => rw [he, hnd]; rfl
-    · split
-      · next hne he => rw [he, hpd]; rfl
-      · rfl
   refine ⟨?_, ?_⟩
   · intro m d hm hk
     rw [get?_insertAtIn] at hm
@@ -287,5 +294,17 @@ theorem nodeDocumentsValid_setOwnerDocument {t : Tree} {n doc : NodeId}
       have := h.treeEdgePreservesNodeDocument c p hpar
       simp only [ownerDocumentOf, hcd, hpd, Option.map_some] at this
       exact this
+
+/-- `setOwnerDocument` は部分木の中を `doc` に、外を元のままにする。 -/
+theorem ownerDocumentOf_setOwnerDocument_eq (t : Tree) (n doc m : NodeId) :
+    ownerDocumentOf (setOwnerDocument t n doc) m =
+      (t.get? m).map fun d => if m ∈ preorder t n then doc else d.ownerDocument := by
+  simp only [ownerDocumentOf, get?_setOwnerDocument, Option.map_map]
+  cases t.get? m <;> simp <;> split <;> rfl
+
+/-- `n` は自分の preorder に入っている。 -/
+theorem mem_preorder_self {t : Tree} (hwf : WellFormed t) {n : NodeId} {d : NodeData}
+    (hn : t.get? n = some d) : n ∈ preorder t n :=
+  (mem_preorder_iff hwf hn n).mpr (InclusiveAncestor.refl t n)
 
 end Dom
