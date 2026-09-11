@@ -1615,11 +1615,128 @@ Dommy 側の修正を stash して A/B を取り、順序の不一致が本物�
 生成 scenario 1600 本（seed 8 個 × 200 本、`--observers 3`）で不一致ゼロ。
 残りは `unsupported`、すなわち scenario が作っていない node id を harness が断ったものである。
 
+## MutationObserver の attribute（roadmap の「未着手」の残り）
+
+`attributes` / `attributeOldValue` / `attributeFilter` を扱うには model に attribute が要る。
+`NodeData` に attribute list を足し、§4.9 の algorithm と §1.3 の名前検査を入れた。
+
+### model
+
+| 仕様 | 定義 | module |
+| --- | --- | --- |
+| attribute（`Attr` の namespace / prefix / local name / value） | `Attr` | `Dom/Basic/NodeId.lean` |
+| valid namespace prefix / valid attribute local name | `isValidNamespacePrefix`, `isValidAttributeLocalName` | `Dom/Attribute/Name.lean` |
+| validate and extract（context は "attribute"） | `validateAndExtractAttribute`, `validateAndExtractError` | 同上 |
+| get an attribute by name / by namespace and local name / get an attribute value | `getAttributeByName`, `getAttributeByKey`, `getAttributeValue` | `Dom/Attribute/Algorithms.lean` |
+| handle attribute changes | `handleAttributeChanges` | 同上 |
+| change / append / remove an attribute | `changeAttribute`, `appendAttribute`, `removeAttributeFrom` | 同上 |
+| set an attribute value | `setAttributeValue` | 同上 |
+| `setAttribute` / `setAttributeNS` / `removeAttribute` / `removeAttributeNS` / `toggleAttribute` | 同名 | 同上 |
+| `getAttribute` / `hasAttribute` / `getAttributeNames` | 同名 | 同上 |
+
+attribute は仕様では `Attr` node だが、model では element の状態として持つ。
+node tree に入らない（parent を持てず tree order にも現れない）ので、
+`Tree` の不変条件に絡まないためである。
+その帰結として `setAttributeNode` と `NamedNodeMap`、および
+"set an attribute" / "replace an attribute" は扱わない。
+
+`DOMException` に `InvalidCharacterError` と `NamespaceError` を足した。
+receiver が Element でない場合は WebIDL の TypeError を返す。
+
+### `MutationObserverInit` の「省略」を表に出した
+
+IDL は `childList` / `subtree` / `attributeOldValue` / `characterDataOldValue` に
+`false` の既定値を与えるが、`attributes` と `characterData` には与えない。
+`observe` の step 1-2 が「**存在しない** なら true にする」なので、
+この二つは `Option Bool` で持つことにした（`MutationObserverInit.resolve` が step 1-2）。
+
+これで step 3-6 の TypeError が四通りそろう（`observeOptionsError`）。
+それまでの model は `{characterDataOldValue: true}` で `characterData` を省いた場合に
+TypeError を返していたが、仕様は step 2 でそれを observing な registration にする。
+
+`attributeFilter` は存在の有無に意味がある。
+"queue a mutation record" step 2.3 の三つ目の条件は
+「filter が **存在して**、name を含まないか namespace が非 null なら積まない」である。
+namespace 付きの attribute は filter では拾えない。
+
+### 第七成分 `AttributesValid`
+
+* Element 以外は attribute を持たない。
+* 一つの element の attribute list は (namespace, local name) で一意である。
+* prefix があるなら namespace もある。
+
+二つ目は仕様が明文で書いていないが、"get an attribute by namespace and local name" が
+「その attribute（あれば）」と単数で書いているのはこれを前提にしている。
+三つ目は二つ目を保つのに要る。prefix 付き・namespace 無しの attribute があると、
+`setAttribute` が qualified name で探して見つけられないまま同じ鍵の attribute を append してしまう。
+"validate and extract" の step 8 が毎回これを保証している
+（`validateAndExtractAttribute_ok`）。
+
+§4.2.3 の algorithm はどれも attribute を触らないので、この成分は自動的に保たれる。
+`KindPreserving` を `ShapePreserving` に広げ、kind と並べて attribute list も運ぶようにした
+（`Dom/Properties/Algorithms.lean`）。既存の保存補題はすべてそのまま通る。
+
+逆に §4.9 の algorithm は attribute しか変えないので、他の六成分が保たれることを
+`AttributesOnly`（attribute list 以外を変えない変更）で一度に示した
+（`Dom/Validity/Attributes.lean`）。
+
+public API の保存は `admissible_setAttribute` / `_setAttributeNS` / `_removeAttribute` /
+`_removeAttributeNS` / `_toggleAttribute`。
+
+### 契約
+
+* `setAttribute_getAttribute` — 書いた値は同じ qualified name で読み戻せる。
+  鍵の一意性が要る（同じ鍵が二つあると step 5 が前を書き換えて step 4 が後ろを見る）。
+* `removeAttribute_erases` — qualified name で見つけた一つだけを外す。
+  qualified name が同じでも namespace が違えば残る、という仕様どおりの弱い形である。
+* `validateAndExtractAttribute_ok` — 返す namespace は正規化済みで、prefix があれば namespace もある。
+
+### 実行時検査と loader の穴（指摘による）
+
+`AdmissibleDOMState` は六成分を持ち `checkAdmissibleDOMState` は六成分すべてと同値だったが、
+`buildState` と `runOperations` は五成分しか見ていなかった。
+存在しない node を対象とする observer を含む scenario が終了コード 0 で通っていた。
+どちらも七成分すべてを検査するようにし、`runOperations_no_violation` に分岐を足した。
+`Dom/Validity/State.lean` の `ReachableFrom` の参照先も
+`Dom/Properties/Trace.lean` から `Dom/Exec/Invariant.lean` に直した。
+
+### 見つかった Dommy の不一致（Dommy commit `8b0e4bb`）
+
+22. **oldValue を registration 一つからしか読んでいない。**
+    "queue a mutation record" step 2.3.3 は、条件を満たす registration を **すべて** 回り、
+    old value を要求するものがあればそこで oldValue を立てる。
+    Dommy は探索が最初に当たった registration の
+    `characterDataOldValue` / `attributeOldValue` だけを見ていたので、
+    同じ observer の別の registration が要求していても `oldValue` が null になっていた。
+23. **`attributeFilter` が registration ごとの条件になっていない。**
+    filter は step 2.3 の条件の一部（三つ目の bullet）であって、
+    observer 単位の後置きの絞り込みではない。
+    filter がこの attribute を含まない registration が、
+    同じ observer の filter 無しの registration を隠していた。
+    namespace 付きの attribute を filter が拾わないことも同じ bullet なので、
+    まとめて `entry_wants?` に移した。
+24. **attribute を local name で引いていた。**
+    `getAttribute` / `setAttribute` / `removeAttribute` / `hasAttribute` / `toggleAttribute` は
+    どれも **qualified name** で attribute を同定する。
+    backend の `node[name]` は local name で引くので、`xml:b` を持つ element に対して
+    `getAttribute("b")` がその値を返し、`setAttribute("b", v)` が `xml:b` を上書きし、
+    `toggleAttribute("b")` が追加ではなく削除になっていた。
+    `Attr#value` も同じ取り違えで、同名の二つが互いの値を報告していた。
+    `Backend.attr_by_qualified_name` を足して、この一族をすべてそこへ通した。
+
+### 一致状況
+
+固定 scenario 41 本（うち `move-receiver-must-be-parentnode` は model 固有で比較対象外）と、
+生成 scenario 2000 本（seed 10 個 × 200 本、`--observers 3 --move`）で不一致ゼロ。
+
 ## 未着手
 
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
   model の骨格（`Tree` と `WellFormed`）から広げることになる。
   MutationObserver と違って既存の定理の多くに影響する。
-* MutationObserver の attribute 関連（`attributes`, `attributeFilter`,
-  `attributeOldValue`）。model に attribute そのものが無いので、
-  `NodeData` から広げることになる。
+* `Attr` を node として扱う API（`setAttributeNode`, `attributes` の `NamedNodeMap`、
+  それに伴う "set an attribute" と "replace an attribute"、`InUseAttributeError`）。
+  model の attribute は element の状態なので、node として観測できない。
+* element の namespace と local name。無いので
+  "get an attribute by name" step 1 と `setAttribute` step 2 の
+  「HTML namespace の element が HTML document にあるなら ASCII lowercase する」は走らない。

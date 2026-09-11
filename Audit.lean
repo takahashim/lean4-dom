@@ -106,6 +106,14 @@ open Dom.Audit
   Dom.admissible_takeRecords
   Dom.admissible_notifyMutationObservers
 
+-- §4.9 attribute の admissibility 保存
+#audit_axioms
+  Dom.admissible_setAttribute
+  Dom.admissible_setAttributeNS
+  Dom.admissible_removeAttribute
+  Dom.admissible_removeAttributeNS
+  Dom.admissible_toggleAttribute
+
 -- 契約
 #audit_axioms
   Dom.remove_succeeds_iff
@@ -116,6 +124,9 @@ open Dom.Audit
   Dom.moveValidity_step2
   Dom.moveValidity_step3
   Dom.moveValidity_step4
+  Dom.setAttribute_getAttribute
+  Dom.removeAttribute_erases
+  Dom.validateAndExtractAttribute_ok
 
 -- boolean checker と Prop の対応
 #audit_axioms
@@ -126,3 +137,4 @@ open Dom.Audit
   Dom.checkDocumentTreesValid_iff
   Dom.checkRangeEndpointsValid_iff
   Dom.checkIteratorsValid_iff
+  Dom.checkAttributesValid_iff

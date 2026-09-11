@@ -57,14 +57,32 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| queue a mutation record | 1-2 inclusive ancestor を辿って observer を集める / 3-6 record を積む | `queueMutationRecord`, `interestedObservers` | preservation `preservesRegs_*` | `observer-uninterested-registration-does-not-shadow` | `test_wpt_mutation_record_details.rb`, `test_wpt_mutation_observer_order.rb` | 済（attribute を除く） |
+| queue a mutation record | 1-2 inclusive ancestor を辿って observer を集める / 2.3 registration ごとの条件（型・scope・attributeFilter）/ 2.3.3 oldValue / 3-6 record を積む | `queueMutationRecord`, `interestedObservers`, `Registration.interestedIn` | preservation `preservesRegs_*` | `observer-uninterested-registration-does-not-shadow`, `observer-attribute-filter-does-not-shadow`, `observer-old-value-from-any-registration` | `test_wpt_mutation_record_details.rb`, `test_wpt_mutation_observer_order.rb`, `test_wpt_mutation_observer_attribute_options.rb` | 済 |
 | queue a tree mutation record | 1 assert / 2 queue | `queueTreeMutationRecord` | 同上 | 同上 | `test_wpt_mutation_record_insertion_point.rb` | 済 |
 | transient registered observer | remove step 20 | `addTransientObservers` | `preservesRegs_remove` | `observer-transient-follows-existing-registration` | `test_wpt_transient_registered_observer.rb` | 済 |
 | queue a mutation observer microtask | 1-3 | `queueMutationObserverMicrotask`, `addPendingObserver` | preservation `admissible_*`（配送は木を触らない） | `observer-delivery` | `test_wpt_mutation_observer_order.rb` | 済 |
 | notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | `admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
-| `observe(target, options)` | 1-8（step 3 / 6 の TypeError を含む） | `MutationObserver.observe` | `admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow` | 同上 | 済（attribute を除く） |
+| `observe(target, options)` | 1-8（step 1-2 の省略の解決と step 3-6 の TypeError を含む） | `MutationObserver.observe`, `MutationObserverInit.resolve`, `observeOptionsError` | `admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow` | 同上 | 済 |
 | `disconnect()` | 1-2 | `MutationObserver.disconnect` | `admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
 | `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | `admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |
+
+## §4.9 Attr / §1.3 名前の検査
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| valid namespace prefix / valid attribute local name | §1.3 | `isValidNamespacePrefix`, `isValidAttributeLocalName` | — | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
+| validate and extract（"attribute"） | 1-12 | `validateAndExtractAttribute`, `validateAndExtractError` | `validateAndExtractAttribute_ok`（step 1 と step 8） | 同上 | 同上 | 済 |
+| get an attribute by name | 1-2（step 1 の lowercase は非対象） | `getAttributeByName` | `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| get an attribute by namespace and local name | 1-2 | `getAttributeByKey` | — | （生成 scenario の `removeAttributeNS`） | 同上 | 済 |
+| handle attribute changes | 1（2-3 は hook の位置のみ） | `handleAttributeChanges` | preservation `admissible_setAttribute` ほか | `observer-attribute-filter-does-not-shadow` | `test_wpt_mutation_observer_attribute_options.rb` | 済 |
+| change an attribute | 1-3 | `changeAttribute` | `attributesValid_change` | 同上 | 同上 | 済 |
+| append an attribute | 1-4 | `appendAttribute` | `attributesValid_append` | 同上 | 同上 | 済 |
+| remove an attribute | 1-4 | `removeAttributeFrom` | `attributesValid_erase`, `removeAttribute_erases` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| set an attribute value | 1-3 | `setAttributeValue` | `attrOpResult_setAttributeValue` | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
+| `setAttribute(qualifiedName, value)` | 1, 4-7（step 2-3 は非対象） | `setAttribute` | `admissible_setAttribute`, `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| `setAttributeNS(namespace, qualifiedName, value)` | 1, 3（step 2 は非対象） | `setAttributeNS` | `admissible_setAttributeNS` | （生成 scenario） | `test_wpt_attr.rb` | 済 |
+| `removeAttribute` / `removeAttributeNS` | 全 | `removeAttribute`, `removeAttributeNS` | `admissible_removeAttribute`, `admissible_removeAttributeNS` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| `toggleAttribute(qualifiedName, force)` | 1, 3-6（step 2 は非対象） | `toggleAttribute` | `admissible_toggleAttribute` | 同上 | 同上 | 済 |
 
 ## normative branch の網羅（roadmap §11.3）
 
@@ -133,13 +151,15 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | --- | --- | --- |
 | Shadow DOM（shadow-including root / slot） | 未対応 | roadmap の対象外。`move` step 1 は shadow-including root ではなく root で近似している |
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
-| attribute（`attributes`, `attributeFilter`, `attributeOldValue`） | 対象外 | model に attribute が無い |
+| `Attr` を node として扱う API（`setAttributeNode`、`attributes` の `NamedNodeMap`、"set an attribute" と "replace an attribute"） | 対象外 | model の attribute は element の状態で、node tree に入らない |
+| element の namespace と local name | 対象外 | 無いので "get an attribute by name" step 1 と `setAttribute` step 2 の HTML lowercase は走らない。model の element は HTML namespace に無いものとして扱う |
+| ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の code unit 境界 | 対象外 | roadmap §13.1。`data` は Lean の `String` |
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
 | NodeIterator の filter | 対象外 | roadmap §13.4 |
-| WebIDL の TypeError | 一部 | `observe` の step 3 / 6 は `DOMException.typeError` で表す。`moveBefore` の receiver が ParentNode でない場合は HierarchyRequestError で代用する（`move-receiver-must-be-parentnode`） |
+| WebIDL の TypeError | 一部 | `observe` の step 3-6 と、attribute の method の receiver が Element でない場合は `DOMException.typeError` で表す。`moveBefore` の receiver が ParentNode でない場合は HierarchyRequestError で代用する（`move-receiver-must-be-parentnode`） |
 
 ## 仕様改訂時の手順
 

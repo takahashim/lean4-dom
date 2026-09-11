@@ -245,4 +245,117 @@ theorem moveBefore_refines_move {s s' : DOMState} {parent node : NodeId}
   obtain ⟨_, ref, _, _, hm⟩ := moveBefore_ok h
   exact ⟨ref, hm⟩
 
+/-! ## §4.9 attribute の往復 -/
+
+open Dom.ListUtil
+
+/--
+`updateFirst` は述語を満たす **最初の** 要素だけを差し替える。
+
+鍵が一意なら、その要素は述語 `key == a.key` を満たす唯一の要素なので、
+`find?` が返していた attribute そのものである。
+-/
+theorem find?_updateFirst_of_key {as : List Attr} {a : Attr} {v : String} {qn : String}
+    (hnd : (as.map Attr.key).Nodup) (hfind : as.find? (fun b => b.qualifiedName == qn) = some a) :
+    (updateFirst (fun b => b.key == a.key) (fun b => { b with value := v }) as).find?
+      (fun b => b.qualifiedName == qn) = some { a with value := v } := by
+  induction as with
+  | nil => simp at hfind
+  | cons x xs ih =>
+    simp only [List.find?_cons] at hfind
+    split at hfind
+    · -- x が見つかった attribute である
+      next hx =>
+      have hxa : x = a := Option.some.inj hfind
+      subst hxa
+      show List.find? _ (if (x.key == x.key) = true then _ else _) = _
+      rw [if_pos (by simp)]
+      simp only [List.find?_cons]
+      -- 値を変えても qualified name は変わらない。
+      have hq : ({ x with value := v } : Attr).qualifiedName = x.qualifiedName := rfl
+      rw [hq, hx]
+    · next hx =>
+      have hnd' : (xs.map Attr.key).Nodup := (List.nodup_cons.mp hnd).2
+      have hkey : (x.key == a.key) = false := by
+        by_cases h : x.key = a.key
+        · exfalso
+          have hmem : a ∈ xs := List.mem_of_find?_eq_some hfind
+          exact (List.nodup_cons.mp hnd).1 (h ▸ List.mem_map_of_mem hmem)
+        · simpa using h
+      show List.find? _ (if (x.key == a.key) = true then _ else x :: _) = _
+      rw [if_neg (by simp [hkey])]
+      simp only [List.find?_cons, hx]
+      exact ih hnd' hfind
+
+/--
+qualified name で見つからなかった attribute を末尾に足すと、
+`find?` はその足したものを返す。
+-/
+theorem find?_append_of_not_found {as : List Attr} {a : Attr} {qn : String}
+    (hnone : as.find? (fun b => b.qualifiedName == qn) = none)
+    (ha : a.qualifiedName = qn) :
+    (as ++ [a]).find? (fun b => b.qualifiedName == qn) = some a := by
+  rw [List.find?_append, hnone]
+  simp [ha]
+
+/--
+`setAttribute` の往復。
+
+書いた値は同じ qualified name で読み戻せる。attribute が既にあれば
+その場で値が変わり（step 5）、無ければ末尾に足される（step 6-7）ので、
+どちらの分岐でも `getAttribute` は書いた値を返す。
+
+鍵の一意性（`AttributesValid`）が要る。同じ鍵の attribute が二つあると
+`changeAttribute` が前の方を書き換えて、`getAttribute` が後ろの方を見てしまう。
+-/
+theorem setAttribute_getAttribute {s s' : DOMState} {element : NodeId} {qn value : String}
+    (h : AttributesValid s.tree) (hr : setAttribute s element qn value = .ok s') :
+    getAttribute s'.tree element qn = some value := by
+  unfold setAttribute at hr
+  split at hr
+  · simp at hr
+  · split at hr
+    · simp at hr
+    · next d hd =>
+      split at hr
+      · simp at hr
+      · split at hr
+        · next a ha =>
+          rw [← Except.ok.inj hr]
+          unfold getAttribute
+          rw [changeAttribute_tree, get?_setAttributes hd, if_pos rfl]
+          simp only
+          unfold getAttributeByName at ha ⊢
+          rw [find?_updateFirst_of_key (h.keysNodup element d hd) ha]
+          rfl
+        · next hnone =>
+          rw [← Except.ok.inj hr]
+          unfold getAttribute
+          rw [appendAttribute_tree, get?_setAttributes hd, if_pos rfl]
+          simp only
+          unfold getAttributeByName at hnone ⊢
+          rw [find?_append_of_not_found hnone (by simp [Attr.qualifiedName])]
+          rfl
+
+/--
+`removeAttribute` は qualified name で見つけた attribute を取り除く。
+
+取り除いた後にその qualified name の attribute が残ることはある。
+qualified name が同じでも namespace が違えば別の attribute だからで、
+仕様の "remove an attribute by name" も最初の一つしか外さない。
+-/
+theorem removeAttribute_erases {s s' : DOMState} {element : NodeId} {qn : String} {d : NodeData}
+    {a : Attr} (hd : s.tree.get? element = some d) (hk : d.kind = .element)
+    (ha : getAttributeByName d qn = some a)
+    (hr : removeAttribute s element qn = .ok s') :
+    ∃ d', s'.tree.get? element = some d' ∧
+      d'.attributes = eraseFirst (fun b => b.key == a.key) d.attributes := by
+  unfold removeAttribute at hr
+  rw [hd] at hr
+  simp only [hk] at hr
+  rw [ha] at hr
+  simp only [bne_self_eq_false, Bool.false_eq_true, if_false] at hr
+  rw [← Except.ok.inj hr]
+  exact ⟨_, by rw [removeAttributeFrom_tree, get?_setAttributes hd, if_pos rfl], rfl⟩
+
 end Dom
