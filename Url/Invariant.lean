@@ -540,6 +540,30 @@ theorem PInv.portStep {base : Option Url} {ctx ctx2 : PCtx} (h : PInv base .port
 この証明の elaborate に 5 分ほどかかる。
 -/
 
+/-!
+### 自動化で使う simp set
+
+三段で開く範囲が違う。段が進むほど広く開き、そのぶん遅い。
+`unusedSimpArgs` linter はこの三つを数十箇所で呼ぶたびに引数ごとの警告を出すので、
+この file では切ってある（どの引数がどの case で効くかは case ごとに違う）。
+-/
+
+set_option linter.unusedSimpArgs false
+
+/-- state の判定と `fail` だけを開く。 -/
+local macro "url_simp_state" : tactic =>
+  `(tactic| simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail])
+
+/-- URL の述語も開く。 -/
+local macro "url_simp_url" : tactic =>
+  `(tactic| simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail,
+      Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials])
+
+/-- special scheme の表まで開く。 -/
+local macro "url_simp_scheme" : tactic =>
+  `(tactic| simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail,
+      Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])
+
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 0 in
 theorem run_valid (base : Option Url) :
@@ -585,10 +609,10 @@ theorem run_valid (base : Option Url) :
          done)
       | (refine ih ?_ u ?_
          all_goals (try constructor)
-         all_goals (try simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail])
-         all_goals (try (split at heq <;> simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail]))
+         all_goals (try url_simp_state)
+         all_goals (try (split at heq <;> url_simp_state))
          done)
-      | (simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail]
+      | (url_simp_state
          first
            | done
            | (exact valid_of_inv hsp hnp hoc hopo hoh hcs)
@@ -598,46 +622,34 @@ theorem run_valid (base : Option Url) :
     (try (first
       | (refine ih ?_ u ?_
          all_goals (try constructor)
-         all_goals (try simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials])
-         all_goals (try (intros; simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]))
-         all_goals (try (split at heq <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]))
+         all_goals (try url_simp_url)
+         all_goals (try (intros; url_simp_url))
+         all_goals (try (split at heq <;> url_simp_url))
          done)
-      | (simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]
+      | (url_simp_url
          first
            | done
            | (exact valid_of_inv hsp hnp hoc hopo hoh hcs)
-           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials]))))
+           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> url_simp_url))))
   -- 第三段：遷移ごとの移送補題が要るもの。
   all_goals
     (try (first
       | (refine ih (hinv.portStep ?_) u ?_
-         all_goals (first | assumption | simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])
+         all_goals (first | assumption | url_simp_scheme)
          done)
-      | (split at heq <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
+      | (split at heq <;> url_simp_scheme
          done)
-      | (simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
+      | (url_simp_scheme
          subst heq
          first
            | (simpa using hbv)
-           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])
+           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> url_simp_scheme)
          done)
       | (refine ih ?_ u ?_
-         · constructor <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
+         · constructor <;> url_simp_scheme
          · split at heq
-           · simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort]
-           · split at heq <;> simp_all +zetaDelta [fail, mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort,
-           Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])))
+           · url_simp_scheme
+           · split at heq <;> url_simp_scheme)))
 
 /-! ## 入口 -/
 
