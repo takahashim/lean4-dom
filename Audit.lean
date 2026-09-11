@@ -92,6 +92,13 @@ open Dom.Audit
   Dom.admissible_deleteData
   Dom.admissible_setData
 
+-- §16 の live object をまとめた形
+#audit_axioms
+  Dom.remove_preserves_live_objects
+  Dom.insert_preserves_endpoints
+  Dom.move_matches_remove_insert_observation
+  Dom.replaceData_preserves_live_object_validity
+
 -- 契約
 #audit_axioms
   Dom.remove_succeeds_iff

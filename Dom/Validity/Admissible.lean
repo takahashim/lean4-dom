@@ -665,4 +665,51 @@ theorem admissible_setData {s s' : DOMState} {n : NodeId} {data : String}
   · simp at hp
   · exact admissible_replaceData h hp
 
+/-! ## live object をまとめた形 -/
+
+/--
+`remove` は live Range と NodeIterator の妥当性を保つ。
+
+`notes/research-foundation-roadmap.md` §16 の `remove_preserves_live_objects`。
+pre-remove steps が両方を仕様どおり動かすことの帰結である。
+-/
+theorem remove_preserves_live_objects {s s' : DOMState} {n : NodeId} {b : Bool}
+    (h : AdmissibleDOMState s) (hr : remove s n b = .ok s') :
+    RangeEndpointsValid s' ∧ IteratorsValid s' :=
+  ⟨(admissible_remove h hr).rangeEndpoints, (admissible_remove h hr).iterators⟩
+
+/--
+`replace data` は live Range と NodeIterator の妥当性を保つ。
+
+§16 の `replaceData_preserves_live_object_validity`。
+-/
+theorem replaceData_preserves_live_object_validity {s s' : DOMState} {n : NodeId}
+    {offset count : Nat} {data : String} (h : AdmissibleDOMState s)
+    (hr : replaceData s n offset count data = .ok s') :
+    RangeEndpointsValid s' ∧ IteratorsValid s' :=
+  ⟨(admissible_replaceData h hr).rangeEndpoints, (admissible_replaceData h hr).iterators⟩
+
+/--
+`move` を木・Range・Iterator に射影した結果は、`remove` してから `insertAt` したものと一致する。
+
+§16 の `move_matches_remove_insert_observation`。
+`move` は node document を付け替えないので、`insert`（adopt を含む）ではなく
+primitive の `insertAt` との一致になる。
+Range は挿入側の調整を、Iterator は `remove` の pre-remove steps だけを受ける。
+-/
+theorem move_matches_remove_insert_observation {s s' : DOMState} {node newParent : NodeId}
+    {child : Option NodeId} (hm : move s node newParent child = .ok s') :
+    ∃ s₁, remove s node = .ok s₁ ∧
+      insertAt s₁.tree newParent node child = .ok s'.tree ∧
+      s'.ranges = (liveRangeInsertAdjust s₁ newParent child 1).ranges ∧
+      s'.iterators = s₁.iterators := by
+  obtain ⟨s₁, hr, hi⟩ := move_eq_remove_insertAt hm
+  obtain ⟨s₂, hr₂, hrng⟩ := move_ranges hm
+  obtain ⟨s₃, hr₃, hit⟩ := move_iterators hm
+  have h₂ : s₂ = s₁ := by rw [hr] at hr₂; exact (Except.ok.inj hr₂).symm
+  have h₃ : s₃ = s₁ := by rw [hr] at hr₃; exact (Except.ok.inj hr₃).symm
+  rw [h₂] at hrng
+  rw [h₃] at hit
+  exact ⟨s₁, hr, hi, hrng, hit⟩
+
 end Dom
