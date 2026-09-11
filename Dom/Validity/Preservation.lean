@@ -18,7 +18,8 @@ namespace Dom
 /-- `detach` は kind を変えないので、children を持てる kind かどうかも変わらない。 -/
 theorem structurallyValid_detach {t t' : Tree} {n : NodeId}
     (h : StructurallyValid t) (hd : detach t n = .ok t') : StructurallyValid t' := by
-  refine ⟨detach_preserves_wellformed h.wellFormed hd, ?_, ?_⟩
+  have hkind : ∀ m, kindOf t' m = kindOf t m := kindPreserving_detach hd
+  refine ⟨detach_preserves_wellformed h.wellFormed hd, ?_, ?_, ?_⟩
   · intro m d hm hk
     rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
     · exact h.documentHasNoParent m d hm hk
@@ -49,6 +50,24 @@ theorem structurallyValid_detach {t t' : Tree} {n : NodeId}
           intro hnil
           exact hc (by simp [hnil]; rfl)
         · exact h.childrenOnlyUnderContainers m d hm hc
+  · -- doctype の parent。`detach` は辺を減らすだけなので、残った辺は元からある辺である。
+    intro m d hm hk p hp pd hpd
+    have hpar : parentOf t' m = some p := by simp [parentOf, hm, hp]
+    have hpar' : parentOf t m = some p := by
+      rw [parentOf_detach hd] at hpar
+      split at hpar
+      · simp at hpar
+      · exact hpar
+    obtain ⟨md, hmd, hmdp⟩ := parentOf_eq_some hpar'
+    obtain ⟨pd', hpd'⟩ : ∃ pd', t.get? p = some pd' := exists_data_of_parentOf h.wellFormed hpar'
+    have hkm : md.kind = .documentType := by
+      have hkm' := hkind m
+      simp only [kindOf, hm, hmd, Option.map_some, Option.some.injEq] at hkm'
+      rw [← hkm']; exact hk
+    have hdocp := h.doctypeParentIsDocument m md hmd hkm p hmdp pd' hpd'
+    have hkp := hkind p
+    simp only [kindOf, hpd, hpd', Option.map_some, Option.some.injEq] at hkp
+    rw [hkp]; exact hdocp
 
 /-- `detach` は node document を変えない。 -/
 theorem ownerDocumentOf_detach {t t' : Tree} {n : NodeId} (hd : detach t n = .ok t') (m : NodeId) :
@@ -103,9 +122,12 @@ theorem structurallyValid_insertAt {t t' : Tree} {parent node : NodeId} {child :
     (h : StructurallyValid t)
     (hpk : ∀ pd, t.get? parent = some pd → pd.kind.canHaveChildren = true)
     (hnk : ∀ nd, t.get? node = some nd → nd.kind ≠ .document)
+    (hdt : ∀ nd, t.get? node = some nd → nd.kind = .documentType →
+      ∀ pd, t.get? parent = some pd → pd.kind = .document)
     (hi : insertAt t parent node child = .ok t') : StructurallyValid t' := by
+  have hwf' := insertAt_preserves_wellformed h.wellFormed hi
   obtain ⟨pd, nd, hpd, hnd, hnone, hanc, hchild, rfl⟩ := insertAt_ok_cases hi
-  refine ⟨insertAt_preserves_wellformed h.wellFormed hi, ?_, ?_⟩
+  refine ⟨hwf', ?_, ?_, ?_⟩
   · intro m d hm hk
     rw [get?_insertAtIn] at hm
     split at hm
@@ -132,6 +154,35 @@ theorem structurallyValid_insertAt {t t' : Tree} {parent node : NodeId} {child :
         cases hm
         exact hpk pd hpd
       · exact h.childrenOnlyUnderContainers m d hm hc
+  · -- doctype の parent。新しい辺は node → parent の一本だけである。
+    intro m d hm hk p hp pd' hpd'
+    have hkind : ∀ x, kindOf (insertAtIn t parent node child pd nd) x = kindOf t x :=
+      kindPreserving_insertAt hi
+    have hpar : parentOf (insertAtIn t parent node child pd nd) m = some p := by
+      simp [parentOf, hm, hp]
+    rw [parentOf_insertAtIn hpd] at hpar
+    split at hpar
+    · next he =>
+      subst he
+      cases hpar
+      have hkn : nd.kind = .documentType := by
+        have hk' := hkind m
+        simp only [kindOf, hm, hnd, Option.map_some, Option.some.injEq] at hk'
+        rw [← hk']; exact hk
+      have hdoc := hdt nd hnd hkn pd hpd
+      have hkp := hkind parent
+      simp only [kindOf, hpd', hpd, Option.map_some, Option.some.injEq] at hkp
+      rw [hkp]; exact hdoc
+    · obtain ⟨md, hmd, hmdp⟩ := parentOf_eq_some hpar
+      obtain ⟨pd₀, hpd₀⟩ : ∃ pd₀, t.get? p = some pd₀ := exists_data_of_parentOf h.wellFormed hpar
+      have hkm : md.kind = .documentType := by
+        have hk' := hkind m
+        simp only [kindOf, hm, hmd, Option.map_some, Option.some.injEq] at hk'
+        rw [← hk']; exact hk
+      have hdoc := h.doctypeParentIsDocument m md hmd hkm p hmdp pd₀ hpd₀
+      have hkp := hkind p
+      simp only [kindOf, hpd', hpd₀, Option.map_some, Option.some.injEq] at hkp
+      rw [hkp]; exact hdoc
 
 /-- `insertAt` は node document を変えない。 -/
 theorem ownerDocumentOf_insertAt {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
@@ -205,7 +256,7 @@ theorem structurallyValid_setOwnerDocument {t : Tree} {n doc : NodeId}
       simp only [Option.map_some, Option.some.injEq] at hm
       subst hm
       refine ⟨d', rfl, ?_, ?_, ?_⟩ <;> (split <;> rfl)
-  refine ⟨setOwnerDocument_preserves_wellformed hwf hdd hk, ?_, ?_⟩
+  refine ⟨setOwnerDocument_preserves_wellformed hwf hdd hk, ?_, ?_, ?_⟩
   · intro m d hm hkm
     obtain ⟨d', hm', hkk, hpp, _⟩ := hget m d hm
     rw [hpp]
@@ -214,6 +265,12 @@ theorem structurallyValid_setOwnerDocument {t : Tree} {n doc : NodeId}
     obtain ⟨d', hm', hkk, _, hcc⟩ := hget m d hm
     rw [hkk]
     exact h.childrenOnlyUnderContainers m d' hm' (by rw [← hcc]; exact hc)
+  · intro m d hm hkm p hp pd hpd
+    obtain ⟨d', hm', hkk, hpp, _⟩ := hget m d hm
+    obtain ⟨pd', hpd', hkkp, _, _⟩ := hget p pd hpd
+    rw [hkkp]
+    exact h.doctypeParentIsDocument m d' hm' (by rw [← hkk]; exact hkm) p
+      (by rw [← hpp]; exact hp) pd' hpd'
 
 /--
 `setOwnerDocument` が node document の整合性を保つ条件。

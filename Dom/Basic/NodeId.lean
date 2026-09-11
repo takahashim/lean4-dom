@@ -52,6 +52,17 @@ def isElementOrCharacterData (k : NodeKind) : Bool :=
   k == .element || k.isCharacterData
 
 /--
+仕様の `Text` を継承する種別か。
+
+`CDATASection` の IDL は `interface CDATASection : Text` なので、
+CDATASection node は Text node でもある。
+「Document の子に Text は置けない」という制約はこちらで判定する。
+-/
+def isText : NodeKind → Bool
+  | .text | .cdataSection => true
+  | _ => false
+
+/--
 children を持てる種別か。
 
 DOM Standard §4.2.3 "ensure pre-insertion validity" step 1 が parent に許す

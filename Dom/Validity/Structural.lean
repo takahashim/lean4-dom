@@ -20,12 +20,22 @@ kind から決まる構造制約。
 * children を持てるのは Document / DocumentFragment / Element だけである
   （§4.2.3 "ensure pre-insertion validity" step 1 が parent に許す種別）。
   したがって CharacterData と DocumentType の children は常に空である。
+* DocumentType の parent は Document だけである（同 step 5）。
+
+三つ目は `notes/research-foundation-roadmap.md` §4 の一覧には無かったが、
+`insert` が `DocumentTreesValid` を保つことの証明に要る。
+これが無いと「doctype を子に持つ DocumentFragment」が admissible になり、
+それを Document に入れると doctype が document element より後ろに来てしまう。
+仕様は step 5 で毎回この状態を防いでいるので、局所不変条件として正しい。
 -/
 structure StructurallyValid (t : Tree) : Prop where
   wellFormed : WellFormed t
   documentHasNoParent : ∀ n d, t.get? n = some d → d.kind = .document → d.parent = none
   childrenOnlyUnderContainers :
     ∀ n d, t.get? n = some d → d.children ≠ [] → d.kind.canHaveChildren = true
+  doctypeParentIsDocument :
+    ∀ n d, t.get? n = some d → d.kind = .documentType →
+      ∀ p, d.parent = some p → ∀ pd, t.get? p = some pd → pd.kind = .document
 
 namespace StructurallyValid
 
@@ -62,7 +72,11 @@ def checkStructurallyValid (t : Tree) : Bool :=
   t.checkWellFormed &&
     t.nodes.checkAll fun _ d =>
       (!(d.kind == .document) || d.parent.isNone) &&
-        (d.children.isEmpty || d.kind.canHaveChildren)
+        (d.children.isEmpty || d.kind.canHaveChildren) &&
+        (!(d.kind == .documentType) ||
+          (match d.parent with
+           | none => true
+           | some p => kindOf t p == some .document))
 
 theorem checkStructurallyValid_iff (t : Tree) :
     checkStructurallyValid t = true ↔ StructurallyValid t := by
@@ -70,27 +84,46 @@ theorem checkStructurallyValid_iff (t : Tree) :
     NodeStore.checkAll_iff]
   constructor
   · rintro ⟨hwf, hall⟩
-    refine ⟨hwf, ?_, ?_⟩
+    refine ⟨hwf, ?_, ?_, ?_⟩
     · intro n d hn hk
       have := hall n d hn
       simp only [hk] at this
-      simpa using this.1
+      simpa using this.1.1
     · intro n d hn hc
       have := hall n d hn
       simp only [Bool.or_eq_true] at this
-      rcases this.2 with he | hk
+      rcases this.1.2 with he | hk
       · exact absurd (List.isEmpty_iff.mp he) hc
       · exact hk
+    · intro n d hn hk p hp pd hpd
+      have := hall n d hn
+      simp only [hk] at this
+      have h2 := this.2
+      simp only [hp] at h2
+      simpa [kindOf, hpd] using h2
   · intro h
     refine ⟨h.wellFormed, ?_⟩
     intro n d hn
     simp only [Bool.or_eq_true, Bool.not_eq_true', beq_eq_false_iff_ne]
-    constructor
+    refine ⟨⟨?_, ?_⟩, ?_⟩
     · by_cases hk : d.kind = NodeKind.document
       · exact Or.inr (by simp [h.documentHasNoParent n d hn hk])
       · exact Or.inl (by simpa using hk)
     · by_cases hc : d.children = []
       · exact Or.inl (by simp [hc])
       · exact Or.inr (h.childrenOnlyUnderContainers n d hn hc)
+    · by_cases hk : d.kind = NodeKind.documentType
+      · refine Or.inr ?_
+        cases hp : d.parent with
+        | none => simp
+        | some p =>
+          cases hpd : t.get? p with
+          | none =>
+            exfalso
+            obtain ⟨pd', hpd', _⟩ := h.wellFormed.child_parent n d p hn hp
+            rw [hpd] at hpd'; simp at hpd'
+          | some pd =>
+            simp [kindOf, hpd, h.doctypeParentIsDocument n d hn hk p hp pd hpd]
+      · exact Or.inl (by simpa using hk)
 
 end Dom

@@ -62,9 +62,16 @@ def elementChildren (t : Tree) (p : NodeId) : List NodeId :=
 def doctypeChildren (t : Tree) (p : NodeId) : List NodeId :=
   (childrenOf t p).filter fun c => kindOf t c == some .documentType
 
-/-- `p` の children のうち Text であるもの。 -/
+/--
+`p` の children のうち Text であるもの。
+
+`CDATASection` は仕様上 `Text` の subclass なのでここに含める。
+-/
 def textChildren (t : Tree) (p : NodeId) : List NodeId :=
-  (childrenOf t p).filter fun c => kindOf t c == some .text
+  (childrenOf t p).filter fun c =>
+    match kindOf t c with
+    | some k => k.isText
+    | none => false
 
 /--
 `c` より後ろに doctype があるか。
@@ -232,7 +239,7 @@ def ensurePreInsertionValidity (t : Tree) (node parent : NodeId) (child : Option
       else if pd.kind ≠ .document then
         if nd.kind == .documentType then .error .hierarchyRequestError else .ok ()
       -- step 6
-      else if nd.kind == .text then .error .hierarchyRequestError
+      else if nd.kind.isText then .error .hierarchyRequestError
       -- step 7
       else if nd.kind.isCharacterData then .ok ()
       -- step 8
