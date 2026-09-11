@@ -1,0 +1,38 @@
+{
+  "_note": "element の子がある Document に element を move すると step 6 で HierarchyRequestError。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "move"
+    ],
+    "steps": "6",
+    "note": "Document の element の子は高々一つである。move も同じ制約を持つ。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "moveBefore",
+      "parent": 0,
+      "node": 2,
+      "child": null
+    }
+  ]
+}

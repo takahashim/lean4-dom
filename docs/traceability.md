@@ -95,12 +95,13 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 
 | step | 分岐 | 固定 scenario |
 | --- | --- | --- |
+| IDL | receiver が ParentNode でない | `move-receiver-must-be-parentnode`（差分比較の対象外） |
 | 1 | root が違う | `move-step1-different-root` |
-| 2 | cycle | 生成 scenario のみ |
-| 3 | reference child が新しい parent の子でない | 生成 scenario のみ |
+| 2 | cycle | `move-step2-cycle` |
+| 3 | reference child が新しい parent の子でない | `move-step3-foreign-reference-child` |
 | 4 | node が Element でも CharacterData でもない | `move-step4-doctype` |
 | 5 | node が Text で新しい parent が Document | `move-step5-text-into-document` |
-| 6 | Document に element を move する三条件 | 生成 scenario のみ |
+| 6 | Document に element を move する三条件 | `move-step6-second-document-element` |
 | 7-24 | 成功して木・range・iterator が動く | `range-adjust-order-on-move` |
 
 ### live range / NodeIterator / CharacterData
@@ -115,9 +116,11 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | replace data の IndexSizeError と count の切り詰め | `characterdata-index-size-and-clamp` |
 | replace data の boundary point 調整 | `characterdata-replace-data-ranges` |
 
-**空欄の扱い。** 「生成 scenario のみ」は、生成器が実際に到達しているが
-固定 scenario に昇格していない分岐である。
-不一致が出たときの再現性は落ちるので、順次昇格させる。
+**空欄の扱い。** 対象 algorithm の normative branch はすべて固定 scenario で押さえてある。
+新しい分岐を model に足したら、この表に行を足してから実装する。
+
+`comparable` が false の scenario は model 固有の近似を固定するためのもので、
+差分比較の対象ではない。`_basis` にその旨を書く。
 
 ## 未対応と対象外
 
@@ -131,6 +134,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
 | NodeIterator の filter | 対象外 | roadmap §13.4 |
+| WebIDL の TypeError | 近似 | `DOMException` に TypeError が無い。`moveBefore` の receiver が ParentNode でない場合は HierarchyRequestError で代用する（`move-receiver-must-be-parentnode`） |
 
 ## 仕様改訂時の手順
 
