@@ -1330,6 +1330,56 @@ doctype は element ではないので、step 9 と step 10-11 の検査はそ�
 `invariantViolation` が出たら model の algorithm ではなく
 harness の側（初期状態の構築や操作の割り当て）を疑えばよい、と形式的に言えるようになった。
 
+## §7 の主定理と §8 の negative result
+
+`notes/research-foundation-roadmap.md` §7 と §8 に挙がっていた定理を入れた。
+
+### §7（`Dom/Exec/Invariant.lean`）
+
+| 定理 | 内容 |
+| --- | --- |
+| `admissible_applyOperation` | 一つの操作は admissibility を保つ |
+| `run_preserves_admissibility` | 有限の操作列も保つ |
+| `reachable_admissible` | admissible な初期状態から到達できる状態は admissible |
+| `runOperations_no_violation` | oracle の実行時検査は決して発火しない |
+
+`ReachableFrom` は public API だけで構成できることを表す帰納的述語で、
+局所不変条件の閉包である `AdmissibleDOMState` とは別概念として分けてある。
+
+### §8（`Dom/Properties/Counterexample.lean`）
+
+`exists_insert_breaking_boundaryLE`。
+admissible な状態と、両端が正しく並んだ range と、一回の `insertBefore` があって、
+操作後も状態は admissible で range の両端は木の中にあるのに、start ≤ end が成り立たない。
+
+反例の状態は具体的に構成してあり、証明は `decide`（kernel で評価する）だけを使う。
+`native_decide` は使っていないので、依存する axiom は
+`propext` / `Classical.choice` / `Quot.sound` の三つだけである。
+
+| node | kind | 備考 |
+| --- | --- | --- |
+| 0 | Document | |
+| 1 | element | children は [2, 3] |
+| 2 | Comment | data "cc" |
+| 3 | Text | data "tt" |
+
+range は start = (2, 0)、end = (3, 2)。
+`element1.insertBefore(text3, comment2)` の後、children は [3, 2] になり、
+range は start = (2, 0)、end = (1, 1) になる。
+node 2 は index 1 なので start は end より後ろである。
+
+原因は step の順序である。insert step 5（parent を指す boundary point の offset を `+count`）は
+step 7 の adopt → remove より前に走る。
+動かす node の中にあった boundary point は step 7 で `(旧 parent, 旧 index)` に出るが、
+その時点で step 5 の `+count` はもう済んでいる。
+node 自身はその位置より前に入るので、start と end が逆転する。
+
+系として `boundaryLE_not_preserved_by_insert` も置いた。
+`AdmissibleDOMState` に `BoundaryLE` を入れると `insert` で閉じない、という形である。
+`Dom/Validity/State.lean` が range について両端の validity しか要求しない理由がこれで形式的になった。
+
+同じ例の JSON 版が `test/scenarios/range-order-broken-by-insert.json` である。
+
 ## 未着手
 
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、

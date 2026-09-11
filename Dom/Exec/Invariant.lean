@@ -97,4 +97,46 @@ theorem runOperations_no_violation :
       simp only []
       exact runOperations_no_violation ops (i + 1) h'
 
+/-! ## 操作列と到達可能性 -/
+
+/-- 操作列を順に適用する。例外が起きたらそこで止める。 -/
+def run : DOMState → List Operation → Except DOMException DOMState
+  | s, [] => .ok s
+  | s, op :: ops =>
+    match applyOperation s op with
+    | .error e => .error e
+    | .ok s' => run s' ops
+
+/-- 有限の操作列は admissibility を保つ。 -/
+theorem run_preserves_admissibility :
+    ∀ (ops : List Operation) {s s' : DOMState},
+      AdmissibleDOMState s → run s ops = .ok s' → AdmissibleDOMState s'
+  | [], _, _, h, hr => by rw [run] at hr; rw [← Except.ok.inj hr]; exact h
+  | op :: ops, s, s', h, hr => by
+    rw [run] at hr
+    split at hr
+    · simp at hr
+    · next s₁ hop =>
+      exact run_preserves_admissibility ops (admissible_applyOperation h hop) hr
+
+/--
+指定した初期状態の集合から public API だけで到達できる状態。
+
+`AdmissibleDOMState` が **局所不変条件の閉包**であるのに対し、
+こちらは **構成可能性**である。両者は別の概念なので混同しない
+（`notes/research-foundation-roadmap.md` §4）。
+-/
+inductive ReachableFrom (initial : DOMState → Prop) : DOMState → Prop where
+  | base {s : DOMState} : initial s → ReachableFrom initial s
+  | step {s s' : DOMState} {op : Operation} :
+      ReachableFrom initial s → applyOperation s op = .ok s' → ReachableFrom initial s'
+
+/-- admissible な初期状態から到達できる状態は admissible である。 -/
+theorem reachable_admissible {initial : DOMState → Prop}
+    (hinit : ∀ s, initial s → AdmissibleDOMState s) {s : DOMState}
+    (hr : ReachableFrom initial s) : AdmissibleDOMState s := by
+  induction hr with
+  | base h => exact hinit _ h
+  | step _ hop ih => exact admissible_applyOperation ih hop
+
 end Dom.Exec
