@@ -8,7 +8,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 * **Evaluator** — その algorithm を写した Lean の定義。
 * **Contracts** — その algorithm について証明したこと。
 * **Test** — 期待結果の根拠。`wpt` は `test/url/wpt-ascii.json`、
-  `wpt-set` は `test/url/wpt-setters.json` の中の case、
+  `wpt-set` は `test/url/wpt-setters.json`、
+  `wpt-sort` は `test/url/wpt-searchparams-sort.json` の中の case、
   `dommy` は Dommy の実装との突き合わせ。
 * **Status** — 済 / 部分 / 対象外。
 
@@ -96,6 +97,19 @@ setter は `state override` 付きの basic URL parser を呼ぶだけなので�
 | URL cannot have a username/password/port | §4.2 | `Url.cannotHaveCredentials` | 上記 3 つの `*_cannot` | wpt-set | 済 |
 | potentially strip trailing spaces from an opaque path | §6.1 1-4 | `stripTrailingSpaces` | — | wpt-set | 済 |
 
+## §6.2 `URLSearchParams`
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
+| --- | --- | --- | --- | --- | --- |
+| constructor（文字列から） | §6.2 1-3 | `Params.ofString` | — | 固定 case | 済（sequence / record の形は IDL 側） |
+| `get` / `getAll` / `has` / `size` | §6.2 | `Params.get`, `getAll`, `has`, `hasValue`, `size` | `get_eq_head`, `has_eq` | 固定 case | 済 |
+| `append` / `delete` / `set` | §6.2 | `Params.append`, `delete`, `deleteValue`, `set` | `getAll_append`, `getAll_delete`, `getAll_set` | 固定 case | 済 |
+| `sort` | §6.2 1-2 | `Params.sort`, `Params.insert` | `getAll_sort`（安定性）、`length_sort` | wpt-sort（8 件） | 済 |
+| stringifier | §6.2 | `Params.serialize` | — | 固定 case | 済 |
+| update a URLSearchParams object | §6.2 1-5 | `Url.withParams` | — | 固定 case | 済（object identity は持たない） |
+| §6.1 `searchParams` getter | §6.1 | `Url.searchParams` | — | 固定 case | 済 |
+| code unit 順の比較 | WebIDL | `Infra.codeUnits`, `Infra.strLt` | `strLt_self`, `ne_of_strLt` | wpt-sort | 済 |
+
 ## 未対応と対象外
 
 | 項目 | 扱い | 根拠 |
@@ -104,7 +118,6 @@ setter は `state override` 付きの basic URL parser を呼ぶだけなので�
 | `URL` の constructor が投げる例外 | 対象外 | `TypeError`。model は `Option` で返す |
 | `Location` の setter | 対象外 | HTML 側の概念（navigate、cross-origin の検査）を含む。URL record に効く部分は `URL` の setter と同じ |
 | encoding override | 対象外 | HTML 由来の legacy 引数。UTF-8 に固定している |
-| `URLSearchParams` の IDL | 未着手 | `get` / `getAll` / `append` / `sort` ほか。parse と serialize（§5）は入っている |
 | `_charset` の特別扱い | 対象外 | §5.1 の注記。仕様も「conforming なのは UTF-8 だけ」としている |
 | blob URL entry | 対象外 | §4.7 の `blob` の分岐。entry は HTML 側の概念なので、常に null として path を読み直す |
 | validation error | 対象外 | 仕様の validation error は parse の成否を変えない。`ipv4NumberParser` だけ、10 進でなかったことを boolean で返す |
@@ -115,6 +128,6 @@ setter は `state override` 付きの basic URL parser を呼ぶだけなので�
 1. `docs/url-spec-version.md` の commit から新しい commit までの `url.bs` の差分を取る。
 2. 差分に現れた algorithm 名でこの表を検索し、その行を review する。
 3. step 要約が変わっていれば要約を直し、意味が変わっていれば evaluator と契約を直す。
-4. WPT の `urltestdata.json` と `setters_tests.json` を取り直し、
-   `url-model --wpt` と `url-model --setters` を通す。
+4. WPT の `urltestdata.json`、`setters_tests.json`、`urlsearchparams-sort.any.js` を
+   取り直し、`url-model --wpt` と `--setters` と `--searchparams` を通す。
 5. `docs/url-spec-version.md` を進める。

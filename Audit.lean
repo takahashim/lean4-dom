@@ -176,6 +176,24 @@ open Dom.Audit
   Url.basicUrlParse_valid
   Url.parseUrl_valid
 
+-- URL Standard §6.2 `URLSearchParams`
+#audit_axioms
+  Infra.lexLt_self
+  Infra.strLt_self
+  Infra.ne_of_strLt
+  Url.Params.get_eq_head
+  Url.Params.has_eq
+  Url.Params.getAll_delete
+  Url.Params.getAll_snoc
+  Url.Params.getAll_append
+  Url.Params.getAll_setFirst
+  Url.Params.getAll_set
+  Url.Params.length_insert
+  Url.Params.length_sort
+  Url.Params.getAll_swap
+  Url.Params.getAll_insert
+  Url.Params.getAll_sort
+
 -- URL Standard §3.2 host / §1.3 percent-encoding
 #audit_axioms
   Url.opaqueHostParser_no_forbidden

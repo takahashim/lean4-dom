@@ -55,3 +55,7 @@ jobs:
       # §6.1 の setter も WPT が `setters_tests.json` で期待値を配っている。
       - name: URL setters against WPT
         run: lake exe url-model --setters test/url/wpt-setters.json
+
+      # §6.2 の `sort` は WPT が配列リテラルで期待値を持っている。
+      - name: URLSearchParams against WPT
+        run: lake exe url-model --searchparams test/url/wpt-searchparams-sort.json

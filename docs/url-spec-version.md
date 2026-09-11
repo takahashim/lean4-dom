@@ -15,5 +15,7 @@
   input と base が ASCII だけの case を抜いたもの。
 * `wpt-setters.json` — `url/resources/setters_tests.json` から、
   入力も期待値も ASCII だけの case を抜いたもの。
+* `wpt-searchparams-sort.json` — `url/urlsearchparams-sort.any.js` が持つ
+  配列リテラルをそのまま取り出したもの（行末の `//` コメントだけ落としてある）。
 
-更新するときは `url-model --wpt` と `url-model --setters` を通してから上げる。
+更新するときは `url-model --wpt` と `--setters` と `--searchparams` を通してから上げる。

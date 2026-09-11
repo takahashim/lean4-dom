@@ -40,6 +40,8 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §4.4 state override | `SOverride`, `basicUrlParseOverride` | `Url/Parser.lean` |
 | §6.1 `URL` の getter と setter | `Url.href` ほか、`Url.setProtocol` ほか | `Url/Api.lean` |
 | §4.4 parser が `ValidUrl` を保つこと | `PInv`, `run_valid`, `basicUrlParse_valid` | `Url/Invariant.lean` |
+| §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean` |
+| UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
 
 ## state override をどう通したか
 
@@ -150,6 +152,12 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `PInv_empty`, `PInv.valid`, `valid_of_inv` | 不変条件の入口と出口 |
 | `run_valid` | **state machine の 1 歩が `PInv` を保つ**（`run.induct` の 113 case） |
 | `basicUrlParse_valid`, `parseUrl_valid` | **parse が成功したら結果は `ValidUrl` を満たす** |
+| `Params.getAll_sort` | **`sort` は安定である**。名前ごとに見た値の並びが変わらない |
+| `Params.getAll_swap`, `Params.getAll_insert` | 上の足場。名前の違う隣どうしの入れ替えは名前ごとの並びを変えない |
+| `Params.getAll_set`, `Params.getAll_delete`, `Params.getAll_append` | `set` / `delete` / `append` の効果 |
+| `Params.get_eq_head`, `Params.has_eq` | `get` は `getAll` の先頭、`has` は `getAll` が空でないこと |
+| `Params.length_sort` | `sort` は組を落とさない |
+| `Infra.ne_of_strLt` | code unit 順で小さいなら等しくない。安定性の証明で使う |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -193,6 +201,18 @@ ValidUrl（setter 後）: 違反 0
 
 対象外の 6 件（2 case × 3 属性）は host / hostname に `a%C2%ADb` を入れるもので、
 UTS #46 が soft hyphen を落とすことを期待している。
+
+`URLSearchParams`（§6.2）は、`sort` だけ WPT が
+`urlsearchparams-sort.any.js` に配列リテラルで期待値を持っている。
+残りの操作は仕様の記述とその例から固定 case を作った。
+
+```
+searchparams: 一致 26 / 不一致 0
+```
+
+`sort` は **code point 順ではなく UTF-16 code unit 順**である。
+BMP の外の code point は surrogate pair になるので、U+E000 以上の BMP 文字より前に来る。
+WPT の `ﬃ&🌈` がこれを見分ける case で、code point 順に実装すると落ちる。
 
 IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
 host の 2 件が IDNA の境界で、それ以外は一致した。
@@ -282,8 +302,6 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 
 ## 未着手
 
-* **`URLSearchParams` の API**（`get` / `getAll` / `append` / `sort` ほか）。
-  parser と serializer（§5）は入れたが、IDL の側はまだ。
 * **`serialize` と `parse` の往復定理。** `urlencodedEncode_no_separator` で
   「区切りを作らない」ところまでは示した。完全な往復
   （`parse (serialize l) = l`）には `utf8Decode (utf8Encode s) = s.toList` が要る。

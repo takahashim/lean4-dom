@@ -1,0 +1,198 @@
+{
+ "_note": "WPT の urlsearchparams-sort.any.js が持つ配列リテラルをそのまま取り出したもの。`sort` は code point 順ではなく UTF-16 code unit 順である。",
+ "_source": {
+  "repository": "https://github.com/web-platform-tests/wpt",
+  "path": "url/urlsearchparams-sort.any.js",
+  "commit": "c23755a1449cc9c5a9131378c13ecf073c0885c6"
+ },
+ "cases": [
+  {
+   "input": "z=b&a=b&z=a&a=a",
+   "output": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "a"
+    ],
+    [
+     "z",
+     "b"
+    ],
+    [
+     "z",
+     "a"
+    ]
+   ]
+  },
+  {
+   "input": "�=x&￼&�=a",
+   "output": [
+    [
+     "￼",
+     ""
+    ],
+    [
+     "�",
+     "x"
+    ],
+    [
+     "�",
+     "a"
+    ]
+   ]
+  },
+  {
+   "input": "ﬃ&🌈",
+   "output": [
+    [
+     "🌈",
+     ""
+    ],
+    [
+     "ﬃ",
+     ""
+    ]
+   ]
+  },
+  {
+   "input": "é&e�&é",
+   "output": [
+    [
+     "é",
+     ""
+    ],
+    [
+     "e�",
+     ""
+    ],
+    [
+     "é",
+     ""
+    ]
+   ]
+  },
+  {
+   "input": "z=z&a=a&z=y&a=b&z=x&a=c&z=w&a=d&z=v&a=e&z=u&a=f&z=t&a=g",
+   "output": [
+    [
+     "a",
+     "a"
+    ],
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "c"
+    ],
+    [
+     "a",
+     "d"
+    ],
+    [
+     "a",
+     "e"
+    ],
+    [
+     "a",
+     "f"
+    ],
+    [
+     "a",
+     "g"
+    ],
+    [
+     "z",
+     "z"
+    ],
+    [
+     "z",
+     "y"
+    ],
+    [
+     "z",
+     "x"
+    ],
+    [
+     "z",
+     "w"
+    ],
+    [
+     "z",
+     "v"
+    ],
+    [
+     "z",
+     "u"
+    ],
+    [
+     "z",
+     "t"
+    ]
+   ]
+  },
+  {
+   "input": "bbb&bb&aaa&aa=x&aa=y",
+   "output": [
+    [
+     "aa",
+     "x"
+    ],
+    [
+     "aa",
+     "y"
+    ],
+    [
+     "aaa",
+     ""
+    ],
+    [
+     "bb",
+     ""
+    ],
+    [
+     "bbb",
+     ""
+    ]
+   ]
+  },
+  {
+   "input": "z=z&=f&=t&=x",
+   "output": [
+    [
+     "",
+     "f"
+    ],
+    [
+     "",
+     "t"
+    ],
+    [
+     "",
+     "x"
+    ],
+    [
+     "z",
+     "z"
+    ]
+   ]
+  },
+  {
+   "input": "a🌈&a💩",
+   "output": [
+    [
+     "a🌈",
+     ""
+    ],
+    [
+     "a💩",
+     ""
+    ]
+   ]
+  }
+ ]
+}

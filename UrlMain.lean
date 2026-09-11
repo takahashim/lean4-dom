@@ -175,6 +175,94 @@ def runSetters (path : String) : IO UInt32 := do
   IO.println s!"ValidUrl（setter 後）: 違反 {invalid}"
   return if bad == 0 && invalid == 0 then 0 else 1
 
+/-! ## `URLSearchParams` -/
+
+structure SortCase where
+  input : String
+  output : List (String × String)
+
+def sortCaseOfJson (j : Json) : Except String SortCase := do
+  let input ← (← j.getObjVal? "input").getStr?
+  let arr ← (← j.getObjVal? "output").getArr?
+  let output ← arr.toList.mapM fun pair => do
+    let p ← pair.getArr?
+    match p.toList with
+    | [k, v] => do return ((← k.getStr?), (← v.getStr?))
+    | _ => throw "output の要素が 2 要素の配列ではない"
+  return { input, output }
+
+/--
+§6.2 の各操作の固定 case。仕様の記述とその例から作った。
+
+`sort` だけは WPT が配列リテラルで期待値を配っているので、そちらは `--searchparams` で
+その表を通す。
+-/
+def paramsCases : List (String × String × String) :=
+  let base := Params.ofString "?a=b&c=d&a=e"
+  [ ("get a", (Params.get base "a").getD "<none>", "b")
+  , ("get z", (Params.get base "z").getD "<none>", "<none>")
+  , ("getAll a", String.intercalate "," (Params.getAll base "a"), "b,e")
+  , ("getAll z", String.intercalate "," (Params.getAll base "z"), "")
+  , ("has c", toString (Params.has base "c"), "true")
+  , ("has z", toString (Params.has base "z"), "false")
+  , ("hasValue a e", toString (Params.hasValue base "a" "e"), "true")
+  , ("hasValue a d", toString (Params.hasValue base "a" "d"), "false")
+  , ("size", toString (Params.size base), "3")
+  , ("append", Params.serialize (Params.append base "e" "f"), "a=b&c=d&a=e&e=f")
+  , ("delete a", Params.serialize (Params.delete base "a"), "c=d")
+  , ("deleteValue a e", Params.serialize (Params.deleteValue base "a" "e"), "a=b&c=d")
+  , ("set a x", Params.serialize (Params.set base "a" "x"), "a=x&c=d")
+  , ("set z x", Params.serialize (Params.set base "z" "x"), "a=b&c=d&a=e&z=x")
+  , ("sort", Params.serialize (Params.sort base), "a=b&a=e&c=d")
+  , ("serialize", Params.serialize base, "a=b&c=d&a=e")
+  , -- 仕様 §6.2 の例。URL から読んで並べ替え、URL に書き戻す。
+    ("url + sort",
+     match parseUrl "https://example.org/?q=%F0%9F%8C%88&key=e1f7bc78" none with
+     | none => "<parse failed>"
+     | some u => Url.search (Url.withParams u (Params.sort (Url.searchParams u))),
+     "?key=e1f7bc78&q=%F0%9F%8C%88")
+  , -- 空になったら query は null になる。
+    ("url + delete all",
+     match parseUrl "https://example.org/?a=b" none with
+     | none => "<parse failed>"
+     | some u => Url.href (Url.withParams u (Params.delete (Url.searchParams u) "a")),
+     "https://example.org/")
+  ]
+
+/--
+WPT の `urlsearchparams-sort.any.js` が持つ表を通す。
+
+`sort` は code point 順ではなく **UTF-16 code unit 順**である。
+`ﬃ&🌈` の case がそれを見分ける（🌈 は code point では後ろだが、
+surrogate pair なので code unit では前に来る）。
+-/
+def runSearchParams (path : String) : IO UInt32 := do
+  let text ← IO.FS.readFile path
+  let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
+  let .ok casesJson := json.getObjVal? "cases"
+    | do IO.eprintln s!"{path}: `cases` がない"; return 1
+  let .ok arr := casesJson.getArr? | do IO.eprintln s!"{path}: `cases` が配列ではない"; return 1
+  let mut ok := 0
+  let mut bad := 0
+  for j in arr do
+    match sortCaseOfJson j with
+    | .error e => IO.eprintln s!"case を読めない: {e}"; bad := bad + 1
+    | .ok c =>
+      let got := Params.sort (Params.ofString c.input)
+      if got == c.output then ok := ok + 1
+      else
+        bad := bad + 1
+        IO.println s!"SORT input={repr c.input}"
+        IO.println s!"  expected={repr c.output}"
+        IO.println s!"  actual  ={repr got}"
+  for (label, got, want) in paramsCases do
+    if got == want then ok := ok + 1
+    else
+      bad := bad + 1
+      IO.println s!"PARAMS {label}: expected={repr want} actual={repr got}"
+  IO.println s!"searchparams: 一致 {ok} / 不一致 {bad}"
+  return if bad == 0 then 0 else 1
+
 /--
 `application/x-www-form-urlencoded` の固定 case。
 
@@ -227,7 +315,8 @@ def main (args : List String) : IO UInt32 := do
     let b ← runUrlencoded
     return if a == 0 && b == 0 then 0 else 1
   | ["--setters", path] => runSetters path
+  | ["--searchparams", path] => runSearchParams path
   | ["--urlencoded"] => runUrlencoded
   | _ =>
-    IO.println "usage: url-model --wpt FILE | url-model --setters FILE | url-model --urlencoded"
+    IO.println "usage: url-model --wpt FILE | --setters FILE | --searchparams FILE | --urlencoded"
     return 1
