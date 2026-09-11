@@ -53,13 +53,18 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 | NodeIterator pre-remove steps | 1-5 | `iteratorPreRemove`, `iteratorPreRemoveOne` | `remove_preserves_iterators_valid`, `remove_iterators_leave_subtree`, `adjustNodePointer_spec` | `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_node_edges.rb` | 済 |
 | nextNode / previousNode | §6.1 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before` | `test_wpt_node_edges.rb` | 済 |
 
-## §4.3.4 MutationObserver の record
+## §4.3 MutationObserver
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| queue a mutation record | 1-2 inclusive ancestor を辿って observer を集める / 3-6 record を積む | `queueMutationRecord`, `interestedObservers` | preservation `preservesRegs_*` | （生成 scenario の `observers`） | `test_wpt_mutation_record_details.rb` | 部分（配送は対象外） |
-| queue a tree mutation record | 1 assert / 2 queue | `queueTreeMutationRecord` | 同上 | 同上 | `test_wpt_mutation_record_insertion_point.rb` | 部分 |
-| transient registered observer | remove step 20 | `addTransientObservers` | `preservesRegs_remove` | 同上 | `test_wpt_transient_registered_observer.rb` | 部分 |
+| queue a mutation record | 1-2 inclusive ancestor を辿って observer を集める / 3-6 record を積む | `queueMutationRecord`, `interestedObservers` | preservation `preservesRegs_*` | `observer-uninterested-registration-does-not-shadow` | `test_wpt_mutation_record_details.rb`, `test_wpt_mutation_observer_order.rb` | 済（attribute を除く） |
+| queue a tree mutation record | 1 assert / 2 queue | `queueTreeMutationRecord` | 同上 | 同上 | `test_wpt_mutation_record_insertion_point.rb` | 済 |
+| transient registered observer | remove step 20 | `addTransientObservers` | `preservesRegs_remove` | `observer-transient-follows-existing-registration` | `test_wpt_transient_registered_observer.rb` | 済 |
+| queue a mutation observer microtask | 1-3 | `queueMutationObserverMicrotask`, `addPendingObserver` | preservation `admissible_*`（配送は木を触らない） | `observer-delivery` | `test_wpt_mutation_observer_order.rb` | 済 |
+| notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | `admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
+| `observe(target, options)` | 1-8（step 3 / 6 の TypeError を含む） | `MutationObserver.observe` | `admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow` | 同上 | 済（attribute を除く） |
+| `disconnect()` | 1-2 | `MutationObserver.disconnect` | `admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
+| `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | `admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |
 
 ## normative branch の網羅（roadmap §11.3）
 
@@ -127,14 +132,14 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | 項目 | 扱い | 根拠 |
 | --- | --- | --- |
 | Shadow DOM（shadow-including root / slot） | 未対応 | roadmap の対象外。`move` step 1 は shadow-including root ではなく root で近似している |
-| MutationObserver の配送（microtask） | 対象外 | record を積むところまで。`Dom/Observation.lean` に明記 |
-| attribute | 対象外 | model に attribute が無い |
+| MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
+| attribute（`attributes`, `attributeFilter`, `attributeOldValue`） | 対象外 | model に attribute が無い |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の code unit 境界 | 対象外 | roadmap §13.1。`data` は Lean の `String` |
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
 | NodeIterator の filter | 対象外 | roadmap §13.4 |
-| WebIDL の TypeError | 近似 | `DOMException` に TypeError が無い。`moveBefore` の receiver が ParentNode でない場合は HierarchyRequestError で代用する（`move-receiver-must-be-parentnode`） |
+| WebIDL の TypeError | 一部 | `observe` の step 3 / 6 は `DOMException.typeError` で表す。`moveBefore` の receiver が ParentNode でない場合は HierarchyRequestError で代用する（`move-receiver-must-be-parentnode`） |
 
 ## 仕様改訂時の手順
 

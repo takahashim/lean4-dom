@@ -1526,11 +1526,100 @@ axiom に依存する定理があると elaboration に失敗する。`sorryAx` 
 nightly で設定三通り × seed 10 個を走らせ、最小化した反例を artifact に上げる。
 固定する version は `test/pinned-versions.json` にまとめた。
 
+## MutationObserver の配送（roadmap の「未着手」の一つ）
+
+Phase 8 は record を積むところで止めていた。配送側（§4.3 の
+"queue a mutation observer microtask" と "notify mutation observers"、
+および `observe` / `disconnect` / `takeRecords`）を `Dom/Observer/Deliver.lean` に足した。
+
+### model
+
+callback の呼び出しは model の外にあるので、`notifyMutationObservers` は
+「どの observer に何が配送されるか」を `List (Nat × List MutationRecord)` で返す形にした。
+
+| 仕様 | 定義 |
+| --- | --- |
+| `observe(target, options)`（step 3 / 6 の TypeError を含む） | `MutationObserver.observe` |
+| `disconnect()` | `MutationObserver.disconnect` |
+| `takeRecords()` | `MutationObserver.takeRecords` |
+| "queue a mutation observer microtask" | `queueMutationObserverMicrotask`, `addPendingObserver` |
+| "notify mutation observers" step 5 | `removeTransients`, `notifyOne`, `notifyEach` |
+| "notify mutation observers" 全体 | `notifyMutationObservers` |
+
+`DOMState` に `microtaskQueued : Bool` と `pendingObservers : List Nat` が要る。
+前者は "queue a mutation observer microtask" の step 1（すでに queue 済みなら何もしない）、
+後者は notify が畳む対象である。
+`DOMException` に `typeError` を足した。
+
+### 仕様の読み方を一箇所決めた
+
+"notify mutation observers" step 5.2 と `observe` step 7.1 は、transient registered observer を
+**observer の node list に載っている node から** 取り除く。
+一方 remove step 20 は transient を「外す node」の registered observer list に足すだけで、
+node list には触れない。本文どおりだと transient は決して掃除されないので、
+remove step 20 が node list にもその node を足すと読んだ
+（`addTransientObservers` が `ObserverState.nodeList` に append する）。
+ブラウザと Dommy もそう振る舞う。
+この判断は `Dom/Observer/Deliver.lean` の冒頭に書いてある。
+
+### admissibility
+
+配送は木・range・iterator を動かさないので、六成分はそのまま通る
+（`Dom/Validity/Admissible.lean`）。
+
+`admissible_observe`, `admissible_disconnect`, `admissible_takeRecords`,
+`admissible_removeTransients`, `admissible_notifyEach`, `admissible_notifyMutationObservers`。
+`notifyEach` は observer を一つずつ畳むので、帰納法で
+`admissible_takeRecords` と `admissible_removeTransients` に落ちる。
+
+### 観測モデルと harness
+
+`Observation` に `delivered` を足した。`records`（各 observer の queue）だけでなく、
+**どの observer にどの順で**配送されたかを比べる。
+`test/dommy_runner.rb` は本物の `MutationObserver` を動かし、
+callback が呼ばれた順にそのまま記録する。
+`test/generate.rb` に `OBSERVER_OPS`（`observe` / `disconnect` / `takeRecords` / `notify`）を足し、
+`--observers N` を指定したときだけ混ぜる。
+
+`delivered` の比較を入れた最初の版は harness 側が壊れていた
+（`deliveries.each_with_index` で observer index 順に並べ直してしまい、callback 順を落としていた）。
+Dommy 側の修正を stash して A/B を取り、順序の不一致が本物であることを確かめてから直した。
+
+### 見つかった Dommy の不一致（Dommy commit `aff1882`）
+
+20. **通知順が inclusive ancestor の walk に従っていない。**
+    "queue a mutation record" は target の inclusive ancestor を上へ辿り、
+    各 node の registered observer list を順に見る。
+    transient registered observer は外された node の list に **append** されるので、
+    その node に元から付いていた registration より後に来る。
+    Dommy は observer の生成順で並べていたので、
+    `remove` で transient が付いた subtree observer が、
+    その node 自身の registration より先に呼ばれることがあった。
+    `@observed` の entry と `@transients` に単調増加の sequence number を振り、
+    `matching_key(chain, target, type) = [chain_index, seq]` で並べるようにした。
+21. **その record type を要求していない registration が、要求している registration を隠す。**
+    `find_matching_entry` が scope（`subtree` と target の一致）だけで最初の登録を返し、
+    呼び出し側がその登録の `characterData` を見て記録を諦めていた。
+    同じ observer が同じ木に二度登録していて、先の登録がその type を求めていないと、
+    後の登録が求めていても record がまったく積まれない。
+    述語を `entry_in_scope?` と `entry_wants?` に割り、type を呼び出し側から渡すようにした。
+
+どちらも生成 scenario で見つけた。最小化したものを固定 scenario に入れてある
+(`observer-transient-follows-existing-registration`,
+`observer-uninterested-registration-does-not-shadow`)。
+いずれも Dommy `aff1882` の一つ前では不一致になり、`aff1882` では一致することを確認した。
+
+### 修正後の一致状況
+
+固定 scenario 38 本（うち `move-receiver-must-be-parentnode` は model 固有で比較対象外）と、
+生成 scenario 1600 本（seed 8 個 × 200 本、`--observers 3`）で不一致ゼロ。
+残りは `unsupported`、すなわち scenario が作っていない node id を harness が断ったものである。
+
 ## 未着手
 
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
   model の骨格（`Tree` と `WellFormed`）から広げることになる。
   MutationObserver と違って既存の定理の多くに影響する。
-* MutationObserver の配送（mutation observer microtask、
-  `disconnect` / `observe` の再登録、attribute 関連）。
-  いまの model は record を積むところまでで、配送は扱っていない。
+* MutationObserver の attribute 関連（`attributes`, `attributeFilter`,
+  `attributeOldValue`）。model に attribute そのものが無いので、
+  `NodeData` から広げることになる。

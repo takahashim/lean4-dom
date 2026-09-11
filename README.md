@@ -63,8 +63,8 @@ node 自身はその位置より前に入るので、start と end が逆転す�
 ## 何を見つけたか
 
 差分テストで仕様との不一致を見つけ、修正につなげた。
-`docs/status.md` に通し番号 1-19 で並べてある。
-18 件が Dommy 側、1 件（番号 9）が model 側である。例えば次のようなものである。
+`docs/status.md` に通し番号 1-21 で並べてある。
+20 件が Dommy 側、1 件（番号 9）が model 側である。例えば次のようなものである。
 
 * `insertBefore` / `replaceChild` が mutation record の挿入点を木が動いた後に読んでいた。
   仕様は insert step 6 と replace step 4、つまり何も動く前の値である。
@@ -72,6 +72,8 @@ node 自身はその位置より前に入るので、start と end が逆転す�
   抑制されるのは step 21 の record だけである。
 * `Node.ownerDocument` が Element と Attr にしか実装されていなかった。
 * live range の挿入側の調整が仕様の位置になかった。
+* MutationObserver の通知順が、仕様の inclusive ancestor の walk ではなく observer の生成順だった。
+* その record type を要求していない registration が、同じ observer の要求している registration を隠していた。
 
 証明も model 側の不具合を押し返した。`move` step 5 の `Text` 判定が CDATASection を
 取りこぼしていたこと、`moveBefore` に IDL 由来の receiver 検査が無かったことである。
@@ -102,7 +104,7 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 | --- | --- |
 | `Dom/Basic/` | node tree、`WellFormed`、`DOMState` |
 | `Dom/Mutation/` | §4.2.3 の algorithm と public API |
-| `Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`, `Dom/Observer/` | live object と CharacterData と MutationObserver の record |
+| `Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`, `Dom/Observer/` | live object と CharacterData と MutationObserver（record と配送） |
 | `Dom/Properties/` | 効果・frame・契約・反例 |
 | `Dom/Validity/` | `AdmissibleDOMState` とその保存 |
 | `Dom/Observation.lean` | 差分テストの比較対象を型で固定する |
@@ -125,7 +127,7 @@ Lean 4 のみ。Mathlib も Batteries も使わない。
 2. 差分テストは **有限の生成 trace 上の観測の一致** であり、
    一般の observational equivalence ではない。
 3. 比較対象に入れていないものがある（object identity、UTF-16 の code unit 境界、
-   MutationObserver の配送、attribute、Shadow tree）。
+   MutationObserver の callback 本体、attribute、Shadow tree）。
    `Dom/Observation.lean` に列挙してある。
 
 ## ライセンス
