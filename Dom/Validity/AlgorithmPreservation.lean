@@ -15,6 +15,52 @@ import Dom.Properties.Algorithms
 
 namespace Dom
 
+/-! ## ensure pre-insert validity が確立する kind の事実 -/
+
+/--
+step 1。parent は Document / DocumentFragment / Element のいずれかである。
+すなわち children を持てる kind である。
+-/
+theorem ensurePreInsertionValidity_parentCanHaveChildren {t : Tree} {node parent : NodeId}
+    {child : Option NodeId} {excl : List NodeId}
+    (h : ensurePreInsertionValidity t node parent child excl = .ok ()) :
+    ∀ pd, t.get? parent = some pd → pd.kind.canHaveChildren = true := by
+  intro pd hpd
+  unfold ensurePreInsertionValidity at h
+  rw [hpd] at h
+  simp only at h
+  split at h
+  · simp at h
+  · split at h
+    · next hk => simp at h
+    · next hk =>
+      simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne] at hk
+      cases hkk : pd.kind <;> simp_all [NodeKind.canHaveChildren]
+
+/-- step 4。node は DocumentFragment / DocumentType / Element / CharacterData であり、Document ではない。 -/
+theorem ensurePreInsertionValidity_nodeNotDocument {t : Tree} {node parent : NodeId}
+    {child : Option NodeId} {excl : List NodeId}
+    (h : ensurePreInsertionValidity t node parent child excl = .ok ()) :
+    ∀ nd, t.get? node = some nd → nd.kind ≠ .document := by
+  intro nd hnd
+  unfold ensurePreInsertionValidity at h
+  split at h
+  · simp at h
+  · next pd hpd =>
+    rw [hnd] at h
+    simp only at h
+    split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · split at h
+        · simp at h
+        · split at h
+          · next hk => simp at h
+          · next hk =>
+            simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne] at hk
+            cases hkk : nd.kind <;> simp_all [NodeKind.isCharacterData]
+
 /-! ## remove -/
 
 theorem structurallyValid_remove {s s' : DOMState} {n : NodeId} {b : Bool}
@@ -121,5 +167,208 @@ theorem documentTreesValid_remove {s s' : DOMState} {n : NodeId} {b : Bool}
     refine h.documentChildren doc d' hdoc' ?_
     rw [hdoc, hdoc'] at hkind
     simpa [hk] using hkind.symm
+
+/-! ## removeEach -/
+
+theorem structurallyValid_removeEach :
+    ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool},
+      StructurallyValid s.tree → removeEach s ns b = .ok s' → StructurallyValid s'.tree
+  | [], _, _, _, h, hr => by rw [← Except.ok.inj hr]; exact h
+  | n :: ns, s, s', b, h, hr => by
+    simp only [removeEach] at hr
+    split at hr
+    · simp at hr
+    · next s₁ h₁ => exact structurallyValid_removeEach ns (structurallyValid_remove h h₁) hr
+
+theorem nodeDocumentsValid_removeEach :
+    ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool},
+      StructurallyValid s.tree → NodeDocumentsValid s.tree → removeEach s ns b = .ok s' →
+      NodeDocumentsValid s'.tree
+  | [], _, _, _, _, h, hr => by rw [← Except.ok.inj hr]; exact h
+  | n :: ns, s, s', b, hs, h, hr => by
+    simp only [removeEach] at hr
+    split at hr
+    · simp at hr
+    · next s₁ h₁ =>
+      exact nodeDocumentsValid_removeEach ns (structurallyValid_remove hs h₁)
+        (nodeDocumentsValid_remove hs.wellFormed h h₁) hr
+
+/-! ## kind の事実は kind を変えない操作で移る -/
+
+theorem kindFact_of_kindPreserving {t t' : Tree} (h : KindPreserving t t') {n : NodeId}
+    {P : NodeKind → Prop} (hp : ∀ d, t.get? n = some d → P d.kind) :
+    ∀ d, t'.get? n = some d → P d.kind := by
+  intro d hd
+  have hk := h n
+  rw [hd] at hk
+  cases hd' : t.get? n with
+  | none => rw [hd'] at hk; simp at hk
+  | some d' =>
+    rw [hd'] at hk
+    simp only [Option.map_some, Option.some.injEq] at hk
+    rw [hk]
+    exact hp d' hd'
+
+/-! ## adopt -/
+
+theorem structurallyValid_adopt {s s' : DOMState} {node doc : NodeId}
+    (h : StructurallyValid s.tree) (hdoc : IsDocument s.tree doc)
+    (ha : adopt s node doc = .ok s') : StructurallyValid s'.tree := by
+  obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases ha
+  have hstep' : StructurallyValid s₁.tree ∧ KindPreserving s.tree s₁.tree := by
+    rcases hstep with ⟨_, rfl⟩ | hr
+    · exact ⟨h, KindPreserving.refl _⟩
+    · exact ⟨structurallyValid_remove h hr, kindPreserving_remove hr⟩
+  rcases hfinal with rfl | rfl
+  · exact hstep'.1
+  · obtain ⟨dd, hdd, hk⟩ := hdoc.map hstep'.2
+    exact structurallyValid_setOwnerDocument hstep'.1.wellFormed hstep'.1 hdd hk
+
+/--
+adopt は node document を整える step である。
+
+step 2 の remove で node は parent を失うので、step 3 の `setOwnerDocument` は
+閉じた部分木を書き換える。node が Document でないことは insert 側の validity 検査から来る。
+-/
+theorem nodeDocumentsValid_adopt {s s' : DOMState} {node doc : NodeId}
+    (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
+    (hdoc : IsDocument s.tree doc)
+    (hnk : ∀ nd, s.tree.get? node = some nd → nd.kind ≠ .document)
+    (ha : adopt s node doc = .ok s') : NodeDocumentsValid s'.tree := by
+  obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases ha
+  have hstep' : NodeDocumentsValid s₁.tree ∧ StructurallyValid s₁.tree ∧
+      KindPreserving s.tree s₁.tree ∧ parentOf s₁.tree node = none := by
+    rcases hstep with ⟨hnp, rfl⟩ | hr
+    · exact ⟨h, hs, KindPreserving.refl _, hnp⟩
+    · exact ⟨nodeDocumentsValid_remove hs.wellFormed h hr, structurallyValid_remove hs hr,
+        kindPreserving_remove hr, remove_parentOf hr⟩
+  rcases hfinal with rfl | rfl
+  · exact hstep'.1
+  · refine nodeDocumentsValid_setOwnerDocument hstep'.2.1.wellFormed hstep'.2.1 hstep'.1
+      hstep'.2.2.2 ?_
+    exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hstep'.2.2.1 hnk
+
+/-! ## insertEach -/
+
+/--
+`insertEach` は node ごとに adopt してから `insertAt` する。
+
+必要な前提は次の三つで、いずれも §4.2.3 の validity 検査か invariant から出る。
+
+* parent は children を持てる kind である（step 1）。
+* 入れる node はどれも Document でない（step 4、fragment の場合は
+  「Document は parent を持たない」という invariant から）。
+* `doc` は Document である（parent の node document なので `WellFormed` から）。
+-/
+theorem structurallyValid_insertEach :
+    ∀ (ns : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+      {doc : NodeId},
+      StructurallyValid s.tree →
+      (∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true) →
+      (∀ n ∈ ns, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ .document) →
+      IsDocument s.tree doc →
+      insertEach s parent child doc ns = .ok s' → StructurallyValid s'.tree
+  | [], s, s', parent, child, doc, h, _, _, _, hi => by
+    rw [insertEach] at hi; rw [← Except.ok.inj hi]; exact h
+  | n :: ns, s, s', parent, child, doc, h, hpk, hnk, hdoc, hi => by
+    rw [insertEach] at hi
+    split at hi
+    · simp at hi
+    · next s₁ ha =>
+      split at hi
+      · simp at hi
+      · next s₂ hins =>
+        have hkp₁ : KindPreserving s.tree s₁.tree := kindPreserving_adopt ha
+        have h₁ : StructurallyValid s₁.tree := structurallyValid_adopt h hdoc ha
+        have h₂ : StructurallyValid s₂.tree := by
+          refine structurallyValid_insertAt h₁ ?_ ?_ (DOMState.mapTree_eq_ok hins).1
+          · exact kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp₁ hpk
+          · exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp₁
+              (hnk n (List.mem_cons_self ..))
+        have hkp₂ : KindPreserving s₁.tree s₂.tree :=
+          kindPreserving_insertAt (DOMState.mapTree_eq_ok hins).1
+        have hkp : KindPreserving s.tree s₂.tree := hkp₁.trans hkp₂
+        refine structurallyValid_insertEach ns h₂ ?_ ?_ ?_ hi
+        · exact kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
+        · intro m hm
+          exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
+            (hnk m (List.mem_cons_of_mem _ hm))
+        · exact hdoc.map hkp
+
+/-! ## insert -/
+
+/-- `StructurallyValid` から、木の中の node の children は Document ではない。 -/
+theorem child_not_document {t : Tree} (h : StructurallyValid t) {p c : NodeId} {pd : NodeData}
+    (hpd : t.get? p = some pd) (hc : c ∈ pd.children) :
+    ∀ cd, t.get? c = some cd → cd.kind ≠ .document := by
+  intro cd hcd hk
+  obtain ⟨cd', hcd', hcdp⟩ := h.wellFormed.parent_child p pd hpd c hc
+  rw [hcd] at hcd'
+  cases hcd'
+  exact absurd hcdp (by rw [h.documentHasNoParent c cd hcd hk]; simp)
+
+theorem structurallyValid_insertNodesAt {s s' : DOMState} {parent : NodeId}
+    {child : Option NodeId} {nodes : List NodeId} {b : Bool}
+    (h : StructurallyValid s.tree)
+    (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
+    (hnk : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ .document)
+    (hi : insertNodesAt s parent child nodes b = .ok s') : StructurallyValid s'.tree := by
+  unfold insertNodesAt at hi
+  simp only at hi
+  split at hi
+  · simp at hi
+  · next sx hx =>
+    have htree : s'.tree = sx.tree := by
+      split at hi
+      · rw [← Except.ok.inj hi]
+      · rw [← Except.ok.inj hi]; simp
+    rw [htree]
+    unfold insertEachAt at hx
+    split at hx
+    · simp at hx
+    · next pd hpd =>
+      have hpd' : s.tree.get? parent = some pd := by simpa using hpd
+      refine structurallyValid_insertEach nodes (by simpa using h) (by simpa using hpk)
+        (by simpa using hnk) ?_ hx
+      exact ⟨_, by simpa using (isDocument_ownerDocument h.wellFormed hpd').choose_spec.1,
+        (isDocument_ownerDocument h.wellFormed hpd').choose_spec.2⟩
+
+/--
+PLAN §6.3 の形。`insert` は構造上の妥当性を保つ。
+
+fragment を展開する側では、入れる node は fragment の children なので
+「Document は parent を持たない」という invariant から Document でないことが出る。
+単独の node の側では validity 検査の step 4 から出る。
+-/
+theorem structurallyValid_insert {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {b : Bool} (h : StructurallyValid s.tree)
+    (hv : ensurePreInsertionValidity s.tree node parent child [] = .ok ())
+    (hi : insert s node parent child b = .ok s') : StructurallyValid s'.tree := by
+  have hpk := ensurePreInsertionValidity_parentCanHaveChildren hv
+  unfold insert at hi
+  split at hi
+  · simp at hi
+  · next nd hnd =>
+    split at hi
+    · -- fragment を展開する
+      split at hi
+      · rw [← Except.ok.inj hi]; exact h
+      · split at hi
+        · simp at hi
+        · next s₁ hre =>
+          have h₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
+          have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+          refine structurallyValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
+            nd.children none none) (by simpa using h₁) ?_ ?_ hi
+          · simpa using
+              kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
+          · intro m hm
+            simpa using kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
+              (child_not_document h hnd hm)
+    · -- 単独の node
+      refine structurallyValid_insertNodesAt h hpk ?_ hi
+      intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      exact ensurePreInsertionValidity_nodeNotDocument hv
 
 end Dom
