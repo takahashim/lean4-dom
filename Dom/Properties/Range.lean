@@ -676,11 +676,11 @@ step 7 の時点ではどの node も parent を持たない。
 step 5 で足した余裕はちょうど children の個数ぶんで、それが使い切られる。
 -/
 theorem insert_fragment_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} {nd : NodeData}
+    {child : Option NodeId} {b : Bool} {nd : NodeData}
     (hwf : WellFormed s.tree) (hnd : s.tree.get? node = some nd)
     (hk : (nd.kind == NodeKind.documentFragment) = true)
     (hlen : ChildCountKind s.tree parent)
-    (hv : RangeEndpointsValid s) (h : insert s node parent child = .ok s') :
+    (hv : RangeEndpointsValid s) (h : insert s node parent child b = .ok s') :
     RangeEndpointsValid s' := by
   unfold insert at h
   split at h
@@ -820,12 +820,12 @@ range の両端を木の中に保つ。
 挿入（length が一つ増える）を通って、最後にちょうど valid に戻ることが示せる。
 -/
 theorem insert_single_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} {nd : NodeData}
+    {child : Option NodeId} {b : Bool} {nd : NodeData}
     (hwf : WellFormed s.tree) (hnd : s.tree.get? node = some nd)
     (hk : ¬ (nd.kind == NodeKind.documentFragment) = true)
     (hlen : ChildCountKind s.tree parent)
     (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
-    (hv : RangeEndpointsValid s) (h : insert s node parent child = .ok s') :
+    (hv : RangeEndpointsValid s) (h : insert s node parent child b = .ok s') :
     RangeEndpointsValid s' := by
   obtain ⟨pd, s₁, hpd, ha, hi, hsr⟩ := insert_single hnd hk h
   obtain ⟨pd', nd', hpd', hnd', hnp', hanc1, _, _⟩ := insertAt_ok_cases hi
@@ -907,10 +907,10 @@ PLAN §8.3。`insert` は range の両端を木の中に保つ。
 DocumentFragment を展開する場合とそうでない場合の両方を含む。
 -/
 theorem insert_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} (hwf : WellFormed s.tree)
+    {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
     (hlen : ChildCountKind s.tree parent)
     (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
-    (hv : RangeEndpointsValid s) (h : insert s node parent child = .ok s') :
+    (hv : RangeEndpointsValid s) (h : insert s node parent child b = .ok s') :
     RangeEndpointsValid s' := by
   cases hnd : s.tree.get? node with
   | none => rw [insert, hnd] at h; simp at h
@@ -918,6 +918,51 @@ theorem insert_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
     by_cases hk : (nd.kind == NodeKind.documentFragment) = true
     · exact insert_fragment_preserves_endpoints hwf hnd hk hlen hv h
     · exact insert_single_preserves_endpoints hwf hnd hk hlen hlenq hv h
+
+
+/-! ## move の endpoints -/
+
+/--
+PLAN §8.3 の形。`move` は range の両端を木の中に保つ。
+
+`move` は `remove` の pre-remove steps を走らせてから挿入側の調整をかけるので、
+`remove` 側の保存に挿入側の「余裕を一つ作って使い切る」議論を繋ぐだけでよい。
+-/
+theorem move_preserves_endpoints {s s' : DOMState} {node newParent : NodeId}
+    {child : Option NodeId} (hwf : WellFormed s.tree)
+    (hlen : ChildCountKind s.tree newParent)
+    (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
+    (hv : RangeEndpointsValid s) (h : move s node newParent child = .ok s') :
+    RangeEndpointsValid s' := by
+  obtain ⟨s₁, hr, hi⟩ := move_eq_remove_insertAt h
+  obtain ⟨s₂, hr₂, hrng⟩ := move_ranges h
+  have hs : s₂ = s₁ := by
+    rw [hr] at hr₂
+    exact (Except.ok.inj hr₂).symm
+  rw [hs] at hrng
+  obtain ⟨⟨p, hp⟩, _⟩ := remove_ok hr
+  have hv₁ : RangeEndpointsValid s₁ :=
+    remove_preserves_endpoints hwf hp (hlenq p hp) hv hr
+  have hwf₁ : WellFormed s₁.tree := remove_preserves_wellformed hwf hr
+  have hlen₁ : ChildCountKind s₁.tree newParent := hlen.map (kindPreserving_remove hr)
+  have hup : RangeValidUpTo (liveRangeInsertAdjust s₁ newParent child 1) newParent 1 :=
+    rangeValidUpTo_liveRangeInsertAdjust hv₁
+  intro r hrmem
+  rw [hrng] at hrmem
+  obtain ⟨h1, h2⟩ := hup r hrmem
+  simp only [liveRangeInsertAdjust_tree] at h1 h2
+  exact ⟨boundaryValidUpTo_zero.mp (boundaryValidUpTo_insertAt hwf₁ hlen₁ hi h1),
+    boundaryValidUpTo_zero.mp (boundaryValidUpTo_insertAt hwf₁ hlen₁ hi h2)⟩
+
+/-- `moveBefore` も `move` を経由する。 -/
+theorem moveBefore_preserves_endpoints {s s' : DOMState} {parent node : NodeId}
+    {child : Option NodeId} (hwf : WellFormed s.tree)
+    (hlen : ChildCountKind s.tree parent)
+    (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
+    (hv : RangeEndpointsValid s) (h : moveBefore s parent node child = .ok s') :
+    RangeEndpointsValid s' := by
+  obtain ⟨_, _, _, _, hm⟩ := moveBefore_ok h
+  exact move_preserves_endpoints hwf hlen hlenq hv hm
 
 /-! ## boundary point の順序（両端が同じ node の場合） -/
 
@@ -1087,15 +1132,15 @@ theorem liveRangeInsertAdjust_preserves_sameNodeOrdered {s : DOMState} {parent :
 
 /-- PLAN §8.3。`insert` は「両端が同じ node を指す range」の順序を保つ。 -/
 theorem insert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} (hv : RangesSameNodeOrdered s)
-    (h : insert s node parent child = .ok s') : RangesSameNodeOrdered s' := by
+    {child : Option NodeId} {b : Bool} (hv : RangesSameNodeOrdered s)
+    (h : insert s node parent child b = .ok s') : RangesSameNodeOrdered s' := by
   unfold insert at h
   split at h
   · simp at h
   · next nd hnd =>
-    have hstep : ∀ (u : DOMState) (ns : List NodeId), RangesSameNodeOrdered u →
-        insertNodesAt u parent child ns = .ok s' → RangesSameNodeOrdered s' := by
-      intro u ns hu hun
+    have hstep : ∀ (u : DOMState) (ns : List NodeId) (b' : Bool), RangesSameNodeOrdered u →
+        insertNodesAt u parent child ns b' = .ok s' → RangesSameNodeOrdered s' := by
+      intro u ns b' hu hun
       unfold insertNodesAt at hun
       simp only at hun
       split at hun
@@ -1118,9 +1163,9 @@ theorem insert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId
       · split at h
         · simp at h
         · next s₁ hre =>
-          exact hstep _ _ (rangesSameNodeOrdered_congr (by simp)
+          exact hstep _ _ _ (rangesSameNodeOrdered_congr (by simp)
             (removeEach_preserves_sameNodeOrdered _ hv hre)) h
-    · exact hstep s _ hv h
+    · exact hstep s _ _ hv h
 
 /-- `remove` の後も、両端が同じ node を指す range は正しく並んでいる。 -/
 theorem remove_preserves_boundaryLE_sameNode {s s' : DOMState} {n p : NodeId}
@@ -1200,8 +1245,8 @@ theorem move_preserves_sameNodeOrdered {s s' : DOMState} {node newParent : NodeI
 
 /-- `insert` の後も、両端が同じ node を指す range は正しく並んでいる。 -/
 theorem insert_preserves_boundaryLE {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} (hv : RangesSameNodeOrdered s)
-    (h : insert s node parent child = .ok s') :
+    {child : Option NodeId} {b : Bool} (hv : RangesSameNodeOrdered s)
+    (h : insert s node parent child b = .ok s') :
     ∀ r ∈ s'.ranges, BoundaryLE s'.tree r.start r.«end» :=
   boundaryLE_of_sameNodeOrdered (insert_preserves_sameNodeOrdered hv h)
 

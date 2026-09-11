@@ -31,6 +31,7 @@ import Dom.Validity.Derived
 import Dom.Validity.Preservation
 import Dom.Validity.AlgorithmPreservation
 import Dom.Validity.Iterators
+import Dom.Validity.Observers
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

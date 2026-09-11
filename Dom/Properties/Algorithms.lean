@@ -664,9 +664,9 @@ theorem insertAt_isOk_of_validity {t : Tree} {node parent : NodeId} {child : Opt
 
 /-- fragment でない node の `insert` は、adopt してから `insertAt` を呼ぶだけである。 -/
 theorem insert_single {s s' : DOMState} {node parent : NodeId} {child : Option NodeId}
-    {nd : NodeData} (hnd : s.tree.get? node = some nd)
+    {b : Bool} {nd : NodeData} (hnd : s.tree.get? node = some nd)
     (hk : ¬ (nd.kind == NodeKind.documentFragment) = true)
-    (h : insert s node parent child = .ok s') :
+    (h : insert s node parent child b = .ok s') :
     ∃ pd s₁, s.tree.get? parent = some pd ∧
       adopt (liveRangeInsertAdjust s parent child 1) node pd.ownerDocument = .ok s₁ ∧
       insertAt s₁.tree parent node child = .ok s'.tree ∧ s'.ranges = s₁.ranges := by
@@ -714,10 +714,10 @@ theorem insert_single {s s' : DOMState} {node parent : NodeId} {child : Option N
 PLAN §6.3。fragment でない node を `insert` すると、
 node は parent の children において child のちょうど直前に来る。
 -/
-theorem insert_children_split {s s' : DOMState} {node parent c : NodeId} {nd : NodeData}
-    (hwf : WellFormed s.tree) (hnd : s.tree.get? node = some nd)
+theorem insert_children_split {s s' : DOMState} {node parent c : NodeId} {b : Bool}
+    {nd : NodeData} (hwf : WellFormed s.tree) (hnd : s.tree.get? node = some nd)
     (hk : ¬ (nd.kind == NodeKind.documentFragment) = true)
-    (h : insert s node parent (some c) = .ok s') :
+    (h : insert s node parent (some c) b = .ok s') :
     ∃ t₁, childrenOf s'.tree parent = ListUtil.insertBefore (childrenOf t₁ parent) (some c) node ∧
       ∃ s₁ s₂, childrenOf t₁ parent = s₁ ++ c :: s₂ ∧
         childrenOf s'.tree parent = s₁ ++ node :: c :: s₂ := by
@@ -754,9 +754,9 @@ explicit な remove と move 中の implicit な removal が同じ経路を通�
 違いは node document の付け替えを挟むかどうかだけである。
 -/
 theorem insert_factors_through_remove {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} {nd : NodeData} (hnd : s.tree.get? node = some nd)
+    {child : Option NodeId} {b : Bool} {nd : NodeData} (hnd : s.tree.get? node = some nd)
     (hk : ¬ (nd.kind == NodeKind.documentFragment) = true)
-    (hp : (parentOf s.tree node).isSome) (h : insert s node parent child = .ok s') :
+    (hp : (parentOf s.tree node).isSome) (h : insert s node parent child b = .ok s') :
     ∃ s₀ t₁, remove (liveRangeInsertAdjust s parent child 1) node = .ok s₀ ∧
       (t₁ = s₀.tree ∨ ∃ doc, t₁ = setOwnerDocument s₀.tree node doc) ∧
       insertAt t₁ parent node child = .ok s'.tree := by

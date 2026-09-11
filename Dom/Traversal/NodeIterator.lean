@@ -84,6 +84,13 @@ def iteratorPreRemove (s : DOMState) (node : NodeId) : DOMState :=
 @[simp] theorem iteratorPreRemove_tree (s : DOMState) (n : NodeId) :
     (iteratorPreRemove s n).tree = s.tree := rfl
 
+@[simp] theorem iteratorPreRemove_registrations (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).registrations = s.registrations := rfl
+
+@[simp] theorem iteratorPreRemove_observers (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).observers = s.observers := rfl
+
+
 @[simp] theorem iteratorPreRemove_ranges (s : DOMState) (n : NodeId) :
     (iteratorPreRemove s n).ranges = s.ranges := rfl
 

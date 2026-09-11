@@ -160,4 +160,62 @@ def addTransientObservers (s : DOMState) (node parent : NodeId) : DOMState :=
 @[simp] theorem addTransientObservers_observers (s : DOMState) (n p : NodeId) :
     (addTransientObservers s n p).observers = s.observers := rfl
 
+@[simp] theorem queueTreeMutationRecord_registrations (s : DOMState) (t : NodeId)
+    (a r : List NodeId) (p n : Option NodeId) :
+    (queueTreeMutationRecord s t a r p n).registrations = s.registrations := by
+  unfold queueTreeMutationRecord; split <;> rfl
+
+@[simp] theorem enqueueRecord_length (obs : List ObserverState) (mo : Nat)
+    (rec : MutationRecord) : (enqueueRecord obs mo rec).length = obs.length := by
+  unfold enqueueRecord
+  split
+  · rfl
+  · simp
+
+theorem foldl_enqueue_length :
+    ∀ (l : List (Nat × Option String)) (obs : List ObserverState) (rec : MutationRecord),
+      (l.foldl (fun o p => enqueueRecord o p.1 { rec with oldValue := p.2 }) obs).length
+        = obs.length
+  | [], _, _ => rfl
+  | x :: xs, obs, rec => by
+    show (xs.foldl _ (enqueueRecord obs x.1 _)).length = obs.length
+    rw [foldl_enqueue_length xs, enqueueRecord_length]
+
+@[simp] theorem queueMutationRecord_observers_length (s : DOMState) (rec : MutationRecord)
+    (ov : Option String) :
+    (queueMutationRecord s rec ov).observers.length = s.observers.length := by
+  unfold queueMutationRecord
+  exact foldl_enqueue_length _ _ _
+
+@[simp] theorem queueTreeMutationRecord_observers_length (s : DOMState) (t : NodeId)
+    (a r : List NodeId) (p n : Option NodeId) :
+    (queueTreeMutationRecord s t a r p n).observers.length = s.observers.length := by
+  unfold queueTreeMutationRecord
+  split
+  · rfl
+  · exact queueMutationRecord_observers_length ..
+
+@[simp] theorem queueCharacterDataRecord_registrations (s : DOMState) (t : NodeId) (v : String) :
+    (queueCharacterDataRecord s t v).registrations = s.registrations := rfl
+
+@[simp] theorem queueCharacterDataRecord_observers_length (s : DOMState) (t : NodeId)
+    (v : String) :
+    (queueCharacterDataRecord s t v).observers.length = s.observers.length :=
+  queueMutationRecord_observers_length ..
+
+/-- transient registration の observer index は、元の registration から受け継ぐ。 -/
+theorem addTransientObservers_observer_lt (s : DOMState) (n p : NodeId) {r : Registration}
+    (h : r ∈ (addTransientObservers s n p).registrations)
+    (hall : ∀ r' ∈ s.registrations, r'.observer < s.observers.length) :
+    r.observer < s.observers.length := by
+  unfold addTransientObservers at h
+  simp only [List.mem_append] at h
+  rcases h with h | h
+  · exact hall r h
+  · obtain ⟨x, _, hx⟩ := List.mem_flatMap.mp h
+    obtain ⟨r₀, hr₀mem, hr₀⟩ := List.mem_map.mp hx
+    have := hall r₀ (List.mem_filter.mp hr₀mem).1
+    rw [← hr₀]
+    exact this
+
 end Dom
