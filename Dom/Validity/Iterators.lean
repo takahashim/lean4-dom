@@ -352,4 +352,79 @@ theorem iterCtx_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : No
       rw [← Except.ok.inj hr]
       exact IterCtx.congr (by simp) (by simp) h₂
 
+/-! ## NodeIterator の走査 -/
+
+/--
+`nextNode()` / `previousNode()` が返す iterator は valid のままである。
+
+collection は root の preorder なので、返る reference は root の inclusive descendant であり、
+木の中にもある。
+-/
+theorem validIterator_of_mem_collection {t : Tree} (hwf : WellFormed t) {it : IteratorState}
+    (h : ValidIterator t it) {n : NodeId} (hn : n ∈ iteratorCollection t it.root) :
+    ∃ d, t.get? n = some d ∧ InclusiveDescendant t n it.root := by
+  obtain ⟨rd, hrd⟩ := exists_root_of_validIterator hwf h
+  have hdesc : InclusiveDescendant t n it.root :=
+    (mem_preorder_iff hwf hrd n).mp hn
+  obtain ⟨d, hd⟩ : ∃ d, t.get? n = some d := by
+    rcases hdesc with rfl | hanc
+    · exact ⟨rd, hrd⟩
+    · obtain ⟨p, hp⟩ := hanc.parent_isSome
+      obtain ⟨d, hd, _⟩ := parentOf_eq_some hp
+      exact ⟨d, hd⟩
+  exact ⟨d, hd, hdesc⟩
+
+theorem validIterator_nextNode {t : Tree} (hwf : WellFormed t) {it it' : IteratorState}
+    {n : NodeId} (h : ValidIterator t it) (hstep : nextNode t it = some (n, it')) :
+    ValidIterator t it' := by
+  unfold nextNode at hstep
+  split at hstep
+  · simp only [Option.some.injEq, Prod.mk.injEq] at hstep
+    rw [← hstep.2]
+    exact h
+  · split at hstep
+    · simp at hstep
+    · next u v hq =>
+      split at hstep
+      · simp at hstep
+      · next m hm =>
+        simp only [Option.some.injEq, Prod.mk.injEq] at hstep
+        rw [← hstep.2]
+        have hmv : m ∈ v := List.mem_of_mem_head? hm
+        have hmem : m ∈ iteratorCollection t it.root := by
+          rw [ListUtil.splitAt?_eq_some hq]
+          exact List.mem_append_right _ (List.mem_cons_of_mem _ hmv)
+        obtain ⟨d, hd, hdesc⟩ := validIterator_of_mem_collection hwf h hmem
+        exact ⟨⟨d, hd⟩, hdesc⟩
+
+theorem validIterator_previousNode {t : Tree} (hwf : WellFormed t) {it it' : IteratorState}
+    {n : NodeId} (h : ValidIterator t it) (hstep : previousNode t it = some (n, it')) :
+    ValidIterator t it' := by
+  unfold previousNode at hstep
+  split at hstep
+  · simp only [Option.some.injEq, Prod.mk.injEq] at hstep
+    rw [← hstep.2]
+    exact h
+  · split at hstep
+    · simp at hstep
+    · next u v hq =>
+      split at hstep
+      · simp at hstep
+      · next m hm =>
+        simp only [Option.some.injEq, Prod.mk.injEq] at hstep
+        rw [← hstep.2]
+        have hmu : m ∈ u := by
+          rcases ListUtil.lastD_mem_or (u.map some) none with hx | hx
+          · rw [hm] at hx
+            obtain ⟨y, hy, hye⟩ := List.mem_map.mp hx
+            rw [← Option.some.inj hye]
+            exact hy
+          · rw [hm] at hx
+            simp at hx
+        have hmem : m ∈ iteratorCollection t it.root := by
+          rw [ListUtil.splitAt?_eq_some hq]
+          exact List.mem_append_left _ hmu
+        obtain ⟨d, hd, hdesc⟩ := validIterator_of_mem_collection hwf h hmem
+        exact ⟨⟨d, hd⟩, hdesc⟩
+
 end Dom

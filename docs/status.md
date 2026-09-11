@@ -1295,11 +1295,40 @@ reference child が `child` のあった位置の直後に来ること
 （range 4 / iterator 2 / observer 3 / `moveBefore` あり）はすべて通り、
 どの step でも invariant 違反は出ない。
 
-### 残り
+### 六成分すべての保存（Phase A 完了）
 
-range の端点と iterator の妥当性は `remove` 系と `insert` 系までで、
-`replace` / `replace all` / `move` の分と、
-六成分をまとめた `preserves_admissible` の組み立てが残っている。
+木の三層に加えて、残り三つも algorithm ごとに示した。
+
+| 成分 | module | 要点 |
+| --- | --- | --- |
+| iterator | `Dom/Validity/Iterators.lean` | reference を動かすのは `remove` の pre-remove steps だけ。`insertAt` と `setOwnerDocument` は既存の ancestor 関係をそのまま残す |
+| range の端点 | `Dom/Validity/Admissible.lean` | `move` / `replace` / `replace all` / `adopt` の分を追加 |
+| observer registration | `Dom/Validity/Observers.lean` | registration が増えるのは `remove` step 20 だけ。足される transient は既存の observer index を継ぎ、外した node を指す |
+
+`OtherDocumentIteratorsOutside`（別 document の iterator は外す部分木の外にいる）は
+`StructurallyValid` と `NodeDocumentsValid` と `IteratorsValid` から出るので、
+この三つを束ねた `IterCtx` を運ぶ形にした。
+`ChildCountKind` も `StructurallyValid` から出るので、
+どちらも定理の仮定として外から渡す必要が無くなった。
+
+### public API（`Dom/Validity/Admissible.lean`）
+
+`appendChild` / `insertBefore` / `replaceChild` / `removeChild` / `replaceChildren` /
+`before` / `after` / `replaceWith` / `remove` / `moveBefore` と
+CharacterData の四つについて、`AdmissibleDOMState` の保存を示した。
+`sorry` は無く、依存する axiom は `propext` / `Classical.choice` / `Quot.sound` だけである。
+
+最後に埋まったのは pre-insert の step 2-3（自分自身の直前に挿すときの reference child のずらし）で、
+`ensurePreInsertionValidity_shift` として独立に示した。
+ずらした先より後ろにある node は元の reference child より後ろにもあり、
+doctype は element ではないので、step 9 と step 10-11 の検査はそのまま通る。
+
+### oracle が自分の invariant を破らないこと（`Dom/Exec/Invariant.lean`）
+
+`runOperations_no_violation`：admissible な初期状態から始めれば、
+`runOperations` の実行時検査は決して発火しない。
+`invariantViolation` が出たら model の algorithm ではなく
+harness の側（初期状態の構築や操作の割り当て）を疑えばよい、と形式的に言えるようになった。
 
 ## 未着手
 

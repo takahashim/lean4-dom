@@ -652,4 +652,21 @@ theorem nodup_split {α : Type _} {A B : List α} {c : α} (h : (A ++ c :: B).No
   have h1 := List.nodup_append.mp h
   exact ⟨fun hm => h1.2.2 c hm c (by simp) rfl, (List.nodup_cons.mp h1.2.1).1⟩
 
+/-- `set` の要素は、置いた値か元の list の要素である。 -/
+theorem mem_set_cases {α : Type _} :
+    ∀ (l : List α) (i : Nat) (x y : α), y ∈ l.set i x → y = x ∨ y ∈ l
+  | [], _, _, _, h => by simp at h
+  | z :: rest, 0, x, y, h => by
+    simp only [List.set, List.mem_cons] at h
+    rcases h with h | h
+    · exact Or.inl h
+    · exact Or.inr (List.mem_cons_of_mem _ h)
+  | z :: rest, i + 1, x, y, h => by
+    simp only [List.set, List.mem_cons] at h
+    rcases h with h | h
+    · exact Or.inr (by rw [h]; exact List.mem_cons_self ..)
+    · rcases mem_set_cases rest i x y h with h' | h'
+      · exact Or.inl h'
+      · exact Or.inr (List.mem_cons_of_mem _ h')
+
 end Dom.ListUtil
