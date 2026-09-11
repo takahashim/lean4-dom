@@ -1481,6 +1481,51 @@ public API 側は preservation と委譲を置いた（`Dom/Properties/Contract.
 `replaceChildren(null)` の委譲は definitional なので `rfl` で済む。
 `remove()` と `moveBefore` は分岐があるので、その条件付きで述べてある。
 
+## Phase C / D の足回り
+
+### 仕様トレーサビリティ（roadmap §10）
+
+`docs/traceability.md` を用意した。
+各 algorithm について、WHATWG の step 要約・実行関数・契約・固定 scenario・
+Dommy 側の WPT 由来 test を一行に並べてある。
+参照する `dom.bs` は `docs/spec-version.md` の固定 commit である。
+仕様改訂時の追従手順（差分を取り、現れた algorithm 名で表を検索し、行ごとに review する）も書いた。
+
+対象外は理由付きで表に並べた。Shadow DOM、MutationObserver の配送、attribute、
+UTF-16 の code unit 境界、node 生成と可変長引数変換、object identity、NodeIterator の filter、
+そして WebIDL の TypeError である。
+
+### normative branch の網羅（roadmap §11.3）
+
+scenario の件数ではなく **分岐の網羅** を指標にした。
+`ensure pre-insert validity` の全分岐（step 1-11 と element / doctype の挿入検査）と、
+`move` の step 1-6 および IDL の receiver 制約に、それぞれ固定 scenario を置いた。
+固定 scenario は 13 本から 35 本になり、Dommy との比較は全件一致である
+（`move-receiver-must-be-parentnode` は model 固有の近似なので比較対象外）。
+
+### 期待結果の根拠（roadmap §12）
+
+各固定 scenario に `_basis` を足した。
+仕様由来か定理由来かの別、参照する `dom.bs` commit、algorithm 名と step、一行の理由である。
+根拠が無いと、scenario が落ち始めたときにどちらが仕様と違うのか判定できない。
+
+### CI（roadmap §11.1-11.3）
+
+証明の層（`ci.yml`）は次を実行する。
+
+* `lake build`
+* `sorry` の拒否
+* 公開主定理の axiom audit（`Audit.lean`）
+* 固定 scenario の loader 通過と invariant 違反の検査（`dom-model --check`）
+
+`Audit.lean` は、許容した三つ（`propext` / `Classical.choice` / `Quot.sound`）以外の
+axiom に依存する定理があると elaboration に失敗する。`sorryAx` もここで落ちる。
+
+差分の層（`differential.yml`）は Dommy の checkout と native gem の build を要するので
+分けてある。手動起動で固定 scenario と固定 seed の生成 scenario、
+nightly で設定三通り × seed 10 個を走らせ、最小化した反例を artifact に上げる。
+固定する version は `test/pinned-versions.json` にまとめた。
+
 ## 未着手
 
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
