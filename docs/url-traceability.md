@@ -66,6 +66,14 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | origin | §4.7 全 | `origin` | — | wpt（`origin` の欄、373 件一致） | 済（`blob` は blob URL entry を持たない前提） |
 | origin の serialize | HTML §origin | `originSerializer` | — | 同上 | 済 |
 
+## §5 application/x-www-form-urlencoded
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
+| --- | --- | --- | --- | --- | --- |
+| urlencoded percent-encode set | §1.3 | `urlencodedSet` | `urlencodedEncode_no_separator` | 固定 case | 済 |
+| urlencoded parser | §5.1 1-4 | `parseUrlencoded`, `splitAmp`, `splitFirstEq`, `plusToSpace` | — | 固定 case（13 件） | 済（encoding は UTF-8 固定） |
+| urlencoded serializer | §5.2 1-4 | `serializeUrlencoded`, `urlencodedEncode` | `urlencodedEncode_no_separator` | 固定 case（往復 13 件） | 済 |
+
 ## 未対応と対象外
 
 | 項目 | 扱い | 根拠 |
@@ -73,7 +81,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | IDNA / UTS #46（domain parser ToASCII） | 対象外 | 数千 code point の写像表 + Punycode + 正規化 + bidi 検査。仕様自身が別仕様へ委譲している。`hostParser` の引数として外から与える |
 | state override | 対象外 | `Location` と `URL` の setter 専用の引数。setter を入れるときに一緒に扱う |
 | encoding override | 対象外 | HTML 由来の legacy 引数。UTF-8 に固定している |
-| `URLSearchParams` | 未着手 | application/x-www-form-urlencoded の parse / serialize |
+| `URLSearchParams` の IDL | 未着手 | `get` / `getAll` / `append` / `sort` ほか。parse と serialize（§5）は入っている |
+| `_charset` の特別扱い | 対象外 | §5.1 の注記。仕様も「conforming なのは UTF-8 だけ」としている |
 | blob URL entry | 対象外 | §4.7 の `blob` の分岐。entry は HTML 側の概念なので、常に null として path を読み直す |
 | validation error | 対象外 | 仕様の validation error は parse の成否を変えない。`ipv4NumberParser` だけ、10 進でなかったことを boolean で返す |
 | `URLPattern` | 未着手 | 別仕様 |

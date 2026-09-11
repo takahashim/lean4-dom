@@ -97,9 +97,58 @@ def runWpt (path : String) : IO UInt32 := do
   IO.println s!"origin: 一致 {originOk} / 不一致 {originBad}"
   return if bad == 0 && invalid == 0 && originBad == 0 then 0 else 1
 
+/--
+`application/x-www-form-urlencoded` の固定 case。
+
+WPT 側は JS のテストなので機械可読の表が無い。仕様 §5 の記述と
+その例（`≡` → `%E2%89%A1`、`‽` → `%E2%80%BD`）から作った。
+-/
+def urlencodedCases : List (String × List (String × String)) :=
+  [ ("a=b&c=d", [("a", "b"), ("c", "d")])
+  , ("a=b&c=d&", [("a", "b"), ("c", "d")])
+  , ("&&&a=b&&&&c=d&", [("a", "b"), ("c", "d")])
+  , ("a", [("a", "")])
+  , ("a=", [("a", "")])
+  , ("=b", [("", "b")])
+  , ("=", [("", "")])
+  , ("a=b=c", [("a", "b=c")])
+  , ("a+b=c+d", [("a b", "c d")])
+  , ("a%20b=c%20d", [("a b", "c d")])
+  , ("a=%2B", [("a", "+")])
+  , ("%E2%89%A1=%E2%80%BD", [("≡", "‽")])
+  , ("a=%zz", [("a", "%zz")])
+  ]
+
+def runUrlencoded : IO UInt32 := do
+  let mut ok := 0
+  let mut bad := 0
+  for (input, expected) in urlencodedCases do
+    let got := parseUrlencodedString input
+    if got == expected then ok := ok + 1
+    else
+      bad := bad + 1
+      IO.println s!"URLENCODED parse {repr input}"
+      IO.println s!"  expected={repr expected}"
+      IO.println s!"  actual  ={repr got}"
+    -- serialize したものを読み直すと元に戻る（`urlencodedEncode_no_separator` が
+    -- 区切りを作らないことを保証している）。
+    let round := parseUrlencodedString (serializeUrlencoded expected)
+    if round == expected then ok := ok + 1
+    else
+      bad := bad + 1
+      IO.println s!"URLENCODED round-trip {repr expected}"
+      IO.println s!"  serialized={repr (serializeUrlencoded expected)}"
+      IO.println s!"  reparsed  ={repr round}"
+  IO.println s!"urlencoded: 一致 {ok} / 不一致 {bad}"
+  return if bad == 0 then 0 else 1
+
 def main (args : List String) : IO UInt32 := do
   match args with
-  | ["--wpt", path] => runWpt path
+  | ["--wpt", path] => do
+    let a ← runWpt path
+    let b ← runUrlencoded
+    return if a == 0 && b == 0 then 0 else 1
+  | ["--urlencoded"] => runUrlencoded
   | _ =>
-    IO.println "usage: url-model --wpt FILE"
+    IO.println "usage: url-model --wpt FILE | url-model --urlencoded"
     return 1

@@ -4,3 +4,4 @@ import Url.Percent
 import Url.Host
 import Url.Record
 import Url.Parser
+import Url.Urlencoded

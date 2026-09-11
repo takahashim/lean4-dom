@@ -36,6 +36,7 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §4.1 URL record、§4.2 special scheme、§4.3 serializer | `Url`, `Path`, `isSpecialScheme`, `urlSerializer` | `Url/Record.lean` |
 | §4.4 basic URL parser | `run`, `step`, `basicUrlParse`, `parseUrl` | `Url/Parser.lean` |
 | §4.7 origin | `origin`, `originSerializer`, `Origin` | `Url/Parser.lean`, `Url/Record.lean` |
+| §5.1 urlencoded parser、§5.2 serializer | `parseUrlencoded`, `serializeUrlencoded` | `Url/Urlencoded.lean` |
 
 ## pointer を持たない書き方
 
@@ -103,6 +104,8 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `utf8PercentEncode_id` | set に入るものが無ければ percent-encode は何も変えない |
 | （`run` / `step` の停止性） | `termination_by` で示してある。fuel は使っていない |
 | `checkValidUrl_iff` | `ValidUrl` は決定可能。boolean の checker と `Prop` が一致する |
+| `urlencodedEncode_no_separator` | serialize した成分に `&` も `=` も現れない。parser が区切れる根拠 |
+| `percentEncodeByte_alnum`, `hexDigitChar_alnum` | `%XX` は `%` と 16 進の数字からなる |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -125,6 +128,14 @@ origin（§4.7）も同じ表が期待値を持っている。
 
 ```
 origin: 一致 373 / 不一致 0
+```
+
+`application/x-www-form-urlencoded`（§5）は WPT 側が JS のテストなので
+機械可読の表が無い。仕様の記述とその例から固定 case を作り、
+parse と「serialize してから読み直す」の両方を通している。
+
+```
+urlencoded: 一致 26 / 不一致 0
 ```
 
 IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
@@ -161,6 +172,12 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
   authority state の「host が決まる前に credentials を入れる」も同じ性質の問題で、
   そちらは state ごとに条件を分けることになる。
 * **setter（state override）。** `Location` と `URL` の各 setter が使う引数。
-* **`URLSearchParams`**（application/x-www-form-urlencoded）。
+* **`URLSearchParams` の API**（`get` / `getAll` / `append` / `sort` ほか）。
+  parser と serializer（§5）は入れたが、IDL の側はまだ。
+* **`serialize` と `parse` の往復定理。** `urlencodedEncode_no_separator` で
+  「区切りを作らない」ところまでは示した。完全な往復
+  （`parse (serialize l) = l`）には `utf8Decode (utf8Encode s) = s.toList` が要る。
+  UTF-8 の符号化はビット演算なので、`omega` では届かず、
+  `Nat.testBit` まで降りるか bitvector の自動化が要る。
 * **IDNA / UTS #46 そのもの。** 上記の理由で抽象化したままにする。
 * **encoding override。** HTML 由来の legacy 引数。UTF-8 に固定している。

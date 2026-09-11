@@ -135,6 +135,12 @@ open Dom.Audit
   Url.ipv4Parser_lt
   Url.foldl_base256_lt
 
+-- URL Standard §5 application/x-www-form-urlencoded
+#audit_axioms
+  Url.urlencodedEncode_no_separator
+  Url.percentEncodeByte_alnum
+  Url.hexDigitChar_alnum
+
 -- URL Standard §4.1 URL record の妥当性
 #audit_axioms
   Url.checkValidUrl_iff
