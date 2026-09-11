@@ -409,6 +409,17 @@ def replaceAll (s : DOMState) (node : Option NodeId) (parent : NodeId) :
 /-! ## move -/
 
 /--
+DOM Standard §4.2.3 "move" step 6 の後半。
+
+「`child` が doctype である」か「`child` より後ろに doctype がある」か。
+`child` が null ならどちらも成り立たない。
+-/
+def doctypeAtOrAfter (t : Tree) (parent : NodeId) (child : Option NodeId) : Bool :=
+  match child with
+  | none => false
+  | some c => kindOf t c == some .documentType || doctypeFollows t parent c
+
+/--
 DOM Standard §4.2.3 "move"（2025 年に追加された algorithm）。
 
 remove と insert の合成と違う点は次の三つである。
@@ -439,14 +450,12 @@ def moveValidity (t : Tree) (node newParent : NodeId) (child : Option NodeId) :
       -- step 4
       else if !(nd.kind == .element || nd.kind.isCharacterData) then
         .error .hierarchyRequestError
-      -- step 5
-      else if nd.kind == .text && pd.kind == .document then .error .hierarchyRequestError
+      -- step 5。`CDATASection` は仕様上 `Text` の subclass なので `isText` で判定する。
+      else if nd.kind.isText && pd.kind == .document then .error .hierarchyRequestError
       -- step 6
       else if pd.kind == .document && nd.kind == .element &&
           (!(elementChildren t newParent).isEmpty ||
-            (match child with
-             | none => false
-             | some c => kindOf t c == some .documentType || doctypeFollows t newParent c)) then
+            doctypeAtOrAfter t newParent child) then
         .error .hierarchyRequestError
       else .ok ()
 

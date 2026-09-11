@@ -443,6 +443,53 @@ theorem insertAt_children_split {t t' : Tree} {parent node c : NodeId}
   refine ⟨s₁, s₂, h₁, ?_⟩
   rw [insertAt_childrenOf hwf h, insertBefore_some, h₂]
 
+/-- well-formed な木では children に重複が無い。 -/
+theorem childrenOf_nodup {t : Tree} (hwf : WellFormed t) (n : NodeId) :
+    (childrenOf t n).Nodup := by
+  unfold childrenOf
+  split
+  · simp
+  · next d hd => exact hwf.children_nodup n d hd
+
+/-- `insertAt` は parent 以外の children を変えない。 -/
+theorem insertAt_childrenOf_ne {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
+    (hwf : WellFormed t) (h : insertAt t parent node child = .ok t') {m : NodeId}
+    (hm : m ≠ parent) : childrenOf t' m = childrenOf t m := by
+  obtain ⟨pd, nd, hpd, hnd, hnp, hanc, hchild, rfl⟩ := insertAt_ok_cases h
+  have hne : node ≠ parent := by
+    intro he
+    have : isInclusiveAncestorOf t node parent = true :=
+      (isInclusiveAncestorOf_iff hwf node parent).mpr (Or.inl he)
+    rw [hanc] at this
+    simp at this
+  rw [childrenOf_insertAtIn hnd hpd hne, if_neg hm]
+
+/--
+`insertAt` は parent の children のどこか一箇所に node を挿す。
+
+`child` が `none` かどうかで場合分けせずに扱えるので、
+children の列に関する証明はこの形を使う。
+-/
+theorem insertAt_children_split_general {t t' : Tree} {parent node : NodeId}
+    {child : Option NodeId} (hwf : WellFormed t) (h : insertAt t parent node child = .ok t') :
+    ∃ A B, childrenOf t parent = A ++ B ∧ childrenOf t' parent = A ++ node :: B := by
+  cases child with
+  | none =>
+    refine ⟨childrenOf t parent, [], by simp, ?_⟩
+    rw [insertAt_childrenOf hwf h, insertBefore_none]
+  | some c =>
+    obtain ⟨s₁, s₂, h₁, h₂⟩ := insertAt_children_split hwf h
+    exact ⟨s₁, c :: s₂, h₁, h₂⟩
+
+/-- `insertAt` する node は、まだ parent の children に入っていない。 -/
+theorem insertAt_node_not_mem {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
+    (hwf : WellFormed t) (h : insertAt t parent node child = .ok t') :
+    node ∉ childrenOf t parent := by
+  obtain ⟨pd, nd, hpd, hnd, hnp, hanc, hchild, rfl⟩ := insertAt_ok_cases h
+  intro hmem
+  have : parentOf t node = some parent := (mem_childrenOf_iff hwf node parent).mpr hmem
+  simp [parentOf, hnd, hnp] at this
+
 /-- PLAN §5.2 frame。insert した node と parent 以外は変わらない。 -/
 theorem insertAt_frame {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
     (h : insertAt t parent node child = .ok t') {m : NodeId}

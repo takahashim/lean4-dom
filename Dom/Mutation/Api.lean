@@ -90,9 +90,18 @@ def nodeRemove (s : DOMState) (this : NodeId) : Except DOMException DOMState :=
 /-- DOM Standard §4.2.6 `ParentNode.moveBefore(node, child)`。 -/
 def moveBefore (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
     Except DOMException DOMState :=
-  -- step 1-2
-  let referenceChild := if child = some node then nextSibling s.tree node else child
-  -- step 3
-  move s node parent referenceChild
+  match s.tree.get? parent with
+  | none => .error .notFoundError
+  | some pd =>
+    -- `moveBefore` は `ParentNode` の method なので、receiver は IDL により
+    -- Document / DocumentFragment / Element に限られる。
+    -- move algorithm 自身にはこの検査が無いので（step 1-6 を参照）、
+    -- API の側で表す。`Dom/Basic/NodeId.lean` の `canHaveChildren` がその三つである。
+    if !pd.kind.canHaveChildren then .error .hierarchyRequestError
+    else
+      -- step 1-2
+      let referenceChild := if child = some node then nextSibling s.tree node else child
+      -- step 3
+      move s node parent referenceChild
 
 end Dom

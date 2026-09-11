@@ -489,6 +489,69 @@ theorem move_ranges {s s' : DOMState} {node newParent : NodeId} {child : Option 
           rw [he, (DOMState.mapTree_eq_ok hi).2, DOMState.withTree_ranges]
           exact liveRangeInsertAdjust_ranges_congr ht.symm hr.symm
 
+/--
+`moveValidity` が通ったときに得られる kind の事実。
+
+step 4 は「node は Element か CharacterData」、
+step 5 は「Document の子に Text は置けない」、
+step 6 は「Document の子の element は高々一つで、その後ろに doctype は無い」である。
+どれも `DocumentTreesValid` / `StructurallyValid` の保存に必要なものと対応する。
+-/
+theorem moveValidity_ok {t : Tree} {node newParent : NodeId} {child : Option NodeId}
+    (h : moveValidity t node newParent child = .ok ()) :
+    ∃ nd pd, t.get? node = some nd ∧ t.get? newParent = some pd ∧
+      root t newParent = root t node ∧
+      (nd.kind = .element ∨ nd.kind.isCharacterData = true) ∧
+      (pd.kind = .document → nd.kind.isText = false) ∧
+      (pd.kind = .document → nd.kind = .element →
+        elementChildren t newParent = [] ∧ doctypeAtOrAfter t newParent child = false) := by
+  unfold moveValidity at h
+  split at h
+  · simp at h
+  · next pd hpd =>
+    split at h
+    · simp at h
+    · next nd hnd =>
+      split at h
+      · simp at h
+      · next h1 =>
+          split at h
+          · simp at h
+          · split at h
+            · simp at h
+            · split at h
+              · simp at h
+              · next h4 =>
+                split at h
+                · simp at h
+                · next h5 =>
+                  split at h
+                  · simp at h
+                  · next h6 =>
+                    rw [Bool.not_eq_true] at h4 h5 h6
+                    simp only [Bool.not_eq_false'] at h4
+                    refine ⟨nd, pd, hnd, hpd, by simpa using h1, ?_, ?_, ?_⟩
+                    · rcases Bool.or_eq_true_iff.mp h4 with hk | hk
+                      · exact Or.inl (by simpa using hk)
+                      · exact Or.inr hk
+                    · intro hdoc
+                      simp only [hdoc, beq_self_eq_true, Bool.and_true] at h5
+                      exact h5
+                    · intro hdoc helem
+                      simp only [hdoc, helem, beq_self_eq_true, Bool.true_and,
+                        Bool.and_true] at h6
+                      rw [Bool.or_eq_false_iff, Bool.not_eq_false', List.isEmpty_iff] at h6
+                      exact h6
+
+/-- `move` が成功したなら step 1-6 の validity 検査を通っている。 -/
+theorem move_moveValidity {s s' : DOMState} {node newParent : NodeId} {child : Option NodeId}
+    (h : move s node newParent child = .ok s') :
+    moveValidity s.tree node newParent child = .ok () := by
+  unfold move at h
+  split at h
+  · simp at h
+  · next u hv => exact hv
+
 /-- PLAN §6.3。`move` は well-formedness を保つ。 -/
 theorem move_preserves_wellformed {s s' : DOMState} {node newParent : NodeId}
     {child : Option NodeId} (hwf : WellFormed s.tree)
@@ -747,16 +810,35 @@ theorem nodeRemove_preserves_wellformed {s s' : DOMState} {this : NodeId}
   · rw [← Except.ok.inj h]; exact hwf
   · exact remove_preserves_wellformed hwf h
 
+/--
+`moveBefore` は receiver の kind を検査してから `move` を呼ぶ。
+
+検査を通った後は `move` そのものなので、`move` の定理をそのまま持ち上げられる。
+-/
+theorem moveBefore_ok {s s' : DOMState} {parent node : NodeId} {child : Option NodeId}
+    (h : moveBefore s parent node child = .ok s') :
+    ∃ pd ref, s.tree.get? parent = some pd ∧ pd.kind.canHaveChildren = true ∧
+      move s node parent ref = .ok s' := by
+  unfold moveBefore at h
+  split at h
+  · simp at h
+  · next pd hpd =>
+    split at h
+    · simp at h
+    · next hk => exact ⟨pd, _, hpd, by simpa using hk, h⟩
+
 theorem moveBefore_preserves_wellformed {s s' : DOMState} {parent node : NodeId}
     {child : Option NodeId} (hwf : WellFormed s.tree)
-    (h : moveBefore s parent node child = .ok s') : WellFormed s'.tree :=
-  move_preserves_wellformed hwf h
+    (h : moveBefore s parent node child = .ok s') : WellFormed s'.tree := by
+  obtain ⟨_, _, _, _, hm⟩ := moveBefore_ok h
+  exact move_preserves_wellformed hwf hm
 
 /-- `moveBefore` も `remove` してから `insertAt` する形に分解できる。 -/
 theorem moveBefore_eq_remove_insertAt {s s' : DOMState} {parent node : NodeId}
     {child : Option NodeId} (h : moveBefore s parent node child = .ok s') :
     ∃ s₁ ref, remove s node = .ok s₁ ∧ insertAt s₁.tree parent node ref = .ok s'.tree := by
-  obtain ⟨s₁, hr, hi⟩ := move_eq_remove_insertAt h
+  obtain ⟨_, _, _, _, hm⟩ := moveBefore_ok h
+  obtain ⟨s₁, hr, hi⟩ := move_eq_remove_insertAt hm
   exact ⟨s₁, _, hr, hi⟩
 
 end Dom

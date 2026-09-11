@@ -513,4 +513,107 @@ theorem splitAt?_isSome_of_mem {α : Type _} [DecidableEq α] {a : α} :
         | none => rw [hs] at this; simp at this
         | some q => simp [splitAt?, hx, hs]
 
+/-! ## filter と insertBefore -/
+
+theorem length_filter_insertBeforeFirst {α : Type _} [DecidableEq α] (p : α → Bool) (c a : α) :
+    ∀ l : List α, ((insertBeforeFirst l c a).filter p).length =
+      (l.filter p).length + (if p a then 1 else 0)
+  | [] => by
+    simp only [insertBeforeFirst_nil, List.filter_nil, List.length_nil, Nat.zero_add]
+    by_cases h : p a <;> simp [List.filter, h]
+  | y :: rest => by
+    by_cases hy : y = c
+    · rw [insertBeforeFirst_cons_self hy]
+      by_cases h : p a <;> simp [List.filter, h, Nat.add_comm]
+    · rw [insertBeforeFirst_cons_ne hy]
+      by_cases h : p y <;>
+        simp [List.filter, h, length_filter_insertBeforeFirst p c a rest, Nat.succ_add]
+
+/-- `insertBefore` で増える要素は高々一つなので、filter の長さも高々一つ増える。 -/
+theorem length_filter_insertBefore {α : Type _} [DecidableEq α] (p : α → Bool)
+    (l : List α) (child : Option α) (a : α) :
+    ((insertBefore l child a).filter p).length =
+      (l.filter p).length + (if p a then 1 else 0) := by
+  cases child with
+  | none =>
+    rw [insertBefore_none, List.filter_append]
+    by_cases h : p a <;> simp [List.filter, h]
+  | some c => rw [insertBefore_some]; exact length_filter_insertBeforeFirst p c a l
+
+theorem filter_insertBeforeFirst_of_neg {α : Type _} [DecidableEq α] {p : α → Bool} {a : α}
+    (ha : p a = false) (c : α) :
+    ∀ l : List α, (insertBeforeFirst l c a).filter p = l.filter p
+  | [] => by simp [List.filter, ha]
+  | y :: rest => by
+    by_cases hy : y = c
+    · rw [insertBeforeFirst_cons_self hy]; simp [List.filter, ha]
+    · rw [insertBeforeFirst_cons_ne hy]
+      by_cases h : p y <;> simp [List.filter, h, filter_insertBeforeFirst_of_neg ha c rest]
+
+/-- filter を通らない要素を挿しても、filter の結果は変わらない。 -/
+theorem filter_insertBefore_of_neg {α : Type _} [DecidableEq α] {p : α → Bool} {a : α}
+    (ha : p a = false) (l : List α) (child : Option α) :
+    (insertBefore l child a).filter p = l.filter p := by
+  cases child with
+  | none => rw [insertBefore_none, List.filter_append]; simp [List.filter, ha]
+  | some c => rw [insertBefore_some]; exact filter_insertBeforeFirst_of_neg ha c l
+
+/-! ## splitAt? と append -/
+
+/-- 分割点が前半にあるなら、後ろに足した分は `after` 側に付く。 -/
+theorem splitAt?_append_left {α : Type _} [DecidableEq α] {x : α} :
+    ∀ {A : List α} {u v : List α}, splitAt? A x = some (u, v) → ∀ C : List α,
+      splitAt? (A ++ C) x = some (u, v ++ C)
+  | [], _, _, h, _ => by simp [splitAt?] at h
+  | y :: rest, u, v, h, C => by
+    by_cases hy : y = x
+    · simp only [splitAt?, if_pos hy, Option.some.injEq, Prod.mk.injEq] at h
+      simp [splitAt?, hy, ← h.1, ← h.2]
+    · simp only [splitAt?, if_neg hy, Option.map_eq_some_iff] at h
+      obtain ⟨q, hq, he⟩ := h
+      obtain ⟨u', v'⟩ := q
+      simp only [Prod.mk.injEq] at he
+      simp [splitAt?, hy, splitAt?_append_left hq C, ← he.1, ← he.2]
+
+/-- 分割点が前半に無いなら、前半はそのまま `before` 側に付く。 -/
+theorem splitAt?_append_right {α : Type _} [DecidableEq α] {x : α} :
+    ∀ {A : List α}, x ∉ A → ∀ {C u v : List α}, splitAt? C x = some (u, v) →
+      splitAt? (A ++ C) x = some (A ++ u, v)
+  | [], _, _, _, _, h => by simpa using h
+  | y :: rest, hnot, C, u, v, h => by
+    have hy : y ≠ x := fun he => hnot (he ▸ List.mem_cons_self ..)
+    have hrest : x ∉ rest := fun hm => hnot (List.mem_cons_of_mem _ hm)
+    simp [splitAt?, hy, splitAt?_append_right hrest h]
+
+/-- 挿した要素自身の分割は、その前後そのものである。 -/
+theorem splitAt?_append_cons_self {α : Type _} [DecidableEq α] {n : α} {A : List α}
+    (hnot : n ∉ A) (B : List α) : splitAt? (A ++ n :: B) n = some (A, B) := by
+  have h : splitAt? (n :: B) n = some ([], B) := by simp [splitAt?]
+  simpa using splitAt?_append_right hnot h
+
+/-- 含まれない要素では `splitAt?` は `none` を返す。 -/
+theorem splitAt?_eq_none_of_not_mem {α : Type _} [DecidableEq α] {a : α} :
+    ∀ {l : List α}, a ∉ l → splitAt? l a = none
+  | [], _ => rfl
+  | y :: rest, hnot => by
+    have hy : y ≠ a := fun he => hnot (he ▸ List.mem_cons_self ..)
+    have hrest : a ∉ rest := fun hm => hnot (List.mem_cons_of_mem _ hm)
+    simp [splitAt?, hy, splitAt?_eq_none_of_not_mem hrest]
+
+/-- 含まれる要素なら `splitAt?` は分割を返す。 -/
+theorem exists_splitAt?_of_mem {α : Type _} [DecidableEq α] {a : α} {l : List α} (h : a ∈ l) :
+    ∃ u v, splitAt? l a = some (u, v) := by
+  obtain ⟨q, hq⟩ := Option.isSome_iff_exists.mp (splitAt?_isSome_of_mem h)
+  exact ⟨q.1, q.2, hq⟩
+
+/-- 元の list に無ければ、取り除いた後にも無い。 -/
+theorem splitAt?_removeAll_none {α : Type _} [DecidableEq α] {a c : α}
+    {l : List α} (h : splitAt? l c = none) : splitAt? (removeAll l a) c = none := by
+  refine splitAt?_eq_none_of_not_mem ?_
+  intro hmem
+  have hmem' := ((mem_removeAll l a c).mp hmem).2
+  obtain ⟨u, v, hs⟩ := exists_splitAt?_of_mem hmem'
+  rw [hs] at h
+  simp at h
+
 end Dom.ListUtil
