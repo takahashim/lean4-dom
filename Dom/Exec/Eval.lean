@@ -155,13 +155,37 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     | .error _ => .unit
     | .ok (_, b) => .bool b
   | .takeRecords mo => .records (MutationObserver.takeRecords s mo).2
-  | _ => .unit
+  -- 以下はすべて仕様上 `undefined` を返す。
+  -- **catch-all にしない。** そうすると戻り値を持つ操作を足したときに
+  -- ここを直し忘れても通ってしまう。網羅性検査に見張らせる。
+  | .replaceChildren _ _ => .unit
+  | .before _ _ => .unit
+  | .after _ _ => .unit
+  | .replaceWith _ _ => .unit
+  | .remove _ => .unit
+  | .moveBefore _ _ _ => .unit
+  | .replaceData _ _ _ _ => .unit
+  | .appendData _ _ => .unit
+  | .insertData _ _ _ => .unit
+  | .deleteData _ _ _ => .unit
+  | .setData _ _ => .unit
+  | .setAttribute _ _ _ => .unit
+  | .setAttributeNS _ _ _ _ => .unit
+  | .removeAttribute _ _ => .unit
+  | .removeAttributeNS _ _ _ => .unit
+  | .observe _ _ _ => .unit
+  | .disconnect _ => .unit
+  | .notify => .unit
 
 /--
 その操作が microtask checkpoint なら、配送される record を返す。
 
 `notifyMutationObservers` は状態の純関数なので、操作を適用する前の状態から計算できる。
 `applyOperation` の型を変えずに観測へ載せるためにこう分けてある。
+
+こちらは catch-all のままにしてある。record が配送されるのは microtask checkpoint
+だけで、これは操作の種類を増やしても変わらない仕様上の事実だからである
+（`returnValueOf` の側は、操作を足せば戻り値も増えるので列挙してある）。
 -/
 def deliveredBy (s : DOMState) : Operation → List (Nat × List MutationRecord)
   | .notify => (notifyMutationObservers s).2
