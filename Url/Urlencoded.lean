@@ -42,11 +42,21 @@ def urlencodedEncodeChar (c : Char) : List Char :=
 /-- URL Standard §5.2 の serializer が一つの成分に施す変換。 -/
 def urlencodedEncode (s : String) : List Char := s.toList.flatMap urlencodedEncodeChar
 
+/--
+区切りを挟んで連ねる。
+
+仕様 §5.2 は「output が空でなければ `&` を足してから次を足す」と書いている。
+`String.intercalate` ではなく文字の列で持つのは、往復の証明が文字の列の上で進むからで、
+結果は同じである。
+-/
+def intercalateChars (sep : List Char) : List (List Char) → List Char
+  | [] => []
+  | a :: as => a ++ as.flatMap (fun x => sep ++ x)
+
 /-- URL Standard §5.2 application/x-www-form-urlencoded serializer。 -/
 def serializeUrlencoded (tuples : List (String × String)) : String :=
-  String.intercalate "&"
-    (tuples.map fun t =>
-      String.ofList (urlencodedEncode t.1) ++ "=" ++ String.ofList (urlencodedEncode t.2))
+  String.ofList (intercalateChars ['&']
+    (tuples.map fun t => urlencodedEncode t.1 ++ ['='] ++ urlencodedEncode t.2))
 
 /-! ## parser -/
 

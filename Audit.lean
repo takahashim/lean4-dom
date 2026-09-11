@@ -188,7 +188,7 @@ open Dom.Audit
   Infra.utf8Decode_encode
   Infra.utf8DecodeString_encode
 
--- URL Standard §5 成分の往復
+-- URL Standard §5 の往復
 #audit_axioms
   Url.utf8Encode_ofList_ascii
   Url.percentDecodeBytes_cons_ne
@@ -201,6 +201,12 @@ open Dom.Audit
   Url.decode_encodeChar
   Url.decode_encodeList
   Url.decodeComponent
+  Url.splitAmp_intercalate
+  Url.splitFirstEq_append
+  Url.urlencodedEncode_ascii
+  Url.parse_partBytes
+  Url.filterMap_parts
+  Url.parse_serialize
 
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms

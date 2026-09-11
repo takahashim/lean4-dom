@@ -9,9 +9,9 @@ URL Standard §5。serialize したものを parse すると元に戻る。
 
 * **成分の往復**（この file）。`urlencodedEncode` した文字列を
   `plusToSpace` → percent-decode → UTF-8 decode で読み戻すと元に戻る。
-* **分割の逆**（未着手）。`&` と最初の `=` での分割が intercalate の逆になること。
+* **分割の逆**。`&` と最初の `=` での分割が連結の逆になること。
   `urlencodedEncode_no_separator`（serialize した成分に `&` も `=` も現れない）が
-  その足場である。
+  その足場である。どちらの分割も accumulator で書かれているので、その形の帰納法を使う。
 
 ## 鍵になる並び
 
@@ -188,5 +188,231 @@ theorem decodeComponent (s : String) :
     rw [show percentDecodeBytes (plusToSpace []) = [] from rfl, List.append_nil] at h0
     simpa [urlencodedEncode, utf8Encode, plusToSpace, asciiBytes] using h0
   rw [h, utf8DecodeString_encode]
+
+/-! ## `&` での分割 -/
+
+/-- 区切りを含まない塊は accumulator にそのまま積まれる。 -/
+theorem splitAmp_go_append : ∀ (p : Bytes), (∀ b ∈ p, ¬(b.toNat == 0x26) = true) →
+    ∀ (rest acc : Bytes), splitAmp.go (p ++ rest) acc = splitAmp.go rest (p.reverse ++ acc)
+  | [], _, rest, acc => by simp
+  | b :: p, h, rest, acc => by
+    rw [List.cons_append, splitAmp.go, if_neg (h b List.mem_cons_self),
+      splitAmp_go_append p (fun x hx => h x (List.mem_cons_of_mem _ hx)) rest (b :: acc)]
+    simp
+
+/-- **`&` での分割は連結の逆である。** -/
+theorem splitAmp_intercalate : ∀ (p : Bytes) (ps : List Bytes),
+    (∀ b ∈ p, ¬(b.toNat == 0x26) = true) →
+    (∀ q ∈ ps, ∀ b ∈ q, ¬(b.toNat == 0x26) = true) →
+    splitAmp (p ++ ps.flatMap (fun x => UInt8.ofNat 0x26 :: x)) = p :: ps
+  | p, [], hp, _ => by
+    show splitAmp.go (p ++ []) [] = _
+    rw [splitAmp_go_append p hp [] []]
+    simp [splitAmp.go]
+  | p, q :: qs, hp, hq => by
+    show splitAmp.go (p ++ (q :: qs).flatMap (fun x => UInt8.ofNat 0x26 :: x)) [] = _
+    rw [show (q :: qs).flatMap (fun x => UInt8.ofNat 0x26 :: x)
+        = UInt8.ofNat 0x26 :: (q ++ qs.flatMap (fun x => UInt8.ofNat 0x26 :: x)) from by simp,
+      splitAmp_go_append p hp _ [], splitAmp.go, if_pos (by decide)]
+    simp only [List.append_nil, List.reverse_reverse]
+    rw [show splitAmp.go (q ++ qs.flatMap (fun x => UInt8.ofNat 0x26 :: x)) []
+        = splitAmp (q ++ qs.flatMap (fun x => UInt8.ofNat 0x26 :: x)) from rfl,
+      splitAmp_intercalate q qs (hq q List.mem_cons_self)
+        (fun x hx => hq x (List.mem_cons_of_mem _ hx))]
+
+/-! ## 最初の `=` での分割 -/
+
+theorem splitFirstEq_go_append : ∀ (p : Bytes), (∀ b ∈ p, ¬(b.toNat == 0x3D) = true) →
+    ∀ (rest acc : Bytes),
+      splitFirstEq.go (p ++ rest) acc = splitFirstEq.go rest (p.reverse ++ acc)
+  | [], _, rest, acc => by simp
+  | b :: p, h, rest, acc => by
+    rw [List.cons_append, splitFirstEq.go, if_neg (h b List.mem_cons_self),
+      splitFirstEq_go_append p (fun x hx => h x (List.mem_cons_of_mem _ hx)) rest (b :: acc)]
+    simp
+
+/-- **最初の `=` での分割は name と value を戻す。** -/
+theorem splitFirstEq_append (name value : Bytes)
+    (h : ∀ b ∈ name, ¬(b.toNat == 0x3D) = true) :
+    splitFirstEq (name ++ UInt8.ofNat 0x3D :: value) = (name, value) := by
+  show splitFirstEq.go (name ++ UInt8.ofNat 0x3D :: value) [] = _
+  rw [splitFirstEq_go_append name h _ [], splitFirstEq.go, if_pos (by decide)]
+  simp
+
+/-! ## 区切りが成分に現れないこと -/
+
+theorem toNat_ne_of_ne {c d : Char} (h : c ≠ d) : c.toNat ≠ d.toNat := by
+  intro he
+  exact h (by rw [← Char.ofNat_toNat c, ← Char.ofNat_toNat d, he])
+
+theorem percentEncodeByte_ascii (b : UInt8) : ∀ c ∈ percentEncodeByte b, c.toNat < 128 := by
+  have hb : b.toNat < 256 := UInt8.toNat_lt_size b
+  intro c hc
+  rw [percentEncodeByte_eq] at hc
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with h | h | h
+  · subst h; decide
+  · subst h; exact hexDigitChar_lt _ (by omega)
+  · subst h; exact hexDigitChar_lt _ (by omega)
+
+/-- serialize した成分は ASCII だけからなる。 -/
+theorem urlencodedEncode_ascii (s : String) : ∀ c ∈ urlencodedEncode s, c.toNat < 128 := by
+  intro c hc
+  unfold urlencodedEncode at hc
+  obtain ⟨x, _, hx⟩ := List.mem_flatMap.mp hc
+  unfold urlencodedEncodeChar at hx
+  split at hx
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
+    subst hx; decide
+  · split at hx
+    · obtain ⟨b, _, hb⟩ := List.mem_flatMap.mp hx
+      exact percentEncodeByte_ascii b c hb
+    · next hset =>
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
+      subst hx
+      exact (not_set_bounds (by simpa using hset)).1
+
+/-- ASCII の文字を byte にすると値は変わらない。 -/
+theorem toNat_asciiByte {c : Char} (h : c.toNat < 128) :
+    (UInt8.ofNat c.toNat).toNat = c.toNat := by
+  simp [Nat.mod_eq_of_lt (show c.toNat < 256 by omega)]
+
+theorem asciiBytes_no_sep (s : String) (d : Char) (hd : d = '&' ∨ d = '=') :
+    ∀ b ∈ asciiBytes (urlencodedEncode s), ¬(b.toNat == d.toNat) = true := by
+  intro b hb
+  obtain ⟨c, hc, hcb⟩ := List.mem_map.mp hb
+  subst hcb
+  have hasc := urlencodedEncode_ascii s c hc
+  have hne := urlencodedEncode_no_separator s c hc
+  rw [toNat_asciiByte hasc]
+  simp only [beq_iff_eq]
+  rcases hd with h | h <;> subst h
+  · exact toNat_ne_of_ne hne.1
+  · exact toNat_ne_of_ne hne.2
+
+/-! ## 全体の往復 -/
+
+/-- serialize した一組ぶんの文字列。 -/
+def partChars (t : String × String) : List Char :=
+  urlencodedEncode t.1 ++ ['='] ++ urlencodedEncode t.2
+
+theorem serializeUrlencoded_eq (l : List (String × String)) :
+    serializeUrlencoded l = String.ofList (intercalateChars ['&'] (l.map partChars)) := rfl
+
+theorem partChars_ascii (t : String × String) : ∀ c ∈ partChars t, c.toNat < 128 := by
+  intro c hc
+  unfold partChars at hc
+  rcases List.mem_append.mp hc with h | h
+  · rcases List.mem_append.mp h with h | h
+    · exact urlencodedEncode_ascii _ c h
+    · simp only [List.mem_cons, List.not_mem_nil, or_false] at h; subst h; decide
+  · exact urlencodedEncode_ascii _ c h
+
+theorem intercalateChars_ascii : ∀ (ps : List (List Char)),
+    (∀ p ∈ ps, ∀ c ∈ p, c.toNat < 128) → ∀ c ∈ intercalateChars ['&'] ps, c.toNat < 128
+  | [], _ => by simp [intercalateChars]
+  | a :: as, h => by
+    intro c hc
+    unfold intercalateChars at hc
+    rcases List.mem_append.mp hc with hm | hm
+    · exact h a List.mem_cons_self c hm
+    · obtain ⟨x, hx, hcx⟩ := List.mem_flatMap.mp hm
+      simp only [List.cons_append, List.nil_append, List.mem_cons] at hcx
+      rcases hcx with hcx | hcx
+      · subst hcx; decide
+      · exact h x (List.mem_cons_of_mem _ hx) c hcx
+
+theorem asciiBytes_intercalate (a : List Char) (as : List (List Char)) :
+    asciiBytes (intercalateChars ['&'] (a :: as))
+      = asciiBytes a ++ (as.map asciiBytes).flatMap (fun y => UInt8.ofNat 0x26 :: y) := by
+  unfold intercalateChars asciiBytes
+  rw [List.map_append, List.map_flatMap, List.flatMap_map]
+  rfl
+
+/-- 区切りでない文字しか無い列は、byte にしてもその区切りを含まない。 -/
+theorem asciiBytes_ne (l : List Char) (d : Char) (hasc : ∀ c ∈ l, c.toNat < 128)
+    (hne : ∀ c ∈ l, c ≠ d) : ∀ b ∈ asciiBytes l, ¬(b.toNat == d.toNat) = true := by
+  intro b hb
+  obtain ⟨c, hc, hcb⟩ := List.mem_map.mp hb
+  subst hcb
+  rw [toNat_asciiByte (hasc c hc)]
+  simp only [beq_iff_eq]
+  exact toNat_ne_of_ne (hne c hc)
+
+theorem partChars_ne (t : String × String) (d : Char) (hd : d = '&' ∨ d = '=') (hda : d ≠ '=') :
+    ∀ c ∈ partChars t, c ≠ d := by
+  intro c hc
+  unfold partChars at hc
+  rcases List.mem_append.mp hc with h | h
+  · rcases List.mem_append.mp h with h | h
+    · rcases hd with h' | h' <;> subst h'
+      · exact (urlencodedEncode_no_separator _ c h).1
+      · exact (urlencodedEncode_no_separator _ c h).2
+    · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
+      subst h; exact fun he => hda he.symm
+  · rcases hd with h' | h' <;> subst h'
+    · exact (urlencodedEncode_no_separator _ c h).1
+    · exact (urlencodedEncode_no_separator _ c h).2
+
+theorem partBytes_no_amp (t : String × String) :
+    ∀ b ∈ asciiBytes (partChars t), ¬(b.toNat == 0x26) = true :=
+  asciiBytes_ne _ '&' (partChars_ascii t) (partChars_ne t '&' (Or.inl rfl) (by decide))
+
+/-- 一組ぶんの byte 列を読み戻すと元の組に戻る。 -/
+theorem parse_partBytes (t : String × String) :
+    (if (asciiBytes (partChars t)).isEmpty then none
+      else
+        let (name, value) := splitFirstEq (asciiBytes (partChars t))
+        let dec := fun (x : Bytes) => utf8DecodeString (percentDecodeBytes (plusToSpace x))
+        some (dec name, dec value)) = some t := by
+  have hsplit : asciiBytes (partChars t)
+      = asciiBytes (urlencodedEncode t.1) ++ UInt8.ofNat 0x3D
+        :: asciiBytes (urlencodedEncode t.2) := by
+    unfold partChars asciiBytes
+    simp
+  have hne : ∀ b ∈ asciiBytes (urlencodedEncode t.1), ¬(b.toNat == 0x3D) = true :=
+    asciiBytes_ne _ '=' (urlencodedEncode_ascii _)
+      (fun c hc => (urlencodedEncode_no_separator _ c hc).2)
+  rw [hsplit, splitFirstEq_append _ _ hne]
+  simp only [decodeComponent]
+  rw [if_neg (by cases h : asciiBytes (urlencodedEncode t.1) <;> simp)]
+
+theorem filterMap_parts : ∀ (ts : List (String × String)),
+    (ts.map (fun u => asciiBytes (partChars u))).filterMap
+      (fun bs => if bs.isEmpty then none
+        else
+          let (name, value) := splitFirstEq bs
+          let dec := fun (x : Bytes) => utf8DecodeString (percentDecodeBytes (plusToSpace x))
+          some (dec name, dec value)) = ts
+  | [] => rfl
+  | u :: us => by
+    rw [List.map_cons, List.filterMap_cons, parse_partBytes u, filterMap_parts us]
+
+/-- **§5 の往復。** serialize して parse すると元に戻る。 -/
+theorem parse_serialize (l : List (String × String)) :
+    parseUrlencodedString (serializeUrlencoded l) = l := by
+  have hascii : ∀ c ∈ intercalateChars ['&'] (l.map partChars), c.toNat < 128 :=
+    intercalateChars_ascii _ (by
+      intro p hp
+      obtain ⟨t, _, hpt⟩ := List.mem_map.mp hp
+      subst hpt
+      exact partChars_ascii t)
+  rw [parseUrlencodedString, serializeUrlencoded_eq, utf8Encode_ofList_ascii _ hascii]
+  match l with
+  | [] => rfl
+  | t :: ts =>
+    rw [List.map_cons, asciiBytes_intercalate]
+    unfold parseUrlencoded
+    rw [splitAmp_intercalate _ _
+      (partBytes_no_amp t) (by
+        intro q hq
+        obtain ⟨p, hp, hpq⟩ := List.mem_map.mp hq
+        obtain ⟨u, _, hup⟩ := List.mem_map.mp hp
+        subst hup; subst hpq
+        exact partBytes_no_amp u)]
+    show (asciiBytes (partChars t) :: (ts.map partChars).map asciiBytes).filterMap _ = _
+    rw [show (ts.map partChars).map asciiBytes
+        = ts.map (fun u => asciiBytes (partChars u)) from by simp]
+    rw [List.filterMap_cons, parse_partBytes t, filterMap_parts ts]
 
 end Url
