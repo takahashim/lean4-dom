@@ -25,7 +25,7 @@ open Dom
 theorem admissible_stepIterator {s : DOMState} {i : Nat}
     {f : Tree → IteratorState → Option (NodeId × IteratorState)}
     (hf : ∀ it ∈ s.iterators, ∀ n it', f s.tree it = some (n, it') → ValidIterator s.tree it')
-    (h : AdmissibleDOMState s) : AdmissibleDOMState (stepIterator s i f) := by
+    (h : AdmissibleDOMState s) : AdmissibleDOMState (stepIterator s i f).1 := by
   unfold stepIterator
   split
   · exact h

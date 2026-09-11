@@ -81,6 +81,25 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
 /-! ## 操作の適用 -/
 
 /--
+`nextNode()` / `previousNode()` を i 番目の iterator に適用する。
+
+collection の端で `null` が返る場合、仕様では iterator は変わらない。
+index が範囲外の場合も何もしない。
+
+**新しい状態と返る node の両方を返す。** `applyOperation` が前者、`returnValueOf` が
+後者を取る。片方が捨てたものをもう片方が計算し直すと、二つが食い違いうるためである
+（`toggleAttribute` や `takeRecords` は元から一つの関数が両方を返す形になっている）。
+-/
+def stepIterator (s : DOMState) (i : Nat)
+    (f : Tree → IteratorState → Option (NodeId × IteratorState)) : DOMState × Option NodeId :=
+  match s.iterators[i]? with
+  | none => (s, none)
+  | some it =>
+    match f s.tree it with
+    | none => (s, none)
+    | some (n, it') => ({ s with iterators := s.iterators.set i it' }, some n)
+
+/--
 初期状態を組み立てる。range と iterator が valid であることも検査する。
 
 要求するのは **admissible な状態**（`AdmissibleDOMState`）であることである。
@@ -142,14 +161,8 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .insertBefore _ n _ => .node (some ⟨n⟩)
   | .replaceChild _ _ c => .node (some ⟨c⟩)
   | .removeChild _ n => .node (some ⟨n⟩)
-  | .iteratorNext i =>
-    .node (match s.iterators[i]? with
-           | none => none
-           | some it => (nextNode s.tree it).map Prod.fst)
-  | .iteratorPrevious i =>
-    .node (match s.iterators[i]? with
-           | none => none
-           | some it => (previousNode s.tree it).map Prod.fst)
+  | .iteratorNext i => .node (stepIterator s i nextNode).2
+  | .iteratorPrevious i => .node (stepIterator s i previousNode).2
   | .toggleAttribute e qn f =>
     match toggleAttribute s ⟨e⟩ qn f with
     | .error _ => .unit
@@ -191,21 +204,6 @@ def deliveredBy (s : DOMState) : Operation → List (Nat × List MutationRecord)
   | .notify => (notifyMutationObservers s).2
   | _ => []
 
-/--
-`nextNode()` / `previousNode()` を i 番目の iterator に適用する。
-
-collection の端で `null` が返る場合、仕様では iterator は変わらない。
-index が範囲外の場合も何もしない。
--/
-def stepIterator (s : DOMState) (i : Nat)
-    (f : Tree → IteratorState → Option (NodeId × IteratorState)) : DOMState :=
-  match s.iterators[i]? with
-  | none => s
-  | some it =>
-    match f s.tree it with
-    | none => s
-    | some (_, it') => { s with iterators := s.iterators.set i it' }
-
 /-- 一つの操作を public API に割り当てる。 -/
 def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .appendChild p n => appendChild s ⟨p⟩ ⟨n⟩
@@ -218,8 +216,8 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .replaceWith tgt n => replaceWith s ⟨tgt⟩ ⟨n⟩
   | .remove tgt => nodeRemove s ⟨tgt⟩
   | .moveBefore p n c => moveBefore s ⟨p⟩ ⟨n⟩ (c.map NodeId.mk)
-  | .iteratorNext i => .ok (stepIterator s i nextNode)
-  | .iteratorPrevious i => .ok (stepIterator s i previousNode)
+  | .iteratorNext i => .ok (stepIterator s i nextNode).1
+  | .iteratorPrevious i => .ok (stepIterator s i previousNode).1
   | .replaceData n o c d => replaceData s ⟨n⟩ o c d
   | .appendData n d => appendData s ⟨n⟩ d
   | .insertData n o d => insertData s ⟨n⟩ o d
