@@ -135,6 +135,13 @@ open Dom.Audit
   Url.ipv4Parser_lt
   Url.foldl_base256_lt
 
+-- URL Standard §3.2 host / §1.3 percent-encoding
+#audit_axioms
+  Url.opaqueHostParser_no_forbidden
+  Url.asciiDomainToASCII_no_forbidden
+  Url.asciiDomainToASCII_ne_empty
+  Url.utf8PercentEncode_id
+
 -- boolean checker と Prop の対応
 #audit_axioms
   Dom.checkAdmissibleDOMState_iff
