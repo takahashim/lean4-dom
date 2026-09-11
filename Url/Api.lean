@@ -131,21 +131,23 @@ def Url.setPathname (u : Url) (v : String) : Url :=
     let u0 := { u with path := Path.list [] }
     (basicUrlParseOverride v u0 .path).getD u0
 
+/-- 先頭の区切りを一つだけ落とす。 -/
+def dropLeading (d : Char) (v : String) : String :=
+  String.ofList (match v.toList with | c :: t => if c == d then t else v.toList | [] => [])
+
 /-- §6.1 `search` setter。先頭の `?` は一つだけ落とす。 -/
 def Url.setSearch (u : Url) (v : String) : Url :=
   if v.isEmpty then stripTrailingSpaces { u with query := none }
   else
-    let input := match v.toList with | '?' :: t => t | l => l
-    let u0 := { u with query := some "" }
-    (basicUrlParseOverride (String.ofList input) u0 .query).getD u0
+    (basicUrlParseOverride (dropLeading '?' v) { u with query := some "" } .query).getD
+      { u with query := some "" }
 
 /-- §6.1 `hash` setter。先頭の `#` は一つだけ落とす。 -/
 def Url.setHash (u : Url) (v : String) : Url :=
   if v.isEmpty then stripTrailingSpaces { u with fragment := none }
   else
-    let input := match v.toList with | '#' :: t => t | l => l
-    let u0 := { u with fragment := some "" }
-    (basicUrlParseOverride (String.ofList input) u0 .fragment).getD u0
+    (basicUrlParseOverride (dropLeading '#' v) { u with fragment := some "" } .fragment).getD
+      { u with fragment := some "" }
 
 /-- §6.1 `href` setter。base なしで parse し直す。失敗は例外（ここでは `none`）。 -/
 def Url.setHref (v : String) : Option Url := basicUrlParse v none

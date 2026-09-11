@@ -148,6 +148,8 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `setHost_opaque`, `setHostname_opaque`, `setPathname_opaque` | opaque path を持つ URL では、その setter は何もしない |
 | `not_opaque_of_canHaveCredentials` | credentials を置ける URL は host を持ち、opaque path でない |
 | `setUsername_valid`, `setPassword_valid`, `setPort_empty_valid` | record の中で閉じる setter は `ValidUrl` を保つ |
+| `setSearch_valid`, `setHash_valid` | **`search` と `hash` の setter も `ValidUrl` を保つ** |
+| `run_query_shape`, `run_fragment_shape` | override 付きの query / fragment state は query / fragment しか変えない |
 | `shortenPath_spec`, `appendSegment_spec`, `appendOpaque_spec` | path をいじる三つは path 以外を変えず、path の種類も変えない |
 | `portDone_spec` | port state の終わりは port 以外の成分を変えない |
 | `userinfoFold_spec` | authority state の振り分けは username / password 以外を変えない |
@@ -254,6 +256,20 @@ parse が成功したときの URL record が §4.1 の不変条件をすべて�
 （`basicUrlParse_valid`、`parseUrl_valid`）。`checkValidUrl` を WPT の全 case で
 走らせていたものが、これで証明に上がった。実行時の検査は交差検証として残してある。
 
+### setter の側
+
+setter は五つ証明した。record の中で閉じる三つ
+（`username` / `password` / 空文字列の `port`）と、
+**query / fragment state しか通らない二つ（`search` / `hash`）**である。
+
+後者は state machine 全体の帰納法を使わない。fragment state は fragment 以外を書かず、
+遷移先も fragment state だけなので、入力の長さについての短い帰納法
+（`run_fragment_shape`）で閉じる。query state も override 付きなら `#` が buffer に
+入るだけで query state に留まるので同じ形になる。
+`ValidUrl` の六条件はどれも query / fragment に触れないので、そこから保存が出る。
+
+残りは下の「未着手」にある。
+
 ### `ValidUrl` 単独では帰納的でない
 
 `ValidUrl` をそのまま「parse の途中でも成り立つ」としても帰納法は回らない。
@@ -319,6 +335,18 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 実行時に検査していて、違反はない。
 
 ## 未着手
+
+* **残りの setter の `ValidUrl` 保存。** `protocol` / `host` / `hostname` /
+  非空の `port` / `pathname` は host や port や path を書くので、
+  `run_valid` の不変条件を override 付きに広げる必要がある。
+  いまの `PInv` は `over = none` を要求している。広げるときに要るのは
+
+  * override 付きでは authority state に入らないこと（credentials の緩めが不要になる）
+  * `host` / `fileHost` / `port` / `pathStart` / `path` state に override で入るのは
+    path が opaque でないときだけであること（setter 側の guard がそれを保証する）
+  * port state に override で入るのは host が決まっているときだけであること
+
+  実行時の検査は `--setters` の全 258 件で通っている（`ValidUrl（setter 後）: 違反 0`）。
 
 * **IDNA / UTS #46 そのもの。** 上記の理由で抽象化したままにする。
 * **encoding override。** HTML 由来の legacy 引数。UTF-8 に固定している。

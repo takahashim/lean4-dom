@@ -158,6 +158,14 @@ open Dom.Audit
   Url.setUsername_valid
   Url.setPassword_valid
   Url.setPort_empty_valid
+  Url.run_fragment_shape
+  Url.run_query_shape
+  Url.basicUrlParseOverride_fragment
+  Url.basicUrlParseOverride_query
+  Url.validUrl_setOpaque
+  Url.stripTrailingSpaces_valid
+  Url.setHash_valid
+  Url.setSearch_valid
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms
