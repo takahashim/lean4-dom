@@ -13,7 +13,6 @@ URL Standard の oracle。
 
 open Lean (Json)
 open Url
-open Infra
 
 structure Case where
   input : String
@@ -21,6 +20,8 @@ structure Case where
   failure : Bool
   href : Option String
   origin : Option String
+  /-- model の対象外である理由。付いていたら一致を求めない。 -/
+  outOfModel : Option String
 
 def caseOfJson (j : Json) : Except String Case := do
   let input ← (← j.getObjVal? "input").getStr?
@@ -36,7 +37,10 @@ def caseOfJson (j : Json) : Except String Case := do
   let origin ← match j.getObjVal? "origin" with
     | .ok v => if v.isNull then pure none else (v.getStr?).map some
     | .error _ => pure none
-  return { input, base, failure, href, origin }
+  let outOfModel ← match j.getObjVal? "out_of_model" with
+    | .ok v => (v.getStr?).map some
+    | .error _ => pure none
+  return { input, base, failure, href, origin, outOfModel }
 
 def runWpt (path : String) : IO UInt32 := do
   let text ← IO.FS.readFile path
@@ -47,6 +51,7 @@ def runWpt (path : String) : IO UInt32 := do
   let mut ok := 0
   let mut bad := 0
   let mut skipped := 0
+  let mut stale := 0
   let mut invalid := 0
   let mut originOk := 0
   let mut originBad := 0
@@ -55,11 +60,6 @@ def runWpt (path : String) : IO UInt32 := do
     match caseOfJson j with
     | .error e => IO.eprintln s!"case を読めない: {e}"; bad := bad + 1
     | .ok c =>
-      -- host が非 ASCII に decode される case は IDNA（UTS #46）が要る。
-      -- `asciiDomainToASCII` は構造的にそれを断るので、model の対象外として数える。
-      let needsIdna :=
-        (percentDecodeToString c.input.toList).any (fun ch => !isAscii ch) ||
-          ((c.base.getD "").toList.any (fun ch => !isAscii ch))
       let got := parseUrl c.input c.base
       let expected : Option String := if c.failure then none else c.href
       let actual : Option String := got.map (fun u => urlSerializer u)
@@ -83,19 +83,28 @@ def runWpt (path : String) : IO UInt32 := do
             IO.println s!"  expected={repr expectedOrigin}"
             IO.println s!"  actual  ={repr (originSerializer (Url.origin u))}"
       | _, _ => pure ()
-      if actual == expected then ok := ok + 1
-      else if needsIdna && actual == none then skipped := skipped + 1
-      else
-        bad := bad + 1
-        if shown < 20 then
-          shown := shown + 1
-          IO.println s!"MISMATCH input={repr c.input} base={repr c.base}"
-          IO.println s!"  expected={repr expected}"
-          IO.println s!"  actual  ={repr actual}"
-  IO.println s!"WPT: 一致 {ok} / 不一致 {bad} / IDNA が要る（model の対象外） {skipped}"
+      -- 対象外かどうかは fixture が明示する。実行結果から推測しない
+      -- （推測にすると、対象外でない case の退行が対象外に吸収されてしまう）。
+      match c.outOfModel with
+      | some reason =>
+        if actual == expected then
+          stale := stale + 1
+          IO.println s!"STALE 対象外（{reason}）の印だが一致した input={repr c.input}"
+        else skipped := skipped + 1
+      | none =>
+        if actual == expected then ok := ok + 1
+        else
+          bad := bad + 1
+          if shown < 20 then
+            shown := shown + 1
+            IO.println s!"MISMATCH input={repr c.input} base={repr c.base}"
+            IO.println s!"  expected={repr expected}"
+            IO.println s!"  actual  ={repr actual}"
+  IO.println s!"WPT: 一致 {ok} / 不一致 {bad} / 対象外 {skipped}"
+  if stale != 0 then IO.println s!"対象外の印が古い: {stale}"
   IO.println s!"ValidUrl: 違反 {invalid}"
   IO.println s!"origin: 一致 {originOk} / 不一致 {originBad}"
-  return if bad == 0 && invalid == 0 && originBad == 0 then 0 else 1
+  return if bad == 0 && stale == 0 && invalid == 0 && originBad == 0 then 0 else 1
 
 /-! ## setter -/
 
@@ -104,6 +113,8 @@ structure SetterCase where
   href : String
   newValue : String
   expected : List (String × String)
+  /-- model の対象外である理由。付いていたら一致を求めない。 -/
+  outOfModel : Option String
 
 def setterCaseOfJson (j : Json) : Except String SetterCase := do
   let setter ← (← j.getObjVal? "setter").getStr?
@@ -115,7 +126,10 @@ def setterCaseOfJson (j : Json) : Except String SetterCase := do
     match p.toList with
     | [k, v] => do return ((← k.getStr?), (← v.getStr?))
     | _ => throw "expected の要素が 2 要素の配列ではない"
-  return { setter, href, newValue, expected }
+  let outOfModel ← match j.getObjVal? "out_of_model" with
+    | .ok v => (v.getStr?).map some
+    | .error _ => pure none
+  return { setter, href, newValue, expected, outOfModel }
 
 /--
 WPT の `setters_tests.json`（ASCII だけの 258 件）を通す。
@@ -132,6 +146,7 @@ def runSetters (path : String) : IO UInt32 := do
   let mut ok := 0
   let mut bad := 0
   let mut skipped := 0
+  let mut stale := 0
   let mut invalid := 0
   let mut shown := 0
   for j in arr do
@@ -148,32 +163,40 @@ def runSetters (path : String) : IO UInt32 := do
           bad := bad + 1
           IO.println s!"SETTER 未知の setter {repr c.setter}"
         | some u =>
-          -- host / hostname setter に非 ASCII へ decode される値を渡すものは
-          -- IDNA（UTS #46）が要る。`--wpt` 側と同じく、対象外として別に数える。
-          let needsIdna :=
-            (c.setter == "host" || c.setter == "hostname") &&
-              (percentDecodeToString c.newValue.toList).any (fun ch => !isAscii ch)
           -- setter を通した後も record は `ValidUrl` を満たすはずである。
           if !checkValidUrl u then
             invalid := invalid + 1
             IO.println s!"INVALID setter={c.setter} href={repr c.href} value={repr c.newValue}"
+          -- 対象外かどうかは fixture が明示する。`--wpt` 側と同じ扱い。
+          let mut anyMismatch := false
           for (name, want) in c.expected do
             match u.getAttr name with
             | none =>
               bad := bad + 1
               IO.println s!"SETTER 未知の属性 {repr name}"
             | some got =>
-              if got == want then ok := ok + 1
-              else if needsIdna then skipped := skipped + 1
+              if got == want then
+                ok := ok + 1
               else
-                bad := bad + 1
-                if shown < 20 then
-                  shown := shown + 1
-                  IO.println s!"SETTER {c.setter} href={repr c.href} value={repr c.newValue}"
-                  IO.println s!"  {name}: expected={repr want} actual={repr got}"
-  IO.println s!"setters: 一致 {ok} / 不一致 {bad} / IDNA が要る（model の対象外） {skipped}"
+                anyMismatch := true
+                match c.outOfModel with
+                | some _ => skipped := skipped + 1
+                | none =>
+                  bad := bad + 1
+                  if shown < 20 then
+                    shown := shown + 1
+                    IO.println s!"SETTER {c.setter} href={repr c.href} value={repr c.newValue}"
+                    IO.println s!"  {name}: expected={repr want} actual={repr got}"
+          match c.outOfModel with
+          | some reason =>
+            if !anyMismatch then
+              stale := stale + 1
+              IO.println s!"STALE 対象外（{reason}）の印だが全部一致した setter={c.setter}"
+          | none => pure ()
+  IO.println s!"setters: 一致 {ok} / 不一致 {bad} / 対象外 {skipped}"
+  if stale != 0 then IO.println s!"対象外の印が古い: {stale}"
   IO.println s!"ValidUrl（setter 後）: 違反 {invalid}"
-  return if bad == 0 && invalid == 0 then 0 else 1
+  return if bad == 0 && stale == 0 && invalid == 0 then 0 else 1
 
 /-! ## `URLSearchParams` -/
 

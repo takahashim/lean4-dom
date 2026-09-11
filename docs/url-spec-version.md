@@ -18,4 +18,8 @@
 * `wpt-searchparams-sort.json` — `url/urlsearchparams-sort.any.js` が持つ
   配列リテラルをそのまま取り出したもの（行末の `//` コメントだけ落としてある）。
 
+どちらの表も、model の対象外にする case には `out_of_model` に理由を書く。
+runner はこの印だけを見て対象外を決め、実行結果から推測しない。
+印が古くなった（対象外としたのに一致するようになった）場合も報告する。
+
 更新するときは `url-model --wpt` と `--setters` と `--searchparams` を通してから上げる。

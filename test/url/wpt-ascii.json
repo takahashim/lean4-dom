@@ -1,5 +1,5 @@
 {
- "_note": "WPT の urltestdata.json から、input と base が ASCII だけの case を抜いたもの。非 ASCII を含むものは IDNA（UTS #46）が要るので外してある。setter 用の relativeTo を持つ case も外した。",
+ "_note": "WPT の urltestdata.json から、input と base が ASCII だけの case を抜いたもの。非 ASCII を含むものは IDNA（UTS #46）が要るので外してある。setter 用の relativeTo を持つ case も外した。`out_of_model` が付いた case は model の対象外で、一致を求めない（percent-encode された非 ASCII host で UTS #46 が要るもの）。",
  "_source": {
   "repository": "https://github.com/web-platform-tests/wpt",
   "path": "url/resources/urltestdata.json",
@@ -2988,14 +2988,16 @@
    "base": null,
    "failure": false,
    "href": "ftp://xn--n3h/",
-   "origin": "ftp://xn--n3h"
+   "origin": "ftp://xn--n3h",
+   "out_of_model": "idna"
   },
   {
    "input": "https://%e2%98%83",
    "base": null,
    "failure": false,
    "href": "https://xn--n3h/",
-   "origin": "https://xn--n3h"
+   "origin": "https://xn--n3h",
+   "out_of_model": "idna"
   },
   {
    "input": "http://127.0.0.1:10100/relative_import.html",
@@ -4382,7 +4384,8 @@
    "input": "file://a%C2%ADb/p",
    "base": null,
    "failure": false,
-   "href": "file://ab/p"
+   "href": "file://ab/p",
+   "out_of_model": "idna"
   },
   {
    "input": "file://%C2%AD/p",
@@ -4765,7 +4768,8 @@
    "base": null,
    "failure": false,
    "href": "https://ab/",
-   "origin": "https://ab"
+   "origin": "https://ab",
+   "out_of_model": "idna"
   },
   {
    "input": "https://%C2%AD/",

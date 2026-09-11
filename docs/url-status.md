@@ -170,11 +170,18 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 （ASCII だけの 820 件）を通す。
 
 ```
-WPT: 一致 816 / 不一致 0 / IDNA が要る（model の対象外） 4
+WPT: 一致 816 / 不一致 0 / 対象外 4
 ```
 
 残る 4 件は percent-encode された非 ASCII host で UTS #46 が要るもの。
-**一致とは数えず、対象外として別に報告する。**
+
+**対象外かどうかは fixture の `out_of_model` が決める。実行結果から推測しない。**
+以前は「不一致 かつ 非 ASCII を含む かつ model が失敗した」を対象外に分類していたが、
+それだと host 以外（path・query）に非 ASCII を含む case が将来失敗するようになったとき、
+退行が対象外に吸収されて気づけない。
+
+印が古くなること（対象外としたのに一致するようになる）も検出する。
+その場合は「対象外の印が古い」として報告し、終了コードを 1 にする。
 
 origin（§4.7）も同じ表が期待値を持っている。
 
@@ -195,12 +202,12 @@ setter（§6.1）も WPT が `setters_tests.json` で表を配っている。
 ASCII だけの 258 件について「この URL のこの属性にこの値を入れると各属性がこうなる」を確かめる。
 
 ```
-setters: 一致 699 / 不一致 0 / IDNA が要る（model の対象外） 6
+setters: 一致 699 / 不一致 0 / 対象外 6
 ValidUrl（setter 後）: 違反 0
 ```
 
 対象外の 6 件（2 case × 3 属性）は host / hostname に `a%C2%ADb` を入れるもので、
-UTS #46 が soft hyphen を落とすことを期待している。
+UTS #46 が soft hyphen を落とすことを期待している。こちらも `out_of_model` で明示する。
 
 `URLSearchParams`（§6.2）は、`sort` だけ WPT が
 `urlsearchparams-sort.any.js` に配列リテラルで期待値を持っている。

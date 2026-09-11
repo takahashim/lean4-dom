@@ -1,5 +1,5 @@
 {
- "_note": "WPT の setters_tests.json から、入力も期待値も ASCII だけの case を抜いたもの。非 ASCII を含むものは IDNA（UTS #46）が要るので外してある。",
+ "_note": "WPT の setters_tests.json から、入力も期待値も ASCII だけの case を抜いたもの。非 ASCII を含むものは IDNA（UTS #46）が要るので外してある。`out_of_model` が付いた case は model の対象外で、一致を求めない。",
  "_source": {
   "repository": "https://github.com/web-platform-tests/wpt",
   "path": "url/resources/setters_tests.json",
@@ -2036,7 +2036,8 @@
      "hostname",
      "ab"
     ]
-   ]
+   ],
+   "out_of_model": "idna"
   },
   {
    "setter": "host",
@@ -3015,7 +3016,8 @@
      "hostname",
      "ab"
     ]
-   ]
+   ],
+   "out_of_model": "idna"
   },
   {
    "setter": "hostname",

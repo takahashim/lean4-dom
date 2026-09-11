@@ -31,7 +31,7 @@ state machine は fuel ではなく `(state の順位, 残りの文字数, 位�
 辞書式測度で停止性を示してある。
 期待値は WPT の `urltestdata.json` と `setters_tests.json` がそのまま使える
 （`--wpt` で 820 件中 816 件一致、`--setters` で 699 件の属性比較が一致。
-残りは IDNA が要るので対象外）。
+残りは IDNA が要るので対象外で、その印は fixture に書いてある）。
 詳しくは `docs/url-status.md` と `docs/url-traceability.md`。
 
 ## 共有している部分
