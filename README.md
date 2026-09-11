@@ -26,6 +26,8 @@ IDNA（UTS #46）は仕様自身が別仕様へ委譲しているので、
 DOM と違って状態を持たない純関数なので、中心の定理も
 「操作列に沿った invariant の保存」ではなく
 「parser の停止性」と「結果の record の妥当性」になる。
+state machine は fuel ではなく `(state の順位, 残りの文字数, 位相)` の
+辞書式測度で停止性を示してある。
 期待値は WPT の `urltestdata.json` がそのまま使える
 （`lake exe url-model --wpt test/url/wpt-ascii.json` で 820 件中 816 件一致、
 残り 4 件は IDNA が要るので対象外）。

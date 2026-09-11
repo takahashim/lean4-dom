@@ -61,12 +61,22 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 順位を変えない遷移（buffer に 1 文字積む自己ループ）は必ず入力を 1 つ消費する。
 したがって `(stateRank st, 残りの入力長)` の辞書式順序が減る。
 
-**いまはこれを fuel として回している。** `termination_by` を書くところまでは進んだが、
-`decreasing_by` に「入力が空でないこと」を渡す形がまだ定まっていない
-（`c` が `let` 束縛なので、`match c with` から `input ≠ []` が復元できない）。
-入力に対する `match` で state machine を二分すれば解けるが、
-本体をほぼ二重に書くことになるので、別の形を探している。
-fuel は入力長の 40 倍 + 定数にしてある。
+測度は `(stateRank st, 残りの文字数, 位相)` の辞書式で、**fuel は使っていない**。
+
+位相が要るのは、入力の先頭を取り出す `run` と本体の `step` を分けたからである。
+`run` が位相 1、`step` が位相 0 で、同じ state・同じ文字数のまま
+`run` から `step` へ降りるぶんを位相が引き受ける。
+
+この形に辿り着くまでに二つ直した。
+
+* `c`（いま読んでいる文字）と `input`（読み直すための入力）を
+  `let` ではなく **`step` の引数** にした。`let` だと `match c with` が
+  `c` を絞り込んでも束縛済みの `input` には伝わらず、
+  `decreasing_by` が「入力が空でない」を復元できない。
+* 順位を変えない自己ループ（`specialAuthorityIgnoreSlashes` と `authority`）を
+  `if c == some 'x'` から `match c with | some ch => ...` に書き換えた。
+  `if` の guard では `c` が絞り込まれないので、
+  「残りの文字数が 1 減る」が言えない。
 
 ## IDNA の境界
 
@@ -90,6 +100,7 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `asciiDomainToASCII_no_forbidden` | domain parser の結果に forbidden domain code point は無い |
 | `asciiDomainToASCII_ne_empty` | domain parser の結果は空でない |
 | `utf8PercentEncode_id` | set に入るものが無ければ percent-encode は何も変えない |
+| （`run` / `step` の停止性） | `termination_by` で示してある。fuel は使っていない |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -120,7 +131,6 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
 
 ## 未着手
 
-* **停止性を測度で書き直す**（上記）。
 * **`ValidUrl` の保存。** `Url/Record.lean` に述語は置いた。
   parser の結果が常に満たすことを示すには state ごとの不変条件が要る。
   authority state は host が決まる前に credentials を入れるので、

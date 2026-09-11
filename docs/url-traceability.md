@@ -56,7 +56,7 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | special scheme と既定の port | §4.2 | `isSpecialScheme`, `defaultPort` | `isSpecialScheme_of_defaultPort` | wpt | 済 |
 | URL path serializer | §4.3 | `pathSerializer` | — | wpt | 済 |
 | URL serializer | §4.3 1-7 | `urlSerializer` | — | wpt | 済 |
-| basic URL parser（全 state） | §4.4 1-3 | `run`, `basicUrlParse` | 停止性は `stateRank` で設計、いまは fuel | wpt | 済（state override を除く） |
+| basic URL parser（全 state） | §4.4 1-3 | `run`, `step`, `basicUrlParse` | 停止性（`termination_by (stateRank st, 残りの文字数, 位相)`） | wpt | 済（state override を除く） |
 | shorten a URL's path / single-dot / double-dot / Windows drive letter | §4.4 | `shortenPath`, `isSingleDot`, `isDoubleDot`, `isWindowsDrive` ほか | — | wpt | 済 |
 
 ## 未対応と対象外
