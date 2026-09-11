@@ -1,11 +1,12 @@
 import Dom.Exec.Json
+import Dom.Validity.State
 
 /-!
 # 操作列の評価
 
 PLAN §7。scenario を読み込んで初期状態を組み立て、操作を順に適用して各 step の状態を出力する。
 
-各 step の後で `checkWellFormed` と `checkRangesValid` を実行し、
+各 step の後で `checkAdmissibleDOMState` を実行し、
 invariant が破れていないか実行時にも確認する（PLAN §3.5, §8）。
 破れていればその step 番号を出力に含める。
 証明済みの preservation 定理があるので本来は起こらないが、
@@ -58,7 +59,8 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
 /--
 初期状態を組み立てる。range と iterator が valid であることも検査する。
 
-要求するのは **admissible な状態** であること、すなわち両端が木の中にあることだけである。
+要求するのは **admissible な状態**（`AdmissibleDOMState`）であることである。
+range については両端が木の中にあることだけを見る。
 順序（`BoundaryLE`）は仕様の invariant ではないので要求しない
 （`notes/research-foundation-roadmap.md` §4。反例探索のために loader は
 admissible な状態を広く受理してよい）。
@@ -75,6 +77,12 @@ def buildState (sc : Scenario) : Except String DOMState := do
       characterData := o.characterData, characterDataOldValue := o.characterDataOldValue }
   let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators,
                         observers, registrations }
+  unless checkStructurallyValid t do
+    throw "初期状態が構造上の制約（leaf に children、Document に parent など）を満たしていない"
+  unless checkNodeDocumentsValid t do
+    throw "初期状態の node document が整合していない"
+  unless checkDocumentTreesValid t do
+    throw "初期状態の Document の children が仕様の制約を満たしていない"
   unless checkRangeEndpointsValid s do
     throw "初期状態の range の端点が木の中にない"
   unless checkIteratorsValid s do
@@ -134,6 +142,9 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
     | .error e => ([.failed e], none)
     | .ok s' =>
       if !s'.tree.checkWellFormed then ([.ok s'], some (i, "wellFormed"))
+      else if !checkStructurallyValid s'.tree then ([.ok s'], some (i, "structurallyValid"))
+      else if !checkNodeDocumentsValid s'.tree then ([.ok s'], some (i, "nodeDocumentsValid"))
+      else if !checkDocumentTreesValid s'.tree then ([.ok s'], some (i, "documentTreesValid"))
       else if !checkRangeEndpointsValid s' then ([.ok s'], some (i, "rangeEndpointsValid"))
       else if !checkIteratorsValid s' then ([.ok s'], some (i, "iteratorsValid"))
       else

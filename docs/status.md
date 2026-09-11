@@ -1233,6 +1233,74 @@ model も配送を扱わないので、これで両側が揃う。
 
 修正後、`--observers 3 --move` で seed 6 個 × 各 50 scenario、不一致ゼロ。
 
+## Phase A：admissibility（三つの木の層は全 algorithm で完了）
+
+`notes/research-foundation-roadmap.md` §4 の `AdmissibleDOMState` を、
+状態の invariant として立てて algorithm ごとに保存を証明した。
+
+### 立てた層
+
+| 層 | module | 内容 |
+| --- | --- | --- |
+| `StructurallyValid` | `Dom/Validity/Structural.lean` | `WellFormed` に加えて、Document は parent を持たない／leaf に children は無い／doctype の parent は Document |
+| `NodeDocumentsValid` | `Dom/Validity/NodeDocument.lean` | Document の node document は自分自身／tree edge の両端は同じ node document |
+| `DocumentTreesValid` | `Dom/Validity/DocumentTree.lean` | Document の children は element 高々一つ、doctype 高々一つ、Text 無し、element より後ろに doctype 無し |
+
+`AdmissibleDOMState`（`Dom/Validity/State.lean`）はこの三つに
+range の端点・iterator・observer registration の妥当性を足したものである。
+
+### algorithm ごとの保存（`Dom/Validity/AlgorithmPreservation.lean`）
+
+`remove` / `removeEach` / `adopt` / `insert` / `replace` / `replace all` / `move` /
+`moveBefore` / `replaceData` について、三つの層すべての保存を証明した。
+
+要になった補題は二つである。
+
+* `documentChildrenOk_of_detach` — children から一つ外すだけなら Document の制約は保たれる。
+* `documentChildrenOk_of_insertAt` — 一つ挿すときに必要なのは、
+  「Text でない」「element を入れるなら他に element が無く挿入点の後ろに doctype が無い」
+  「doctype を入れるなら他に doctype が無く挿入点の前に element が無い」の三つだけである。
+  これは `ensure pre-insertion validity` の step 6 / 9 / 10-11 と
+  `move` の step 5 / 6 が確立する事実とちょうど一致する。
+
+`insert` は node の列をまとめて入れるので、`InsertSeqOk` を loop 不変条件として置いた。
+一回の `insert` が入れる element と doctype は**合わせて高々一つ**である
+（fragment の children に doctype は無く、fragment でなければ node は一つ）。
+この一行が不変条件を loop で通す鍵になっている。
+
+`replace` は検査を「`child` を除外して、木を変える前に」走らせるので、
+結論を除去の後まで運ぶ必要がある。
+reference child が `child` のあった位置の直後に来ること
+（`replace_reference_head`）を示すと、
+「後ろに doctype が無い」「前に element が無い」がそのまま移る。
+
+### 証明が仕様・model に押し返したもの
+
+* **`move` の step 5 が `Text` を取り違えていた**（model 側の不具合）。
+  `kind == .text` で判定していたので、CDATASection を Document に move できた。
+  仕様の `Text` は interface なので CDATASection を含む。`isText` に直した。
+* **`moveBefore` に receiver の検査が無かった**（model 側の不具合）。
+  `move` algorithm の step 1-6 は newParent が children を持てるかを検査しない。
+  これは `moveBefore` が `ParentNode` の method であることによる IDL 側の制約である。
+  model は任意の node id を受け取れたので、Text node の中に element を move できた。
+* **roadmap §4 の `AdmissibleDOMState` は不足していた**。
+  「doctype の parent は Document」を入れないと `insert` で閉じない。
+  `StructurallyValid` に足した。
+
+### loader
+
+`Dom/Exec/Scenario.lean` は初期状態と各 step で
+`AdmissibleDOMState` の六つの成分をすべて検査するようになった。
+固定 scenario 13 本と、seed 10 個 × 各 100 本の生成 scenario
+（range 4 / iterator 2 / observer 3 / `moveBefore` あり）はすべて通り、
+どの step でも invariant 違反は出ない。
+
+### 残り
+
+range の端点と iterator の妥当性は `remove` 系と `insert` 系までで、
+`replace` / `replace all` / `move` の分と、
+六成分をまとめた `preserves_admissible` の組み立てが残っている。
+
 ## 未着手
 
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
