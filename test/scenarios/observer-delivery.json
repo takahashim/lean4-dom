@@ -1,0 +1,74 @@
+{
+  "_note": "MutationObserver の配送。observe で登録し、木を変えて record を積み、microtask checkpoint（notify）で callback に配送する。配送の後は record queue が空になり、transient registration も外れる。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "queue a mutation record",
+      "notify mutation observers",
+      "observe"
+    ],
+    "steps": "queue a mutation record 4-5 / notify mutation observers 1-5 / observe 3, 6, 7",
+    "note": "配送は record queue を空にし、transient registered observer を外す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 2,
+      "data": "cc"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 1,
+      "data": "tt"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {}
+  ],
+  "operations": [
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 1,
+      "childList": true,
+      "subtree": true
+    },
+    {
+      "op": "removeChild",
+      "parent": 1,
+      "node": 2
+    },
+    {
+      "op": "removeChild",
+      "parent": 2,
+      "node": 3
+    },
+    {
+      "op": "notify"
+    },
+    {
+      "op": "removeChild",
+      "parent": 1,
+      "node": 4
+    }
+  ]
+}

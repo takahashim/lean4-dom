@@ -71,10 +71,13 @@ admissible な状態を広く受理してよい）。
 -/
 def buildState (sc : Scenario) : Except String DOMState := do
   let t ← buildTree sc.nodes
-  let observers : List ObserverState := sc.observers.map fun _ => {}
-  let registrations : List Registration := sc.observers.zipIdx.map fun (o, i) =>
-    { node := ⟨o.target⟩, observer := i, subtree := o.subtree, childList := o.childList,
-      characterData := o.characterData, characterDataOldValue := o.characterDataOldValue }
+  let registrations : List Registration := sc.observers.zipIdx.filterMap fun (o, i) =>
+    o.target.map fun t =>
+      { node := ⟨t⟩, observer := i, subtree := o.subtree, childList := o.childList,
+        characterData := o.characterData, characterDataOldValue := o.characterDataOldValue }
+  -- `observe` を一度呼んだ状態にあたるので、node list にもその target を入れておく。
+  let observers : List ObserverState := sc.observers.map fun o =>
+    { nodeList := match o.target with | none => [] | some t => [⟨t⟩] }
   let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators,
                         observers, registrations }
   unless checkStructurallyValid t do
@@ -88,6 +91,16 @@ def buildState (sc : Scenario) : Except String DOMState := do
   unless checkIteratorsValid s do
     throw "初期状態の iterator が valid でない"
   return s
+
+/--
+その操作が microtask checkpoint なら、配送される record を返す。
+
+`notifyMutationObservers` は状態の純関数なので、操作を適用する前の状態から計算できる。
+`applyOperation` の型を変えずに観測へ載せるためにこう分けてある。
+-/
+def deliveredBy (s : DOMState) : Operation → List (Nat × List MutationRecord)
+  | .notify => (notifyMutationObservers s).2
+  | _ => []
 
 /--
 `nextNode()` / `previousNode()` を i 番目の iterator に適用する。
@@ -123,6 +136,10 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .insertData n o d => insertData s ⟨n⟩ o d
   | .deleteData n o c => deleteData s ⟨n⟩ o c
   | .setData n d => setData s ⟨n⟩ d
+  | .observe mo target opts => MutationObserver.observe s mo ⟨target⟩ opts
+  | .disconnect mo => .ok (MutationObserver.disconnect s mo)
+  | .takeRecords mo => .ok (MutationObserver.takeRecords s mo).1
+  | .notify => .ok (notifyMutationObservers s).1
 
 /--
 操作列を順に適用する。例外が起きた step で打ち切る（PLAN §7.2）。
@@ -141,15 +158,20 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
     match applyOperation s op with
     | .error e => ([.failed s e], none)
     | .ok s' =>
-      if !s'.tree.checkWellFormed then ([.ok s'], some (i, "wellFormed"))
-      else if !checkStructurallyValid s'.tree then ([.ok s'], some (i, "structurallyValid"))
-      else if !checkNodeDocumentsValid s'.tree then ([.ok s'], some (i, "nodeDocumentsValid"))
-      else if !checkDocumentTreesValid s'.tree then ([.ok s'], some (i, "documentTreesValid"))
-      else if !checkRangeEndpointsValid s' then ([.ok s'], some (i, "rangeEndpointsValid"))
-      else if !checkIteratorsValid s' then ([.ok s'], some (i, "iteratorsValid"))
+      let delivered := deliveredBy s op
+      if !s'.tree.checkWellFormed then ([.ok s' delivered], some (i, "wellFormed"))
+      else if !checkStructurallyValid s'.tree then
+        ([.ok s' delivered], some (i, "structurallyValid"))
+      else if !checkNodeDocumentsValid s'.tree then
+        ([.ok s' delivered], some (i, "nodeDocumentsValid"))
+      else if !checkDocumentTreesValid s'.tree then
+        ([.ok s' delivered], some (i, "documentTreesValid"))
+      else if !checkRangeEndpointsValid s' then
+        ([.ok s' delivered], some (i, "rangeEndpointsValid"))
+      else if !checkIteratorsValid s' then ([.ok s' delivered], some (i, "iteratorsValid"))
       else
         let (rest, viol) := runOperations s' ops (i + 1)
-        (.ok s' :: rest, viol)
+        (.ok s' delivered :: rest, viol)
 
 /-! ## scenario 全体の評価 -/
 

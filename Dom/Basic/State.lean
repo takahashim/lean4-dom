@@ -81,6 +81,15 @@ structure Registration where
   characterData : Bool := false
   characterDataOldValue : Bool := false
   transient : Bool := false
+  /--
+  仕様の transient registered observer の `source`。
+
+  仕様は source registration そのものを持つが、
+  一つの observer が一つの node に持つ非 transient な registration は高々一つなので
+  （`observe` step 7 は既存のものの options を差し替える）、
+  その node の id で一意に指せる。
+  -/
+  source : Option NodeId := none
 deriving DecidableEq, Repr, Inhabited
 
 /--
@@ -92,6 +101,15 @@ record は `takeRecords` で取り出すまで貯まる。
 -/
 structure ObserverState where
   records : List MutationRecord := []
+  /--
+  仕様の `MutationObserver` の node list。
+
+  `observe` が target を足す。加えて remove step 20 が transient を足した node も足す。
+  仕様本文は remove step 20 で node list に触れないが、そう読まないと
+  "notify mutation observers" step 5.2 と `observe` step 7.1 の掃除が
+  transient を置いた node に届かない（`docs/traceability.md` の近似の表を参照）。
+  -/
+  nodeList : List NodeId := []
 deriving DecidableEq, Repr, Inhabited
 
 /-- 木と live object を合わせた状態。 -/
@@ -101,6 +119,10 @@ structure DOMState where
   iterators : List IteratorState := []
   observers : List ObserverState := []
   registrations : List Registration := []
+  /-- 仕様の agent の "mutation observer microtask queued"。 -/
+  microtaskQueued : Bool := false
+  /-- 仕様の agent の "pending mutation observers"。observer の index で持つ。 -/
+  pendingObservers : List Nat := []
 deriving Repr, Inhabited
 
 namespace DOMState

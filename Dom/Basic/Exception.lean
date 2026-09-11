@@ -17,6 +17,14 @@ inductive DOMException where
   | indexSizeError
   | invalidNodeTypeError
   | wrongDocumentError
+  /--
+  WebIDL の `TypeError`。`DOMException` ではないが、
+  仕様が例外として投げ分けるので同じ型で扱う。
+
+  `MutationObserver.observe` の options 検査と、
+  `moveBefore` の receiver が `ParentNode` でない場合に使う。
+  -/
+  | typeError
 deriving DecidableEq, Repr, Inhabited
 
 namespace DOMException
@@ -28,6 +36,7 @@ def name : DOMException → String
   | indexSizeError => "IndexSizeError"
   | invalidNodeTypeError => "InvalidNodeTypeError"
   | wrongDocumentError => "WrongDocumentError"
+  | typeError => "TypeError"
 
 end DOMException
 

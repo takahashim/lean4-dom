@@ -1,4 +1,5 @@
 import Dom.Validity.Observers
+import Dom.Observer.Deliver
 
 /-!
 # `AdmissibleDOMState` の保存
@@ -711,5 +712,115 @@ theorem move_matches_remove_insert_observation {s s' : DOMState} {node newParent
   rw [h₂] at hrng
   rw [h₃] at hit
   exact ⟨s₁, hr, hi, hrng, hit⟩
+
+/-! ## MutationObserver の配送 -/
+
+/--
+`observe` は木も live object も変えず、registration を一つ足すか差し替えるだけである。
+
+足す registration は「木の中にある target」と「範囲内の observer index」を指す。
+どちらも `observe` が step 前に検査している。
+-/
+theorem admissible_observe {s s' : DOMState} {mo : Nat} {target : NodeId}
+    {opts : MutationObserverInit} (h : AdmissibleDOMState s)
+    (ho : MutationObserver.observe s mo target opts = .ok s') : AdmissibleDOMState s' := by
+  have htree : s'.tree = s.tree := MutationObserver.observe_tree ho
+  have hranges : s'.ranges = s.ranges := MutationObserver.observe_ranges ho
+  have hiters : s'.iterators = s.iterators := MutationObserver.observe_iterators ho
+  refine ⟨by rw [htree]; exact h.structural, by rw [htree]; exact h.nodeDocuments,
+    by rw [htree]; exact h.documentTrees, ?_, ?_, ?_⟩
+  · intro r hr
+    rw [htree]
+    exact h.rangeEndpoints r (by rw [← hranges]; exact hr)
+  · intro it hit
+    rw [htree]
+    exact h.iterators it (by rw [← hiters]; exact hit)
+  · -- registration の妥当性。足す一つだけが新しい。
+    unfold MutationObserver.observe at ho
+    split at ho
+    · simp at ho
+    · next hnone =>
+      split at ho
+      · simp at ho
+      · next hmo =>
+        split at ho
+        · simp at ho
+        · split at ho
+          · simp at ho
+          · have htgt : (s.tree.get? target).isSome := by
+              cases hq : s.tree.get? target with
+              | none =>
+                exfalso
+                rw [hq] at hnone
+                exact hnone rfl
+              | some _ => rfl
+            have hmo' : mo < s.observers.length := by omega
+            split at ho
+            · -- 既存の registration の options を差し替える
+              rw [← Except.ok.inj ho]
+              intro r hr
+              simp only at hr
+              obtain ⟨r₀, hr₀, hre⟩ := List.mem_filterMap.mp hr
+              split at hre
+              · simp at hre
+              · split at hre
+                · rw [← Option.some.inj hre]
+                  exact ⟨hmo', htgt⟩
+                · rw [← Option.some.inj hre]
+                  exact h.observerRegistrations r₀ hr₀
+            · -- 新しい registration を足す
+              rw [← Except.ok.inj ho]
+              intro r hr
+              simp only [List.mem_append, List.mem_singleton] at hr
+              rcases hr with hr | rfl
+              · obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
+                exact ⟨by simpa using g1, g2⟩
+              · exact ⟨by simpa using hmo', htgt⟩
+
+/-- `disconnect` は registration を減らすだけである。 -/
+theorem admissible_disconnect {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :
+    AdmissibleDOMState (MutationObserver.disconnect s mo) := by
+  refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_⟩
+  intro r hr
+  unfold MutationObserver.disconnect at hr
+  simp only at hr
+  obtain ⟨g1, g2⟩ := h.observerRegistrations r (List.mem_filter.mp hr).1
+  exact ⟨by simpa using g1, g2⟩
+
+/-- `takeRecords` は record queue を空にするだけである。 -/
+theorem admissible_takeRecords {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :
+    AdmissibleDOMState (MutationObserver.takeRecords s mo).1 := by
+  unfold MutationObserver.takeRecords
+  split
+  · exact h
+  · refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_⟩
+    intro r hr
+    obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
+    exact ⟨by simpa using g1, g2⟩
+
+/-- transient registration を外しても妥当である。 -/
+theorem admissible_removeTransients {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :
+    AdmissibleDOMState (removeTransients s mo) := by
+  refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_⟩
+  intro r hr
+  exact h.observerRegistrations r (List.mem_filter.mp hr).1
+
+theorem admissible_notifyEach :
+    ∀ (ms : List Nat) {s : DOMState}, AdmissibleDOMState s →
+      AdmissibleDOMState (notifyEach s ms).1
+  | [], _, h => h
+  | mo :: rest, s, h => by
+    show AdmissibleDOMState (notifyEach (notifyOne s mo).1 rest).1
+    refine admissible_notifyEach rest ?_
+    show AdmissibleDOMState (removeTransients (MutationObserver.takeRecords s mo).1 mo)
+    exact admissible_removeTransients (admissible_takeRecords h mo) mo
+
+/-- microtask checkpoint は admissibility を保つ。 -/
+theorem admissible_notifyMutationObservers {s : DOMState} (h : AdmissibleDOMState s) :
+    AdmissibleDOMState (notifyMutationObservers s).1 := by
+  unfold notifyMutationObservers
+  refine admissible_notifyEach _ ?_
+  exact ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators,
+    fun r hr => h.observerRegistrations r hr⟩
 
 end Dom

@@ -4,6 +4,7 @@ import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
+import Dom.Observer.Deliver
 
 /-!
 # scenario の入出力
@@ -90,6 +91,14 @@ inductive Operation where
   | insertData (node : Nat) (offset : Nat) (data : String)
   | deleteData (node : Nat) (offset count : Nat)
   | setData (node : Nat) (data : String)
+  /-- `MutationObserver.observe(target, options)`。 -/
+  | observe (observer : Nat) (target : Nat) (opts : MutationObserverInit)
+  /-- `MutationObserver.disconnect()`。 -/
+  | disconnect (observer : Nat)
+  /-- `MutationObserver.takeRecords()`。 -/
+  | takeRecords (observer : Nat)
+  /-- microtask checkpoint。"notify mutation observers" を走らせる。 -/
+  | notify
 deriving Repr
 
 /--
@@ -99,7 +108,13 @@ scenario での MutationObserver。
 仕様の `observe(target, options)` を一度だけ呼んだ状態にあたる。
 -/
 structure ObserverSpec where
-  target : Nat
+  /--
+  `observe(target, options)` を一度呼んだ状態にする。
+
+  `none` なら registration を持たない observer を作るだけである。
+  scenario 側で `observe` 操作を使う場合はこちらを指定する。
+  -/
+  target : Option Nat := none
   subtree : Bool := false
   childList : Bool := false
   characterData : Bool := false
@@ -191,6 +206,19 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "deleteData" =>
     return .deleteData (← natField j "node") (← natField j "offset") (← natField j "count")
   | "setData" => return .setData (← natField j "node") (← strField j "data" "")
+  | "observe" =>
+    let flag (name : String) : Except String Bool :=
+      match field? j name with
+      | none => pure false
+      | some v => v.getBool?
+    return .observe (← natField j "observer") (← natField j "target")
+      { childList := ← flag "childList"
+        subtree := ← flag "subtree"
+        characterData := ← flag "characterData"
+        characterDataOldValue := ← flag "characterDataOldValue" }
+  | "disconnect" => return .disconnect (← natField j "observer")
+  | "takeRecords" => return .takeRecords (← natField j "observer")
+  | "notify" => return .notify
   | _ => .error s!"未知の op `{op}`"
 
 def boundaryPointOfJson (j : Json) : Except String BoundaryPoint := do
@@ -210,7 +238,7 @@ def rangeOfJson (j : Json) : Except String RangeState := do
   return { start := ← boundaryPointOfJson st, «end» := ← boundaryPointOfJson en }
 
 def observerOfJson (j : Json) : Except String ObserverSpec := do
-  let target ← natField j "target"
+  let target ← natField? j "target"
   let flag (name : String) : Except String Bool :=
     match field? j name with
     | none => pure false
@@ -312,7 +340,10 @@ def observationFields (o : Observation) : List (String × Json) :=
     , ("ranges", Json.arr (o.ranges.map rangeJson).toArray)
     , ("iterators", Json.arr (o.iterators.map iteratorJson).toArray)
     , ("observers", Json.arr
-        (o.records.map fun rs => Json.arr (rs.map recordJson).toArray).toArray) ]
+        (o.records.map fun rs => Json.arr (rs.map recordJson).toArray).toArray)
+    , ("delivered", Json.arr (o.delivered.map fun p =>
+        Json.mkObj [("observer", natJson p.1),
+                    ("records", Json.arr (p.2.map recordJson).toArray)]).toArray) ]
 
 def observationJson (o : Observation) : Json :=
   Json.mkObj (observationFields o)
@@ -328,11 +359,11 @@ def stateJson (s : DOMState) : Json :=
 Dommy は木をその場で書き換えるので、失敗した操作が状態を変えていないことも比較対象になる。
 -/
 inductive StepResult where
-  | ok (s : DOMState)
+  | ok (s : DOMState) (delivered : List (Nat × List MutationRecord))
   | failed (before : DOMState) (e : DOMException)
 
 def stepJson : StepResult → Json
-  | .ok s => observationJson (observe s .ok)
+  | .ok s delivered => observationJson (observe s .ok delivered)
   | .failed before e => observationJson (observe before (.failed e))
 
 end Dom.Exec

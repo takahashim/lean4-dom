@@ -71,6 +71,16 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | insertData n o d => exact admissible_insertData h hop
   | deleteData n o c => exact admissible_deleteData h hop
   | setData n d => exact admissible_setData h hop
+  | observe mo target opts => exact admissible_observe h hop
+  | disconnect mo =>
+    rw [← Except.ok.inj hop]
+    exact admissible_disconnect h mo
+  | takeRecords mo =>
+    rw [← Except.ok.inj hop]
+    exact admissible_takeRecords h mo
+  | notify =>
+    rw [← Except.ok.inj hop]
+    exact admissible_notifyMutationObservers h
 
 /--
 admissible な初期状態から始めれば、`runOperations` は invariant 違反を報告しない。

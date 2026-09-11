@@ -114,7 +114,7 @@ theorem replaceData_ok {s s' : DOMState} {n : NodeId} {offset count : Nat} {data
       · simp at h
       · next hlen =>
         rw [← Except.ok.inj h]
-        exact ⟨d, hd, by simpa using hk, by omega, rfl, rfl, rfl⟩
+        exact ⟨d, hd, by simpa using hk, by omega, rfl, rfl, by simp⟩
 
 /-- PLAN §10.2。`replaceData` は well-formedness を保つ。 -/
 theorem replaceData_preserves_wellformed {s s' : DOMState} {n : NodeId} {offset count : Nat}

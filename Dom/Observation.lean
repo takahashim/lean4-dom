@@ -19,6 +19,7 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
 * live Range の両端
 * NodeIterator の root / reference / pointer-before-reference flag
 * MutationObserver に積まれた record の列
+* microtask checkpoint で各 observer の callback に配送された record
 * 操作の成否と例外
 * 例外が起きた場合に状態が変わらないこと（`observe` に前の状態を渡すことで表す）
 
@@ -29,7 +30,7 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
   （roadmap §13.3）。
 * 文字列の内部表現。`data` は Lean の `String` として比べる。UTF-16 の code unit 境界は
   扱わない（roadmap §13.1）。
-* MutationObserver の配送（microtask）。record は積まれたまま比べる。
+* MutationObserver の callback そのもの。配送された record の列だけを見る。
 * Shadow tree。
 -/
 
@@ -56,7 +57,10 @@ structure Observation where
   nodes : List ObservedNode
   ranges : List RangeState
   iterators : List IteratorState
+  /-- observer ごとの record queue。`takeRecords()` が返すものである。 -/
   records : List (List MutationRecord)
+  /-- microtask checkpoint で callback に渡された record。配送が無い step では空。 -/
+  delivered : List (Nat × List MutationRecord) := []
   result : OperationResult
 deriving DecidableEq, Repr, Inhabited
 
@@ -101,11 +105,13 @@ def observedNodes (s : DOMState) : List ObservedNode :=
 例外で失敗した step では、仕様上状態は変わらないので、
 `s` に **操作前の状態** を渡して「変わっていないこと」も比較対象に含める。
 -/
-def observe (s : DOMState) (result : OperationResult) : Observation where
+def observe (s : DOMState) (result : OperationResult)
+    (delivered : List (Nat × List MutationRecord) := []) : Observation where
   nodes := observedNodes s
   ranges := s.ranges
   iterators := s.iterators
   records := s.observers.map (·.records)
+  delivered := delivered
   result := result
 
 /-! ## 観測は木を落とさないし、木に無いものを作らない -/

@@ -99,6 +99,13 @@ open Dom.Audit
   Dom.move_matches_remove_insert_observation
   Dom.replaceData_preserves_live_object_validity
 
+-- MutationObserver の配送
+#audit_axioms
+  Dom.admissible_observe
+  Dom.admissible_disconnect
+  Dom.admissible_takeRecords
+  Dom.admissible_notifyMutationObservers
+
 -- 契約
 #audit_axioms
   Dom.remove_succeeds_iff

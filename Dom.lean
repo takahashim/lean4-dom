@@ -13,6 +13,7 @@ import Dom.Range.BoundaryPoint
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.Observer.Record
+import Dom.Observer.Deliver
 import Dom.CharacterData.ReplaceData
 import Dom.Mutation.Algorithms
 import Dom.Mutation.Api
