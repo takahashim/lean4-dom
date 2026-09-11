@@ -27,7 +27,7 @@ theorem PreservesRegs.trans {s₁ s₂ s₃ : DOMState}
   fun h => h₂ (h₁ h)
 
 /-- registration も observer 列も変わらず、node も消えないなら保たれる。 -/
-theorem preservesRegs_congr {s s' : DOMState} (hkp : KindPreserving s.tree s'.tree)
+theorem preservesRegs_congr {s s' : DOMState} (hkp : ShapePreserving s.tree s'.tree)
     (hreg : s'.registrations = s.registrations)
     (hobs : s'.observers.length = s.observers.length) : PreservesRegs s s' := by
   intro h r hr
@@ -41,19 +41,14 @@ theorem preservesRegs_congr {s s' : DOMState} (hkp : KindPreserving s.tree s'.tr
   | none => rw [hd'] at hk; simp at hk
   | some _ => simp
 
-/-- 木そのものが等しいなら kind も保たれる。 -/
-theorem kindPreserving_of_tree_eq {t t' : Tree} (h : t' = t) : KindPreserving t t' := by
-  rw [h]
-  exact KindPreserving.refl _
-
 theorem preservesRegs_detach {s : DOMState} {t' : Tree} {n : NodeId}
     (hd : detach s.tree n = .ok t') : PreservesRegs s (s.withTree t') :=
-  preservesRegs_congr (kindPreserving_detach hd) rfl rfl
+  preservesRegs_congr (shapePreserving_detach hd) rfl rfl
 
 theorem preservesRegs_insertAt {s : DOMState} {t' : Tree} {parent node : NodeId}
     {child : Option NodeId} (hi : insertAt s.tree parent node child = .ok t') :
     PreservesRegs s (s.withTree t') :=
-  preservesRegs_congr (kindPreserving_insertAt hi) rfl rfl
+  preservesRegs_congr (shapePreserving_insertAt hi) rfl rfl
 
 /-! ## remove -/
 
@@ -70,8 +65,8 @@ theorem preservesRegs_remove {s s' : DOMState} {n : NodeId} {b : Bool}
     · simp at hr
     · next s₁ hd =>
       -- detach までは registration も observer 列も変わらない
-      have hkp : KindPreserving s.tree s₁.tree :=
-        kindPreserving_detach (detachWithLiveAdjust_tree hd)
+      have hkp : ShapePreserving s.tree s₁.tree :=
+        shapePreserving_detach (detachWithLiveAdjust_tree hd)
       have hreg₁ : s₁.registrations = s.registrations := by
         unfold detachWithLiveAdjust at hd
         rw [(DOMState.mapTree_eq_ok hd).2]
@@ -133,7 +128,7 @@ theorem preservesRegs_adopt {s s' : DOMState} {node doc : NodeId}
     · exact preservesRegs_remove hr
   rcases hfinal with rfl | rfl
   · exact h₁
-  · exact h₁.trans (preservesRegs_congr (kindPreserving_setOwnerDocument _ _ _) rfl rfl)
+  · exact h₁.trans (preservesRegs_congr (shapePreserving_setOwnerDocument _ _ _) rfl rfl)
 
 theorem preservesRegs_insertEach :
     ∀ (ns : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
@@ -165,11 +160,11 @@ theorem preservesRegs_insertNodesAt {s s' : DOMState} {parent : NodeId}
       split at hx
       · simp at hx
       · refine PreservesRegs.trans ?_ (preservesRegs_insertEach nodes hx)
-        exact preservesRegs_congr (kindPreserving_of_tree_eq (by simp)) (by simp) (by simp)
+        exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
     split at hi
     · rw [← Except.ok.inj hi]; exact hstep
     · rw [← Except.ok.inj hi]
-      exact hstep.trans (preservesRegs_congr (kindPreserving_of_tree_eq (by simp)) (by simp) (by simp))
+      exact hstep.trans (preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp))
 
 theorem preservesRegs_insert {s s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hi : insert s node parent child b = .ok s') :
@@ -186,7 +181,7 @@ theorem preservesRegs_insert {s s' : DOMState} {node parent : NodeId}
         · next s₁ hre =>
           refine (preservesRegs_removeEach _ hre).trans (PreservesRegs.trans ?_
             (preservesRegs_insertNodesAt hi))
-          exact preservesRegs_congr (kindPreserving_of_tree_eq (by simp)) (by simp) (by simp)
+          exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
     · exact preservesRegs_insertNodesAt hi
 
 theorem preservesRegs_move {s s' : DOMState} {node newParent : NodeId}
@@ -205,7 +200,7 @@ theorem preservesRegs_move {s s' : DOMState} {node newParent : NodeId}
           unfold detachWithLiveAdjust at hd
           rw [(DOMState.mapTree_eq_ok hd).2]
           exact preservesRegs_congr
-            (kindPreserving_detach (by simpa using (DOMState.mapTree_eq_ok hd).1))
+            (shapePreserving_detach (by simpa using (DOMState.mapTree_eq_ok hd).1))
             (by simp) (by simp)
         simp only at hm
         split at hm
@@ -214,12 +209,12 @@ theorem preservesRegs_move {s s' : DOMState} {node newParent : NodeId}
           have h₂ : PreservesRegs sd s₂ := by
             rw [(DOMState.mapTree_eq_ok hi).2]
             exact preservesRegs_congr
-              (kindPreserving_insertAt (by simpa using (DOMState.mapTree_eq_ok hi).1))
+              (shapePreserving_insertAt (by simpa using (DOMState.mapTree_eq_ok hi).1))
               (by simp) (by simp)
           rw [← Except.ok.inj hm]
           -- step 23-24 の二つの record は木も registration も observer 列も変えない
           refine (h₁.trans h₂).trans (preservesRegs_congr ?_ ?_ ?_)
-          · refine kindPreserving_of_tree_eq ?_
+          · refine shapePreserving_of_tree_eq ?_
             simp only [queueTreeMutationRecord_tree]
             split <;> simp
           · simp only [queueTreeMutationRecord_registrations]
@@ -252,7 +247,7 @@ theorem preservesRegs_replace {s s' : DOMState} {child node parent : NodeId}
           · next s₃ hi =>
             rw [← Except.ok.inj hr]
             refine (((preservesRegs_adopt ha).trans h₂).trans (preservesRegs_insert hi)).trans ?_
-            exact preservesRegs_congr (kindPreserving_of_tree_eq (by simp)) (by simp) (by simp)
+            exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
 
 theorem preservesRegs_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hr : replaceAll s node parent = .ok s') : PreservesRegs s s' := by
@@ -271,6 +266,6 @@ theorem preservesRegs_replaceAll {s s' : DOMState} {node : Option NodeId} {paren
         · intro hins; exact preservesRegs_insert (by simpa using hins)
       rw [← Except.ok.inj hr]
       refine ((preservesRegs_removeEach _ hre).trans h₂).trans ?_
-      exact preservesRegs_congr (kindPreserving_of_tree_eq (by simp)) (by simp) (by simp)
+      exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
 
 end Dom

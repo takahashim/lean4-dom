@@ -7,10 +7,8 @@ import Dom.Basic.Order
 DOM Standard §4.3.4 の "queue a mutation record" と "queue a tree mutation record"、
 および §4.2.3 remove step 20 の transient registered observer を定義する。
 
-配送（"queue a mutation observer microtask" と "notify mutation observers"）は
-model の対象外である。record は observer ごとの queue に貯まり、
-`takeRecords` で取り出すまで残る。transient registered observer を消すのは
-配送の側なので、この model では登録されたまま残る。
+配送そのもの（"notify mutation observers"）は `Dom/Observer/Deliver.lean` にある。
+ここは record を積むところまでで、transient registered observer を消すのは配送の側である。
 -/
 
 namespace Dom
@@ -21,11 +19,24 @@ namespace Dom
 "queue a mutation record" step 2.3 の条件。
 
 仕様は「次のいずれも真でないなら」という否定の形なので、ここでは肯定に直してある。
-model は attribute を扱わないので、attribute に関する三つの条件は無い。
+`name` と `namespace` は record の `attributeName` / `attributeNamespace` である。
+
+attributeFilter は **存在するだけで** 絞り込みになる。
+存在して、かつ「name を含まない」か「namespace が非 null」なら record を積まない。
+namespace 付きの attribute は filter では拾えない、というのが仕様の読み方である。
 -/
-def Registration.interestedIn (r : Registration) (target : NodeId) (type : RecordType) : Bool :=
+def Registration.interestedIn (r : Registration) (target : NodeId) (type : RecordType)
+    (name : Option String) («namespace» : Option String) : Bool :=
   (r.node == target || r.subtree) &&
     (match type with
+     | .attributes =>
+       r.attributes &&
+         (match r.attributeFilter with
+          | none => true
+          | some f =>
+            (match name with
+             | none => false
+             | some nm => f.contains nm) && «namespace».isNone)
      | .characterData => r.characterData
      | .childList => r.childList)
 
@@ -44,17 +55,19 @@ def addInterested (acc : List (Nat × Option String)) (mo : Nat) (ov : Option St
 
 target の inclusive ancestor を下から上へ、各 node の registered observer list を
 list の順に見て、条件を満たす observer を初出順に集める。
-第二成分は record に載せる oldValue で、
-characterData かつ `characterDataOldValue` のときだけ非 `none` になる。
+第二成分は record に載せる oldValue で（step 2.3.3）、
+characterData かつ `characterDataOldValue`、または attributes かつ `attributeOldValue`
+のときだけ非 `none` になる。
 -/
-def interestedObservers (s : DOMState) (target : NodeId) (type : RecordType)
-    (oldValue : Option String) : List (Nat × Option String) :=
-  let nodes := target :: ancestors s.tree target
+def interestedObservers (s : DOMState) (rec : MutationRecord) (oldValue : Option String) :
+    List (Nat × Option String) :=
+  let nodes := rec.target :: ancestors s.tree rec.target
   nodes.foldl (fun acc n =>
     (s.registrations.filter fun r => r.node == n).foldl (fun acc r =>
-      if r.interestedIn target type then
+      if r.interestedIn rec.target rec.type rec.attributeName rec.attributeNamespace then
         addInterested acc r.observer
-          (if type == .characterData && r.characterDataOldValue then oldValue else none)
+          (if (rec.type == .characterData && r.characterDataOldValue)
+              || (rec.type == .attributes && r.attributeOldValue) then oldValue else none)
       else acc) acc) []
 
 /-! ## microtask -/
@@ -85,7 +98,7 @@ step 5 が microtask を予約する。step 5 は interested observers が空で
 -/
 def queueMutationRecord (s : DOMState) (rec : MutationRecord) (oldValue : Option String) :
     DOMState :=
-  let interested := interestedObservers s rec.target rec.type oldValue
+  let interested := interestedObservers s rec oldValue
   let s₁ := { s with
       observers := interested.foldl
         (fun obs p => enqueueRecord obs p.1 { rec with oldValue := p.2 }) s.observers }

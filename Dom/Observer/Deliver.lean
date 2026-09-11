@@ -21,13 +21,47 @@ remove step 20 が node list にもその node を足すと読む。
 
 namespace Dom
 
-/-- `MutationObserverInit` のうち、本 model が扱う四つ。 -/
+/--
+DOM Standard §4.3.2 の `MutationObserverInit`。
+
+IDL は `childList` / `subtree` / `attributeOldValue` / `characterDataOldValue` に
+`false` の既定値を与えるが、`attributes` と `characterData` には与えない。
+`observe` の step 1-2 が「存在するか」で分岐するので、この二つは `Option Bool` で持つ。
+`attributeFilter` も同じく存在の有無に意味がある（step 5、および
+"queue a mutation record" step 2.3 の三つ目の条件）。
+
+`attributes` に対応する `Attr` node の観測は model の対象外だが、
+attribute の変更そのものは §4.9 の algorithm として扱う。
+-/
 structure MutationObserverInit where
   childList : Bool := false
   subtree : Bool := false
-  characterData : Bool := false
+  attributes : Option Bool := none
+  attributeOldValue : Bool := false
+  attributeFilter : Option (List String) := none
+  characterData : Option Bool := none
   characterDataOldValue : Bool := false
 deriving DecidableEq, Repr, Inhabited
+
+namespace MutationObserverInit
+
+/--
+`observe` の step 1-2。省略された `attributes` / `characterData` を埋める。
+
+step 1 は `attributeOldValue` が **存在する** ことを条件にするが、IDL の既定値が
+`false` なので、model では「true である」ことで代用する。
+`attributeOldValue: false` を明示した場合との差は
+step 4 の TypeError の有無にしか出ず、そこでは `attributes` が
+`some false` でなければならないので結論は変わらない。
+`characterDataOldValue` も同様である。
+-/
+def resolve (o : MutationObserverInit) : MutationObserverInit :=
+  let o := if o.attributes.isNone && (o.attributeOldValue || o.attributeFilter.isSome) then
+      { o with attributes := some true } else o
+  if o.characterData.isNone && o.characterDataOldValue then
+    { o with characterData := some true } else o
+
+end MutationObserverInit
 
 /-!
 ## `MutationObserver` の method
@@ -40,26 +74,53 @@ namespace MutationObserver
 
 
 /--
+DOM Standard §4.3 `MutationObserver.observe(target, options)` の step 3-6。
+
+解決後（step 1-2 の後）の options を検査する。
+検査だけを切り出してあるのは、失敗の条件を単体で述べられるようにするためである。
+-/
+def observeOptionsError (opts₀ : MutationObserverInit) : Option DOMException :=
+  let opts := opts₀.resolve
+  -- step 3
+  if !(opts.childList || opts.attributes == some true || opts.characterData == some true) then
+    some .typeError
+  -- step 4
+  else if opts.attributeOldValue && opts.attributes == some false then some .typeError
+  -- step 5
+  else if opts.attributeFilter.isSome && opts.attributes == some false then some .typeError
+  -- step 6
+  else if opts.characterDataOldValue && opts.characterData == some false then some .typeError
+  else none
+
+/--
 DOM Standard §4.3 `MutationObserver.observe(target, options)`。
 
-attribute は扱わないので、TypeError になるのは次の二つである。
+step 1-2 は `MutationObserverInit.resolve`、step 3-6 は `observeOptionsError` が行う。
+TypeError は四通りある。
 
-* `childList` も `characterData` も true でない（step 3）。
+* `childList` / `attributes` / `characterData` のどれも true でない（step 3）。
+* `attributeOldValue` が true で `attributes` が false（step 4）。
+* `attributeFilter` があって `attributes` が false（step 5）。
 * `characterDataOldValue` が true で `characterData` が false（step 6）。
+
+step 4-6 の「false である」は解決後の値なので、
+省略された場合（step 1-2 で true になる）は TypeError にならない。
 -/
-def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts : MutationObserverInit) :
+def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts₀ : MutationObserverInit) :
     Except DOMException DOMState :=
+  let opts := opts₀.resolve
   -- model の都合。仕様では target は実在する node、`this` は実在する observer である。
   if (s.tree.get? target).isNone then .error .notFoundError
   else if mo ≥ s.observers.length then .error .notFoundError
-  -- step 3
-  else if !(opts.childList || opts.characterData) then .error .typeError
-  -- step 6
-  else if opts.characterDataOldValue && !opts.characterData then .error .typeError
-  else
+  else match observeOptionsError opts₀ with
+  | some e => .error e
+  | none =>
     let reg : Registration :=
       { node := target, observer := mo, subtree := opts.subtree, childList := opts.childList,
-        characterData := opts.characterData,
+        attributes := opts.attributes == some true,
+        attributeOldValue := opts.attributeOldValue,
+        attributeFilter := opts.attributeFilter,
+        characterData := opts.characterData == some true,
         characterDataOldValue := opts.characterDataOldValue }
     -- step 7。既にこの observer の registration が target にあるか。
     if s.registrations.any (fun r => r.observer == mo && r.node == target && !r.transient) then
@@ -139,47 +200,33 @@ def notifyMutationObservers (s : DOMState) : DOMState × List (Nat × List Mutat
 
 namespace MutationObserver
 
+/--
+`observe` は木も live object も変えない。
+
+失敗の分岐が多いので、三つの成分をまとめて一度に示す。
+-/
+theorem observe_frame {s s' : DOMState} {mo : Nat} {target : NodeId}
+    {opts : MutationObserverInit} (h : observe s mo target opts = .ok s') :
+    s'.tree = s.tree ∧ s'.ranges = s.ranges ∧ s'.iterators = s.iterators := by
+  unfold observe at h
+  repeat' split at h
+  -- 成功する分岐では `h` が `... = s'` の形になる。失敗する分岐は `simp` が潰す。
+  all_goals first
+    | (subst h; exact ⟨rfl, rfl, rfl⟩)
+    | (rw [← Except.ok.inj h]; exact ⟨rfl, rfl, rfl⟩)
+    | simp at h
+
 @[simp] theorem observe_tree {s s' : DOMState} {mo : Nat} {target : NodeId}
     {opts : MutationObserverInit} (h : observe s mo target opts = .ok s') :
-    s'.tree = s.tree := by
-  unfold observe at h
-  split at h
-  · simp at h
-  · split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · simp at h
-        · split at h <;> rw [← Except.ok.inj h]
+    s'.tree = s.tree := (observe_frame h).1
 
 @[simp] theorem observe_ranges {s s' : DOMState} {mo : Nat} {target : NodeId}
     {opts : MutationObserverInit} (h : observe s mo target opts = .ok s') :
-    s'.ranges = s.ranges := by
-  unfold observe at h
-  split at h
-  · simp at h
-  · split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · simp at h
-        · split at h <;> rw [← Except.ok.inj h]
+    s'.ranges = s.ranges := (observe_frame h).2.1
 
 @[simp] theorem observe_iterators {s s' : DOMState} {mo : Nat} {target : NodeId}
     {opts : MutationObserverInit} (h : observe s mo target opts = .ok s') :
-    s'.iterators = s.iterators := by
-  unfold observe at h
-  split at h
-  · simp at h
-  · split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · simp at h
-        · split at h <;> rw [← Except.ok.inj h]
+    s'.iterators = s.iterators := (observe_frame h).2.2
 
 /-- `observe` は observer の数を変えない。 -/
 @[simp] theorem observe_nodeList_length (s : DOMState) (mo : Nat) (target : NodeId) :

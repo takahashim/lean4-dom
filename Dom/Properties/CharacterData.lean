@@ -48,12 +48,12 @@ theorem childrenOf_withData {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? 
   · subst h; simp [hd]
   · rw [if_neg h]
 
-theorem kindPreserving_withData {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
-    (newData : String) : KindPreserving t (withData t n d newData) := by
+theorem shapePreserving_withData {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
+    (newData : String) : ShapePreserving t (withData t n d newData) := by
   intro m
   rw [get?_withData hd]
   by_cases h : m = n
-  · subst h; simp [hd]
+  · subst h; simp [hd, NodeData.shape]
   · rw [if_neg h]
 
 /-- PLAN §10.2。`data` だけを変える変更は well-formedness を保つ。 -/
@@ -115,6 +115,14 @@ theorem replaceData_ok {s s' : DOMState} {n : NodeId} {offset count : Nat} {data
       · next hlen =>
         rw [← Except.ok.inj h]
         exact ⟨d, hd, by simpa using hk, by omega, rfl, rfl, by simp⟩
+
+/-- `replace data` は `data` しか変えないので kind と attribute list は変わらない。 -/
+theorem shapePreserving_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
+    {data : String} (hr : replaceData s n offset count data = .ok s') :
+    ShapePreserving s.tree s'.tree := by
+  obtain ⟨d, hd, _, _, htree, _, _⟩ := replaceData_ok hr
+  rw [htree]
+  exact shapePreserving_withData hd _
 
 /-- PLAN §10.2。`replaceData` は well-formedness を保つ。 -/
 theorem replaceData_preserves_wellformed {s s' : DOMState} {n : NodeId} {offset count : Nat}

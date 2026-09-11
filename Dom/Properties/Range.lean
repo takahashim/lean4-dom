@@ -54,10 +54,10 @@ theorem lengthOf_eq_children {t : Tree} {n : NodeId} (h : ChildCountKind t n) :
     exact NodeData.length_eq_children h1 h2
 
 /-- kind を変えない変更は `ChildCountKind` を保つ。 -/
-theorem ChildCountKind.map {t t' : Tree} {n : NodeId} (hk : KindPreserving t t')
+theorem ChildCountKind.map {t t' : Tree} {n : NodeId} (hk : ShapePreserving t t')
     (h : ChildCountKind t n) : ChildCountKind t' n := by
   intro d' hd'
-  have hm := hk n
+  have hm := hk.kind n
   rw [hd'] at hm
   cases hd : t.get? n with
   | none => rw [hd] at hm; simp at hm
@@ -83,7 +83,7 @@ theorem lengthOf_detach_parent {t t' : Tree} {n p : NodeId}
     (hwf : WellFormed t) (hp : parentOf t n = some p) (hd : detach t n = .ok t')
     (hlen : ChildCountKind t p) :
     lengthOf t' p + 1 = lengthOf t p := by
-  have hlen' : ChildCountKind t' p := hlen.map (kindPreserving_detach hd)
+  have hlen' : ChildCountKind t' p := hlen.map (shapePreserving_detach hd)
   have hch : childrenOf t' p = removeAll (childrenOf t p) n := detach_childrenOf hwf hp hd
   have hmem : n ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hp
   have hnd : (childrenOf t p).Nodup := by
@@ -142,7 +142,7 @@ theorem valid_liveRangePreRemoveBP {t t' : Tree} {n p : NodeId} {i : Nat} {bp : 
   have hip : i < lengthOf t p := by rw [lengthOf_eq_children hlen]; exact hilt
   obtain ⟨pd', hpd'⟩ : ∃ pd', t'.get? p = some pd' := by
     obtain ⟨pd, hpd⟩ := exists_data_of_parentOf hwf hp
-    have hk := kindPreserving_detach hd p
+    have hk := shapePreserving_detach hd p
     rw [hpd] at hk
     cases hq : t'.get? p with
     | none => rw [hq] at hk; simp at hk
@@ -259,7 +259,7 @@ theorem lengthOf_insertAt_parent {t t' : Tree} {parent node : NodeId} {child : O
     (hwf : WellFormed t) (hlen : ChildCountKind t parent)
     (h : insertAt t parent node child = .ok t') :
     lengthOf t' parent = lengthOf t parent + 1 := by
-  have hlen' : ChildCountKind t' parent := hlen.map (kindPreserving_insertAt h)
+  have hlen' : ChildCountKind t' parent := hlen.map (shapePreserving_insertAt h)
   rw [lengthOf_eq_children hlen', lengthOf_eq_children hlen, insertAt_childrenOf hwf h]
   exact ListUtil.length_insertBefore _ _ _
 
@@ -283,7 +283,7 @@ theorem valid_of_insertAt {t t' : Tree} {parent node : NodeId} {child : Option N
   · have hgrow : lengthOf t' parent = lengthOf t parent + 1 :=
       lengthOf_insertAt_parent hwf hlen h
     obtain ⟨pd', hpd'⟩ : ∃ pd', t'.get? parent = some pd' := by
-      have hk := kindPreserving_insertAt h parent
+      have hk := shapePreserving_insertAt h parent
       rw [hpd] at hk
       cases hq : t'.get? parent with
       | none => rw [hq] at hk; simp at hk
@@ -319,7 +319,7 @@ theorem valid_rangeShiftAfterInsert {t t' : Tree} {parent node : NodeId} {child 
     have hgrow : lengthOf t' parent = lengthOf t parent + 1 :=
       lengthOf_insertAt_parent hwf hlen h
     obtain ⟨pd', hpd'⟩ : ∃ pd', t'.get? parent = some pd' := by
-      have hk := kindPreserving_insertAt h parent
+      have hk := shapePreserving_insertAt h parent
       rw [hpd] at hk
       cases hq : t'.get? parent with
       | none => rw [hq] at hk; simp at hk
@@ -480,7 +480,7 @@ theorem boundaryValidUpTo_insertAt {t t' : Tree} {parent node : NodeId} {child :
       lengthOf_insertAt_parent hwf hlen h
     have hdlen : lengthOf t parent = d.length := by unfold lengthOf; rw [← hbn, hd]
     obtain ⟨pd', hpd'⟩ : ∃ pd', t'.get? parent = some pd' := by
-      have hk := kindPreserving_insertAt h parent
+      have hk := shapePreserving_insertAt h parent
       obtain ⟨pd, hpd⟩ : ∃ pd, t.get? parent = some pd := ⟨d, by rw [← hbn]; exact hd⟩
       rw [hpd] at hk
       cases hq : t'.get? parent with
@@ -541,8 +541,8 @@ theorem insertEach_valid_of_no_parent :
       · next s₂ hi =>
         obtain ⟨hi', hi₂⟩ := DOMState.mapTree_eq_ok hi
         have hwf₁ : WellFormed s₁.tree := adopt_preserves_wellformed hwf hdoc ha
-        have hdoc₁ : IsDocument s₁.tree doc := hdoc.map (kindPreserving_adopt ha)
-        have hlen₁ : ChildCountKind s₁.tree parent := hlen.map (kindPreserving_adopt ha)
+        have hdoc₁ : IsDocument s₁.tree doc := hdoc.map (shapePreserving_adopt ha)
+        have hlen₁ : ChildCountKind s₁.tree parent := hlen.map (shapePreserving_adopt ha)
         have hv₁ : RangeValidUpTo s₁ parent (ns.length + 1) := by
           intro r hr
           rw [hr₁] at hr
@@ -573,8 +573,8 @@ theorem insertEach_valid_of_no_parent :
           exact hnp n' (List.mem_cons_of_mem _ hn')
         refine insertEach_valid_of_no_parent ns ?_ ?_ ?_ ?_ hnp₂ hv₂ h
         · rw [hi₂]; exact insertAt_preserves_wellformed hwf₁ hi'
-        · rw [hi₂]; exact hdoc₁.map (kindPreserving_insertAt hi')
-        · rw [hi₂]; exact hlen₁.map (kindPreserving_insertAt hi')
+        · rw [hi₂]; exact hdoc₁.map (shapePreserving_insertAt hi')
+        · rw [hi₂]; exact hlen₁.map (shapePreserving_insertAt hi')
         · exact (List.nodup_cons.mp hnd).2
 
 /-! ## step 5 の調整が作る余裕 -/
@@ -638,10 +638,10 @@ theorem removeEach_from_parent :
       (∀ n ∈ ns, parentOf s.tree n = some p) →
       RangeEndpointsValid s → removeEach s ns b = .ok s' →
       RangeEndpointsValid s' ∧ (∀ n ∈ ns, parentOf s'.tree n = none) ∧
-        WellFormed s'.tree ∧ ChildCountKind s'.tree p ∧ KindPreserving s.tree s'.tree
+        WellFormed s'.tree ∧ ChildCountKind s'.tree p ∧ ShapePreserving s.tree s'.tree
   | [], s, s', p, b, hwf, hlen, _, _, hv, h => by
     rw [← Except.ok.inj h]
-    exact ⟨hv, by simp, hwf, hlen, KindPreserving.refl _⟩
+    exact ⟨hv, by simp, hwf, hlen, ShapePreserving.refl _⟩
   | n :: ns, s, s', p, b, hwf, hlen, hnd, hpar, hv, h => by
     simp only [removeEach] at h
     split at h
@@ -649,7 +649,7 @@ theorem removeEach_from_parent :
     · next s₁ hr =>
       have hpn : parentOf s.tree n = some p := hpar n (List.mem_cons_self ..)
       have hwf₁ : WellFormed s₁.tree := remove_preserves_wellformed hwf hr
-      have hkp : KindPreserving s.tree s₁.tree := kindPreserving_remove hr
+      have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_remove hr
       have hlen₁ : ChildCountKind s₁.tree p := hlen.map hkp
       have hv₁ : RangeEndpointsValid s₁ := remove_preserves_endpoints hwf hpn hlen hv hr
       have hnone : parentOf s₁.tree n = none := remove_parentOf hr
@@ -768,7 +768,7 @@ theorem boundaryValidUpTo_liveRangePreRemoveBP {t t' : Tree} {n q parent : NodeI
         rw [lengthOf_eq_children hlenq]; exact index_lt_children_length hp hi
       obtain ⟨pd', hpd'⟩ : ∃ pd', t'.get? q = some pd' := by
         obtain ⟨pd, hpd⟩ := exists_data_of_parentOf hwf hp
-        have hkk := kindPreserving_detach hd q
+        have hkk := shapePreserving_detach hd q
         rw [hpd] at hkk
         cases hqq : t'.get? q with
         | none => rw [hqq] at hkk; simp at hkk
@@ -894,7 +894,7 @@ theorem insert_single_preserves_endpoints {s s' : DOMState} {node parent : NodeI
   -- 最後の insertAt で余裕を使い切る
   have hlen1 : ChildCountKind s₁.tree parent :=
     (show ChildCountKind (liveRangeInsertAdjust s parent child 1).tree parent by simpa using hlen
-      ).map (kindPreserving_adopt ha)
+      ).map (shapePreserving_adopt ha)
   intro r hrmem
   rw [hsr] at hrmem
   obtain ⟨h1, h2⟩ := hv1 r hrmem
@@ -944,7 +944,7 @@ theorem move_preserves_endpoints {s s' : DOMState} {node newParent : NodeId}
   have hv₁ : RangeEndpointsValid s₁ :=
     remove_preserves_endpoints hwf hp (hlenq p hp) hv hr
   have hwf₁ : WellFormed s₁.tree := remove_preserves_wellformed hwf hr
-  have hlen₁ : ChildCountKind s₁.tree newParent := hlen.map (kindPreserving_remove hr)
+  have hlen₁ : ChildCountKind s₁.tree newParent := hlen.map (shapePreserving_remove hr)
   have hup : RangeValidUpTo (liveRangeInsertAdjust s₁ newParent child 1) newParent 1 :=
     rangeValidUpTo_liveRangeInsertAdjust hv₁
   intro r hrmem

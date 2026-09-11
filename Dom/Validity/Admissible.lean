@@ -1,3 +1,4 @@
+import Dom.Validity.Attributes
 import Dom.Validity.Observers
 import Dom.Observer.Deliver
 
@@ -293,12 +294,12 @@ theorem replace_preserves_endpoints {s s' : DOMState} {child node parent : NodeI
         · simp at hr
         · next s₂ hrm =>
           have hstep : StructurallyValid s₂.tree ∧ RangeEndpointsValid s₂ ∧
-              parentOf s₂.tree node = none ∧ KindPreserving s₁.tree s₂.tree := by
+              parentOf s₂.tree node = none ∧ ShapePreserving s₁.tree s₂.tree := by
             revert hrm
             split
             · intro hrm
               rw [← Except.ok.inj hrm]
-              exact ⟨hs₁, hv₁, hnp, KindPreserving.refl _⟩
+              exact ⟨hs₁, hv₁, hnp, ShapePreserving.refl _⟩
             · intro hrm
               have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
               obtain ⟨⟨q, hq⟩, hd⟩ := remove_ok hrm'
@@ -309,7 +310,7 @@ theorem replace_preserves_endpoints {s s' : DOMState} {child node parent : NodeI
               refine ⟨structurallyValid_remove hs₁ hrm',
                 remove_preserves_endpoints hs₁.wellFormed hq
                   (childCountKind_of_parentOf hs₁ hq) hv₁ hrm', ?_,
-                kindPreserving_remove hrm'⟩
+                shapePreserving_remove hrm'⟩
               rw [parentOf_detach hd, if_neg hne]
               exact hnp
           obtain ⟨hs₂, hv₂, hnp₂, hkp₂⟩ := hstep
@@ -318,7 +319,7 @@ theorem replace_preserves_endpoints {s s' : DOMState} {child node parent : NodeI
           · next s₃ hi =>
             have hpk : ∀ pd', s₂.tree.get? parent = some pd' →
                 pd'.kind.canHaveChildren = true :=
-              kindFact_of_kindPreserving ((kindPreserving_adopt ha).trans hkp₂)
+              kindFact_of_kindPreserving ((shapePreserving_adopt ha).trans hkp₂)
                 (P := fun k => k.canHaveChildren = true)
                 (ensurePreInsertionValidity_parentCanHaveChildren hvv)
             have hv₃ : RangeEndpointsValid s₃ :=
@@ -357,7 +358,7 @@ theorem replaceAll_preserves_endpoints {s s' : DOMState} {node : Option NodeId} 
   · next s₁ hre =>
     have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
     have hv₁ : RangeEndpointsValid s₁ := removeEach_preserves_endpoints _ h hv hre
-    have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
     split at hr
     · simp at hr
     · next s₂ hins =>
@@ -387,7 +388,7 @@ theorem iterCtx_replaceData {s s' : DOMState} {n : NodeId} {offset count : Nat}
   rw [hit] at hmem
   obtain ⟨hex, hanc⟩ := h.iterators it hmem
   rw [htree]
-  refine ⟨exists_get?_of_kindPreserving (kindPreserving_withData hd _) hex.choose_spec, ?_⟩
+  refine ⟨exists_get?_of_kindPreserving (shapePreserving_withData hd _) hex.choose_spec, ?_⟩
   rcases hanc with he | ha
   · exact Or.inl he
   · exact Or.inr (ancestor_congr (fun m => parentOf_withData hd _ m) ha)
@@ -397,7 +398,7 @@ theorem preservesRegs_replaceData {s s' : DOMState} {n : NodeId} {offset count :
     PreservesRegs s s' := by
   obtain ⟨d, hd, _, _, htree, _, _⟩ := replaceData_ok hr
   refine preservesRegs_congr ?_ ?_ ?_
-  · rw [htree]; exact kindPreserving_withData hd _
+  · rw [htree]; exact shapePreserving_withData hd _
   · unfold replaceData at hr
     split at hr
     · simp at hr
@@ -434,7 +435,8 @@ theorem admissible_remove {s s' : DOMState} {n : NodeId} {b : Bool}
   exact ⟨hit.structural, hit.nodeDocuments, documentTreesValid_remove h.wellFormed
       h.documentTrees hr,
     remove_preserves_endpoints h.wellFormed hp (h.childCountKind hp) h.rangeEndpoints hr,
-    hit.iterators, preservesRegs_remove hr h.observerRegistrations⟩
+    hit.iterators, preservesRegs_remove hr h.observerRegistrations,
+    AttributesValid.map (shapePreserving_remove hr) h.attributes⟩
 
 /-- `insert` は、validity 検査を通っていれば admissibility を保つ。 -/
 theorem admissible_insert {s s' : DOMState} {node parent : NodeId}
@@ -449,7 +451,8 @@ theorem admissible_insert {s s' : DOMState} {node parent : NodeId}
     documentTreesValid_insert h.wellFormed h.structural h.documentTrees hv hi,
     insert_preserves_endpoints h.wellFormed (childCountKind_of_canHaveChildren hpk)
       (fun q hq => h.childCountKind hq) h.rangeEndpoints hi,
-    hit.iterators, preservesRegs_insert hi h.observerRegistrations⟩
+    hit.iterators, preservesRegs_insert hi h.observerRegistrations,
+    AttributesValid.map (shapePreserving_insert hi) h.attributes⟩
 
 /-- `replace` は admissibility を保つ。 -/
 theorem admissible_replace {s s' : DOMState} {child node parent : NodeId}
@@ -459,7 +462,8 @@ theorem admissible_replace {s s' : DOMState} {child node parent : NodeId}
   exact ⟨hit.structural, hit.nodeDocuments,
     documentTreesValid_replace h.wellFormed h.structural h.documentTrees hr,
     replace_preserves_endpoints h.structural h.rangeEndpoints hr,
-    hit.iterators, preservesRegs_replace hr h.observerRegistrations⟩
+    hit.iterators, preservesRegs_replace hr h.observerRegistrations,
+    AttributesValid.map (shapePreserving_replace hr) h.attributes⟩
 
 /--
 `replace all` は node tree の制約を自分では検査しないので、
@@ -486,7 +490,8 @@ theorem admissible_replaceAll {s s' : DOMState} {node : Option NodeId} {parent :
   exact ⟨hit.structural, hit.nodeDocuments,
     documentTreesValid_replaceAll h.wellFormed h.documentTrees hok hr,
     replaceAll_preserves_endpoints h.structural hpk h.rangeEndpoints hr,
-    hit.iterators, preservesRegs_replaceAll hr h.observerRegistrations⟩
+    hit.iterators, preservesRegs_replaceAll hr h.observerRegistrations,
+    AttributesValid.map (shapePreserving_replaceAll hr) h.attributes⟩
 
 /--
 `move` は step 1-6 で新しい parent の kind を検査しないので、
@@ -501,7 +506,8 @@ theorem admissible_move {s s' : DOMState} {node newParent : NodeId} {child : Opt
     documentTreesValid_move h.wellFormed h.documentTrees hm,
     move_preserves_endpoints h.wellFormed (childCountKind_of_canHaveChildren hpk)
       (fun q hq => h.childCountKind hq) h.rangeEndpoints hm,
-    hit.iterators, preservesRegs_move hm h.observerRegistrations⟩
+    hit.iterators, preservesRegs_move hm h.observerRegistrations,
+    AttributesValid.map (shapePreserving_move hm) h.attributes⟩
 
 /-- `moveBefore` は receiver の kind を検査してから `move` を呼ぶ。 -/
 theorem admissible_moveBefore {s s' : DOMState} {parent node : NodeId}
@@ -521,7 +527,64 @@ theorem admissible_replaceData {s s' : DOMState} {n : NodeId} {offset count : Na
   exact ⟨hit.structural, hit.nodeDocuments,
     documentTreesValid_replaceData h.documentTrees hr,
     replaceData_preserves_endpoints h.rangeEndpoints hr,
-    hit.iterators, preservesRegs_replaceData hr h.observerRegistrations⟩
+    hit.iterators, preservesRegs_replaceData hr h.observerRegistrations,
+    AttributesValid.map (shapePreserving_replaceData hr) h.attributes⟩
+
+/-! ## §4.9 の attribute -/
+
+/--
+attribute の algorithm は admissibility を保つ。
+
+木は attribute list しか変わらず、live object と registration はそのまま残るので、
+七成分すべてが `AttrOpResult` から従う。
+-/
+theorem admissible_of_attrOp {s s' : DOMState} (h : AdmissibleDOMState s)
+    (hr : AttrOpResult s s') : AdmissibleDOMState s' := by
+  refine ⟨structurallyValid_of_attributesOnly hr.tree h.structural,
+    nodeDocumentsValid_of_attributesOnly hr.tree h.nodeDocuments,
+    documentTreesValid_of_attributesOnly hr.tree h.documentTrees, ?_, ?_, ?_,
+    hr.attributes h.attributes⟩
+  · intro r hrg
+    rw [hr.ranges] at hrg
+    obtain ⟨h1, h2⟩ := h.rangeEndpoints r hrg
+    exact ⟨validBoundaryPoint_of_attributesOnly hr.tree h1,
+      validBoundaryPoint_of_attributesOnly hr.tree h2⟩
+  · intro it hit
+    rw [hr.iterators] at hit
+    exact validIterator_of_attributesOnly hr.tree (h.iterators it hit)
+  · intro r hrg
+    rw [hr.registrations] at hrg
+    obtain ⟨g1, g2⟩ := h.observerRegistrations r hrg
+    refine ⟨by rw [hr.observersLength]; exact g1, ?_⟩
+    obtain ⟨d, hd⟩ := Option.isSome_iff_exists.mp g2
+    cases hd' : s'.tree.get? r.node with
+    | none => exfalso; rw [hr.tree.get?_eq_none hd'] at hd; simp at hd
+    | some _ => rfl
+
+theorem admissible_setAttribute {s s' : DOMState} {element : NodeId} {qn value : String}
+    (h : AdmissibleDOMState s) (hr : setAttribute s element qn value = .ok s') :
+    AdmissibleDOMState s' :=
+  admissible_of_attrOp h (attrOpResult_setAttribute hr)
+
+theorem admissible_setAttributeNS {s s' : DOMState} {element : NodeId} {ns : Option String}
+    {qn value : String} (h : AdmissibleDOMState s)
+    (hr : setAttributeNS s element ns qn value = .ok s') : AdmissibleDOMState s' :=
+  admissible_of_attrOp h (attrOpResult_setAttributeNS hr)
+
+theorem admissible_removeAttribute {s s' : DOMState} {element : NodeId} {qn : String}
+    (h : AdmissibleDOMState s) (hr : removeAttribute s element qn = .ok s') :
+    AdmissibleDOMState s' :=
+  admissible_of_attrOp h (attrOpResult_removeAttribute hr)
+
+theorem admissible_removeAttributeNS {s s' : DOMState} {element : NodeId} {ns : Option String}
+    {localName : String} (h : AdmissibleDOMState s)
+    (hr : removeAttributeNS s element ns localName = .ok s') : AdmissibleDOMState s' :=
+  admissible_of_attrOp h (attrOpResult_removeAttributeNS hr)
+
+theorem admissible_toggleAttribute {s s' : DOMState} {element : NodeId} {qn : String}
+    {force : Option Bool} {b : Bool} (h : AdmissibleDOMState s)
+    (hr : toggleAttribute s element qn force = .ok (s', b)) : AdmissibleDOMState s' :=
+  admissible_of_attrOp h (attrOpResult_toggleAttribute hr)
 
 /-! ## public API -/
 
@@ -728,7 +791,7 @@ theorem admissible_observe {s s' : DOMState} {mo : Nat} {target : NodeId}
   have hranges : s'.ranges = s.ranges := MutationObserver.observe_ranges ho
   have hiters : s'.iterators = s.iterators := MutationObserver.observe_iterators ho
   refine ⟨by rw [htree]; exact h.structural, by rw [htree]; exact h.nodeDocuments,
-    by rw [htree]; exact h.documentTrees, ?_, ?_, ?_⟩
+    by rw [htree]; exact h.documentTrees, ?_, ?_, ?_, by rw [htree]; exact h.attributes⟩
   · intro r hr
     rw [htree]
     exact h.rangeEndpoints r (by rw [← hranges]; exact hr)
@@ -744,43 +807,43 @@ theorem admissible_observe {s s' : DOMState} {mo : Nat} {target : NodeId}
       · simp at ho
       · next hmo =>
         split at ho
-        · simp at ho
-        · split at ho
-          · simp at ho
-          · have htgt : (s.tree.get? target).isSome := by
-              cases hq : s.tree.get? target with
-              | none =>
-                exfalso
-                rw [hq] at hnone
-                exact hnone rfl
-              | some _ => rfl
-            have hmo' : mo < s.observers.length := by omega
-            split at ho
-            · -- 既存の registration の options を差し替える
-              rw [← Except.ok.inj ho]
-              intro r hr
-              simp only at hr
-              obtain ⟨r₀, hr₀, hre⟩ := List.mem_filterMap.mp hr
-              split at hre
-              · simp at hre
-              · split at hre
-                · rw [← Option.some.inj hre]
-                  exact ⟨hmo', htgt⟩
-                · rw [← Option.some.inj hre]
-                  exact h.observerRegistrations r₀ hr₀
-            · -- 新しい registration を足す
-              rw [← Except.ok.inj ho]
-              intro r hr
-              simp only [List.mem_append, List.mem_singleton] at hr
-              rcases hr with hr | rfl
-              · obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
-                exact ⟨by simpa using g1, g2⟩
-              · exact ⟨by simpa using hmo', htgt⟩
+        · -- step 3-6 の TypeError
+          simp at ho
+        · have htgt : (s.tree.get? target).isSome := by
+            cases hq : s.tree.get? target with
+            | none =>
+              exfalso
+              rw [hq] at hnone
+              exact hnone rfl
+            | some _ => rfl
+          have hmo' : mo < s.observers.length := by omega
+          split at ho
+          · -- 既存の registration の options を差し替える
+            rw [← Except.ok.inj ho]
+            intro r hr
+            simp only at hr
+            obtain ⟨r₀, hr₀, hre⟩ := List.mem_filterMap.mp hr
+            split at hre
+            · simp at hre
+            · split at hre
+              · rw [← Option.some.inj hre]
+                exact ⟨hmo', htgt⟩
+              · rw [← Option.some.inj hre]
+                exact h.observerRegistrations r₀ hr₀
+          · -- 新しい registration を足す
+            rw [← Except.ok.inj ho]
+            intro r hr
+            simp only [List.mem_append, List.mem_singleton] at hr
+            rcases hr with hr | rfl
+            · obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
+              exact ⟨by simpa using g1, g2⟩
+            · exact ⟨by simpa using hmo', htgt⟩
 
 /-- `disconnect` は registration を減らすだけである。 -/
 theorem admissible_disconnect {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :
     AdmissibleDOMState (MutationObserver.disconnect s mo) := by
-  refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_⟩
+  refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_,
+    h.attributes⟩
   intro r hr
   unfold MutationObserver.disconnect at hr
   simp only at hr
@@ -793,7 +856,8 @@ theorem admissible_takeRecords {s : DOMState} (h : AdmissibleDOMState s) (mo : N
   unfold MutationObserver.takeRecords
   split
   · exact h
-  · refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_⟩
+  · refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_,
+    h.attributes⟩
     intro r hr
     obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
     exact ⟨by simpa using g1, g2⟩
@@ -801,7 +865,8 @@ theorem admissible_takeRecords {s : DOMState} (h : AdmissibleDOMState s) (mo : N
 /-- transient registration を外しても妥当である。 -/
 theorem admissible_removeTransients {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :
     AdmissibleDOMState (removeTransients s mo) := by
-  refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_⟩
+  refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_,
+    h.attributes⟩
   intro r hr
   exact h.observerRegistrations r (List.mem_filter.mp hr).1
 
@@ -821,6 +886,6 @@ theorem admissible_notifyMutationObservers {s : DOMState} (h : AdmissibleDOMStat
   unfold notifyMutationObservers
   refine admissible_notifyEach _ ?_
   exact ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators,
-    fun r hr => h.observerRegistrations r hr⟩
+    fun r hr => h.observerRegistrations r hr, h.attributes⟩
 
 end Dom

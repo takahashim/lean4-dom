@@ -6,9 +6,11 @@ import Dom.Validity.State
 
 PLAN §7。scenario を読み込んで初期状態を組み立て、操作を順に適用して各 step の状態を出力する。
 
-各 step の後で `checkAdmissibleDOMState` を実行し、
-invariant が破れていないか実行時にも確認する（PLAN §3.5, §8）。
-破れていればその step 番号を出力に含める。
+各 step の後で `AdmissibleDOMState` の七成分すべてを実行時にも検査する
+（PLAN §3.5, §8）。破れていればその step 番号と成分の名前を出力に含める。
+`checkAdmissibleDOMState` をそのまま呼ばず成分ごとに見るのは、
+どの成分が破れたかを報告するためである
+（`checkAdmissibleDOMState_iff` により、全成分が真であることと同値である）。
 証明済みの preservation 定理があるので本来は起こらないが、
 oracle の組み立て（初期状態の構築や操作の割り当て）の誤りはこれで検出できる。
 -/
@@ -90,6 +92,10 @@ def buildState (sc : Scenario) : Except String DOMState := do
     throw "初期状態の range の端点が木の中にない"
   unless checkIteratorsValid s do
     throw "初期状態の iterator が valid でない"
+  unless checkObserverRegistrationsValid s do
+    throw "初期状態の observer registration が木に無い node か範囲外の observer を指している"
+  unless checkAttributesValid t do
+    throw "初期状態の attribute list が妥当でない（Element 以外が持つ、鍵が重複、prefix に namespace が無い）"
   return s
 
 /--
@@ -169,6 +175,10 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
       else if !checkRangeEndpointsValid s' then
         ([.ok s' delivered], some (i, "rangeEndpointsValid"))
       else if !checkIteratorsValid s' then ([.ok s' delivered], some (i, "iteratorsValid"))
+      else if !checkObserverRegistrationsValid s' then
+        ([.ok s' delivered], some (i, "observerRegistrationsValid"))
+      else if !checkAttributesValid s'.tree then
+        ([.ok s' delivered], some (i, "attributesValid"))
       else
         let (rest, viol) := runOperations s' ops (i + 1)
         (.ok s' delivered :: rest, viol)

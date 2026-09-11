@@ -38,12 +38,9 @@ deriving DecidableEq, Repr, Inhabited
 
 /-! ## MutationObserver -/
 
-/--
-DOM Standard §4.3.1 の `MutationRecord` の type。
-
-model は attribute を持たないので、`attributes` は扱わない。
--/
+/-- DOM Standard §4.3.1 の `MutationRecord` の type。 -/
 inductive RecordType where
+  | attributes
   | childList
   | characterData
 deriving DecidableEq, Repr, Inhabited
@@ -51,7 +48,8 @@ deriving DecidableEq, Repr, Inhabited
 /--
 DOM Standard §4.3.1 の `MutationRecord`。
 
-`attributeName` / `attributeNamespace` は model が attribute を扱わないので省く。
+`attributeName` は attribute の local name、`attributeNamespace` は namespace である
+（"handle attribute changes" step 1）。type が `attributes` 以外なら両方 `none`。
 -/
 structure MutationRecord where
   type : RecordType
@@ -60,6 +58,8 @@ structure MutationRecord where
   removedNodes : List NodeId := []
   previousSibling : Option NodeId := none
   nextSibling : Option NodeId := none
+  attributeName : Option String := none
+  attributeNamespace : Option String := none
   oldValue : Option String := none
 deriving DecidableEq, Repr, Inhabited
 
@@ -78,6 +78,13 @@ structure Registration where
   observer : Nat
   subtree : Bool := false
   childList : Bool := false
+  attributes : Bool := false
+  attributeOldValue : Bool := false
+  /--
+  仕様の `attributeFilter`。存在しないことと空 list であることは区別される
+  （"queue a mutation record" step 2.3 の三つ目の条件が、存在するかどうかで分岐する）。
+  -/
+  attributeFilter : Option (List String) := none
   characterData : Bool := false
   characterDataOldValue : Bool := false
   transient : Bool := false

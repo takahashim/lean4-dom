@@ -62,7 +62,7 @@ theorem ancestor_insertAt {t t' : Tree} {parent node : NodeId} {child : Option N
 theorem validIterator_insertAt {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
     (hi : insertAt t parent node child = .ok t') {it : IteratorState}
     (h : ValidIterator t it) : ValidIterator t' it := by
-  refine ⟨exists_get?_of_kindPreserving (kindPreserving_insertAt hi) h.1.choose_spec, ?_⟩
+  refine ⟨exists_get?_of_kindPreserving (shapePreserving_insertAt hi) h.1.choose_spec, ?_⟩
   rcases h.2 with he | ha
   · exact Or.inl he
   · exact Or.inr (ancestor_insertAt hi ha)
@@ -70,7 +70,7 @@ theorem validIterator_insertAt {t t' : Tree} {parent node : NodeId} {child : Opt
 /-- `setOwnerDocument` は木の形を変えないので iterator の妥当性を保つ。 -/
 theorem validIterator_setOwnerDocument {t : Tree} (n doc : NodeId) {it : IteratorState}
     (h : ValidIterator t it) : ValidIterator (setOwnerDocument t n doc) it := by
-  refine ⟨exists_get?_of_kindPreserving (kindPreserving_setOwnerDocument t n doc)
+  refine ⟨exists_get?_of_kindPreserving (shapePreserving_setOwnerDocument t n doc)
     h.1.choose_spec, ?_⟩
   rcases h.2 with he | ha
   · exact Or.inl he
@@ -131,7 +131,7 @@ theorem iterCtx_insertEach :
       split at hi
       · simp at hi
       · next s₂ hins =>
-        have hkp₁ : KindPreserving s.tree s₁.tree := kindPreserving_adopt ha
+        have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
         have hnkn := hnk n (List.mem_cons_self ..)
         have h₁ : IterCtx s₁ := iterCtx_adopt h hdoc hnkn ha
         have hpar₁ : ownerDocumentOf s₁.tree parent = some doc :=
@@ -141,7 +141,7 @@ theorem iterCtx_insertEach :
         have hi' := (DOMState.mapTree_eq_ok hins).1
         have hpk₁ : ∀ pd, s₁.tree.get? parent = some pd → pd.kind.canHaveChildren = true :=
           kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp₁ hpk
-        have hkp₂ : KindPreserving s₁.tree s₂.tree := kindPreserving_insertAt hi'
+        have hkp₂ : ShapePreserving s₁.tree s₂.tree := shapePreserving_insertAt hi'
         have h₂ : IterCtx s₂ := by
           refine ⟨structurallyValid_insertAt h₁.structural hpk₁
               (kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp₁ hnkn)
@@ -223,7 +223,7 @@ theorem iterCtx_insert {s s' : DOMState} {node parent : NodeId}
         · simp at hi
         · next s₁ hre =>
           have h₁ : IterCtx s₁ := iterCtx_removeEach _ h hre
-          have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+          have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
           have hfragkind : nd.kind ≠ NodeKind.document := by
             rename_i hfrag _ _
             intro hc; rw [hc] at hfrag; simp at hfrag
@@ -287,23 +287,23 @@ theorem iterCtx_replace {s s' : DOMState} {child node parent : NodeId}
       split at hr
       · simp at hr
       · next s₁ ha =>
-        have hkp₁ : KindPreserving s.tree s₁.tree := kindPreserving_adopt ha
+        have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
         have h₁ : IterCtx s₁ := iterCtx_adopt h (isDocument_ownerDocument h.wellFormed hpd)
           (ensurePreInsertionValidity_nodeNotDocument hv) ha
         split at hr
         · simp at hr
         · next s₂ hrm =>
-          have hstep : IterCtx s₂ ∧ KindPreserving s₁.tree s₂.tree := by
+          have hstep : IterCtx s₂ ∧ ShapePreserving s₁.tree s₂.tree := by
             revert hrm
             split
             · intro hrm
               rw [← Except.ok.inj hrm]
-              exact ⟨h₁, KindPreserving.refl _⟩
+              exact ⟨h₁, ShapePreserving.refl _⟩
             · intro hrm
               have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
-              exact ⟨iterCtx_remove h₁ hrm', kindPreserving_remove hrm'⟩
+              exact ⟨iterCtx_remove h₁ hrm', shapePreserving_remove hrm'⟩
           obtain ⟨h₂, hkp₂⟩ := hstep
-          have hkp : KindPreserving s.tree s₂.tree := hkp₁.trans hkp₂
+          have hkp : ShapePreserving s.tree s₂.tree := hkp₁.trans hkp₂
           split at hr
           · simp at hr
           · next s₃ hi =>
@@ -333,7 +333,7 @@ theorem iterCtx_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : No
   · simp at hr
   · next s₁ hre =>
     have h₁ : IterCtx s₁ := iterCtx_removeEach _ h hre
-    have hkp : KindPreserving s.tree s₁.tree := kindPreserving_removeEach _ hre
+    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
     split at hr
     · simp at hr
     · next s₂ hins =>

@@ -15,11 +15,14 @@ import Dom.Traversal.NodeIterator
 import Dom.Observer.Record
 import Dom.Observer.Deliver
 import Dom.CharacterData.ReplaceData
+import Dom.Attribute.Name
+import Dom.Attribute.Algorithms
 import Dom.Mutation.Algorithms
 import Dom.Mutation.Api
 import Dom.Validity.Structural
 import Dom.Validity.NodeDocument
 import Dom.Validity.DocumentTree
+import Dom.Validity.AttributeList
 import Dom.Validity.State
 import Dom.Properties.Tree
 import Dom.Properties.Mutation
@@ -33,6 +36,7 @@ import Dom.Validity.Preservation
 import Dom.Validity.AlgorithmPreservation
 import Dom.Validity.Iterators
 import Dom.Validity.Observers
+import Dom.Validity.Attributes
 import Dom.Validity.Admissible
 import Dom.Properties.Contract
 import Dom.Properties.Counterexample

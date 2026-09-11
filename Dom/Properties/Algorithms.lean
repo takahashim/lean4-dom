@@ -19,29 +19,64 @@ PLAN §6.3 に挙げた性質を証明する。
 
 namespace Dom
 
-/-! ## kind を変えない変更 -/
+/-! ## kind と attribute を変えない変更 -/
 
-/-- 木の変更が node の kind を変えないこと。`adopt` の前提を持ち回るのに使う。 -/
-def KindPreserving (t t' : Tree) : Prop :=
-  ∀ m, (t'.get? m).map (·.kind) = (t.get? m).map (·.kind)
+/--
+木の変更が node の kind と attribute list を変えないこと。
+
+§4.2.3 の algorithm は parent・children・node document しか動かさないので、
+どれもこれを満たす。`adopt` の前提を持ち回るのと、
+attribute の妥当性を運ぶのに使う。
+-/
+def ShapePreserving (t t' : Tree) : Prop :=
+  ∀ m, (t'.get? m).map NodeData.shape = (t.get? m).map NodeData.shape
 
 /-- `doc` が document node として木にあること。DOM Standard §4.5 adopt の前提。 -/
 def IsDocument (t : Tree) (doc : NodeId) : Prop :=
   ∃ dd, t.get? doc = some dd ∧ dd.kind = .document
 
-namespace KindPreserving
+namespace ShapePreserving
 
-theorem refl (t : Tree) : KindPreserving t t := fun _ => rfl
+theorem refl (t : Tree) : ShapePreserving t t := fun _ => rfl
 
-theorem trans {t t₁ t₂ : Tree} (h₁ : KindPreserving t t₁) (h₂ : KindPreserving t₁ t₂) :
-    KindPreserving t t₂ := fun m => (h₂ m).trans (h₁ m)
+theorem trans {t t₁ t₂ : Tree} (h₁ : ShapePreserving t t₁) (h₂ : ShapePreserving t₁ t₂) :
+    ShapePreserving t t₂ := fun m => (h₂ m).trans (h₁ m)
 
-end KindPreserving
+theorem map_shape_fst (o : Option NodeData) :
+    o.map (·.kind) = (o.map NodeData.shape).map Prod.fst := by cases o <;> rfl
 
-theorem IsDocument.map {t t' : Tree} {doc : NodeId} (h : KindPreserving t t')
+theorem map_shape_snd (o : Option NodeData) :
+    o.map (·.attributes) = (o.map NodeData.shape).map Prod.snd := by cases o <;> rfl
+
+/-- kind だけを取り出す。 -/
+theorem kind {t t' : Tree} (h : ShapePreserving t t') (m : NodeId) :
+    (t'.get? m).map (·.kind) = (t.get? m).map (·.kind) := by
+  rw [map_shape_fst, map_shape_fst, h m]
+
+/-- attribute list だけを取り出す。 -/
+theorem attributes {t t' : Tree} (h : ShapePreserving t t') (m : NodeId) :
+    (t'.get? m).map (·.attributes) = (t.get? m).map (·.attributes) := by
+  rw [map_shape_snd, map_shape_snd, h m]
+
+/-- 変更後に node があるなら変更前にもあり、kind と attribute list は同じである。 -/
+theorem exists_get? {t t' : Tree} (h : ShapePreserving t t') {m : NodeId} {d : NodeData}
+    (hd : t'.get? m = some d) :
+    ∃ d₀, t.get? m = some d₀ ∧ d₀.kind = d.kind ∧ d₀.attributes = d.attributes := by
+  have hm := h m
+  rw [hd] at hm
+  cases hd₀ : t.get? m with
+  | none => rw [hd₀] at hm; simp at hm
+  | some d₀ =>
+    rw [hd₀] at hm
+    simp only [Option.map_some, Option.some.injEq, NodeData.shape, Prod.mk.injEq] at hm
+    exact ⟨d₀, rfl, hm.1.symm, hm.2.symm⟩
+
+end ShapePreserving
+
+theorem IsDocument.map {t t' : Tree} {doc : NodeId} (h : ShapePreserving t t')
     (hd : IsDocument t doc) : IsDocument t' doc := by
   obtain ⟨dd, hdd, hk⟩ := hd
-  have hm := h doc
+  have hm := h.kind doc
   rw [hdd] at hm
   cases hd' : t'.get? doc with
   | none => rw [hd'] at hm; simp at hm
@@ -57,8 +92,8 @@ theorem isDocument_ownerDocument {t : Tree} (hwf : WellFormed t) {m : NodeId} {d
 
 /-! ## primitive が kind を変えないこと -/
 
-theorem kindPreserving_detach {t t' : Tree} {n : NodeId} (h : detach t n = .ok t') :
-    KindPreserving t t' := by
+theorem shapePreserving_detach {t t' : Tree} {n : NodeId} (h : detach t n = .ok t') :
+    ShapePreserving t t' := by
   intro m
   rcases detach_ok_cases h with ⟨d, _, _, rfl⟩ | ⟨d, p, pd, hd, hp, hpd, rfl⟩
   · rfl
@@ -70,8 +105,8 @@ theorem kindPreserving_detach {t t' : Tree} {n : NodeId} (h : detach t n = .ok t
       · rw [if_pos h2, h2, hpd]; rfl
       · rw [if_neg h2]
 
-theorem kindPreserving_insertAt {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
-    (h : insertAt t parent node child = .ok t') : KindPreserving t t' := by
+theorem shapePreserving_insertAt {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
+    (h : insertAt t parent node child = .ok t') : ShapePreserving t t' := by
   intro m
   obtain ⟨pd, nd, hpd, hnd, _, _, _, rfl⟩ := insertAt_ok_cases h
   rw [get?_insertAtIn]
@@ -82,13 +117,13 @@ theorem kindPreserving_insertAt {t t' : Tree} {parent node : NodeId} {child : Op
     · rw [if_pos h2, h2, hpd]; rfl
     · rw [if_neg h2]
 
-theorem kindPreserving_setOwnerDocument (t : Tree) (n doc : NodeId) :
-    KindPreserving t (setOwnerDocument t n doc) := by
+theorem shapePreserving_setOwnerDocument (t : Tree) (n doc : NodeId) :
+    ShapePreserving t (setOwnerDocument t n doc) := by
   intro m
   rw [get?_setOwnerDocument]
   cases t.get? m with
   | none => rfl
-  | some d => by_cases hm : m ∈ preorder t n <;> simp [hm]
+  | some d => by_cases hm : m ∈ preorder t n <;> simp [hm, NodeData.shape]
 
 /-! ## remove -/
 
@@ -126,9 +161,9 @@ theorem remove_preserves_wellformed {s s' : DOMState} {n : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (h : remove s n b = .ok s') : WellFormed s'.tree :=
   detach_preserves_wellformed hwf (remove_ok h).2
 
-theorem kindPreserving_remove {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :
-    KindPreserving s.tree s'.tree :=
-  kindPreserving_detach (remove_ok h).2
+theorem shapePreserving_remove {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :
+    ShapePreserving s.tree s'.tree :=
+  shapePreserving_detach (remove_ok h).2
 
 /-- PLAN §6.3。`remove` した node は parent を持たない。 -/
 theorem remove_parentOf {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :
@@ -154,17 +189,17 @@ theorem removeEach_preserves_wellformed :
     · next s₁ hr =>
       exact removeEach_preserves_wellformed ns (remove_preserves_wellformed hwf hr) h
 
-theorem kindPreserving_removeEach :
+theorem shapePreserving_removeEach :
     ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool}, removeEach s ns b = .ok s' →
-      KindPreserving s.tree s'.tree
+      ShapePreserving s.tree s'.tree
   | [], _, _, _, h => by
-    simp only [removeEach] at h; rw [← Except.ok.inj h]; exact KindPreserving.refl _
+    simp only [removeEach] at h; rw [← Except.ok.inj h]; exact ShapePreserving.refl _
   | n :: ns, s, s', b, h => by
     simp only [removeEach] at h
     split at h
     · simp at h
     · next s₁ hr =>
-      exact (kindPreserving_remove hr).trans (kindPreserving_removeEach ns h)
+      exact (shapePreserving_remove hr).trans (shapePreserving_removeEach ns h)
 
 /-! ## adopt -/
 
@@ -192,25 +227,25 @@ theorem adopt_preserves_wellformed {s s' : DOMState} {node doc : NodeId}
     (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree doc) (h : adopt s node doc = .ok s') :
     WellFormed s'.tree := by
   obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases h
-  have hwf₁ : WellFormed s₁.tree ∧ KindPreserving s.tree s₁.tree := by
+  have hwf₁ : WellFormed s₁.tree ∧ ShapePreserving s.tree s₁.tree := by
     rcases hstep with ⟨_, rfl⟩ | hr
-    · exact ⟨hwf, KindPreserving.refl _⟩
-    · exact ⟨remove_preserves_wellformed hwf hr, kindPreserving_remove hr⟩
+    · exact ⟨hwf, ShapePreserving.refl _⟩
+    · exact ⟨remove_preserves_wellformed hwf hr, shapePreserving_remove hr⟩
   rcases hfinal with rfl | rfl
   · exact hwf₁.1
   · obtain ⟨dd, hdd, hk⟩ := hdoc.map hwf₁.2
     exact setOwnerDocument_preserves_wellformed hwf₁.1 hdd hk
 
-theorem kindPreserving_adopt {s s' : DOMState} {node doc : NodeId}
-    (h : adopt s node doc = .ok s') : KindPreserving s.tree s'.tree := by
+theorem shapePreserving_adopt {s s' : DOMState} {node doc : NodeId}
+    (h : adopt s node doc = .ok s') : ShapePreserving s.tree s'.tree := by
   obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases h
-  have hkp : KindPreserving s.tree s₁.tree := by
+  have hkp : ShapePreserving s.tree s₁.tree := by
     rcases hstep with ⟨_, rfl⟩ | hr
-    · exact KindPreserving.refl _
-    · exact kindPreserving_remove hr
+    · exact ShapePreserving.refl _
+    · exact shapePreserving_remove hr
   rcases hfinal with rfl | rfl
   · exact hkp
-  · exact hkp.trans (kindPreserving_setOwnerDocument _ _ _)
+  · exact hkp.trans (shapePreserving_setOwnerDocument _ _ _)
 
 /-! ## insert -/
 
@@ -226,20 +261,20 @@ theorem insertEach_preserves_wellformed :
     · simp at h
     · next s₁ ha =>
       have hwf₁ := adopt_preserves_wellformed hwf hdoc ha
-      have hdoc₁ := hdoc.map (kindPreserving_adopt ha)
+      have hdoc₁ := hdoc.map (shapePreserving_adopt ha)
       split at h
       · simp at h
       · next s₂ hi =>
         have hi' := (DOMState.mapTree_eq_ok hi).1
         exact insertEach_preserves_wellformed ns (insertAt_preserves_wellformed hwf₁ hi')
-          (hdoc₁.map (kindPreserving_insertAt hi')) h
+          (hdoc₁.map (shapePreserving_insertAt hi')) h
 
-theorem kindPreserving_insertEach :
+theorem shapePreserving_insertEach :
     ∀ (ns : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
       {doc : NodeId},
-      insertEach s parent child doc ns = .ok s' → KindPreserving s.tree s'.tree
+      insertEach s parent child doc ns = .ok s' → ShapePreserving s.tree s'.tree
   | [], _, _, _, _, _, h => by
-    rw [insertEach] at h; rw [← Except.ok.inj h]; exact KindPreserving.refl _
+    rw [insertEach] at h; rw [← Except.ok.inj h]; exact ShapePreserving.refl _
   | n :: ns, s, s', parent, child, doc, h => by
     rw [insertEach] at h
     split at h
@@ -248,9 +283,9 @@ theorem kindPreserving_insertEach :
       split at h
       · simp at h
       · next s₂ hi =>
-        exact (kindPreserving_adopt ha).trans
-          ((kindPreserving_insertAt (DOMState.mapTree_eq_ok hi).1).trans
-            (kindPreserving_insertEach ns h))
+        exact (shapePreserving_adopt ha).trans
+          ((shapePreserving_insertAt (DOMState.mapTree_eq_ok hi).1).trans
+            (shapePreserving_insertEach ns h))
 
 theorem insertEachAt_preserves_wellformed {s s' : DOMState} {parent : NodeId}
     {child : Option NodeId} {nodes : List NodeId}
@@ -262,13 +297,13 @@ theorem insertEachAt_preserves_wellformed {s s' : DOMState} {parent : NodeId}
   · next pd hpd =>
     exact insertEach_preserves_wellformed _ hwf (isDocument_ownerDocument hwf hpd) h
 
-theorem kindPreserving_insertEachAt {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+theorem shapePreserving_insertEachAt {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
     {nodes : List NodeId} (h : insertEachAt s parent child nodes = .ok s') :
-    KindPreserving s.tree s'.tree := by
+    ShapePreserving s.tree s'.tree := by
   unfold insertEachAt at h
   split at h
   · simp at h
-  · exact kindPreserving_insertEach _ h
+  · exact shapePreserving_insertEach _ h
 
 theorem insertNodesAt_preserves_wellformed {s s' : DOMState} {parent : NodeId}
     {child : Option NodeId} {nodes : List NodeId} {b : Bool}
@@ -286,9 +321,9 @@ theorem insertNodesAt_preserves_wellformed {s s' : DOMState} {parent : NodeId}
     rw [htree]
     exact insertEachAt_preserves_wellformed (by simpa using hwf) hi
 
-theorem kindPreserving_insertNodesAt {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+theorem shapePreserving_insertNodesAt {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
     {nodes : List NodeId} {b : Bool} (h : insertNodesAt s parent child nodes b = .ok s') :
-    KindPreserving s.tree s'.tree := by
+    ShapePreserving s.tree s'.tree := by
   unfold insertNodesAt at h
   simp only at h
   split at h
@@ -299,7 +334,7 @@ theorem kindPreserving_insertNodesAt {s s' : DOMState} {parent : NodeId} {child 
       · rw [← Except.ok.inj h]
       · rw [← Except.ok.inj h]; simp
     rw [htree]
-    simpa using kindPreserving_insertEachAt hi
+    simpa using shapePreserving_insertEachAt hi
 
 /-- PLAN §6.3。`insert` は well-formedness を保つ。 -/
 theorem insert_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
@@ -319,21 +354,21 @@ theorem insert_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
             (by simpa using removeEach_preserves_wellformed _ hwf hr) h
     · exact insertNodesAt_preserves_wellformed hwf h
 
-theorem kindPreserving_insert {s s' : DOMState} {node parent : NodeId} {child : Option NodeId}
-    {b : Bool} (h : insert s node parent child b = .ok s') : KindPreserving s.tree s'.tree := by
+theorem shapePreserving_insert {s s' : DOMState} {node parent : NodeId} {child : Option NodeId}
+    {b : Bool} (h : insert s node parent child b = .ok s') : ShapePreserving s.tree s'.tree := by
   unfold insert at h
   split at h
   · simp at h
   · next nd hnd =>
     split at h
     · split at h
-      · rw [← Except.ok.inj h]; exact KindPreserving.refl _
+      · rw [← Except.ok.inj h]; exact ShapePreserving.refl _
       · split at h
         · simp at h
         · next s₁ hr =>
-          exact (kindPreserving_removeEach _ hr).trans
-            (by simpa using kindPreserving_insertNodesAt h)
-    · exact kindPreserving_insertNodesAt h
+          exact (shapePreserving_removeEach _ hr).trans
+            (by simpa using shapePreserving_insertNodesAt h)
+    · exact shapePreserving_insertNodesAt h
 
 /-! ## 残りの algorithm の preservation -/
 
@@ -858,6 +893,70 @@ theorem moveBefore_preserves_wellformed {s s' : DOMState} {parent node : NodeId}
     (h : moveBefore s parent node child = .ok s') : WellFormed s'.tree := by
   obtain ⟨_, _, _, _, hm⟩ := moveBefore_ok h
   exact move_preserves_wellformed hwf hm
+
+/-! ## replace / replace all / move も kind と attribute を変えない -/
+
+/-- 木が変わらないなら当然 `ShapePreserving` である。 -/
+theorem shapePreserving_of_tree_eq {t t' : Tree} (h : t' = t) : ShapePreserving t t' := by
+  rw [h]; exact ShapePreserving.refl _
+
+theorem shapePreserving_move {s s' : DOMState} {node newParent : NodeId}
+    {child : Option NodeId} (hm : move s node newParent child = .ok s') :
+    ShapePreserving s.tree s'.tree := by
+  obtain ⟨s₁, hr, hi⟩ := move_eq_remove_insertAt hm
+  exact (shapePreserving_remove hr).trans (shapePreserving_insertAt hi)
+
+theorem shapePreserving_moveBefore {s s' : DOMState} {parent node : NodeId}
+    {child : Option NodeId} (h : moveBefore s parent node child = .ok s') :
+    ShapePreserving s.tree s'.tree := by
+  obtain ⟨_, _, _, _, hm⟩ := moveBefore_ok h
+  exact shapePreserving_move hm
+
+theorem shapePreserving_replace {s s' : DOMState} {child node parent : NodeId}
+    (hr : replace s child node parent = .ok s') : ShapePreserving s.tree s'.tree := by
+  unfold replace at hr
+  split at hr
+  · simp at hr
+  · split at hr
+    · simp at hr
+    · next pd hpd =>
+      simp only at hr
+      split at hr
+      · simp at hr
+      · next s₁ ha =>
+        split at hr
+        · simp at hr
+        · next s₂ hrm =>
+          have h₂ : ShapePreserving s₁.tree s₂.tree := by
+            revert hrm
+            split
+            · intro hrm; rw [← Except.ok.inj hrm]; exact ShapePreserving.refl _
+            · intro hrm; exact shapePreserving_remove (by simpa using hrm)
+          split at hr
+          · simp at hr
+          · next s₃ hi =>
+            rw [← Except.ok.inj hr]
+            refine (((shapePreserving_adopt ha).trans h₂).trans (shapePreserving_insert hi)).trans ?_
+            exact shapePreserving_of_tree_eq (by simp)
+
+theorem shapePreserving_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
+    (hr : replaceAll s node parent = .ok s') : ShapePreserving s.tree s'.tree := by
+  unfold replaceAll at hr
+  simp only at hr
+  split at hr
+  · simp at hr
+  · next s₁ hre =>
+    split at hr
+    · simp at hr
+    · next s₂ hins =>
+      have h₂ : ShapePreserving s₁.tree s₂.tree := by
+        revert hins
+        split
+        · intro hins; rw [← Except.ok.inj hins]; exact ShapePreserving.refl _
+        · intro hins; exact shapePreserving_insert (by simpa using hins)
+      rw [← Except.ok.inj hr]
+      refine ((shapePreserving_removeEach _ hre).trans h₂).trans ?_
+      exact shapePreserving_of_tree_eq (by simp)
 
 /-- `moveBefore` も `remove` してから `insertAt` する形に分解できる。 -/
 theorem moveBefore_eq_remove_insertAt {s s' : DOMState} {parent node : NodeId}

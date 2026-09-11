@@ -669,4 +669,65 @@ theorem mem_set_cases {α : Type _} :
       · exact Or.inl h'
       · exact Or.inr (List.mem_cons_of_mem _ h')
 
+/-! ## 述語で最初の一つだけを触る -/
+
+/-- 述語を満たす最初の要素を `f` で置き換える。無ければそのまま。 -/
+def updateFirst {α : Type _} (p : α → Bool) (f : α → α) : List α → List α
+  | [] => []
+  | x :: xs => if p x then f x :: xs else x :: updateFirst p f xs
+
+/-- 述語を満たす最初の要素を取り除く。無ければそのまま。 -/
+def eraseFirst {α : Type _} (p : α → Bool) : List α → List α
+  | [] => []
+  | x :: xs => if p x then xs else x :: eraseFirst p xs
+
+/-- `f` が `g` の値を変えないなら、`updateFirst` は `g` の像を変えない。 -/
+theorem map_updateFirst {α β : Type _} {p : α → Bool} {f : α → α} {g : α → β}
+    (hf : ∀ x, g (f x) = g x) : ∀ l : List α, (updateFirst p f l).map g = l.map g
+  | [] => rfl
+  | x :: xs => by
+    show (if p x then f x :: xs else x :: updateFirst p f xs).map g = (x :: xs).map g
+    by_cases h : p x
+    · simp [h, hf]
+    · simp [h, map_updateFirst hf xs]
+
+/-- `updateFirst` は長さを変えない。 -/
+theorem length_updateFirst {α : Type _} {p : α → Bool} {f : α → α} :
+    ∀ l : List α, (updateFirst p f l).length = l.length
+  | [] => rfl
+  | x :: xs => by
+    show (if p x then f x :: xs else x :: updateFirst p f xs).length = (x :: xs).length
+    by_cases h : p x
+    · simp [h]
+    · simp [h, length_updateFirst xs]
+
+/-- `eraseFirst` の結果は元の list の部分列である。 -/
+theorem eraseFirst_sublist {α : Type _} {p : α → Bool} :
+    ∀ l : List α, (eraseFirst p l).Sublist l
+  | [] => List.Sublist.refl _
+  | x :: xs => by
+    show (if p x then xs else x :: eraseFirst p xs).Sublist (x :: xs)
+    by_cases h : p x
+    · simp only [if_pos h]; exact (List.Sublist.refl xs).cons x
+    · simp only [if_neg h]; exact (eraseFirst_sublist xs).cons_cons x
+
+/-- `updateFirst` の要素は、元の要素か `f` を当てたものである。 -/
+theorem mem_updateFirst {α : Type _} {p : α → Bool} {f : α → α} {y : α} :
+    ∀ {l : List α}, y ∈ updateFirst p f l → y ∈ l ∨ ∃ x ∈ l, y = f x
+  | [], h => by simp [updateFirst] at h
+  | x :: xs, h => by
+    show y ∈ x :: xs ∨ ∃ z ∈ x :: xs, y = f z
+    have h' : y ∈ (if p x then f x :: xs else x :: updateFirst p f xs) := h
+    by_cases hx : p x
+    · rw [if_pos hx] at h'
+      rcases List.mem_cons.mp h' with rfl | h'
+      · exact Or.inr ⟨x, List.mem_cons_self, rfl⟩
+      · exact Or.inl (List.mem_cons_of_mem _ h')
+    · rw [if_neg hx] at h'
+      rcases List.mem_cons.mp h' with rfl | h'
+      · exact Or.inl List.mem_cons_self
+      · rcases mem_updateFirst h' with h'' | ⟨z, hz, hy⟩
+        · exact Or.inl (List.mem_cons_of_mem _ h'')
+        · exact Or.inr ⟨z, List.mem_cons_of_mem _ hz, hy⟩
+
 end Dom.ListUtil

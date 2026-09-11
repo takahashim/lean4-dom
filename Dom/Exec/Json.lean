@@ -310,6 +310,7 @@ def iteratorJson (it : IteratorState) : Json :=
     , ("pointerBeforeReference", Json.bool it.pointerBeforeReference) ]
 
 def recordTypeName : RecordType → String
+  | .attributes => "attributes"
   | .childList => "childList"
   | .characterData => "characterData"
 

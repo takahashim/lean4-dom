@@ -1,4 +1,5 @@
 import Dom.Validity.DocumentTree
+import Dom.Validity.AttributeList
 import Dom.Range.BoundaryPoint
 import Dom.Traversal.NodeIterator
 import Dom.Observer.Record
@@ -10,7 +11,7 @@ import Dom.Observer.Record
 
 対象範囲の **局所不変条件** をすべて満たすことを表す。
 公開 API から実際に構成できること（reachability）とは別物で、
-そちらは `Dom/Properties/Trace.lean` の `ReachableFrom` で扱う。
+そちらは `Dom/Exec/Invariant.lean` の `ReachableFrom` で扱う。
 
 Range については両端が木の中にあることだけを要求する。
 順序（`BoundaryLE`）は仕様の invariant ではない
@@ -39,6 +40,7 @@ structure AdmissibleDOMState (s : DOMState) : Prop where
   rangeEndpoints : RangeEndpointsValid s
   iterators : IteratorsValid s
   observerRegistrations : ObserverRegistrationsValid s
+  attributes : AttributesValid s.tree
 
 namespace AdmissibleDOMState
 
@@ -76,7 +78,8 @@ theorem checkObserverRegistrationsValid_iff (s : DOMState) :
 def checkAdmissibleDOMState (s : DOMState) : Bool :=
   checkStructurallyValid s.tree && checkNodeDocumentsValid s.tree &&
     checkDocumentTreesValid s.tree && checkRangeEndpointsValid s &&
-    checkIteratorsValid s && checkObserverRegistrationsValid s
+    checkIteratorsValid s && checkObserverRegistrationsValid s &&
+    checkAttributesValid s.tree
 
 /-- PLAN §3.5 の形の健全性・完全性。`AdmissibleDOMState` は決定可能である。 -/
 theorem checkAdmissibleDOMState_iff (s : DOMState) :
@@ -84,20 +87,22 @@ theorem checkAdmissibleDOMState_iff (s : DOMState) :
   constructor
   · intro h
     simp only [checkAdmissibleDOMState, Bool.and_eq_true] at h
-    obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
+    obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩ := h
     have hs := (checkStructurallyValid_iff s.tree).mp h1
     exact ⟨hs, (checkNodeDocumentsValid_iff s.tree).mp h2,
       (checkDocumentTreesValid_iff s.tree).mp h3,
       (checkRangeEndpointsValid_iff s).mp h4,
       (checkIteratorsValid_iff hs.wellFormed).mp h5,
-      (checkObserverRegistrationsValid_iff s).mp h6⟩
+      (checkObserverRegistrationsValid_iff s).mp h6,
+      (checkAttributesValid_iff s.tree).mp h7⟩
   · intro h
     simp only [checkAdmissibleDOMState, Bool.and_eq_true]
-    exact ⟨⟨⟨⟨⟨(checkStructurallyValid_iff s.tree).mpr h.structural,
+    exact ⟨⟨⟨⟨⟨⟨(checkStructurallyValid_iff s.tree).mpr h.structural,
       (checkNodeDocumentsValid_iff s.tree).mpr h.nodeDocuments⟩,
       (checkDocumentTreesValid_iff s.tree).mpr h.documentTrees⟩,
       (checkRangeEndpointsValid_iff s).mpr h.rangeEndpoints⟩,
       (checkIteratorsValid_iff h.wellFormed).mpr h.iterators⟩,
-      (checkObserverRegistrationsValid_iff s).mpr h.observerRegistrations⟩
+      (checkObserverRegistrationsValid_iff s).mpr h.observerRegistrations⟩,
+      (checkAttributesValid_iff s.tree).mpr h.attributes⟩
 
 end Dom

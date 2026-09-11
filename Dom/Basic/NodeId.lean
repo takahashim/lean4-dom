@@ -76,6 +76,42 @@ def canHaveChildren : NodeKind → Bool
 end NodeKind
 
 /--
+DOM Standard §4.9 の attribute。
+
+attribute は仕様上 node（`Attr`）だが、本 model では element の状態として持つ。
+node tree に入らない（parent を持てず tree order にも現れない）ので、
+`NodeId` を振っても `Tree` の不変条件に絡まないためである。
+`Attr` node を直接触る API（`setAttributeNode`, `attributes` の `NamedNodeMap`）は
+その帰結として扱えない（`docs/traceability.md` の対象外の表を参照）。
+
+* `namespace?` — 仕様の namespace。null は `none`。
+* `prefix?` — 仕様の namespace prefix。qualified name の計算にだけ使う。
+* `localName` — 仕様の local name。mutation record の `attributeName` はこれである。
+* `value` — 仕様の value。
+
+仕様の node document は持たない。model の attribute は node ではないので観測できない。
+-/
+structure Attr where
+  «namespace» : Option String := none
+  «prefix» : Option String := none
+  localName : String
+  value : String := ""
+deriving DecidableEq, Repr, Inhabited
+
+namespace Attr
+
+/-- DOM Standard §1.4 の qualified name。prefix があれば `prefix:localName`。 -/
+def qualifiedName (a : Attr) : String :=
+  match a.prefix with
+  | none => a.localName
+  | some p => p ++ ":" ++ a.localName
+
+/-- 仕様が attribute を同定する鍵、すなわち namespace と local name の組。 -/
+def key (a : Attr) : Option String × String := (a.namespace, a.localName)
+
+end Attr
+
+/--
 一つの node が持つ状態。
 
 * `kind` — 仕様の node type。Phase 1 と 2 では参照しないが、Phase 3 の
@@ -84,6 +120,8 @@ end NodeKind
 * `children` — 仕様の children。順序に意味があるので `List` で持つ。
 * `ownerDocument` — 仕様の node document。Phase 3 の adopt で必要になる。
 * `data` — 仕様 §4.10 `CharacterData` の data。CharacterData 以外では空文字列とする。
+* `attributes` — 仕様 §4.9 の attribute list。Element 以外では空とする。
+  順序に意味がある（`getAttributeNames` と qualified name による探索が list 順）ので `List` で持つ。
 -/
 structure NodeData where
   kind : NodeKind
@@ -91,9 +129,23 @@ structure NodeData where
   children : List NodeId := []
   ownerDocument : NodeId
   data : String := ""
+  attributes : List Attr := []
 deriving DecidableEq, Repr, Inhabited
 
 namespace NodeData
+
+/--
+木の surgery が触らない部分、すなわち kind と attribute list。
+
+`detach` / `insertAt` / `setOwnerDocument` はどれも parent・children・ownerDocument しか
+変えないので、これらは保たれる。`ShapePreserving`（`Dom/Properties/Algorithms.lean`）が
+この組の保存を表す。
+-/
+def shape (d : NodeData) : NodeKind × List Attr := (d.kind, d.attributes)
+
+@[simp] theorem shape_kind (d : NodeData) : d.shape.1 = d.kind := rfl
+
+@[simp] theorem shape_attributes (d : NodeData) : d.shape.2 = d.attributes := rfl
 
 /--
 DOM Standard §4.4 の node length。

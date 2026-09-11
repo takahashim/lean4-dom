@@ -34,7 +34,8 @@ theorem admissible_stepIterator {s : DOMState} {i : Nat}
     · exact h
     · next m it' hp =>
       have hitmem : it ∈ s.iterators := List.mem_of_getElem? hit
-      refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, ?_, ?_⟩
+      refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, ?_, ?_,
+        h.attributes⟩
       · intro x hx
         rcases ListUtil.mem_set_cases s.iterators i it' x hx with hxe | hx'
         · rw [hxe]
@@ -104,6 +105,8 @@ theorem runOperations_no_violation :
       rw [if_neg (by simp [(checkDocumentTreesValid_iff s'.tree).mpr h'.documentTrees])]
       rw [if_neg (by simp [(checkRangeEndpointsValid_iff s').mpr h'.rangeEndpoints])]
       rw [if_neg (by simp [(checkIteratorsValid_iff h'.wellFormed).mpr h'.iterators])]
+      rw [if_neg (by simp [(checkObserverRegistrationsValid_iff s').mpr h'.observerRegistrations])]
+      rw [if_neg (by simp [(checkAttributesValid_iff s'.tree).mpr h'.attributes])]
       simp only []
       exact runOperations_no_violation ops (i + 1) h'
 

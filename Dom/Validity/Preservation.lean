@@ -18,7 +18,7 @@ namespace Dom
 /-- `detach` は kind を変えないので、children を持てる kind かどうかも変わらない。 -/
 theorem structurallyValid_detach {t t' : Tree} {n : NodeId}
     (h : StructurallyValid t) (hd : detach t n = .ok t') : StructurallyValid t' := by
-  have hkind : ∀ m, kindOf t' m = kindOf t m := kindPreserving_detach hd
+  have hkind : ∀ m, kindOf t' m = kindOf t m := (shapePreserving_detach hd).kind
   refine ⟨detach_preserves_wellformed h.wellFormed hd, ?_, ?_, ?_⟩
   · intro m d hm hk
     rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
@@ -157,7 +157,7 @@ theorem structurallyValid_insertAt {t t' : Tree} {parent node : NodeId} {child :
   · -- doctype の parent。新しい辺は node → parent の一本だけである。
     intro m d hm hk p hp pd' hpd'
     have hkind : ∀ x, kindOf (insertAtIn t parent node child pd nd) x = kindOf t x :=
-      kindPreserving_insertAt hi
+      (shapePreserving_insertAt hi).kind
     have hpar : parentOf (insertAtIn t parent node child pd nd) m = some p := by
       simp [parentOf, hm, hp]
     rw [parentOf_insertAtIn hpd] at hpar

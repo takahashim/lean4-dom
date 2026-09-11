@@ -17,6 +17,10 @@ inductive DOMException where
   | indexSizeError
   | invalidNodeTypeError
   | wrongDocumentError
+  /-- §4.9 の attribute 名検査。valid attribute local name / valid namespace prefix。 -/
+  | invalidCharacterError
+  /-- §4.9 の namespace 検査（"validate and extract" の step 7-10）。 -/
+  | namespaceError
   /--
   WebIDL の `TypeError`。`DOMException` ではないが、
   仕様が例外として投げ分けるので同じ型で扱う。
@@ -36,6 +40,8 @@ def name : DOMException → String
   | indexSizeError => "IndexSizeError"
   | invalidNodeTypeError => "InvalidNodeTypeError"
   | wrongDocumentError => "WrongDocumentError"
+  | invalidCharacterError => "InvalidCharacterError"
+  | namespaceError => "NamespaceError"
   | typeError => "TypeError"
 
 end DOMException

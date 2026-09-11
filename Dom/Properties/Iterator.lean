@@ -62,7 +62,7 @@ theorem parentOf_previousSibling {t : Tree} {n p prev : NodeId} (hwf : WellForme
 /-! ## adjust a node pointer の性質 -/
 
 theorem exists_get?_of_kindPreserving {t t' : Tree} {m : NodeId} {d : NodeData}
-    (hk : KindPreserving t t') (h : t.get? m = some d) : ∃ d', t'.get? m = some d' := by
+    (hk : ShapePreserving t t') (h : t.get? m = some d) : ∃ d', t'.get? m = some d' := by
   have hm := hk m
   rw [h] at hm
   cases hq : t'.get? m with
@@ -195,7 +195,7 @@ theorem iteratorPreRemoveOne_valid {t t' : Tree} {n p : NodeId} {it : IteratorSt
       · simp [hA, hroot]
       · simp [hA]
     rw [hres]
-    refine ⟨exists_get?_of_kindPreserving (kindPreserving_detach hd) hv.1.choose_spec, ?_⟩
+    refine ⟨exists_get?_of_kindPreserving (shapePreserving_detach hd) hv.1.choose_spec, ?_⟩
     refine inclusiveAncestor_detach_of_not_below hd hv.2 ?_
     rintro ⟨_, hrn⟩
     rcases (isInclusiveAncestorOf_iff hwf n it.root).mp hroot with he | ha
@@ -209,7 +209,7 @@ theorem iteratorPreRemoveOne_valid {t t' : Tree} {n p : NodeId} {it : IteratorSt
     obtain ⟨dr, hdr⟩ := exists_of_inclusiveAncestor hrd hin
     refine ⟨?_, ?_⟩
     · rw [hrefeq]
-      exact exists_get?_of_kindPreserving (kindPreserving_detach hd) hdr
+      exact exists_get?_of_kindPreserving (shapePreserving_detach hd) hdr
     · show InclusiveAncestor t' it.root (iteratorPreRemoveOne t n it).reference
       rw [hrefeq]
       refine inclusiveAncestor_detach_of_not_below hd hin ?_
@@ -246,7 +246,7 @@ theorem remove_preserves_iterators_valid {s s' : DOMState} {n p : NodeId} {b : B
   · rw [if_neg hsame]
     have hout := hother it₀ hit₀ (by simpa using hsame)
     obtain ⟨hex, hincl⟩ := hv it₀ hit₀
-    refine ⟨exists_get?_of_kindPreserving (kindPreserving_detach hd) hex.choose_spec, ?_⟩
+    refine ⟨exists_get?_of_kindPreserving (shapePreserving_detach hd) hex.choose_spec, ?_⟩
     refine inclusiveAncestor_detach_of_not_below hd hincl ?_
     rintro ⟨hi, _⟩
     rw [(isInclusiveAncestorOf_iff hwf n _).mpr hi] at hout
