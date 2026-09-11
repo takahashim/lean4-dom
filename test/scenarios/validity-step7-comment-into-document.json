@@ -1,0 +1,37 @@
+{
+  "_note": "CharacterData は step 7 で通る。Comment は Document の子になれる。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "6, 7",
+    "note": "step 6 は Text だけを弾く。Comment と ProcessingInstruction は通る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "comment",
+      "data": "cc"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "appendChild",
+      "parent": 0,
+      "node": 2
+    }
+  ]
+}

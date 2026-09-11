@@ -1,0 +1,36 @@
+{
+  "_note": "parent が Document でないときに doctype を入れると step 5 で HierarchyRequestError。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "5",
+    "note": "doctype の parent になれるのは Document だけである。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "documentType"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "appendChild",
+      "parent": 1,
+      "node": 2
+    }
+  ]
+}

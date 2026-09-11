@@ -1,0 +1,43 @@
+{
+  "_note": "reference child が doctype なら、element はその前に入れられない。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "9",
+    "note": "element の挿入検査の三つ目の条件（child is a doctype）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "comment",
+      "parent": 0,
+      "data": "cc"
+    },
+    {
+      "id": 3,
+      "kind": "element"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "insertBefore",
+      "parent": 0,
+      "node": 3,
+      "child": 1
+    }
+  ]
+}

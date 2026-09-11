@@ -1,0 +1,54 @@
+{
+  "_note": "reference child が parent の子でないなら step 3 で NotFoundError。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "3",
+    "note": "step 1 と step 2 を通った後で初めて reference child の親を見る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "tt"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 1,
+      "data": "cc"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "data": "t4"
+    },
+    {
+      "id": 5,
+      "kind": "element"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "insertBefore",
+      "parent": 5,
+      "node": 4,
+      "child": 2
+    }
+  ]
+}

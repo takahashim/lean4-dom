@@ -61,6 +61,64 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 | queue a tree mutation record | 1 assert / 2 queue | `queueTreeMutationRecord` | 同上 | 同上 | `test_wpt_mutation_record_insertion_point.rb` | 部分 |
 | transient registered observer | remove step 20 | `addTransientObservers` | `preservesRegs_remove` | 同上 | `test_wpt_transient_registered_observer.rb` | 部分 |
 
+## normative branch の網羅（roadmap §11.3）
+
+scenario の **件数** ではなく、対象 algorithm の各 normative branch に
+固定 scenario があるかどうかを指標にする。
+
+### ensure pre-insert validity
+
+| step | 分岐 | 固定 scenario |
+| --- | --- | --- |
+| 1 | parent が Document / DocumentFragment / Element でない | `validity-step1-leaf-parent` |
+| 2 | node が parent の inclusive ancestor | `childnode-before-leaks-backend-error`, `replacechildren-bypasses-validity` |
+| 3 | child の parent が parent でない | `validity-step3-foreign-reference-child` |
+| 4 | node の kind が四つのどれでもない | `replacewith-bypasses-validity` |
+| 5 | parent が Document でなく node が doctype | `validity-step5-doctype-into-element` |
+| 5 | parent が Document でなく node が doctype でない（通る） | `basic-insert-remove` |
+| 6 | node が Text（parent は Document） | `childnode-after-bypasses-validity` |
+| 7 | node が CharacterData（通る） | `validity-step7-comment-into-document` |
+| 8 | fragment に element の子が二つ以上 | `validity-step8-fragment-two-elements` |
+| 8 | fragment に Text の子がある | `validity-step8-fragment-text-child` |
+| 8 | fragment に element の子が無い（通る） | `validity-step8-fragment-comments-only` |
+| 8 | fragment に element の子が一つ（element の検査へ） | `validity-step8-fragment-one-element` |
+| 9 | node が element（element の検査へ） | `validity-step9-first-document-element` |
+| 9 | parent に除外されない element の子がある | `validity-step9-second-document-element` |
+| 9 | child より後ろに doctype がある | `validity-step9-doctype-follows-child` |
+| 9 | child が除外されない doctype である | `validity-step9-child-is-doctype` |
+| 10-11 | parent に除外されない doctype の子がある | `validity-step11-second-doctype` |
+| 10-11 | child より前に element がある | `validity-step11-element-precedes-child` |
+| 10-11 | child が null で parent に element の子がある | `validity-step11-doctype-after-element` |
+| 10-11 | doctype が入る（通る） | `doctype-wrapper-identity` |
+
+### move の step 1-6
+
+| step | 分岐 | 固定 scenario |
+| --- | --- | --- |
+| 1 | root が違う | `move-step1-different-root` |
+| 2 | cycle | 生成 scenario のみ |
+| 3 | reference child が新しい parent の子でない | 生成 scenario のみ |
+| 4 | node が Element でも CharacterData でもない | `move-step4-doctype` |
+| 5 | node が Text で新しい parent が Document | `move-step5-text-into-document` |
+| 6 | Document に element を move する三条件 | 生成 scenario のみ |
+| 7-24 | 成功して木・range・iterator が動く | `range-adjust-order-on-move` |
+
+### live range / NodeIterator / CharacterData
+
+| 分岐 | 固定 scenario |
+| --- | --- |
+| live range pre-remove steps | `iterator-adjust-on-remove` |
+| live range の insert 側調整（`child` あり） | `range-adjust-order-on-before` |
+| live range の insert 側調整（start ≤ end が壊れる） | `range-order-broken-by-insert` |
+| NodeIterator pre-remove（pointerBefore が false） | `iterator-adjust-on-remove` |
+| NodeIterator pre-remove（pointerBefore が true） | `iterator-adjust-pointer-before` |
+| replace data の IndexSizeError と count の切り詰め | `characterdata-index-size-and-clamp` |
+| replace data の boundary point 調整 | `characterdata-replace-data-ranges` |
+
+**空欄の扱い。** 「生成 scenario のみ」は、生成器が実際に到達しているが
+固定 scenario に昇格していない分岐である。
+不一致が出たときの再現性は落ちるので、順次昇格させる。
+
 ## 未対応と対象外
 
 | 項目 | 扱い | 根拠 |

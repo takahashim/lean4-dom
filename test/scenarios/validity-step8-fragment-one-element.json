@@ -1,0 +1,42 @@
+{
+  "_note": "element の子を一つ持つ fragment は、空の Document になら入る。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "8, 9",
+    "note": "step 8 の後半は element の挿入検査へ落ちる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 1,
+      "data": "cc"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "appendChild",
+      "parent": 0,
+      "node": 1
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "_note": "element の子を二つ持つ fragment を Document に入れると step 8 で HierarchyRequestError。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "8",
+    "note": "fragment の中身を先に数える。parent 側の検査より前である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "appendChild",
+      "parent": 0,
+      "node": 1
+    }
+  ]
+}

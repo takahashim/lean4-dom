@@ -1,0 +1,39 @@
+{
+  "_note": "Text を Document に move すると step 5 で HierarchyRequestError。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "move"
+    ],
+    "steps": "5",
+    "note": "Document の子に Text は置けない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "tt"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "moveBefore",
+      "parent": 0,
+      "node": 2,
+      "child": null
+    }
+  ]
+}

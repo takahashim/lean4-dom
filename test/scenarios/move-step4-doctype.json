@@ -1,0 +1,38 @@
+{
+  "_note": "doctype は move できない（step 4）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "move"
+    ],
+    "steps": "4",
+    "note": "move できるのは Element と CharacterData だけである。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 0
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "moveBefore",
+      "parent": 2,
+      "node": 1,
+      "child": null
+    }
+  ]
+}

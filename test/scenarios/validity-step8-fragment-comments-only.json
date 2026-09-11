@@ -1,0 +1,48 @@
+{
+  "_note": "element の子を持たない fragment は step 8 でそのまま通る。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity"
+    ],
+    "steps": "8",
+    "note": "fragment に element の子が無ければ、parent 側の検査は走らない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c3"
+    },
+    {
+      "id": 4,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c4"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "operations": [
+    {
+      "op": "appendChild",
+      "parent": 0,
+      "node": 2
+    }
+  ]
+}
