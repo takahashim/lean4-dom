@@ -133,26 +133,24 @@ theorem nodeDocumentsValid_remove {s s' : DOMState} {n : NodeId} {b : Bool}
 /-- `detach` の後の children は、元の children から高々一つ取り除いたものである。 -/
 theorem detach_childrenOf_removeAll {t t' : Tree} {n : NodeId}
     (hwf : WellFormed t) (hd : detach t n = .ok t') (p : NodeId) :
-    ∃ a, childrenOf t' p = ListUtil.removeAll (childrenOf t p) a := by
+    childrenOf t' p = ListUtil.removeAll (childrenOf t p) n := by
   cases hp : parentOf t n with
   | none =>
-    exact ⟨n, by
-      rw [detach_of_no_parent hp (by
-        rcases detach_ok_cases hd with ⟨d, hdd, _, _⟩ | ⟨d, _, _, hdd, _, _, _⟩ <;>
-          simp [hdd])] at hd
-      rw [← Except.ok.inj hd, ListUtil.removeAll_eq_self]
-      intro hmem
-      exact absurd (parentOf_of_mem_childrenOf hwf hmem) (by rw [hp]; simp)⟩
+    rw [detach_of_no_parent hp (by
+      rcases detach_ok_cases hd with ⟨d, hdd, _, _⟩ | ⟨d, _, _, hdd, _, _, _⟩ <;>
+        simp [hdd])] at hd
+    rw [← Except.ok.inj hd, ListUtil.removeAll_eq_self]
+    intro hmem
+    exact absurd (parentOf_of_mem_childrenOf hwf hmem) (by rw [hp]; simp)
   | some q =>
     by_cases hdp : p = q
     · subst hdp
-      exact ⟨n, detach_childrenOf hwf hp hd⟩
-    · exact ⟨n, by
-        rw [detach_childrenOf_ne hp hd hdp, ListUtil.removeAll_eq_self]
-        intro hmem
-        have := parentOf_of_mem_childrenOf hwf hmem
-        rw [hp] at this
-        exact hdp (Option.some.inj this).symm⟩
+      exact detach_childrenOf hwf hp hd
+    · rw [detach_childrenOf_ne hp hd hdp, ListUtil.removeAll_eq_self]
+      intro hmem
+      have hpar := parentOf_of_mem_childrenOf hwf hmem
+      rw [hp] at hpar
+      exact hdp (Option.some.inj hpar).symm
 
 /-- children から取り除くだけなら、「後ろに doctype がある」が新たに成り立つことはない。 -/
 theorem doctypeFollows_of_removeAll {t t' : Tree} {p c a : NodeId}
@@ -185,20 +183,20 @@ theorem documentChildrenOk_of_detach {t t' : Tree} {n : NodeId}
     (hwf : WellFormed t) (hd : detach t n = .ok t') {doc : NodeId}
     (h : DocumentChildrenOk t doc) : DocumentChildrenOk t' doc := by
   have hkind : ∀ m, kindOf t' m = kindOf t m := kindPreserving_detach hd
-  obtain ⟨a, hch⟩ := detach_childrenOf_removeAll hwf hd doc
+  have hch := detach_childrenOf_removeAll hwf hd doc
   obtain ⟨h1, h2, h3, h4⟩ := h
   refine ⟨?_, ?_, ?_, ?_⟩
   · unfold elementChildren at h1 ⊢
     simp only [hch, hkind]
-    exact Nat.le_trans (ListUtil.length_filter_removeAll a _ _) h1
+    exact Nat.le_trans (ListUtil.length_filter_removeAll n _ _) h1
   · unfold doctypeChildren at h2 ⊢
     simp only [hch, hkind]
-    exact Nat.le_trans (ListUtil.length_filter_removeAll a _ _) h2
+    exact Nat.le_trans (ListUtil.length_filter_removeAll n _ _) h2
   · unfold textChildren at h3 ⊢
     simp only [hch, hkind]
     exact ListUtil.filter_removeAll_eq_nil h3
   · intro e he
-    have hmemA : e ∈ ListUtil.removeAll (childrenOf t doc) a ∧
+    have hmemA : e ∈ ListUtil.removeAll (childrenOf t doc) n ∧
         (kindOf t e == some NodeKind.element) = true := by
       unfold elementChildren at he
       simp only [hch, hkind] at he
@@ -214,7 +212,7 @@ theorem elementChildren_eq_nil_of_detach {t t' : Tree} {n : NodeId}
     (hwf : WellFormed t) (hd : detach t n = .ok t') {p : NodeId}
     (h : elementChildren t p = []) : elementChildren t' p = [] := by
   have hkind : ∀ m, kindOf t' m = kindOf t m := kindPreserving_detach hd
-  obtain ⟨a, hch⟩ := detach_childrenOf_removeAll hwf hd p
+  have hch := detach_childrenOf_removeAll hwf hd p
   unfold elementChildren at h ⊢
   simp only [hch, hkind]
   exact ListUtil.filter_removeAll_eq_nil h
@@ -634,8 +632,7 @@ theorem documentTreesValid_move {s s' : DOMState} {node newParent : NodeId}
       simp only at hafter
       rw [Bool.or_eq_false_iff] at hafter
       refine ⟨by rw [hkind c]; exact hafter.1, ?_⟩
-      obtain ⟨a, ha⟩ := detach_childrenOf_removeAll hwf hd doc
-      exact doctypeFollows_of_removeAll hkind ha hafter.2
+      exact doctypeFollows_of_removeAll hkind (detach_childrenOf_removeAll hwf hd doc) hafter.2
     · -- step 4：move する node は doctype ではないので、この場合は起こらない
       intro hdt
       exfalso
@@ -1089,6 +1086,462 @@ theorem nodeDocumentsValid_insert {s s' : DOMState} {node parent : NodeId}
       · intro m hm
         rcases List.mem_singleton.mp hm with rfl
         exact ensurePreInsertionValidity_doctypeParentIsDocument hv
+
+/-! ## insert が Document の children 制約を保つこと -/
+
+/-- step 9 / 8 の element 挿入検査が通ったときに得られる事実（除外リストは空）。 -/
+theorem checkElementInsertion_ok {t : Tree} {parent : NodeId} {child : Option NodeId}
+    (h : checkElementInsertion t parent child [] = .ok ()) :
+    elementChildren t parent = [] ∧
+      ∀ c, child = some c →
+        (kindOf t c == some NodeKind.documentType) = false ∧
+          doctypeFollows t parent c = false := by
+  unfold checkElementInsertion at h
+  split at h
+  · simp at h
+  · next hany =>
+    have hnil : elementChildren t parent = [] := by
+      simp only [List.any_eq_true, List.contains_nil, Bool.not_false, and_true,
+        not_exists] at hany
+      cases hl : elementChildren t parent with
+      | nil => rfl
+      | cons y l => exact absurd (hl ▸ List.mem_cons_self ..) (hany y)
+    refine ⟨hnil, ?_⟩
+    intro c hc
+    subst hc
+    simp only at h
+    split at h
+    · simp at h
+    · next hfol =>
+      split at h
+      · simp at h
+      · next hk =>
+        simp only [Bool.and_eq_true, List.contains_nil, Bool.not_false, and_true,
+          Bool.not_eq_true] at hk
+        exact ⟨hk, by simpa using hfol⟩
+
+/-- step 10-11 の doctype 挿入検査が通ったときに得られる事実（除外リストは空）。 -/
+theorem checkDoctypeInsertion_ok {t : Tree} {parent : NodeId} {child : Option NodeId}
+    (h : checkDoctypeInsertion t parent child [] = .ok ()) :
+    doctypeChildren t parent = [] ∧
+      (∀ c, child = some c → elementPrecedes t parent c = false) ∧
+      (child = none → elementChildren t parent = []) := by
+  unfold checkDoctypeInsertion at h
+  split at h
+  · simp at h
+  · next hany =>
+    have hnil : doctypeChildren t parent = [] := by
+      simp only [List.any_eq_true, List.contains_nil, Bool.not_false, and_true,
+        not_exists] at hany
+      cases hl : doctypeChildren t parent with
+      | nil => rfl
+      | cons y l => exact absurd (hl ▸ List.mem_cons_self ..) (hany y)
+    refine ⟨hnil, ?_, ?_⟩
+    · intro c hc
+      subst hc
+      simp only at h
+      split at h
+      · simp at h
+      · next hp => simpa using hp
+    · intro hc
+      subst hc
+      simp only at h
+      split at h
+      · simp at h
+      · next hany' =>
+        simp only [List.any_eq_true, List.contains_nil, Bool.not_false, and_true,
+          not_exists] at hany'
+        cases hl : elementChildren t parent with
+        | nil => rfl
+        | cons y l => exact absurd (hl ▸ List.mem_cons_self ..) (hany' y)
+
+/--
+parent が Document のとき、`ensure pre-insertion validity` が確立する事実。
+
+step 6（Text は入れられない）、step 8（fragment の中身）、
+step 9（element を入れる条件）、step 10-11（doctype を入れる条件）に対応する。
+-/
+theorem ensurePreInsertionValidity_documentFacts {t : Tree} {node parent : NodeId}
+    {child : Option NodeId} {pd nd : NodeData}
+    (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
+    (hdoc : pd.kind = NodeKind.document)
+    (hv : ensurePreInsertionValidity t node parent child [] = .ok ()) :
+    nd.kind.isText = false ∧
+    (nd.kind = NodeKind.documentFragment →
+      (elementChildren t node).length ≤ 1 ∧ textChildren t node = []) ∧
+    ((nd.kind = NodeKind.element ∨
+        (nd.kind = NodeKind.documentFragment ∧ elementChildren t node ≠ [])) →
+      elementChildren t parent = [] ∧
+        ∀ c, child = some c →
+          (kindOf t c == some NodeKind.documentType) = false ∧
+            doctypeFollows t parent c = false) ∧
+    (nd.kind = NodeKind.documentType →
+      doctypeChildren t parent = [] ∧
+        (∀ c, child = some c → elementPrecedes t parent c = false) ∧
+        (child = none → elementChildren t parent = [])) := by
+  unfold ensurePreInsertionValidity at hv
+  rw [hpd, hnd] at hv
+  simp only at hv
+  split at hv
+  · simp at hv
+  · split at hv
+    · simp at hv
+    · split at hv
+      · simp at hv
+      · split at hv
+        · simp at hv
+        · split at hv
+          · next hne => exact absurd hdoc hne
+          · split at hv
+            · simp at hv
+            · next hisText =>
+              have htext : nd.kind.isText = false := by simpa using hisText
+              refine ⟨htext, ?_, ?_, ?_⟩ <;> split at hv
+              -- step 7：CharacterData ならここで終わり
+              · next hcd =>
+                intro hfrag
+                rw [hfrag] at hcd
+                simp [NodeKind.isCharacterData] at hcd
+              · next hcd =>
+                split at hv
+                · next hfrag =>
+                  split at hv
+                  · simp at hv
+                  · next hsizes =>
+                    intro _
+                    rw [Bool.not_eq_true, Bool.or_eq_false_iff] at hsizes
+                    obtain ⟨hlen, hemp⟩ := hsizes
+                    refine ⟨by simp at hlen; omega, ?_⟩
+                    rw [Bool.not_eq_false', List.isEmpty_iff] at hemp
+                    exact hemp
+                · next hnfrag =>
+                  intro hfrag
+                  rw [hfrag] at hnfrag
+                  simp at hnfrag
+              · next hcd =>
+                intro hcase
+                exfalso
+                rcases hcase with hk | ⟨hk, _⟩
+                · rw [hk] at hcd; simp [NodeKind.isCharacterData] at hcd
+                · rw [hk] at hcd; simp [NodeKind.isCharacterData] at hcd
+              · next hcd =>
+                split at hv
+                · next hfrag =>
+                  split at hv
+                  · simp at hv
+                  · split at hv
+                    · next hempty =>
+                      intro hcase
+                      rcases hcase with hk | ⟨_, hne⟩
+                      · rw [hk] at hfrag; simp at hfrag
+                      · exact absurd (by simpa using hempty) hne
+                    · intro _
+                      exact checkElementInsertion_ok hv
+                · next hnfrag =>
+                  split at hv
+                  · intro _
+                    exact checkElementInsertion_ok hv
+                  · next hnelem =>
+                    intro hcase
+                    exfalso
+                    rcases hcase with hk | ⟨hk, _⟩
+                    · rw [hk] at hnelem; simp at hnelem
+                    · rw [hk] at hnfrag; simp at hnfrag
+              · next hcd =>
+                intro hdt
+                exfalso
+                rw [hdt] at hcd
+                simp [NodeKind.isCharacterData] at hcd
+              · next hcd =>
+                split at hv
+                · next hfrag =>
+                  intro hdt
+                  rw [hdt] at hfrag
+                  simp at hfrag
+                · split at hv
+                  · next helem =>
+                    intro hdt
+                    rw [hdt] at helem
+                    simp at helem
+                  · intro _
+                    exact checkDoctypeInsertion_ok hv
+
+/-- `adopt` は children から adopt する node 自身を取り除くだけである。 -/
+theorem adopt_childrenOf {s s' : DOMState} {node doc : NodeId}
+    (hwf : WellFormed s.tree) (ha : adopt s node doc = .ok s') (p : NodeId) :
+    childrenOf s'.tree p = ListUtil.removeAll (childrenOf s.tree p) node := by
+  obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases ha
+  have h₁ : childrenOf s₁.tree p = ListUtil.removeAll (childrenOf s.tree p) node := by
+    rcases hstep with ⟨hn, rfl⟩ | hr
+    · rw [ListUtil.removeAll_eq_self]
+      intro hmem
+      have hpar := parentOf_of_mem_childrenOf hwf hmem
+      rw [hn] at hpar
+      simp at hpar
+    · exact detach_childrenOf_removeAll hwf (remove_ok hr).2 p
+  rcases hfinal with rfl | rfl
+  · exact h₁
+  · rw [DOMState.withTree_tree, childrenOf_setOwnerDocument]
+    exact h₁
+
+/--
+Document `parent` の `child` の直前に `ns` を順に入れても
+Document の children 制約が保たれるための十分条件。
+
+§4.2.3 "ensure pre-insertion validity" の step 6 / 8 / 9 / 10-11 が確立する事実に対応する。
+`insert` が一回の呼び出しで入れる node は、element か doctype のどちらかを高々一つしか含まない。
+（fragment の children に doctype は無く、fragment でなければ node は一つだからである。）
+
+`parent` が Document でなければ何も要求しない。
+-/
+def InsertSeqOk (t : Tree) (parent : NodeId) (child : Option NodeId)
+    (ns : List NodeId) : Prop :=
+  kindOf t parent = some NodeKind.document →
+    -- Text は Document の子になれない
+    (∀ n ∈ ns, ∀ k, kindOf t n = some k → k.isText = false) ∧
+    -- 一度に入れる element と doctype は合わせて高々一つ
+    ((ns.filter fun n => kindOf t n == some NodeKind.element).length +
+      (ns.filter fun n => kindOf t n == some NodeKind.documentType).length ≤ 1) ∧
+    -- element の子は高々一つ
+    ((elementChildren t parent).length +
+      (ns.filter fun n => kindOf t n == some NodeKind.element).length ≤ 1) ∧
+    -- doctype の子は高々一つ
+    ((doctypeChildren t parent).length +
+      (ns.filter fun n => kindOf t n == some NodeKind.documentType).length ≤ 1) ∧
+    -- element を入れるなら、挿入点より後ろに doctype は無い
+    (∀ n ∈ ns, kindOf t n = some NodeKind.element → ∀ c, child = some c →
+      (kindOf t c == some NodeKind.documentType) = false ∧
+        doctypeFollows t parent c = false) ∧
+    -- doctype を入れるなら、挿入点より前に element は無い
+    (∀ n ∈ ns, kindOf t n = some NodeKind.documentType →
+      (∀ c, child = some c → elementPrecedes t parent c = false) ∧
+      (child = none → elementChildren t parent = []))
+
+/-- children から取り除くだけなら、「前に element がある」が新たに成り立つことはない。 -/
+theorem elementPrecedes_of_removeAll {t t' : Tree} {p c a : NodeId}
+    (hkind : ∀ m, kindOf t' m = kindOf t m)
+    (hch : childrenOf t' p = ListUtil.removeAll (childrenOf t p) a)
+    (h : elementPrecedes t p c = false) : elementPrecedes t' p c = false := by
+  unfold elementPrecedes at h ⊢
+  simp only [hch, hkind]
+  by_cases hca : c = a
+  · subst hca
+    rw [ListUtil.splitAt?_eq_none_of_not_mem (ListUtil.not_mem_removeAll _ _)]
+  · cases hs : ListUtil.splitAt? (childrenOf t p) c with
+    | none => rw [ListUtil.splitAt?_removeAll_none hs]
+    | some q =>
+      obtain ⟨u, v⟩ := q
+      rw [hs] at h
+      rw [ListUtil.splitAt?_removeAll hca hs]
+      rw [Bool.eq_false_iff] at h ⊢
+      intro hcon
+      obtain ⟨x, hx, hxk⟩ := List.any_eq_true.mp hcon
+      exact h (List.any_eq_true.mpr ⟨x, ((ListUtil.mem_removeAll _ _ _).mp hx).2, hxk⟩)
+
+/-- children が減るだけの操作は `InsertSeqOk` を壊さない。 -/
+theorem insertSeqOk_of_removeAll {t t' : Tree} {parent : NodeId} {child : Option NodeId}
+    {ns : List NodeId} {a : NodeId} (hkind : ∀ m, kindOf t' m = kindOf t m)
+    (hch : ∀ p, childrenOf t' p = ListUtil.removeAll (childrenOf t p) a)
+    (h : InsertSeqOk t parent child ns) : InsertSeqOk t' parent child ns := by
+  intro hdoc
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h (by rw [← hkind]; exact hdoc)
+  have helem : (elementChildren t' parent).length ≤ (elementChildren t parent).length := by
+    unfold elementChildren
+    simp only [hch, hkind]
+    exact ListUtil.length_filter_removeAll a _ _
+  have hdt : (doctypeChildren t' parent).length ≤ (doctypeChildren t parent).length := by
+    unfold doctypeChildren
+    simp only [hch, hkind]
+    exact ListUtil.length_filter_removeAll a _ _
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro n hn k hk; exact h1 n hn k (by rw [← hkind]; exact hk)
+  · simpa only [hkind] using h2
+  · simp only [hkind]
+    exact Nat.le_trans (Nat.add_le_add_right helem _) h3
+  · simp only [hkind]
+    exact Nat.le_trans (Nat.add_le_add_right hdt _) h4
+  · intro n hn hk c hc
+    obtain ⟨hc1, hc2⟩ := h5 n hn (by rw [← hkind]; exact hk) c hc
+    exact ⟨by rw [hkind]; exact hc1, doctypeFollows_of_removeAll hkind (hch parent) hc2⟩
+  · intro n hn hk
+    obtain ⟨hp1, hp2⟩ := h6 n hn (by rw [← hkind]; exact hk)
+    refine ⟨fun c hc => elementPrecedes_of_removeAll hkind (hch parent) (hp1 c hc), fun hc => ?_⟩
+    have hnil := hp2 hc
+    unfold elementChildren at hnil ⊢
+    simp only [hch, hkind]
+    exact ListUtil.filter_removeAll_eq_nil hnil
+
+/-- 先頭を入れた後、残りについて `InsertSeqOk` は保たれる。 -/
+theorem insertSeqOk_insertAt {t t' : Tree} {parent n : NodeId} {child : Option NodeId}
+    {ns : List NodeId} (hwf : WellFormed t) (hi : insertAt t parent n child = .ok t')
+    (h : InsertSeqOk t parent child (n :: ns)) : InsertSeqOk t' parent child ns := by
+  have hkind : ∀ m, kindOf t' m = kindOf t m := kindPreserving_insertAt hi
+  intro hdoc
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h (by rw [← hkind]; exact hdoc)
+  have hmemtail : ∀ m, m ∈ ns → m ∈ n :: ns := fun m hm => List.mem_cons_of_mem _ hm
+  have hcons : ∀ (p : NodeId → Bool),
+      ((n :: ns).filter p).length = (if p n then 1 else 0) + (ns.filter p).length := by
+    intro p
+    by_cases hp : p n
+    · simp [List.filter, hp, Nat.add_comm]
+    · simp [List.filter, hp]
+  have hlenE : (elementChildren t' parent).length =
+      (elementChildren t parent).length +
+        (if (kindOf t n == some NodeKind.element) = true then 1 else 0) := by
+    unfold elementChildren
+    simp only [insertAt_childrenOf hwf hi, hkind, ListUtil.length_filter_insertBefore]
+  have hlenD : (doctypeChildren t' parent).length =
+      (doctypeChildren t parent).length +
+        (if (kindOf t n == some NodeKind.documentType) = true then 1 else 0) := by
+    unfold doctypeChildren
+    simp only [insertAt_childrenOf hwf hi, hkind, ListUtil.length_filter_insertBefore]
+  have hcE := hcons (fun m => kindOf t m == some NodeKind.element)
+  have hcD := hcons (fun m => kindOf t m == some NodeKind.documentType)
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro m hm k hk; exact h1 m (hmemtail m hm) k (by rw [← hkind]; exact hk)
+  · simp only [hkind]
+    simp only [hcE, hcD] at h2
+    omega
+  · simp only [hkind, hlenE]
+    simp only [hcE] at h3
+    omega
+  · simp only [hkind, hlenD]
+    simp only [hcD] at h4
+    omega
+  · intro m hm hk c hc
+    obtain ⟨hc1, hc2⟩ := h5 m (hmemtail m hm) (by rw [← hkind]; exact hk) c hc
+    subst hc
+    obtain ⟨s₁, s₂, hs₁, hs₂⟩ := insertAt_children_split hwf hi
+    have hne : c ≠ n := fun hx =>
+      insertAt_node_not_mem hwf hi
+        (hx ▸ (by rw [hs₁]; exact List.mem_append_right _ (by simp)))
+    have hcnot : c ∉ s₁ := by
+      have hnd : (childrenOf t parent).Nodup := childrenOf_nodup hwf parent
+      rw [hs₁] at hnd
+      exact fun hm' => (List.nodup_append.mp hnd).2.2 c hm' c (by simp) rfl
+    refine ⟨by rw [hkind]; exact hc1, ?_⟩
+    rw [doctypeFollows_split_of_mem_right hkind (A := s₁) (B := c :: s₂) hs₁ hs₂
+      hcnot hne (by simp)]
+    exact hc2
+  · intro m hm hk
+    have hkm : kindOf t m = some NodeKind.documentType := by rw [← hkind]; exact hk
+    -- `m` が doctype なので、先頭 `n` は element ではない
+    have hnE : (kindOf t n == some NodeKind.element) = false := by
+      have hmem : m ∈ ns.filter fun x => kindOf t x == some NodeKind.documentType :=
+        List.mem_filter.mpr ⟨hm, by rw [hkm]; simp⟩
+      have hmD : 1 ≤ (ns.filter fun x => kindOf t x == some NodeKind.documentType).length := by
+        cases hl : ns.filter fun x => kindOf t x == some NodeKind.documentType with
+        | nil => rw [hl] at hmem; simp at hmem
+        | cons y l => simp
+      cases hcon : (kindOf t n == some NodeKind.element) with
+      | false => rfl
+      | true =>
+        exfalso
+        have hcnt : ((n :: ns).filter fun x => kindOf t x == some NodeKind.element).length
+            = 1 + (ns.filter fun x => kindOf t x == some NodeKind.element).length := by
+          simp [List.filter, hcon, Nat.add_comm]
+        have hcnt2 : (ns.filter fun x => kindOf t x == some NodeKind.documentType).length
+            ≤ ((n :: ns).filter fun x => kindOf t x == some NodeKind.documentType).length := by
+          rw [hcD]; omega
+        omega
+    obtain ⟨hp1, hp2⟩ := h6 m (hmemtail m hm) hkm
+    refine ⟨fun c hc => ?_, fun hc => ?_⟩
+    · subst hc
+      obtain ⟨s₁, s₂, hs₁, hs₂⟩ := insertAt_children_split hwf hi
+      have hne : c ≠ n := fun hx =>
+        insertAt_node_not_mem hwf hi
+          (hx ▸ (by rw [hs₁]; exact List.mem_append_right _ (by simp)))
+      have hcnot : c ∉ s₁ ++ [n] := by
+        have hnd : (childrenOf t parent).Nodup := childrenOf_nodup hwf parent
+        rw [hs₁] at hnd
+        intro hmm
+        rcases List.mem_append.mp hmm with hx | hx
+        · exact (List.nodup_append.mp hnd).2.2 c hx c (by simp) rfl
+        · exact hne (by simpa using hx)
+      have hsplit : ListUtil.splitAt? (childrenOf t parent) c = some (s₁, s₂) :=
+        splitAt?_childrenOf_of_split hwf hs₁
+      have hsplit' : ListUtil.splitAt? (childrenOf t' parent) c = some (s₁ ++ [n], s₂) := by
+        rw [hs₂]
+        have hrw : s₁ ++ n :: c :: s₂ = (s₁ ++ [n]) ++ c :: s₂ := by simp
+        rw [hrw]
+        exact ListUtil.splitAt?_append_cons_self hcnot s₂
+      have hp := hp1 c rfl
+      unfold elementPrecedes at hp ⊢
+      simp only [hsplit] at hp
+      simp only [hsplit', hkind, List.any_append, List.any_cons, List.any_nil, Bool.or_false]
+      simp [hp, hnE]
+    · have hnil := hp2 hc
+      unfold elementChildren at hnil ⊢
+      simp only [insertAt_childrenOf hwf hi, hkind]
+      rw [ListUtil.filter_insertBefore_of_neg
+        (p := fun x => kindOf t x == some NodeKind.element) (a := n) hnE]
+      exact hnil
+
+/-- `insertEach` は Document の children 制約を保つ。 -/
+theorem documentTreesValid_insertEach :
+    ∀ (ns : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+      {doc : NodeId},
+      WellFormed s.tree → DocumentTreesValid s.tree → IsDocument s.tree doc →
+      InsertSeqOk s.tree parent child ns →
+      insertEach s parent child doc ns = .ok s' → DocumentTreesValid s'.tree
+  | [], _, _, _, _, _, _, h, _, _, hi => by rw [insertEach] at hi; rw [← Except.ok.inj hi]; exact h
+  | n :: ns, s, s', parent, child, doc, hwf, h, hdoc, hok, hi => by
+    rw [insertEach] at hi
+    split at hi
+    · simp at hi
+    · next s₁ ha =>
+      split at hi
+      · simp at hi
+      · next s₂ hins =>
+        have hins' := (DOMState.mapTree_eq_ok hins).1
+        have hwf₁ : WellFormed s₁.tree := adopt_preserves_wellformed hwf hdoc ha
+        have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_adopt hwf h ha
+        have hok₁ : InsertSeqOk s₁.tree parent child (n :: ns) :=
+          insertSeqOk_of_removeAll (kindPreserving_adopt ha) (adopt_childrenOf hwf ha) hok
+        have hwf₂ : WellFormed s₂.tree := insertAt_preserves_wellformed hwf₁ hins'
+        have h₂ : DocumentTreesValid s₂.tree := by
+          refine ⟨fun d dd hd hk => ?_⟩
+          obtain ⟨dd₁, hd₁, hkdd⟩ := kindPreserving_get? (kindPreserving_insertAt hins') hd
+          have hk₁ : dd₁.kind = NodeKind.document := by rw [hkdd]; exact hk
+          have hok' : DocumentChildrenOk s₁.tree d := h₁.documentChildren d dd₁ hd₁ hk₁
+          by_cases hne : d = parent
+          · subst hne
+            have hdockind : kindOf s₁.tree d = some NodeKind.document := by
+              simp [kindOf, hd₁, hk₁]
+            obtain ⟨f1, _, f3, f4, f5, f6⟩ := hok₁ hdockind
+            refine documentChildrenOk_of_insertAt hwf₁ hins' ?_ ?_ ?_ hok'
+            · intro k hk'
+              exact f1 n (List.mem_cons_self ..) k hk'
+            · intro helem
+              refine ⟨?_, f5 n (List.mem_cons_self ..) helem⟩
+              have hkn : (kindOf s₁.tree n == some NodeKind.element) = true := by
+                rw [helem]; simp
+              have hcnt : ((n :: ns).filter fun m =>
+                  kindOf s₁.tree m == some NodeKind.element).length
+                  = 1 + (ns.filter fun m =>
+                    kindOf s₁.tree m == some NodeKind.element).length := by
+                simp [List.filter, hkn, Nat.add_comm]
+              rw [hcnt] at f3
+              have hzero : (elementChildren s₁.tree d).length = 0 := by omega
+              simpa using hzero
+            · intro hdt
+              have hkn : (kindOf s₁.tree n == some NodeKind.documentType) = true := by
+                rw [hdt]; simp
+              have hcnt : ((n :: ns).filter fun m =>
+                  kindOf s₁.tree m == some NodeKind.documentType).length
+                  = 1 + (ns.filter fun m =>
+                    kindOf s₁.tree m == some NodeKind.documentType).length := by
+                simp [List.filter, hkn, Nat.add_comm]
+              rw [hcnt] at f4
+              have hzero : (doctypeChildren s₁.tree d).length = 0 := by omega
+              obtain ⟨hp1, hp2⟩ := f6 n (List.mem_cons_self ..) hdt
+              exact ⟨by simpa using hzero, hp1, hp2⟩
+          · exact documentChildrenOk_insertAt_ne hwf₁ hins' hne hok'
+        have hok₂ : InsertSeqOk s₂.tree parent child ns :=
+          insertSeqOk_insertAt hwf₁ hins' hok₁
+        exact documentTreesValid_insertEach ns hwf₂ h₂
+          (hdoc.map ((kindPreserving_adopt ha).trans (kindPreserving_insertAt hins'))) hok₂ hi
+
 
 /-! ## replaceData -/
 
