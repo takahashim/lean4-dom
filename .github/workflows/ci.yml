@@ -64,6 +64,10 @@ jobs:
       - name: URL setters against WPT with the UTS #46 table
         run: lake exe url-model --setters test/url/wpt-setters.json test/url/uts46-table.json
 
+      # A-label（`xn--`）の扱いは WPT の表に失敗例が無く、この経路が試されない。
+      - name: A-labels against the pinned spec
+        run: lake exe url-model --wpt test/url/uts46-alabel.json test/url/uts46-table.json
+
       # §6.2 の `sort` は WPT が配列リテラルで期待値を持っている。
       - name: URLSearchParams against WPT
         run: lake exe url-model --searchparams test/url/wpt-searchparams-sort.json

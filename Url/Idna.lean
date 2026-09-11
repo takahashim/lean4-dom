@@ -118,6 +118,21 @@ theorem mapAll_idempotent (t : IdnaTable) (hres : t.Resolved) :
     rw [mapAll, hv c List.mem_cons_self, ih (fun x hx => hv x (List.mem_cons_of_mem _ hx))]
     rfl
 
+/--
+復号した A-label の中身を検査する。UTS #46 §4.1 の validity criteria のうち、
+この model が持っている分である。
+
+* どの code point も `valid` であること。**`mapped` や `ignored` や `disallowed`
+  では駄目である。** A-label は写像を済ませた後の形でなければならない。
+* 対象外の印が付いていないこと（正規化・Bidi・joiner が要る code point）。
+
+空の label（`xn--` そのもの）は criteria の対象外なので素通りする。
+非正規な綴りは拒否しない。Processing は label を復号した形に置き換え、
+ToASCII が符号化し直すので、出力は自然に正準形になる。
+-/
+def validALabel (t : IdnaTable) (decoded : List Char) : Bool :=
+  decoded.all (fun c => t.status c == .valid) && !decoded.any t.outOfModel
+
 /-- label 一つを ASCII に直す。 -/
 def labelToASCII (t : IdnaTable) (label : List Char) : Option (List Char) :=
   if label.all (fun c => c.toNat < 0x80) then
@@ -126,7 +141,12 @@ def labelToASCII (t : IdnaTable) (label : List Char) : Option (List Char) :=
     | 'x' :: 'n' :: '-' :: '-' :: rest =>
       match Punycode.decode rest with
       | none => none
-      | some decoded => if decoded.any t.outOfModel then none else some label
+      | some decoded =>
+        if validALabel t decoded then
+          -- 復号した形で criteria を満たしたので、符号化し直した正準形を返す。
+          if decoded.isEmpty then some label
+          else some ("xn--".toList ++ Punycode.encode decoded)
+        else none
     | _ => some label
   else some ("xn--".toList ++ Punycode.encode label)
 
@@ -137,7 +157,13 @@ UTS #46 の ToASCII。この model の対象外なら `none`。
 長さの検査と forbidden domain code point の検査は domain parser の側にある。
 -/
 def toASCII (t : IdnaTable) (domain : List Char) : Option String :=
-  if domain.any t.outOfModel then none
+  -- URL Standard の domain parser step 2。
+  -- **ASCII だけの domain は Unicode ToASCII の結果によらず lowercase して返す。**
+  -- 仕様が web 互換のためにそう決めていて、`xn--8i7caa` を例に挙げている
+  -- （`ｗｗｗ` に復号され、その code point の status は `mapped` である）。
+  -- ここを通さないと、表を渡したときだけ ASCII の domain の扱いが変わってしまう。
+  if domain.all (fun c => c.toNat < 0x80) then asciiDomainToASCII domain
+  else if domain.any t.outOfModel then none
   else
     match mapAll t domain with
     | none => none
@@ -159,23 +185,32 @@ def toASCII (t : IdnaTable) (domain : List Char) : Option String :=
 theorem labelToASCII_ascii (t : IdnaTable) : ∀ (label l : List Char),
     labelToASCII t label = some l → ∀ c ∈ l, c.toNat < 0x80 := by
   intro label l h c hc
+  -- `xn--` を付けた出力が ASCII であることは二箇所で要る。
+  have hpfx : ∀ (d : List Char), (∀ x ∈ Punycode.encode d, x.toNat < 0x80) →
+      c ∈ "xn--".toList ++ Punycode.encode d → c.toNat < 0x80 := by
+    intro d hd hx
+    rcases List.mem_append.mp hx with hx | hx
+    · have hm : c = 'x' ∨ c = 'n' ∨ c = '-' ∨ c = '-' := by simpa using hx
+      rcases hm with h | h | h | h <;> subst h <;> decide
+    · exact hd c hx
   unfold labelToASCII at h
   split at h
   · next hall =>
     split at h
     · split at h
       · simp at h
-      · split at h
+      · next decoded _ =>
+        split at h
+        · split at h
+          · rw [← Option.some.inj h] at hc
+            exact of_decide_eq_true (List.all_eq_true.mp hall c hc)
+          · rw [← Option.some.inj h] at hc
+            exact hpfx decoded (Punycode.encode_ascii decoded) hc
         · simp at h
-        · rw [← Option.some.inj h] at hc
-          exact of_decide_eq_true (List.all_eq_true.mp hall c hc)
     · rw [← Option.some.inj h] at hc
       exact of_decide_eq_true (List.all_eq_true.mp hall c hc)
   · rw [← Option.some.inj h] at hc
-    rcases List.mem_append.mp hc with hx | hx
-    · have hm : c = 'x' ∨ c = 'n' ∨ c = '-' ∨ c = '-' := by simpa using hx
-      rcases hm with h | h | h | h <;> subst h <;> decide
-    · exact Punycode.encode_ascii label c hx
+    exact hpfx label (Punycode.encode_ascii label) hc
 
 theorem asciiDomainCheck_ne_empty {r s : String}
     (h : asciiDomainToASCII.asciiDomainCheck r = some s) : s.isEmpty = false := by
@@ -202,14 +237,17 @@ theorem toASCII_ne_empty (t : IdnaTable) {domain : List Char} {s : String}
     (h : toASCII t domain = some s) : s.isEmpty = false := by
   unfold toASCII at h
   split at h
-  · simp at h
+  · -- ASCII だけの domain は `asciiDomainToASCII` に委ねている。
+    exact asciiDomainToASCII_ne_empty h
   · split at h
     · simp at h
     · split at h
       · simp at h
       · split at h
         · simp at h
-        · exact asciiDomainCheck_ne_empty h
+        · split at h
+          · simp at h
+          · exact asciiDomainCheck_ne_empty h
 
 /--
 `toASCII` の結果に forbidden domain code point は無い。
@@ -219,14 +257,17 @@ theorem toASCII_no_forbidden (t : IdnaTable) {domain : List Char} {s : String}
     (h : toASCII t domain = some s) : s.any isForbiddenDomain = false := by
   unfold toASCII at h
   split at h
-  · simp at h
+  · -- ASCII だけの domain は `asciiDomainToASCII` に委ねている。
+    exact asciiDomainToASCII_no_forbidden h
   · split at h
     · simp at h
     · split at h
       · simp at h
       · split at h
         · simp at h
-        · exact asciiDomainCheck_no_forbidden h
+        · split at h
+          · simp at h
+          · exact asciiDomainCheck_no_forbidden h
 
 /-! ## 実行時に読む表 -/
 
@@ -274,6 +315,89 @@ def tableOfRanges (rs : Array IdnaRange) : IdnaTable where
 def checkResolved (rs : Array IdnaRange) : Bool :=
   rs.all fun r =>
     r.status != .mapped || r.mapping.all fun d =>
-      match findRange rs d with | some r' => r'.status == .valid | none => false
+      decide (Nat.isValidChar d) &&
+        match findRange rs d with | some r' => r'.status == .valid | none => false
+
+/-! ### 実行時の検査が仮定を落とすこと
+
+`mapAll_valid` などは `IdnaTable.Resolved` を仮定して証明してある。
+その仮定を実行時の `checkResolved` が落とすことを、ここで証明する。
+これが無いと「仮定は実行時検査によって discharge される」という主張が
+文書の上だけのものになる。
+-/
+
+/-- 二分探索が返す区間は、引いた配列の要素である。 -/
+theorem findRange_go_mem (rs : Array IdnaRange) (n : Nat) :
+    ∀ lo hi, ∀ r, findRange.go rs n lo hi = some r → ∃ i, ∃ hlt : i < rs.size, rs[i] = r := by
+  intro lo hi
+  -- `mid` は let 束縛なので、場合分けの仮説を展開した形で言い直してから simp に渡す。
+  induction lo, hi using findRange.go.induct rs n with
+  | case1 lo hi hlo mid hnone =>
+    intro r h
+    have hn : rs[(lo + hi) / 2]? = none := hnone
+    rw [findRange.go] at h; simp [hlo, hn] at h
+  | case2 lo hi hlo mid r' hsome hlt ih =>
+    intro r h
+    have hs : rs[(lo + hi) / 2]? = some r' := hsome
+    rw [findRange.go] at h; simp only [hlo, hs, hlt, dif_pos, if_true] at h
+    exact ih r h
+  | case3 lo hi hlo mid r' hsome hge hhi ih =>
+    intro r h
+    have hs : rs[(lo + hi) / 2]? = some r' := hsome
+    rw [findRange.go] at h
+    simp only [hlo, hs, hge, hhi, dif_pos, if_false, if_true] at h
+    exact ih r h
+  | case4 lo hi hlo mid r' hsome hge hhi =>
+    intro r h
+    have hs : rs[(lo + hi) / 2]? = some r' := hsome
+    rw [findRange.go] at h
+    simp only [hlo, hs, hge, hhi, dif_pos, if_false] at h
+    refine ⟨(lo + hi) / 2, (Array.getElem?_eq_some_iff.mp hs).1, ?_⟩
+    rw [(Array.getElem?_eq_some_iff.mp hs).2]
+    exact Option.some.inj h
+  | case5 lo hi hlo =>
+    intro r h; rw [findRange.go] at h; simp [hlo] at h
+
+/-- `findRange` が返す区間は、引いた配列の要素である。 -/
+theorem findRange_mem {rs : Array IdnaRange} {n : Nat} {r : IdnaRange}
+    (h : findRange rs n = some r) : ∃ i, ∃ hlt : i < rs.size, rs[i] = r :=
+  findRange_go_mem rs n 0 rs.size r h
+
+/-- 妥当な scalar value なら、番号から `Char` を作って戻すと同じ番号になる。 -/
+theorem toNat_ofNat_of_valid {n : Nat} (h : n.isValidChar) : (Char.ofNat n).toNat = n := by
+  simp [Char.ofNat, h, Char.ofNatAux, Char.toNat]
+
+/--
+**`checkResolved` が通れば `Resolved` が成り立つ。**
+
+`mapAll_valid` / `mapAll_idempotent` が置いている仮定は、これで
+読み込み時の検査に還元される。表そのものは証明に現れないままである。
+-/
+theorem checkResolved_sound {rs : Array IdnaRange} (h : checkResolved rs = true) :
+    (tableOfRanges rs).Resolved := by
+  intro c hc d hd
+  -- status が mapped なので、`findRange` は c を含む区間を返している。
+  simp only [tableOfRanges] at hc hd ⊢
+  split at hc
+  · next r hr =>
+    -- その区間は配列の要素なので、checker の述語が使える。
+    obtain ⟨i, hlt, hi⟩ := findRange_mem hr
+    have hall := Array.all_eq_true.mp h i hlt
+    rw [hi] at hall
+    simp only [hc, bne_self_eq_false, Bool.false_or] at hall
+    -- d は写像先の番号 m から作った Char である。
+    simp only [hr] at hd
+    obtain ⟨m, hm, hdm⟩ := List.mem_map.mp hd
+    have hmall := List.all_eq_true.mp hall m hm
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at hmall
+    obtain ⟨hvalid, hfind⟩ := hmall
+    subst hdm
+    rw [toNat_ofNat_of_valid hvalid]
+    -- goal と `hfind` は同じ `findRange rs m` を見ているので、まとめて場合分けする。
+    revert hfind
+    split
+    · intro hf; exact of_decide_eq_true hf
+    · intro hf; simp at hf
+  · simp at hc
 
 end Url

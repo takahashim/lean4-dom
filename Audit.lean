@@ -218,6 +218,11 @@ open Dom.Audit
   Url.asciiDomainCheck_no_forbidden
   Url.toASCII_ne_empty
   Url.toASCII_no_forbidden
+  Url.validALabel
+  Url.findRange_go_mem
+  Url.findRange_mem
+  Url.toNat_ofNat_of_valid
+  Url.checkResolved_sound
 
 -- UTF-8 の往復（Infra）
 #audit_axioms

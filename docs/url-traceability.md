@@ -29,9 +29,9 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | --- | --- | --- | --- | --- | --- |
 | host parser | 1-9 | `hostParser` | — | wpt, dommy | 済（ToASCII は引数） |
 | opaque-host parser | 1-4 | `opaqueHostParser` | `opaqueHostParser_no_forbidden` | wpt, dommy | 済 |
-| domain parser | 1-5 | `asciiDomainToASCII` | `asciiDomainToASCII_no_forbidden`, `asciiDomainToASCII_ne_empty` | wpt, dommy | 部分（ASCII の domain のみ） |
+| domain parser | 1-5 | `asciiDomainToASCII`（ASCII の近道）、`toASCII`（非 ASCII） | `asciiDomainToASCII_no_forbidden`, `asciiDomainToASCII_ne_empty`, `toASCII_no_forbidden`, `toASCII_ne_empty` | wpt, uts46-alabel, dommy | 済 |
 | ToASCII（UTS #46）の算法 | UTS #46 §4 | `toASCII`, `labelToASCII`, `mapAll` | `toASCII_ne_empty`, `toASCII_no_forbidden`, `mapAll_valid`, `mapAll_idempotent`, `labelToASCII_ascii` | wpt（表を渡して 820 件）, dommy | 済（表は `IdnaTable` の仮定） |
-| UTS #46 の写像表 | — | `tableOfRanges`（実行時 fixture、8,509 範囲） | `checkResolved` が `IdnaTable.Resolved` を実行時に検査 | dommy の `Internal::IDNA` | 対象外（規定データ。証明には現れない） |
+| UTS #46 の写像表 | — | `tableOfRanges`（実行時 fixture、8,509 範囲） | `checkResolved_sound`（検査が通れば `Resolved`）、`findRange_mem` | dommy の `Internal::IDNA` | 対象外（規定データ。証明には現れない） |
 | NFC 正規化・Bidi 検査・Joining_Type | — | `IdnaTable.outOfModel` の印で弾く | — | — | 対象外（印の付いた domain は `none`） |
 | Punycode（RFC 3492） | RFC 3492 | `Punycode.encode`, `Punycode.decode` | `encode_ascii`、停止性（fuel なし） | rfc3492（19 件 × 両方向） | 済 |
 | forbidden host / domain code point | §1.3 | `isForbiddenHost`, `isForbiddenDomain` | 上記 | wpt | 済 |

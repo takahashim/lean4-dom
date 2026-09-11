@@ -173,11 +173,47 @@ def IdnaTable.Resolved (t : IdnaTable) : Prop :=
 
 実行時は `tableOfRanges` が `IdnaRange` の配列（`test/url/uts46-table.json`、8,509 範囲）を
 二分探索する `IdnaTable` に変える。`checkResolved` がその配列について `Resolved` を確かめ、
-満たさなければ実行を止める。仮定はこうして実行時に検査される。
+満たさなければ実行を止める。
+
+この「実行時に検査する」は **証明で繋いである**。
+
+```lean
+theorem checkResolved_sound {rs : Array IdnaRange} (h : checkResolved rs = true) :
+    (tableOfRanges rs).Resolved
+```
+
+足場は `findRange_mem`（二分探索が返す区間は配列の要素である）と
+`toNat_ofNat_of_valid`（妥当な scalar value なら番号から `Char` を作って戻すと同じ番号）で、
+`checkResolved` は写像先が妥当な scalar value であることも見る。
+これが無いと「仮定は実行時検査で落ちる」という主張が文書の上だけのものになる。
 
 `outOfModel` の印が付いた code point を含む domain では `toASCII` が `none` を返す。
 正規化（NFC）と Bidi 検査をこの model が持たないためで、
 「持っていない規則を持っているふりをしない」ようにしてある。
+
+### ASCII だけの domain には UTS #46 を掛けない
+
+URL Standard の domain parser は step 2 でこう決めている。
+
+> If domain is an ASCII string, then set result to domain, lowercased.
+>
+> When beStrict is false and domain is an ASCII string, the algorithm returns
+> domain lowercased **regardless of Unicode ToASCII's outcome**, due to web
+> compatibility. IgnoreInvalidPunycode is not sufficient on its own, as Punycode
+> can decode successfully yet still fail validity criteria. E.g., `xn--8i7caa`
+> decodes to `ｗｗｗ`, whose code points have status "mapped".
+
+つまり `http://xn--a/` も `http://xn--8i7caa/` も `http://xn--0.pt/` も成功する。
+`toASCII` はこの近道を最初に持っていて、そこは `asciiDomainToASCII` に委ねる。
+表を渡したときと渡さないときで ASCII の domain の扱いが変わらないことが、これで形から出る。
+
+UTS #46 の Processing を通るのは **非 ASCII を含む domain だけ**である。
+そこでは復号した A-label が §4.1 の validity criteria を満たす必要がある
+（どの code point も status が `valid`。`mapped` や `ignored` や `disallowed` では駄目）。
+`http://xn--a.日本/` は `xn--a` が U+0080（disallowed）に復号されるので失敗する。
+
+WPT の機械可読の表には `xn--` が失敗する case が一件も無く、この経路が試されない。
+`test/url/uts46-alabel.json` に両側の case を置いてある。
 
 仕様自身が別仕様へ委譲していること、この model の他の hook
 （custom element の steps、MutationObserver の callback、NodeFilter の callback）と
