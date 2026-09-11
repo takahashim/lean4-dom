@@ -146,6 +146,19 @@ open Dom.Audit
   Url.checkValidUrl_iff
   Url.isSpecialScheme_of_defaultPort
 
+-- URL Standard §6.1 URL の IDL 属性（setter）
+#audit_axioms
+  Url.setUsername_cannot
+  Url.setPassword_cannot
+  Url.setPort_cannot
+  Url.setHost_opaque
+  Url.setHostname_opaque
+  Url.setPathname_opaque
+  Url.not_opaque_of_canHaveCredentials
+  Url.setUsername_valid
+  Url.setPassword_valid
+  Url.setPort_empty_valid
+
 -- URL Standard §3.2 host / §1.3 percent-encoding
 #audit_axioms
   Url.opaqueHostParser_no_forbidden

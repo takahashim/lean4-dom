@@ -53,7 +53,10 @@ def isForbiddenDomain (c : Char) : Bool :=
 /-- URL Standard §3.2 "opaque-host parser"。 -/
 def opaqueHostParser (input : List Char) : Option Host :=
   if input.any isForbiddenHost then none
-  else some (.opaque (String.ofList (utf8PercentEncode c0ControlSet input)))
+  -- 空の結果は empty host である。`.opaque ""` と二通りに表さないようにしておく
+  -- （`cannotHaveCredentials` など、empty host を名指しで見る述語があるため）。
+  else some (if input.isEmpty then .empty
+             else .opaque (String.ofList (utf8PercentEncode c0ControlSet input)))
 
 /--
 ASCII だけからなる domain に対する "domain parser"。

@@ -19,7 +19,8 @@ Shadow DOM と Web Components は対象に含めない。
 
 ## URL Standard
 
-対象は percent-encoding、IPv4 / IPv6 parser、host parser、basic URL parser である。
+対象は percent-encoding、IPv4 / IPv6 parser、host parser、basic URL parser、
+`application/x-www-form-urlencoded`、`URL` の getter と setter である。
 IDNA（UTS #46）は仕様自身が別仕様へ委譲しているので、
 `hostParser` が ToASCII を引数で受け取る形にして境界を引いた。
 
@@ -28,9 +29,9 @@ DOM と違って状態を持たない純関数なので、中心の定理も
 「parser の停止性」と「結果の record の妥当性」になる。
 state machine は fuel ではなく `(state の順位, 残りの文字数, 位相)` の
 辞書式測度で停止性を示してある。
-期待値は WPT の `urltestdata.json` がそのまま使える
-（`lake exe url-model --wpt test/url/wpt-ascii.json` で 820 件中 816 件一致、
-残り 4 件は IDNA が要るので対象外）。
+期待値は WPT の `urltestdata.json` と `setters_tests.json` がそのまま使える
+（`--wpt` で 820 件中 816 件一致、`--setters` で 699 件の属性比較が一致。
+残りは IDNA が要るので対象外）。
 詳しくは `docs/url-status.md` と `docs/url-traceability.md`。
 
 ## 共有している部分
@@ -122,6 +123,7 @@ lake exe dom-model --check test/scenarios
 
 # URL 側を WPT の期待値表に通す
 lake exe url-model --wpt test/url/wpt-ascii.json
+lake exe url-model --setters test/url/wpt-setters.json
 
 # 一つの scenario を評価して観測を JSON で出す
 lake exe dom-model test/scenarios/basic-insert-remove.json
@@ -142,7 +144,7 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 | `Dom/Observation.lean` | 差分テストの比較対象を型で固定する |
 | `Dom/Exec/` | scenario の読み書きと evaluator |
 | `Infra/` | Infra Standard の語彙（ASCII、byte 列、UTF-8）。`Dom` と `Url` が共有する |
-| `Url/` | URL Standard（percent-encoding、IPv4 / IPv6、host parser、basic URL parser） |
+| `Url/` | URL Standard（percent-encoding、IPv4 / IPv6、host parser、basic URL parser、urlencoded、`URL` の IDL 属性） |
 | `test/` | 固定 scenario、生成器、Dommy runner、比較器 |
 | `docs/` | 状況、主定理の一覧、仕様トレーサビリティ、threats to validity |
 

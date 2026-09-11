@@ -37,6 +37,39 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §4.4 basic URL parser | `run`, `step`, `basicUrlParse`, `parseUrl` | `Url/Parser.lean` |
 | §4.7 origin | `origin`, `originSerializer`, `Origin` | `Url/Parser.lean`, `Url/Record.lean` |
 | §5.1 urlencoded parser、§5.2 serializer | `parseUrlencoded`, `serializeUrlencoded` | `Url/Urlencoded.lean` |
+| §4.4 state override | `SOverride`, `basicUrlParseOverride` | `Url/Parser.lean` |
+| §6.1 `URL` の getter と setter | `Url.href` ほか、`Url.setProtocol` ほか | `Url/Api.lean` |
+
+## state override をどう通したか
+
+`Location` と `URL` の setter は、basic URL parser に
+「この URL record から始めて、この state から読んで、成分が一つ決まったら返す」
+と指示する。state を引数で渡すところは元から `run` がそうなっているので、
+足したのは `PCtx.over`（override が与えられているか、`host` か `hostname` か）だけである。
+
+仕様の分岐は三種類に分かれる。
+
+* **override があるときだけ返る。** host / port / file host / path start が
+  成分を書いた直後に `.ok` を返す。
+* **override があるときだけ拒む。** scheme start state は no scheme state へ落ちず失敗し、
+  scheme state は "start over" せず失敗する。
+  protocol setter が URL の形を壊す四つの場合（`schemeOverride`）もここ。
+* **override があるとき区切りとして読まない。** path state の `?` と `#`、
+  query state の `#` は、override 付きでは percent-encode されて成分の中に入る。
+
+### 失敗しても書き換えは残る
+
+これが一番はまりやすかった。仕様の setter は URL record を **その場で書き換える**ので、
+parse が途中で失敗しても、そこまでの書き換えは残る。setter は
+basic URL parser の返り値を見ないからである。
+
+`u.host = "example.com:65536"` がその例で、host state が host を書き換えてから
+port state へ渡り、port が範囲外で失敗する。結果は
+**host だけが `example.com` に変わり、port は元のまま**になる。
+`url.host` に `example.net` を期待して WPT で落ちた。
+
+`Url/Parser.lean` の `fail` が、override があるときの「return failure」を
+「そこまでの record を返す」に読み替えている。
 
 ## pointer を持たない書き方
 
@@ -106,6 +139,10 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `checkValidUrl_iff` | `ValidUrl` は決定可能。boolean の checker と `Prop` が一致する |
 | `urlencodedEncode_no_separator` | serialize した成分に `&` も `=` も現れない。parser が区切れる根拠 |
 | `percentEncodeByte_alnum`, `hexDigitChar_alnum` | `%XX` は `%` と 16 進の数字からなる |
+| `setUsername_cannot`, `setPassword_cannot`, `setPort_cannot` | credentials を置けない URL では、その setter は何もしない |
+| `setHost_opaque`, `setHostname_opaque`, `setPathname_opaque` | opaque path を持つ URL では、その setter は何もしない |
+| `not_opaque_of_canHaveCredentials` | credentials を置ける URL は host を持ち、opaque path でない |
+| `setUsername_valid`, `setPassword_valid`, `setPort_empty_valid` | record の中で閉じる setter は `ValidUrl` を保つ |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -138,6 +175,18 @@ parse と「serialize してから読み直す」の両方を通している。
 urlencoded: 一致 26 / 不一致 0
 ```
 
+setter（§6.1）も WPT が `setters_tests.json` で表を配っている。
+`lake exe url-model --setters test/url/wpt-setters.json` が、
+ASCII だけの 258 件について「この URL のこの属性にこの値を入れると各属性がこうなる」を確かめる。
+
+```
+setters: 一致 699 / 不一致 0 / IDNA が要る（model の対象外） 6
+ValidUrl（setter 後）: 違反 0
+```
+
+対象外の 6 件（2 case × 3 属性）は host / hostname に `a%C2%ADb` を入れるもので、
+UTS #46 が soft hyphen を落とすことを期待している。
+
 IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
 host の 2 件が IDNA の境界で、それ以外は一致した。
 
@@ -147,6 +196,30 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
    していたので、`http://[]` が base に対する相対 URL になっていた（本来は失敗）。
 2. **scheme state では EOF も「alphanumeric でも `:` でもない」に当たる。**
    これを失敗にしていたので、`test` のような素の相対参照が全部失敗していた。
+3. **state override 付きの失敗は、そこまでの書き換えを消さない。**
+   上の「失敗しても書き換えは残る」節のとおり。
+4. **empty host の表し方が二通りあった。** `opaqueHostParser` が空の入力に
+   `.opaque ""` を返していたので、`.empty` を名指しで見る
+   `cannotHaveCredentials` が `sc:///` で false になり、
+   `sc:///` に username が付いてしまった。`opaqueHostParser` の側で `.empty` に正規化した。
+
+## `ValidUrl` に足した条件
+
+setter の保存を書こうとして、`ValidUrl` に一つ足りないことが分かった。
+
+> opaque path を持つなら host は null。
+
+仕様は §4.1 にこれを並べていないが、成り立つ。opaque path を作るのは
+scheme state の一分岐だけで、そこでは host はまだ null、
+そこから先（opaque path / query / fragment）に host を書く state が無いためである。
+
+これが無いと `username` setter の保存に反例が立つ。
+「opaque path かつ host が非空」という record は `ValidUrl` を満たしてしまい、
+そこに username を入れると `opaqueNoCredentials` が壊れる。
+parse では作れない record だが、`ValidUrl` がそれを言っていなかった。
+
+足した条件は WPT の 816 件の parse と 258 件の setter 適用のすべてで
+実行時に検査していて、違反はない。
 
 ## 未着手
 
@@ -171,7 +244,10 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
   これに加えて base の妥当性が要る（`relative` と `file` は path を base から取る）。
   authority state の「host が決まる前に credentials を入れる」も同じ性質の問題で、
   そちらは state ごとに条件を分けることになる。
-* **setter（state override）。** `Location` と `URL` の各 setter が使う引数。
+
+  setter の側は、record の中で閉じる三つ（`username` / `password` / 空文字列の `port`）
+  について保存を証明した。残りは `basicUrlParseOverride` を通るので、
+  上の parser 側の保存に帰着する。
 * **`URLSearchParams` の API**（`get` / `getAll` / `append` / `sort` ほか）。
   parser と serializer（§5）は入れたが、IDL の側はまだ。
 * **`serialize` と `parse` の往復定理。** `urlencodedEncode_no_separator` で

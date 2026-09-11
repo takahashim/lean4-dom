@@ -106,7 +106,16 @@ URL record の局所不変条件。
 
 * opaque path を持てるのは special でない URL だけ。
 * host が null なら credentials も port も持てない。
-* opaque path なら credentials も port も持てない。
+* opaque path なら credentials も port も持てず、host も持たない。
+
+最後の「opaque path なら host は null」は仕様が §4.1 に並べていないが、
+成り立つ。opaque path を作るのは scheme state の一分岐だけで、そこでは host はまだ null、
+そこから先（opaque path / query / fragment）に host を書く state が無いためである。
+setter 側も `host` / `hostname` は opaque path を見て何もせずに返す。
+
+これが要るのは `username` / `password` setter の保存を言うためで、
+この条件が無いと「opaque path かつ host が非空」という
+parse では作れない record が反例になる。
 -/
 structure ValidUrl (u : Url) : Prop where
   specialHasList : u.isSpecial = true → u.hasOpaquePath = false
@@ -114,6 +123,7 @@ structure ValidUrl (u : Url) : Prop where
   nullHostNoPort : u.host = none → u.port = none
   opaqueNoCredentials : u.hasOpaquePath = true → u.includesCredentials = false
   opaqueNoPort : u.hasOpaquePath = true → u.port = none
+  opaqueNoHost : u.hasOpaquePath = true → u.host = none
 
 /-! ## 実行時の検査 -/
 
@@ -128,7 +138,7 @@ WPT の全 case でこれを走らせておく。
 def checkValidUrl (u : Url) : Bool :=
   (!u.isSpecial || !u.hasOpaquePath) &&
     (u.host.isSome || (!u.includesCredentials && u.port.isNone)) &&
-    (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone))
+    (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone && u.host.isNone))
 
 theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := by
   unfold checkValidUrl
@@ -136,7 +146,7 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
     obtain ⟨⟨h1, h2⟩, h3⟩ := h
-    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro hs; rcases h1 with h1 | h1
       · rw [hs] at h1; simp at h1
       · exact h1
@@ -151,7 +161,11 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
     · intro ho
       rcases h3 with h3 | h3
       · rw [ho] at h3; simp at h3
-      · exact h3.1
+      · exact h3.1.1
+    · intro ho
+      rcases h3 with h3 | h3
+      · rw [ho] at h3; simp at h3
+      · simpa using h3.1.2
     · intro ho
       rcases h3 with h3 | h3
       · rw [ho] at h3; simp at h3
@@ -171,7 +185,7 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
       | false => exact Or.inl rfl
       | true =>
         refine Or.inr ?_
-        simp [h.opaqueNoCredentials ho, h.opaqueNoPort ho]
+        simp [h.opaqueNoCredentials ho, h.opaqueNoPort ho, h.opaqueNoHost ho]
 
 /-- 既定の port を持つ scheme は special である。 -/
 theorem isSpecialScheme_of_defaultPort {scheme : String} {p : Nat}

@@ -21,8 +21,13 @@ top level で一度だけ再実行する形にしてある。
 
 ## state override
 
-`state override` は `Location` と `URL` の setter だけが使う引数なので扱わない
-（`docs/url-traceability.md` の対象外の表を参照）。
+`state override` は `Location` と `URL` の setter が使う引数で、
+「この state から始めて、成分が一つ決まったら返す」という意味である。
+`PCtx.over` に持ち、入口は `basicUrlParseOverride`。setter 側は `Url/Api.lean`。
+
+override が与えられているときは前処理も変わる。仕様 step 1 の
+「前後の C0 control or space を落とす」は url が与えられていないときだけで、
+tab と newline を落とす step 3 は常に走る。
 
 ## 停止性
 
@@ -35,7 +40,7 @@ namespace Url
 
 open Infra
 
-/-- URL Standard §4.4 の state。`state override` は扱わないので、その専用の state は無い。 -/
+/-- URL Standard §4.4 の state。 -/
 inductive PState where
   | schemeStart | scheme | noScheme | specialRelativeOrAuthority | pathOrAuthority
   | relative | relativeSlash | specialAuthoritySlashes | specialAuthorityIgnoreSlashes
@@ -56,6 +61,26 @@ inductive PResult where
   | startOver
 deriving Repr
 
+/--
+URL Standard §4.4 の state override。setter が指定しうる state だけを挙げる。
+
+`host` と `hostname` は同じ state から始まり、`:` を見たときの振る舞いだけが違う
+（hostname は port を読まずにそこで返す）。仕様では別々の state だが、
+本体を分ける必要がないので override の側で区別する。
+-/
+inductive SOverride where
+  | scheme | host | hostname | port | path | query | fragment
+deriving DecidableEq, Repr, Inhabited
+
+/-- override が指定する開始 state。 -/
+def SOverride.start : SOverride → PState
+  | .scheme => .schemeStart
+  | .host | .hostname => .host
+  | .port => .port
+  | .path => .pathStart
+  | .query => .query
+  | .fragment => .fragment
+
 /-- parser が持ち回る状態。 -/
 structure PCtx where
   url : Url
@@ -63,6 +88,8 @@ structure PCtx where
   atSignSeen : Bool := false
   insideBrackets : Bool := false
   passwordTokenSeen : Bool := false
+  /-- state override。setter から呼ばれたときだけ `some`。 -/
+  over : Option SOverride := none
 
 /--
 state の順位。停止性の測度の第一成分。
@@ -178,6 +205,40 @@ def queryOf (ctx : PCtx) : String :=
     String.ofList (utf8PercentEncode
       (if ctx.url.isSpecial then specialQuerySet else querySet) ctx.buffer)
 
+/--
+scheme state が `:` を見たときの、state override がある側（protocol setter）。
+
+仕様が並べる四つの拒否条件は、どれも「書き換えると URL record の形が壊れる」もの。
+special と非 special の間は行き来できず（path の形が違う）、
+credentials や port を持つ URL は `file` になれず（`file` は持てない）、
+host が空の `file` は他の scheme になれない（host を要求されうる）。
+-/
+def schemeOverride (ctx : PCtx) : PResult :=
+  let buf := String.ofList ctx.buffer
+  if ctx.url.isSpecial && !isSpecialScheme buf then .ok ctx.url
+  else if !ctx.url.isSpecial && isSpecialScheme buf then .ok ctx.url
+  else if (ctx.url.includesCredentials || ctx.url.port.isSome) && buf == "file" then .ok ctx.url
+  else if ctx.url.scheme == "file" && ctx.url.host == some Host.empty then .ok ctx.url
+  else
+    let u := { ctx.url with scheme := buf }
+    .ok (if defaultPort u.scheme == u.port then { u with port := none } else u)
+
+/--
+仕様の「return failure」。
+
+url を与えられた（state override 付きの）呼び出しでは、仕様は URL record を
+その場で書き換えていくので、途中で失敗しても**そこまでの書き換えは残る**。
+setter 側は返り値を見ないので、失敗は「そこで止まる」以上の意味を持たない。
+url を与えない普通の parse では、失敗は全体の失敗である。
+
+実際に効くのは host state から port state へ渡った後の失敗で、
+`u.host = "example.com:65536"` は host だけが書き換わって port は変わらない。
+-/
+def fail (ctx : PCtx) : PResult :=
+  match ctx.over with
+  | some _ => .ok ctx.url
+  | none => .failure
+
 /-!
 ## 停止性
 
@@ -216,8 +277,10 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
         if isAsciiAlpha ch then
           run base .scheme rest
             { ctx with buffer := ctx.buffer ++ (asciiLowercase (String.ofList [ch])).toList }
+        -- override があるときは no scheme state へ落ちず、そこで失敗する。
+        else if ctx.over.isSome then fail ctx
         else run base .noScheme input ctx
-      | none => run base .noScheme input ctx
+      | none => if ctx.over.isSome then fail ctx else run base .noScheme input ctx
     | .scheme =>
       match c with
       | some ch =>
@@ -225,6 +288,8 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
           run base .scheme rest
             { ctx with buffer := ctx.buffer ++ (asciiLowercase (String.ofList [ch])).toList }
         else if ch == ':' then
+          if ctx.over.isSome then schemeOverride ctx
+          else
           let u := { ctx.url with scheme := String.ofList ctx.buffer }
           let ctx2 : PCtx := { ctx with url := u, buffer := [] }
           if u.scheme == "file" then run base .file rest ctx2
@@ -236,16 +301,17 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
             match rest with
             | '/' :: rest2 => run base .pathOrAuthority rest2 ctx2
             | _ => run base .opaquePath rest { ctx2 with url := { u with path := .opaque "" } }
+        else if ctx.over.isSome then fail ctx
         else
           -- "start over"。入力が先頭へ戻る唯一の遷移なので、再帰の外へ返す。
           PResult.startOver
       -- EOF も「alphanumeric でも `:` でもない」に当たるので、同じく start over する。
-      | none => PResult.startOver
+      | none => if ctx.over.isSome then fail ctx else PResult.startOver
     | .noScheme =>
       match base with
-      | none => PResult.failure
+      | none => fail ctx
       | some b =>
-        if b.hasOpaquePath && c != some '#' then PResult.failure
+        if b.hasOpaquePath && c != some '#' then fail ctx
         else if b.hasOpaquePath then
           let u := { ctx.url with scheme := b.scheme, path := b.path, query := b.query }
           run base .fragment rest { ctx with url := { u with fragment := some "" } }
@@ -260,7 +326,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
       else run base .path input ctx
     | .relative =>
       match base with
-      | none => PResult.failure
+      | none => fail ctx
       | some b =>
         let u := { ctx.url with scheme := b.scheme }
         if c == some '/' then run base .relativeSlash rest { ctx with url := u }
@@ -283,7 +349,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
       else if c == some '/' then run base .authority rest ctx
       else
         match base with
-        | none => PResult.failure
+        | none => fail ctx
         | some b =>
           let u1 := { ctx.url with username := b.username, password := b.password }
           run base .path input { ctx with url := { u1 with host := b.host, port := b.port } }
@@ -301,7 +367,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
       match c with
       | none =>
         -- EOF は terminator。buffer を host state へ戻す。
-        if ctx.atSignSeen && ctx.buffer.isEmpty then PResult.failure
+        if ctx.atSignSeen && ctx.buffer.isEmpty then fail ctx
         else run base .host (ctx.buffer ++ input) { ctx with buffer := [] }
       | some ch =>
         if ch == '@' then
@@ -316,29 +382,37 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
           let ctx2 : PCtx := { ctx with url := r.1, buffer := [], atSignSeen := true }
           run base .authority rest { ctx2 with passwordTokenSeen := r.2 }
         else if isTerminator special (some ch) then
-          if ctx.atSignSeen && ctx.buffer.isEmpty then PResult.failure
+          if ctx.atSignSeen && ctx.buffer.isEmpty then fail ctx
           else run base .host (ctx.buffer ++ input) { ctx with buffer := [] }
         else run base .authority rest { ctx with buffer := ctx.buffer ++ [ch] }
     | .host =>
-      if c == some ':' && !ctx.insideBrackets then
-        if ctx.buffer.isEmpty then PResult.failure
+      -- override 付きで file URL の host を書き換えるときは file host state で読む。
+      if ctx.over.isSome && ctx.url.scheme == "file" then run base .fileHost input ctx
+      else if c == some ':' && !ctx.insideBrackets then
+        if ctx.buffer.isEmpty then fail ctx
+        -- hostname setter は port を読まない。
+        else if ctx.over == some .hostname then PResult.ok ctx.url
         else
           match hostParser asciiDomainToASCII ctx.buffer (!special) with
-          | none => PResult.failure
+          | none => fail ctx
           | some h =>
             let u := { ctx.url with host := some h }
             run base .port rest { ctx with url := u, buffer := [] }
       else if isTerminator special c then
-        if special && ctx.buffer.isEmpty then PResult.failure
+        if special && ctx.buffer.isEmpty then fail ctx
+        -- host を空にすると credentials や port の置き場所が無くなる場合は何もしない。
+        else if ctx.over.isSome && ctx.buffer.isEmpty &&
+            (ctx.url.includesCredentials || ctx.url.port.isSome) then PResult.ok ctx.url
         else
           match hostParser asciiDomainToASCII ctx.buffer (!special) with
-          | none => PResult.failure
+          | none => fail ctx
           | some h =>
             let u := { ctx.url with host := some h }
-            run base .pathStart input { ctx with url := u, buffer := [] }
+            if ctx.over.isSome then PResult.ok u
+            else run base .pathStart input { ctx with url := u, buffer := [] }
       else
         match c with
-        | none => PResult.failure
+        | none => fail ctx
         | some ch =>
           let ib := if ch == '[' then true else if ch == ']' then false else ctx.insideBrackets
           run base .host rest { ctx with buffer := ctx.buffer ++ [ch], insideBrackets := ib }
@@ -346,15 +420,18 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
       match c with
       | some ch =>
         if isAsciiDigit ch then run base .port rest { ctx with buffer := ctx.buffer ++ [ch] }
-        else if isTerminator special c then
+        -- override があるときは、digit でない文字はすべてここを終わらせる。
+        else if isTerminator special c || ctx.over.isSome then
           match portDone ctx with
-          | none => PResult.failure
-          | some ctx2 => run base .pathStart input ctx2
-        else PResult.failure
+          | none => fail ctx
+          | some ctx2 =>
+            if ctx.over.isSome then PResult.ok ctx2.url else run base .pathStart input ctx2
+        else fail ctx
       | none =>
         match portDone ctx with
-        | none => PResult.failure
-        | some ctx2 => run base .pathStart input ctx2
+        | none => fail ctx
+        | some ctx2 =>
+          if ctx.over.isSome then PResult.ok ctx2.url else run base .pathStart input ctx2
     | .file =>
       let u := { ctx.url with scheme := "file", host := some Host.empty }
       if c == some '/' || c == some '\\' then
@@ -397,37 +474,45 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
         | none => run base .path input ctx
     | .fileHost =>
       if c == none || c == some '/' || c == some '\\' || c == some '?' || c == some '#' then
-        if isWindowsDrive ctx.buffer then run base .path input ctx
+        -- Windows drive letter を host と読み違えないための分岐は override では要らない。
+        if ctx.over.isNone && isWindowsDrive ctx.buffer then run base .path input ctx
         else if ctx.buffer.isEmpty then
           let u := { ctx.url with host := some Host.empty }
-          run base .pathStart input { ctx with url := u }
+          if ctx.over.isSome then PResult.ok u
+          else run base .pathStart input { ctx with url := u }
         else
           match hostParser asciiDomainToASCII ctx.buffer (!special) with
-          | none => PResult.failure
+          | none => fail ctx
           | some h =>
             let h2 := if hostSerializer h == "localhost" then Host.empty else h
             let u := { ctx.url with host := some h2 }
-            run base .pathStart input { ctx with url := u, buffer := [] }
+            if ctx.over.isSome then PResult.ok u
+            else run base .pathStart input { ctx with url := u, buffer := [] }
       else
         match c with
-        | none => PResult.failure
+        | none => fail ctx
         | some ch => run base .fileHost rest { ctx with buffer := ctx.buffer ++ [ch] }
     | .pathStart =>
       if special then
         if c == some '/' || c == some '\\' then run base .path rest ctx
         else run base .path input ctx
-      else if c == some '?' then
+      else if ctx.over.isNone && c == some '?' then
         run base .query rest { ctx with url := { ctx.url with query := some "" } }
-      else if c == some '#' then
+      else if ctx.over.isNone && c == some '#' then
         run base .fragment rest { ctx with url := { ctx.url with fragment := some "" } }
       else
         match c with
-        | none => .ok ctx.url
+        -- host を持たない URL の path を空にすると serialize で scheme と path が
+        -- くっついてしまうので、空の segment を一つ残す。
+        | none =>
+          if ctx.over.isSome && ctx.url.host.isNone then .ok (appendSegment ctx.url "")
+          else .ok ctx.url
         | some ch => if ch == '/' then run base .path rest ctx
                      else run base .path input ctx
     | .path =>
+      -- override があるときは `?` と `#` は segment の一部で、query / fragment へは移らない。
       if c == none || c == some '/' || (special && c == some '\\') ||
-          c == some '?' || c == some '#' then
+          (ctx.over.isNone && (c == some '?' || c == some '#')) then
         let slash := c == some '/' || (special && c == some '\\')
         let u :=
           if isDoubleDot ctx.buffer then
@@ -450,7 +535,7 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
         | some _ => run base .path rest ctx2
       else
         match c with
-        | none => PResult.failure
+        | none => fail ctx
         | some ch =>
           run base .path rest { ctx with buffer := ctx.buffer ++ (encChar pathSet ch).toList }
     | .opaquePath =>
@@ -472,8 +557,10 @@ def step (base : Option Url) (st : PState) (c : Cp) (rest input : List Char) (ct
       match c with
       | none => .ok { ctx.url with query := some (queryOf ctx) }
       | some '#' =>
-        let u := { ctx.url with query := some (queryOf ctx), fragment := some "" }
-        run base .fragment rest { ctx with url := u, buffer := [] }
+        if ctx.over.isSome then run base .query rest { ctx with buffer := ctx.buffer ++ ['#'] }
+        else
+          let u := { ctx.url with query := some (queryOf ctx), fragment := some "" }
+          run base .fragment rest { ctx with url := u, buffer := [] }
       | some ch => run base .query rest { ctx with buffer := ctx.buffer ++ [ch] }
     | .fragment =>
       match c with
@@ -495,11 +582,14 @@ URL Standard §4.4 "basic URL parser"。
 step 1 の前処理（前後の C0 control or space を落とし、tab と newline を全部落とす）を
 してから state machine を回す。
 -/
+def stripTabNewline (l : List Char) : List Char :=
+  l.filter (fun c => !(c.toNat == 0x09 || c.toNat == 0x0A || c.toNat == 0x0D))
+
 def basicUrlParse (input : String) (base : Option Url := none) : Option Url :=
   let l := input.toList
   let l := l.dropWhile isC0ControlOrSpace
   let l := (l.reverse.dropWhile isC0ControlOrSpace).reverse
-  let l := l.filter (fun c => !(c.toNat == 0x09 || c.toNat == 0x0A || c.toNat == 0x0D))
+  let l := stripTabNewline l
   -- "start over" は高々一度。no scheme state から scheme start state へ戻る道は無い。
   match run base .schemeStart l { url := {} } with
   | .ok u => some u
@@ -508,6 +598,19 @@ def basicUrlParse (input : String) (base : Option Url := none) : Option Url :=
     match run base .noScheme l { url := {} } with
     | .ok u => some u
     | _ => none
+
+/--
+url と state override を与えた basic URL parser。setter だけが使う。
+
+前後の C0 control or space を落とさないのは仕様どおりで、
+その step が「url が与えられていないとき」の中にあるためである。
+override があると scheme state は "start over" せず失敗するので、
+ここでやり直しは要らない。
+-/
+def basicUrlParseOverride (input : String) (u : Url) (over : SOverride) : Option Url :=
+  match run none over.start (stripTabNewline input.toList) { url := u, over := some over } with
+  | .ok u' => some u'
+  | _ => none
 
 /-- `URL(url, base)` に当たる入口。失敗したら `none`。 -/
 def parseUrl (input : String) (base : Option String := none) : Option Url :=

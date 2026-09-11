@@ -51,3 +51,7 @@ jobs:
       # IDNA（UTS #46）が要る case は model の対象外として別に数える。
       - name: URL against WPT
         run: lake exe url-model --wpt test/url/wpt-ascii.json
+
+      # §6.1 の setter も WPT が `setters_tests.json` で期待値を配っている。
+      - name: URL setters against WPT
+        run: lake exe url-model --setters test/url/wpt-setters.json

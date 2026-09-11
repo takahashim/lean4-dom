@@ -7,7 +7,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 
 * **Evaluator** — その algorithm を写した Lean の定義。
 * **Contracts** — その algorithm について証明したこと。
-* **Test** — 期待結果の根拠。`wpt` は `test/url/wpt-ascii.json` の中の case、
+* **Test** — 期待結果の根拠。`wpt` は `test/url/wpt-ascii.json`、
+  `wpt-set` は `test/url/wpt-setters.json` の中の case、
   `dommy` は Dommy の実装との突き合わせ。
 * **Status** — 済 / 部分 / 対象外。
 
@@ -52,11 +53,12 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
 | --- | --- | --- | --- | --- | --- |
-| URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl` | `checkValidUrl_iff`（決定可能性）。parser が保つことの証明は未着手で、WPT 全件で実行時検査している | wpt | 部分 |
+| URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl` | `checkValidUrl_iff`（決定可能性）。parser が保つことの証明は未着手で、WPT 全件で実行時検査している | wpt, wpt-set | 部分 |
 | special scheme と既定の port | §4.2 | `isSpecialScheme`, `defaultPort` | `isSpecialScheme_of_defaultPort` | wpt | 済 |
 | URL path serializer | §4.3 | `pathSerializer` | — | wpt | 済 |
 | URL serializer | §4.3 1-7 | `urlSerializer` | — | wpt | 済 |
-| basic URL parser（全 state） | §4.4 1-3 | `run`, `step`, `basicUrlParse` | 停止性（`termination_by (stateRank st, 残りの文字数, 位相)`） | wpt | 済（state override を除く） |
+| basic URL parser（全 state） | §4.4 1-3 | `run`, `step`, `basicUrlParse` | 停止性（`termination_by (stateRank st, 残りの文字数, 位相)`） | wpt | 済 |
+| state override（setter が使う入口） | §4.4 | `SOverride`, `basicUrlParseOverride`, `schemeOverride`, `fail` | — | wpt-set | 済 |
 | shorten a URL's path / single-dot / double-dot / Windows drive letter | §4.4 | `shortenPath`, `isSingleDot`, `isDoubleDot`, `isWindowsDrive` ほか | — | wpt | 済 |
 
 ## §4.7 origin
@@ -74,12 +76,32 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | urlencoded parser | §5.1 1-4 | `parseUrlencoded`, `splitAmp`, `splitFirstEq`, `plusToSpace` | — | 固定 case（13 件） | 済（encoding は UTF-8 固定） |
 | urlencoded serializer | §5.2 1-4 | `serializeUrlencoded`, `urlencodedEncode` | `urlencodedEncode_no_separator` | 固定 case（往復 13 件） | 済 |
 
+## §6.1 `URL` の IDL 属性
+
+setter は `state override` 付きの basic URL parser を呼ぶだけなので、
+契約の大半は parser 側に載る。record の中で閉じるものだけ保存を証明した。
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
+| --- | --- | --- | --- | --- | --- |
+| getter（`href` / `protocol` / `username` / `password` / `host` / `hostname` / `port` / `pathname` / `search` / `hash`） | §6.1 | `Url.href` ほか、`Url.getAttr` | — | wpt-set | 済 |
+| `protocol` setter | §6.1 1 | `Url.setProtocol`, `schemeOverride` | — | wpt-set（33 件） | 済 |
+| `username` / `password` setter | §6.1 1-2 | `Url.setUsername`, `Url.setPassword`, `userinfoEncode` | `setUsername_cannot`, `setPassword_cannot`, `setUsername_valid`, `setPassword_valid` | wpt-set（21 件） | 済 |
+| `host` / `hostname` setter | §6.1 1-2 | `Url.setHost`, `Url.setHostname` | `setHost_opaque`, `setHostname_opaque` | wpt-set（111 件） | 済 |
+| `port` setter | §6.1 1-3 | `Url.setPort` | `setPort_cannot`, `setPort_empty_valid` | wpt-set（27 件） | 済 |
+| `pathname` setter | §6.1 1-3 | `Url.setPathname` | `setPathname_opaque` | wpt-set（29 件） | 済 |
+| `search` setter | §6.1 1-6 | `Url.setSearch`, `stripTrailingSpaces` | — | wpt-set（14 件） | 済（query object の list は `URLSearchParams` 側） |
+| `hash` setter | §6.1 1-4 | `Url.setHash`, `stripTrailingSpaces` | — | wpt-set（22 件） | 済 |
+| `href` setter | §6.1 1-3 | `Url.setHref` | — | wpt-set（1 件） | 済（失敗は `none`。例外は IDL 側） |
+| URL cannot have a username/password/port | §4.2 | `Url.cannotHaveCredentials` | 上記 3 つの `*_cannot` | wpt-set | 済 |
+| potentially strip trailing spaces from an opaque path | §6.1 1-4 | `stripTrailingSpaces` | — | wpt-set | 済 |
+
 ## 未対応と対象外
 
 | 項目 | 扱い | 根拠 |
 | --- | --- | --- |
 | IDNA / UTS #46（domain parser ToASCII） | 対象外 | 数千 code point の写像表 + Punycode + 正規化 + bidi 検査。仕様自身が別仕様へ委譲している。`hostParser` の引数として外から与える |
-| state override | 対象外 | `Location` と `URL` の setter 専用の引数。setter を入れるときに一緒に扱う |
+| `URL` の constructor が投げる例外 | 対象外 | `TypeError`。model は `Option` で返す |
+| `Location` の setter | 対象外 | HTML 側の概念（navigate、cross-origin の検査）を含む。URL record に効く部分は `URL` の setter と同じ |
 | encoding override | 対象外 | HTML 由来の legacy 引数。UTF-8 に固定している |
 | `URLSearchParams` の IDL | 未着手 | `get` / `getAll` / `append` / `sort` ほか。parse と serialize（§5）は入っている |
 | `_charset` の特別扱い | 対象外 | §5.1 の注記。仕様も「conforming なのは UTF-8 だけ」としている |
@@ -92,5 +114,6 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 1. `docs/url-spec-version.md` の commit から新しい commit までの `url.bs` の差分を取る。
 2. 差分に現れた algorithm 名でこの表を検索し、その行を review する。
 3. step 要約が変わっていれば要約を直し、意味が変わっていれば evaluator と契約を直す。
-4. WPT の `urltestdata.json` を取り直し、`url-model --wpt` を通す。
+4. WPT の `urltestdata.json` と `setters_tests.json` を取り直し、
+   `url-model --wpt` と `url-model --setters` を通す。
 5. `docs/url-spec-version.md` を進める。

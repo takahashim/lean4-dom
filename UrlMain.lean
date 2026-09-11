@@ -97,6 +97,84 @@ def runWpt (path : String) : IO UInt32 := do
   IO.println s!"origin: 一致 {originOk} / 不一致 {originBad}"
   return if bad == 0 && invalid == 0 && originBad == 0 then 0 else 1
 
+/-! ## setter -/
+
+structure SetterCase where
+  setter : String
+  href : String
+  newValue : String
+  expected : List (String × String)
+
+def setterCaseOfJson (j : Json) : Except String SetterCase := do
+  let setter ← (← j.getObjVal? "setter").getStr?
+  let href ← (← j.getObjVal? "href").getStr?
+  let newValue ← (← j.getObjVal? "new_value").getStr?
+  let arr ← (← j.getObjVal? "expected").getArr?
+  let expected ← arr.toList.mapM fun pair => do
+    let p ← pair.getArr?
+    match p.toList with
+    | [k, v] => do return ((← k.getStr?), (← v.getStr?))
+    | _ => throw "expected の要素が 2 要素の配列ではない"
+  return { setter, href, newValue, expected }
+
+/--
+WPT の `setters_tests.json`（ASCII だけの 258 件）を通す。
+
+各 case は「この URL を parse し、この setter にこの値を入れ、
+各 IDL 属性がこうなる」という形。`href` が parse できることも一緒に確かめる。
+-/
+def runSetters (path : String) : IO UInt32 := do
+  let text ← IO.FS.readFile path
+  let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
+  let .ok casesJson := json.getObjVal? "cases"
+    | do IO.eprintln s!"{path}: `cases` がない"; return 1
+  let .ok arr := casesJson.getArr? | do IO.eprintln s!"{path}: `cases` が配列ではない"; return 1
+  let mut ok := 0
+  let mut bad := 0
+  let mut skipped := 0
+  let mut invalid := 0
+  let mut shown := 0
+  for j in arr do
+    match setterCaseOfJson j with
+    | .error e => IO.eprintln s!"case を読めない: {e}"; bad := bad + 1
+    | .ok c =>
+      match parseUrl c.href none with
+      | none =>
+        bad := bad + 1
+        IO.println s!"SETTER base を parse できない href={repr c.href}"
+      | some u0 =>
+        match u0.setAttr c.setter c.newValue with
+        | none =>
+          bad := bad + 1
+          IO.println s!"SETTER 未知の setter {repr c.setter}"
+        | some u =>
+          -- host / hostname setter に非 ASCII へ decode される値を渡すものは
+          -- IDNA（UTS #46）が要る。`--wpt` 側と同じく、対象外として別に数える。
+          let needsIdna :=
+            (c.setter == "host" || c.setter == "hostname") &&
+              (percentDecodeToString c.newValue.toList).any (fun ch => !isAscii ch)
+          -- setter を通した後も record は `ValidUrl` を満たすはずである。
+          if !checkValidUrl u then
+            invalid := invalid + 1
+            IO.println s!"INVALID setter={c.setter} href={repr c.href} value={repr c.newValue}"
+          for (name, want) in c.expected do
+            match u.getAttr name with
+            | none =>
+              bad := bad + 1
+              IO.println s!"SETTER 未知の属性 {repr name}"
+            | some got =>
+              if got == want then ok := ok + 1
+              else if needsIdna then skipped := skipped + 1
+              else
+                bad := bad + 1
+                if shown < 20 then
+                  shown := shown + 1
+                  IO.println s!"SETTER {c.setter} href={repr c.href} value={repr c.newValue}"
+                  IO.println s!"  {name}: expected={repr want} actual={repr got}"
+  IO.println s!"setters: 一致 {ok} / 不一致 {bad} / IDNA が要る（model の対象外） {skipped}"
+  IO.println s!"ValidUrl（setter 後）: 違反 {invalid}"
+  return if bad == 0 && invalid == 0 then 0 else 1
+
 /--
 `application/x-www-form-urlencoded` の固定 case。
 
@@ -148,7 +226,8 @@ def main (args : List String) : IO UInt32 := do
     let a ← runWpt path
     let b ← runUrlencoded
     return if a == 0 && b == 0 then 0 else 1
+  | ["--setters", path] => runSetters path
   | ["--urlencoded"] => runUrlencoded
   | _ =>
-    IO.println "usage: url-model --wpt FILE | url-model --urlencoded"
+    IO.println "usage: url-model --wpt FILE | url-model --setters FILE | url-model --urlencoded"
     return 1
