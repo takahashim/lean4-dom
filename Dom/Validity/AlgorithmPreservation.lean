@@ -94,6 +94,29 @@ theorem ensurePreInsertionValidity_doctypeParentIsDocument {t : Tree} {node pare
           · next hkp => simp [hk] at h
           · next hkp => simpa using hkp
 
+/-- step 3。`child` が指定されていれば、その parent は `parent` である。 -/
+theorem ensurePreInsertionValidity_childParent {t : Tree} {node parent : NodeId}
+    {child : Option NodeId} {excl : List NodeId}
+    (h : ensurePreInsertionValidity t node parent child excl = .ok ()) :
+    ∀ c, child = some c → parentOf t c = some parent := by
+  intro c hc
+  subst hc
+  unfold ensurePreInsertionValidity at h
+  split at h
+  · simp at h
+  · split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · split at h
+        · simp at h
+        · split at h
+          · simp at h
+          · next hk =>
+            simp only [Bool.not_eq_true', childHasParent, decide_eq_false_iff_not,
+              Decidable.not_not] at hk
+            exact hk
+
 /-- step 4。node は DocumentFragment / DocumentType / Element / CharacterData であり、Document ではない。 -/
 theorem ensurePreInsertionValidity_nodeNotDocument {t : Tree} {node parent : NodeId}
     {child : Option NodeId} {excl : List NodeId}
@@ -1118,24 +1141,30 @@ theorem nodeDocumentsValid_insert {s s' : DOMState} {node parent : NodeId}
 
 /-! ## insert が Document の children 制約を保つこと -/
 
-/-- step 9 / 8 の element 挿入検査が通ったときに得られる事実（除外リストは空）。 -/
+/-- 除外リストに全部入っているなら、その list は空である。 -/
+theorem eq_nil_of_forall_mem_nil {α : Type _} {l : List α} (h : ∀ e ∈ l, e ∈ ([] : List α)) :
+    l = [] := by
+  cases hl : l with
+  | nil => rfl
+  | cons y r => exact absurd (h y (by rw [hl]; simp)) (by simp)
+
+/-- step 9 / 8 の element 挿入検査が通ったときに得られる事実。 -/
 theorem checkElementInsertion_ok {t : Tree} {parent : NodeId} {child : Option NodeId}
-    (h : checkElementInsertion t parent child [] = .ok ()) :
-    elementChildren t parent = [] ∧
+    {excl : List NodeId} (h : checkElementInsertion t parent child excl = .ok ()) :
+    (∀ e ∈ elementChildren t parent, e ∈ excl) ∧
       ∀ c, child = some c →
-        (kindOf t c == some NodeKind.documentType) = false ∧
+        ((kindOf t c == some NodeKind.documentType) = false ∨ c ∈ excl) ∧
           doctypeFollows t parent c = false := by
   unfold checkElementInsertion at h
   split at h
   · simp at h
   · next hany =>
-    have hnil : elementChildren t parent = [] := by
-      simp only [List.any_eq_true, List.contains_nil, Bool.not_false, and_true,
-        not_exists] at hany
-      cases hl : elementChildren t parent with
-      | nil => rfl
-      | cons y l => exact absurd (hl ▸ List.mem_cons_self ..) (hany y)
-    refine ⟨hnil, ?_⟩
+    have hall : ∀ e ∈ elementChildren t parent, e ∈ excl := by
+      simp only [List.any_eq_true, Bool.not_eq_true', not_exists, not_and] at hany
+      intro e he
+      have hb := hany e he
+      simpa using hb
+    refine ⟨hall, ?_⟩
     intro c hc
     subst hc
     simp only at h
@@ -1145,27 +1174,29 @@ theorem checkElementInsertion_ok {t : Tree} {parent : NodeId} {child : Option No
       split at h
       · simp at h
       · next hk =>
-        simp only [Bool.and_eq_true, List.contains_nil, Bool.not_false, and_true,
-          Bool.not_eq_true] at hk
-        exact ⟨hk, by simpa using hfol⟩
+        refine ⟨?_, by simpa using hfol⟩
+        by_cases hcm : c ∈ excl
+        · exact Or.inr hcm
+        · refine Or.inl ?_
+          have hcont : excl.contains c = false := by simpa using hcm
+          rw [Bool.not_eq_true, Bool.and_eq_false_iff, hcont] at hk
+          simpa using hk
 
-/-- step 10-11 の doctype 挿入検査が通ったときに得られる事実（除外リストは空）。 -/
+/-- step 10-11 の doctype 挿入検査が通ったときに得られる事実。 -/
 theorem checkDoctypeInsertion_ok {t : Tree} {parent : NodeId} {child : Option NodeId}
-    (h : checkDoctypeInsertion t parent child [] = .ok ()) :
-    doctypeChildren t parent = [] ∧
+    {excl : List NodeId} (h : checkDoctypeInsertion t parent child excl = .ok ()) :
+    (∀ e ∈ doctypeChildren t parent, e ∈ excl) ∧
       (∀ c, child = some c → elementPrecedes t parent c = false) ∧
-      (child = none → elementChildren t parent = []) := by
+      (child = none → ∀ e ∈ elementChildren t parent, e ∈ excl) := by
   unfold checkDoctypeInsertion at h
   split at h
   · simp at h
   · next hany =>
-    have hnil : doctypeChildren t parent = [] := by
-      simp only [List.any_eq_true, List.contains_nil, Bool.not_false, and_true,
-        not_exists] at hany
-      cases hl : doctypeChildren t parent with
-      | nil => rfl
-      | cons y l => exact absurd (hl ▸ List.mem_cons_self ..) (hany y)
-    refine ⟨hnil, ?_, ?_⟩
+    have hall : ∀ e ∈ doctypeChildren t parent, e ∈ excl := by
+      simp only [List.any_eq_true, Bool.not_eq_true', not_exists, not_and] at hany
+      intro e he
+      simpa using hany e he
+    refine ⟨hall, ?_, ?_⟩
     · intro c hc
       subst hc
       simp only at h
@@ -1178,11 +1209,9 @@ theorem checkDoctypeInsertion_ok {t : Tree} {parent : NodeId} {child : Option No
       split at h
       · simp at h
       · next hany' =>
-        simp only [List.any_eq_true, List.contains_nil, Bool.not_false, and_true,
-          not_exists] at hany'
-        cases hl : elementChildren t parent with
-        | nil => rfl
-        | cons y l => exact absurd (hl ▸ List.mem_cons_self ..) (hany' y)
+        simp only [List.any_eq_true, Bool.not_eq_true', not_exists, not_and] at hany'
+        intro e he
+        simpa using hany' e he
 
 /--
 parent が Document のとき、`ensure pre-insertion validity` が確立する事実。
@@ -1191,23 +1220,23 @@ step 6（Text は入れられない）、step 8（fragment の中身）、
 step 9（element を入れる条件）、step 10-11（doctype を入れる条件）に対応する。
 -/
 theorem ensurePreInsertionValidity_documentFacts {t : Tree} {node parent : NodeId}
-    {child : Option NodeId} {pd nd : NodeData}
+    {child : Option NodeId} {excl : List NodeId} {pd nd : NodeData}
     (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
     (hdoc : pd.kind = NodeKind.document)
-    (hv : ensurePreInsertionValidity t node parent child [] = .ok ()) :
+    (hv : ensurePreInsertionValidity t node parent child excl = .ok ()) :
     nd.kind.isText = false ∧
     (nd.kind = NodeKind.documentFragment →
       (elementChildren t node).length ≤ 1 ∧ textChildren t node = []) ∧
     ((nd.kind = NodeKind.element ∨
         (nd.kind = NodeKind.documentFragment ∧ elementChildren t node ≠ [])) →
-      elementChildren t parent = [] ∧
+      (∀ e ∈ elementChildren t parent, e ∈ excl) ∧
         ∀ c, child = some c →
-          (kindOf t c == some NodeKind.documentType) = false ∧
+          ((kindOf t c == some NodeKind.documentType) = false ∨ c ∈ excl) ∧
             doctypeFollows t parent c = false) ∧
     (nd.kind = NodeKind.documentType →
-      doctypeChildren t parent = [] ∧
+      (∀ e ∈ doctypeChildren t parent, e ∈ excl) ∧
         (∀ c, child = some c → elementPrecedes t parent c = false) ∧
-        (child = none → elementChildren t parent = [])) := by
+        (child = none → ∀ e ∈ elementChildren t parent, e ∈ excl)) := by
   unfold ensurePreInsertionValidity at hv
   rw [hpd, hnd] at hv
   simp only at hv
@@ -1691,7 +1720,16 @@ theorem documentTreesValid_insert {s s' : DOMState} {node parent : NodeId}
         doctypeChildren s.tree parent = [] ∧
           (∀ c, child = some c → elementPrecedes s.tree parent c = false) ∧
           (child = none → elementChildren s.tree parent = [])) :=
-    fun pd hpd hk => ensurePreInsertionValidity_documentFacts hpd hnd hk hv
+    fun pd hpd hk => by
+      obtain ⟨g1, g2, g3, g4⟩ := ensurePreInsertionValidity_documentFacts hpd hnd hk hv
+      refine ⟨g1, g2, ?_, ?_⟩
+      · intro hcase
+        obtain ⟨a1, a2⟩ := g3 hcase
+        exact ⟨eq_nil_of_forall_mem_nil a1,
+          fun c hc => ⟨(a2 c hc).1.resolve_right (by simp), (a2 c hc).2⟩⟩
+      · intro hdt
+        obtain ⟨b1, b2, b3⟩ := g4 hdt
+        exact ⟨eq_nil_of_forall_mem_nil b1, b2, fun hc => eq_nil_of_forall_mem_nil (b3 hc)⟩
   have hparentOk : ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document →
       DocumentChildrenOk s.tree parent := fun pd hpd hk => h.documentChildren parent pd hpd hk
   have hexists : kindOf s.tree parent = some NodeKind.document →
@@ -1921,6 +1959,508 @@ theorem nodeDocumentsValid_replace {s s' : DOMState} {child node parent : NodeId
             rw [← Except.ok.inj hr]
             simpa using h₃
 
+
+
+/-! ## replace が Document の children 制約を保つこと -/
+
+/-- children の分割から次の兄弟が読み取れる。 -/
+theorem nextSibling_of_split {t : Tree} (hwf : WellFormed t) {parent c : NodeId}
+    {A B : List NodeId} (hpar : parentOf t c = some parent)
+    (hsplit : childrenOf t parent = A ++ c :: B) : nextSibling t c = B.head? := by
+  unfold nextSibling
+  simp only [hpar, splitAt?_childrenOf_of_split hwf hsplit]
+
+/--
+`replace` の reference child は、`child` のあった位置より後ろで最初に残る node である。
+
+step 2-3 は「`child` の次の兄弟。ただしそれが `node` なら `node` の次の兄弟」だが、
+`node` は step 6 の adopt で外れるので、結局この形になる。
+-/
+theorem replace_reference_head {s : DOMState} {child node parent : NodeId}
+    (hwf : WellFormed s.tree) (hpar : parentOf s.tree child = some parent)
+    {A B : List NodeId} (hsplit : childrenOf s.tree parent = A ++ child :: B) :
+    (if nextSibling s.tree child = some node then nextSibling s.tree node
+      else nextSibling s.tree child) = (ListUtil.removeAll B node).head? := by
+  have hnd : (childrenOf s.tree parent).Nodup := childrenOf_nodup hwf parent
+  have hns : nextSibling s.tree child = B.head? := nextSibling_of_split hwf hpar hsplit
+  by_cases hb : nextSibling s.tree child = some node
+  · rw [if_pos hb]
+    rw [hns] at hb
+    cases hB : B with
+    | nil => rw [hB] at hb; simp at hb
+    | cons y B' =>
+      rw [hB] at hb
+      simp only [List.head?_cons, Option.some.injEq] at hb
+      have hsplity : childrenOf s.tree parent = (A ++ [child]) ++ y :: B' := by
+        rw [hsplit, hB]; simp
+      have hndy : y ∉ A ++ [child] ∧ y ∉ B' := by
+        refine ListUtil.nodup_split ?_
+        rw [← hsplity]; exact hnd
+      have hypar : parentOf s.tree y = some parent := by
+        refine parentOf_of_mem_childrenOf hwf ?_
+        rw [hsplity]
+        exact List.mem_append_right _ (by simp)
+      have hnsy : nextSibling s.tree y = B'.head? := nextSibling_of_split hwf hypar hsplity
+      subst hb
+      rw [hnsy, ListUtil.removeAll_cons, if_pos rfl, ListUtil.removeAll_eq_self hndy.2]
+  · rw [if_neg hb, hns]
+    cases hB : B with
+    | nil => simp [ListUtil.removeAll]
+    | cons y B' =>
+      have hyn : ¬ y = node := by
+        rw [hns, hB] at hb
+        simpa using hb
+      rw [ListUtil.removeAll_cons, if_neg hyn]
+      simp
+
+
+/-- 述語を満たす要素が無ければ filter は空。 -/
+theorem filter_eq_nil_of_all_false {α : Type _} (l : List α) (p : α → Bool)
+    (h : ∀ x ∈ l, p x = false) : l.filter p = [] := by
+  cases hl : l.filter p with
+  | nil => rfl
+  | cons y r =>
+    exfalso
+    have hy : y ∈ l.filter p := by rw [hl]; simp
+    obtain ⟨hy1, hy2⟩ := List.mem_filter.mp hy
+    rw [h y hy1] at hy2
+    simp at hy2
+
+/-- 空でない filter からは、述語を満たす要素が取り出せる。 -/
+theorem exists_mem_of_filter_ne_nil {α : Type _} {l : List α} {p : α → Bool}
+    (h : l.filter p ≠ []) : ∃ x ∈ l, p x = true := by
+  cases hl : l.filter p with
+  | nil => exact absurd hl h
+  | cons y r =>
+    have hy : y ∈ l.filter p := by rw [hl]; simp
+    obtain ⟨hy1, hy2⟩ := List.mem_filter.mp hy
+    exact ⟨y, hy1, hy2⟩
+
+/--
+`replace` が `insert` を呼ぶ時点で `InsertSeqOk` が成り立つ。
+
+step 1 の検査は元の tree で `child` を除外して走るが、`child` は step 7 で外れるので、
+除外が効いていた条件（element の子、doctype の子）は素直に空になる。
+reference child は `child` のあった位置の直後なので、
+「後ろに doctype が無い」「前に element が無い」もそのまま移る。
+-/
+theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
+    {pd nd nd₂ : NodeData}
+    (hwf : WellFormed s.tree) (hsv : StructurallyValid s.tree)
+    (hpd : s.tree.get? parent = some pd) (hnd : s.tree.get? node = some nd)
+    (hv : ensurePreInsertionValidity s.tree node parent (some child) [child] = .ok ())
+    (h₂ : DocumentTreesValid s₂.tree)
+    (hkind : ∀ m, kindOf s₂.tree m = kindOf s.tree m)
+    (hch : ∀ p, childrenOf s₂.tree p =
+      ListUtil.removeAll (ListUtil.removeAll (childrenOf s.tree p) node) child)
+    (hnd₂ : s₂.tree.get? node = some nd₂) :
+    InsertSeqOk s₂.tree parent
+      (if nextSibling s.tree child = some node then nextSibling s.tree node
+        else nextSibling s.tree child)
+      (if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]) := by
+  intro hdocparent
+  -- parent は Document
+  have hpk : pd.kind = NodeKind.document := by
+    have hk := hkind parent
+    rw [hdocparent, kindOf, hpd] at hk
+    simpa using hk.symm
+  obtain ⟨f1, f2, f3, f4⟩ := ensurePreInsertionValidity_documentFacts hpd hnd hpk hv
+  have hkd : nd₂.kind = nd.kind := by
+    have hk := hkind node
+    rw [kindOf, kindOf, hnd₂, hnd] at hk
+    simpa using hk
+  -- children の列は `node` と `child` を抜いたものである
+  have hsub₂ : ∀ p, (childrenOf s₂.tree p).Sublist (childrenOf s.tree p) := by
+    intro p
+    rw [hch p]
+    exact (ListUtil.removeAll_sublist _ _).trans (ListUtil.removeAll_sublist _ _)
+  have hnotchild : ∀ p, child ∉ childrenOf s₂.tree p := by
+    intro p
+    rw [hch p]
+    exact ListUtil.not_mem_removeAll _ _
+  -- 入れる node の列は元の列の sublist
+  have hnschild : nd₂.children.Sublist nd.children := by
+    have h1 := hsub₂ node
+    rw [childrenOf_eq hnd₂, childrenOf_eq hnd] at h1
+    exact h1
+  have hns : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children
+        else [node])).Sublist (if nd.kind = NodeKind.documentFragment then nd.children
+        else [node]) := by
+    by_cases hk : nd₂.kind = NodeKind.documentFragment
+    · rw [if_pos hk, if_pos (by rw [← hkd]; exact hk)]
+      exact hnschild
+    · rw [if_neg hk, if_neg (by rw [← hkd]; exact hk)]
+      exact List.Sublist.refl _
+  -- `child` の位置
+  have hchildpar : parentOf s.tree child = some parent :=
+    ensurePreInsertionValidity_childParent hv child rfl
+  have hchildmem : child ∈ childrenOf s.tree parent :=
+    (mem_childrenOf_iff hwf child parent).mp hchildpar
+  obtain ⟨A, B, hsplit⟩ := ListUtil.exists_splitAt?_of_mem hchildmem
+  have hLAB : childrenOf s.tree parent = A ++ child :: B := ListUtil.splitAt?_eq_some hsplit
+  have hndL : (A ++ child :: B).Nodup := by
+    rw [← hLAB]; exact childrenOf_nodup hwf parent
+  have hdisj : ∀ x ∈ B, x ∉ A := by
+    intro x hx hxa
+    exact (List.nodup_append.mp hndL).2.2 x hxa x (List.mem_cons_of_mem _ hx) rfl
+  have hch₂ : childrenOf s₂.tree parent =
+      ListUtil.removeAll A node ++ ListUtil.removeAll B node := by
+    rw [hch parent, hLAB]
+    exact ListUtil.removeAll_removeAll_split (ListUtil.nodup_split hndL).1
+      (ListUtil.nodup_split hndL).2
+  have href : (if nextSibling s.tree child = some node then nextSibling s.tree node
+      else nextSibling s.tree child) = (ListUtil.removeAll B node).head? :=
+    replace_reference_head hwf hchildpar hLAB
+  -- 除外されていた条件は `child` が外れることで空になる
+  have hnodoctypeB : doctypeFollows s.tree parent child
+      = B.any fun x => kindOf s.tree x == some NodeKind.documentType := by
+    unfold doctypeFollows
+    rw [hsplit]
+  have hnoelemA : elementPrecedes s.tree parent child
+      = A.any fun x => kindOf s.tree x == some NodeKind.element := by
+    unfold elementPrecedes
+    rw [hsplit]
+  -- ns₂ の中の element と doctype の数
+  have hDzero : nd.kind = NodeKind.documentFragment →
+      ∀ m ∈ nd₂.children, (kindOf s.tree m == some NodeKind.documentType) = false := by
+    intro hfrag m hm
+    have hne := child_not_doctype hsv hnd (by rw [hfrag]; simp) (hnschild.subset hm)
+    cases hmd : s.tree.get? m with
+    | none => simp [kindOf, hmd]
+    | some md => simp [kindOf, hmd, hne md hmd]
+  have helemcount : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+      fun m => kindOf s.tree m == some NodeKind.element).length ≤ 1 := by
+    by_cases hk : nd₂.kind = NodeKind.documentFragment
+    · rw [if_pos hk]
+      have hfrag : nd.kind = NodeKind.documentFragment := by rw [← hkd]; exact hk
+      obtain ⟨hlen, _⟩ := f2 hfrag
+      refine Nat.le_trans ?_ hlen
+      have hsl := hnschild.filter fun m => kindOf s.tree m == some NodeKind.element
+      have := hsl.length_le
+      unfold elementChildren
+      rw [childrenOf_eq hnd]
+      exact this
+    · rw [if_neg hk]
+      by_cases hke : (kindOf s.tree node == some NodeKind.element) = true <;>
+        simp [List.filter, hke]
+  have hdtcount : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+      fun m => kindOf s.tree m == some NodeKind.documentType).length ≤ 1 := by
+    by_cases hk : nd₂.kind = NodeKind.documentFragment
+    · rw [if_pos hk, filter_eq_nil_of_all_false _ _ (hDzero (by rw [← hkd]; exact hk))]
+      simp
+    · rw [if_neg hk]
+      by_cases hke : (kindOf s.tree node == some NodeKind.documentType) = true <;>
+        simp [List.filter, hke]
+  -- ns₂ に element があれば step 9 / 8 の条件が使える
+  have hf3 : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+      fun m => kindOf s.tree m == some NodeKind.element) ≠ [] →
+      (nd.kind = NodeKind.element ∨
+        (nd.kind = NodeKind.documentFragment ∧ elementChildren s.tree node ≠ [])) := by
+    intro hne
+    obtain ⟨x, hx, hxk⟩ := exists_mem_of_filter_ne_nil hne
+    by_cases hk : nd₂.kind = NodeKind.documentFragment
+    · rw [if_pos hk] at hx
+      refine Or.inr ⟨by rw [← hkd]; exact hk, ?_⟩
+      intro hnil
+      have hmem : x ∈ elementChildren s.tree node := by
+        unfold elementChildren
+        rw [childrenOf_eq hnd]
+        exact List.mem_filter.mpr ⟨hnschild.subset hx, hxk⟩
+      rw [hnil] at hmem
+      simp at hmem
+    · rw [if_neg hk, List.mem_singleton] at hx
+      subst hx
+      refine Or.inl ?_
+      rw [kindOf, hnd] at hxk
+      simpa using hxk
+  have hf4 : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+      fun m => kindOf s.tree m == some NodeKind.documentType) ≠ [] →
+      nd.kind = NodeKind.documentType := by
+    intro hne
+    obtain ⟨x, hx, hxk⟩ := exists_mem_of_filter_ne_nil hne
+    by_cases hk : nd₂.kind = NodeKind.documentFragment
+    · exfalso
+      rw [if_pos hk] at hx
+      rw [hDzero (by rw [← hkd]; exact hk) x hx] at hxk
+      simp at hxk
+    · rw [if_neg hk, List.mem_singleton] at hx
+      subst hx
+      rw [kindOf, hnd] at hxk
+      simpa using hxk
+  -- `child` が外れるので、除外されていた子は残らない
+  have helemnil : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+      fun m => kindOf s.tree m == some NodeKind.element) ≠ [] →
+      elementChildren s₂.tree parent = [] := by
+    intro hne
+    obtain ⟨hall, _⟩ := f3 (hf3 hne)
+    unfold elementChildren
+    refine filter_eq_nil_of_all_false _ _ ?_
+    intro x hx
+    cases hxk : (kindOf s₂.tree x == some NodeKind.element) with
+    | false => rfl
+    | true =>
+      exfalso
+      have hxk' : (kindOf s.tree x == some NodeKind.element) = true := by
+        rw [← hkind x]; exact hxk
+      have hmem : x ∈ elementChildren s.tree parent := by
+        unfold elementChildren
+        exact List.mem_filter.mpr ⟨hsub₂ parent |>.subset hx, hxk'⟩
+      have := hall x hmem
+      rw [List.mem_singleton] at this
+      subst this
+      exact hnotchild parent hx
+  have hdtnil : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+      fun m => kindOf s.tree m == some NodeKind.documentType) ≠ [] →
+      doctypeChildren s₂.tree parent = [] := by
+    intro hne
+    obtain ⟨hall, _, _⟩ := f4 (hf4 hne)
+    unfold doctypeChildren
+    refine filter_eq_nil_of_all_false _ _ ?_
+    intro x hx
+    cases hxk : (kindOf s₂.tree x == some NodeKind.documentType) with
+    | false => rfl
+    | true =>
+      exfalso
+      have hxk' : (kindOf s.tree x == some NodeKind.documentType) = true := by
+        rw [← hkind x]; exact hxk
+      have hmem : x ∈ doctypeChildren s.tree parent := by
+        unfold doctypeChildren
+        exact List.mem_filter.mpr ⟨hsub₂ parent |>.subset hx, hxk'⟩
+      have := hall x hmem
+      rw [List.mem_singleton] at this
+      subst this
+      exact hnotchild parent hx
+  -- s₂ 側で parent が Document であること
+  obtain ⟨pd₂, hpd₂⟩ : ∃ pd₂, s₂.tree.get? parent = some pd₂ := by
+    cases hq : s₂.tree.get? parent with
+    | none => rw [kindOf, hq] at hdocparent; simp at hdocparent
+    | some q => exact ⟨q, rfl⟩
+  have hpk₂ : pd₂.kind = NodeKind.document := by
+    rw [kindOf, hpd₂] at hdocparent
+    simpa using hdocparent
+  obtain ⟨hb1, hb2, _, _⟩ := h₂.documentChildren parent pd₂ hpd₂ hpk₂
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- Text は入れない
+    intro m hm k hk
+    have hm' := hns.subset hm
+    have hk' : kindOf s.tree m = some k := by rw [← hkind m]; exact hk
+    by_cases hfrag : nd.kind = NodeKind.documentFragment
+    · rw [if_pos hfrag] at hm'
+      obtain ⟨_, htx⟩ := f2 hfrag
+      have hnot : m ∉ textChildren s.tree node := by rw [htx]; simp
+      unfold textChildren at hnot
+      rw [childrenOf_eq hnd] at hnot
+      cases hik : k.isText with
+      | false => rfl
+      | true => exact absurd (List.mem_filter.mpr ⟨hm', by rw [hk']; exact hik⟩) hnot
+    · rw [if_neg hfrag, List.mem_singleton] at hm'
+      subst hm'
+      rw [kindOf, hnd] at hk'
+      obtain rfl : k = nd.kind := (Option.some.inj hk').symm
+      exact f1
+  · -- element と doctype は合わせて高々一つ
+    simp only [hkind]
+    by_cases hk : nd₂.kind = NodeKind.documentFragment
+    · rw [if_pos hk, filter_eq_nil_of_all_false _ _ (hDzero (by rw [← hkd]; exact hk))]
+      simp only [List.length_nil, Nat.add_zero]
+      have := helemcount
+      rw [if_pos hk] at this
+      exact this
+    · rw [if_neg hk]
+      by_cases hke : (kindOf s.tree node == some NodeKind.element) = true
+      · have hkd' : (kindOf s.tree node == some NodeKind.documentType) = false := by
+          have : kindOf s.tree node = some NodeKind.element := by simpa using hke
+          rw [this]; simp
+        simp [List.filter, hke, hkd']
+      · simp only [Bool.not_eq_true] at hke
+        by_cases hkt : (kindOf s.tree node == some NodeKind.documentType) = true
+        · simp [List.filter, hke, hkt]
+        · simp only [Bool.not_eq_true] at hkt
+          simp [List.filter, hke, hkt]
+  · -- element の子は高々一つ
+    simp only [hkind]
+    by_cases hne : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+        fun m => kindOf s.tree m == some NodeKind.element) = []
+    · rw [hne]
+      simpa using hb1
+    · rw [helemnil hne]
+      simpa using helemcount
+  · -- doctype の子は高々一つ
+    simp only [hkind]
+    by_cases hne : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+        fun m => kindOf s.tree m == some NodeKind.documentType) = []
+    · rw [hne]
+      simpa using hb2
+    · rw [hdtnil hne]
+      simpa using hdtcount
+  · -- element を入れるなら、reference child より後ろに doctype は無い
+    intro m hm hkm c hc
+    have hne : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+        fun x => kindOf s.tree x == some NodeKind.element) ≠ [] := by
+      intro hnil
+      have hmem : m ∈ (if nd₂.kind = NodeKind.documentFragment then nd₂.children
+          else [node]).filter fun x => kindOf s.tree x == some NodeKind.element :=
+        List.mem_filter.mpr ⟨hm, by rw [← hkind m, hkm]; simp⟩
+      rw [hnil] at hmem
+      simp at hmem
+    obtain ⟨_, hafter⟩ := f3 (hf3 hne)
+    have hdocfol : doctypeFollows s.tree parent child = false := (hafter child rfl).2
+    rw [hnodoctypeB] at hdocfol
+    -- reference child は `removeAll B node` の先頭
+    rw [href] at hc
+    cases hQ : ListUtil.removeAll B node with
+    | nil => rw [hQ] at hc; simp at hc
+    | cons y Q' =>
+      rw [hQ] at hc
+      simp only [List.head?_cons, Option.some.injEq] at hc
+      subst hc
+      have hyB : y ∈ B := by
+        have hm : y ∈ ListUtil.removeAll B node := by rw [hQ]; simp
+        exact ((ListUtil.mem_removeAll _ _ _).mp hm).2
+      have hQ'B : ∀ x ∈ Q', x ∈ B := by
+        intro x hx
+        have hm : x ∈ ListUtil.removeAll B node := by rw [hQ]; exact List.mem_cons_of_mem _ hx
+        exact ((ListUtil.mem_removeAll _ _ _).mp hm).2
+      have hnoDT : ∀ x ∈ B, (kindOf s.tree x == some NodeKind.documentType) = false := by
+        intro x hx
+        cases hxk : (kindOf s.tree x == some NodeKind.documentType) with
+        | false => rfl
+        | true =>
+          exfalso
+          rw [Bool.eq_false_iff] at hdocfol
+          exact hdocfol (List.any_eq_true.mpr ⟨x, hx, hxk⟩)
+      refine ⟨by rw [hkind]; exact hnoDT y hyB, ?_⟩
+      have hcnotA : y ∉ ListUtil.removeAll A node := fun hx =>
+        hdisj y hyB ((ListUtil.mem_removeAll _ _ _).mp hx).2
+      have hsplit₂ : ListUtil.splitAt? (childrenOf s₂.tree parent) y
+          = some (ListUtil.removeAll A node, Q') := by
+        rw [hch₂, hQ]
+        exact ListUtil.splitAt?_append_cons_self hcnotA Q'
+      unfold doctypeFollows
+      rw [hsplit₂, Bool.eq_false_iff]
+      intro hcon
+      obtain ⟨x, hx, hxk⟩ := List.any_eq_true.mp hcon
+      rw [hkind, hnoDT x (hQ'B x hx)] at hxk
+      simp at hxk
+  · -- doctype を入れるなら、reference child より前に element は無い
+    intro m hm hkm
+    have hne : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
+        fun x => kindOf s.tree x == some NodeKind.documentType) ≠ [] := by
+      intro hnil
+      have hmem : m ∈ (if nd₂.kind = NodeKind.documentFragment then nd₂.children
+          else [node]).filter fun x => kindOf s.tree x == some NodeKind.documentType :=
+        List.mem_filter.mpr ⟨hm, by rw [← hkind m, hkm]; simp⟩
+      rw [hnil] at hmem
+      simp at hmem
+    obtain ⟨_, hprec, _⟩ := f4 (hf4 hne)
+    have hnoEL : elementPrecedes s.tree parent child = false := hprec child rfl
+    rw [hnoelemA] at hnoEL
+    have hnoE : ∀ x ∈ A, (kindOf s.tree x == some NodeKind.element) = false := by
+      intro x hx
+      cases hxk : (kindOf s.tree x == some NodeKind.element) with
+      | false => rfl
+      | true =>
+        exfalso
+        rw [Bool.eq_false_iff] at hnoEL
+        exact hnoEL (List.any_eq_true.mpr ⟨x, hx, hxk⟩)
+    have hnoEA' : ∀ x ∈ ListUtil.removeAll A node,
+        (kindOf s.tree x == some NodeKind.element) = false :=
+      fun x hx => hnoE x ((ListUtil.mem_removeAll _ _ _).mp hx).2
+    refine ⟨fun c hc => ?_, fun hc => ?_⟩
+    · rw [href] at hc
+      cases hQ : ListUtil.removeAll B node with
+      | nil => rw [hQ] at hc; simp at hc
+      | cons y Q' =>
+        rw [hQ] at hc
+        simp only [List.head?_cons, Option.some.injEq] at hc
+        subst hc
+        have hyB : y ∈ B := by
+          have hm : y ∈ ListUtil.removeAll B node := by rw [hQ]; simp
+          exact ((ListUtil.mem_removeAll _ _ _).mp hm).2
+        have hcnotA : y ∉ ListUtil.removeAll A node := fun hx =>
+          hdisj y hyB ((ListUtil.mem_removeAll _ _ _).mp hx).2
+        have hsplit₂ : ListUtil.splitAt? (childrenOf s₂.tree parent) y
+            = some (ListUtil.removeAll A node, Q') := by
+          rw [hch₂, hQ]
+          exact ListUtil.splitAt?_append_cons_self hcnotA Q'
+        unfold elementPrecedes
+        rw [hsplit₂, Bool.eq_false_iff]
+        intro hcon
+        obtain ⟨x, hx, hxk⟩ := List.any_eq_true.mp hcon
+        rw [hkind, hnoEA' x hx] at hxk
+        simp at hxk
+    · rw [href] at hc
+      have hQnil : ListUtil.removeAll B node = [] := by
+        cases hQ : ListUtil.removeAll B node with
+        | nil => rfl
+        | cons y Q' => rw [hQ] at hc; simp at hc
+      have hchA : childrenOf s₂.tree parent = ListUtil.removeAll A node := by
+        rw [hch₂, hQnil, List.append_nil]
+      unfold elementChildren
+      rw [hchA]
+      refine filter_eq_nil_of_all_false _ _ (fun x hx => ?_)
+      rw [hkind]
+      exact hnoEA' x hx
+
+
+/-- PLAN §6.3 の形。`replace` は Document の children 制約を保つ。 -/
+theorem documentTreesValid_replace {s s' : DOMState} {child node parent : NodeId}
+    (hwf : WellFormed s.tree) (hsv : StructurallyValid s.tree) (h : DocumentTreesValid s.tree)
+    (hr : replace s child node parent = .ok s') : DocumentTreesValid s'.tree := by
+  unfold replace at hr
+  split at hr
+  · simp at hr
+  · next hv =>
+    split at hr
+    · simp at hr
+    · next pd hpd =>
+      simp only at hr
+      split at hr
+      · simp at hr
+      · next s₁ ha =>
+        have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
+        have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_adopt hwf h ha
+        have hkp₁ : KindPreserving s.tree s₁.tree := kindPreserving_adopt ha
+        have hch₁ : ∀ p, childrenOf s₁.tree p =
+            ListUtil.removeAll (childrenOf s.tree p) node := adopt_childrenOf hwf ha
+        split at hr
+        · simp at hr
+        · next s₂ hrm =>
+          have hstep : DocumentTreesValid s₂.tree ∧ KindPreserving s₁.tree s₂.tree ∧
+              WellFormed s₂.tree ∧
+              (∀ p, childrenOf s₂.tree p = ListUtil.removeAll (childrenOf s₁.tree p) child) := by
+            revert hrm
+            split
+            · next hnone =>
+              intro hrm
+              rw [← Except.ok.inj hrm]
+              refine ⟨h₁, KindPreserving.refl _, hwf₁, fun p => ?_⟩
+              rw [ListUtil.removeAll_eq_self]
+              intro hmem
+              have hpar := parentOf_of_mem_childrenOf hwf₁ hmem
+              rw [hnone] at hpar
+              simp at hpar
+            · intro hrm
+              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
+              exact ⟨documentTreesValid_remove hwf₁ h₁ hrm', kindPreserving_remove hrm',
+                remove_preserves_wellformed hwf₁ hrm',
+                detach_childrenOf_removeAll hwf₁ (remove_ok hrm').2⟩
+          obtain ⟨h₂, hkp₂, hwf₂, hch₂⟩ := hstep
+          have hkind : ∀ m, kindOf s₂.tree m = kindOf s.tree m := hkp₁.trans hkp₂
+          have hchall : ∀ p, childrenOf s₂.tree p =
+              ListUtil.removeAll (ListUtil.removeAll (childrenOf s.tree p) node) child := by
+            intro p
+            rw [hch₂ p, hch₁ p]
+          split at hr
+          · simp at hr
+          · next s₃ hi =>
+            have h₃ : DocumentTreesValid s₃.tree := by
+              refine documentTreesValid_insert_of_seqOk hwf₂ h₂ ?_ hi
+              intro nd₂ hnd₂
+              obtain ⟨nd, hnd, _⟩ := kindPreserving_get? (hkp₁.trans hkp₂) hnd₂
+              exact insertSeqOk_of_replace hwf hsv hpd hnd hv h₂ hkind hchall hnd₂
+            rw [← Except.ok.inj hr]
+            simpa using h₃
 
 /-! ## replace all -/
 

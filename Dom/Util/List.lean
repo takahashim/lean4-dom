@@ -620,4 +620,36 @@ theorem splitAt?_removeAll_none {α : Type _} [DecidableEq α] {a c : α}
 theorem removeAll_sublist {α : Type _} [DecidableEq α] (l : List α) (a : α) :
     (removeAll l a).Sublist l := List.filter_sublist
 
+theorem removeAll_append {α : Type _} [DecidableEq α] (l₁ l₂ : List α) (a : α) :
+    removeAll (l₁ ++ l₂) a = removeAll l₁ a ++ removeAll l₂ a := by
+  unfold removeAll; exact List.filter_append ..
+
+theorem removeAll_cons {α : Type _} [DecidableEq α] (x : α) (l : List α) (a : α) :
+    removeAll (x :: l) a = if x = a then removeAll l a else x :: removeAll l a := by
+  unfold removeAll
+  by_cases h : x = a <;> simp [List.filter, h]
+
+/--
+`A ++ c :: B` から `n` と `c` を取り除くと、`A` と `B` から `n` を取り除いたものが並ぶ。
+
+`c` が `A` にも `B` にも現れないこと（children の Nodup）を使う。
+-/
+theorem removeAll_removeAll_split {α : Type _} [DecidableEq α] {A B : List α} {c n : α}
+    (hcA : c ∉ A) (hcB : c ∉ B) :
+    removeAll (removeAll (A ++ c :: B) n) c = removeAll A n ++ removeAll B n := by
+  have hA : removeAll (removeAll A n) c = removeAll A n :=
+    removeAll_eq_self fun hm => hcA ((mem_removeAll _ _ _).mp hm).2
+  have hB : removeAll (removeAll B n) c = removeAll B n :=
+    removeAll_eq_self fun hm => hcB ((mem_removeAll _ _ _).mp hm).2
+  rw [removeAll_append, removeAll_cons]
+  by_cases hcn : c = n
+  · rw [if_pos hcn, removeAll_append, hA, hB]
+  · rw [if_neg hcn, removeAll_append, removeAll_cons, if_pos rfl, hA, hB]
+
+/-- Nodup な list を `A ++ c :: B` と分けると、`c` は前半にも後半にも現れない。 -/
+theorem nodup_split {α : Type _} {A B : List α} {c : α} (h : (A ++ c :: B).Nodup) :
+    c ∉ A ∧ c ∉ B := by
+  have h1 := List.nodup_append.mp h
+  exact ⟨fun hm => h1.2.2 c hm c (by simp) rfl, (List.nodup_cons.mp h1.2.1).1⟩
+
 end Dom.ListUtil
