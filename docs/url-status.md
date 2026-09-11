@@ -461,6 +461,43 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 足した条件は WPT の 816 件の parse と 258 件の setter 適用のすべてで
 実行時に検査していて、違反はない。
 
+## `run_valid` の並列化（作業中）
+
+`run_valid` は `run.induct` の 119 case を**一つの宣言**で閉じている。
+宣言が一つなので 1 コアしか使えず、147 秒が丸ごと直列である。
+state ごとの独立した定理に割れば Lean が並列に elaborate する
+（`Dom/Validity/AlgorithmPreservation.lean` は 78 定理で CPU 463% で流れている）。
+
+設計は二つ決まっている。作業ファイルは `notes/wip/step-valid.lean`。
+
+**測度は一つの自然数に潰せる。** `run` / `step` の `termination_by` は
+`(stateRank st, input.length, _)` の辞書式だが、順序を入れ替えて
+`(input.length, stateRank st)` にしても停止性は言える。
+
+* 文字を消費する遷移では `input.length` が減る（rank は何でもよい）
+* 同じ文字を読み直す遷移では長さが同じで `stateRank` が減る
+
+`stateRank` は 20 未満なので `input.length * 20 + stateRank st` が辞書式と一致し、
+`Nat.strongRecOn` で回せる。`step_valid` から `run_valid` が出ることは確かめてある。
+
+```lean
+def RunIH (base : Option Url) (n : Nat) : Prop :=
+  ∀ (st : PState) (input : List Char) (ctx : PCtx) (u : Url),
+    run base st input ctx = .ok u → pmeasure st input < n → PInv base st ctx → ValidUrl u
+```
+
+等式を先に置くのが要点で、`refine ih _ _ _ u heq ?_ ?_` の `_` がそこから決まる。
+
+**`PInv` の成分は文脈に置く。** simp に lemma として渡すのでは足りない。
+条件付き書き換えになってしまい、`mayCred st = false` から
+「credentials を持てない」を引き出せない。
+`have ⟨hov, hbv, ...⟩ := hinv` の一行で済み、`hinv` 自身も残る。
+
+20 state のうち汎用の closer だけで閉じたのは `opaquePath` / `query` / `fragment` の三つ。
+残る 17 は、元の三段が使っている移送補題（`portDone_spec`、`pathStepUrl_spec` など）を
+個別に当てる必要がある。変わるのは `ih` の当て方（測度の義務が増える）と、
+`run.induct` がやっていた case 分割を `repeat' split at heq` で自前でやる点だけである。
+
 ## 未着手
 
 * **`Punycode.decode (encode s) = s`。** 19 件で往復することは確かめたが、
