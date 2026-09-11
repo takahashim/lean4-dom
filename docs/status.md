@@ -1831,6 +1831,35 @@ attribute の操作に渡す名前には大文字を混ぜる。
     ついでに record の newValue の読み戻しも、local name で引く
     `target_node[attr]` から namespace 込みの読みに直した。
 
+## UTF-16 の code unit 境界（入口で断るようにした）
+
+仕様の offset は UTF-16 の code unit 数だが、本 model は Lean の `String` を使うので
+code point 数で数えている（roadmap §13.1）。両者が一致するのは BMP の範囲だけで、
+astral character が入ると食い違う。
+たとえば `"a😀b"` は仕様の length が 4、model では 3 になるので、
+`deleteData(3, 1)` は仕様では `"b"` を消すが model では何もしない。
+
+生成器が BMP の文字しか作らないのでこれまで表に出なかったが、
+loader は黙って受理していた。BMP 外の `data` を拒むようにして、
+「BMP に限る」という約束を文書ではなく検査にした。
+
+差分テストの相手である Dommy は `Dommy::Internal::Utf16` で code unit を数えているので、
+**この一点は model の側が仕様から外れている**。直すなら次の二択になる。
+
+* **完全に忠実にする。** DOMString は 16-bit code unit の列なので lone surrogate を持ちうるが、
+  Lean の `Char` は surrogate を除いた Unicode scalar value なので `String` では表せない。
+  `NodeData.data` を `Array UInt16` のようなものに変えることになり、
+  scenario の JSON 形式と harness も同時に変わる。
+  Ruby の UTF-8 String も同じ制約を持ち、Dommy 自身が
+  「lone surrogate は表現できない」と明記している。
+* **Dommy と同じ線に合わせる。** 長さと offset を code unit で数え、
+  surrogate pair を割る操作は表現できないので拒む。
+  こちらなら差分テストで裏を取れる。BMP では `utf16Length` が `String.length` と一致するので
+  既存の固定 scenario は変わらないが、`length_spliceData` など
+  CharacterData と Range の中心の補題に「pair を割らない」という側条件が入る。
+
+どちらを採るかは決めていない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
@@ -1842,3 +1871,6 @@ attribute の操作に渡す名前には大文字を混ぜる。
 * `Attr` を node として扱う API（`setAttributeNode`, `attributes` の `NamedNodeMap`、
   それに伴う "set an attribute" と "replace an attribute"、`InUseAttributeError`）。
   model の attribute は element の状態なので、node として観測できない。
+  `InUseAttributeError` は attribute の object identity で決まるが、
+  identity は roadmap §13.3 で対象外としている。
+* UTF-16 の code unit 境界（上記）。

@@ -157,7 +157,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | `Attr` を node として扱う API（`setAttributeNode`、`attributes` の `NamedNodeMap`、"set an attribute" と "replace an attribute"） | 対象外 | model の attribute は element の状態で、node tree に入らない |
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
-| UTF-16 の code unit 境界 | 対象外 | roadmap §13.1。`data` は Lean の `String` |
+| UTF-16 の code unit 境界 | 対象外（検査あり） | roadmap §13.1。`data` は Lean の `String` で offset は code point 数。BMP では仕様の code unit 数と一致し、BMP 外の `data` は loader が拒む。差分テストの相手（Dommy）は `Dommy::Internal::Utf16` で code unit を数えるので、ここは model の側が仕様から外れている |
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。node は scenario が初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
 | `NodeFilter` の callback | 対象外 | roadmap §13.4。callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |

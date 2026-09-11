@@ -35,7 +35,7 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | 項目 | 理由 |
 | --- | --- |
 | object identity と戻り値 | model は node を生成しないので wrapper の同一性を観測できない |
-| 文字列の内部表現 | `data` は Lean の `String`。UTF-16 の code unit 境界は扱わない |
+| 文字列の内部表現 | `data` は Lean の `String` で、offset は code point 数。仕様は UTF-16 の code unit 数なので、一致するのは BMP の範囲だけである。loader が BMP 外の `data` を拒むので、この境界は検査されている |
 | MutationObserver の callback 本体 | callback は model の外。どの observer にどの record が配送されるかまでは比べる |
 | `NodeFilter` の callback | 同じく callback なので filter は常に null。`whatToShow` は純粋なので扱う |
 | `Attr` を node として扱う API | model の attribute は element の状態で、node tree に入らない |

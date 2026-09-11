@@ -102,6 +102,8 @@ Dommy を読み込んでいない process の仕事にしてある。
 * `nodes` の並び順が children の順序を決める。
 * `ownerDocument` は省略できる（`document` は自分自身、それ以外は最初の document node）。
 * `data` は CharacterData 以外では無視する。
+  BMP 外の文字は loader が拒む。model の offset は code point 数で、
+  仕様の UTF-16 code unit 数と一致するのは BMP の範囲だけだからである。
 * `ranges` は `{"start": {"node": 1, "offset": 0}, "end": {"node": 1, "offset": 2}}` の形。
   Lean 側は読み込み時に両端の validity（node が木にあり offset が length 以下）を検査する。
 * `iterators` は `{"root": 1, "reference": 1, "pointerBeforeReference": true,
