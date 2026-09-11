@@ -29,6 +29,7 @@ import Dom.Properties.Iterator
 import Dom.Properties.CharacterData
 import Dom.Validity.Derived
 import Dom.Validity.Preservation
+import Dom.Validity.AlgorithmPreservation
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

@@ -443,4 +443,74 @@ theorem findIdx?_removeAll {α : Type _} [DecidableEq α] {l : List α} {a c : �
     rw [findIdx?_eq_some_iff_split.mpr ⟨u ++ v1, v2, rfl, rfl, hnpre2⟩, hkeq]
     simp
 
+/-- `removeAll` は filter した長さを増やさない。 -/
+theorem length_filter_removeAll {α : Type _} [DecidableEq α] (a : α) (p : α → Bool) :
+    ∀ (l : List α), ((removeAll l a).filter p).length ≤ (l.filter p).length
+  | [] => Nat.le_refl _
+  | x :: rest => by
+    have ih := length_filter_removeAll a p rest
+    by_cases hx : x = a
+    · have h1 : removeAll (x :: rest) a = removeAll rest a := by
+        simp [removeAll, hx]
+      rw [h1, List.filter_cons]
+      split
+      · simp only [List.length_cons]; omega
+      · exact ih
+    · have h1 : removeAll (x :: rest) a = x :: removeAll rest a := by
+        simp [removeAll, hx]
+      rw [h1, List.filter_cons, List.filter_cons]
+      split
+      · simp only [List.length_cons]; omega
+      · exact ih
+
+/-- filter した結果が空なら、`removeAll` した後も空である。 -/
+theorem filter_removeAll_eq_nil {α : Type _} [DecidableEq α] {l : List α} {a : α}
+    {p : α → Bool} (h : l.filter p = []) : (removeAll l a).filter p = [] := by
+  have := length_filter_removeAll a p l
+  rw [h] at this
+  exact List.eq_nil_of_length_eq_zero (Nat.le_zero.mp (by simpa using this))
+
+/-- `removeAll` しても、最初に現れる `c` の前後の分割はそれぞれを `removeAll` したものになる。 -/
+theorem splitAt?_removeAll {α : Type _} [DecidableEq α] {a c : α} (hc : c ≠ a) :
+    ∀ {l u v : List α}, splitAt? l c = some (u, v) →
+      splitAt? (removeAll l a) c = some (removeAll u a, removeAll v a)
+  | [], _, _, h => by simp [splitAt?] at h
+  | x :: rest, u, v, h => by
+    by_cases hxc : x = c
+    · simp only [splitAt?, if_pos hxc, Option.some.injEq, Prod.mk.injEq] at h
+      have hxa : x ≠ a := by rw [hxc]; exact hc
+      have h1 : removeAll (x :: rest) a = x :: removeAll rest a := by simp [removeAll, hxa]
+      rw [h1, ← h.1, ← h.2]
+      simp [splitAt?, hxc, removeAll]
+    · simp only [splitAt?, if_neg hxc, Option.map_eq_some_iff] at h
+      obtain ⟨q, hq, he⟩ := h
+      obtain ⟨u', v'⟩ := q
+      simp only [Prod.mk.injEq] at he
+      have ih := splitAt?_removeAll hc hq
+      by_cases hxa : x = a
+      · have h1 : removeAll (x :: rest) a = removeAll rest a := by simp [removeAll, hxa]
+        have h2 : removeAll u a = removeAll u' a := by
+          rw [← he.1]; simp [removeAll, hxa]
+        rw [h1, h2, ← he.2]
+        exact ih
+      · have h1 : removeAll (x :: rest) a = x :: removeAll rest a := by simp [removeAll, hxa]
+        have h2 : removeAll u a = x :: removeAll u' a := by
+          rw [← he.1]; simp [removeAll, hxa]
+        rw [h1, h2, ← he.2]
+        simp [splitAt?, hxc, ih]
+
+/-- `splitAt?` が `none` を返すのは、その要素が無いときだけである。 -/
+theorem splitAt?_isSome_of_mem {α : Type _} [DecidableEq α] {a : α} :
+    ∀ {l : List α}, a ∈ l → (splitAt? l a).isSome
+  | [], h => by simp at h
+  | x :: rest, h => by
+    by_cases hx : x = a
+    · simp [splitAt?, hx]
+    · rcases List.mem_cons.mp h with he | hm
+      · exact absurd he.symm hx
+      · have := splitAt?_isSome_of_mem hm
+        cases hs : splitAt? rest a with
+        | none => rw [hs] at this; simp at this
+        | some q => simp [splitAt?, hx, hs]
+
 end Dom.ListUtil
