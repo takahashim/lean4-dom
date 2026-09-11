@@ -126,7 +126,12 @@ module Generate
     end
     pick = -> { ids.sample(random: rng) }
     # 存在しない id をたまに混ぜて notFoundError を誘う。
-    maybe = -> { rng.rand < 0.15 ? ids.max + 1 + rng.rand(3) : pick.call }
+    #
+    # ただし Dommy 側には「存在しない node」を渡しようが無いので、
+    # その step 以降は差分比較できない（runner は `__unsupported__` を返す）。
+    # model 側の `get? = none` の分岐を撫でる価値はあるが、
+    # 比率を上げると差分テストの予算を食うだけなので低く抑える。
+    maybe = -> { rng.rand < 0.05 ? ids.max + 1 + rng.rand(3) : pick.call }
     case op
     when "appendChild" then { "op" => op, "parent" => pick.call, "node" => maybe.call }
     when "insertBefore"

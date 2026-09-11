@@ -10,9 +10,11 @@
 #   dom-model --batch DIR
 #   bundle exec ruby test/dommy_runner.rb --batch DIR
 #
-# 比較対象は PLAN §7.2 のとおり、各 step の node の parent と children、
-# そこから導いた tree order、および例外の名前である。
-# Range と NodeIterator は Phase 5 以降で加える。
+# 比較対象は Lean 側の `Observation`（`Dom/Observation.lean`）である。
+# node の kind / parent / 順序付き children / node document / data、
+# そこから導いた tree order、live Range の両端、NodeIterator の三つ組、
+# MutationObserver に積まれた record、操作の成否と例外、
+# そして失敗した step で状態が変わっていないこと。
 
 require "json"
 
@@ -34,11 +36,11 @@ module Compare
     order
   end
 
-  # 比較に使う正規形。kind と data も含める（CharacterData の変更は Phase 7 で使う）。
+  # 比較に使う正規形。Lean 側の `ObservedNode` の field をそのまま並べる。
   def normalize_state(state)
     nodes = (state["nodes"] || []).sort_by { |n| n["id"] }
     {
-      "nodes" => nodes.map { |n| n.slice("id", "kind", "parent", "children", "data") },
+      "nodes" => nodes.map { |n| n.slice("id", "kind", "parent", "children", "nodeDocument", "data") },
       "treeOrder" => tree_order(nodes),
       "ranges" => state["ranges"] || [],
       "iterators" => state["iterators"] || [],
@@ -93,7 +95,9 @@ module Compare
       d = ds[i]
       if d && d["ok"] == false && d["exception"] == UNSUPPORTED
         unsupported = true
-        messages << "step #{i}: この harness では比べられない（lean=#{l && (l['ok'] ? 'ok' : l['exception'])}）"
+        messages << "step #{i}: この harness では比べられない" \
+                    "（lean=#{l && (l['ok'] ? 'ok' : l['exception'])}" \
+                    "#{d['reason'] ? ", dommy=#{d['reason']}" : ''}）"
         break
       end
       if l.nil? || d.nil?
@@ -108,6 +112,11 @@ module Compare
       unless l["ok"]
         if l["exception"] != d["exception"]
           messages << "step #{i}: 例外が違う（lean=#{l['exception']} dommy=#{d['exception']}）"
+          return [:mismatch, messages]
+        end
+        # 失敗した操作は状態を変えてはならない。
+        if d.key?("nodes") && (diff = diff_state(l, d))
+          messages << "step #{i}: 例外の後の状態が一致しない（失敗した操作が状態を変えている）:\n#{diff}"
           return [:mismatch, messages]
         end
         next

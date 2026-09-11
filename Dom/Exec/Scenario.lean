@@ -139,7 +139,7 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
   | _, [], _ => ([], none)
   | s, op :: ops, i =>
     match applyOperation s op with
-    | .error e => ([.failed e], none)
+    | .error e => ([.failed s e], none)
     | .ok s' =>
       if !s'.tree.checkWellFormed then ([.ok s'], some (i, "wellFormed"))
       else if !checkStructurallyValid s'.tree then ([.ok s'], some (i, "structurallyValid"))

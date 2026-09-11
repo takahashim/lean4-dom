@@ -256,6 +256,15 @@ module DommyRunner
     end
   end
 
+  # WHATWG の node document。Document 自身の node document は仕様では null だが、
+  # model は「Document の node document は自分自身」として持つので、そちらに合わせる。
+  def node_document_id(objects, id, node, kinds)
+    return id if kinds[id] == "document"
+    return UNKNOWN_NODE unless node.respond_to?(:owner_document)
+
+    node_id(objects, node.owner_document)
+  end
+
   def snapshot(objects, kinds, ranges = [], iterators = [], observers = nil)
     nodes = objects.keys.sort.map do |id|
       node = objects[id]
@@ -264,6 +273,7 @@ module DommyRunner
         "kind" => kinds[id],
         "parent" => node_id(objects, parent_of(node)),
         "children" => children_of(node).map { |c| node_id(objects, c) },
+        "nodeDocument" => node_document_id(objects, id, node, kinds),
         "data" => data_of(node)
       }
     end
@@ -364,11 +374,18 @@ module DommyRunner
     (scenario["operations"] || []).each do |op|
       begin
         apply(objects, op, iterators)
-      rescue NotImplementedError, NoMethodError
-        steps << { "ok" => false, "exception" => UNSUPPORTED }
+      rescue NotImplementedError, NoMethodError => e
+        # この harness で比べられない step。理由を残しておくと、
+        # harness の制約と Dommy の実装漏れを取り違えずに済む。
+        steps << { "ok" => false, "exception" => UNSUPPORTED,
+                   "reason" => "#{e.class}: #{e.message}" }
         break
       rescue StandardError => e
-        steps << { "ok" => false, "exception" => exception_name(e) }
+        # 失敗した操作は状態を変えてはならない（roadmap §9）。
+        # 変えていないことを比べられるように、失敗した step でも観測を出す。
+        recs = observers.empty? ? nil : take_records(objects, observers, accumulated)
+        steps << snapshot(objects, kinds, ranges, iterators, recs)
+                 .merge("ok" => false, "exception" => exception_name(e))
         break
       end
       recs = observers.empty? ? nil : take_records(objects, observers, accumulated)

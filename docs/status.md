@@ -1380,6 +1380,73 @@ node 自身はその位置より前に入るので、start と end が逆転す�
 
 同じ例の JSON 版が `test/scenarios/range-order-broken-by-insert.json` である。
 
+## 観測モデル（roadmap §9）
+
+差分テストで **何を比べるか** を Lean 側の型で固定した（`Dom/Observation.lean`）。
+
+```lean
+structure ObservedNode where
+  id : NodeId
+  kind : NodeKind
+  parent : Option NodeId
+  children : List NodeId
+  nodeDocument : NodeId
+  data : String
+
+structure Observation where
+  nodes : List ObservedNode
+  ranges : List RangeState
+  iterators : List IteratorState
+  records : List (List MutationRecord)
+  result : OperationResult
+
+def observe (s : DOMState) (result : OperationResult) : Observation
+```
+
+`Dom/Exec/Json.lean` はこの `Observation` を serialize するだけになった。
+Lean と Dommy の内部表現が同じである必要は無く、
+同じ `Observation` に落ちることを「一致した」の意味とする。
+
+比較対象に足したものが二つある。
+
+* **node document**。これまで JSON に出していなかった。
+* **例外の後の状態**。失敗した step でも観測を出すようにしたので、
+  「失敗した操作が状態を変えていないこと」を比べられる。
+  Dommy は木をその場で書き換えるので、これは実際に意味のある比較である。
+
+比較しないもの（`Dom/Observation.lean` の doc comment に列挙）は、
+store の表現、object identity、文字列の内部表現、MutationObserver の配送、Shadow tree である。
+
+生成器の「存在しない id」の混入率は 0.15 から 0.05 に下げた。
+Dommy 側には存在しない node を渡しようが無く、その step 以降は比較できないので、
+差分テストの予算を食うだけだったためである。
+seed あたり 100 本で比較できる scenario が 36-47 本から 89-95 本に増えた。
+
+### 見つかった Dommy の不一致（Dommy commit `60e1335`, `0f64b92`, `40e1a33`）
+
+16. **`Node.ownerDocument` が Element と Attr にしか無い。**
+    IDL は `Node` の attribute なので、Text / Comment / ProcessingInstruction /
+    CDATASection / DocumentFragment / DocumentType も答えなければならない。
+    Ruby から呼ぶと `NoMethodError` になっていた。
+17. **挿入点を木が動いた後に読んでいる。**
+    "queue a tree mutation record" の previousSibling / nextSibling は
+    algorithm が決めた挿入点、すなわち **何も動く前** の値である
+    （insert step 6、replace step 4）。
+    `insertBefore`（Element / ShadowRoot / Document）と `replaceChild` / `replaceWith` が
+    後から読んでいたので、挿入する node が挿入点の兄弟だった場合に値がずれていた。
+    さらに `DocumentFragment#insertBefore` は挿入の record をそもそも積んでいなかった。
+18. **抑制された removal で transient registered observer を登録しない。**
+    remove step 20 は `suppressObservers` に **かからない**（かかるのは step 21 の record だけ）。
+    replace all step 3、insert step 4、replace step 7 はどれも抑制付きで remove するので、
+    subtree observer が外されたばかりの部分木の変更を見失っていた。
+    step 20 を removal の primitive（`Document#detach_node`）へ移した。
+19. **`x.replaceWith(x)` が replace ではなく pre-insert になっていた。**
+    "convert nodes into a node" が引数を動かすのは二つ以上のときだけ（fragment を作るため）で、
+    一つなら何も動かない。したがって step 5 の「this の parent が parent」は真のままであり、
+    replace step 7 は「child の parent が非 null」でないので removedNodes は空になる。
+
+修正後、seed 10 個 × 各 100 本（range 4 / iterator 2 / observer 3 / `moveBefore` あり）で不一致ゼロ。
+
 ## 未着手
 
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、

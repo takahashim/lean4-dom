@@ -34,6 +34,7 @@ import Dom.Validity.Iterators
 import Dom.Validity.Observers
 import Dom.Validity.Admissible
 import Dom.Properties.Counterexample
+import Dom.Observation
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

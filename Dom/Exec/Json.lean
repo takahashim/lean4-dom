@@ -3,6 +3,7 @@ import Dom.Mutation.Api
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.CharacterData.ReplaceData
+import Dom.Observation
 
 /-!
 # scenario の入出力
@@ -255,18 +256,18 @@ private def optNatJson : Option NodeId → Json
   | some n => natJson n.id
 
 /--
-一つの node の観測可能な状態。
+観測できる node の外部表現。
 
-PLAN §7.2 の比較対象のうち、parent と children をここに出す。
-tree order は children から導けるので出力には含めず、比較 script 側で導出する。
+`Dom/Observation.lean` の `ObservedNode` の各 field をそのまま並べる。
 -/
-def nodeJson (t : Tree) (n : NodeId) (d : NodeData) : Json :=
+def observedNodeJson (n : ObservedNode) : Json :=
   Json.mkObj
-    [ ("id", natJson n.id)
-    , ("kind", Json.str (kindName d.kind))
-    , ("parent", optNatJson d.parent)
-    , ("children", Json.arr ((childrenOf t n).map fun c => natJson c.id).toArray)
-    , ("data", Json.str d.data) ]
+    [ ("id", natJson n.id.id)
+    , ("kind", Json.str (kindName n.kind))
+    , ("parent", optNatJson n.parent)
+    , ("children", Json.arr (n.children.map fun c => natJson c.id).toArray)
+    , ("nodeDocument", natJson n.nodeDocument.id)
+    , ("data", Json.str n.data) ]
 
 def boundaryPointJson (bp : BoundaryPoint) : Json :=
   Json.mkObj [("node", natJson bp.node.id), ("offset", natJson bp.offset)]
@@ -294,31 +295,44 @@ def recordJson (r : MutationRecord) : Json :=
     , ("nextSibling", optNatJson r.nextSibling)
     , ("oldValue", match r.oldValue with | none => Json.null | some v => Json.str v) ]
 
-/-- observer ごとの record queue。配送は扱わないので、積まれたものが全部残る。 -/
-def observerJson (o : ObserverState) : Json :=
-  Json.arr (o.records.map recordJson).toArray
+/--
+`Observation` の外部表現。
 
-/-- 状態全体の観測可能な部分。node は id の昇順に並べる。 -/
+`result` は `ok` / `exception` として並べる。
+JSON は `Observation` の serialize であり、
+比較の意味は「同じ `Observation` に落ちること」である（roadmap §9）。
+-/
+def observationFields (o : Observation) : List (String × Json) :=
+  let resultFields : List (String × Json) :=
+    match o.result with
+    | .ok => [("ok", Json.bool true)]
+    | .failed e => [("ok", Json.bool false), ("exception", Json.str e.name)]
+  resultFields ++
+    [ ("nodes", Json.arr (o.nodes.map observedNodeJson).toArray)
+    , ("ranges", Json.arr (o.ranges.map rangeJson).toArray)
+    , ("iterators", Json.arr (o.iterators.map iteratorJson).toArray)
+    , ("observers", Json.arr
+        (o.records.map fun rs => Json.arr (rs.map recordJson).toArray).toArray) ]
+
+def observationJson (o : Observation) : Json :=
+  Json.mkObj (observationFields o)
+
+/-- 初期状態の観測。まだ操作していないので `ok` / `exception` は出さない。 -/
 def stateJson (s : DOMState) : Json :=
-  let ids := (s.tree.nodes.keys.map (·.id)).mergeSort (· ≤ ·)
-  Json.mkObj
-    [ ("nodes", Json.arr (ids.filterMap fun i =>
-        (s.tree.get? ⟨i⟩).map fun d => nodeJson s.tree ⟨i⟩ d).toArray)
-    , ("ranges", Json.arr (s.ranges.map rangeJson).toArray)
-    , ("iterators", Json.arr (s.iterators.map iteratorJson).toArray)
-    , ("observers", Json.arr (s.observers.map observerJson).toArray) ]
+  Json.mkObj ((observationFields (observe s .ok)).filter fun p => p.1 ≠ "ok")
 
-/-- 一 step の結果。 -/
+/--
+一 step の結果。
+
+例外で失敗した step でも、**変わっていない状態**を観測として出す。
+Dommy は木をその場で書き換えるので、失敗した操作が状態を変えていないことも比較対象になる。
+-/
 inductive StepResult where
   | ok (s : DOMState)
-  | failed (e : DOMException)
+  | failed (before : DOMState) (e : DOMException)
 
 def stepJson : StepResult → Json
-  | .ok s =>
-    match stateJson s with
-    | Json.obj fields => Json.obj (fields.insert "ok" (Json.bool true))
-    | other => other
-  | .failed e =>
-    Json.mkObj [("ok", Json.bool false), ("exception", Json.str e.name)]
+  | .ok s => observationJson (observe s .ok)
+  | .failed before e => observationJson (observe before (.failed e))
 
 end Dom.Exec
