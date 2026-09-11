@@ -148,8 +148,10 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `setHost_opaque`, `setHostname_opaque`, `setPathname_opaque` | opaque path を持つ URL では、その setter は何もしない |
 | `not_opaque_of_canHaveCredentials` | credentials を置ける URL は host を持ち、opaque path でない |
 | `setUsername_valid`, `setPassword_valid`, `setPort_empty_valid` | record の中で閉じる setter は `ValidUrl` を保つ |
-| `setSearch_valid`, `setHash_valid` | **`search` と `hash` の setter も `ValidUrl` を保つ** |
-| `run_query_shape`, `run_fragment_shape` | override 付きの query / fragment state は query / fragment しか変えない |
+| `setAttr_valid` | **どの IDL setter も `ValidUrl` を保つ** |
+| `setProtocol_valid`, `setHost_valid`, `setHostname_valid`, `setPort_valid`, `setPathname_valid`, `setSearch_valid`, `setHash_valid` | 個々の setter |
+| `run_port_valid`, `run_host_valid`, `run_fileHost_valid`, `run_scheme_valid`, `run_path_valid` ほか | override 付きの各 state が `ValidUrl` を保つ |
+| `schemeOverride_valid` | protocol setter の四つの guard が record の形を守る |
 | `shortenPath_spec`, `appendSegment_spec`, `appendOpaque_spec` | path をいじる三つは path 以外を変えず、path の種類も変えない |
 | `portDone_spec` | port state の終わりは port 以外の成分を変えない |
 | `userinfoFold_spec` | authority state の振り分けは username / password 以外を変えない |
@@ -258,17 +260,28 @@ parse が成功したときの URL record が §4.1 の不変条件をすべて�
 
 ### setter の側
 
-setter は五つ証明した。record の中で閉じる三つ
-（`username` / `password` / 空文字列の `port`）と、
-**query / fragment state しか通らない二つ（`search` / `hash`）**である。
+**どの IDL setter も `ValidUrl` を保つ**（`setAttr_valid`）。
 
-後者は state machine 全体の帰納法を使わない。fragment state は fragment 以外を書かず、
-遷移先も fragment state だけなので、入力の長さについての短い帰納法
-（`run_fragment_shape`）で閉じる。query state も override 付きなら `#` が buffer に
-入るだけで query state に留まるので同じ形になる。
-`ValidUrl` の六条件はどれも query / fragment に触れないので、そこから保存が出る。
+state machine 全体の帰納法（`run_valid`、113 case）は使っていない。
+`run_valid` の `PInv` は `over = none` を要求しているので、override に広げると
+その 113 case をやり直すことになる。代わりに、**override 付きだと各 state から
+行ける先が非常に狭い**ことを使う。
 
-残りは下の「未着手」にある。
+| 入口 | 行ける state |
+| --- | --- |
+| `.port` | 自分自身だけ（override では必ず返る） |
+| `.fileHost` | 自分自身だけ |
+| `.host` | 自分、`.fileHost`、`.port` |
+| `.schemeStart` | `.scheme` だけ（そこで返る） |
+| `.pathStart` | `.path` だけ |
+| `.query` / `.fragment` | 自分自身だけ |
+
+どれも入力の長さについての短い帰納法で閉じる。state をまたぐところ
+（`.host` → `.port` など）は別の定理を呼ぶだけなので、相互再帰にならない。
+
+setter 側の guard が要る条件を渡す。`host` / `hostname` / `pathname` は
+path が opaque でないこと、`port` は host が決まっていることで、
+どちらも setter が先に確かめている。
 
 ### `ValidUrl` 単独では帰納的でない
 

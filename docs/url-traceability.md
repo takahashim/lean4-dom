@@ -86,11 +86,11 @@ setter は `state override` 付きの basic URL parser を呼ぶだけなので�
 | Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
 | --- | --- | --- | --- | --- | --- |
 | getter（`href` / `protocol` / `username` / `password` / `host` / `hostname` / `port` / `pathname` / `search` / `hash`） | §6.1 | `Url.href` ほか、`Url.getAttr` | — | wpt-set | 済 |
-| `protocol` setter | §6.1 1 | `Url.setProtocol`, `schemeOverride` | — | wpt-set（33 件） | 済 |
+| `protocol` setter | §6.1 1 | `Url.setProtocol`, `schemeOverride` | `setProtocol_valid`, `schemeOverride_valid` | wpt-set（33 件） | 済 |
 | `username` / `password` setter | §6.1 1-2 | `Url.setUsername`, `Url.setPassword`, `userinfoEncode` | `setUsername_cannot`, `setPassword_cannot`, `setUsername_valid`, `setPassword_valid` | wpt-set（21 件） | 済 |
-| `host` / `hostname` setter | §6.1 1-2 | `Url.setHost`, `Url.setHostname` | `setHost_opaque`, `setHostname_opaque` | wpt-set（111 件） | 済 |
-| `port` setter | §6.1 1-3 | `Url.setPort` | `setPort_cannot`, `setPort_empty_valid` | wpt-set（27 件） | 済 |
-| `pathname` setter | §6.1 1-3 | `Url.setPathname` | `setPathname_opaque` | wpt-set（29 件） | 済 |
+| `host` / `hostname` setter | §6.1 1-2 | `Url.setHost`, `Url.setHostname` | `setHost_opaque`, `setHostname_opaque`, `setHost_valid`, `setHostname_valid` | wpt-set（111 件） | 済 |
+| `port` setter | §6.1 1-3 | `Url.setPort` | `setPort_cannot`, `setPort_valid` | wpt-set（27 件） | 済 |
+| `pathname` setter | §6.1 1-3 | `Url.setPathname` | `setPathname_opaque`, `setPathname_valid` | wpt-set（29 件） | 済 |
 | `search` setter | §6.1 1-6 | `Url.setSearch`, `stripTrailingSpaces`, `dropLeading` | `setSearch_valid`（`ValidUrl` を保つ） | wpt-set（14 件） | 済（query object の list は `URLSearchParams` 側） |
 | `hash` setter | §6.1 1-4 | `Url.setHash`, `stripTrailingSpaces`, `dropLeading` | `setHash_valid`（`ValidUrl` を保つ） | wpt-set（22 件） | 済 |
 | `href` setter | §6.1 1-3 | `Url.setHref` | — | wpt-set（1 件） | 済（失敗は `none`。例外は IDL 側） |

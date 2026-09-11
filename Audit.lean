@@ -166,6 +166,21 @@ open Dom.Audit
   Url.stripTrailingSpaces_valid
   Url.setHash_valid
   Url.setSearch_valid
+  Url.fail_over
+  Url.run_port_valid
+  Url.run_fileHost_valid
+  Url.run_host_valid
+  Url.run_scheme_valid
+  Url.run_schemeStart_valid
+  Url.run_path_valid
+  Url.run_pathStart_valid
+  Url.schemeOverride_valid
+  Url.setProtocol_valid
+  Url.setHost_valid
+  Url.setHostname_valid
+  Url.setPort_valid
+  Url.setPathname_valid
+  Url.setAttr_valid
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms
