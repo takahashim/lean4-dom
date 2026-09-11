@@ -59,3 +59,7 @@ jobs:
       # §6.2 の `sort` は WPT が配列リテラルで期待値を持っている。
       - name: URLSearchParams against WPT
         run: lake exe url-model --searchparams test/url/wpt-searchparams-sort.json
+
+      # Punycode は RFC 3492 §7.1 が sample strings を持っている。
+      - name: Punycode against RFC 3492
+        run: lake exe url-model --punycode test/url/rfc3492-punycode.json

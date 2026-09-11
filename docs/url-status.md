@@ -44,6 +44,7 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean` |
 | UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
 | UTF-8 の往復 | `Infra.utf8Decode_encode` | `Infra/Utf8Roundtrip.lean` |
+| RFC 3492 Punycode | `Punycode.encode`, `Punycode.decode` | `Url/Punycode.lean` |
 
 ## state override をどう通したか
 
@@ -120,9 +121,40 @@ port state へ渡り、port が範囲外で失敗する。結果は
 
 ## IDNA の境界
 
+### Punycode は入れた
+
+UTS #46 のうち **Unicode の表を使わない部分は Punycode だけ**で、そこは入れてある
+（`Url/Punycode.lean`）。RFC 3492 の bootstring で、fuel を使わずに停止性が言える形にした。
+
+| ループ | 測度 |
+| --- | --- |
+| `adaptLoop` | `delta` が 35 で割られて減る |
+| `encodeDigits` | 閾値 `t` が 1 以上なので `(q - t) / (36 - t) < q` |
+| `encodeLoop` | 残りの code point の個数が減る |
+| `decodeDigits` / `decodeLoop` | 残りの入力が減る |
+
+`encode_ascii`（出力は ASCII だけからなる）を証明した。
+RFC 3492 §7.1 の sample strings 19 件を、符号化と復号の両方で通している
+（`url-model --punycode`、38 件）。復号は RFC の綴りをそのまま食わせるので、
+§5 の case annotation（(I) の Russian に大文字が混じる）を受けることの検査にもなっている。
+
+`decode (encode s) = s` は未着手である。19 件で往復することは確かめたが、
+適応バイアスを挟んだ双方向の対応を一般に示すのは `ValidUrl` の保存より重いと見ている。
+
+### 表は入れない
+
 `domain parser` は Unicode の ToASCII（UTS #46）に委ねている。
-UTS #46 は数千 code point の写像表と Punycode と正規化と bidi/joiner の検査で、
-忠実に写すには Unicode のデータを model に埋め込むことになる。
+UTS #46 の残りは表に依存する。`IdnaMappingTable.txt` が 9,262 項目、
+NFC の正準分解と結合クラスが約 4,500 項目、Joining_Type が 542、Bidi_Class が約 600 で、
+合わせて 15,000 項目ほどになる。これを Lean の項として埋め込むと
+
+* ビルド時間が現実的でなくなる（いま一番重い証明が 113 case で 5 分である）
+* Unicode の版ごとに書き換えが要る
+
+一方で、それで閉じるのは WPT の 4 件と setter の 2 件だけである。
+表は規定データであって規則から導けるものではないので、Lean に導出させることもできない。
+`native_decide` で判定する手もあるが、`Lean.ofReduceBool` が入るので axiom 監査の方針に反する。
+
 仕様自身が別仕様へ委譲していること、この model の他の hook
 （custom element の steps、MutationObserver の callback、NodeFilter の callback）と
 同じ扱いであることから、`hostParser` は **ToASCII を引数で受け取る**。

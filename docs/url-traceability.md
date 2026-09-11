@@ -9,7 +9,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 * **Contracts** — その algorithm について証明したこと。
 * **Test** — 期待結果の根拠。`wpt` は `test/url/wpt-ascii.json`、
   `wpt-set` は `test/url/wpt-setters.json`、
-  `wpt-sort` は `test/url/wpt-searchparams-sort.json` の中の case、
+  `wpt-sort` は `test/url/wpt-searchparams-sort.json`、
+  `rfc3492` は `test/url/rfc3492-punycode.json` の中の case、
   `dommy` は Dommy の実装との突き合わせ。
 * **Status** — 済 / 部分 / 対象外。
 
@@ -29,7 +30,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | host parser | 1-9 | `hostParser` | — | wpt, dommy | 済（ToASCII は引数） |
 | opaque-host parser | 1-4 | `opaqueHostParser` | `opaqueHostParser_no_forbidden` | wpt, dommy | 済 |
 | domain parser | 1-5 | `asciiDomainToASCII` | `asciiDomainToASCII_no_forbidden`, `asciiDomainToASCII_ne_empty` | wpt, dommy | 部分（ASCII の domain のみ） |
-| domain parser ToASCII（UTS #46） | — | 引数として受け取る | — | dommy の `Internal::IDNA` | 対象外 |
+| domain parser ToASCII（UTS #46）の写像表・NFC・Bidi・Joiner | — | 引数として受け取る | — | dommy の `Internal::IDNA` | 対象外（15,000 項目の規定データ） |
+| Punycode（RFC 3492） | RFC 3492 | `Punycode.encode`, `Punycode.decode` | `encode_ascii`、停止性（fuel なし） | rfc3492（19 件 × 両方向） | 済 |
 | forbidden host / domain code point | §1.3 | `isForbiddenHost`, `isForbiddenDomain` | 上記 | wpt | 済 |
 
 ## §3.3 IP address

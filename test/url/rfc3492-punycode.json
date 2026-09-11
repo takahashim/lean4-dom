@@ -1,0 +1,105 @@
+{
+ "_note": "RFC 3492 §7.1 の sample strings。code point 列と Punycode を本文から取り出したもの。ACE 接頭辞 `xn--` は付いていない。符号化の比較は ASCII の大文字小文字を無視する。RFC の (I) が §5 の case annotation を含んでいて、annotation を付けない符号化器とは綴りの大小だけが違うためである。復号は RFC の綴りをそのまま食わせる（大文字を受けることの検査になる）。",
+ "_source": {
+  "document": "RFC 3492",
+  "section": "7.1",
+  "url": "https://www.rfc-editor.org/rfc/rfc3492.txt"
+ },
+ "cases": [
+  {
+   "label": "A",
+   "input": "ليهمابتكلموشعربي؟",
+   "punycode": "egbpdaj6bu4bxfgehfvwxn"
+  },
+  {
+   "label": "B",
+   "input": "他们为什么不说中文",
+   "punycode": "ihqwcrb4cv8a8dqg056pqjye"
+  },
+  {
+   "label": "C",
+   "input": "他們爲什麽不說中文",
+   "punycode": "ihqwctvzc91f659drss3x8bo0yb"
+  },
+  {
+   "label": "D",
+   "input": "Pročprostěnemluvíčesky",
+   "punycode": "Proprostnemluvesky-uyb24dma41a"
+  },
+  {
+   "label": "E",
+   "input": "למההםפשוטלאמדבריםעברית",
+   "punycode": "4dbcagdahymbxekheh6e0a7fei0b"
+  },
+  {
+   "label": "F",
+   "input": "यहलोगहिन्दीक्योंनहींबोलसकतेहैं",
+   "punycode": "i1baa7eci9glrd9b2ae1bj0hfcgg6iyaf8o0a1dig0cd"
+  },
+  {
+   "label": "G",
+   "input": "なぜみんな日本語を話してくれないのか",
+   "punycode": "n8jok5ay5dzabd5bym9f0cm5685rrjetr6pdxa"
+  },
+  {
+   "label": "H",
+   "input": "세계의모든사람들이한국어를이해한다면얼마나좋을까",
+   "punycode": "989aomsvi5e83db1d2a355cv1e0vak1dwrv93d5xbh15a0dt30a5jpsd879ccm6fea98c"
+  },
+  {
+   "label": "I",
+   "input": "почемужеонинеговорятпорусски",
+   "punycode": "b1abfaaepdrnnbgefbaDotcwatmq2g4l"
+  },
+  {
+   "label": "J",
+   "input": "PorquénopuedensimplementehablarenEspañol",
+   "punycode": "PorqunopuedensimplementehablarenEspaol-fmd56a"
+  },
+  {
+   "label": "K",
+   "input": "TạisaohọkhôngthểchỉnóitiếngViệt",
+   "punycode": "TisaohkhngthchnitingVit-kjcr8268qyxafd2f1b9g"
+  },
+  {
+   "label": "L",
+   "input": "3年B組金八先生",
+   "punycode": "3B-ww4c5e180e575a65lsy2b"
+  },
+  {
+   "label": "M",
+   "input": "安室奈美恵-with-SUPER-MONKEYS",
+   "punycode": "-with-SUPER-MONKEYS-pc58ag80a8qai00g7n9n"
+  },
+  {
+   "label": "N",
+   "input": "Hello-Another-Way-それぞれの場所",
+   "punycode": "Hello-Another-Way--fc4qua05auwb3674vfr0b"
+  },
+  {
+   "label": "O",
+   "input": "ひとつ屋根の下2",
+   "punycode": "2-u9tlzr9756bt3uc0v"
+  },
+  {
+   "label": "P",
+   "input": "MajiでKoiする5秒前",
+   "punycode": "MajiKoi5-783gue6qz075azm5e"
+  },
+  {
+   "label": "Q",
+   "input": "パフィーdeルンバ",
+   "punycode": "de-jg4avhby1noc0d"
+  },
+  {
+   "label": "R",
+   "input": "そのスピードで",
+   "punycode": "d9juau41awczczp"
+  },
+  {
+   "label": "S",
+   "input": "-> $1.00 <-",
+   "punycode": "-> $1.00 <--"
+  }
+ ]
+}

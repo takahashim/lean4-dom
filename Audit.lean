@@ -199,6 +199,16 @@ open Dom.Audit
   Url.basicUrlParse_valid
   Url.parseUrl_valid
 
+-- RFC 3492 Punycode
+#audit_axioms
+  Url.Punycode.threshold_pos
+  Url.Punycode.threshold_le
+  Url.Punycode.toNat_ofNat_ascii
+  Url.Punycode.digitChar_ascii
+  Url.Punycode.encodeDigits_ascii
+  Url.Punycode.decodeDigits_length
+  Url.Punycode.encode_ascii
+
 -- UTF-8 の往復（Infra）
 #audit_axioms
   Infra.lor_add

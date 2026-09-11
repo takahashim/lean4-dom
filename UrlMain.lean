@@ -198,6 +198,54 @@ def runSetters (path : String) : IO UInt32 := do
   IO.println s!"ValidUrl（setter 後）: 違反 {invalid}"
   return if bad == 0 && stale == 0 && invalid == 0 then 0 else 1
 
+/-! ## Punycode -/
+
+structure PunyCase where
+  label : String
+  input : String
+  punycode : String
+
+def punyCaseOfJson (j : Json) : Except String PunyCase := do
+  let label ← (← j.getObjVal? "label").getStr?
+  let input ← (← j.getObjVal? "input").getStr?
+  let punycode ← (← j.getObjVal? "punycode").getStr?
+  return { label, input, punycode }
+
+/--
+RFC 3492 §7.1 の sample strings を通す。
+
+符号化の比較は ASCII の大文字小文字を無視する（RFC の (I) が §5 の case annotation を
+含んでいるため）。復号は RFC の綴りをそのまま食わせる。
+-/
+def runPunycode (path : String) : IO UInt32 := do
+  let text ← IO.FS.readFile path
+  let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
+  let .ok casesJson := json.getObjVal? "cases"
+    | do IO.eprintln s!"{path}: `cases` がない"; return 1
+  let .ok arr := casesJson.getArr? | do IO.eprintln s!"{path}: `cases` が配列ではない"; return 1
+  let mut ok := 0
+  let mut bad := 0
+  for j in arr do
+    match punyCaseOfJson j with
+    | .error e => IO.eprintln s!"case を読めない: {e}"; bad := bad + 1
+    | .ok c =>
+      let got := String.ofList (Url.Punycode.encode c.input.toList)
+      if Infra.asciiLowercase got == Infra.asciiLowercase c.punycode then ok := ok + 1
+      else
+        bad := bad + 1
+        IO.println s!"PUNY encode ({c.label}) expected={c.punycode} actual={got}"
+      match Url.Punycode.decode c.punycode.toList with
+      | none =>
+        bad := bad + 1
+        IO.println s!"PUNY decode ({c.label}) 失敗 {c.punycode}"
+      | some d =>
+        if String.ofList d == c.input then ok := ok + 1
+        else
+          bad := bad + 1
+          IO.println s!"PUNY decode ({c.label}) expected={repr c.input} actual={repr (String.ofList d)}"
+  IO.println s!"punycode: 一致 {ok} / 不一致 {bad}"
+  return if bad == 0 then 0 else 1
+
 /-! ## `URLSearchParams` -/
 
 structure SortCase where
@@ -339,7 +387,8 @@ def main (args : List String) : IO UInt32 := do
     return if a == 0 && b == 0 then 0 else 1
   | ["--setters", path] => runSetters path
   | ["--searchparams", path] => runSearchParams path
+  | ["--punycode", path] => runPunycode path
   | ["--urlencoded"] => runUrlencoded
   | _ =>
-    IO.println "usage: url-model --wpt FILE | --setters FILE | --searchparams FILE | --urlencoded"
+    IO.println "usage: url-model --wpt FILE | --setters FILE | --searchparams FILE | --punycode FILE | --urlencoded"
     return 1
