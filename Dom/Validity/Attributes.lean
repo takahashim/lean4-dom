@@ -198,14 +198,14 @@ theorem attributesOnly_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd 
 theorem AttributesValid.map {t t' : Tree} (hs : ShapePreserving t t') (h : AttributesValid t) :
     AttributesValid t' := by
   refine ⟨?_, ?_, ?_⟩ <;> intro n d hd
-  · obtain ⟨d₀, hd₀, hk, ha⟩ := hs.exists_get? hd
+  · obtain ⟨d₀, hd₀, hk, ha, _⟩ := hs.exists_get? hd
     intro hne
     rw [← ha]
     exact h.onlyElements n d₀ hd₀ (by rw [hk]; exact hne)
-  · obtain ⟨d₀, hd₀, _, ha⟩ := hs.exists_get? hd
+  · obtain ⟨d₀, hd₀, _, ha, _⟩ := hs.exists_get? hd
     rw [← ha]
     exact h.keysNodup n d₀ hd₀
-  · obtain ⟨d₀, hd₀, _, ha⟩ := hs.exists_get? hd
+  · obtain ⟨d₀, hd₀, _, ha, _⟩ := hs.exists_get? hd
     rw [← ha]
     exact h.prefixHasNamespace n d₀ hd₀
 
@@ -406,8 +406,8 @@ qualified name による探索から隠れたまま同じ鍵で append されて
 -/
 theorem key_not_mem_of_getAttributeByName_none {t : Tree} {n : NodeId} {d : NodeData}
     (hd : t.get? n = some d) (h : AttributesValid t) {qn : String}
-    (hnone : getAttributeByName d qn = none) :
-    ((none : Option String), qn) ∉ d.attributes.map Attr.key := by
+    (hnone : getAttributeByName t d qn = none) :
+    ((none : Option String), attrNameFor t d qn) ∉ d.attributes.map Attr.key := by
   intro hmem
   obtain ⟨b, hb, hkey⟩ := List.mem_map.mp hmem
   simp only [Attr.key, Prod.mk.injEq] at hkey
@@ -556,7 +556,8 @@ theorem attrOpResult_toggleAttribute {s s' : DOMState} {element : NodeId} {qn : 
           split at hr
           · have : s' = s := congrArg Prod.fst (Except.ok.inj hr).symm
             rw [this]; exact AttrOpResult.refl _
-          · have : s' = appendAttribute s element d { localName := qn } :=
+          · have : s' = appendAttribute s element d
+                { localName := attrNameFor s.tree d qn } :=
               congrArg Prod.fst (Except.ok.inj hr).symm
             rw [this]
             refine attrOpResult_append hd hk' ?_ (by simp)

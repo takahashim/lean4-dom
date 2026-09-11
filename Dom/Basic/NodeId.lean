@@ -139,6 +139,12 @@ end Attr
 * `data` — 仕様 §4.10 `CharacterData` の data。CharacterData 以外では空文字列とする。
 * `attributes` — 仕様 §4.9 の attribute list。Element 以外では空とする。
   順序に意味がある（`getAttributeNames` と qualified name による探索が list 順）ので `List` で持つ。
+* `namespace` / `prefix` / `localName` — 仕様 §4.8 Element の namespace・namespace prefix・
+  local name。Element 以外では `none` / `none` / `""` とする。
+* `isHTMLDocument` — 仕様 §4.5 Document の type が "html" であること。
+  Document 以外では `false` とする。
+  attribute 名を ASCII lowercase するかどうかがこれと element の namespace で決まる
+  （"get an attribute by name" step 1、`setAttribute` step 2）。
 -/
 structure NodeData where
   kind : NodeKind
@@ -147,22 +153,40 @@ structure NodeData where
   ownerDocument : NodeId
   data : String := ""
   attributes : List Attr := []
+  «namespace» : Option String := none
+  «prefix» : Option String := none
+  localName : String := ""
+  isHTMLDocument : Bool := false
 deriving DecidableEq, Repr, Inhabited
 
 namespace NodeData
 
 /--
-木の surgery が触らない部分、すなわち kind と attribute list。
+木の surgery が触らない部分。
 
-`detach` / `insertAt` / `setOwnerDocument` はどれも parent・children・ownerDocument しか
-変えないので、これらは保たれる。`ShapePreserving`（`Dom/Properties/Algorithms.lean`）が
-この組の保存を表す。
+`detach` / `insertAt` / `setOwnerDocument` / `withData` はどれも
+parent・children・node document・data しか変えないので、それを落とした残りは保たれる。
+`ShapePreserving`（`Dom/Properties/Algorithms.lean`）がこの保存を表す。
+
+落とす側を並べてあるので、`NodeData` に field が増えても自動的に保存の対象に入る。
 -/
-def shape (d : NodeData) : NodeKind × List Attr := (d.kind, d.attributes)
+def shape (d : NodeData) : NodeData :=
+  { d with parent := none, children := [], ownerDocument := ⟨0⟩, data := "" }
 
-@[simp] theorem shape_kind (d : NodeData) : d.shape.1 = d.kind := rfl
+@[simp] theorem shape_kind (d : NodeData) : d.shape.kind = d.kind := rfl
 
-@[simp] theorem shape_attributes (d : NodeData) : d.shape.2 = d.attributes := rfl
+@[simp] theorem shape_attributes (d : NodeData) : d.shape.attributes = d.attributes := rfl
+
+/--
+DOM Standard §1.4 の qualified name。prefix があれば `prefix:localName`。
+
+Element の `tagName` はこれを、HTML namespace の element が HTML document にあるときは
+ASCII uppercase したものである。
+-/
+def qualifiedName (d : NodeData) : String :=
+  match d.prefix with
+  | none => d.localName
+  | some p => p ++ ":" ++ d.localName
 
 /--
 DOM Standard §4.4 の node length。

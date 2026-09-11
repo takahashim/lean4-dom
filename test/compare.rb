@@ -41,7 +41,8 @@ module Compare
     nodes = (state["nodes"] || []).sort_by { |n| n["id"] }
     {
       "nodes" => nodes.map { |n|
-        n.slice("id", "kind", "parent", "children", "nodeDocument", "data", "attributes")
+        n.slice("id", "kind", "parent", "children", "nodeDocument", "data", "attributes",
+                "namespace", "prefix", "localName", "tagName")
       },
       "treeOrder" => tree_order(nodes),
       "ranges" => state["ranges"] || [],

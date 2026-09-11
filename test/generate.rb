@@ -41,7 +41,23 @@ module Generate
   # attribute の local name は少ない候補から選ぶ。
   # そうしないと `attributeFilter` も「同じ鍵への二度目の書き込み」も当たらない。
   ATTR_NAMES = %w[a b data-x].freeze
+  # 操作が渡す名前には大文字を混ぜる。HTML namespace の element が HTML document に
+  # あるときだけ ASCII lowercase されるので、そこで挙動が分かれる。
+  ATTR_OP_NAMES = (ATTR_NAMES + %w[A data-X]).freeze
   ATTR_VALUES = ["", "1", "vv"].freeze
+
+  # element の local name。SVG namespace のものも混ぜて、
+  # 「HTML namespace の element だけが attribute 名を lowercase する」分岐を撫でる。
+  ELEMENT_NAMES = %w[div span p].freeze
+  SVG_NS = "http://www.w3.org/2000/svg"
+
+  def self.element_identity(rng)
+    r = rng.rand
+    if r < 0.75 then { "localName" => ELEMENT_NAMES.sample(random: rng) }
+    elsif r < 0.9 then { "namespace" => SVG_NS, "localName" => "rect" }
+    else { "namespace" => SVG_NS, "prefix" => "svg", "localName" => "rect" }
+    end
+  end
 
   # `setAttributeNS` に渡す namespace。null と XML namespace のほかに、
   # "validate and extract" の NamespaceError を踏ませるための組も混ぜる。
@@ -148,7 +164,10 @@ module Generate
       b.add(kind, parent: parent, data: data_for(kind, "t#{b.ids.size}"))
     end
     b.nodes.each do |spec|
-      spec["attributes"] = initial_attributes(rng) if spec["kind"] == "element"
+      next unless spec["kind"] == "element"
+
+      spec.merge!(element_identity(rng))
+      spec["attributes"] = initial_attributes(rng)
     end
     b.nodes
   end
@@ -202,20 +221,20 @@ module Generate
       { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4) }
     when "setData" then { "op" => op, "node" => pick.call, "data" => %w[[] pq rstu][rng.rand(3)] }
     when "setAttribute"
-      { "op" => op, "element" => pick.call, "name" => ATTR_NAMES.sample(random: rng),
+      { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng),
         "value" => ATTR_VALUES.sample(random: rng) }
     when "setAttributeNS"
       ns, qn = random_ns_and_qualified_name(rng)
       { "op" => op, "element" => pick.call, "namespace" => ns, "name" => qn,
         "value" => ATTR_VALUES.sample(random: rng) }
     when "removeAttribute"
-      { "op" => op, "element" => pick.call, "name" => ATTR_NAMES.sample(random: rng) }
+      { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng) }
     when "removeAttributeNS"
       { "op" => op, "element" => pick.call,
         "namespace" => ATTR_NAMESPACES.sample(random: rng),
         "name" => ATTR_NAMES.sample(random: rng) }
     when "toggleAttribute"
-      { "op" => op, "element" => pick.call, "name" => ATTR_NAMES.sample(random: rng),
+      { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng),
         "force" => [nil, true, false].sample(random: rng) }
     when "moveBefore"
       { "op" => op, "parent" => pick.call, "node" => maybe.call,

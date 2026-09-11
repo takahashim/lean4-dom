@@ -1,5 +1,6 @@
 import Dom.Basic.State
 import Dom.Observer.Record
+import Dom.Attribute.Algorithms
 
 /-!
 # 観測モデル
@@ -17,6 +18,7 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
 * node document
 * CharacterData の data
 * Element の attribute list（順序も含む）
+* Element の namespace / namespace prefix / local name / `tagName`
 * live Range の両端
 * NodeIterator の root / reference / pointer-before-reference flag
 * MutationObserver に積まれた record の列
@@ -48,6 +50,11 @@ structure ObservedNode where
   nodeDocument : NodeId
   data : String
   attributes : List Attr
+  «namespace» : Option String
+  «prefix» : Option String
+  localName : String
+  /-- `tagName`。Element 以外では `none`。 -/
+  tagName : Option String
 deriving DecidableEq, Repr, Inhabited
 
 /-- 操作の結果。 -/
@@ -98,6 +105,10 @@ def observedNodeOf (t : Tree) (n : NodeId) (d : NodeData) : ObservedNode where
   nodeDocument := d.ownerDocument
   data := d.data
   attributes := d.attributes
+  «namespace» := d.namespace
+  «prefix» := d.prefix
+  localName := d.localName
+  tagName := Dom.tagName t n
 
 /-- 木の観測。node は id の昇順に並べ、store の表現には依存させない。 -/
 def observedNodes (s : DOMState) : List ObservedNode :=

@@ -20,6 +20,9 @@ module DommyRunner
   # NodeFilter.SHOW_ALL。
   SHOW_ALL = 0xFFFFFFFF
 
+  # Infra の HTML namespace。scenario が element の namespace を省いたときの既定。
+  HTML_NS = "http://www.w3.org/1999/xhtml"
+
   # 各操作が呼び出す Dommy の method 名。capability 判定にも使う。
   OP_METHOD = {
     "appendChild" => :append_child,
@@ -117,7 +120,7 @@ module DommyRunner
       doc = owner_document(spec, default_doc_id)
       node =
         case spec["kind"]
-        when "element" then doc.create_element("div")
+        when "element" then create_element(doc, spec)
         when "text" then doc.create_text_node(data)
         when "comment" then doc.create_comment(data)
         when "processingInstruction" then doc.create_processing_instruction("pi", data)
@@ -130,6 +133,18 @@ module DommyRunner
       @objects[id] = node
     end
 
+    # scenario の namespace / prefix / local name から element を作る。
+    #
+    # 省略時は HTML namespace の `div`。`createElement` は HTML document なら
+    # HTML namespace を与えるので、namespace が HTML のときはそちらを使う。
+    def create_element(doc, spec)
+      ns = spec["namespace"] || HTML_NS
+      qn = spec["prefix"] ? "#{spec['prefix']}:#{spec['localName']}" : (spec["localName"] || "div")
+      return doc.create_element(qn) if ns == HTML_NS && spec["prefix"].nil?
+
+      doc.create_element_ns(ns, qn)
+    end
+
     # scenario が与えた初期 attribute を、mutation record を積む前に置く。
     #
     # `setAttributeNS` / `setAttribute` を通すのは、Dommy に attribute list を
@@ -138,14 +153,12 @@ module DommyRunner
       return if attrs.nil? || attrs.empty?
       raise NotImplementedError, "attributes on non-element" unless node.respond_to?(:set_attribute)
 
+      # 常に namespace 版を使う。`setAttribute` は HTML namespace の element が
+      # HTML document にあるとき名前を ASCII lowercase するので、
+      # scenario が書いた名前をそのまま置けない。
       attrs.each do |a|
-        ns = a["namespace"]
         qn = a["prefix"] ? "#{a['prefix']}:#{a['localName']}" : a["localName"].to_s
-        if ns
-          node.set_attribute_ns(ns, qn, a["value"].to_s)
-        else
-          node.set_attribute(qn, a["value"].to_s)
-        end
+        node.set_attribute_ns(a["namespace"], qn, a["value"].to_s)
       end
     end
   end
@@ -282,6 +295,14 @@ module DommyRunner
   #
   # Dommy は attribute を `Attr` node として持つので、
   # namespace / prefix / local name / value だけを取り出す。
+  # Element だけが namespace / prefix / local name を持つ。
+  def element_field(node, name)
+    return nil unless node.respond_to?(:__js_get__) && node.__js_get__("nodeType") == 1
+
+    v = node.__js_get__(name)
+    v.nil? ? nil : v.to_s
+  end
+
   def attributes_of(node)
     return [] unless node.respond_to?(:__js_get__) && node.__js_get__("nodeType") == 1
     return [] unless node.respond_to?(:attributes)
@@ -354,7 +375,11 @@ module DommyRunner
         "children" => children_of(node).map { |c| node_id(objects, c) },
         "nodeDocument" => node_document_id(objects, id, node, kinds),
         "data" => data_of(node),
-        "attributes" => attributes_of(node)
+        "attributes" => attributes_of(node),
+        "namespace" => element_field(node, "namespaceURI"),
+        "prefix" => element_field(node, "prefix"),
+        "localName" => element_field(node, "localName") || "",
+        "tagName" => element_field(node, "tagName")
       }
     end
     out = { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),

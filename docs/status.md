@@ -1781,6 +1781,56 @@ filter が null なら、これは「bit の立っている最初の候補を探
 
 固定 scenario は `document-replacechild-fragment`。
 
+## element の namespace と local name（対象外だったものの一つ）
+
+attribute の名前を ASCII lowercase するかどうかは、element が HTML namespace にあって
+その node document が HTML document かで決まる
+（"get an attribute by name" step 1、`setAttribute` step 2、`toggleAttribute` step 2）。
+model に element の namespace が無かったのでこの分岐は走らず、
+「model の element は HTML namespace に無い」という近似で済ませていた。
+`NodeData` に element の namespace / prefix / local name と、
+Document の type（HTML document かどうか）を足して、この近似を外した。
+
+| 仕様 | 定義 |
+| --- | --- |
+| Element の namespace / namespace prefix / local name | `NodeData.namespace` / `.prefix` / `.localName` |
+| Document の type が "html" | `NodeData.isHTMLDocument` |
+| §1.4 qualified name | `NodeData.qualifiedName` |
+| §1.3 valid element local name | `isValidElementLocalName` |
+| Infra の ASCII lowercase / uppercase | `asciiLowercase`, `asciiUppercase` |
+| §4.8 `Element.tagName` | `tagName` |
+| 名前の正規化（上の三箇所に共通） | `attrNameFor` |
+
+`NodeData.shape` を「parent・children・node document・data を落とした残り」に変えた。
+以前は (kind, attributes) の組だったが、落とす側を並べる形にすると
+`NodeData` に field が増えても自動的に `ShapePreserving` の保存対象に入る。
+`AttributesOnly` は元から同じ形（attribute だけを落とす）だったので変えていない。
+
+element の名前の妥当性（Element だけが名前を持つ、valid element local name である、
+prefix があるなら namespace もある）は loader が検査する。
+`AdmissibleDOMState` の成分にはしていない。node 生成は model の対象外（roadmap §13.2）で、
+これを崩せる algorithm が無いためである。
+
+観測には namespace / prefix / local name / `tagName` を加えた。
+生成器は element の 3/4 を HTML namespace の `div` / `span` / `p`、
+残りを SVG namespace の `rect`（一部は prefix 付き）にし、
+attribute の操作に渡す名前には大文字を混ぜる。
+固定 scenario は `attribute-name-case-follows-namespace` と
+`record-attribute-name-keeps-case`。
+
+### 見つかった Dommy の不一致（Dommy commit `8011543`）
+
+26. **mutation record の attributeName を無条件に小文字化していた。**
+    record の attributeName は attribute の local name である。
+    名前を折りたたむのは `setAttribute` の step 2 だけで、しかも
+    HTML namespace の element が HTML document にあるときに限る。
+    record を積む時点では名前は決まっているのに、
+    `notify_attribute_mutation` が「attribute の namespace が null なら」という条件で
+    もう一度小文字にしていたので、SVG element に `A` を置くと record は `a` になり、
+    `a` だけを挙げた attributeFilter が `A` の変更を拾っていた。
+    ついでに record の newValue の読み戻しも、local name で引く
+    `target_node[attr]` から namespace 込みの読みに直した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
@@ -1792,6 +1842,3 @@ filter が null なら、これは「bit の立っている最初の候補を探
 * `Attr` を node として扱う API（`setAttributeNode`, `attributes` の `NamedNodeMap`、
   それに伴う "set an attribute" と "replace an attribute"、`InUseAttributeError`）。
   model の attribute は element の状態なので、node として観測できない。
-* element の namespace と local name。無いので
-  "get an attribute by name" step 1 と `setAttribute` step 2 の
-  「HTML namespace の element が HTML document にあるなら ASCII lowercase する」は走らない。

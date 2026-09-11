@@ -64,8 +64,8 @@ node 自身はその位置より前に入るので、start と end が逆転す�
 ## 何を見つけたか
 
 差分テストで仕様との不一致を見つけ、修正につなげた。
-`docs/status.md` に通し番号 1-25 で並べてある。
-24 件が Dommy 側、1 件（番号 9）が model 側である。例えば次のようなものである。
+`docs/status.md` に通し番号 1-26 で並べてある。
+25 件が Dommy 側、1 件（番号 9）が model 側である。例えば次のようなものである。
 
 * `insertBefore` / `replaceChild` が mutation record の挿入点を木が動いた後に読んでいた。
   仕様は insert step 6 と replace step 4、つまり何も動く前の値である。

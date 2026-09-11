@@ -326,6 +326,7 @@ theorem setAttribute_getAttribute {s s' : DOMState} {element : NodeId} {qn value
           rw [changeAttribute_tree, get?_setAttributes hd, if_pos rfl]
           simp only
           unfold getAttributeByName at ha ⊢
+          simp only [attrNameFor_setAttributes hd]
           rw [find?_updateFirst_of_key (h.keysNodup element d hd) ha]
           rfl
         · next hnone =>
@@ -334,6 +335,7 @@ theorem setAttribute_getAttribute {s s' : DOMState} {element : NodeId} {qn value
           rw [appendAttribute_tree, get?_setAttributes hd, if_pos rfl]
           simp only
           unfold getAttributeByName at hnone ⊢
+          simp only [attrNameFor_setAttributes hd]
           rw [find?_append_of_not_found hnone (by simp [Attr.qualifiedName])]
           rfl
 
@@ -346,7 +348,7 @@ qualified name が同じでも namespace が違えば別の attribute だから�
 -/
 theorem removeAttribute_erases {s s' : DOMState} {element : NodeId} {qn : String} {d : NodeData}
     {a : Attr} (hd : s.tree.get? element = some d) (hk : d.kind = .element)
-    (ha : getAttributeByName d qn = some a)
+    (ha : getAttributeByName s.tree d qn = some a)
     (hr : removeAttribute s element qn = .ok s') :
     ∃ d', s'.tree.get? element = some d' ∧
       d'.attributes = eraseFirst (fun b => b.key == a.key) d.attributes := by

@@ -1,0 +1,69 @@
+{
+  "_note": "mutation record の attributeName は attribute の local name そのものである。`setAttribute` が名前を ASCII lowercase するのは HTML namespace の element が HTML document にあるときだけ（step 2）なので、SVG namespace の element では \"A\" は \"A\" のまま置かれ、record にもそう載る。observer 1 の attributeFilter は \"a\" しか含まないので、この変更を拾わない（`docs/status.md` の finding 26）。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "setAttribute",
+      "handle attribute changes",
+      "queue a mutation record"
+    ],
+    "steps": "setAttribute 2, 6-7 / handle attribute changes 1 / queue a mutation record 2.3",
+    "note": "record の attributeName と attributeFilter は local name で突き合わせる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document",
+      "isHTMLDocument": true
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "namespace": "http://www.w3.org/2000/svg",
+      "localName": "rect"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 0,
+      "subtree": true,
+      "attributes": true,
+      "attributeOldValue": true
+    },
+    {
+      "target": 0,
+      "subtree": true,
+      "attributes": true,
+      "attributeFilter": [
+        "a"
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "A",
+      "value": "1"
+    },
+    {
+      "op": "setAttribute",
+      "element": 1,
+      "name": "A",
+      "value": "2"
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

@@ -49,6 +49,19 @@ def normalizeNamespace : Option String → Option String
   | none => rfl
   | some n => by_cases h : n.isEmpty <;> simp [normalizeNamespace, h]
 
+/-- ASCII の大文字を小文字にする（Infra の "ASCII lowercase"）。 -/
+def asciiLowercase (s : String) : String :=
+  String.ofList (s.toList.map fun c =>
+    if 'A' ≤ c && c ≤ 'Z' then Char.ofNat (c.toNat + 32) else c)
+
+/-- ASCII の小文字を大文字にする（Infra の "ASCII uppercase"）。 -/
+def asciiUppercase (s : String) : String :=
+  String.ofList (s.toList.map fun c =>
+    if 'a' ≤ c && c ≤ 'z' then Char.ofNat (c.toNat - 32) else c)
+
+/-- Infra の HTML namespace。 -/
+def htmlNamespace : String := "http://www.w3.org/1999/xhtml"
+
 /-- Infra の XML namespace。 -/
 def xmlNamespace : String := "http://www.w3.org/XML/1998/namespace"
 
@@ -65,6 +78,26 @@ def splitAtFirstColon (s : String) : Option (String × String) :=
   | [] => none
   | [_] => none
   | p :: rest => some (p, String.intercalate ":" rest)
+
+/--
+DOM Standard §1.3 valid element local name。
+
+ASCII alpha で始まるなら、ASCII whitespace / U+0000 / `/` / `>` を含まなければよい。
+そうでなければ、先頭が `:` / `_` / U+0080 以上で、続きが
+ASCII alphanumeric / `-` / `.` / `:` / `_` / U+0080 以上であること。
+-/
+def isValidElementLocalName (s : String) : Bool :=
+  match s.toList with
+  | [] => false
+  | c :: rest =>
+    if (('a' ≤ c && c ≤ 'z') || ('A' ≤ c && c ≤ 'Z')) then
+      (c :: rest).all fun x =>
+        !isAsciiWhitespace x && x.toNat != 0x00 && x != '/' && x != '>'
+    else if c == ':' || c == '_' || c.toNat ≥ 0x80 then
+      rest.all fun x =>
+        ('a' ≤ x && x ≤ 'z') || ('A' ≤ x && x ≤ 'Z') || ('0' ≤ x && x ≤ '9') ||
+          x == '-' || x == '.' || x == ':' || x == '_' || x.toNat ≥ 0x80
+    else false
 
 /--
 DOM Standard §1.3 "validate and extract" の step 6 と step 8-11。

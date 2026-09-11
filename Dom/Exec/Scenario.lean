@@ -51,11 +51,30 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         ownerDocument := ⟨owner⟩
         data := if s.kind.isCharacterData then s.data else ""
         -- attribute を持てるのは Element だけである（`AttributesValid`）。
-        attributes := if s.kind == .element then s.attributes else [] })
+        attributes := if s.kind == .element then s.attributes else []
+        -- namespace / prefix / local name を持つのは Element だけである。
+        -- 省略時は Dommy の `createElement("div")` に合わせる。
+        «namespace» := if s.kind == .element then s.namespace.orElse (fun _ => some htmlNamespace)
+                       else none
+        «prefix» := if s.kind == .element then s.prefix else none
+        localName := if s.kind == .element then s.localName.getD "div" else ""
+        -- Document の type。省略時は Dommy の `Window` の document に合わせて HTML document。
+        isHTMLDocument := s.kind == .document && s.isHTMLDocument.getD true })
   let entries ← specs.mapM entry
   let t : Tree := { nodes := entries.foldl (fun st p => st.insert p.1 p.2) NodeStore.empty }
   unless t.checkWellFormed do
     throw "初期状態が WellFormed を満たしていない"
+  -- element の名前の妥当性。node 生成は model の対象外（roadmap §13.2）なので、
+  -- これを崩せる algorithm は無く、`AdmissibleDOMState` の成分にはしていない。
+  for spec in specs do
+    if spec.kind == .element then
+      unless isValidElementLocalName (spec.localName.getD "div") do
+        throw s!"node {spec.id} の local name が valid element local name でない"
+      if spec.prefix.isSome && (spec.namespace.orElse (fun _ => some htmlNamespace)).isNone then
+        throw s!"node {spec.id} は prefix を持つのに namespace が無い"
+    else
+      unless spec.namespace.isNone && spec.prefix.isNone && spec.localName.isNone do
+        throw s!"node {spec.id} は Element でないので namespace / prefix / local name を持てない"
   return t
 
 /-! ## 操作の適用 -/

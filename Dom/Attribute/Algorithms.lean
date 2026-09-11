@@ -6,6 +6,8 @@ import Dom.Util.List
 # Attribute
 
 DOM Standard §4.9 の attribute の algorithm と、`Element` の attribute 関連 method。
+element の namespace と local name に依る部分（`tagName`、attribute 名の ASCII lowercase）も
+ここに置く。
 
 仕様の attribute は `Attr` node だが、本 model では element の状態として持つ
 （`Dom/Basic/NodeId.lean` の `Attr` を参照）。したがって
@@ -14,11 +16,6 @@ DOM Standard §4.9 の attribute の algorithm と、`Element` の attribute 関
 * それに伴う "set an attribute" と "replace an attribute"、`InUseAttributeError`
 
 は扱わない。attribute の node document も持たないので、adopt の step 3.2 は空になる。
-
-element の namespace と local name も持たないので、
-"get an attribute by name" step 1 と `setAttribute` step 2 の
-「HTML namespace の element が HTML document にあるなら ASCII lowercase する」は走らない。
-model の element は HTML namespace に無いものとして扱う。
 
 receiver が Element でない場合は WebIDL の TypeError を返す。仕様の algorithm 自体には
 その検査が無い（`Element` interface の method からしか呼ばれないため）が、
@@ -41,14 +38,46 @@ def getAttributeByKey (d : NodeData) («namespace» : Option String) (localName 
   let ns := normalizeNamespace «namespace»
   d.attributes.find? fun a => a.namespace == ns && a.localName == localName
 
+/-- `d` の node document が HTML document か。 -/
+def isHTMLDocumentOf (t : Tree) (d : NodeData) : Bool :=
+  match t.get? d.ownerDocument with
+  | none => false
+  | some doc => doc.isHTMLDocument
+
+/--
+DOM Standard §4.8 `Element.tagName`。
+
+qualified name を、HTML namespace の element が HTML document にあるときは ASCII uppercase する。
+-/
+def tagName (t : Tree) (element : NodeId) : Option String :=
+  match t.get? element with
+  | none => none
+  | some d =>
+    if d.kind != .element then none
+    else if d.namespace == some htmlNamespace && isHTMLDocumentOf t d then
+      some (asciiUppercase d.qualifiedName)
+    else some d.qualifiedName
+
+/--
+DOM Standard §4.9 "get an attribute by name" step 1、および `setAttribute` step 2 と
+`toggleAttribute` step 2。
+
+HTML namespace の element が HTML document にあるなら qualified name を ASCII lowercase する。
+その三箇所は同じ条件と同じ変換なので、ここにまとめる。
+-/
+def attrNameFor (t : Tree) (d : NodeData) (qualifiedName : String) : String :=
+  if d.namespace == some htmlNamespace && isHTMLDocumentOf t d then
+    asciiLowercase qualifiedName
+  else qualifiedName
+
 /--
 DOM Standard §4.9 "get an attribute by name"。
 
-step 1 の lowercase は走らない（module の doc comment を参照）ので、
-qualified name が一致する最初の attribute を返すだけである。
+step 1 で名前を正規化し、qualified name が一致する最初の attribute を返す。
 -/
-def getAttributeByName (d : NodeData) (qualifiedName : String) : Option Attr :=
-  d.attributes.find? fun a => a.qualifiedName == qualifiedName
+def getAttributeByName (t : Tree) (d : NodeData) (qualifiedName : String) : Option Attr :=
+  let qn := attrNameFor t d qualifiedName
+  d.attributes.find? fun a => a.qualifiedName == qn
 
 /-- DOM Standard §4.9 "get an attribute value"。無ければ空文字列。 -/
 def getAttributeValue (d : NodeData) («namespace» : Option String) (localName : String) : String :=
@@ -101,6 +130,21 @@ theorem kindOf_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get?
   by_cases h : m = n
   · subst h; simp [hd]
   · rw [if_neg h]
+
+/--
+attribute list を差し替えても、attribute 名の正規化は変わらない。
+
+`attrNameFor` が見るのは element の namespace と node document の type だけで、
+`setAttributes` はそのどちらも変えない。
+-/
+theorem attrNameFor_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
+    (as : List Attr) (qn : String) :
+    attrNameFor (setAttributes t n d as) { d with attributes := as } qn = attrNameFor t d qn := by
+  unfold attrNameFor isHTMLDocumentOf
+  rw [get?_setAttributes hd]
+  by_cases hm : d.ownerDocument = n
+  · rw [if_pos hm, hm, hd]
+  · rw [if_neg hm]
 
 /-!
 ## "handle attribute changes"
@@ -198,12 +242,13 @@ def setAttribute (s : DOMState) (element : NodeId) (qualifiedName value : String
     | some d =>
       if d.kind != .element then .error .typeError
       else
-        match getAttributeByName d qualifiedName with
+        match getAttributeByName s.tree d qualifiedName with
         -- step 5
         | some a => .ok (changeAttribute s element d a value)
         -- step 6-7
         | none =>
-          .ok (appendAttribute s element d { localName := qualifiedName, value := value })
+          .ok (appendAttribute s element d
+            { localName := attrNameFor s.tree d qualifiedName, value := value })
 
 /-- DOM Standard §4.9 `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/
 def setAttributeNS (s : DOMState) (element : NodeId) («namespace» : Option String)
@@ -224,7 +269,7 @@ def removeAttribute (s : DOMState) (element : NodeId) (qualifiedName : String) :
   | some d =>
     if d.kind != .element then .error .typeError
     else
-      match getAttributeByName d qualifiedName with
+      match getAttributeByName s.tree d qualifiedName with
       | none => .ok s
       | some a => .ok (removeAttributeFrom s element d a)
 
@@ -255,11 +300,13 @@ def toggleAttribute (s : DOMState) (element : NodeId) (qualifiedName : String)
     | some d =>
       if d.kind != .element then .error .typeError
       else
-        match getAttributeByName d qualifiedName with
+        match getAttributeByName s.tree d qualifiedName with
         -- step 4
         | none =>
           if force == some false then .ok (s, false)
-          else .ok (appendAttribute s element d { localName := qualifiedName }, true)
+          else
+            .ok (appendAttribute s element d
+              { localName := attrNameFor s.tree d qualifiedName }, true)
         -- step 5-6
         | some a =>
           if force == some true then .ok (s, true)
@@ -271,7 +318,7 @@ def toggleAttribute (s : DOMState) (element : NodeId) (qualifiedName : String)
 def getAttribute (t : Tree) (element : NodeId) (qualifiedName : String) : Option String :=
   match t.get? element with
   | none => none
-  | some d => (getAttributeByName d qualifiedName).map (·.value)
+  | some d => (getAttributeByName t d qualifiedName).map (·.value)
 
 /-- DOM Standard §4.9 `Element.hasAttribute(qualifiedName)`。 -/
 def hasAttribute (t : Tree) (element : NodeId) (qualifiedName : String) : Bool :=

@@ -42,34 +42,42 @@ theorem refl (t : Tree) : ShapePreserving t t := fun _ => rfl
 theorem trans {t t₁ t₂ : Tree} (h₁ : ShapePreserving t t₁) (h₂ : ShapePreserving t₁ t₂) :
     ShapePreserving t t₂ := fun m => (h₂ m).trans (h₁ m)
 
-theorem map_shape_fst (o : Option NodeData) :
-    o.map (·.kind) = (o.map NodeData.shape).map Prod.fst := by cases o <;> rfl
-
-theorem map_shape_snd (o : Option NodeData) :
-    o.map (·.attributes) = (o.map NodeData.shape).map Prod.snd := by cases o <;> rfl
+theorem map_shape_field {β : Type _} (f : NodeData → β) (hf : ∀ d, f d.shape = f d)
+    (o : Option NodeData) : o.map f = (o.map NodeData.shape).map f := by
+  cases o with
+  | none => rfl
+  | some d => simp [hf]
 
 /-- kind だけを取り出す。 -/
 theorem kind {t t' : Tree} (h : ShapePreserving t t') (m : NodeId) :
     (t'.get? m).map (·.kind) = (t.get? m).map (·.kind) := by
-  rw [map_shape_fst, map_shape_fst, h m]
+  rw [map_shape_field _ (fun _ => rfl) (t'.get? m), h m,
+    ← map_shape_field _ (fun _ => rfl) (t.get? m)]
 
 /-- attribute list だけを取り出す。 -/
 theorem attributes {t t' : Tree} (h : ShapePreserving t t') (m : NodeId) :
     (t'.get? m).map (·.attributes) = (t.get? m).map (·.attributes) := by
-  rw [map_shape_snd, map_shape_snd, h m]
+  rw [map_shape_field _ (fun _ => rfl) (t'.get? m), h m,
+    ← map_shape_field _ (fun _ => rfl) (t.get? m)]
 
-/-- 変更後に node があるなら変更前にもあり、kind と attribute list は同じである。 -/
+/--
+変更後に node があるなら変更前にもあり、
+parent・children・node document・data を除く部分は同じである。
+-/
 theorem exists_get? {t t' : Tree} (h : ShapePreserving t t') {m : NodeId} {d : NodeData}
     (hd : t'.get? m = some d) :
-    ∃ d₀, t.get? m = some d₀ ∧ d₀.kind = d.kind ∧ d₀.attributes = d.attributes := by
+    ∃ d₀, t.get? m = some d₀ ∧ d₀.kind = d.kind ∧ d₀.attributes = d.attributes ∧
+      d₀.shape = d.shape := by
   have hm := h m
   rw [hd] at hm
   cases hd₀ : t.get? m with
   | none => rw [hd₀] at hm; simp at hm
   | some d₀ =>
     rw [hd₀] at hm
-    simp only [Option.map_some, Option.some.injEq, NodeData.shape, Prod.mk.injEq] at hm
-    exact ⟨d₀, rfl, hm.1.symm, hm.2.symm⟩
+    simp only [Option.map_some, Option.some.injEq] at hm
+    refine ⟨d₀, rfl, ?_, ?_, hm.symm⟩
+    · simpa using congrArg NodeData.kind hm.symm
+    · simpa using congrArg NodeData.attributes hm.symm
 
 end ShapePreserving
 

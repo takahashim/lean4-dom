@@ -73,17 +73,19 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 | --- | --- | --- | --- | --- | --- | --- |
 | valid namespace prefix / valid attribute local name | §1.3 | `isValidNamespacePrefix`, `isValidAttributeLocalName` | — | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
 | validate and extract（"attribute"） | 1-12 | `validateAndExtractAttribute`, `validateAndExtractError` | `validateAndExtractAttribute_ok`（step 1 と step 8） | 同上 | 同上 | 済 |
-| get an attribute by name | 1-2（step 1 の lowercase は非対象） | `getAttributeByName` | `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| get an attribute by name | 1-2 | `getAttributeByName`, `attrNameFor` | `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| valid element local name | §1.3 | `isValidElementLocalName` | — | （loader が検査する） | — | 済 |
+| `Element.tagName` | §4.8 | `tagName` | — | `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | get an attribute by namespace and local name | 1-2 | `getAttributeByKey` | — | （生成 scenario の `removeAttributeNS`） | 同上 | 済 |
 | handle attribute changes | 1（2-3 は hook の位置のみ） | `handleAttributeChanges` | preservation `admissible_setAttribute` ほか | `observer-attribute-filter-does-not-shadow` | `test_wpt_mutation_observer_attribute_options.rb` | 済 |
 | change an attribute | 1-3 | `changeAttribute` | `attributesValid_change` | 同上 | 同上 | 済 |
 | append an attribute | 1-4 | `appendAttribute` | `attributesValid_append` | 同上 | 同上 | 済 |
 | remove an attribute | 1-4 | `removeAttributeFrom` | `attributesValid_erase`, `removeAttribute_erases` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | set an attribute value | 1-3 | `setAttributeValue` | `attrOpResult_setAttributeValue` | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
-| `setAttribute(qualifiedName, value)` | 1, 4-7（step 2-3 は非対象） | `setAttribute` | `admissible_setAttribute`, `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
-| `setAttributeNS(namespace, qualifiedName, value)` | 1, 3（step 2 は非対象） | `setAttributeNS` | `admissible_setAttributeNS` | （生成 scenario） | `test_wpt_attr.rb` | 済 |
+| `setAttribute(qualifiedName, value)` | 1-2, 4-7（step 3 は Trusted Types なので非対象） | `setAttribute`, `attrNameFor` | `admissible_setAttribute`, `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| `setAttributeNS(namespace, qualifiedName, value)` | 1, 3（step 2 は Trusted Types なので非対象） | `setAttributeNS` | `admissible_setAttributeNS` | （生成 scenario） | `test_wpt_attr.rb` | 済 |
 | `removeAttribute` / `removeAttributeNS` | 全 | `removeAttribute`, `removeAttributeNS` | `admissible_removeAttribute`, `admissible_removeAttributeNS` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
-| `toggleAttribute(qualifiedName, force)` | 1, 3-6（step 2 は非対象） | `toggleAttribute` | `admissible_toggleAttribute` | 同上 | 同上 | 済 |
+| `toggleAttribute(qualifiedName, force)` | 1-6 | `toggleAttribute`, `attrNameFor` | `admissible_toggleAttribute` | 同上 | 同上 | 済 |
 
 ## normative branch の網羅（roadmap §11.3）
 
@@ -153,11 +155,10 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | Shadow DOM（shadow-including root / slot） | 未対応 | roadmap の対象外。`move` step 1 は shadow-including root ではなく root で近似している |
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
 | `Attr` を node として扱う API（`setAttributeNode`、`attributes` の `NamedNodeMap`、"set an attribute" と "replace an attribute"） | 対象外 | model の attribute は element の状態で、node tree に入らない |
-| element の namespace と local name | 対象外 | 無いので "get an attribute by name" step 1 と `setAttribute` step 2 の HTML lowercase は走らない。model の element は HTML namespace に無いものとして扱う |
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の code unit 境界 | 対象外 | roadmap §13.1。`data` は Lean の `String` |
-| node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
+| node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。node は scenario が初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | object identity と戻り値 | 対象外 | roadmap §13.3。`Observation` に含めていない |
 | `NodeFilter` の callback | 対象外 | roadmap §13.4。callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
 | WebIDL の TypeError | 近似 | `observe` の step 3-6、attribute の method の receiver が Element でない場合、`moveBefore` の receiver が ParentNode でない場合（`move-receiver-must-be-parentnode`）を `DOMException.typeError` で表す。名前は一致するが実際には `DOMException` ではない |

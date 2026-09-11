@@ -114,6 +114,10 @@ Dommy を読み込んでいない process の仕事にしてある。
   "attributeOldValue": true, "attributeFilter": ["a"], "characterData": true,
   "characterDataOldValue": true}` の形で、`target` を省くと registration を持たない
   observer だけができる（scenario 側で `observe` 操作を使う場合はこちら）。
+* element の `namespace` / `prefix` / `localName` は、省略すると
+  HTML namespace の `div` になる（Dommy の `createElement("div")` に合わせてある）。
+  document の `isHTMLDocument` は省略すると true。
+  attribute 名を ASCII lowercase するかどうかがこの二つで決まる。
 * element の `attributes` は
   `{"namespace": null, "prefix": null, "localName": "a", "value": "1"}` の list。
   Element 以外に置いても無視される。

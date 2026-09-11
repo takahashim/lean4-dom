@@ -73,6 +73,17 @@ structure NodeSpec where
   data : String := ""
   /-- 初期 attribute list。Element 以外に置くと loader が拒否する。 -/
   attributes : List Attr := []
+  /--
+  Element の namespace / namespace prefix / local name。
+
+  省略すると HTML namespace の `div` になる。差分テストの相手（Dommy）の
+  `document.createElement("div")` がそうだからで、既存の scenario はこれで動く。
+  -/
+  «namespace» : Option String := none
+  «prefix» : Option String := none
+  localName : Option String := none
+  /-- Document の type が "html" か。省略すると true（Dommy の `Window` の document）。 -/
+  isHTMLDocument : Option Bool := none
 deriving Repr
 
 /-- scenario が並べる操作。Phase 3 までの public API に対応する。 -/
@@ -233,7 +244,12 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
   let attributes ← match field? j "attributes" with
     | none => pure ([] : List Attr)
     | some v => do (← v.getArr?).toList.mapM attrOfJson
-  return { id, kind, parent, ownerDocument, data, attributes }
+  let «namespace» ← strField? j "namespace"
+  let «prefix» ← strField? j "prefix"
+  let localName ← strField? j "localName"
+  let isHTMLDocument ← boolField? j "isHTMLDocument"
+  return { id, kind, parent, ownerDocument, data, attributes,
+           «namespace», «prefix», localName, isHTMLDocument }
 
 def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""
@@ -375,7 +391,11 @@ def observedNodeJson (n : ObservedNode) : Json :=
     , ("children", Json.arr (n.children.map fun c => natJson c.id).toArray)
     , ("nodeDocument", natJson n.nodeDocument.id)
     , ("data", Json.str n.data)
-    , ("attributes", Json.arr (n.attributes.map attrJson).toArray) ]
+    , ("attributes", Json.arr (n.attributes.map attrJson).toArray)
+    , ("namespace", optStrJson n.namespace)
+    , ("prefix", optStrJson n.prefix)
+    , ("localName", Json.str n.localName)
+    , ("tagName", optStrJson n.tagName) ]
 
 def boundaryPointJson (bp : BoundaryPoint) : Json :=
   Json.mkObj [("node", natJson bp.node.id), ("offset", natJson bp.offset)]
