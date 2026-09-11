@@ -135,6 +135,11 @@ open Dom.Audit
   Url.ipv4Parser_lt
   Url.foldl_base256_lt
 
+-- URL Standard §4.1 URL record の妥当性
+#audit_axioms
+  Url.checkValidUrl_iff
+  Url.isSpecialScheme_of_defaultPort
+
 -- URL Standard §3.2 host / §1.3 percent-encoding
 #audit_axioms
   Url.opaqueHostParser_no_forbidden

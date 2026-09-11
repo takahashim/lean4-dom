@@ -52,7 +52,7 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
 | --- | --- | --- | --- | --- | --- |
-| URL record | §4.1 | `Url`, `Path` | `ValidUrl`（述語のみ） | wpt | 済 |
+| URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl` | `checkValidUrl_iff`（決定可能性）。parser が保つことの証明は未着手で、WPT 全件で実行時検査している | wpt | 部分 |
 | special scheme と既定の port | §4.2 | `isSpecialScheme`, `defaultPort` | `isSpecialScheme_of_defaultPort` | wpt | 済 |
 | URL path serializer | §4.3 | `pathSerializer` | — | wpt | 済 |
 | URL serializer | §4.3 1-7 | `urlSerializer` | — | wpt | 済 |

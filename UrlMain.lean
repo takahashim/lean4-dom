@@ -43,6 +43,7 @@ def runWpt (path : String) : IO UInt32 := do
   let mut ok := 0
   let mut bad := 0
   let mut skipped := 0
+  let mut invalid := 0
   let mut shown := 0
   for j in arr do
     match caseOfJson j with
@@ -56,6 +57,14 @@ def runWpt (path : String) : IO UInt32 := do
       let got := parseUrl c.input c.base
       let expected : Option String := if c.failure then none else c.href
       let actual : Option String := got.map (fun u => urlSerializer u)
+      -- parse が成功したなら、結果の record は `ValidUrl` を満たすはずである
+      -- （証明は未着手。`docs/url-status.md`）。DOM 側の `--check` と同じ役割。
+      match got with
+      | some u =>
+        if !checkValidUrl u then
+          invalid := invalid + 1
+          IO.println s!"INVALID input={repr c.input} base={repr c.base} -> {urlSerializer u}"
+      | none => pure ()
       if actual == expected then ok := ok + 1
       else if needsIdna && actual == none then skipped := skipped + 1
       else
@@ -66,7 +75,8 @@ def runWpt (path : String) : IO UInt32 := do
           IO.println s!"  expected={repr expected}"
           IO.println s!"  actual  ={repr actual}"
   IO.println s!"WPT: 一致 {ok} / 不一致 {bad} / IDNA が要る（model の対象外） {skipped}"
-  return if bad == 0 then 0 else 1
+  IO.println s!"ValidUrl: 違反 {invalid}"
+  return if bad == 0 && invalid == 0 then 0 else 1
 
 def main (args : List String) : IO UInt32 := do
   match args with

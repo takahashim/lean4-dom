@@ -104,6 +104,64 @@ structure ValidUrl (u : Url) : Prop where
   opaqueNoCredentials : u.hasOpaquePath = true → u.includesCredentials = false
   opaqueNoPort : u.hasOpaquePath = true → u.port = none
 
+/-! ## 実行時の検査 -/
+
+/--
+`ValidUrl` の boolean 版。
+
+DOM 側の `checkAdmissibleDOMState` と同じ役割で、
+parse した結果が不変条件を満たすことを実行時に確かめる。
+証明（`docs/url-status.md` の未着手）が付くまでの間、
+WPT の全 case でこれを走らせておく。
+-/
+def checkValidUrl (u : Url) : Bool :=
+  (!u.isSpecial || !u.hasOpaquePath) &&
+    (u.host.isSome || (!u.includesCredentials && u.port.isNone)) &&
+    (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone))
+
+theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := by
+  unfold checkValidUrl
+  constructor
+  · intro h
+    simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
+    obtain ⟨⟨h1, h2⟩, h3⟩ := h
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+    · intro hs; rcases h1 with h1 | h1
+      · rw [hs] at h1; simp at h1
+      · exact h1
+    · intro hh
+      rcases h2 with h2 | h2
+      · rw [hh] at h2; simp at h2
+      · exact h2.1
+    · intro hh
+      rcases h2 with h2 | h2
+      · rw [hh] at h2; simp at h2
+      · simpa using h2.2
+    · intro ho
+      rcases h3 with h3 | h3
+      · rw [ho] at h3; simp at h3
+      · exact h3.1
+    · intro ho
+      rcases h3 with h3 | h3
+      · rw [ho] at h3; simp at h3
+      · simpa using h3.2
+  · intro h
+    simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true']
+    refine ⟨⟨?_, ?_⟩, ?_⟩
+    · cases hs : u.isSpecial with
+      | false => exact Or.inl rfl
+      | true => exact Or.inr (h.specialHasList hs)
+    · cases hh : u.host with
+      | some _ => exact Or.inl (by simp)
+      | none =>
+        refine Or.inr ?_
+        simp [h.nullHostNoCredentials hh, h.nullHostNoPort hh]
+    · cases ho : u.hasOpaquePath with
+      | false => exact Or.inl rfl
+      | true =>
+        refine Or.inr ?_
+        simp [h.opaqueNoCredentials ho, h.opaqueNoPort ho]
+
 /-- 既定の port を持つ scheme は special である。 -/
 theorem isSpecialScheme_of_defaultPort {scheme : String} {p : Nat}
     (h : defaultPort scheme = some p) : isSpecialScheme scheme = true := by

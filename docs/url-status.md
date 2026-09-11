@@ -101,6 +101,7 @@ ASCII では ASCII lowercase に一致し、Punycode も走らない）ので、
 | `asciiDomainToASCII_ne_empty` | domain parser の結果は空でない |
 | `utf8PercentEncode_id` | set に入るものが無ければ percent-encode は何も変えない |
 | （`run` / `step` の停止性） | `termination_by` で示してある。fuel は使っていない |
+| `checkValidUrl_iff` | `ValidUrl` は決定可能。boolean の checker と `Prop` が一致する |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
@@ -131,10 +132,18 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
 
 ## 未着手
 
-* **`ValidUrl` の保存。** `Url/Record.lean` に述語は置いた。
-  parser の結果が常に満たすことを示すには state ごとの不変条件が要る。
+* **`ValidUrl` の保存。** 述語（`ValidUrl`）と決定手続き（`checkValidUrl`、
+  `checkValidUrl_iff`）は入れて、**WPT の全 case で実行時に検査している**
+  （`url-model --wpt` の `ValidUrl: 違反 0`）。DOM 側の `dom-model --check` と同じ形である。
+
+  証明はまだ。`step.induct`（functional induction）で 50 ほどの case に分かれる。
+  難所は、途中の状態では成り立たない条件があることである。
   authority state は host が決まる前に credentials を入れるので、
-  「host が null なら credentials を持たない」は途中では成り立たない。
+  「host が null なら credentials を持たない」は host state を抜けるまで成り立たない。
+  state ごとに条件を分けるか、`SpecialNotOpaque`（special なら opaque path でない）のように
+  途中でも成り立つものから順に示すことになる。
+  後者は opaque path を作るのが scheme state の一分岐だけなので、
+  base の妥当性を仮定すれば通る見込みがある。
 * **setter（state override）。** `Location` と `URL` の各 setter が使う引数。
 * **`URLSearchParams`**（application/x-www-form-urlencoded）。
 * **IDNA / UTS #46 そのもの。** 上記の理由で抽象化したままにする。
