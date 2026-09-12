@@ -577,11 +577,13 @@ parse の結果については成り立ち、`--wpt` が毎回 573 件（parse �
 * path segment は `.` でも `..` でもなく、special な URL では `\` を含まない
 * opaque path は `?` も `#` も含まず、`/` で始まらず、space で終わらない
 * host は `hostParser (hostSerializer h) = some h` を満たす（empty host を除く）
+* `file:` の host は `localhost` でない（parser が empty host に直す）
+* `file:` の先頭 segment は、Windows drive letter なら正規化されている（`c|` でなく `c:`）
 
 `checkValidUrl` と同じく WPT の 820 件と setter の 705 件で実行時に検査している（違反 0）。
 実行時の検査で分かるのは**強すぎないこと**だけで、**弱すぎるかどうかは証明でしか分からない**。
-opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書いていて足りないことに
-気づいた条件である。
+opaque path の `?` `#` と先頭の `/`、segment の `\`、それに `file:` の `localhost` と
+Windows drive letter は、証明を書いていて足りないことに気づいた条件である。
 
 ### 閉じた分
 
@@ -590,6 +592,7 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が付いてもよい） |
 | `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。`sc:/.//x` のように serializer が `/.` を足す場合も含む。query と fragment が付いてもよい） |
 | `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも IPv6 host 付きも、query と fragment 付きも。`file:` は除く） |
+| `roundtrip_file` | **`file:` URL も戻る**（`file:///a` も `file://[::]/a` も。authority state を通らない別経路） |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
@@ -604,15 +607,21 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | `run_host_inside`, `run_host_bracket` | `[` から `]` まで。bracket の中では `:` が port の区切りにならない |
 | `hostReadable`, `run_host_serialized` | host を serialize した文字列が host state を素通りすること。domain と opaque host は forbidden host code point が無いことから、IPv6 host は bracket に囲まれていることから |
 | `ipv6Serializer_chars`, `toHexString_chars` | IPv6 を serialize した文字は 16 進の数字か `:` である |
+| `run_scheme_file`, `run_file_slash`, `run_fileSlash_slash` | `file:` の入口。`//` を二つの state で読み飛ばす |
+| `run_fileHost_chunk`, `run_fileHost_empty`, `run_fileHost_pathStart` | file host state の三種類。host が空でも受ける |
+| `windowsDriveBuffer_of_*` | 先頭 segment の `c|` を `c:` に直す分岐が何もしないための条件 |
 
-閉じたのは三つの経路である。
+閉じたのは四つの経路である。
 
 * scheme start → scheme → opaque path → query → fragment
 * scheme start → scheme → path or authority → path →（query → fragment）
 * scheme start → scheme →（special かどうかで二通り）→ authority → host → path start → path →（query → fragment）
+* scheme start → scheme → file → file slash → file host → path start → path →（query → fragment）
 
 三つ目は `sp : Bool` で special かどうかを持つので、`sc://h/a` と `http://h/a/b` が
 同じ定理になる。credentials（`user:pass@`）もここに入る。
+四つ目の `file:` だけは authority state を通らない。host が空でも serialize は `//` を書くので、
+file host state は空の buffer も受ける。`file:` は special なので path は空にならない。
 host は `hostReadable` という一つの仮定にまとめてあり、domain / IPv4 / opaque host は
 forbidden host code point が無いことから、IPv6 host は `[` と `]` に囲まれていることから
 それを満たす。IPv6 host は host parser が domain parser を通らないので、
@@ -622,12 +631,13 @@ well-founded 再帰なので簡約せず、例に書けない）。
 state ごとに「区切りでない文字を読み切る（chunk）」「区切りで次へ渡す」「EOF で返す」の
 三つを用意して積む。path は segment の列についての帰納法が一つ増える
 （最後の segment は buffer に残ったまま次へ渡る）。
-query と fragment は三つの経路のどれからも同じ `run_query_full` に合流する。
-残っているのは `file:`（file state）である。
+query と fragment は四つの経路のどれからも同じ `run_query_full` に合流する。
+四つで parser の経路は出揃った。残っているのは、それぞれの仮定を `canonicalUrl` から
+出して一つの定理にまとめるところである。
 
 state の補題は `special` を Bool の引数で持つようにしてあるので、
 非 special と special で同じものを使っている。`canonicalUrl` の条件は証明のたびに増えて、
-いまは五つが「テストでは見つからず、証明が指した」ものである。
+いまは七つが「テストでは見つからず、証明が指した」ものである。
 
 host の条件は `hostParser (hostSerializer h) = some h`（canonical form の一つ）から出る。
 `opaqueHostParser_no_forbidden` が「host parser を通った入力に forbidden host code point は

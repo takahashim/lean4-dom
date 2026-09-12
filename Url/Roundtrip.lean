@@ -30,6 +30,7 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * `roundtrip_path`：scheme start → scheme → path or authority → path
 * `roundtrip_host`：host を持つ URL。`sc://h/a` も `http://h/a/b` も、credentials 付きも
   port 付きも IPv6 host も。special かどうかは `sp : Bool` で持つ
+* `roundtrip_file`：`file:` URL。authority state を通らない別経路である
 
 どれも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
@@ -40,7 +41,8 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
-残っているのは `file:`（file state）である。
+四つで parser の経路は出揃った。残っているのは、それぞれの仮定を `canonicalUrl` から
+出して一つの定理にまとめるところである。
 
 port には 10 進の往復（`portValue_toString`）が要った。`Nat.toDigitsCore` についての
 帰納法で、桁を積む向きと読む向きが逆になるので `portValue (l1 ++ l2)` の形を経由する。
@@ -116,7 +118,16 @@ def canonicalUrl (u : Url) (toAscii : List Char → Option String := asciiDomain
    | none => true
    -- empty host は host parser の出力ではない（parser が直に書く）。
    | some .empty => true
-   | some h => hostParser toAscii (hostSerializer h).toList (!u.isSpecial) == some h)
+   | some h => hostParser toAscii (hostSerializer h).toList (!u.isSpecial) == some h) &&
+  -- file URL の `localhost` は parser が empty host に直す。
+  (match u.host with
+   | some h => u.scheme != "file" || hostSerializer h != "localhost"
+   | none => true) &&
+  -- file URL の先頭 segment の `c|` は parser が `c:` に直す。
+  (match u.path with
+   | .list (seg :: _) =>
+     u.scheme != "file" || !isWindowsDrive seg.toList || isNormalizedWindowsDrive seg.toList
+   | _ => true)
 
 /-- 先頭が落ちない文字なら `dropWhile` は何もしない。 -/
 theorem dropWhile_of_head : ∀ (l : List Char) (p : Char → Bool), (∀ c ∈ l.head?, p c = false) →
@@ -555,15 +566,49 @@ theorem run_path_eof (base : Option Url) (ctx : PCtx) :
   rw [run, step]
   simp
 
-/-- `.` でも `..` でもない segment を、`file` でない URL の path の末尾に足す。 -/
+/-- `file` でない URL では Windows drive letter の直しは何もしない。 -/
+theorem windowsDriveBuffer_of_not_file {u : Url} {buf : List Char} (h : ¬u.scheme = "file") :
+    pathStepUrl.windowsDriveBuffer u buf = buf := by
+  unfold pathStepUrl.windowsDriveBuffer
+  rw [if_neg (by simp [h])]
+
+/-- path が空でなければ、先頭 segment ではないので直さない。 -/
+theorem windowsDriveBuffer_of_path_ne {u : Url} {pre : List String} {buf : List Char}
+    (hp : u.path = .list pre) (hne : pre ≠ []) :
+    pathStepUrl.windowsDriveBuffer u buf = buf := by
+  unfold pathStepUrl.windowsDriveBuffer
+  refine if_neg ?_
+  rw [hp]
+  cases pre with
+  | nil => exact absurd rfl hne
+  | cons x t => simp
+
+/-- すでに正規化された Windows drive letter は、直しても同じである。 -/
+theorem windowsDriveBuffer_of_normalized {u : Url} {buf : List Char}
+    (h : isNormalizedWindowsDrive buf = true) :
+    pathStepUrl.windowsDriveBuffer u buf = buf := by
+  unfold pathStepUrl.windowsDriveBuffer
+  match buf, h with
+  | [a, b], h =>
+    simp only [isNormalizedWindowsDrive, Bool.and_eq_true, beq_iff_eq] at h
+    rw [h.2]
+    simp
+
+/-- Windows drive letter でなければ直しは何もしない。 -/
+theorem windowsDriveBuffer_of_not_drive {u : Url} {buf : List Char}
+    (h : isWindowsDrive buf = false) : pathStepUrl.windowsDriveBuffer u buf = buf := by
+  unfold pathStepUrl.windowsDriveBuffer
+  rw [if_neg (by simp [h])]
+
+/-- `.` でも `..` でもない segment を path の末尾に足す。 -/
 theorem pathStepUrl_append {u : Url} {pre : List String} {s : String}
-    (hp : u.path = .list pre) (hnf : ¬u.scheme = "file")
+    (hp : u.path = .list pre)
+    (hwd : pathStepUrl.windowsDriveBuffer u s.toList = s.toList)
     (h1 : isSingleDot s.toList = false) (h2 : isDoubleDot s.toList = false) (slash : Bool) :
     pathStepUrl u slash s.toList = { u with path := .list (pre ++ [s]) } := by
   unfold pathStepUrl
   rw [if_neg (by simp [h2]), if_neg (by simp [h1])]
-  unfold pathStepUrl.windowsDriveBuffer
-  rw [if_neg (by simp [hnf])]
+  rw [hwd]
   unfold appendSegment
   rw [hp]
   simp
@@ -578,7 +623,9 @@ def intercal : List String → List Char
 theorem run_path_segs (base : Option Url) (sp : Bool) :
     ∀ (segs : List String) (tail : List Char) (ctx : PCtx) (pre : List String),
     ctx.url.path = .list pre → ctx.buffer = [] →
-    ctx.url.isSpecial = sp → ctx.over = none → ¬ctx.url.scheme = "file" →
+    ctx.url.isSpecial = sp → ctx.over = none →
+    (∀ x, segs.head? = some x →
+      pathStepUrl.windowsDriveBuffer ctx.url x.toList = x.toList) →
     (∀ s ∈ segs, (∀ c ∈ s.toList, pathSet c = false ∧ isTerminator sp (some c) = false) ∧
       isSingleDot s.toList = false ∧ isDoubleDot s.toList = false) →
     run base .path (intercal segs ++ tail) ctx
@@ -596,7 +643,8 @@ theorem run_path_segs (base : Option Url) (sp : Bool) :
     have h2 : ("" : String).toList = ctx.buffer := by rw [hb]; simp
     rw [h1, h2]
   | cons s rest ih =>
-    intro tail ctx pre hp hb hsp hov hnf hall
+    intro tail ctx pre hp hb hsp hov hwd hall
+    have hwds : pathStepUrl.windowsDriveBuffer ctx.url s.toList = s.toList := hwd s rfl
     have hs := hall s (by simp)
     cases rest with
     | nil =>
@@ -617,12 +665,13 @@ theorem run_path_segs (base : Option Url) (sp : Bool) :
         { ctx with
           url := pathStepUrl ctx.url true (ctx.buffer ++ s.toList)
           buffer := [] } (pre ++ [s])
-        (by rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]) rfl
-        (by rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]; exact hsp)
+        (by rw [hb, List.nil_append, pathStepUrl_append hp hwds hs.2.1 hs.2.2]) rfl
+        (by rw [hb, List.nil_append, pathStepUrl_append hp hwds hs.2.1 hs.2.2]; exact hsp)
         hov
-        (by rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]; exact hnf)
+        (fun x _ => windowsDriveBuffer_of_path_ne
+          (by rw [hb, List.nil_append, pathStepUrl_append hp hwds hs.2.1 hs.2.2]) (by simp))
         (fun x hx => hall x (by simp [hx]))]
-      rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]
+      rw [hb, List.nil_append, pathStepUrl_append hp hwds hs.2.1 hs.2.2]
       simp [List.append_assoc]
 
 /-- path の serialize は `/` と segment を交互に並べたものである。 -/
@@ -813,7 +862,8 @@ theorem run_path_hash (base : Option Url) (rest : List Char) (ctx : PCtx)
 theorem run_path_full (base : Option Url) (sp : Bool) (segs : List String) (q f : Option String)
     (ctx : PCtx)
     (hsp : ctx.url.isSpecial = sp) (hov : ctx.over = none)
-    (hpath : ctx.url.path = .list []) (hb : ctx.buffer = []) (hnf : ¬ctx.url.scheme = "file")
+    (hpath : ctx.url.path = .list []) (hb : ctx.buffer = [])
+    (hwd : ∀ x, segs.head? = some x → pathStepUrl.windowsDriveBuffer ctx.url x.toList = x.toList)
     (hq0 : ctx.url.query = none) (hf0 : ctx.url.fragment = none)
     (hne : segs ≠ [])
     (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ isTerminator sp (some c) = false) ∧
@@ -831,7 +881,7 @@ theorem run_path_full (base : Option Url) (sp : Bool) (segs : List String) (q f 
     case p2 => exact hb
     case p3 => exact hsp
     case p4 => exact hov
-    case p5 => exact hnf
+    case p5 => rw [← hseg]; exact hwd
     case p6 => rw [← hseg]; exact hall
     cases hlast : (x :: t).getLast? with
     | none => simp at hlast
@@ -843,10 +893,20 @@ theorem run_path_full (base : Option Url) (sp : Bool) (segs : List String) (q f 
         rw [hlast] at this
         simpa using this
       -- 最後の segment を確定させる。ここから先は query と fragment の有無で分かれる。
+      have hwdlast : pathStepUrl.windowsDriveBuffer
+          { ctx.url with path := Path.list (x :: t).dropLast } last.toList = last.toList := by
+        cases hdl2 : (x :: t).dropLast with
+        | cons y u => exact windowsDriveBuffer_of_path_ne rfl (by simp)
+        | nil =>
+          rw [hdl2, List.nil_append] at hdl
+          simp only [List.cons.injEq] at hdl
+          rw [hdl.1]
+          rw [show ({ ctx.url with path := Path.list [] } : Url) = ctx.url from by rw [← hpath]]
+          exact hwd x (by rw [hseg]; rfl)
       have hcommit : pathStepUrl
           { ctx.url with path := Path.list (x :: t).dropLast } false last.toList
           = { ctx.url with path := Path.list (x :: t) } := by
-        rw [pathStepUrl_append (pre := (x :: t).dropLast) rfl (by simpa using hnf)
+        rw [pathStepUrl_append (pre := (x :: t).dropLast) rfl hwdlast
           hlall.2.1 hlall.2.2]
         rw [hdl]
       simp only [Option.getD_some]
@@ -1031,7 +1091,8 @@ theorem roundtrip_path {s : String} {segs : List String} {q f : Option String}
       run none .path (intercal segs ++ qfList q f) c2
         = .ok { c2.url with path := .list segs, query := q, fragment := f } :=
     fun c2 h1 h2 h3 h4 h5 h6 h7 =>
-      run_path_full none false segs q f c2 h1 h2 h3 h4 h5 h6 h7 hne hall'
+      run_path_full none false segs q f c2 h1 h2 h3 h4
+        (fun _ _ => windowsDriveBuffer_of_not_file h5) h6 h7 hne hall'
         (fun x hx c hc => by rw [if_neg (by simp [h1])]; exact hqc x hx c hc) hfc
   cases hseg : segs with
   | nil => exact absurd hseg hne
@@ -1857,7 +1918,8 @@ def credChars (user pass : String) : List Char :=
 theorem run_pathStart_path (base : Option Url) (sp : Bool) (segs : List String)
     (q f : Option String) (ctx : PCtx)
     (hsp : ctx.url.isSpecial = sp) (hov : ctx.over = none)
-    (hpath : ctx.url.path = .list []) (hb : ctx.buffer = []) (hnf : ¬ctx.url.scheme = "file")
+    (hpath : ctx.url.path = .list []) (hb : ctx.buffer = [])
+    (hwd : ∀ x, segs.head? = some x → pathStepUrl.windowsDriveBuffer ctx.url x.toList = x.toList)
     (hq0 : ctx.url.query = none) (hf0 : ctx.url.fragment = none)
     (hsegs : sp = true → segs ≠ [])
     (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ isTerminator sp (some c) = false) ∧
@@ -1881,8 +1943,8 @@ theorem run_pathStart_path (base : Option Url) (sp : Bool) (segs : List String)
     rw [run_pathStart_slash_any base sp (intercal (x :: t) ++ qfList q f) _ ?s1 ?s2]
     case s1 => exact hsp
     case s2 => exact hov
-    exact run_path_full base sp (x :: t) q f _ hsp hov hpath hb hnf hq0 hf0 (by simp)
-      (by rw [← hseg]; exact hall) hqc hfc
+    exact run_path_full base sp (x :: t) q f _ hsp hov hpath hb (by rw [← hseg]; exact hwd)
+      hq0 hf0 (by simp) (by rw [← hseg]; exact hall) hqc hfc
 
 /-- serializer が port を並べる分。 -/
 def portChars : Option Nat → List Char
@@ -2184,7 +2246,7 @@ theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (por
     case n1 => exact hsp
     case n2 => exact hov
     case n3 => exact hpath
-    case n4 => exact hnf
+    case n4 => exact fun _ _ => windowsDriveBuffer_of_not_file hnf
     case n5 => exact hq0
     case n6 => exact hf0
     case n7 => exact hqc
@@ -2207,7 +2269,7 @@ theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (por
     case m1 => exact hsp
     case m2 => exact hov
     case m3 => exact hpath
-    case m4 => exact hnf
+    case m4 => exact fun _ _ => windowsDriveBuffer_of_not_file hnf
     case m5 => exact hq0
     case m6 => exact hf0
     case m7 => exact hqc
@@ -2698,5 +2760,284 @@ IPv6 host は host parser が `[` の分岐へ行き domain parser を通らな�
 `http://[::]/a` の方は `decide` で確かめられる。ただし `toHexString` は well-founded 再帰で
 簡約しないので、0 以外の piece を持つ address（`[::1]` など）は例に書けない。
 -/
+
+/-! ## `file:`
+
+`file:` は authority state を通らない。scheme state から file state へ入り、
+`//` を二つの state で読み飛ばして file host state に着く。
+host が空でも `//` は書かれるので、file host state は空の buffer も受ける。
+-/
+
+/-- scheme state の `:`。buffer が `file` なら file state へ。 -/
+theorem run_scheme_file (base : Option Url) (rest : List Char) (ctx : PCtx)
+    (hov : ctx.over = none) (hf : String.ofList ctx.buffer = "file") :
+    run base .scheme (':' :: rest) ctx
+      = run base .file rest
+          { ctx with
+            url := { ctx.url with scheme := String.ofList ctx.buffer }
+            buffer := [] } := by
+  rw [run, step]
+  rw [if_neg (by decide), if_pos (by decide)]
+  simp only [hov, Option.isSome_none, Bool.false_eq_true, if_false]
+  rw [if_pos (by simpa using hf)]
+
+/-- file state の `/`。host を空にして file slash state へ。 -/
+theorem run_file_slash (base : Option Url) (rest : List Char) (ctx : PCtx) :
+    run base .file ('/' :: rest) ctx
+      = run base .fileSlash rest
+          { ctx with url := { ctx.url with scheme := "file", host := some Host.empty } } := by
+  rw [run, step.eq_def]
+  simp only []
+  rw [if_pos (by decide)]
+
+/-- file slash state の `/`。file host state へ。 -/
+theorem run_fileSlash_slash (base : Option Url) (rest : List Char) (ctx : PCtx) :
+    run base .fileSlash ('/' :: rest) ctx = run base .fileHost rest ctx := by
+  rw [run, step.eq_def]
+  simp only []
+  rw [if_pos (by decide)]
+
+/-- 区切りの文字は file host state の出口の条件を満たす。並べる順が違うだけである。 -/
+theorem fileHost_terminator {d : Char} (h : isTerminator true (some d) = true) :
+    (some d == (none : Cp) || some d == some '/' || some d == some '\\' ||
+      some d == some '?' || some d == some '#') = true := by
+  simp only [isTerminator, Bool.or_eq_true, beq_iff_eq, Bool.true_and] at h
+  simp only [Bool.or_eq_true, beq_iff_eq, Option.some.injEq, reduceCtorEq, false_or]
+  rcases h with ((h | h) | h) | h <;> simp [h]
+
+/-- file host state が区切りでない文字を読み切る。 -/
+theorem run_fileHost_chunk (base : Option Url) : ∀ (l tail : List Char) (ctx : PCtx),
+    (∀ c ∈ l, isTerminator true (some c) = false) →
+    run base .fileHost (l ++ tail) ctx
+      = run base .fileHost tail { ctx with buffer := ctx.buffer ++ l } := by
+  intro l
+  induction l with
+  | nil => intro tail ctx _; simp
+  | cons c l' ih =>
+    intro tail ctx h
+    have hc := h c (by simp)
+    simp only [List.cons_append]
+    rw [run, step.eq_def]
+    simp only []
+    have hc' : ((¬c = '/' ∧ ¬c = '?') ∧ ¬c = '#') ∧ ¬c = '\\' := by
+      simpa [isTerminator] using hc
+    rw [if_neg (by simp [hc'.1.1.1, hc'.1.1.2, hc'.1.2, hc'.2])]
+    rw [ih tail { ctx with buffer := ctx.buffer ++ [c] } (fun x hx => h x (by simp [hx]))]
+    simp
+
+/-- file host state の区切り。buffer が空なら host は空のままである。 -/
+theorem run_fileHost_empty (base : Option Url) (tail : List Char) (ctx : PCtx)
+    (hov : ctx.over = none) (hb : ctx.buffer = [])
+    (ht : ∀ c ∈ tail.head?, isTerminator true (some c) = true) :
+    run base .fileHost tail ctx
+      = run base .pathStart tail
+          { ctx with url := { ctx.url with host := some Host.empty } } := by
+  cases tail with
+  | nil =>
+    rw [run, step.eq_def]
+    simp only []
+    rw [if_pos (by simp)]
+    rw [if_neg (by simp [hb, isWindowsDrive])]
+    rw [if_pos (by simp [hb])]
+    simp [hov]
+  | cons d t =>
+    rw [run, step.eq_def]
+    simp only []
+    rw [if_pos (fileHost_terminator (ht d rfl))]
+    rw [if_neg (by simp [hb, isWindowsDrive])]
+    rw [if_pos (by simp [hb])]
+    simp [hov]
+
+/-- file host state の区切り。buffer を host parser に渡す。 -/
+theorem run_fileHost_pathStart (base : Option Url) (tail : List Char) (ctx : PCtx) (hst : Host)
+    (hov : ctx.over = none) (hsp : ctx.url.isSpecial = true)
+    (ht : ∀ c ∈ tail.head?, isTerminator true (some c) = true)
+    (hne : ¬ctx.buffer = []) (hnd : isWindowsDrive ctx.buffer = false)
+    (hp : hostParser ctx.toAscii ctx.buffer false = some hst)
+    (hloc : ¬(hostSerializer hst = "localhost")) :
+    run base .fileHost tail ctx
+      = run base .pathStart tail
+          { ctx with url := { ctx.url with host := some hst }, buffer := [] } := by
+  have hbe : ctx.buffer.isEmpty = false := by
+    cases hb : ctx.buffer with
+    | nil => exact absurd hb hne
+    | cons d t => simp
+  have hstep : ∀ (c : Cp) (rest inp : List Char),
+      (c == none || c == some '/' || c == some '\\' || c == some '?' || c == some '#') = true →
+      step base .fileHost c rest inp ctx
+        = run base .pathStart inp
+            { ctx with url := { ctx.url with host := some hst }, buffer := [] } := by
+    intro c rest inp hcond
+    rw [step.eq_def]
+    simp only []
+    rw [if_pos hcond]
+    rw [if_neg (by simp [hnd])]
+    rw [if_neg (by simp [hbe])]
+    simp only [hsp, Bool.not_true, hp]
+    simp [hov, hloc]
+  cases tail with
+  | nil => rw [run]; exact hstep none [] [] (by simp)
+  | cons d t =>
+    rw [run]
+    exact hstep (some d) t (d :: t) (fileHost_terminator (ht d rfl))
+
+/--
+**`file:` URL は serialize して parse し直すと元に戻る。**
+
+host が空なら `file:///a`、あれば `file://h/a` の形である。
+-/
+theorem roundtrip_file {hst : Host} {segs : List String} {q f : Option String}
+    (hcan : hst = Host.empty ∨
+      hostParser asciiDomainToASCII (hostSerializer hst).toList false = some hst)
+    (hok : hostReadable true hst)
+    (hnc : ∀ c ∈ (hostSerializer hst).toList, isC0ControlOrSpace c = false)
+    (hdrv : isWindowsDrive (hostSerializer hst).toList = false)
+    (hloc : ¬hostSerializer hst = "localhost")
+    (hne : segs ≠ [])
+    (hdrive : ∀ x, segs.head? = some x →
+      isWindowsDrive x.toList = false ∨ isNormalizedWindowsDrive x.toList = true)
+    (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ isTerminator true (some c) = false) ∧
+      isSingleDot x.toList = false ∧ isDoubleDot x.toList = false)
+    (hqc : ∀ x, q = some x → ∀ c ∈ x.toList, specialQuerySet c = false)
+    (hfc : ∀ x, f = some x → ∀ c ∈ x.toList, fragmentSet c = false) :
+    basicUrlParse (urlSerializer
+        { scheme := "file"
+          host := some hst
+          path := .list segs
+          query := q
+          fragment := f }) none
+      = some
+        { scheme := "file"
+          host := some hst
+          path := .list segs
+          query := q
+          fragment := f } := by
+  have hstr : (urlSerializer
+      { scheme := "file", host := some hst, path := .list segs,
+        query := q, fragment := f }).toList
+      = "file".toList ++ ':' :: '/' :: '/'
+        :: ((hostSerializer hst).toList ++ (pathChars segs ++ qfList q f)) := by
+    simp only [urlSerializer, String.toList_append, serializerTail_authority]
+    simp [credChars, portChars]
+  have hallc : ∀ c ∈ "file".toList ++ ':' :: '/' :: '/'
+      :: ((hostSerializer hst).toList ++ (pathChars segs ++ qfList q f)),
+      isC0ControlOrSpace c = false := by
+    intro c hcm
+    rcases List.mem_append.mp hcm with hcm | hcm
+    · rw [show ("file" : String).toList = ['f', 'i', 'l', 'e'] from rfl] at hcm
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hcm
+      rcases hcm with rfl | rfl | rfl | rfl <;> decide
+    · rcases List.mem_cons.mp hcm with rfl | hcm
+      · decide
+      · rcases List.mem_cons.mp hcm with rfl | hcm
+        · decide
+        · rcases List.mem_cons.mp hcm with rfl | hcm
+          · decide
+          · rcases List.mem_append.mp hcm with hcm | hcm
+            · exact hnc c hcm
+            · rcases List.mem_append.mp hcm with hcm | hcm
+              · cases hseg : segs with
+                | nil => exact absurd hseg hne
+                | cons x t =>
+                  rw [hseg] at hcm
+                  rcases List.mem_cons.mp hcm with rfl | hcm
+                  · decide
+                  · rcases intercal_mem (x :: t) c hcm with rfl | ⟨y, hy, hcy⟩
+                    · decide
+                    · exact ne_c0_of_c0Set
+                        (c0Set_of_pathSet ((hall y (by rw [hseg]; exact hy)).1 c hcy).1)
+                        (ne_space_of_pathSet ((hall y (by rw [hseg]; exact hy)).1 c hcy).1)
+              · exact qfList_c0
+                  (fun x hx c hc => querySet_of_specialQuerySet (hqc x hx c hc)) hfc c hcm
+  have hpre : preprocess (urlSerializer
+      { scheme := "file", host := some hst, path := .list segs,
+        query := q, fragment := f })
+      = "file".toList ++ ':' :: '/' :: '/'
+        :: ((hostSerializer hst).toList ++ (pathChars segs ++ qfList q f)) := by
+    rw [preprocess_eq_self ?head ?last ?tab, hstr]
+    case head =>
+      intro c hcm
+      rw [hstr] at hcm
+      exact hallc c (List.mem_of_mem_head? hcm)
+    case last =>
+      intro c hcm
+      rw [hstr, List.head?_reverse] at hcm
+      exact hallc c (List.mem_of_mem_getLast? hcm)
+    case tab =>
+      intro c hcm
+      rw [hstr] at hcm
+      have := hallc c hcm
+      simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le] at this
+      omega
+  have hterm : ∀ c ∈ (pathChars segs ++ qfList q f).head?,
+      isTerminator true (some c) = true := by
+    intro c hc
+    cases hseg : segs with
+    | nil => exact absurd hseg hne
+    | cons x t =>
+      rw [hseg] at hc
+      simp only [pathChars, List.cons_append, List.head?_cons, Option.mem_def,
+        Option.some.injEq] at hc
+      rw [← hc]
+      decide
+  unfold basicUrlParse
+  rw [hpre]
+  rw [show ("file" : String).toList = 'f' :: ['i', 'l', 'e'] from rfl, List.cons_append]
+  rw [run_schemeStart_step none _ 'f' _ (by decide)]
+  rw [run_scheme_prefix none ['i', 'l', 'e'] _ _ (by decide)]
+  rw [run_scheme_file none _ _ rfl (by decide)]
+  rw [show String.ofList ([] ++ [asciiLowerChar 'f'] ++ List.map asciiLowerChar ['i', 'l', 'e'])
+      = "file" from by decide]
+  rw [run_file_slash, run_fileSlash_slash]
+  rw [run_fileHost_chunk none (hostSerializer hst).toList (pathChars segs ++ qfList q f) _
+    (fun c hc => (hostReadable_auth hok c hc).2)]
+  have hpath : ∀ x, segs.head? = some x →
+      ∀ u : Url, pathStepUrl.windowsDriveBuffer u x.toList = x.toList := by
+    intro x hx u
+    rcases hdrive x hx with h | h
+    · exact windowsDriveBuffer_of_not_drive h
+    · exact windowsDriveBuffer_of_normalized h
+  rcases hcan with rfl | hcan
+  · rw [show (hostSerializer Host.empty).toList = [] from rfl]
+    rw [run_fileHost_empty none _ _ rfl (by simp) hterm]
+    rw [run_pathStart_path none true segs q f _ ?a1 rfl rfl (by simp)
+      (fun x hx => hpath x hx _) rfl rfl (fun _ => hne) hall ?a2 hfc]
+    case a1 => simp [Url.isSpecial, isSpecialScheme]
+    case a2 =>
+      intro x hx c hc
+      rw [if_pos (by simp [Url.isSpecial, isSpecialScheme])]
+      exact hqc x hx c hc
+  · have hbne : ¬((hostSerializer hst).toList = []) := by
+      intro he
+      rw [he] at hcan
+      simp [hostParser] at hcan
+    rw [run_fileHost_pathStart none _ _ hst rfl ?b1 hterm ?b2 ?b3 ?b4 hloc]
+    case b1 => simp [Url.isSpecial, isSpecialScheme]
+    case b2 => simpa using hbne
+    case b3 => simpa using hdrv
+    case b4 => simpa using hcan
+    rw [run_pathStart_path none true segs q f _ ?c1 rfl rfl rfl
+      (fun x hx => hpath x hx _) rfl rfl (fun _ => hne) hall ?c2 hfc]
+    case c1 => simp [Url.isSpecial, isSpecialScheme]
+    case c2 =>
+      intro x hx c hc
+      rw [if_pos (by simp [Url.isSpecial, isSpecialScheme])]
+      exact hqc x hx c hc
+
+/-- host が空でも往復する。`file:///a` の形である。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "file", host := some .empty, path := .list ["a"] }) none
+    = some { scheme := "file", host := some .empty, path := .list ["a"] } :=
+  roundtrip_file (Or.inl rfl) (Or.inl (by decide)) (by decide) (by decide) (by decide)
+    (by decide) (by simp; decide) (by decide) (by simp) (by simp)
+
+/-- IPv6 host を持つ `file:` も往復する。`file://[::]/a` の形である。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "file", host := some (.ipv6 [0, 0, 0, 0, 0, 0, 0, 0]),
+        path := .list ["a"] }) none
+    = some { scheme := "file", host := some (.ipv6 [0, 0, 0, 0, 0, 0, 0, 0]),
+             path := .list ["a"] } :=
+  roundtrip_file (Or.inr (by decide)) (hostReadable_ipv6 _ _) (ipv6_no_c0 _) (by decide)
+    (by decide) (by decide) (by simp; decide) (by decide) (by simp) (by simp)
 
 end Url

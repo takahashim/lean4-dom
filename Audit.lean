@@ -367,6 +367,18 @@ open Dom.Audit
   Url.hostReadable_ipv6
   Url.ipv6_no_c0
   Url.roundtrip_host
+  Url.windowsDriveBuffer_of_not_file
+  Url.windowsDriveBuffer_of_path_ne
+  Url.windowsDriveBuffer_of_normalized
+  Url.windowsDriveBuffer_of_not_drive
+  Url.fileHost_terminator
+  Url.run_scheme_file
+  Url.run_file_slash
+  Url.run_fileSlash_slash
+  Url.run_fileHost_chunk
+  Url.run_fileHost_empty
+  Url.run_fileHost_pathStart
+  Url.roundtrip_file
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms
