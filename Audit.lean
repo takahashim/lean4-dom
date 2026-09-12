@@ -333,6 +333,8 @@ open Dom.Audit
   Url.serializerTail_authority
   Url.run_authority_hostpath
   Url.run_authority_full
+  Url.run_path_full
+  Url.run_path_dot
   Url.run_pathStart_path
   Url.portFold_acc
   Url.portValue_append
