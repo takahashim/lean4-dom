@@ -40,7 +40,8 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §5 の往復 | `parse_serialize` | `Url/UrlencodedRoundtrip.lean` |
 | §4.4 state override | `SOverride`, `basicUrlParseOverride` | `Url/Parser.lean` |
 | §6.1 `URL` の getter と setter | `Url.href` ほか、`Url.setProtocol` ほか | `Url/Api.lean` |
-| §4.4 parser が `ValidUrl` を保つこと | `PInv`, `run_valid`, `basicUrlParse_valid` | `Url/Invariant.lean` |
+| §4.4 parser が `ValidUrl` を保つこと | `PInv`, `basicUrlParse_valid` | `Url/Invariant.lean` |
+| §4.4 state machine の 1 歩 | `step_X_valid`（state ごと 20 個）, `step_valid`, `run_valid` | `Url/StepValid.lean` |
 | §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean` |
 | UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
 | UTF-8 の往復 | `Infra.utf8Decode_encode` | `Infra/Utf8Roundtrip.lean` |
@@ -251,7 +252,7 @@ ASCII だけの domain は model 内で閉じる（UTS #46 の写像は ASCII �
 | `portDone_spec` | port state の終わりは port 以外の成分を変えない |
 | `userinfoFold_spec` | authority state の振り分けは username / password 以外を変えない |
 | `PInv_empty`, `PInv.valid`, `valid_of_inv` | 不変条件の入口と出口 |
-| `run_valid` | **state machine の 1 歩が `PInv` を保つ**（`run.induct` の 113 case） |
+| `step_X_valid`（state ごと 20 個）, `step_valid`, `run_valid` | **state machine の 1 歩が `PInv` を保つ** |
 | `basicUrlParse_valid`, `parseUrl_valid` | **parse が成功したら結果は `ValidUrl` を満たす** |
 | `Params.getAll_sort` | **`sort` は安定である**。名前ごとに見た値の並びが変わらない |
 | `Params.getAll_swap`, `Params.getAll_insert` | 上の足場。名前の違う隣どうしの入れ替えは名前ごとの並びを変えない |
@@ -376,7 +377,7 @@ parse が成功したときの URL record が §4.1 の不変条件をすべて�
 
 **どの IDL setter も `ValidUrl` を保つ**（`setAttr_valid`）。
 
-state machine 全体の帰納法（`run_valid`、113 case）は使っていない。
+state machine 全体の帰納法（`run_valid`）は使っていない。
 `run_valid` の `PInv` は `over = none` を要求しているので、override に広げると
 その 113 case をやり直すことになる。代わりに、**override 付きだと各 state から
 行ける先が非常に狭い**ことを使う。
@@ -461,42 +462,53 @@ parse では作れない record だが、`ValidUrl` がそれを言っていな�
 足した条件は WPT の 816 件の parse と 258 件の setter 適用のすべてで
 実行時に検査していて、違反はない。
 
-## `run_valid` の並列化（作業中）
+## `run_valid` を state ごとに割った
 
-`run_valid` は `run.induct` の 119 case を**一つの宣言**で閉じている。
-宣言が一つなので 1 コアしか使えず、147 秒が丸ごと直列である。
-state ごとの独立した定理に割れば Lean が並列に elaborate する
-（`Dom/Validity/AlgorithmPreservation.lean` は 78 定理で CPU 463% で流れている）。
+`run_valid` は `run.induct` の 119 case を**一つの宣言**で閉じていた。
+宣言が一つなので 1 コアしか使えず、147 秒が丸ごと直列だった。
+state ごとの独立した定理に割ったところ、Lean が並列に elaborate するようになった。
 
-設計は二つ決まっている。作業ファイルは `notes/wip/step-valid.lean`。
+| | 時間 | CPU |
+| --- | --- | --- |
+| 一つの宣言（`Url/Invariant.lean`） | 147s | 101% |
+| state ごと 20 定理（`Url/StepValid.lean`） | **37s** | **811%** |
 
-**測度は一つの自然数に潰せる。** `run` / `step` の `termination_by` は
-`(stateRank st, input.length, _)` の辞書式だが、順序を入れ替えて
-`(input.length, stateRank st)` にしても停止性は言える。
+URL library 全体でも素から 42 秒（CPU 769%）である。
 
-* 文字を消費する遷移では `input.length` が減る（rank は何でもよい）
-* 同じ文字を読み直す遷移では長さが同じで `stateRank` が減る
+`Url/Invariant.lean` には `PInv` とその足場だけが残り、0.36 秒で終わる。
+証明の中身（simp のやり方）は変えていない。変えたのは帰納法の回し方だけである。
 
-`stateRank` は 20 未満なので `input.length * 20 + stateRank st` が辞書式と一致し、
-`Nat.strongRecOn` で回せる。`step_valid` から `run_valid` が出ることは確かめてある。
+### 測度は一つの自然数に潰せない
+
+`run` / `step` の `termination_by` は `(stateRank st, input.length)` の辞書式である。
+長さを先にすれば一つの自然数に潰せそうに見えるが、**できない**。
+authority state が「pointer を buffer の長さだけ戻す」（§4.4 authority state の最後）ので、
+そこでは入力が伸びる。rank が先に減るから停止するのであって、長さは減らない。
+
+そこで rank について強い帰納法を回し、その中で長さについて強い帰納法を回している。
 
 ```lean
-def RunIH (base : Option Url) (n : Nat) : Prop :=
+def RunIH (base : Option Url) (r n : Nat) : Prop :=
   ∀ (st : PState) (input : List Char) (ctx : PCtx) (u : Url),
-    run base st input ctx = .ok u → pmeasure st input < n → PInv base st ctx → ValidUrl u
+    run base st input ctx = .ok u →
+    (stateRank st < r ∨ (stateRank st = r ∧ input.length < n)) →
+    PInv base st ctx → ValidUrl u
 ```
 
 等式を先に置くのが要点で、`refine ih _ _ _ u heq ?_ ?_` の `_` がそこから決まる。
 
-**`PInv` の成分は文脈に置く。** simp に lemma として渡すのでは足りない。
-条件付き書き換えになってしまい、`mayCred st = false` から
-「credentials を持てない」を引き出せない。
-`have ⟨hov, hbv, ...⟩ := hinv` の一行で済み、`hinv` 自身も残る。
+### `PInv` の成分は文脈に置く
 
-20 state のうち汎用の closer だけで閉じたのは `opaquePath` / `query` / `fragment` の三つ。
-残る 17 は、元の三段が使っている移送補題（`portDone_spec`、`pathStepUrl_spec` など）を
-個別に当てる必要がある。変わるのは `ih` の当て方（測度の義務が増える）と、
-`run.induct` がやっていた case 分割を `repeat' split at heq` で自前でやる点だけである。
+`have ⟨hov, hbv, ...⟩ := hinv` の一行で出す。simp に lemma として渡すのでは足りない。
+条件付き書き換えになってしまい、`mayCred st = false` から
+「credentials を持てない」という否定側の帰結を引き出せない。
+
+### 残っている粗さ
+
+`step_X_valid` は 20 個とも同じ tactic（`repeat' split at heq` のあと汎用の closer）で
+閉じている。どの case がどの枝で閉じるかは相変わらず探索である。
+ただし探索の単位が state ごとに小さくなったので、
+`Url/Invariant.lean` でやっていた case 番号の直書きは要らなくなった。
 
 ## 未着手
 

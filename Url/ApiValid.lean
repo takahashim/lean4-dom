@@ -1,5 +1,6 @@
 import Url.Api
 import Url.Invariant
+import Url.StepValid
 
 /-!
 # setter が `ValidUrl` を保つこと
@@ -9,7 +10,7 @@ import Url.Invariant
 
 `search` と `hash` は query state と fragment state しか通らない。
 どちらの state も query / fragment 以外を書かないので、`ValidUrl` の六条件は
-どれも影響を受けない。state machine 全体の帰納法（`Url/Invariant.lean` の `run_valid`）を
+どれも影響を受けない。state machine 全体の帰納法（`Url/StepValid.lean` の `run_valid`）を
 使わずに、入力の長さについての短い帰納法で閉じる。
 
 残りの setter（`protocol` / `host` / `hostname` / 非空の `port` / `pathname`）も
@@ -23,7 +24,7 @@ import Url.Invariant
 | `.schemeStart` | `.scheme` だけ（そこで返る） |
 | `.pathStart` | `.path` だけ |
 
-state 機械全体の帰納法（`Url/Invariant.lean` の `run_valid`、113 case）は要らない。
+state 機械全体の帰納法（`Url/StepValid.lean` の `run_valid`）は要らない。
 `run_valid` の `PInv` は `over = none` を要求しているので、override に広げると
 その 113 case をやり直すことになる。
 -/

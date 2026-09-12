@@ -195,6 +195,27 @@ open Dom.Audit
   Url.PInv_empty
   Url.PInv.portStep
   Url.basicUrlParse_valid_of_step
+  Url.step_schemeStart_valid
+  Url.step_scheme_valid
+  Url.step_noScheme_valid
+  Url.step_specialRelativeOrAuthority_valid
+  Url.step_pathOrAuthority_valid
+  Url.step_relative_valid
+  Url.step_relativeSlash_valid
+  Url.step_specialAuthoritySlashes_valid
+  Url.step_specialAuthorityIgnoreSlashes_valid
+  Url.step_authority_valid
+  Url.step_host_valid
+  Url.step_port_valid
+  Url.step_file_valid
+  Url.step_fileSlash_valid
+  Url.step_fileHost_valid
+  Url.step_pathStart_valid
+  Url.step_path_valid
+  Url.step_opaquePath_valid
+  Url.step_query_valid
+  Url.step_fragment_valid
+  Url.step_valid
   Url.run_valid
   Url.basicUrlParse_valid
   Url.parseUrl_valid
