@@ -335,6 +335,23 @@ theorem portDone_spec {ctx ctx2 : PCtx} (h : portDone ctx = some ctx2) :
 
 /-! ### authority state の username / password 振り分け -/
 
+/-- `portDone` が書く port は 16 bit に収まる。buffer が空なら元のまま。 -/
+theorem portDone_range {ctx ctx2 : PCtx} (h : portDone ctx = some ctx2)
+    (hin : ∀ p, ctx.url.port = some p → p < 65536) :
+    ∀ p, ctx2.url.port = some p → p < 65536 := by
+  unfold portDone at h
+  split at h
+  · rw [← Option.some.inj h]; exact hin
+  · split at h
+    · simp at h
+    · next _ hle =>
+      rw [← Option.some.inj h]
+      intro p hp
+      simp only [portSet, portOf] at hp
+      split at hp
+      · simp at hp
+      · rw [← Option.some.inj hp]; omega
+
 /-- `userinfoStep` は username と password 以外を変えない。 -/
 theorem userinfoFold_spec (buf : List Char) (p : Url × Bool) :
     ∃ un pw, (buf.foldl userinfoStep p).1 = { p.1 with username := un, password := pw } := by
@@ -376,19 +393,19 @@ theorem userinfoFold_spec (buf : List Char) (p : Url × Bool) :
 
 /-! ### `ValidUrl` が見ていない成分 -/
 
-/-- `ValidUrl` の六条件はどれも query に触れない。 -/
+/-- `ValidUrl` の条件はどれも query に触れない。 -/
 @[simp] theorem validUrl_setQuery (u : Url) (q : Option String) :
     ValidUrl { u with query := q } ↔ ValidUrl u := by
   constructor <;> intro h <;>
     exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
-      h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost⟩
+      h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost, h.portRange⟩
 
 /-- fragment についても同じ。 -/
 @[simp] theorem validUrl_setFragment (u : Url) (f : Option String) :
     ValidUrl { u with fragment := f } ↔ ValidUrl u := by
   constructor <;> intro h <;>
     exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
-      h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost⟩
+      h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost, h.portRange⟩
 
 /-! ## state で添字づけた不変条件 -/
 
@@ -446,6 +463,8 @@ structure PInv (base : Option Url) (st : PState) (ctx : PCtx) : Prop where
   opaqueNoCredentials : ctx.url.hasOpaquePath = true → ctx.url.includesCredentials = false
   opaqueNoPort : ctx.url.hasOpaquePath = true → ctx.url.port = none
   opaqueNoHost : ctx.url.hasOpaquePath = true → ctx.url.host = none
+  /-- port は 16 bit に収まる。`portDone` が 65535 を超える値を弾くので保たれる。 -/
+  portRange : ∀ p, ctx.url.port = some p → p < 65536
   /-- opaque path を持てる state は三つだけ。 -/
   opaqueState : ctx.url.hasOpaquePath = true → mayOpaque st = true
   /-- host が null のまま credentials を持てる state は二つだけ。 -/
@@ -480,7 +499,7 @@ theorem PInv.notOpaque {base st ctx} (h : PInv base st ctx) (hm : mayOpaque st =
 theorem PInv.valid {base st ctx} (h : PInv base st ctx) (hm : mayCred st = false) :
     ValidUrl ctx.url := by
   refine ⟨h.specialHasList, ?_, h.nullHostNoPort, h.opaqueNoCredentials, h.opaqueNoPort,
-    h.opaqueNoHost⟩
+    h.opaqueNoHost, h.portRange⟩
   intro hh
   cases hc : ctx.url.includesCredentials with
   | false => rfl
@@ -493,8 +512,9 @@ theorem valid_of_inv {u : Url}
     (hoc : u.hasOpaquePath = true → u.includesCredentials = false)
     (hopo : u.hasOpaquePath = true → u.port = none)
     (hoh : u.hasOpaquePath = true → u.host = none)
-    (hcs : u.host = none → u.includesCredentials = true → False) : ValidUrl u := by
-  refine ⟨hsp, ?_, hnp, hoc, hopo, hoh⟩
+    (hcs : u.host = none → u.includesCredentials = true → False)
+    (hpr : ∀ p, u.port = some p → p < 65536) : ValidUrl u := by
+  refine ⟨hsp, ?_, hnp, hoc, hopo, hoh, hpr⟩
   intro hh
   cases hc : u.includesCredentials with
   | false => rfl
@@ -511,13 +531,14 @@ theorem PInv.portStep {base : Option Url} {ctx ctx2 : PCtx} (h : PInv base .port
   have hne : ctx2.url.host ≠ none := by
     rw [hh]; intro hn; rw [hn] at hsome; simp at hsome
   refine ⟨by rw [ho]; exact h.noOverride, h.baseValid, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_⟩
+    ?_, ?_⟩
   · intro hb; exact absurd hb (by decide)
   · intro _; exact hs
   · intro hn; exact absurd hn hne
   · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
   · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
   · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
+  · exact portDone_range hp h.portRange
   · intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
   · intro hn; exact absurd hn hne
   · intro he; exact absurd he (by decide)
@@ -553,7 +574,7 @@ theorem PInv_empty {base : Option Url} {st : PState}
     {toAscii : List Char → Option String} (hb : ∀ b, base = some b → ValidUrl b)
     (h1 : usesBasePath st = false) (h2 : st ≠ .port) :
     PInv base st { url := {}, toAscii } := by
-  refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp_all [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort]
 

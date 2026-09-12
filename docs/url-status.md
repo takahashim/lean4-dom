@@ -419,9 +419,11 @@ host の 2 件が IDNA の境界で、それ以外は一致した。
 
 ## `ValidUrl` の保存
 
-parse が成功したときの URL record が §4.1 の不変条件をすべて満たすことを証明した
+parse が成功したときの URL record が `ValidUrl` を満たすことを証明した
 （`basicUrlParse_valid`、`parseUrl_valid`）。`checkValidUrl` を WPT の全 case で
 走らせていたものが、これで証明に上がった。実行時の検査は交差検証として残してある。
+
+`ValidUrl` が §4.1 の何を含み何を含まないかは「`ValidUrl` の範囲」に書いてある。
 
 ### setter の側
 

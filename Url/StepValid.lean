@@ -89,7 +89,7 @@ local macro "url_close " ih:ident hinv:ident hlen:ident u:ident heq:ident : tact
        first
          | exact ($hinv).valid (by decide)
          | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)
-         | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;>
+         | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ ?_ <;>
              first | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)))
     -- port state から path start state への移送。`portDone` を挟むので専用の補題が要る。
     | (refine $ih _ _ _ $u $heq ?_ (($hinv).portStep ?_)
@@ -112,13 +112,14 @@ theorem step_schemeStart_valid (base : Option Url) (c : Cp) (rest input : List C
     (ih : RunIH base (stateRank .schemeStart) input.length) (hinv : PInv base .schemeStart ctx) :
     ∀ u, step base .schemeStart c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -128,13 +129,14 @@ theorem step_scheme_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ih : RunIH base (stateRank .scheme) input.length) (hinv : PInv base .scheme ctx) :
     ∀ u, step base .scheme c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -144,13 +146,14 @@ theorem step_noScheme_valid (base : Option Url) (c : Cp) (rest input : List Char
     (ih : RunIH base (stateRank .noScheme) input.length) (hinv : PInv base .noScheme ctx) :
     ∀ u, step base .noScheme c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -160,13 +163,14 @@ theorem step_specialRelativeOrAuthority_valid (base : Option Url) (c : Cp) (rest
     (ih : RunIH base (stateRank .specialRelativeOrAuthority) input.length) (hinv : PInv base .specialRelativeOrAuthority ctx) :
     ∀ u, step base .specialRelativeOrAuthority c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -176,13 +180,14 @@ theorem step_pathOrAuthority_valid (base : Option Url) (c : Cp) (rest input : Li
     (ih : RunIH base (stateRank .pathOrAuthority) input.length) (hinv : PInv base .pathOrAuthority ctx) :
     ∀ u, step base .pathOrAuthority c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -192,13 +197,14 @@ theorem step_relative_valid (base : Option Url) (c : Cp) (rest input : List Char
     (ih : RunIH base (stateRank .relative) input.length) (hinv : PInv base .relative ctx) :
     ∀ u, step base .relative c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -208,13 +214,14 @@ theorem step_relativeSlash_valid (base : Option Url) (c : Cp) (rest input : List
     (ih : RunIH base (stateRank .relativeSlash) input.length) (hinv : PInv base .relativeSlash ctx) :
     ∀ u, step base .relativeSlash c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -224,13 +231,14 @@ theorem step_specialAuthoritySlashes_valid (base : Option Url) (c : Cp) (rest in
     (ih : RunIH base (stateRank .specialAuthoritySlashes) input.length) (hinv : PInv base .specialAuthoritySlashes ctx) :
     ∀ u, step base .specialAuthoritySlashes c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -240,13 +248,14 @@ theorem step_specialAuthorityIgnoreSlashes_valid (base : Option Url) (c : Cp) (r
     (ih : RunIH base (stateRank .specialAuthorityIgnoreSlashes) input.length) (hinv : PInv base .specialAuthorityIgnoreSlashes ctx) :
     ∀ u, step base .specialAuthorityIgnoreSlashes c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -256,13 +265,14 @@ theorem step_authority_valid (base : Option Url) (c : Cp) (rest input : List Cha
     (ih : RunIH base (stateRank .authority) input.length) (hinv : PInv base .authority ctx) :
     ∀ u, step base .authority c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -272,13 +282,14 @@ theorem step_host_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ih : RunIH base (stateRank .host) input.length) (hinv : PInv base .host ctx) :
     ∀ u, step base .host c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -288,13 +299,14 @@ theorem step_port_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ih : RunIH base (stateRank .port) input.length) (hinv : PInv base .port ctx) :
     ∀ u, step base .port c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -304,13 +316,14 @@ theorem step_file_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ih : RunIH base (stateRank .file) input.length) (hinv : PInv base .file ctx) :
     ∀ u, step base .file c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -320,13 +333,14 @@ theorem step_fileSlash_valid (base : Option Url) (c : Cp) (rest input : List Cha
     (ih : RunIH base (stateRank .fileSlash) input.length) (hinv : PInv base .fileSlash ctx) :
     ∀ u, step base .fileSlash c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -336,13 +350,14 @@ theorem step_fileHost_valid (base : Option Url) (c : Cp) (rest input : List Char
     (ih : RunIH base (stateRank .fileHost) input.length) (hinv : PInv base .fileHost ctx) :
     ∀ u, step base .fileHost c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -352,13 +367,14 @@ theorem step_pathStart_valid (base : Option Url) (c : Cp) (rest input : List Cha
     (ih : RunIH base (stateRank .pathStart) input.length) (hinv : PInv base .pathStart ctx) :
     ∀ u, step base .pathStart c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -368,13 +384,14 @@ theorem step_path_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ih : RunIH base (stateRank .path) input.length) (hinv : PInv base .path ctx) :
     ∀ u, step base .path c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -384,13 +401,14 @@ theorem step_opaquePath_valid (base : Option Url) (c : Cp) (rest input : List Ch
     (ih : RunIH base (stateRank .opaquePath) input.length) (hinv : PInv base .opaquePath ctx) :
     ∀ u, step base .opaquePath c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -400,13 +418,14 @@ theorem step_query_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ih : RunIH base (stateRank .query) input.length) (hinv : PInv base .query ctx) :
     ∀ u, step base .query c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq
@@ -416,13 +435,14 @@ theorem step_fragment_valid (base : Option Url) (c : Cp) (rest input : List Char
     (ih : RunIH base (stateRank .fragment) input.length) (hinv : PInv base .fragment ctx) :
     ∀ u, step base .fragment c rest input ctx = .ok u → ValidUrl u := by
   intro u heq
-  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hos, hcs, hph, hsn, hfs⟩ := hinv
+  have ⟨hov, hbv, hbp, hsp, hnp, hoc, hopo, hoh, hpr, hos, hcs, hph, hsn, hfs⟩ := hinv
   have bsp := fun b (hb : base = some b) => (hinv.baseValid b hb).specialHasList
   have bnc := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoCredentials
   have bnp := fun b (hb : base = some b) => (hinv.baseValid b hb).nullHostNoPort
   have boc := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoCredentials
   have bop := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoPort
   have boh := fun b (hb : base = some b) => (hinv.baseValid b hb).opaqueNoHost
+  have bpr := fun b (hb : base = some b) => (hinv.baseValid b hb).portRange
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals url_close ih hinv hlen u heq

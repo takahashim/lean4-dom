@@ -126,6 +126,8 @@ structure ValidUrl (u : Url) : Prop where
   opaqueNoCredentials : u.hasOpaquePath = true → u.includesCredentials = false
   opaqueNoPort : u.hasOpaquePath = true → u.port = none
   opaqueNoHost : u.hasOpaquePath = true → u.host = none
+  /-- port は 16 bit に収まる（§4.1「a 16-bit unsigned integer」）。 -/
+  portRange : ∀ p, u.port = some p → p < 65536
 
 /-! ## 実行時の検査 -/
 
@@ -140,15 +142,16 @@ WPT の全 case でこれを走らせておく。
 def checkValidUrl (u : Url) : Bool :=
   (!u.isSpecial || !u.hasOpaquePath) &&
     (u.host.isSome || (!u.includesCredentials && u.port.isNone)) &&
-    (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone && u.host.isNone))
+    (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone && u.host.isNone)) &&
+    (match u.port with | none => true | some p => p < 65536)
 
 theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := by
   unfold checkValidUrl
   constructor
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
-    obtain ⟨⟨h1, h2⟩, h3⟩ := h
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro hs; rcases h1 with h1 | h1
       · rw [hs] at h1; simp at h1
       · exact h1
@@ -172,9 +175,12 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
       rcases h3 with h3 | h3
       · rw [ho] at h3; simp at h3
       · simpa using h3.2
+    · intro p hp
+      rw [hp] at h4
+      simpa using h4
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true']
-    refine ⟨⟨?_, ?_⟩, ?_⟩
+    refine ⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩
     · cases hs : u.isSpecial with
       | false => exact Or.inl rfl
       | true => exact Or.inr (h.specialHasList hs)
@@ -188,6 +194,9 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
       | true =>
         refine Or.inr ?_
         simp [h.opaqueNoCredentials ho, h.opaqueNoPort ho, h.opaqueNoHost ho]
+    · cases hp : u.port with
+      | none => rfl
+      | some p => simpa using h.portRange p hp
 
 /-- 既定の port を持つ scheme は special である。 -/
 theorem isSpecialScheme_of_defaultPort {scheme : String} {p : Nat}

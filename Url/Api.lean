@@ -262,7 +262,7 @@ theorem setUsername_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.
     exact ⟨h.specialHasList, fun hn => (hhost hn).elim, fun hn => (hhost hn).elim,
       fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop]),
       fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop]),
-      fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop])⟩
+      fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop]), h.portRange⟩
 
 theorem setPassword_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.setPassword v) := by
   cases hc : u.cannotHaveCredentials with
@@ -275,7 +275,7 @@ theorem setPassword_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.
     exact ⟨h.specialHasList, fun hn => (hhost hn).elim, fun hn => (hhost hn).elim,
       fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop]),
       fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop]),
-      fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop])⟩
+      fun ho => absurd (show u.hasOpaquePath = true from ho) (by simp [hop]), h.portRange⟩
 
 /-- `port` setter に空文字列を渡すと port が消え、`ValidUrl` は保たれる。 -/
 theorem setPort_empty_valid {u : Url} (h : ValidUrl u) : ValidUrl (u.setPort "") := by
@@ -285,6 +285,6 @@ theorem setPort_empty_valid {u : Url} (h : ValidUrl u) : ValidUrl (u.setPort "")
     have he : u.setPort "" = { u with port := none } := by simp [Url.setPort, hc]
     rw [he]
     exact ⟨h.specialHasList, h.nullHostNoCredentials, fun _ => rfl,
-      h.opaqueNoCredentials, fun _ => rfl, h.opaqueNoHost⟩
+      h.opaqueNoCredentials, fun _ => rfl, h.opaqueNoHost, by simp⟩
 
 end Url

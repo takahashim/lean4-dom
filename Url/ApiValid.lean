@@ -97,7 +97,8 @@ theorem validUrl_setOpaque {u : Url} (h : ValidUrl u) (o : String) (hop : u.hasO
     ValidUrl { u with path := .opaque o } :=
   ⟨fun hs => absurd (h.specialHasList hs) (by rw [hop]; simp),
     h.nullHostNoCredentials, h.nullHostNoPort,
-    fun _ => h.opaqueNoCredentials hop, fun _ => h.opaqueNoPort hop, fun _ => h.opaqueNoHost hop⟩
+    fun _ => h.opaqueNoCredentials hop, fun _ => h.opaqueNoPort hop, fun _ => h.opaqueNoHost hop,
+    h.portRange⟩
 
 theorem stripTrailingSpaces_valid {u : Url} (h : ValidUrl u) :
     ValidUrl (stripTrailingSpaces u) := by
@@ -144,9 +145,10 @@ theorem fail_over {ctx : PCtx} (h : ctx.over.isSome = true) : fail ctx = PResult
 
 /-- host が決まっていて opaque でなければ、port を書き換えても `ValidUrl` は保たれる。 -/
 theorem validUrl_setPort {u : Url} (h : ValidUrl u) (hh : u.host.isSome = true)
-    (ho : u.hasOpaquePath = false) (p : Option Nat) : ValidUrl { u with port := p } := by
+    (ho : u.hasOpaquePath = false) (p : Option Nat)
+    (hpr : ∀ q, p = some q → q < 65536) : ValidUrl { u with port := p } := by
   have hne : u.host ≠ none := by intro hn; rw [hn] at hh; simp at hh
-  refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_⟩ <;> intro hx
+  refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_, hpr⟩ <;> intro hx
   · exact absurd hx hne
   · exact absurd hx hne
   · exact h.opaqueNoCredentials (by rw [← hx]; rfl)
@@ -165,8 +167,10 @@ theorem run_port_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
     · next ctx2 hpd =>
       try rw [if_pos hov] at h
       obtain ⟨p, hu, _⟩ := portDone_spec hpd
+      have hpr : ∀ q, p = some q → q < 65536 := fun q hq =>
+        portDone_range hpd hv.portRange q (by rw [hu]; simpa using hq)
       rw [← PResult.ok.inj h, hu]
-      exact validUrl_setPort hv hh ho p
+      exact validUrl_setPort hv hh ho p hpr
   | ch :: t, ctx, u, h, hov, hv, ho, hh => by
     rw [run, step] at h
     split at h
@@ -177,14 +181,16 @@ theorem run_port_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
         · next ctx2 hpd =>
           try rw [if_pos hov] at h
           obtain ⟨p, hu, _⟩ := portDone_spec hpd
+          have hpr : ∀ q, p = some q → q < 65536 := fun q hq =>
+            portDone_range hpd hv.portRange q (by rw [hu]; simpa using hq)
           rw [← PResult.ok.inj h, hu]
-          exact validUrl_setPort hv hh ho p
+          exact validUrl_setPort hv hh ho p hpr
       · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
 
 /-- opaque でなければ host を書き込んでも `ValidUrl` は保たれる。 -/
 theorem validUrl_setHost {u : Url} (h : ValidUrl u) (ho : u.hasOpaquePath = false) (hst : Host) :
     ValidUrl { u with host := some hst } := by
-  refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_⟩ <;> intro hx
+  refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_, h.portRange⟩ <;> intro hx
   · exact absurd hx (by simp)
   · exact absurd hx (by simp)
   · exact h.opaqueNoCredentials (by rw [← hx]; rfl)
@@ -277,13 +283,13 @@ theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
 
 theorem validUrl_clearPort {u : Url} (h : ValidUrl u) : ValidUrl { u with port := none } :=
   ⟨h.specialHasList, h.nullHostNoCredentials, fun _ => rfl, h.opaqueNoCredentials,
-    fun _ => rfl, h.opaqueNoHost⟩
+    fun _ => rfl, h.opaqueNoHost, by simp⟩
 
 /-- special かどうかが変わらない scheme の書き換えは `ValidUrl` を保つ。 -/
 theorem validUrl_setScheme {u : Url} (h : ValidUrl u) (s : String)
     (hsp : isSpecialScheme s = u.isSpecial) : ValidUrl { u with scheme := s } := by
   refine ⟨fun hx => ?_, h.nullHostNoCredentials, h.nullHostNoPort, h.opaqueNoCredentials,
-    h.opaqueNoPort, h.opaqueNoHost⟩
+    h.opaqueNoPort, h.opaqueNoHost, h.portRange⟩
   exact h.specialHasList (by rw [← hsp]; exact hx)
 
 /-- protocol setter の本体は `ValidUrl` を保つ。 -/
@@ -352,7 +358,8 @@ theorem validUrl_setPath {u : Url} (h : ValidUrl u) (p : Path)
     h.nullHostNoCredentials, h.nullHostNoPort,
     fun hx => h.opaqueNoCredentials (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
     fun hx => h.opaqueNoPort (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
-    fun hx => h.opaqueNoHost (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx)⟩
+    fun hx => h.opaqueNoHost (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
+    h.portRange⟩
 
 theorem validUrl_appendSegment {u : Url} (h : ValidUrl u) (s : String) :
     ValidUrl (appendSegment u s) := by
