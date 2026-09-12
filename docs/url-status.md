@@ -423,7 +423,26 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 （`basicUrlParse_valid`、`parseUrl_valid`）。`checkValidUrl` を WPT の全 case で
 走らせていたものが、これで証明に上がった。実行時の検査は交差検証として残してある。
 
-`ValidUrl` が §4.1 の何を含み何を含まないかは「`ValidUrl` の範囲」に書いてある。
+### `ValidUrl` の範囲
+
+`ValidUrl` は §4.1 が並べている条件の**一部**である。入っているのは
+
+* opaque path を持てるのは special でない URL だけ
+* host が null なら credentials も port も持てない
+* opaque path なら credentials も port も持てず host も持たない
+* port は 16 bit に収まる
+
+入っていないのは三つで、どれも parser も setter も作れないが、不変条件にするには足場が要る。
+
+| §4.1 の条件 | 入れていない理由 |
+| --- | --- |
+| host が空、または scheme が `file` なら credentials も port も持てない | 根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）にあり、`PInv` が `ctx.atSignSeen` を持つ必要がある |
+| scheme と host の組み合わせ表 | `freshHost` を `relative` まで広げ、`fileHost` で scheme が `file` だと足し、`hostParser` の返す host の種類の補題が要る |
+| special な URL の host は null でない | **終端でしか成り立たない。** parse の途中では scheme が決まって host が null の状態を必ず通る |
+
+`Url/Strict.lean` の `checkStrictUrl` がこの三つを WPT の 820 件と setter の 705 件で
+実行時に検査している（違反 0）。境界は `Url/RecordExamples.lean` に `example` で固定してある。
+`ValidUrl` を通るが仕様が禁じている record を、そこに並べてある。
 
 ### setter の側
 

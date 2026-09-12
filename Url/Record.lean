@@ -102,22 +102,34 @@ def originSerializer : Origin → String
 /-! ## 妥当な URL record -/
 
 /--
-URL record の局所不変条件。
-
-仕様が §4.1 に並べている条件のうち、parse の結果が常に満たすものである。
+URL record の局所不変条件。**§4.1 が並べている条件のうち、ここに入れた分である。**
 
 * opaque path を持てるのは special でない URL だけ。
 * host が null なら credentials も port も持てない。
 * opaque path なら credentials も port も持てず、host も持たない。
+* port は 16 bit に収まる。
 
-最後の「opaque path なら host は null」は仕様が §4.1 に並べていないが、
-成り立つ。opaque path を作るのは scheme state の一分岐だけで、そこでは host はまだ null、
+「opaque path なら host は null」は仕様が §4.1 に並べていないが成り立つ。
+opaque path を作るのは scheme state の一分岐だけで、そこでは host はまだ null、
 そこから先（opaque path / query / fragment）に host を書く state が無いためである。
-setter 側も `host` / `hostname` は opaque path を見て何もせずに返す。
-
 これが要るのは `username` / `password` setter の保存を言うためで、
 この条件が無いと「opaque path かつ host が非空」という
 parse では作れない record が反例になる。
+
+**入れていない §4.1 の条件が三つある。** どれも parser も setter も作れないが、
+不変条件にするには足場が要る。`Url/Strict.lean` の `checkStrictUrl` が
+WPT と setter の全 case で実行時に検査していて、
+`Url/RecordExamples.lean` に反例を置いてある。
+
+* 「host が**空**、または scheme が `file` なら credentials も port も持てない」。
+  成り立つ根拠は parser の guard（authority state の `atSignSeen && buffer.isEmpty`）に
+  あり、不変条件にするには `PInv` が `ctx.atSignSeen` を持つ必要がある。
+  いまの `PInv` は `ctx.url` しか見ていない。
+* 「scheme と host の組み合わせ」（§4.1 の表）。不変条件にはできるが、
+  `freshHost` を `relative` まで広げ、`fileHost` state では scheme が `file` だと足し、
+  `hostParser` が返す host の種類の補題を用意する必要がある。
+* 「special な URL の host は null でない」。**これは終端でしか成り立たない。**
+  parse の途中では scheme が決まって host がまだ null の状態を必ず通る。
 -/
 structure ValidUrl (u : Url) : Prop where
   specialHasList : u.isSpecial = true → u.hasOpaquePath = false

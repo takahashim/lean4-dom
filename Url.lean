@@ -3,6 +3,8 @@ import Url.Ipv6
 import Url.Percent
 import Url.Host
 import Url.Record
+import Url.Strict
+import Url.RecordExamples
 import Url.Parser
 import Url.Urlencoded
 import Url.UrlencodedRoundtrip

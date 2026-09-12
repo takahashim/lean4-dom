@@ -114,6 +114,10 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
         if !checkValidUrl u then
           invalid := invalid + 1
           IO.println s!"INVALID input={repr c.input} base={repr c.base} -> {urlSerializer u}"
+        -- §4.1 のうち証明に上げていない条件。交差検証として実行時に見る。
+        if !checkStrictUrl u then
+          invalid := invalid + 1
+          IO.println s!"STRICT input={repr c.input} base={repr c.base} -> {urlSerializer u}"
       | none => pure ()
       -- §4.7 origin。WPT の表が期待値を持っている case だけ見る。
       match got, c.origin with
@@ -212,6 +216,9 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
           if !checkValidUrl u then
             invalid := invalid + 1
             IO.println s!"INVALID setter={c.setter} href={repr c.href} value={repr c.newValue}"
+          if !checkStrictUrl u then
+            invalid := invalid + 1
+            IO.println s!"STRICT setter={c.setter} href={repr c.href} value={repr c.newValue}"
           -- 対象外かどうかは fixture が明示する。`--wpt` 側と同じ扱い。
           let mut anyMismatch := false
           for (name, want) in c.expected do
