@@ -457,6 +457,22 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 実行時に検査している（違反 0）。境界は `Url/RecordExamples.lean` に `example` で固定してある。
 `ValidUrl` を通るが仕様が禁じている record を、そこに並べてある。
 
+## setter が何をするか
+
+`setX_cannot`（できないときは何もしない）と `setX_valid`（`ValidUrl` を壊さない）だけでは、
+**引数を無視する setter でも両方を満たす**。肯定側を書き始めた。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `setHash_spec` | **`hash` setter は、先頭の `#` を落とした残りを percent-encode して fragment に入れる** |
+| `run_fragment_spec` | fragment state は入力を encode して fragment の末尾に足す |
+| `run_fragment_ok` | fragment state は失敗しない |
+| `setHash_empty_hash`, `setSearch_empty_search` | 空文字列を入れると消える |
+
+`host` / `hostname` / `port` / `pathname` / `protocol` の肯定側はまだ無い。
+どれも override 付きの parser を走らせるので、`run_fragment_spec` と同じ形の
+state ごとの spec が要る。WPT の setter 705 件が当面の裏づけである。
+
 ## IPv6
 
 `Ipv6` は `List Nat` なので、長さも piece の範囲も型では言えない。

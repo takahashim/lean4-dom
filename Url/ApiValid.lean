@@ -550,4 +550,96 @@ theorem setAttr_valid {u : Url} (h : ValidUrl u) (name v : String)
   · rw [← Option.some.inj hs]; exact setHash_valid h v
   · exact absurd hs (by simp)
 
+
+/-!
+## setter が何をするか
+
+`setX_cannot`（できないときは何もしない）と `setX_valid`（`ValidUrl` を壊さない）だけでは、
+**引数を無視する setter でも両方を満たす**。ここは肯定側である。
+-/
+
+/-- `stripTrailingSpaces` は fragment も query も変えない。 -/
+theorem stripTrailingSpaces_fragment (u : Url) : (stripTrailingSpaces u).fragment = u.fragment := by
+  unfold stripTrailingSpaces
+  split
+  · rfl
+  · split <;> rfl
+
+theorem stripTrailingSpaces_query (u : Url) : (stripTrailingSpaces u).query = u.query := by
+  unfold stripTrailingSpaces
+  split
+  · rfl
+  · split <;> rfl
+
+/-- **`hash` に空文字列を入れると `hash` は空になる。** -/
+theorem setHash_empty_hash (u : Url) : (u.setHash "").hash = "" := by
+  unfold Url.setHash Url.hash
+  rw [if_pos (by rfl), stripTrailingSpaces_fragment]
+
+/-- **`search` に空文字列を入れると `search` は空になる。** -/
+theorem setSearch_empty_search (u : Url) : (u.setSearch "").search = "" := by
+  unfold Url.setSearch Url.search
+  rw [if_pos (by rfl), stripTrailingSpaces_query]
+
+/-- fragment state を走らせると、入力を percent-encode して fragment の末尾に足す。 -/
+theorem run_fragment_spec (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    ctx.url.fragment.isSome = true →
+    run base .fragment input ctx = .ok u →
+    u = { ctx.url with
+          fragment := some ((ctx.url.fragment.getD "")
+            ++ String.ofList (input.flatMap (fun c => (encChar fragmentSet c).toList))) } := by
+  intro input
+  induction input with
+  | nil =>
+    intro ctx u hf h
+    rw [run, step] at h
+    rw [← PResult.ok.inj h]
+    cases hq : ctx.url.fragment with
+    | none => rw [hq] at hf; simp at hf
+    | some f =>
+      have key : ((some f).getD "" ++ String.ofList
+          (([] : List Char).flatMap (fun c => (encChar fragmentSet c).toList))) = f := by simp
+      rw [key, ← hq]
+  | cons c rest ih =>
+    intro ctx u hf h
+    rw [run, step] at h
+    rw [ih _ u (by simp) h]
+    simp [String.append_assoc]
+
+/-- fragment state は失敗しない。文字を足して進むだけである。 -/
+theorem run_fragment_ok (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
+    ∃ u, run base .fragment input ctx = .ok u := by
+  intro input
+  induction input with
+  | nil => intro ctx; exact ⟨ctx.url, by rw [run, step]⟩
+  | cons c rest ih =>
+    intro ctx
+    obtain ⟨u, hu⟩ := ih { ctx with url := { ctx.url with
+      fragment := some ((ctx.url.fragment.getD "") ++ encChar fragmentSet c) } }
+    exact ⟨u, by rw [run, step]; exact hu⟩
+
+/--
+**`hash` setter は、先頭の `#` を落とした残りを percent-encode して fragment に入れる。**
+
+`setHash_valid`（`ValidUrl` を壊さない）と `setHash_empty_hash`（空なら消える）だけでは
+「引数を無視する setter」も満たしてしまう。これが肯定側である。
+-/
+theorem setHash_spec (u : Url) (v : String) (hv : v.isEmpty = false) :
+    (u.setHash v).fragment
+      = some (String.ofList ((stripTabNewline (dropLeading '#' v).toList).flatMap
+          (fun c => (encChar fragmentSet c).toList))) := by
+  unfold Url.setHash
+  rw [if_neg (by simp [hv])]
+  unfold basicUrlParseOverride
+  split
+  · next u' he =>
+    rw [Option.getD_some]
+    rw [run_fragment_spec none _ _ u' (by simp) he]
+    simp
+  · next hnone =>
+    exfalso
+    obtain ⟨u', hu'⟩ := run_fragment_ok none (stripTabNewline (dropLeading '#' v).toList)
+      { url := { u with fragment := some "" }, over := some SOverride.fragment }
+    exact hnone u' hu'
+
 end Url

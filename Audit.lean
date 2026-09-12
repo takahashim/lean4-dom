@@ -152,6 +152,7 @@ open Dom.Audit
 -- URL Standard §5 application/x-www-form-urlencoded
 #audit_axioms
   Url.urlencodedEncode_no_separator
+  Url.urlencodedSet_eq
   Url.percentEncodeByte_alnum
   Url.hexDigitChar_alnum
 
@@ -197,6 +198,13 @@ open Dom.Audit
   Url.setHostname_valid
   Url.setPort_valid
   Url.setPathname_valid
+  Url.stripTrailingSpaces_fragment
+  Url.stripTrailingSpaces_query
+  Url.setHash_empty_hash
+  Url.setSearch_empty_search
+  Url.run_fragment_spec
+  Url.run_fragment_ok
+  Url.setHash_spec
   Url.setAttr_valid
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと

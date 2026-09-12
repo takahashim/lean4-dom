@@ -27,6 +27,43 @@ component set からの差分として書くより、この形のほうが読み
 def urlencodedSet (c : Char) : Bool :=
   !(isAsciiAlphanumeric c || c == '*' || c == '-' || c == '.' || c == '_')
 
+set_option maxRecDepth 20000 in
+/--
+**仕様が与える二つの定義が一致する。**
+
+§1.3 は application/x-www-form-urlencoded percent-encode set を
+「component set に `!`、`'` から `)`、`~` を足したもの」と定義し、
+そのすぐ後の note で「ASCII 英数字と `*` `-` `.` `_` 以外の全部」と言い直している。
+実装は後者を使っているので、前者と一致することを確かめておく。
+
+0x7E より上は両辺とも true なので、0x00 から 0x7E までを数え上げれば足りる。
+-/
+theorem urlencodedSet_eq (c : Char) :
+    urlencodedSet c
+      = (componentSet c || c == '!' || (0x27 ≤ c.toNat && c.toNat ≤ 0x29) || c == '~') := by
+  by_cases h : c.toNat ≤ 0x7E
+  · have key : ∀ n ∈ List.range 0x7F,
+        urlencodedSet (Char.ofNat n)
+          = (componentSet (Char.ofNat n) || Char.ofNat n == '!'
+              || (0x27 ≤ (Char.ofNat n).toNat && (Char.ofNat n).toNat ≤ 0x29)
+              || Char.ofNat n == '~') := by decide
+    have := key c.toNat (List.mem_range.mpr (by omega))
+    rwa [Char.ofNat_toNat] at this
+  · have hgt : 0x7E < c.toNat := by omega
+    have hne : ∀ (d : Char), d.toNat ≤ 0x7E → (c == d) = false := by
+      intro d hd
+      simp only [beq_eq_false_iff_ne, ne_eq]
+      intro heq
+      rw [heq] at hgt
+      omega
+    have hc0 : c0ControlSet c = true := by simp [c0ControlSet]; omega
+    have halnum : isAsciiAlphanumeric c = false := by
+      simp [isAsciiAlphanumeric, isAsciiDigit, isAsciiAlpha, isAsciiUpperAlpha, isAsciiLowerAlpha]
+      omega
+    simp [urlencodedSet, componentSet, userinfoSet, pathSet, querySet,
+      halnum, hc0, hne '*' (by decide), hne '-' (by decide), hne '.' (by decide),
+      hne '_' (by decide)]
+
 /-! ## serializer -/
 
 /--
