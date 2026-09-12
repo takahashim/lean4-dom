@@ -90,6 +90,48 @@ def percentDecodeToString (input : List Char) : List Char :=
 
 /-! ## 性質 -/
 
+/-- 16 進の数字として使う文字は ASCII alphanumeric である。 -/
+theorem hexDigitChar_alnum : ∀ n : Nat, n < 16 →
+    isAsciiAlphanumeric (Char.ofNat (if n < 10 then 0x30 + n else 0x41 + n - 10)) = true
+  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ | 6, _ | 7, _
+  | 8, _ | 9, _ | 10, _ | 11, _ | 12, _ | 13, _ | 14, _ | 15, _ => by decide
+  | _ + 16, h => absurd h (by omega)
+
+/-- `%XX` は `%` と 16 進の数字からなる。 -/
+theorem percentEncodeByte_alnum (b : UInt8) :
+    ∀ c ∈ percentEncodeByte b, c == '%' || isAsciiAlphanumeric c := by
+  have hb : b.toNat < 256 := by simpa [UInt8.size] using b.toNat_lt_size
+  intro c hc
+  unfold percentEncodeByte at hc
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with rfl | rfl | rfl
+  · simp
+  · exact Bool.or_eq_true _ _ |>.mpr (Or.inr (hexDigitChar_alnum _ (by omega)))
+  · exact Bool.or_eq_true _ _ |>.mpr (Or.inr (hexDigitChar_alnum _ (Nat.mod_lt _ (by omega))))
+
+/--
+percent-encode は `%` と 16 進の数字しか足さない。
+
+したがって、`%` でも alphanumeric でもない文字 `d` は、元々あったぶんしか出てこない。
+parser が「区切り文字は encode の結果に現れない」と言うときの根拠である。
+-/
+theorem utf8PercentEncode_avoid {set : Char → Bool} {d : Char}
+    (h1 : isAsciiAlphanumeric d = false) (h2 : d ≠ '%') :
+    ∀ {input : List Char}, (∀ c ∈ input, c ≠ d) → ∀ c ∈ utf8PercentEncode set input, c ≠ d := by
+  intro input h c hc
+  unfold utf8PercentEncode at hc
+  obtain ⟨x, hx, hc⟩ := List.mem_flatMap.mp hc
+  split at hc
+  · obtain ⟨b, -, hb⟩ := List.mem_flatMap.mp hc
+    have ha := percentEncodeByte_alnum b c hb
+    intro heq
+    rw [heq] at ha
+    simp only [h1, beq_iff_eq, Bool.or_eq_true, Bool.false_eq_true, or_false] at ha
+    exact h2 ha
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+    subst hc
+    exact h _ hx
+
 /-- `%XX` に直した 3 文字は必ず `%` で始まる。 -/
 theorem percentEncodeByte_head (b : UInt8) : (percentEncodeByte b).head? = some '%' := rfl
 

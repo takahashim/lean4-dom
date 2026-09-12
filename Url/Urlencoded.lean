@@ -132,25 +132,6 @@ def parseUrlencodedString (s : String) : List (String × String) :=
 
 /-! ## 性質 -/
 
-/-- 16 進の数字として使う文字は ASCII alphanumeric である。 -/
-theorem hexDigitChar_alnum : ∀ n : Nat, n < 16 →
-    isAsciiAlphanumeric (Char.ofNat (if n < 10 then 0x30 + n else 0x41 + n - 10)) = true
-  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ | 6, _ | 7, _
-  | 8, _ | 9, _ | 10, _ | 11, _ | 12, _ | 13, _ | 14, _ | 15, _ => by decide
-  | _ + 16, h => absurd h (by omega)
-
-/-- `%XX` は `%` と 16 進の数字からなる。 -/
-theorem percentEncodeByte_alnum (b : UInt8) :
-    ∀ c ∈ percentEncodeByte b, c == '%' || isAsciiAlphanumeric c := by
-  have hb : b.toNat < 256 := by simpa [UInt8.size] using b.toNat_lt_size
-  intro c hc
-  unfold percentEncodeByte at hc
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl | rfl
-  · simp
-  · exact Bool.or_eq_true _ _ |>.mpr (Or.inr (hexDigitChar_alnum _ (by omega)))
-  · exact Bool.or_eq_true _ _ |>.mpr (Or.inr (hexDigitChar_alnum _ (Nat.mod_lt _ (by omega))))
-
 /--
 serialize した成分には `&` も `=` も現れない。
 

@@ -308,6 +308,15 @@ theorem portDone_spec {ctx ctx2 : PCtx} (h : portDone ctx = some ctx2) :
     ctx2.url.scheme = ctx.url.scheme := by
   obtain ⟨_, hu, _⟩ := portDone_spec h; rw [hu]
 
+/-- `portDone` は buffer を空にする。 -/
+theorem portDone_buffer {ctx ctx2 : PCtx} (h : portDone ctx = some ctx2) : ctx2.buffer = [] := by
+  unfold portDone at h
+  split at h
+  · rw [← Option.some.inj h]
+  · split at h
+    · simp at h
+    · rw [← Option.some.inj h]; rfl
+
 @[simp] theorem portDone_host {ctx ctx2 : PCtx} (h : portDone ctx = some ctx2) :
     ctx2.url.host = ctx.url.host := by
   obtain ⟨_, hu, _⟩ := portDone_spec h; rw [hu]
@@ -398,6 +407,128 @@ theorem userinfoFold_spec (buf : List Char) (p : Url × Bool) :
     (buf.foldl userinfoStep p).1.hasOpaquePath = p.1.hasOpaquePath := by
   simp [Url.hasOpaquePath]
 
+/-! ### path segment に `/` が入らないこと
+
+§4.1 の「URL path segments never contain U+002F (/)」は buffer まで遡る。
+path state が segment にするのは buffer で、そこに積むのは区切りでない文字を
+percent-encode したものだけだからである。
+-/
+
+/-- percent-encode は `/` を作らない。元の文字が `/` でなければ。 -/
+theorem encChar_no_slash {set : Char → Bool} {ch : Char} (h : ¬ch = '/') :
+    noSlash (encChar set ch).toList = true := by
+  refine noSlash_of_mem fun x hx => ?_
+  unfold encChar at hx
+  simp only [String.toList_ofList] at hx
+  exact utf8PercentEncode_avoid (by decide) (by decide)
+    (by intro y hy; simp only [List.mem_cons, List.not_mem_nil, or_false] at hy; subst hy; exact h)
+    x hx
+
+/-- `appendOpaque` は path の種類を変えないので `pathSegsOk` も変わらない。 -/
+@[simp] theorem pathSegsOk_appendOpaque (u : Url) (s : String) :
+    pathSegsOk (appendOpaque u s).path = pathSegsOk u.path := by
+  rcases appendOpaque_spec u s with h | ⟨o, ho, h⟩
+  · rw [h]
+  · rw [h, ho]; rfl
+
+/-- `shortenPath` は segment を減らすだけ。 -/
+theorem pathSegsOk_shortenPath {u : Url} (h : pathSegsOk u.path = true) :
+    pathSegsOk (shortenPath u).path = true := by
+  rcases shortenPath_spec u with hs | ⟨segs, hp, hs⟩
+  · rw [hs]; exact h
+  · rw [hp] at h
+    rw [hs]
+    show pathSegsOk (Path.list segs.dropLast) = true
+    simp only [pathSegsOk_list, List.all_eq_true] at h ⊢
+    intro x hx
+    exact h x (List.dropLast_subset _ hx)
+
+/-- `appendSegment` は足す segment だけ見ればよい。 -/
+theorem pathSegsOk_appendSegment {u : Url} {s : String} (hu : pathSegsOk u.path = true)
+    (hs : noSlash s.toList = true) : pathSegsOk (appendSegment u s).path = true := by
+  rcases appendSegment_spec u s with h | ⟨segs, hp, h⟩
+  · rw [h]; exact hu
+  · rw [hp] at hu
+    rw [h]
+    show pathSegsOk (Path.list (segs ++ [s])) = true
+    simp only [pathSegsOk_list, List.all_eq_true] at hu ⊢
+    intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact hu x hx
+    · simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
+      subst hx
+      exact hs
+
+/-- `c|` を `c:` に直しても `/` は作らない。 -/
+theorem driveFix_no_slash {buf : List Char} (hb : noSlash buf = true) :
+    noSlash (match buf with | [a, _] => [a, ':'] | b => b) = true := by
+  match buf with
+  | [] => exact hb
+  | [_] => exact hb
+  | [a, b] =>
+    simp only [noSlash_cons, noSlash_nil, Bool.and_true, Bool.and_eq_true] at hb ⊢
+    exact ⟨hb.1, by decide⟩
+  | _ :: _ :: _ :: _ => exact hb
+
+/-- Windows drive letter の直しは `c|` を `c:` にするだけで、`/` を作らない。 -/
+theorem windowsDriveBuffer_no_slash {u : Url} {buf : List Char} (hb : noSlash buf = true) :
+    noSlash (pathStepUrl.windowsDriveBuffer u buf) = true := by
+  unfold pathStepUrl.windowsDriveBuffer
+  repeat' split
+  all_goals first | exact driveFix_no_slash hb | exact hb
+
+/-- `pathStepUrl` は buffer を segment にする。buffer に `/` が無ければ segment にも無い。 -/
+theorem pathSegsOk_pathStepUrl {u : Url} {slash : Bool} {buf : List Char}
+    (hu : pathSegsOk u.path = true) (hb : noSlash buf = true) :
+    pathSegsOk (pathStepUrl u slash buf).path = true := by
+  unfold pathStepUrl
+  split
+  · split
+    · exact pathSegsOk_shortenPath hu
+    · exact pathSegsOk_appendSegment (pathSegsOk_shortenPath hu) (by decide)
+  · split
+    · split
+      · exact hu
+      · exact pathSegsOk_appendSegment hu (by decide)
+    · refine pathSegsOk_appendSegment hu ?_
+      rw [String.toList_ofList]
+      exact windowsDriveBuffer_no_slash hb
+
+/-- 正規化された Windows drive letter は `c:` なので `/` を含まない。 -/
+theorem noSlash_of_normalizedDrive {l : List Char} (h : isNormalizedWindowsDrive l = true) :
+    noSlash l = true := by
+  unfold isNormalizedWindowsDrive at h
+  split at h
+  · next a b =>
+    simp only [Bool.and_eq_true, beq_iff_eq] at h
+    obtain ⟨ha, rfl⟩ := h
+    simp only [noSlash_cons, noSlash_nil, Bool.and_true, Bool.and_eq_true, bne_iff_ne, ne_eq]
+    refine ⟨?_, by decide⟩
+    intro heq
+    rw [heq] at ha
+    exact absurd ha (by decide)
+  · simp at h
+
+/-- `fileBasePath` は path を空にするか短くするだけ。 -/
+theorem pathSegsOk_fileBasePath {u : Url} {input : List Char} (h : pathSegsOk u.path = true) :
+    pathSegsOk (fileBasePath u input).path = true := by
+  unfold fileBasePath
+  split
+  · rfl
+  · exact pathSegsOk_shortenPath h
+
+/-- `fileSlashDrive` が足すのは base の正規化された Windows drive letter だけ。 -/
+theorem pathSegsOk_fileSlashDrive {u : Url} {bp : Path} {input : List Char}
+    (h : pathSegsOk u.path = true) : pathSegsOk (fileSlashDrive u bp input).path = true := by
+  unfold fileSlashDrive
+  split
+  · split
+    · next hc =>
+      simp only [Bool.and_eq_true] at hc
+      exact pathSegsOk_appendSegment h (noSlash_of_normalizedDrive hc.2)
+    · exact h
+  · exact h
+
 /-! ### `ValidUrl` が見ていない成分 -/
 
 /-- `ValidUrl` の条件はどれも query に触れない。 -/
@@ -406,7 +537,7 @@ theorem userinfoFold_spec (buf : List Char) (p : Url × Bool) :
   constructor <;> intro h <;>
     exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
       h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost, h.portRange,
-      h.fileNoCredentials, h.fileNoPort, h.hostKind⟩
+      h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs⟩
 
 /-- fragment についても同じ。 -/
 @[simp] theorem validUrl_setFragment (u : Url) (f : Option String) :
@@ -414,7 +545,7 @@ theorem userinfoFold_spec (buf : List Char) (p : Url × Bool) :
   constructor <;> intro h <;>
     exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
       h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost, h.portRange,
-      h.fileNoCredentials, h.fileNoPort, h.hostKind⟩
+      h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs⟩
 
 /-! ## state で添字づけた不変条件 -/
 
@@ -452,6 +583,17 @@ def hostNull : PState → Bool
   | .schemeStart | .scheme | .noScheme | .specialRelativeOrAuthority
   | .relative | .relativeSlash | .specialAuthoritySlashes | .specialAuthorityIgnoreSlashes
   | .pathOrAuthority | .authority | .host => true
+  | _ => false
+
+/--
+buffer の中身を気にしなくてよい state。
+
+query state と fragment state は区切りを気にせず積むが、その buffer は
+query か fragment にしかならない。scheme / authority / host / port state は
+buffer を使い切るときに必ず空にするので、path state へは渡らない。
+-/
+def looseBuffer : PState → Bool
+  | .scheme | .authority | .host | .port | .query | .fragment => true
   | _ => false
 
 /-- scheme が `file` だと決まっている state。 -/
@@ -525,10 +667,20 @@ structure PInv (base : Option Url) (st : PState) (ctx : PCtx) : Prop where
   fileNoPort : ctx.url.scheme = "file" → ctx.url.port = none
   /-- §4.1 の scheme と host の組み合わせ表。 -/
   hostKind : hostKindOkOf ctx.url.scheme ctx.url.host = true
+  /-- §4.1「URL path segments never contain U+002F (/)」。 -/
+  pathSegs : pathSegsOk ctx.url.path = true
   /-- credentials や port を書く state へは、scheme が `file` では入らない。 -/
   notFile : notFileState st = true → ctx.url.scheme ≠ "file"
   /-- file slash / file host state へは file state からしか来ない。 -/
-  fileScheme : fileState st = true → ctx.url.scheme = "file" 
+  fileScheme : fileState st = true → ctx.url.scheme = "file"
+  /--
+  query state 以外では buffer に `/` が入らない。
+
+  path state が buffer を segment にするので、§4.1 の「segment に `/` は無い」は
+  ここまで遡る。積むのは区切りでない文字を percent-encode したものだけで、
+  `/` は区切りである（`encChar` が `/` を作らないことは `utf8PercentEncode_avoid`）。
+  -/
+  bufferNoSlash : looseBuffer st = false → noSlash ctx.buffer = true
   /-- opaque path を持てる state は三つだけ。 -/
   opaqueState : ctx.url.hasOpaquePath = true → mayOpaque st = true
   /-- host が null のまま credentials を持てる state は二つだけ。 -/
@@ -569,7 +721,7 @@ theorem PInv.notOpaque {base st ctx} (h : PInv base st ctx) (hm : mayOpaque st =
 theorem PInv.valid {base st ctx} (h : PInv base st ctx) (hm : mayCred st = false) :
     ValidUrl ctx.url := by
   refine ⟨h.specialHasList, ?_, h.nullHostNoPort, h.opaqueNoCredentials, h.opaqueNoPort,
-    h.opaqueNoHost, h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind⟩
+    h.opaqueNoHost, h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs⟩
   intro hh
   cases hc : ctx.url.includesCredentials with
   | false => rfl
@@ -586,8 +738,9 @@ theorem valid_of_inv {u : Url}
     (hpr : ∀ p, u.port = some p → p < 65536)
     (hfc : u.scheme = "file" → u.includesCredentials = false)
     (hfp : u.scheme = "file" → u.port = none)
-    (hhk : hostKindOkOf u.scheme u.host = true) : ValidUrl u := by
-  refine ⟨hsp, ?_, hnp, hoc, hopo, hoh, hpr, hfc, hfp, hhk⟩
+    (hhk : hostKindOkOf u.scheme u.host = true)
+    (hps : pathSegsOk u.path = true) : ValidUrl u := by
+  refine ⟨hsp, ?_, hnp, hoc, hopo, hoh, hpr, hfc, hfp, hhk, hps⟩
   intro hh
   cases hc : u.includesCredentials with
   | false => rfl
@@ -625,8 +778,10 @@ theorem PInv.portStep {base : Option Url} {ctx ctx2 : PCtx} (h : PInv base .port
       rw [hu] at hf
       exact absurd (h.notFile (by decide)) (by simpa using hf)
     hostKind := by rw [hu]; exact h.hostKind
+    pathSegs := by rw [hu]; exact h.pathSegs
     notFile := by intro hn; exact absurd hn (by decide)
     fileScheme := by intro hn; exact absurd hn (by decide)
+    bufferNoSlash := by intro _; rw [portDone_buffer hp]; rfl
     opaqueState := by intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
     credState := by intro hn; exact absurd hn hne
     portHost := by intro he; exact absurd he (by decide)
@@ -658,9 +813,10 @@ theorem PInv_empty {base : Option Url} {st : PState}
     (h1 : usesBasePath st = false) (h2 : st ≠ .port) (h3 : st ≠ .relativeSlash)
     (h4 : fileState st = false) :
     PInv base st { url := {}, toAscii } := by
-  refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    ?_, ?_, ?_⟩ <;>
     simp_all [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
-      isSpecialScheme, defaultPort, hostKindOkOf]
+      isSpecialScheme, defaultPort, hostKindOkOf, pathSegsOk_list]
 
 theorem PInv_schemeStart {base : Option Url} {toAscii : List Char → Option String}
     (hb : ∀ b, base = some b → ValidUrl b) :

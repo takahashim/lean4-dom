@@ -107,4 +107,25 @@ theorem digitValue_lt {c : Char} {v : Nat} (h : digitValue c = some v) : v < 10 
     omega
   · simp at h
 
+/-- ASCII の範囲なら `Char.ofNat` は値をそのまま持つ。 -/
+theorem toNat_ofNat_ascii {n : Nat} (h : n < 0x80) : (Char.ofNat n).toNat = n := by
+  unfold Char.ofNat
+  rw [dif_pos (by simp [Nat.isValidChar]; omega)]
+  simp [Char.ofNatAux, Char.toNat]
+
+/-- ASCII lowercase は文字を ASCII の中で動かすだけで、別の記号を作らない。 -/
+theorem asciiLowerChar_ne {c d : Char} (hd : isAsciiLowerAlpha d = false) (h : ¬c = d) :
+    ¬asciiLowerChar c = d := by
+  unfold asciiLowerChar
+  split
+  · next hu =>
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq] at hu
+    simp only [isAsciiLowerAlpha, Bool.and_eq_false_iff, decide_eq_false_iff_not,
+      Nat.not_le] at hd
+    intro heq
+    have ht : (Char.ofNat (c.toNat + 32)).toNat = d.toNat := by rw [heq]
+    rw [toNat_ofNat_ascii (by omega)] at ht
+    omega
+  · exact h
+
 end Infra

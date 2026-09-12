@@ -171,6 +171,21 @@ open Dom.Audit
   Url.hostKindOkOf_file_empty
   Url.hostKindOkOf_congr
   Url.hostParser_hostKind
+  Url.noSlash_mem
+  Url.noSlash_of_mem
+  Url.encChar_no_slash
+  Url.pathSegsOk_appendOpaque
+  Url.pathSegsOk_shortenPath
+  Url.pathSegsOk_appendSegment
+  Url.driveFix_no_slash
+  Url.windowsDriveBuffer_no_slash
+  Url.pathSegsOk_pathStepUrl
+  Url.noSlash_of_normalizedDrive
+  Url.pathSegsOk_fileBasePath
+  Url.pathSegsOk_fileSlashDrive
+  Infra.toNat_ofNat_ascii
+  Infra.asciiLowerChar_ne
+  Url.utf8PercentEncode_avoid
   Url.empty_kind
   Url.fileHost_kind
   Url.pathFold_append

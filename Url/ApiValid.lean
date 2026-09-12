@@ -98,7 +98,7 @@ theorem validUrl_setOpaque {u : Url} (h : ValidUrl u) (o : String) (hop : u.hasO
   ⟨fun hs => absurd (h.specialHasList hs) (by rw [hop]; simp),
     h.nullHostNoCredentials, h.nullHostNoPort,
     fun _ => h.opaqueNoCredentials hop, fun _ => h.opaqueNoPort hop, fun _ => h.opaqueNoHost hop,
-    h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind⟩
+    h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind, rfl⟩
 
 theorem stripTrailingSpaces_valid {u : Url} (h : ValidUrl u) :
     ValidUrl (stripTrailingSpaces u) := by
@@ -150,7 +150,7 @@ theorem validUrl_setPort {u : Url} (h : ValidUrl u) (hh : u.host.isSome = true)
     ValidUrl { u with port := p } := by
   have hne : u.host ≠ none := by intro hn; rw [hn] at hh; simp at hh
   refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_, hpr, h.fileNoCredentials,
-    fun hf => absurd hf hnf, h.hostKind⟩ <;> intro hx
+    fun hf => absurd hf hnf, h.hostKind, h.pathSegs⟩ <;> intro hx
   · exact absurd hx hne
   · exact absurd hx hne
   · exact h.opaqueNoCredentials (by rw [← hx]; rfl)
@@ -194,7 +194,7 @@ theorem validUrl_setHost {u : Url} (h : ValidUrl u) (ho : u.hasOpaquePath = fals
     (hk : hostKindOkOf u.scheme (some hst) = true) :
     ValidUrl { u with host := some hst } := by
   refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_, h.portRange, h.fileNoCredentials,
-    h.fileNoPort, hk⟩ <;> intro hx
+    h.fileNoPort, hk, h.pathSegs⟩ <;> intro hx
   · exact absurd hx (by simp)
   · exact absurd hx (by simp)
   · exact h.opaqueNoCredentials (by rw [← hx]; rfl)
@@ -311,7 +311,8 @@ theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
 
 theorem validUrl_clearPort {u : Url} (h : ValidUrl u) : ValidUrl { u with port := none } :=
   ⟨h.specialHasList, h.nullHostNoCredentials, fun _ => rfl, h.opaqueNoCredentials,
-    fun _ => rfl, h.opaqueNoHost, by simp, h.fileNoCredentials, fun _ => rfl, h.hostKind⟩
+    fun _ => rfl, h.opaqueNoHost, by simp, h.fileNoCredentials, fun _ => rfl, h.hostKind,
+    h.pathSegs⟩
 
 /-- special かどうかが変わらない scheme の書き換えは `ValidUrl` を保つ。 -/
 theorem validUrl_setScheme {u : Url} (h : ValidUrl u) (s : String)
@@ -320,7 +321,8 @@ theorem validUrl_setScheme {u : Url} (h : ValidUrl u) (s : String)
     (hfe : ¬(u.scheme = "file" ∧ u.host = some Host.empty)) :
     ValidUrl { u with scheme := s } := by
   refine ⟨fun hx => ?_, h.nullHostNoCredentials, h.nullHostNoPort, h.opaqueNoCredentials,
-    h.opaqueNoPort, h.opaqueNoHost, h.portRange, fun hx => (hf hx).1, fun hx => (hf hx).2, ?_⟩
+    h.opaqueNoPort, h.opaqueNoHost, h.portRange, fun hx => (hf hx).1, fun hx => (hf hx).2, ?_,
+    h.pathSegs⟩
   · exact h.specialHasList (by rw [← hsp]; exact hx)
   · exact hostKindOkOf_congr hsp hfe h.hostKind
 
@@ -403,39 +405,42 @@ theorem run_schemeStart_valid (base : Option Url) :
 
 /-- path の種類が変わらない書き換えは `ValidUrl` を保つ。 -/
 theorem validUrl_setPath {u : Url} (h : ValidUrl u) (p : Path)
-    (hop : p.isOpaque = u.path.isOpaque) : ValidUrl { u with path := p } :=
+    (hop : p.isOpaque = u.path.isOpaque) (hps : pathSegsOk p = true) :
+    ValidUrl { u with path := p } :=
   ⟨fun hx => by rw [Url.hasOpaquePath]; rw [hop]; exact h.specialHasList hx,
     h.nullHostNoCredentials, h.nullHostNoPort,
     fun hx => h.opaqueNoCredentials (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
     fun hx => h.opaqueNoPort (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
     fun hx => h.opaqueNoHost (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
-    h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind⟩
+    h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind, hps⟩
 
-theorem validUrl_appendSegment {u : Url} (h : ValidUrl u) (s : String) :
-    ValidUrl (appendSegment u s) := by
+theorem validUrl_appendSegment {u : Url} (h : ValidUrl u) (s : String)
+    (hs : noSlash s.toList = true) : ValidUrl (appendSegment u s) := by
   obtain he | ⟨segs, hp, he⟩ := appendSegment_spec u s
   · rw [he]; exact h
   · have hiso := appendSegment_path_isOpaque u s
-    rw [he] at hiso ⊢
-    exact validUrl_setPath h _ hiso
+    have hps := pathSegsOk_appendSegment h.pathSegs hs
+    rw [he] at hiso hps ⊢
+    exact validUrl_setPath h _ hiso hps
 
-theorem validUrl_pathStepUrl {u : Url} (h : ValidUrl u) (slash : Bool) (buffer : List Char) :
-    ValidUrl (pathStepUrl u slash buffer) := by
+theorem validUrl_pathStepUrl {u : Url} (h : ValidUrl u) (slash : Bool) (buffer : List Char)
+    (hb : noSlash buffer = true) : ValidUrl (pathStepUrl u slash buffer) := by
   obtain ⟨p, hp⟩ := pathStepUrl_spec u slash buffer
   have hiso := pathStepUrl_path_isOpaque u slash buffer
-  rw [hp] at hiso ⊢
-  exact validUrl_setPath h _ hiso
+  have hps := pathSegsOk_pathStepUrl (u := u) (slash := slash) h.pathSegs hb
+  rw [hp] at hiso hps ⊢
+  exact validUrl_setPath h _ hiso hps
 
 /-- override 付きの path state は `ValidUrl` を保つ。 -/
 theorem run_path_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
     run base .path input ctx = .ok u →
-    ctx.over.isSome = true → ValidUrl ctx.url → ValidUrl u
-  | [], ctx, u, h, hov, hv => by
+    ctx.over.isSome = true → ValidUrl ctx.url → noSlash ctx.buffer = true → ValidUrl u
+  | [], ctx, u, h, hov, hv, hb => by
     rw [run, step] at h
     split at h
-    · rw [← PResult.ok.inj h]; exact validUrl_pathStepUrl hv _ _
+    · rw [← PResult.ok.inj h]; exact validUrl_pathStepUrl hv _ _ hb
     · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-  | ch :: t, ctx, u, h, hov, hv => by
+  | ch :: t, ctx, u, h, hov, hv, hb => by
     rw [run, step] at h
     simp only [over_isNone_false hov, Bool.false_and, Bool.or_false] at h
     split at h
@@ -443,34 +448,40 @@ theorem run_path_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
       · simp_all
       · simp_all
       · simp_all
-      · exact run_path_valid base t _ u h hov (validUrl_pathStepUrl hv _ _)
-    · exact run_path_valid base t _ u h hov hv
+      · exact run_path_valid base t _ u h hov (validUrl_pathStepUrl hv _ _ hb) rfl
+    · next hnt =>
+      refine run_path_valid base t _ u h hov hv ?_
+      simp only [noSlash_append, hb, Bool.true_and]
+      refine encChar_no_slash ?_
+      intro heq
+      rw [heq] at hnt
+      simp at hnt
 
 /-- override 付きの path start state は `ValidUrl` を保つ。 -/
 theorem run_pathStart_valid (base : Option Url) :
     ∀ (input : List Char) (ctx : PCtx) (u : Url),
     run base .pathStart input ctx = .ok u →
-    ctx.over.isSome = true → ValidUrl ctx.url → ValidUrl u
-  | [], ctx, u, h, hov, hv => by
+    ctx.over.isSome = true → ValidUrl ctx.url → noSlash ctx.buffer = true → ValidUrl u
+  | [], ctx, u, h, hov, hv, hb => by
     rw [run, step] at h
     simp only [over_isNone_false hov, hov, Bool.false_and, Bool.false_eq_true, if_false] at h
     split at h
     · split at h
-      · exact run_path_valid base [] _ u h hov hv
-      · exact run_path_valid base [] _ u h hov hv
+      · exact run_path_valid base [] _ u h hov hv hb
+      · exact run_path_valid base [] _ u h hov hv hb
     · split at h
-      · rw [← PResult.ok.inj h]; exact validUrl_appendSegment hv _
+      · rw [← PResult.ok.inj h]; exact validUrl_appendSegment hv _ rfl
       · rw [← PResult.ok.inj h]; exact hv
-  | ch :: t, ctx, u, h, hov, hv => by
+  | ch :: t, ctx, u, h, hov, hv, hb => by
     rw [run, step] at h
     simp only [over_isNone_false hov, Bool.false_and, Bool.false_eq_true, if_false] at h
     split at h
     · split at h
-      · exact run_path_valid base t _ u h hov hv
-      · exact run_path_valid base (ch :: t) _ u h hov hv
+      · exact run_path_valid base t _ u h hov hv hb
+      · exact run_path_valid base (ch :: t) _ u h hov hv hb
     · split at h
-      · exact run_path_valid base t _ u h hov hv
-      · exact run_path_valid base (ch :: t) _ u h hov hv
+      · exact run_path_valid base t _ u h hov hv hb
+      · exact run_path_valid base (ch :: t) _ u h hov hv hb
 
 /-! ## setter -/
 
@@ -564,7 +575,7 @@ theorem setPathname_valid {u : Url} (h : ValidUrl u) (v : String) :
   · next hop =>
     have ho : u.hasOpaquePath = false := by simpa using hop
     have h0 : ValidUrl { u with path := Path.list [] } :=
-      validUrl_setPath h (Path.list []) (by show false = u.path.isOpaque; exact ho.symm)
+      validUrl_setPath h (Path.list []) (by show false = u.path.isOpaque; exact ho.symm) rfl
     cases he : basicUrlParseOverride v { u with path := Path.list [] } .path with
     | none => simpa [he] using h0
     | some u' =>
@@ -573,7 +584,7 @@ theorem setPathname_valid {u : Url} (h : ValidUrl u) (v : String) :
       split at he
       · next w hw =>
         rw [← Option.some.inj he]
-        exact run_pathStart_valid none _ _ w hw rfl h0
+        exact run_pathStart_valid none _ _ w hw rfl h0 rfl
       · simp at he
 
 /-- **どの IDL setter も `ValidUrl` を保つ。** -/

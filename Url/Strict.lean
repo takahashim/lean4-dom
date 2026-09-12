@@ -19,17 +19,12 @@ import Url.Record
 * 「special な URL の host は null でない」は終端でしか成り立たない。
   parse の途中では scheme が決まって host がまだ null の状態を必ず通る。
 
-scheme と host の組み合わせ表（`hostKindOkOf`）は `ValidUrl` に入れた。
-残りのうち path segment の `/` は、`PInv` が buffer を見れば不変条件にできる見込みがある。
+scheme と host の組み合わせ表（`hostKindOkOf`）と path segment の `/`（`pathSegsOk`）は
+`ValidUrl` に入れた。後者は `PInv` が buffer を見るようにして通した
+（path state が segment にするのは buffer で、そこに `/` は積まれない）。
 -/
 
 namespace Url
-
-/-- §4.1「URL path segments never contain U+002F (/)」。 -/
-def pathSegsOk (u : Url) : Bool :=
-  match u.path with
-  | .opaque _ => true
-  | .list segs => segs.all fun s => !s.toList.contains '/'
 
 /--
 IPv6 address が 8 piece で各 piece が 16 bit に収まること。
@@ -48,7 +43,6 @@ def ipv6Ok (u : Url) : Bool :=
 
 * host が空なら credentials も port も持てない（`file` の側は `ValidUrl` に入れた）。
 * special な URL の host は null でない。
-* path segment に `/` は含まれない。
 * IPv6 address は 8 piece で各 piece は 16 bit。
 -/
 def checkStrictUrl (u : Url) : Bool :=
@@ -56,7 +50,6 @@ def checkStrictUrl (u : Url) : Bool :=
   let noCredPort := !u.includesCredentials && u.port.isNone
   (!emptyHost || noCredPort)
     && (!u.isSpecial || u.host.isSome)
-    && pathSegsOk u
     && ipv6Ok u
 
 end Url

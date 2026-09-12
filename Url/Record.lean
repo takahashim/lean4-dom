@@ -156,6 +156,46 @@ def hostKindOkOf (scheme : String) (host : Option Host) : Bool :=
   | some (.opaque _) => !isSpecialScheme scheme
   | some .empty => !isSpecialScheme scheme || scheme == "file"
 
+/--
+`/` を含まないこと。
+
+`List.all` のままにすると simp が `∀ x ∈ l, ...` に開いてしまい、
+条件付き書き換えの前提として使えなくなる（束縛の下では前提が使えない）。
+名前を付けて畳んだままにしておく。
+-/
+def noSlash (l : List Char) : Bool := l.all fun c => c != '/'
+
+@[simp] theorem noSlash_nil : noSlash [] = true := rfl
+
+@[simp] theorem noSlash_append (l₁ l₂ : List Char) :
+    noSlash (l₁ ++ l₂) = (noSlash l₁ && noSlash l₂) := by
+  simp [noSlash]
+
+@[simp] theorem noSlash_cons (c : Char) (l : List Char) :
+    noSlash (c :: l) = ((c != '/') && noSlash l) := rfl
+
+theorem noSlash_mem {l : List Char} (h : noSlash l = true) {x : Char} (hx : x ∈ l) : ¬x = '/' := by
+  simp only [noSlash, List.all_eq_true, bne_iff_ne, ne_eq] at h
+  exact h x hx
+
+theorem noSlash_of_mem {l : List Char} (h : ∀ x ∈ l, ¬x = '/') : noSlash l = true := by
+  simp only [noSlash, List.all_eq_true, bne_iff_ne, ne_eq]
+  exact h
+
+/--
+§4.1「URL path segments never contain U+002F (/)」。
+
+opaque path は segment に分かれていないので対象外である。
+-/
+def pathSegsOk : Path → Bool
+  | .opaque _ => true
+  | .list segs => segs.all fun s => noSlash s.toList
+
+@[simp] theorem pathSegsOk_opaque (s : String) : pathSegsOk (.opaque s) = true := rfl
+
+theorem pathSegsOk_list (l : List String) :
+    pathSegsOk (.list l) = l.all fun s => noSlash s.toList := rfl
+
 /-- host が null なら表は通る。 -/
 @[simp] theorem hostKindOkOf_none (scheme : String) : hostKindOkOf scheme none = true := rfl
 
@@ -233,6 +273,7 @@ URL record の局所不変条件。**§4.1 が並べている条件のうち、�
 * port は 16 bit に収まる。
 * scheme が `file` なら credentials も port も持てない。
 * scheme と host の組み合わせは §4.1 の表に従う。
+* path segment に `/` は含まれない。
 
 「opaque path なら host は null」は仕様が §4.1 に並べていないが成り立つ。
 opaque path を作るのは scheme state の一分岐だけで、そこでは host はまだ null、
@@ -241,7 +282,7 @@ opaque path を作るのは scheme state の一分岐だけで、そこでは ho
 この条件が無いと「opaque path かつ host が非空」という
 parse では作れない record が反例になる。
 
-**入れていない §4.1 の条件が三つある。** どれも parser も setter も作れないが、
+**入れていない §4.1 の条件が二つある。** どちらも parser も setter も作れないが、
 不変条件にするには足場が要る。`Url/Strict.lean` の `checkStrictUrl` が
 WPT と setter の全 case で実行時に検査していて、
 `Url/RecordExamples.lean` に反例を置いてある。
@@ -250,9 +291,6 @@ WPT と setter の全 case で実行時に検査していて、
   guard（`atSignSeen && buffer.isEmpty` なら失敗）にあり、その情報は host state へ
   **入力として**渡る。不変条件にするには `PInv` が `ctx.url` だけでなく
   残りの入力を見る必要がある。`scheme = "file"` の側は入れてある。
-* 「path segment に `/` は含まれない」。**serializer の正しさがこれに依存する。**
-  parser がそういう segment を作らない根拠は buffer の側にあるので、
-  `PInv` が `ctx.buffer` を見る必要がある。
 * 「special な URL の host は null でない」。**これは終端でしか成り立たない。**
   parse の途中では scheme が決まって host がまだ null の状態を必ず通る。
 -/
@@ -270,6 +308,8 @@ structure ValidUrl (u : Url) : Prop where
   fileNoPort : u.scheme = "file" → u.port = none
   /-- §4.1 の scheme と host の組み合わせ表。 -/
   hostKind : hostKindOkOf u.scheme u.host = true
+  /-- §4.1「URL path segments never contain U+002F (/)」。 -/
+  pathSegs : pathSegsOk u.path = true
 
 /-! ## 実行時の検査 -/
 
@@ -287,15 +327,16 @@ def checkValidUrl (u : Url) : Bool :=
     (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone && u.host.isNone)) &&
     (match u.port with | none => true | some p => p < 65536) &&
     (!(u.scheme == "file") || (!u.includesCredentials && u.port.isNone)) &&
-    hostKindOkOf u.scheme u.host
+    hostKindOkOf u.scheme u.host &&
+    pathSegsOk u.path
 
 theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := by
   unfold checkValidUrl
   constructor
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
-    obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h6⟩
+    obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩ := h
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h6, h7⟩
     · intro hs; rcases h1 with h1 | h1
       · rw [hs] at h1; simp at h1
       · exact h1
@@ -332,7 +373,7 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
       · simpa using h5.2
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true']
-    refine ⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, h.hostKind⟩
+    refine ⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, h.hostKind⟩, h.pathSegs⟩
     · cases hs : u.isSpecial with
       | false => exact Or.inl rfl
       | true => exact Or.inr (h.specialHasList hs)
