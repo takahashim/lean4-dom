@@ -38,6 +38,7 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | §4.7 origin | `origin`, `originSerializer`, `Origin` | `Url/Parser.lean`, `Url/Record.lean` |
 | §5.1 urlencoded parser、§5.2 serializer | `parseUrlencoded`, `serializeUrlencoded` | `Url/Urlencoded.lean` |
 | §5 の往復 | `parse_serialize` | `Url/UrlencodedRoundtrip.lean` |
+| §3.3 / §3.5 IPv4 の往復 | `ipv4Parser_serializer` | `Url/Ipv4Roundtrip.lean` |
 | §4.4 state override | `SOverride`, `basicUrlParseOverride` | `Url/Parser.lean` |
 | §6.1 `URL` の getter と setter | `Url.href` ほか、`Url.setProtocol` ほか | `Url/Api.lean` |
 | §4.4 parser が `ValidUrl` を保つこと | `PInv`, `basicUrlParse_valid` | `Url/Invariant.lean` |
@@ -596,6 +597,7 @@ Windows drive letter は、証明を書いていて足りないことに気づ�
 | `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも IPv6 host 付きも、query と fragment 付きも。`file:` は除く） |
 | `roundtrip_file` | **`file:` URL も戻る**（`file:///a` も `file://[::]/a` も。authority state を通らない別経路） |
 | `roundtrip_canonical` | **`ValidUrl` と `canonicalUrl` を満たす record は戻る**（四つの経路を選び分ける。仮定はこの二つだけ） |
+| `ipv4Parser_serializer` | **IPv4 アドレスは serialize して parse し直すと元に戻る**（`Url/Ipv4Roundtrip.lean`） |
 | `hostReadable_of_canonical` | canonical な host は serialize した文字列を host state が読み直せる（host の種類ごとに根拠が違う） |
 | `ipv4Serializer_chars`, `utf8PercentEncode_out` | IPv4 は 10 進と `.`、opaque host は percent-encode 済みなので C0 control が無い |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
@@ -639,6 +641,11 @@ state ごとに「区切りでない文字を読み切る（chunk）」「区切
 query と fragment は四つの経路のどれからも同じ `run_query_full` に合流する。
 四つで parser の経路は出揃い、`roundtrip_canonical` が `ValidUrl` と `canonicalUrl` から
 四つを選び分ける。**`parse ∘ serialize = id` はこの二つの述語だけを仮定に閉じた。**
+
+逆向き（parser の出力が必ず `canonicalUrl` を満たすこと）は実行時の検査のままである。
+その一部である host の条件（`hostParser (hostSerializer h) = some h`）のうち、
+IPv4 の分は `Url/Ipv4Roundtrip.lean` の `ipv4Parser_serializer` で数の往復まで来ている。
+残っているのは、その上に乗る `percentDecodeToString` と domain parser の分である。
 
 host を serialize した文字列が host state を読み直せることは、host の種類ごとに根拠が違う。
 domain は `asciiDomainToASCII_no_forbidden`、opaque host は `opaqueHostParser_no_forbidden` と

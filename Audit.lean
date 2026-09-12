@@ -533,6 +533,21 @@ open Dom.Audit
   Url.filterMap_parts
   Url.parse_serialize
 
+-- URL Standard §3.3 / §3.5 IPv4 の往復
+#audit_axioms
+  Url.radixDigit_ten
+  Url.foldOpt_digits
+  Url.parseRadix_ten
+  Url.digitChar_ne_zero
+  Url.toDigitsCore_head
+  Url.toString_head_ne_zero
+  Url.ipv4NumberParser_toString
+  Url.strictSplit_go_nodot
+  Url.strictSplit_go_append
+  Url.toString_no_dot
+  Url.ipv4Parts_serializer
+  Url.ipv4Parser_serializer
+
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms
   Infra.lexLt_self
