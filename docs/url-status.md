@@ -569,20 +569,26 @@ parse の結果については成り立ち、`--wpt` が毎回 573 件（parse �
 | `{ scheme := "sc", path := .list [".."] }` | `sc:/..` | path が `[""]` になる（double-dot segment） |
 
 つまり **record が parser の出力の形（canonical form）である**ことが要る。
-少なくとも次が必要で、どれも §4.1 には無い。
+それを `canonicalUrl`（`Url/Roundtrip.lean`）として書いた。中身は
 
 * scheme は小文字で、先頭が ASCII alpha、残りが alphanumeric か `+` `-` `.`
 * port は既定 port でない
 * credentials / query / fragment / path segment / opaque path は percent-encode 済み
-* path segment は `.` でも `..` でもない
-* host は `hostParser (hostSerializer h) = some h` を満たす
-* serialize した文字列の先頭と末尾が C0 control or space でない
+* path segment は `.` でも `..` でもなく、special な URL では `\` を含まない
+* opaque path は `?` も `#` も含まず、`/` で始まらず、space で終わらない
+* host は `hostParser (hostSerializer h) = some h` を満たす（empty host を除く）
+
+`checkValidUrl` と同じく WPT の 820 件と setter の 705 件で実行時に検査している（違反 0）。
+実行時の検査で分かるのは**強すぎないこと**だけで、**弱すぎるかどうかは証明でしか分からない**。
+opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書いていて足りないことに
+気づいた条件である。
 
 ### 閉じた分
 
 | 定理 | 言っていること |
 | --- | --- |
-| `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（scheme が小文字の ASCII、opaque path が素通しの文字だけの場合） |
+| `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が無い場合） |
+| `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | C0 control も space も無ければ前処理は何もしない |
 | `run_scheme_prefix`, `run_scheme_opaque` | scheme state が buffer に積み、`:` で opaque path state へ渡す |
 | `run_opaquePath_plain` | opaque path state は素通しの文字をそのまま path に足す |

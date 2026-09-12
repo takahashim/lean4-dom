@@ -121,6 +121,10 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
         if !checkStrictUrl u then
           invalid := invalid + 1
           IO.println s!"STRICT input={repr c.input} base={repr c.base} -> {urlSerializer u}"
+        -- parser が返す record の形（`parse ∘ serialize` の仮定）。
+        if !canonicalUrl u (toAsciiOf idna) then
+          invalid := invalid + 1
+          IO.println s!"CANONICAL input={repr c.input} base={repr c.base} -> {urlSerializer u}"
         -- serialize して parse し直すと元の record に戻ること。
         -- serializer には定理が無いので、ここが唯一の裏づけである。
         match parseUrl (urlSerializer u) none (toAsciiOf idna) with
@@ -232,6 +236,10 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
           if !checkStrictUrl u then
             invalid := invalid + 1
             IO.println s!"STRICT setter={c.setter} href={repr c.href} value={repr c.newValue}"
+          -- setter を通した後も parser の出力の形のままか。
+          if !canonicalUrl u (toAsciiOf idna) then
+            invalid := invalid + 1
+            IO.println s!"CANONICAL setter={c.setter} href={repr c.href} value={repr c.newValue}"
           -- 対象外かどうかは fixture が明示する。`--wpt` 側と同じ扱い。
           let mut anyMismatch := false
           for (name, want) in c.expected do

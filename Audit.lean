@@ -266,8 +266,10 @@ open Dom.Audit
 
 -- parse ∘ serialize
 #audit_axioms
-  Url.dropWhile_self
+  Url.dropWhile_of_head
   Url.preprocess_eq_self
+  Url.schemeChar_ne_tab
+  Url.reverse_head_mid
   Url.run_scheme_prefix
   Url.run_scheme_opaque
   Url.run_opaquePath_plain
