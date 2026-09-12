@@ -794,6 +794,68 @@ theorem scanFold_passRun (b m : Nat) : ∀ (suf : List Char) (st : PassState) (o
         rw [scanOne_gt b m _ c hlt heq, passRun, if_neg hlt, if_neg (by simp [heq])]
         exact ih st o { hinv with bEq := hB }
 
+/-- `m` が現れれば、走査の後の `n` は `m` になる。 -/
+theorem passRun_n (b m : Nat) : ∀ (l : List Char) (st : PassState),
+    ((∃ c ∈ l, c.toNat = m) ∨ st.n = m) → (passRun b m l st).n = m := by
+  intro l
+  induction l with
+  | nil =>
+    intro st h
+    rcases h with ⟨c, hc, _⟩ | h
+    · simp at hc
+    · simpa [passRun] using h
+  | cons c rest ih =>
+    intro st h
+    rw [passRun]
+    by_cases hlt : c.toNat < m
+    · rw [if_pos hlt]
+      refine ih _ ?_
+      rcases h with ⟨x, hx, hxm⟩ | hn
+      · rcases List.mem_cons.mp hx with rfl | hx
+        · omega
+        · exact Or.inl ⟨x, hx, hxm⟩
+      · exact Or.inr hn
+    · rw [if_neg hlt]
+      by_cases heq : c.toNat = m
+      · rw [if_pos (by simp [heq])]
+        exact ih _ (Or.inr rfl)
+      · rw [if_neg (by simp [heq])]
+        refine ih _ ?_
+        rcases h with ⟨x, hx, hxm⟩ | hn
+        · rcases List.mem_cons.mp hx with rfl | hx
+          · exact absurd hxm heq
+          · exact Or.inl ⟨x, hx, hxm⟩
+        · exact Or.inr hn
+
+/-- 走査の後の前半は、`m` 以下の文字を元の順に並べたものである。 -/
+theorem passRun_A (b m : Nat) : ∀ (l : List Char) (st : PassState),
+    st.B = partialAt l m 0 →
+    (passRun b m l st).A = st.A ++ l.filter (fun c => decide (c.toNat ≤ m)) := by
+  intro l
+  induction l with
+  | nil => intro st _; simp [passRun]
+  | cons c rest ih =>
+    intro st hB
+    rw [partialAt] at hB
+    rw [passRun]
+    by_cases hlt : c.toNat < m
+    · rw [if_pos hlt] at hB
+      rw [if_pos hlt, ih _ (by rw [hB]; simp)]
+      simp [show c.toNat ≤ m by omega]
+    · rw [if_neg hlt] at hB
+      rw [if_neg hlt]
+      by_cases heq : c.toNat = m
+      · rw [if_pos (by simp [heq])] at hB
+        rw [if_pos (by simp [heq]),
+          ih { A := st.A ++ [Char.ofNat m], B := st.B, n := m, i := st.A.length + 1, d := 0,
+               bias := adapt st.d (st.A.length + st.B.length + 1) (st.hh == b),
+               hh := st.hh + 1 } hB]
+        have hco : Char.ofNat m = c := by rw [← heq, Char.ofNat_toNat]
+        simp [show c.toNat ≤ m by omega, hco]
+      · rw [if_neg (by simp [heq])] at hB
+        rw [if_neg (by simp [heq]), ih st hB]
+        simp [show ¬ (c.toNat ≤ m) by omega]
+
 /-!
 ## 外側のループ
 
@@ -842,6 +904,166 @@ theorem split_first_hit (m : Nat) : ∀ (l : List Char), (∃ c ∈ l, c.toNat =
           by intro x hx; rcases List.mem_cons.mp hx with rfl | hx
              · exact ha
              · exact hpre x hx, hc'⟩
+
+/-- 狭義単調増加。core に `List.Chain'` が無いので自前で置く。 -/
+def StrictSorted : List Nat → Prop
+  | [] => True
+  | m :: rest => (∀ x ∈ rest, m < x) ∧ StrictSorted rest
+
+/-- 外側のループの不変条件。 -/
+structure OuterInv (b : Nat) (input : List Char) (todo : List Nat)
+    (nEnc nDec dlt h i : Nat) : Prop where
+  /-- `nEnc` 以上の code point はすべて `todo` にある。 -/
+  covers : ∀ c ∈ input, nEnc ≤ c.toNat → c.toNat ∈ todo
+  /-- `todo` の code point はすべて input に現れる。 -/
+  occurs : ∀ m ∈ todo, ∃ c ∈ input, c.toNat = m
+  /-- `todo` は `nEnc` 以上で、狭義単調増加。 -/
+  ge : ∀ m ∈ todo, nEnc ≤ m
+  sorted : StrictSorted todo
+  /-- `todo` の code point は妥当な scalar value。 -/
+  valid : ∀ m ∈ todo, m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000)
+  hEq : h = (input.filter (fun c => decide (c.toNat < nEnc))).length
+  /-- pass の境目で保たれるもの。 -/
+  delta : i + dlt = (nEnc - nDec) * (h + 1)
+  nLe : nDec ≤ nEnc
+  firstFlag : (h == b) = (i == 0)
+  bLe : b ≤ h
+
+/-- `nEnc` 以上 `m` 未満の code point が無ければ、二つの filter は一致する。 -/
+theorem filter_lt_eq (input : List Char) (nEnc m : Nat) (hnm : nEnc ≤ m)
+    (h : ∀ c ∈ input, nEnc ≤ c.toNat → m ≤ c.toNat) :
+    input.filter (fun c => decide (c.toNat < nEnc))
+      = input.filter (fun c => decide (c.toNat < m)) := by
+  induction input with
+  | nil => rfl
+  | cons c rest ih =>
+    have hrest := ih (fun x hx => h x (List.mem_cons_of_mem _ hx))
+    have hc := h c List.mem_cons_self
+    rw [List.filter_cons, List.filter_cons, hrest]
+    by_cases h1 : c.toNat < nEnc
+    · have h2 : c.toNat < m := by omega
+      simp [h1, h2]
+    · have h2 : ¬ c.toNat < m := by
+        have := hc (by omega); omega
+      simp [h1, h2]
+
+/-- **外側のループの双模倣。** `todo` を使い切ると復号は入力そのものを返す。 -/
+theorem decode_outer (b : Nat) :
+    ∀ (todo : List Nat) (input : List Char) (nEnc nDec dlt bias h i : Nat),
+      OuterInv b input todo nEnc nDec dlt h i →
+      decodeLoop bias nDec i (input.filter (fun c => decide (c.toNat < nEnc)))
+          ((encodeLoop input b todo nEnc
+              { out := [], delta := dlt, bias := bias, h := h }).out)
+        = some input := by
+  intro todo
+  induction todo with
+  | nil =>
+    intro input nEnc nDec dlt bias h i hinv
+    rw [encodeLoop]
+    have : input.filter (fun c => decide (c.toNat < nEnc)) = input := by
+      refine List.filter_eq_self.mpr ?_
+      intro c hc
+      simp only [decide_eq_true_eq]
+      rcases Nat.lt_or_ge c.toNat nEnc with hlt | hge
+      · exact hlt
+      · exact absurd (hinv.covers c hc hge) (by simp)
+    rw [this]
+    simp [decodeLoop]
+  | cons m rest ih =>
+    intro input nEnc nDec dlt bias h i hinv
+    -- `nEnc` 以上の code point は `m` 以上しかないので、復号が持っている文字列は
+    -- `m` 未満の filter でもある。
+    have hnm : nEnc ≤ m := hinv.ge m List.mem_cons_self
+    have hgeM : ∀ c ∈ input, nEnc ≤ c.toNat → m ≤ c.toNat := by
+      intro c hc hge
+      rcases List.mem_cons.mp (hinv.covers c hc hge) with h1 | h1
+      · omega
+      · exact Nat.le_of_lt (hinv.sorted.1 _ h1)
+    have hfil : input.filter (fun c => decide (c.toNat < nEnc))
+        = input.filter (fun c => decide (c.toNat < m)) := filter_lt_eq input nEnc m hnm hgeM
+    -- pass の状態
+    have hB : (input.filter (fun c => decide (c.toNat < m))) = partialAt input m 0 :=
+      (partialAt_zero input m).symm
+    have hhB : h = (partialAt input m 0).length := by rw [hinv.hEq, hfil, hB]
+    -- pass の入口の状態
+    have hinvP : PassInv b m input
+        { A := [], B := partialAt input m 0, n := nDec, i := i,
+          d := dlt + (m - nEnc) * (h + 1), bias := bias, hh := h } := by
+      have hnDec := hinv.nLe
+      refine { bEq := rfl, nLe := show nDec ≤ m by omega, lenA := ?_, lenH := ?_,
+               firstFlag := hinv.firstFlag, bLe := hinv.bLe }
+      · show (0 : Nat) + (m - nDec) * (0 + (partialAt input m 0).length + 1)
+          = i + (dlt + (m - nEnc) * (h + 1))
+        rw [← hhB, show m - nDec = (nEnc - nDec) + (m - nEnc) by omega, Nat.add_mul,
+          Nat.zero_add, Nat.zero_add, ← hinv.delta]
+        omega
+      · show h = 0 + (partialAt input m 0).length
+        omega
+    -- pass の出口
+    have hinvQ := passRun_inv b m input _ hinvP
+    have hQn : (passRun b m input
+        { A := [], B := partialAt input m 0, n := nDec, i := i,
+          d := dlt + (m - nEnc) * (h + 1), bias := bias, hh := h }).n = m := by
+      refine passRun_n b m input _ (Or.inl ?_)
+      obtain ⟨c, hc, hcm⟩ := hinv.occurs m List.mem_cons_self
+      exact ⟨c, hc, hcm⟩
+    have hQA : (passRun b m input
+        { A := [], B := partialAt input m 0, n := nDec, i := i,
+          d := dlt + (m - nEnc) * (h + 1), bias := bias, hh := h }).A
+        = input.filter (fun c => decide (c.toNat ≤ m)) := by
+      rw [passRun_A b m input _ rfl]; simp
+    have hQB : (passRun b m input
+        { A := [], B := partialAt input m 0, n := nDec, i := i,
+          d := dlt + (m - nEnc) * (h + 1), bias := bias, hh := h }).B = [] := by
+      have := hinvQ.bEq; simpa [partialAt] using this
+    have hfilM : input.filter (fun c => decide (c.toNat ≤ m))
+        = input.filter (fun c => decide (c.toNat < m + 1)) := by
+      refine List.filter_congr ?_
+      intro c _
+      simp [Nat.lt_succ_iff]
+    -- 符号化の一段を開く
+    rw [encodeLoop]
+    rw [encodeLoop_eq input b rest (m + 1)
+      (input.foldl (scanOne b m)
+        { out := [], delta := dlt + (m - nEnc) * (h + 1), bias := bias, h := h }).out
+      ((input.foldl (scanOne b m)
+        { out := [], delta := dlt + (m - nEnc) * (h + 1), bias := bias, h := h }).delta + 1)
+      (input.foldl (scanOne b m)
+        { out := [], delta := dlt + (m - nEnc) * (h + 1), bias := bias, h := h }).bias
+      (input.foldl (scanOne b m)
+        { out := [], delta := dlt + (m - nEnc) * (h + 1), bias := bias, h := h }).h]
+    -- 復号側を pass の形に合わせる
+    rw [show input.filter (fun c => decide (c.toNat < nEnc))
+        = ([] : List Char) ++ partialAt input m 0 by rw [hfil, hB]; simp]
+    rw [decode_scan b m (hinv.valid m List.mem_cons_self) input _ _ hinvP]
+    -- 符号化の状態と復号の状態が一致する
+    obtain ⟨hd, hbi, hhh⟩ := scanFold_passRun b m input _ [] hinvP
+    rw [hd, hbi, hhh, hQn, hQA, hQB]
+    simp only [List.append_nil]
+    rw [hfilM]
+    refine ih input (m + 1) m _ _ _ _ ?_
+    have hQlenA := hinvQ.lenA
+    have hQlenH := hinvQ.lenH
+    rw [hQn, hQA, hQB] at hQlenA
+    rw [hQA, hQB] at hQlenH
+    simp only [Nat.sub_self, Nat.zero_mul, Nat.add_zero, List.length_nil] at hQlenA hQlenH
+    exact
+      { covers := by
+          intro c hc hge
+          rcases List.mem_cons.mp (hinv.covers c hc (by omega)) with h1 | h1
+          · omega
+          · exact h1
+        occurs := fun x hx => hinv.occurs x (List.mem_cons_of_mem _ hx)
+        ge := fun x hx => hinv.sorted.1 x hx
+        sorted := hinv.sorted.2
+        valid := fun x hx => hinv.valid x (List.mem_cons_of_mem _ hx)
+        hEq := by rw [← hfilM]; exact hQlenH
+        delta := by
+          rw [show m + 1 - m = 1 by omega, Nat.one_mul]
+          omega
+        nLe := by omega
+        firstFlag := hinvQ.firstFlag
+        bLe := hinvQ.bLe }
 
 /-! ## 符号化の枠が復号で戻ること -/
 
