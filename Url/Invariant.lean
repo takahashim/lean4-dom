@@ -537,15 +537,7 @@ theorem PInv.portStep {base : Option Url} {ctx ctx2 : PCtx} (h : PInv base .port
 （`match base with` が残る case がそれで、`rw [step]` は「equation theorems で
 書き換えられない」と言って失敗する）。
 
-この証明の elaborate に 5 分ほどかかる。
--/
-
-/-!
-### 自動化で使う simp set
-
-三段で開く範囲が違う。段が進むほど広く開き、そのぶん遅い。
-`unusedSimpArgs` linter はこの三つを数十箇所で呼ぶたびに引数ごとの警告を出すので、
-この file では切ってある（どの引数がどの case で効くかは case ごとに違う）。
+帰納段は `Url/StepValid.lean` が state ごとに持つ。
 -/
 
 /-! ## 入口 -/

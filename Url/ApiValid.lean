@@ -26,7 +26,7 @@ import Url.StepValid
 
 state 機械全体の帰納法（`Url/StepValid.lean` の `run_valid`）は要らない。
 `run_valid` の `PInv` は `over = none` を要求しているので、override に広げると
-その 113 case をやり直すことになる。
+その 119 case をやり直すことになる。
 -/
 
 -- `cases he : ...` の枝ごとに `he` が要るかどうかが違うので、linter を切る。

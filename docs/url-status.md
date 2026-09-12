@@ -149,7 +149,7 @@ UTS #46 の残りは表に依存する。`IdnaMappingTable.txt` が 9,262 項目
 NFC の正準分解と結合クラスが約 4,500 項目、Joining_Type が 542、Bidi_Class が約 600 で、
 合わせて 15,000 項目ほどになる。これを Lean の項として埋め込むと
 
-* ビルド時間が現実的でなくなる（いま一番重い証明が 113 case で 5 分である）
+* ビルド時間が現実的でなくなる（いま一番重い証明が 119 case で 37 秒である）
 * Unicode の版ごとに書き換えが要る
 
 表は規定データであって規則から導けるものではないので、Lean に導出させることもできない。
@@ -223,7 +223,7 @@ WPT の機械可読の表には `xn--` が失敗する case が一件も無く�
 ASCII だけの domain は model 内で閉じる（UTS #46 の写像は ASCII では ASCII lowercase に
 一致し、Punycode も走らない）。表を渡したときだけ非 ASCII の domain が通る。
 
-`ValidUrl` の保存（113 case）は `toAscii` について一般に証明してある。
+`ValidUrl` の保存（119 case）は `toAscii` について一般に証明してある。
 `ValidUrl` は host の中身に条件を置かないので、hook を差し替えても保存は変わらない。
 
 ## 証明したもの
@@ -379,7 +379,7 @@ parse が成功したときの URL record が §4.1 の不変条件をすべて�
 
 state machine 全体の帰納法（`run_valid`）は使っていない。
 `run_valid` の `PInv` は `over = none` を要求しているので、override に広げると
-その 113 case をやり直すことになる。代わりに、**override 付きだと各 state から
+その 119 case をやり直すことになる。代わりに、**override 付きだと各 state から
 行ける先が非常に狭い**ことを使う。
 
 | 入口 | 行ける state |
@@ -442,7 +442,7 @@ path が opaque でないこと、`port` は host が決まっていることで
   （`shortenPath` / `appendSegment` / `pathStepUrl` / `fileBasePath` / `fileSlashDrive`）を
   名前のある定義に切り出して成分保存の補題を付けた。
 
-この証明の elaborate に約 5 分かかる。
+この証明の elaborate は、state ごとに割った後で 37 秒である（`Url/StepValid.lean`）。
 
 ## `ValidUrl` に足した条件
 
