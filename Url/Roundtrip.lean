@@ -31,7 +31,7 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * `roundtrip_host`：host を持つ URL。`sc://h/a` も `http://h/a/b` も、credentials 付きも
   port 付きも IPv6 host も。special かどうかは `sp : Bool` で持つ
 * `roundtrip_file`：`file:` URL。authority state を通らない別経路である
-* `roundtrip_canonical`：`ValidUrl` と `canonicalUrl` から四つを選び分ける
+* `roundtrip_canonical`：**`ValidUrl` と `canonicalUrl` だけを仮定して往復を言う**
 
 どれも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
@@ -43,7 +43,7 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
 四つで parser の経路は出揃い、`roundtrip_canonical` が `ValidUrl` と `canonicalUrl` から
-四つを選び分ける。残っているのは host を serialize した文字列についての条件である。
+四つを選び分ける。仮定はこの二つの述語だけである。
 
 port には 10 進の往復（`portValue_toString`）が要った。`Nat.toDigitsCore` についての
 帰納法で、桁を積む向きと読む向きが逆になるので `portValue (l1 ++ l2)` の形を経由する。
@@ -3045,6 +3045,212 @@ example : basicUrlParse (urlSerializer
   roundtrip_file (Or.inr (by decide)) (hostReadable_ipv6 _ _) (ipv6_no_c0 _) (by decide)
     (by decide) (by decide) (by simp; decide) (by decide) (by simp) (by simp)
 
+/-! ## host の条件
+
+`canonicalUrl` の `hostParser (hostSerializer h) = some h` から、
+host state が serialize した文字列を読み直せることと、
+前処理が落とす文字を含まないことを出す。host の種類ごとに根拠が違う。
+-/
+
+/-- `%` も alphanumeric も含まない set なら、percent-encode の出力に set の文字は無い。 -/
+theorem utf8PercentEncode_out {set : Char → Bool}
+    (hp : set '%' = false) (ha : ∀ c, isAsciiAlphanumeric c = true → set c = false) :
+    ∀ {input : List Char}, ∀ c ∈ utf8PercentEncode set input, set c = false := by
+  intro input c hc
+  unfold utf8PercentEncode at hc
+  obtain ⟨x, hx, hc⟩ := List.mem_flatMap.mp hc
+  split at hc
+  · obtain ⟨b, -, hb⟩ := List.mem_flatMap.mp hc
+    have h2 := percentEncodeByte_alnum b c hb
+    simp only [Bool.or_eq_true, beq_iff_eq] at h2
+    rcases h2 with rfl | h2
+    · exact hp
+    · exact ha c h2
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+    subst hc
+    rename_i hset
+    simpa using hset
+
+/-- IPv4 を serialize した文字は 10 進の数字か `.` である。 -/
+theorem ipv4Serializer_chars (addr : Nat) :
+    ∀ c ∈ (ipv4Serializer addr).toList, isAsciiDigit c = true ∨ c = '.' := by
+  intro c hc
+  rw [show ipv4Serializer addr
+      = toString (addr / 16777216 % 256) ++ "." ++ toString (addr / 65536 % 256) ++ "."
+        ++ toString (addr / 256 % 256) ++ "." ++ toString (addr % 256) from rfl] at hc
+  simp only [String.toList_append] at hc
+  have hdot : ∀ x ∈ ("." : String).toList, x = '.' := by decide
+  rcases List.mem_append.mp hc with hc | hc
+  · rcases List.mem_append.mp hc with hc | hc
+    · rcases List.mem_append.mp hc with hc | hc
+      · rcases List.mem_append.mp hc with hc | hc
+        · rcases List.mem_append.mp hc with hc | hc
+          · rcases List.mem_append.mp hc with hc | hc
+            · exact Or.inl (toString_digits _ c hc)
+            · exact Or.inr (hdot c hc)
+          · exact Or.inl (toString_digits _ c hc)
+        · exact Or.inr (hdot c hc)
+      · exact Or.inl (toString_digits _ c hc)
+    · exact Or.inr (hdot c hc)
+  · exact Or.inl (toString_digits _ c hc)
+
+/-- 10 進の数字は forbidden host code point ではない。 -/
+theorem not_forbidden_of_digit {c : Char} (h : isAsciiDigit c = true) :
+    isForbiddenHost c = false := by
+  simp only [isAsciiDigit, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [isForbiddenHost, Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq]
+  repeat' constructor
+  all_goals first
+    | omega
+    | (intro he; rw [he] at h; revert h; decide)
+
+/-- opaque host が返るなら、入力は opaque host parser を通っている。 -/
+theorem hostParser_opaque_eq {f : List Char → Option String} {input : List Char} {o : String}
+    {b : Bool} (h : hostParser f input b = some (.opaque o)) :
+    opaqueHostParser input = some (.opaque o) := by
+  unfold hostParser at h
+  split at h
+  · split at h
+    · simp only [Option.map_eq_some_iff] at h
+      obtain ⟨x, -, hx⟩ := h
+      exact absurd hx (by simp)
+    · simp at h
+  · split at h
+    · exact h
+    · split at h
+      · simp at h
+      · dsimp only at h
+        split at h
+        · simp at h
+        · split at h
+          · simp only [Option.map_eq_some_iff] at h
+            obtain ⟨x, -, hx⟩ := h
+            exact absurd hx (by simp)
+          · simp at h
+
+/-- domain が返るなら、その文字列は domain parser の出力である。 -/
+theorem hostParser_domain_eq {f : List Char → Option String} {input : List Char} {d : String}
+    {b : Bool} (h : hostParser f input b = some (.domain d)) :
+    ∃ dom, f dom = some d := by
+  unfold hostParser at h
+  split at h
+  · split at h
+    · simp only [Option.map_eq_some_iff] at h
+      obtain ⟨x, -, hx⟩ := h
+      exact absurd hx (by simp)
+    · simp at h
+  · split at h
+    · unfold opaqueHostParser at h
+      split at h
+      · simp at h
+      · split at h <;> simp at h
+    · split at h
+      · simp at h
+      · dsimp only at h
+        split at h
+        · simp at h
+        · split at h
+          · simp only [Option.map_eq_some_iff] at h
+            obtain ⟨x, -, hx⟩ := h
+            exact absurd hx (by simp)
+          · rename_i dom hdom _
+            simp only [Option.some.injEq, Host.domain.injEq] at h
+            exact ⟨_, by rw [hdom, h]⟩
+
+/-- C0 control でも space でもないことを、C0 control の側から言う。 -/
+theorem ne_c0_of_isC0Control {c : Char} (h : isC0Control c = false) (hs : ¬c = ' ') :
+    isC0ControlOrSpace c = false := by
+  simp only [isC0Control, decide_eq_false_iff_not, Nat.not_le] at h
+  simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+  have h20 : c.toNat ≠ 0x20 := by
+    intro he
+    exact hs (by rw [← Char.ofNat_toNat c, he])
+  omega
+
+/-- alphanumeric は C0 control percent-encode set に入らない。 -/
+theorem c0Set_of_alnum {c : Char} (h : isAsciiAlphanumeric c = true) : c0ControlSet c = false := by
+  simp only [isAsciiAlphanumeric, isAsciiAlpha, isAsciiUpperAlpha, isAsciiLowerAlpha, isAsciiDigit,
+    Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [c0ControlSet, isC0Control, Bool.or_eq_false_iff, decide_eq_false_iff_not, Nat.not_le,
+    Nat.not_lt]
+  omega
+
+/--
+**canonical な host は、serialize した文字列を host state が読み直せる。**
+
+`canonicalUrl` の host の条件（`hostParser (hostSerializer h) = some h`）から、
+`roundtrip_canonical` が仮定に置いていた二つを出す。
+-/
+theorem hostReadable_of_canonical {sp : Bool} {h : Host}
+    (hc : h = Host.empty ∨
+      hostParser asciiDomainToASCII (hostSerializer h).toList (!sp) = some h) :
+    hostReadable sp h ∧ ∀ c ∈ (hostSerializer h).toList, isC0ControlOrSpace c = false := by
+  cases h with
+  | empty =>
+    exact ⟨Or.inl (fun c hcm => by simp [hostSerializer] at hcm),
+      fun c hcm => by simp [hostSerializer] at hcm⟩
+  | ipv6 a => exact ⟨hostReadable_ipv6 sp a, ipv6_no_c0 a⟩
+  | ipv4 a =>
+    refine ⟨Or.inl (fun c hcm => ?_), fun c hcm => ?_⟩
+    · rcases ipv4Serializer_chars a c hcm with hd | hd
+      · exact not_forbidden_of_digit hd
+      · rw [hd]; decide
+    · rcases ipv4Serializer_chars a c hcm with hd | hd
+      · simp only [isAsciiDigit, Bool.and_eq_true, decide_eq_true_eq] at hd
+        simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+        omega
+      · rw [hd]; decide
+  | «opaque» o =>
+    rcases hc with hx | hx
+    · exact absurd hx (by simp)
+    · have hp : opaqueHostParser o.toList = some (Host.opaque o) := hostParser_opaque_eq hx
+      have hnf : ∀ c ∈ o.toList, isForbiddenHost c = false := by
+        have h2 := opaqueHostParser_no_forbidden hp
+        simp only [List.any_eq_false] at h2
+        exact fun c hcm => by simpa using h2 c hcm
+      have henc : o.toList = utf8PercentEncode c0ControlSet o.toList := by
+        unfold opaqueHostParser at hp
+        split at hp
+        · simp at hp
+        · split at hp
+          · simp at hp
+          · simp only [Option.some.injEq, Host.opaque.injEq] at hp
+            calc o.toList
+                = (String.ofList (utf8PercentEncode c0ControlSet o.toList)).toList := by rw [hp]
+              _ = utf8PercentEncode c0ControlSet o.toList := String.toList_ofList
+      refine ⟨Or.inl hnf, fun c hcm => ?_⟩
+      have hcm' : c ∈ o.toList := hcm
+      have hc0 : c0ControlSet c = false := by
+        rw [henc] at hcm'
+        exact utf8PercentEncode_out (by decide) (fun x hx => c0Set_of_alnum hx) c hcm'
+      refine ne_c0_of_c0Set hc0 ?_
+      intro he
+      have h4 := hnf c hcm
+      rw [he] at h4
+      revert h4
+      decide
+  | domain d =>
+    rcases hc with hx | hx
+    · exact absurd hx (by simp)
+    · obtain ⟨dom, hdom⟩ := hostParser_domain_eq hx
+      have h2 := asciiDomainToASCII_no_forbidden hdom
+      simp [String.any] at h2
+      have hfd : ∀ c ∈ d.toList, isForbiddenDomain c = false := h2
+      have hnf : ∀ c ∈ d.toList, isForbiddenHost c = false := by
+        intro c hcm
+        have := hfd c hcm
+        simp only [isForbiddenDomain, Bool.or_eq_false_iff] at this
+        exact this.1.1.1
+      refine ⟨Or.inl hnf, fun c hcm => ?_⟩
+      have h3 := hfd c hcm
+      simp only [isForbiddenDomain, Bool.or_eq_false_iff] at h3
+      refine ne_c0_of_isC0Control h3.1.1.2 ?_
+      intro he
+      have := hnf c hcm
+      rw [he] at this
+      revert this
+      decide
+
 /-! ## まとめ
 
 四つの経路を `canonicalUrl` から選び分けて一つの定理にする。
@@ -3137,15 +3343,10 @@ theorem ne_qh_of_pathSet {c : Char} (h : pathSet c = false) : ¬c = '?' ∧ ¬c 
 /--
 **canonical な record は、serialize して parse し直すと元に戻る。**
 
-`hh` は host を serialize した文字列についての条件で、host state が読み直せること
-（`hostReadable`）と、前処理が落とす文字を含まないことである。`canonicalUrl` の
-`hostParser (hostSerializer h) = some h` から出るはずだが、そこはまだ証明していない。
-host の種類ごとに、domain は `asciiDomainToASCII_no_forbidden`、opaque host は
-`opaqueHostParser_no_forbidden`、IPv6 は `hostReadable_ipv6` が要る分である。
+`ValidUrl`（§4.1 の不変条件）と `canonicalUrl`（parser の出力の形）だけを仮定する。
+path の形で四つの経路を選び分け、それぞれの仮定を二つの述語から出す。
 -/
-theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = true)
-    (hh : ∀ h, u.host = some h → hostReadable u.isSpecial h ∧
-      (∀ c ∈ (hostSerializer h).toList, isC0ControlOrSpace c = false)) :
+theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = true) :
     basicUrlParse (urlSerializer u) none = some u := by
   simp only [canonicalUrl, Bool.and_eq_true] at hc
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c1, c2⟩, c3⟩, c4⟩, c5⟩, c6⟩, c7⟩, c8⟩, c9⟩, c10⟩, c11⟩, c12⟩, c13⟩, c14⟩ := hc
@@ -3253,7 +3454,6 @@ theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = t
         exact ⟨fun c hc => ⟨h1 c hc, h4 c hc, (ne_qh_of_pathSet (h1 c hc)).1,
           (ne_qh_of_pathSet (h1 c hc)).2⟩, h2, h3⟩
     | some hst =>
-      obtain ⟨hok, hnc⟩ := hh hst rfl
       have hcan : hst = Host.empty ∨
           hostParser asciiDomainToASCII (hostSerializer hst).toList
             (!Url.isSpecial ⟨sc, un, pw, some hst, po, Path.list segs, qu, fr⟩) = some hst := by
@@ -3263,6 +3463,7 @@ theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = t
         | ipv4 x => exact Or.inr (by simpa using c10)
         | ipv6 x => exact Or.inr (by simpa using c10)
         | «opaque» o => exact Or.inr (by simpa using c10)
+      obtain ⟨hok, hnc⟩ := hostReadable_of_canonical hcan
       by_cases hfile : sc = "file"
       · subst hfile
         have hcred := hv.fileNoCredentials rfl
@@ -3411,5 +3612,23 @@ theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = t
           exact ⟨fun c hc => ⟨h1 c hc, isTerminator_false (h4 c hc)
             (ne_qh_of_pathSet (h1 c hc)).1 (ne_qh_of_pathSet (h1 c hc)).2
             (fun hsv => h5 hsv c hc)⟩, h2, h3⟩
+
+/-- 二つの述語だけで往復が出る。`sc://h/a` はどちらも満たす。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] }) none
+    = some { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] } :=
+  roundtrip_canonical ((checkValidUrl_iff _).mp (by decide)) (by decide)
+
+/-- `file:` も同じである。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "file", host := some .empty, path := .list ["a"] }) none
+    = some { scheme := "file", host := some .empty, path := .list ["a"] } :=
+  roundtrip_canonical ((checkValidUrl_iff _).mp (by decide)) (by decide)
+
+/-- query と fragment が付いていても同じである。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "sc", path := .opaque "x", query := some "q", fragment := some "f" }) none
+    = some { scheme := "sc", path := .opaque "x", query := some "q", fragment := some "f" } :=
+  roundtrip_canonical ((checkValidUrl_iff _).mp (by decide)) (by decide)
 
 end Url

@@ -386,6 +386,14 @@ open Dom.Audit
   Url.hostParser_nil_opaque
   Url.not_drive_of_hostReadable
   Url.ne_qh_of_pathSet
+  Url.utf8PercentEncode_out
+  Url.ipv4Serializer_chars
+  Url.not_forbidden_of_digit
+  Url.hostParser_opaque_eq
+  Url.hostParser_domain_eq
+  Url.ne_c0_of_isC0Control
+  Url.c0Set_of_alnum
+  Url.hostReadable_of_canonical
   Url.roundtrip_canonical
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと

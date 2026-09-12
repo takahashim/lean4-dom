@@ -595,7 +595,9 @@ Windows drive letter は、証明を書いていて足りないことに気づ�
 | `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。`sc:/.//x` のように serializer が `/.` を足す場合も含む。query と fragment が付いてもよい） |
 | `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも IPv6 host 付きも、query と fragment 付きも。`file:` は除く） |
 | `roundtrip_file` | **`file:` URL も戻る**（`file:///a` も `file://[::]/a` も。authority state を通らない別経路） |
-| `roundtrip_canonical` | **`ValidUrl` と `canonicalUrl` を満たす record は戻る**（四つの経路を選び分ける。host の文字についての条件だけ仮定に残る） |
+| `roundtrip_canonical` | **`ValidUrl` と `canonicalUrl` を満たす record は戻る**（四つの経路を選び分ける。仮定はこの二つだけ） |
+| `hostReadable_of_canonical` | canonical な host は serialize した文字列を host state が読み直せる（host の種類ごとに根拠が違う） |
+| `ipv4Serializer_chars`, `utf8PercentEncode_out` | IPv4 は 10 進と `.`、opaque host は percent-encode 済みなので C0 control が無い |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
@@ -636,10 +638,12 @@ state ごとに「区切りでない文字を読み切る（chunk）」「区切
 （最後の segment は buffer に残ったまま次へ渡る）。
 query と fragment は四つの経路のどれからも同じ `run_query_full` に合流する。
 四つで parser の経路は出揃い、`roundtrip_canonical` が `ValidUrl` と `canonicalUrl` から
-四つを選び分ける。残っているのは host を serialize した文字列についての条件
-（`hostReadable` と、C0 control も space も含まないこと）で、いまは仮定に置いてある。
-host の種類ごとに、domain は `asciiDomainToASCII_no_forbidden`、opaque host は
-`opaqueHostParser_no_forbidden`、IPv4 は 10 進の文字の補題が要る分である。
+四つを選び分ける。**`parse ∘ serialize = id` はこの二つの述語だけを仮定に閉じた。**
+
+host を serialize した文字列が host state を読み直せることは、host の種類ごとに根拠が違う。
+domain は `asciiDomainToASCII_no_forbidden`、opaque host は `opaqueHostParser_no_forbidden` と
+「出力が percent-encode 済み」、IPv4 は 10 進と `.` だけ、IPv6 は `[` と `]` に囲まれていること、
+empty host は文字が無いことである。
 
 state の補題は `special` を Bool の引数で持つようにしてあるので、
 非 special と special で同じものを使っている。`canonicalUrl` の条件は証明のたびに増えて、
