@@ -272,7 +272,23 @@ open Dom.Audit
   Url.reverse_head_mid
   Url.run_scheme_prefix
   Url.run_scheme_opaque
-  Url.run_opaquePath_plain
+  Url.encFold_id
+  Url.run_fragment_plain
+  Url.run_query_plain
+  Url.run_query_chunk
+  Url.run_query_eof
+  Url.run_query_hash
+  Url.run_opaquePath_question
+  Url.run_opaquePath_hash
+  Url.run_opaquePath_eof
+  Url.queryOf_encoded
+  Url.run_opaquePath_qf
+  Url.ne_tab_of_c0Set
+  Url.ne_c0_of_c0Set
+  Url.c0Set_of_querySet
+  Url.c0Set_of_fragmentSet
+  Url.run_opaquePath_chunk
+  Url.getLast?_mid
   Url.roundtrip_opaque
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと

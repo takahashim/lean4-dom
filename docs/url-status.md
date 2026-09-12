@@ -587,15 +587,19 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 
 | 定理 | 言っていること |
 | --- | --- |
-| `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が無い場合） |
+| `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が付いてもよい） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
-| `preprocess_eq_self` | C0 control も space も無ければ前処理は何もしない |
+| `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
 | `run_scheme_prefix`, `run_scheme_opaque` | scheme state が buffer に積み、`:` で opaque path state へ渡す |
-| `run_opaquePath_plain` | opaque path state は素通しの文字をそのまま path に足す |
+| `run_opaquePath_chunk`, `run_opaquePath_question`, `run_opaquePath_hash`, `run_opaquePath_eof` | opaque path state の三種類（読み進む・区切り・終端） |
+| `run_query_chunk`, `run_query_hash`, `run_query_eof`, `run_query_plain` | query state の同じ三種類 |
+| `run_fragment_plain` | fragment state は素通しの文字をそのまま fragment に足す |
+| `run_opaquePath_qf` | query と fragment の有無の四通りをまとめて読み切る |
 
-いちばん短い経路（scheme start → scheme → opaque path）だけである。
-残りは authority / host / port / path を通る経路で、state も条件も多い。
-やり方は setter の肯定側（`Url/ApiValid.lean`）と同じで、state ごとの等式を積む。
+閉じたのは scheme start → scheme → opaque path → query → fragment の経路である。
+state ごとに「区切りでない文字を読み切る（chunk）」「区切りで次へ渡す」「EOF で返す」の
+三つを用意して積む。残りは authority / host / port / path を通る経路で、
+state も条件も多いが、作り方は同じである。
 
 ### setter の側
 

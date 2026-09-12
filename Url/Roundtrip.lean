@@ -26,13 +26,18 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 
 ## この file が閉じた分
 
-いちばん短い経路（scheme start → scheme → opaque path）だけである。
-`roundtrip_opaque` が、scheme と opaque path について `canonicalUrl` に当たる条件を仮定して
-`parse ∘ serialize = id` を言う。経路ごとに state の等式を積む形で、
-`Url/ApiValid.lean` の setter の肯定側と同じやり方である。
+いちばん短い経路（scheme start → scheme → opaque path → query → fragment）である。
+`roundtrip_opaque` が、scheme・opaque path・query・fragment について `canonicalUrl` に
+当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
-残りは query / fragment が付く場合と、authority / host / port / path を通る経路で、
-こちらは state も条件も多い。
+作り方は state ごとの等式を積む形で、`Url/ApiValid.lean` の setter の肯定側と同じである。
+一つの state について三種類を用意する。
+
+* **chunk**：区切りでない文字を読み切って同じ state に留まる（`run_opaquePath_chunk` ほか）
+* **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
+* **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
+
+残りは authority / host / port / path を通る経路で、state も条件も多い。
 -/
 
 namespace Url
@@ -172,59 +177,6 @@ theorem run_scheme_opaque (base : Option Url) (rest : List Char) (ctx : PCtx)
     · next rest2 he => simp only [List.cons.injEq] at he; exact absurd he.1 hne
     · rfl
 
-/--
-opaque path state は、素通しの文字をそのまま path の末尾に足す。
-
-`?` と `#` は出口なので入力に無いこととした。space はそのまま積まれる
-（次が `?` か `#` なら `%20` になるが、その二つは無い）。
--/
-theorem run_opaquePath_plain (base : Option Url) : ∀ (l : List Char) (ctx : PCtx) (p : String),
-    ctx.url.path = .opaque p →
-    (∀ c ∈ l, c0ControlSet c = false ∧ ¬c = '?' ∧ ¬c = '#') →
-    run base .opaquePath l ctx = .ok { ctx.url with path := .opaque (p ++ String.ofList l) } := by
-  intro l
-  induction l with
-  | nil =>
-    intro ctx p hp _
-    rw [run, step]
-    simp [← hp]
-  | cons c tail ih =>
-    intro ctx p hp hd
-    have hc := hd c (by simp)
-    have henc : encChar c0ControlSet c = String.ofList [c] := by
-      unfold encChar
-      rw [utf8PercentEncode_id (by intro x hx; simp at hx; subst hx; exact hc.1)]
-    have hstep : run base .opaquePath (c :: tail) ctx
-        = run base .opaquePath tail
-            { ctx with url := appendOpaque ctx.url (encChar c0ControlSet c) } := by
-      by_cases hsp : c = ' '
-      · -- space。次が `?` でも `#` でもないので、そのまま積む。
-        subst hsp
-        rw [run, step]
-        cases tail with
-        | nil => simp [henc]
-        | cons d t =>
-          have h1 : ¬d = '?' := (hd d (by simp)).2.1
-          have h2 : ¬d = '#' := (hd d (by simp)).2.2
-          simp only [List.head?_cons]
-          split
-          · next hq => exact absurd (Option.some.inj hq) h1
-          · next hq => exact absurd (Option.some.inj hq) h2
-          · simp [henc]
-      · rw [run, step]
-        all_goals first
-          | rfl
-          | (intro he; exact absurd he hc.2.1)
-          | (intro he; exact absurd he hc.2.2)
-          | (intro he; exact absurd he hsp)
-    rw [hstep]
-    rw [ih { ctx with url := appendOpaque ctx.url (encChar c0ControlSet c) }
-      (p ++ encChar c0ControlSet c) (by simp [appendOpaque, hp])
-      (fun x hx => hd x (by simp [hx]))]
-    simp only [appendOpaque, hp, henc]
-    simp
-    rw [String.push_eq_append, String.append_assoc]
-
 /-- scheme に使える文字は tab でも newline でもない。 -/
 theorem schemeChar_ne_tab {c : Char} (h : schemeChar c = true) :
     c.toNat ≠ 0x09 ∧ c.toNat ≠ 0x0A ∧ c.toNat ≠ 0x0D := by
@@ -239,37 +191,328 @@ theorem reverse_head_mid (l1 : List Char) (c : Char) (l2 : List Char) :
   | nil => simp
   | cons d t => simp [List.reverse_append]
 
+/-! ## query と fragment
+
+どちらも終端の state で、opaque path state からも path state からも来る。
+-/
+
+/-- set に入らない文字だけなら、1 文字ずつの percent-encode は何もしない。 -/
+theorem encFold_id {set : Char → Bool} : ∀ (l : List Char), (∀ c ∈ l, set c = false) →
+    l.flatMap (fun c => (encChar set c).toList) = l
+  | [], _ => rfl
+  | d :: rest, h => by
+    have hc : encChar set d = String.ofList [d] := by
+      unfold encChar
+      rw [utf8PercentEncode_id (by intro x hx; simp at hx; subst hx; exact h _ (by simp))]
+    simp only [List.flatMap_cons, hc, String.toList_ofList, List.singleton_append]
+    rw [encFold_id rest (fun x hx => h x (by simp [hx]))]
+
+/-- fragment state は、素通しの文字をそのまま fragment の末尾に足す。 -/
+theorem run_fragment_plain (base : Option Url) (l : List Char) (ctx : PCtx) (f : String)
+    (hf : ctx.url.fragment = some f) (h : ∀ c ∈ l, fragmentSet c = false) :
+    run base .fragment l ctx = .ok { ctx.url with fragment := some (f ++ String.ofList l) } := by
+  obtain ⟨u, hu⟩ := run_fragment_ok base l ctx
+  rw [hu]
+  rw [run_fragment_spec base l ctx u (by rw [hf]; rfl) hu]
+  rw [encFold_id l h, hf]
+  rfl
+
+/-- override が無い query state は、`#` までの文字を buffer に積んで `queryOf` を書く。 -/
+theorem run_query_plain (base : Option Url) : ∀ (l : List Char) (ctx : PCtx),
+    ctx.over = none → (∀ c ∈ l, ¬c = '#') →
+    run base .query l ctx = .ok { ctx.url with query := some (queryOf { ctx with buffer := ctx.buffer ++ l }) } := by
+  intro l
+  induction l with
+  | nil => intro ctx _ _; rw [run, step]; simp
+  | cons c tail ih =>
+    intro ctx hov h
+    have hc : ¬c = '#' := h c (by simp)
+    rw [run, step]
+    simp +zetaDelta only []
+    rw [ih { ctx with buffer := ctx.buffer ++ [c] } hov (fun x hx => h x (by simp [hx]))]
+    all_goals first
+      | exact hc
+      | (simp; done)
+
+/-- query state は `#` でない文字を buffer に積む。 -/
+theorem run_query_chunk (base : Option Url) : ∀ (l tail : List Char) (ctx : PCtx),
+    (∀ c ∈ l, ¬c = '#') →
+    run base .query (l ++ tail) ctx
+      = run base .query tail { ctx with buffer := ctx.buffer ++ l } := by
+  intro l
+  induction l with
+  | nil => intro tail ctx _; simp
+  | cons c rest ih =>
+    intro tail ctx h
+    have hc : ¬c = '#' := h c (by simp)
+    simp only [List.cons_append]
+    rw [run, step]
+    rw [ih tail { ctx with buffer := ctx.buffer ++ [c] } (fun x hx => h x (by simp [hx]))]
+    all_goals first
+      | exact hc
+      | (simp; done)
+
+/-- query state の終わり。buffer を percent-encode して query に書く。 -/
+theorem run_query_eof (base : Option Url) (ctx : PCtx) :
+    run base .query [] ctx = .ok { ctx.url with query := some (queryOf ctx) } := by
+  rw [run, step]
+
+/-- query state の `#`。query を確定させて fragment state へ渡す。 -/
+theorem run_query_hash (base : Option Url) (rest : List Char) (ctx : PCtx) (hov : ctx.over = none) :
+    run base .query ('#' :: rest) ctx
+      = run base .fragment rest
+          { ctx with
+            url := { ctx.url with query := some (queryOf ctx), fragment := some "" }
+            buffer := [] } := by
+  rw [run, step]
+  simp only [hov, Option.isSome_none, Bool.false_eq_true, if_false]
+
+/-- opaque path state の `?`。query state へ渡す。 -/
+theorem run_opaquePath_question (base : Option Url) (rest : List Char) (ctx : PCtx) :
+    run base .opaquePath ('?' :: rest) ctx
+      = run base .query rest { ctx with url := { ctx.url with query := some "" } } := by
+  rw [run, step]
+
+/-- opaque path state の `#`。fragment state へ渡す。 -/
+theorem run_opaquePath_hash (base : Option Url) (rest : List Char) (ctx : PCtx) :
+    run base .opaquePath ('#' :: rest) ctx
+      = run base .fragment rest { ctx with url := { ctx.url with fragment := some "" } } := by
+  rw [run, step]
+
+/-- opaque path state の終わり。 -/
+theorem run_opaquePath_eof (base : Option Url) (ctx : PCtx) :
+    run base .opaquePath [] ctx = .ok ctx.url := by
+  rw [run, step]
+
+/-- serializer が query と fragment を並べる分。 -/
+def qfList (q f : Option String) : List Char :=
+  (match q with | none => [] | some s => '?' :: s.toList) ++
+    (match f with | none => [] | some s => '#' :: s.toList)
+
+/-- buffer をそのまま query にできるとき、`queryOf` はその文字列を返す。 -/
+theorem queryOf_encoded {ctx : PCtx} {qs : String} (hq : ctx.url.query = some "")
+    (hb : ctx.buffer = qs.toList)
+    (h : ∀ c ∈ qs.toList, (if ctx.url.isSpecial then specialQuerySet else querySet) c = false) :
+    queryOf ctx = qs := by
+  unfold queryOf
+  rw [hq, hb, utf8PercentEncode_id h, String.ofList_toList]
+  simp
+
+/--
+opaque path state から先、query と fragment を読み切る。
+
+query と fragment の有無の四通りをまとめて扱う。
+-/
+theorem run_opaquePath_qf (base : Option Url) (ctx : PCtx) (q f : Option String)
+    (hov : ctx.over = none) (hbuf : ctx.buffer = [])
+    (hq : ctx.url.query = none) (hf : ctx.url.fragment = none)
+    (hqc : ∀ s, q = some s → ∀ c ∈ s.toList,
+      (if ctx.url.isSpecial then specialQuerySet else querySet) c = false)
+    (hfc : ∀ s, f = some s → ∀ c ∈ s.toList, fragmentSet c = false) :
+    run base .opaquePath (qfList q f) ctx = .ok { ctx.url with query := q, fragment := f } := by
+  unfold qfList
+  cases q with
+  | none =>
+    cases f with
+    | none =>
+      simp only [List.append_nil]
+      have h1 : ({ ctx.url with query := none, fragment := none } : Url)
+          = { ctx.url with query := ctx.url.query, fragment := ctx.url.fragment } := by
+        rw [hq, hf]
+      rw [run_opaquePath_eof, h1]
+    | some fs =>
+      simp only [List.nil_append]
+      rw [run_opaquePath_hash]
+      rw [run_fragment_plain base fs.toList _ "" rfl (hfc fs rfl), ← hq]
+      simp
+  | some qs =>
+    have hqs := hqc qs rfl
+    have hqe : utf8PercentEncode (if ctx.url.isSpecial then specialQuerySet else querySet)
+        qs.toList = qs.toList := utf8PercentEncode_id hqs
+    cases f with
+    | none =>
+      simp only [List.append_nil]
+      rw [run_opaquePath_question]
+      rw [run_query_plain base qs.toList { ctx with url := { ctx.url with query := some "" } }
+        hov (fun c hc => by
+          intro he
+          have h2 := hqs c hc
+          rw [he] at h2
+          revert h2
+          cases ctx.url.isSpecial <;> decide)]
+      rw [← hf]
+      simp
+      exact queryOf_encoded rfl (by simp [hbuf]) hqs
+    | some fs =>
+      simp only [List.cons_append]
+      rw [run_opaquePath_question]
+      rw [run_query_chunk base qs.toList ('#' :: fs.toList)
+        { ctx with url := { ctx.url with query := some "" } } (fun c hc => by
+          intro he
+          have h2 := hqs c hc
+          rw [he] at h2
+          revert h2
+          cases ctx.url.isSpecial <;> decide)]
+      rw [run_query_hash base fs.toList
+        { ctx with
+          url := { ctx.url with query := some "" }
+          buffer := ctx.buffer ++ qs.toList } hov]
+      rw [run_fragment_plain base fs.toList _ "" rfl (hfc fs rfl)]
+      simp
+      exact queryOf_encoded rfl (by simp [hbuf]) hqs
+
+/-! ## 文字の性質
+
+前処理が落とす文字（前後の C0 control or space、tab と newline）が
+serialize した文字列に現れないことを、成分ごとの percent-encode set から出す。
+-/
+
+/-- C0 control percent-encode set に入らない文字は tab でも newline でもない。 -/
+theorem ne_tab_of_c0Set {c : Char} (h : c0ControlSet c = false) :
+    c.toNat ≠ 0x09 ∧ c.toNat ≠ 0x0A ∧ c.toNat ≠ 0x0D := by
+  simp only [c0ControlSet, isC0Control, Bool.or_eq_false_iff, decide_eq_false_iff_not,
+    Nat.not_le, Nat.not_lt] at h
+  omega
+
+/-- C0 control percent-encode set に入らない文字は C0 control でもない。space は別に見る。 -/
+theorem ne_c0_of_c0Set {c : Char} (h : c0ControlSet c = false) (hs : ¬c = ' ') :
+    isC0ControlOrSpace c = false := by
+  simp only [c0ControlSet, isC0Control, Bool.or_eq_false_iff, decide_eq_false_iff_not,
+    Nat.not_le, Nat.not_lt] at h
+  simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+  have h20 : c.toNat ≠ 0x20 := by
+    intro he
+    exact hs (by rw [← Char.ofNat_toNat c, he])
+  omega
+
+/-- query set に入らなければ C0 control percent-encode set にも入らない。 -/
+theorem c0Set_of_querySet {c : Char} (h : querySet c = false) : c0ControlSet c = false := by
+  simp only [querySet, Bool.or_eq_false_iff] at h
+  exact h.1.1.1.1.1
+
+/-- fragment set についても同じ。 -/
+theorem c0Set_of_fragmentSet {c : Char} (h : fragmentSet c = false) : c0ControlSet c = false := by
+  simp only [fragmentSet, Bool.or_eq_false_iff] at h
+  exact h.1.1.1.1.1
+
+/-- query set に入らない文字は space でもない。 -/
+theorem ne_space_of_querySet {c : Char} (h : querySet c = false) : ¬c = ' ' := by
+  intro he; rw [he] at h; revert h; decide
+
+/-- fragment set についても同じ。 -/
+theorem ne_space_of_fragmentSet {c : Char} (h : fragmentSet c = false) : ¬c = ' ' := by
+  intro he; rw [he] at h; revert h; decide
+
+/-! ## 組み立て -/
+
+/--
+opaque path state が区切りまでの文字を読み切る。
+
+`?` と `#` は出口なので入力に無いこととした。space はそのまま積まれるが、
+**末尾の space だけは別**である（次が `?` か `#` なら `%20` になる）。
+parser はそういう opaque path を作らないので、無いことを仮定する。
+-/
+theorem run_opaquePath_chunk (base : Option Url) : ∀ (l tail : List Char) (ctx : PCtx) (p : String),
+    ctx.url.path = .opaque p →
+    (∀ c ∈ l, c0ControlSet c = false ∧ ¬c = '?' ∧ ¬c = '#') →
+    (∀ c ∈ l.getLast?, ¬c = ' ') →
+    run base .opaquePath (l ++ tail) ctx
+      = run base .opaquePath tail
+          { ctx with url := { ctx.url with path := .opaque (p ++ String.ofList l) } } := by
+  intro l
+  induction l with
+  | nil =>
+    intro tail ctx p hp _ _
+    simp only [List.nil_append, String.ofList_nil]
+    have h1 : ({ ctx.url with path := Path.opaque (p ++ "") } : Url)
+        = { ctx.url with path := ctx.url.path } := by rw [hp]; simp
+    rw [h1]
+  | cons c l' ih =>
+    intro tail ctx p hp hd hend
+    have hc := hd c (by simp)
+    have henc : encChar c0ControlSet c = String.ofList [c] := by
+      unfold encChar
+      rw [utf8PercentEncode_id (by intro x hx; simp at hx; subst hx; exact hc.1)]
+    have hend' : ∀ x ∈ l'.getLast?, ¬x = ' ' := by
+      intro x hx
+      refine hend x ?_
+      cases l' with
+      | nil => simp at hx
+      | cons d t => rw [List.getLast?_cons_cons]; exact hx
+    have hstep : run base .opaquePath ((c :: l') ++ tail) ctx
+        = run base .opaquePath (l' ++ tail)
+            { ctx with url := appendOpaque ctx.url (encChar c0ControlSet c) } := by
+      by_cases hsp : c = ' '
+      · subst hsp
+        rw [List.cons_append, run, step]
+        cases hl : l' with
+        | nil =>
+          exact absurd (hend ' ' (by rw [hl]; rfl)) (by simp)
+        | cons d t =>
+          have h1 : ¬d = '?' := (hd d (by rw [hl]; simp)).2.1
+          have h2 : ¬d = '#' := (hd d (by rw [hl]; simp)).2.2
+          simp only [List.cons_append, List.head?_cons]
+          split
+          · next hq => exact absurd (Option.some.inj hq) h1
+          · next hq => exact absurd (Option.some.inj hq) h2
+          · simp [henc]
+      · rw [List.cons_append, run, step]
+        all_goals first
+          | rfl
+          | (intro he; exact absurd he hc.2.1)
+          | (intro he; exact absurd he hc.2.2)
+          | (intro he; exact absurd he hsp)
+    rw [hstep]
+    rw [ih tail { ctx with url := appendOpaque ctx.url (encChar c0ControlSet c) }
+      (p ++ encChar c0ControlSet c) (by simp [appendOpaque, hp])
+      (fun x hx => hd x (by simp [hx])) hend']
+    simp only [appendOpaque, hp, henc]
+    simp
+    rw [String.push_eq_append, String.append_assoc]
+
+/-- 末尾の一文字。区切りの後ろが空なら区切り自身が最後になる。 -/
+theorem getLast?_mid (l1 : List Char) (c : Char) (l2 : List Char) :
+    (l1 ++ c :: l2).getLast? = if l2.isEmpty then some c else l2.getLast? := by
+  rw [← List.head?_reverse, reverse_head_mid]
+  cases l2 with
+  | nil => simp
+  | cons d t => exact List.head?_reverse
+
 /--
 **opaque path を持つ URL は、serialize して parse し直すと元に戻る。**
 
-`parse ∘ serialize = id` のうち、いちばん短い経路（scheme start → scheme → opaque path）を
-閉じたものである。仮定はその経路を通る形であること、つまり
-`canonicalUrl` のうち scheme と opaque path に当たる分である。
-query と fragment が付く場合はその二つの state の補題が要る。
+`parse ∘ serialize = id` のうち、いちばん短い経路
+（scheme start → scheme → opaque path → query → fragment）を閉じたものである。
+仮定はその経路を通る形であること、つまり `canonicalUrl` のうち
+scheme・opaque path・query・fragment に当たる分である。
 -/
-theorem roundtrip_opaque {s o : String} {a : Char} {rest : List Char}
+theorem roundtrip_opaque {s o : String} {q f : Option String} {a : Char} {rest : List Char}
     (hs : s.toList = a :: rest) (ha : isAsciiLowerAlpha a = true)
     (hr : ∀ c ∈ rest, schemeChar c = true)
     (hlow : s.toList.map asciiLowerChar = s.toList)
     (hsp : isSpecialScheme s = false)
     (ho : ∀ c ∈ o.toList, c0ControlSet c = false ∧ ¬c = '?' ∧ ¬c = '#')
-    (hlast : ∀ c ∈ o.toList.reverse.head?, isC0ControlOrSpace c = false)
-    (hhead : ∀ c ∈ o.toList.head?, ¬c = '/') :
-    basicUrlParse (urlSerializer { scheme := s, path := .opaque o }) none
-      = some { scheme := s, path := .opaque o } := by
+    (hlast : ∀ c ∈ o.toList.getLast?, ¬c = ' ')
+    (hhead : ∀ c ∈ o.toList.head?, ¬c = '/')
+    (hqc : ∀ x, q = some x → ∀ c ∈ x.toList, querySet c = false)
+    (hfc : ∀ x, f = some x → ∀ c ∈ x.toList, fragmentSet c = false) :
+    basicUrlParse
+        (urlSerializer { scheme := s, path := .opaque o, query := q, fragment := f }) none
+      = some { scheme := s, path := .opaque o, query := q, fragment := f } := by
   have haa : isAsciiAlpha a = true := by
     simp only [isAsciiAlpha, Bool.or_eq_true]; exact Or.inr ha
-  have hstr : (urlSerializer { scheme := s, path := .opaque o }).toList
-      = s.toList ++ ':' :: o.toList := by
-    simp [urlSerializer, serializerTail, pathSerializer]
+  have hstr : (urlSerializer { scheme := s, path := .opaque o, query := q, fragment := f }).toList
+      = s.toList ++ ':' :: (o.toList ++ qfList q f) := by
+    cases q <;> cases f <;>
+      simp [urlSerializer, serializerTail, pathSerializer, qfList]
   have hbuf : ([] : List Char) ++ [asciiLowerChar a] ++ rest.map asciiLowerChar = s.toList := by
     rw [List.nil_append, List.singleton_append, ← List.map_cons, ← hs, hlow]
   have hfile : ¬s = "file" := by
     intro he; rw [he] at hsp; exact absurd hsp (by decide)
-  have hpre : preprocess (urlSerializer { scheme := s, path := .opaque o })
-      = s.toList ++ ':' :: o.toList := by
-    rw [preprocess_eq_self (str := urlSerializer { scheme := s, path := .opaque o }) ?head ?last
-      ?tab, hstr]
+  -- 前処理が何もしないこと。前後の一文字と、tab / newline が無いことを見る。
+  have hpre : preprocess (urlSerializer { scheme := s, path := .opaque o, query := q, fragment := f })
+      = s.toList ++ ':' :: (o.toList ++ qfList q f) := by
+    rw [preprocess_eq_self ?head ?last ?tab, hstr]
     case head =>
       intro c hcm
       rw [hstr, hs] at hcm
@@ -280,11 +523,49 @@ theorem roundtrip_opaque {s o : String} {a : Char} {rest : List Char}
       omega
     case last =>
       intro c hcm
-      rw [hstr, reverse_head_mid] at hcm
-      cases hx : o.toList.isEmpty with
-      | true => rw [hx] at hcm; simp only [if_true, Option.mem_def, Option.some.injEq] at hcm
-                subst hcm; decide
-      | false => rw [hx] at hcm; exact hlast c hcm
+      rw [hstr, List.head?_reverse, getLast?_mid] at hcm
+      cases hB : (o.toList ++ qfList q f).isEmpty with
+      | true =>
+        rw [hB] at hcm
+        simp at hcm
+        subst hcm; decide
+      | false =>
+        rw [hB] at hcm
+        -- 最後の成分で場合分けする。
+        cases f with
+        | some fs =>
+          rw [show o.toList ++ qfList q (some fs) = (o.toList ++ (match q with
+                | none => [] | some x => '?' :: x.toList)) ++ '#' :: fs.toList from by
+              unfold qfList; cases q <;> simp, getLast?_mid] at hcm
+          cases hfs : fs.toList.isEmpty with
+          | true =>
+            rw [hfs] at hcm
+            simp at hcm
+            subst hcm; decide
+          | false =>
+            rw [hfs] at hcm
+            exact ne_c0_of_c0Set
+              (c0Set_of_fragmentSet (hfc fs rfl c (List.mem_of_mem_getLast? hcm)))
+              (ne_space_of_fragmentSet (hfc fs rfl c (List.mem_of_mem_getLast? hcm)))
+        | none =>
+          cases q with
+          | some qs =>
+            rw [show o.toList ++ qfList (some qs) none = o.toList ++ '?' :: qs.toList from by
+                simp [qfList], getLast?_mid] at hcm
+            cases hqs : qs.toList.isEmpty with
+            | true =>
+              rw [hqs] at hcm
+              simp at hcm
+              subst hcm; decide
+            | false =>
+              rw [hqs] at hcm
+              exact ne_c0_of_c0Set
+                (c0Set_of_querySet (hqc qs rfl c (List.mem_of_mem_getLast? hcm)))
+                (ne_space_of_querySet (hqc qs rfl c (List.mem_of_mem_getLast? hcm)))
+          | none =>
+            rw [show o.toList ++ qfList (none : Option String) (none : Option String)
+                = o.toList from by unfold qfList; simp] at hcm
+            exact ne_c0_of_c0Set (ho c (List.mem_of_mem_getLast? hcm)).1 (hlast c hcm)
     case tab =>
       intro c hcm
       rw [hstr] at hcm
@@ -296,26 +577,59 @@ theorem roundtrip_opaque {s o : String} {a : Char} {rest : List Char}
         · exact schemeChar_ne_tab (hr c hcm)
       · rcases List.mem_cons.mp hcm with rfl | hcm
         · decide
-        · have := (ho c hcm).1
-          simp only [c0ControlSet, isC0Control, Bool.or_eq_false_iff, decide_eq_false_iff_not,
-            Nat.not_le, Nat.not_lt] at this
-          omega
+        · rcases List.mem_append.mp hcm with hcm | hcm
+          · exact ne_tab_of_c0Set (ho c hcm).1
+          · unfold qfList at hcm
+            rcases List.mem_append.mp hcm with hcm | hcm
+            · cases q with
+              | none => simp at hcm
+              | some qs =>
+                rcases List.mem_cons.mp hcm with rfl | hcm
+                · decide
+                · exact ne_tab_of_c0Set (c0Set_of_querySet (hqc qs rfl c hcm))
+            · cases f with
+              | none => simp at hcm
+              | some fs =>
+                rcases List.mem_cons.mp hcm with rfl | hcm
+                · decide
+                · exact ne_tab_of_c0Set (c0Set_of_fragmentSet (hfc fs rfl c hcm))
   unfold basicUrlParse
   rw [hpre, hs, List.cons_append]
-  rw [run_schemeStart_step none _ a (rest ++ ':' :: o.toList) haa]
-  rw [run_scheme_prefix none rest (':' :: o.toList) _ hr]
-  rw [run_scheme_opaque none o.toList _ rfl
+  rw [run_schemeStart_step none _ a (rest ++ ':' :: (o.toList ++ qfList q f)) haa]
+  rw [run_scheme_prefix none rest (':' :: (o.toList ++ qfList q f)) _ hr]
+  rw [run_scheme_opaque none (o.toList ++ qfList q f) _ rfl
     (by rw [hbuf, String.ofList_toList]; exact hfile)
     (by rw [hbuf, String.ofList_toList]; exact hsp)
-    (by intro r hrr; exact hhead r hrr)]
-  rw [run_opaquePath_plain none o.toList _ "" rfl ho]
+    (by intro r hrr
+        cases hoo : o.toList with
+        | nil =>
+          rw [hoo] at hrr
+          simp only [List.nil_append] at hrr
+          unfold qfList at hrr
+          cases q with
+          | some qs => simp at hrr; rw [← hrr]; decide
+          | none =>
+            cases f with
+            | some fs => simp at hrr; rw [← hrr]; decide
+            | none => simp at hrr
+        | cons d t =>
+          rw [hoo] at hrr
+          simp only [List.cons_append, List.head?_cons, Option.mem_def,
+            Option.some.injEq] at hrr
+          subst hrr
+          exact hhead d (by rw [hoo]; rfl))]
   rw [hbuf, String.ofList_toList]
+  rw [run_opaquePath_chunk none o.toList (qfList q f) _ "" rfl ho hlast]
+  rw [run_opaquePath_qf none _ q f rfl rfl rfl rfl
+    (fun x hx c hc => by simpa [Url.isSpecial, hsp] using hqc x hx c hc)
+    (fun x hx c hc => hfc x hx c hc)]
   simp
 
-/-- 仮定が空でないことの確認。`sc:x` は実際にこの形である。 -/
-example : basicUrlParse (urlSerializer { scheme := "sc", path := .opaque "x" }) none
-    = some { scheme := "sc", path := .opaque "x" } :=
+/-- 仮定が空でないことの確認。`sc:x?a#b` は実際にこの形である。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "sc", path := .opaque "x", query := some "a", fragment := some "b" }) none
+    = some { scheme := "sc", path := .opaque "x", query := some "a", fragment := some "b" } :=
   roundtrip_opaque (a := 's') (rest := ['c']) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
 end Url
