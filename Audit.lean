@@ -548,6 +548,19 @@ open Dom.Audit
   Url.ipv4Parts_serializer
   Url.ipv4Parser_serializer
 
+-- URL Standard §3.2 / §3.5 host の往復
+#audit_axioms
+  Url.percentDecodeBytes_ascii_id
+  Url.percentDecodeToString_ascii
+  Url.asciiLowercase_id
+  Url.asciiDomainToASCII_id
+  Url.ipv4Serializer_char_facts
+  Url.ipv4Serializer_ne_nil
+  Url.endsInANumber_serializer
+  Url.hostParser_ipv4
+  Url.hostParser_opaque_id
+  Url.hostParser_domain_id
+
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms
   Infra.lexLt_self
