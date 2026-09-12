@@ -40,8 +40,7 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
-残っているのは IPv6 host（host parser の `[` の分岐）、`file:`（file state）、
-それと host が空で path が空でない場合である。
+残っているのは IPv6 host（host parser の `[` の分岐）と `file:`（file state）である。
 
 port には 10 進の往復（`portValue_toString`）が要った。`Nat.toDigitsCore` についての
 帰納法で、桁を積む向きと読む向きが逆になるので `portValue (l1 ++ l2)` の形を経由する。
@@ -1935,7 +1934,7 @@ theorem credChars_mem {user pass : String} {c : Char} (h : c ∈ credChars user 
 theorem run_scheme_authority (sp : Bool) (rest : List Char) (ctx : PCtx)
     (hov : ctx.over = none) (hf : ¬(String.ofList ctx.buffer = "file"))
     (hsp : isSpecialScheme (String.ofList ctx.buffer) = sp)
-    (hhead : ∀ c ∈ rest.head?, ¬c = '/' ∧ ¬c = '\\') :
+    (hhead : sp = true → ∀ c ∈ rest.head?, ¬c = '/' ∧ ¬c = '\\') :
     run none .scheme (':' :: '/' :: '/' :: rest) ctx
       = run none .authority rest
           { ctx with
@@ -1948,7 +1947,7 @@ theorem run_scheme_authority (sp : Bool) (rest : List Char) (ctx : PCtx)
   | true =>
     rw [run_scheme_specialAuthoritySlashes ('/' :: '/' :: rest) ctx hov hf (by simpa using hsp)]
     rw [run_specialAuthoritySlashes]
-    rw [run_specialAuthorityIgnoreSlashes none rest _ hhead]
+    rw [run_specialAuthorityIgnoreSlashes none rest _ (hhead rfl)]
 
 /--
 **host を持つ URL は、serialize して parse し直すと元に戻る。**
@@ -1968,7 +1967,8 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : O
     (hcan : hostParser asciiDomainToASCII (hostSerializer hst).toList (!sp) = some hst)
     (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
     (hnc : ∀ c ∈ (hostSerializer hst).toList, isC0ControlOrSpace c = false)
-    (hhead : ∀ c ∈ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs)).head?,
+    (hhead : sp = true →
+      ∀ c ∈ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs)).head?,
       ¬c = '/' ∧ ¬c = '\\')
     (hhne : sp = true ∨ (user.isEmpty && pass.isEmpty) = false ∨ port ≠ none →
       (hostSerializer hst).toList ≠ [])
@@ -2078,14 +2078,14 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : O
       have := hallc c hcm
       simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le] at this
       omega
-  have hhead2 : ∀ c ∈ (credChars user pass
+  have hhead2 : sp = true → ∀ c ∈ (credChars user pass
       ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))).head?,
       ¬c = '/' ∧ ¬c = '\\' := by
-    intro c hc
+    intro hspv c hc
     cases hcc : credChars user pass with
     | nil =>
       rw [hcc, List.nil_append] at hc
-      exact hhead c hc
+      exact hhead hspv c hc
     | cons d t =>
       rw [hcc] at hc
       simp only [List.cons_append, List.head?_cons] at hc
@@ -2118,6 +2118,15 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : O
 example : basicUrlParse
       (urlSerializer { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] }) none
     = some { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] } :=
+  roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
+    (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide)
+
+/-- host が空でも往復する。`sc:///a` の形である。 -/
+example : basicUrlParse
+      (urlSerializer { scheme := "sc", host := some .empty, path := .list ["a"] }) none
+    = some { scheme := "sc", host := some .empty, path := .list ["a"] } :=
   roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
     (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)

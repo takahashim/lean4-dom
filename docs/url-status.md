@@ -611,8 +611,7 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 state ごとに「区切りでない文字を読み切る（chunk）」「区切りで次へ渡す」「EOF で返す」の
 三つを用意して積む。path は segment の列についての帰納法が一つ増える
 （最後の segment は buffer に残ったまま次へ渡る）。
-残っているのは IPv6 host（host parser の `[` の分岐）、`file:`（file state）、
-それと host が空で path が空でない場合である。
+残っているのは IPv6 host（host parser の `[` の分岐）と `file:`（file state）である。
 
 state の補題は `special` を Bool の引数で持つようにしてあるので、
 非 special と special で同じものを使っている。`canonicalUrl` の条件は証明のたびに増えて、
