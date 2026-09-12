@@ -276,7 +276,7 @@ theorem roundtrip_opaque {s o : String} {a : Char} {rest : List Char}
       simp only [List.cons_append, List.head?_cons, Option.mem_def, Option.some.injEq] at hcm
       subst hcm
       simp only [isAsciiLowerAlpha, Bool.and_eq_true, decide_eq_true_eq] at ha
-      simp only [isC0ControlOrSpace, isC0Control, decide_eq_false_iff_not, Nat.not_le]
+      simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
       omega
     case last =>
       intro c hcm
