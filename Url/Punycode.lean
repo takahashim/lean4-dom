@@ -661,6 +661,104 @@ theorem decode_scan (b m : Nat) (hm : ValidCp m) :
         exact ih st rest { hinv with bEq := hB }
 
 
+/-- `PassInv` は走査を通して保たれる。使い切ると `B` は空になる。 -/
+theorem passRun_inv (b m : Nat) : ∀ (suf : List Char) (st : PassState),
+    PassInv b m suf st → PassInv b m [] (passRun b m suf st) := by
+  intro suf
+  induction suf with
+  | nil => intro st h; simpa [passRun] using h
+  | cons c rest' ih =>
+    intro st hinv
+    have hB : st.B = partialAt (c :: rest') m 0 := hinv.bEq
+    rw [partialAt] at hB
+    by_cases hlt : c.toNat < m
+    · rw [if_pos hlt] at hB
+      rw [passRun, if_pos hlt]
+      exact ih _
+        { bEq := by rw [hB]; simp
+          lenA := by simpa using by rw [hinv.lenA]; omega
+          lenH := by
+            have := hinv.lenH
+            rw [hB] at this ⊢
+            simp at this ⊢
+            omega
+          firstFlag := by simpa using hinv.firstFlag
+          bLe := by simpa using hinv.bLe }
+    · rw [if_neg hlt] at hB
+      by_cases heq : c.toNat = m
+      · rw [if_pos (by simp [heq])] at hB
+        rw [passRun, if_neg hlt, if_pos (by simp [heq])]
+        exact ih _
+          { bEq := hB
+            lenA := by simp
+            lenH := by have := hinv.lenH; simp; omega
+            firstFlag := by
+              have := hinv.bLe
+              show (st.hh + 1 == b) = (st.A.length + 1 == 0)
+              simp
+              omega
+            bLe := by have := hinv.bLe; show b ≤ st.hh + 1; omega }
+      · rw [if_neg (by simp [heq])] at hB
+        rw [passRun, if_neg hlt, if_neg (by simp [heq])]
+        exact ih st { hinv with bEq := hB }
+
+/-- 走査後の符号化状態は `passRun` の状態と一致する（`out` を除く三つ）。 -/
+theorem scanFold_passRun (b m : Nat) : ∀ (suf : List Char) (st : PassState) (o : List Char),
+    PassInv b m suf st →
+    ((suf.foldl (scanOne b m)
+        { out := o, delta := st.d, bias := st.bias, h := st.hh }).delta
+          = (passRun b m suf st).d
+      ∧ (suf.foldl (scanOne b m)
+        { out := o, delta := st.d, bias := st.bias, h := st.hh }).bias
+          = (passRun b m suf st).bias
+      ∧ (suf.foldl (scanOne b m)
+        { out := o, delta := st.d, bias := st.bias, h := st.hh }).h
+          = (passRun b m suf st).hh) := by
+  intro suf
+  induction suf with
+  | nil => intro st o _; simp [passRun]
+  | cons c rest' ih =>
+    intro st o hinv
+    have hB : st.B = partialAt (c :: rest') m 0 := hinv.bEq
+    rw [partialAt] at hB
+    by_cases hlt : c.toNat < m
+    · rw [if_pos hlt] at hB
+      simp only [List.foldl_cons]
+      rw [scanOne_lt b m _ c hlt, passRun, if_pos hlt]
+      dsimp only
+      exact ih { st with A := st.A ++ [c], B := st.B.tail, d := st.d + 1 } o
+        { bEq := by rw [hB]; simp
+          lenA := by simpa using by rw [hinv.lenA]; omega
+          lenH := by
+            have := hinv.lenH
+            rw [hB] at this ⊢
+            simp at this ⊢
+            omega
+          firstFlag := by simpa using hinv.firstFlag
+          bLe := by simpa using hinv.bLe }
+    · rw [if_neg hlt] at hB
+      by_cases heq : c.toNat = m
+      · rw [if_pos (by simp [heq])] at hB
+        simp only [List.foldl_cons]
+        rw [scanOne_hit b m _ c hlt heq, passRun, if_neg hlt, if_pos (by simp [heq])]
+        dsimp only
+        rw [← hinv.lenH]
+        exact ih { A := st.A ++ [Char.ofNat m], B := st.B, i := st.A.length + 1, d := 0,
+                   bias := adapt st.d (st.hh + 1) (st.hh == b), hh := st.hh + 1 } _
+          { bEq := hB
+            lenA := by simp
+            lenH := by have := hinv.lenH; simp; omega
+            firstFlag := by
+              have := hinv.bLe
+              show (st.hh + 1 == b) = (st.A.length + 1 == 0)
+              simp
+              omega
+            bLe := by have := hinv.bLe; show b ≤ st.hh + 1; omega }
+      · rw [if_neg (by simp [heq])] at hB
+        simp only [List.foldl_cons]
+        rw [scanOne_gt b m _ c hlt heq, passRun, if_neg hlt, if_neg (by simp [heq])]
+        exact ih st o { hinv with bEq := hB }
+
 /-!
 ## 外側のループ
 

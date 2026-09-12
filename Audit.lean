@@ -252,6 +252,8 @@ open Dom.Audit
   Url.Punycode.decode_emit
   Url.Punycode.decode_scan
   Url.Punycode.split_first_hit
+  Url.Punycode.passRun_inv
+  Url.Punycode.scanFold_passRun
 
 -- UTS #46 ToASCII（表は仮定 `IdnaTable.Resolved` に押し込んである）
 #audit_axioms
