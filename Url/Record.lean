@@ -146,6 +146,7 @@ URL record の局所不変条件。**§4.1 が並べている条件のうち、�
 * host が null なら credentials も port も持てない。
 * opaque path なら credentials も port も持てず、host も持たない。
 * port は 16 bit に収まる。
+* scheme が `file` なら credentials も port も持てない。
 
 「opaque path なら host は null」は仕様が §4.1 に並べていないが成り立つ。
 opaque path を作るのは scheme state の一分岐だけで、そこでは host はまだ null、
@@ -159,10 +160,10 @@ parse では作れない record が反例になる。
 WPT と setter の全 case で実行時に検査していて、
 `Url/RecordExamples.lean` に反例を置いてある。
 
-* 「host が**空**、または scheme が `file` なら credentials も port も持てない」。
-  成り立つ根拠は parser の guard（authority state の `atSignSeen && buffer.isEmpty`）に
-  あり、不変条件にするには `PInv` が `ctx.atSignSeen` を持つ必要がある。
-  いまの `PInv` は `ctx.url` しか見ていない。
+* 「host が**空**なら credentials も port も持てない」。成り立つ根拠は authority state の
+  guard（`atSignSeen && buffer.isEmpty` なら失敗）にあり、その情報は host state へ
+  **入力として**渡る。不変条件にするには `PInv` が `ctx.url` だけでなく
+  残りの入力を見る必要がある。`scheme = "file"` の側は入れてある。
 * 「scheme と host の組み合わせ」（§4.1 の表）。不変条件にはできるが、
   `freshHost` を `relative` まで広げ、`fileHost` state では scheme が `file` だと足し、
   `hostParser` が返す host の種類の補題を用意する必要がある。
@@ -178,6 +179,9 @@ structure ValidUrl (u : Url) : Prop where
   opaqueNoHost : u.hasOpaquePath = true → u.host = none
   /-- port は 16 bit に収まる（§4.1「a 16-bit unsigned integer」）。 -/
   portRange : ∀ p, u.port = some p → p < 65536
+  /-- §4.1「cannot have a username/password/port ... if its scheme is "file"」。 -/
+  fileNoCredentials : u.scheme = "file" → u.includesCredentials = false
+  fileNoPort : u.scheme = "file" → u.port = none
 
 /-! ## 実行時の検査 -/
 
@@ -193,15 +197,16 @@ def checkValidUrl (u : Url) : Bool :=
   (!u.isSpecial || !u.hasOpaquePath) &&
     (u.host.isSome || (!u.includesCredentials && u.port.isNone)) &&
     (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone && u.host.isNone)) &&
-    (match u.port with | none => true | some p => p < 65536)
+    (match u.port with | none => true | some p => p < 65536) &&
+    (!(u.scheme == "file") || (!u.includesCredentials && u.port.isNone))
 
 theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := by
   unfold checkValidUrl
   constructor
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
-    obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := h
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro hs; rcases h1 with h1 | h1
       · rw [hs] at h1; simp at h1
       · exact h1
@@ -228,9 +233,17 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
     · intro p hp
       rw [hp] at h4
       simpa using h4
+    · intro hf
+      rcases h5 with h5 | h5
+      · rw [hf] at h5; simp at h5
+      · simpa using h5.1
+    · intro hf
+      rcases h5 with h5 | h5
+      · rw [hf] at h5; simp at h5
+      · simpa using h5.2
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true']
-    refine ⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩
+    refine ⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩
     · cases hs : u.isSpecial with
       | false => exact Or.inl rfl
       | true => exact Or.inr (h.specialHasList hs)
@@ -247,6 +260,11 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
     · cases hp : u.port with
       | none => rfl
       | some p => simpa using h.portRange p hp
+    · cases hf : u.scheme == "file" with
+      | false => exact Or.inl rfl
+      | true =>
+        have hfe : u.scheme = "file" := by simpa using hf
+        exact Or.inr (by simp [h.fileNoCredentials hfe, h.fileNoPort hfe])
 
 /-- 既定の port を持つ scheme は special である。 -/
 theorem isSpecialScheme_of_defaultPort {scheme : String} {p : Nat}

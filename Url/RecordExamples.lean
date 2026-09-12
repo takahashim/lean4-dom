@@ -25,6 +25,11 @@ example : ¬ ValidUrl { scheme := "http", host := some (.domain "a"), port := so
   intro h
   exact absurd (h.portRange 999999 rfl) (by decide)
 
+/-- scheme が `file` なら credentials は持てない（§4.1）。 -/
+example : ¬ ValidUrl { scheme := "file", username := "user", host := some (.domain "a") } := by
+  intro h
+  exact absurd (h.fileNoCredentials rfl) (by simp [Url.includesCredentials])
+
 /-- host が null なら credentials は持てない。 -/
 example : ¬ ValidUrl { scheme := "sc", username := "user" } := by
   intro h
@@ -36,18 +41,10 @@ example : ¬ ValidUrl { scheme := "sc", username := "user" } := by
 `checkStrictUrl` はどれも弾く。
 -/
 
-/-- scheme が `file` なら credentials は持てない（§4.1）。 -/
-example : ValidUrl { scheme := "file", username := "user", host := some (.domain "a") } := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-    simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
-      isSpecialScheme, defaultPort]
-
-example : checkStrictUrl
-    { scheme := "file", username := "user", host := some (.domain "a") } = false := by decide
 
 /-- host が空なら port は持てない（§4.1）。 -/
 example : ValidUrl { scheme := "sc", host := some .empty, port := some 80 } := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort]
 
@@ -56,7 +53,7 @@ example : checkStrictUrl { scheme := "sc", host := some .empty, port := some 80 
 
 /-- special な scheme に opaque host は付かない（§4.1 の表）。 -/
 example : ValidUrl { scheme := "https", host := some (.opaque "x") } := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort]
 
@@ -64,7 +61,7 @@ example : checkStrictUrl { scheme := "https", host := some (.opaque "x") } = fal
 
 /-- special な URL の host は null でない（§4.1 の表）。これは終端でしか成り立たない。 -/
 example : ValidUrl { scheme := "https" } := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort]
 
@@ -77,7 +74,7 @@ path segment に `/` は含まれない（§4.1）。**serializer の正しさ�
 opaque host `x` を持つ別の record になる。`parse ∘ serialize` が壊れる。
 -/
 example : ValidUrl { scheme := "sc", path := .list ["/x"] } := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort]
 

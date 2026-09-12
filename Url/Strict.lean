@@ -9,10 +9,13 @@ import Url.Record
 
 なぜ入れていないかは `ValidUrl` の doc comment に書いてある。要点は二つ。
 
-* 「host が空、または scheme が `file` なら credentials も port も持てない」を
-  不変条件にするには、`PInv` が `ctx.atSignSeen` を持つ必要がある。
-  成り立つ根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）に
-  あるためで、いまの `PInv` は `ctx.url` しか見ていない。
+* 「host が**空**なら credentials も port も持てない」を不変条件にするには、
+  `PInv` が残りの入力を見る必要がある。成り立つ根拠が parser の guard
+  （authority state の `atSignSeen && buffer.isEmpty`）にあり、その情報は
+  host state へ**入力として**渡るためで、いまの `PInv` は `ctx.url` しか見ていない。
+  同じ条文の「scheme が `file` なら」の側は `ValidUrl` に入れてある
+  （state について「credentials や port を書く state では scheme が `file` でない」を
+  `PInv.notFile` として持ち回れば済むので、入力を見る必要が無い）。
 * 「special な URL の host は null でない」は終端でしか成り立たない。
   parse の途中では scheme が決まって host がまだ null の状態を必ず通る。
 
@@ -55,7 +58,7 @@ def ipv6Ok (u : Url) : Bool :=
 /--
 §4.1 のうち `ValidUrl` に入れていない条件。
 
-* host が空、または scheme が `file` なら credentials も port も持てない。
+* host が空なら credentials も port も持てない（`file` の側は `ValidUrl` に入れた）。
 * scheme と host の組み合わせは表に従う。
 * special な URL の host は null でない。
 * path segment に `/` は含まれない。
@@ -65,7 +68,6 @@ def checkStrictUrl (u : Url) : Bool :=
   let emptyHost := match u.host with | some .empty => true | _ => false
   let noCredPort := !u.includesCredentials && u.port.isNone
   (!emptyHost || noCredPort)
-    && (!(u.scheme == "file") || noCredPort)
     && hostKindOkOf u.scheme u.host
     && (!u.isSpecial || u.host.isSome)
     && pathSegsOk u
