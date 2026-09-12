@@ -29,7 +29,7 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * `roundtrip_opaque`：scheme start → scheme → opaque path → query → fragment
 * `roundtrip_path`：scheme start → scheme → path or authority → path
 * `roundtrip_host`：host を持つ URL。`sc://h/a` も `http://h/a/b` も、credentials 付きも
-  port 付きも。special かどうかは `sp : Bool` で持つ
+  port 付きも IPv6 host も。special かどうかは `sp : Bool` で持つ
 
 どれも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
@@ -40,7 +40,7 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
-残っているのは IPv6 host（host parser の `[` の分岐）と `file:`（file state）である。
+残っているのは `file:`（file state）である。
 
 port には 10 進の往復（`portValue_toString`）が要った。`Nat.toDigitsCore` についての
 帰納法で、桁を積む向きと読む向きが逆になるので `portValue (l1 ++ l2)` の形を経由する。
@@ -1889,6 +1889,202 @@ def portChars : Option Nat → List Char
   | none => []
   | some p => ':' :: (toString p).toList
 
+/-! ## IPv6 host
+
+`[` と `]` で囲まれた host。中では `:` が port の区切りにならないので、
+host state は bracket を数えながら読む。
+-/
+
+/-- 小文字 16 進の数字か、IPv6 の区切りの `:` である。 -/
+def isHexOrColon (c : Char) : Bool :=
+  (0x30 ≤ c.toNat && c.toNat ≤ 0x39) || (0x61 ≤ c.toNat && c.toNat ≤ 0x66) || c == ':'
+
+theorem toHexString_go_chars : ∀ (fuel n : Nat) (acc : List Char), n ≤ fuel →
+    (∀ c ∈ acc, isHexOrColon c = true) →
+    ∀ c ∈ toHexString.go n acc, isHexOrColon c = true := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro n acc hle hacc
+    have hn : n = 0 := Nat.le_zero.mp hle
+    subst hn
+    simpa [toHexString.go] using hacc
+  | succ f ih =>
+    intro n acc hle hacc
+    cases n with
+    | zero => simpa [toHexString.go] using hacc
+    | succ m =>
+      rw [toHexString.go]
+      refine ih ((m + 1) / 16) _ (by omega) ?_
+      intro c hc
+      rcases List.mem_cons.mp hc with rfl | hc
+      · have hd : (m + 1) % 16 < 16 := Nat.mod_lt _ (by omega)
+        simp only [isHexOrColon, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+        rw [toNat_ofNat_ascii (by split <;> omega)]
+        split <;> omega
+      · exact hacc c hc
+
+theorem toHexString_chars (n : Nat) :
+    ∀ c ∈ (toHexString n).toList, isHexOrColon c = true := by
+  unfold toHexString
+  split
+  · intro c hc; simp at hc; subst hc; decide
+  · rw [String.toList_ofList]
+    exact toHexString_go_chars n n [] (by omega) (by simp)
+
+
+theorem ipv6Serializer_go_chars (cmp : Option Nat) : ∀ (l : List (Nat × Nat)) (ig : Bool),
+    ∀ c ∈ (ipv6Serializer.go cmp l ig).toList, isHexOrColon c = true := by
+  intro l
+  induction l with
+  | nil => intro ig c hc; simp [ipv6Serializer.go] at hc
+  | cons p rest ih =>
+    intro ig c hc
+    obtain ⟨pv, i⟩ := p
+    rw [ipv6Serializer.go] at hc
+    split at hc
+    · exact ih true c hc
+    · split at hc
+      · rw [String.toList_append] at hc
+        rcases List.mem_append.mp hc with hc | hc
+        · split at hc <;> (simp at hc; subst hc; decide)
+        · exact ih true c hc
+      · rw [String.toList_append, String.toList_append] at hc
+        rcases List.mem_append.mp hc with hc | hc
+        · rcases List.mem_append.mp hc with hc | hc
+          · exact toHexString_chars pv c hc
+          · split at hc
+            · simp at hc
+            · simp at hc; subst hc; decide
+        · exact ih false c hc
+
+/-- IPv6 を serialize した文字は 16 進の数字か `:` である。 -/
+theorem ipv6Serializer_chars (a : Ipv6) :
+    ∀ c ∈ (ipv6Serializer a).toList, isHexOrColon c = true :=
+  ipv6Serializer_go_chars _ _ _
+
+
+/-- bracket の中では `:` は port の区切りにならない。 -/
+theorem run_host_inside (base : Option Url) (sp : Bool) : ∀ (l tail : List Char) (ctx : PCtx),
+    ctx.over = none → ctx.url.isSpecial = sp → ctx.insideBrackets = true →
+    (∀ c ∈ l, isTerminator sp (some c) = false ∧ ¬c = '[' ∧ ¬c = ']') →
+    run base .host (l ++ tail) ctx = run base .host tail { ctx with buffer := ctx.buffer ++ l } := by
+  intro l
+  induction l with
+  | nil => intro tail ctx _ _ _ _; simp
+  | cons c l' ih =>
+    intro tail ctx hov hsp hib h
+    have hc := h c (by simp)
+    simp only [List.cons_append]
+    rw [run, step]
+    rw [if_neg (by simp [hov])]
+    rw [if_neg (by simp [hib])]
+    rw [if_neg (by simpa [hsp] using hc.1)]
+    have hib2 : (if (c == '[') = true then true else if (c == ']') = true then false
+        else ctx.insideBrackets) = true := by simp [hc.2.1, hc.2.2, hib]
+    simp +zetaDelta only [hib2]
+    rw [ih tail { ctx with buffer := ctx.buffer ++ [c], insideBrackets := true } hov hsp rfl
+      (fun x hx => h x (by simp [hx]))]
+    simp [← hib]
+
+/-- `[` から `]` までを buffer に積む。IPv6 host はこの形である。 -/
+theorem run_host_bracket (base : Option Url) (sp : Bool) (inner tail : List Char) (ctx : PCtx)
+    (hov : ctx.over = none) (hsp : ctx.url.isSpecial = sp) (hib : ctx.insideBrackets = false)
+    (h : ∀ c ∈ inner, isTerminator sp (some c) = false ∧ ¬c = '[' ∧ ¬c = ']') :
+    run base .host ('[' :: (inner ++ ']' :: tail)) ctx
+      = run base .host tail { ctx with buffer := ctx.buffer ++ ('[' :: (inner ++ [']'])) } := by
+  rw [run, step]
+  rw [if_neg (by simp [hov])]
+  rw [if_neg (by simp)]
+  rw [if_neg (by cases sp <;> simp [hsp, isTerminator])]
+  simp +zetaDelta only [show ((if ('[' == '[') = true then true
+      else if ('[' == ']') = true then false else ctx.insideBrackets)) = true from by simp]
+  rw [run_host_inside base sp inner (']' :: tail)
+    { ctx with buffer := ctx.buffer ++ ['['], insideBrackets := true } hov hsp rfl h]
+  rw [run, step]
+  rw [if_neg (by simp [hov])]
+  rw [if_neg (by simp)]
+  rw [if_neg (by cases sp <;> simp [hsp, isTerminator])]
+  simp +zetaDelta only [show ((if (']' == '[') = true then true
+      else if (']' == ']') = true then false else true)) = false from by simp]
+  simp [← hib]
+
+
+/--
+host を serialize した文字列が authority state と host state を素通りできること。
+
+domain も opaque host も forbidden host code point を含まない。IPv6 host はそれを含むが、
+`[` と `]` に囲まれていて、その中では `:` が port の区切りにならない。
+-/
+def hostReadable (sp : Bool) (hst : Host) : Prop :=
+  (∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false) ∨
+    (∃ inner, (hostSerializer hst).toList = '[' :: (inner ++ [']']) ∧
+      ∀ c ∈ inner, isTerminator sp (some c) = false ∧ ¬c = '[' ∧ ¬c = ']' ∧ ¬c = '@')
+
+/-- host を serialize した文字は `@` でも区切りでもない。authority state を素通りする。 -/
+theorem hostReadable_auth {sp : Bool} {hst : Host} (h : hostReadable sp hst) :
+    ∀ c ∈ (hostSerializer hst).toList, ¬c = '@' ∧ isTerminator sp (some c) = false := by
+  rcases h with h | ⟨inner, he, h⟩
+  · exact fun c hc => ⟨(not_forbidden_host (h c hc)).1, (not_forbidden_host (h c hc)).2.2.2.2 sp⟩
+  · intro c hc
+    rw [he] at hc
+    rcases List.mem_cons.mp hc with rfl | hc
+    · exact ⟨by decide, by cases sp <;> decide⟩
+    · rcases List.mem_append.mp hc with hc | hc
+      · exact ⟨(h c hc).2.2.2, (h c hc).1⟩
+      · simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+        subst hc
+        exact ⟨by decide, by cases sp <;> decide⟩
+
+/-- host state は host を serialize した文字列をそのまま buffer に積む。 -/
+theorem run_host_serialized (base : Option Url) (sp : Bool) (hst : Host) (tail : List Char)
+    (ctx : PCtx) (hov : ctx.over = none) (hsp : ctx.url.isSpecial = sp)
+    (hib : ctx.insideBrackets = false) (hok : hostReadable sp hst) :
+    run base .host ((hostSerializer hst).toList ++ tail) ctx
+      = run base .host tail
+          { ctx with buffer := ctx.buffer ++ (hostSerializer hst).toList } := by
+  rcases hok with h | ⟨inner, he, h⟩
+  · exact run_host_chunk base sp _ tail ctx hov hsp hib
+      (fun c hc => ⟨(not_forbidden_host (h c hc)).2.1,
+        (not_forbidden_host (h c hc)).2.2.2.2 sp,
+        (not_forbidden_host (h c hc)).2.2.1,
+        (not_forbidden_host (h c hc)).2.2.2.1⟩)
+  · rw [he]
+    rw [show ('[' :: (inner ++ [']'])) ++ tail = '[' :: (inner ++ ']' :: tail) from by simp]
+    exact run_host_bracket base sp inner tail ctx hov hsp hib
+      (fun c hc => ⟨(h c hc).1, (h c hc).2.1, (h c hc).2.2.1⟩)
+
+/-- IPv6 host を serialize した文字列は、`[` と `]` に囲まれた 16 進と `:` だけである。 -/
+theorem hostReadable_ipv6 (sp : Bool) (a : Ipv6) : hostReadable sp (.ipv6 a) := by
+  refine Or.inr ⟨(ipv6Serializer a).toList, ?_, ?_⟩
+  · simp [hostSerializer, String.toList_append]
+  · intro c hc
+    have h := ipv6Serializer_chars a c hc
+    refine ⟨isTerminator_false ?_ ?_ ?_ (fun _ => ?_), ?_, ?_, ?_⟩ <;>
+      (intro he; rw [he] at h; revert h; decide)
+
+/-- IPv6 host を serialize した文字に C0 control も space も無い。 -/
+theorem ipv6_no_c0 (a : Ipv6) :
+    ∀ c ∈ (hostSerializer (.ipv6 a)).toList, isC0ControlOrSpace c = false := by
+  intro c hc
+  simp only [hostSerializer, String.toList_append] at hc
+  rcases List.mem_append.mp hc with hc | hc
+  · rcases List.mem_append.mp hc with hc | hc
+    · rw [show ("[" : String).toList = ['['] from rfl] at hc
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+      subst hc; decide
+    · have h := ipv6Serializer_chars a c hc
+      simp only [isHexOrColon, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq,
+        beq_iff_eq] at h
+      simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+      rcases h with (h | h) | rfl
+      · omega
+      · omega
+      · decide
+  · rw [show ("]" : String).toList = [']'] from rfl] at hc
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+    subst hc; decide
+
 /--
 authority state から先（host と port と path）を読み切る。
 
@@ -1900,7 +2096,7 @@ theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (por
     (hib : ctx.insideBrackets = false) (hpath : ctx.url.path = .list [])
     (hport0 : ctx.url.port = none) (hnf : ¬ctx.url.scheme = "file")
     (hq0 : ctx.url.query = none) (hf0 : ctx.url.fragment = none)
-    (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
+    (hok : hostReadable sp hst)
     (hhne : sp = true ∨ ctx.atSignSeen = true ∨ port ≠ none →
       (hostSerializer hst).toList ≠ [])
     (hcan : hostParser ctx.toAscii (hostSerializer hst).toList (!sp) = some hst)
@@ -1966,16 +2162,11 @@ theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (por
       exact hhne (Or.inr (Or.inl h)) (List.append_eq_nil_iff.mp he).1)
     (fun c hc => by
       rcases List.mem_append.mp hc with hc | hc
-      · exact ⟨(not_forbidden_host (hhostc c hc)).1,
-          (not_forbidden_host (hhostc c hc)).2.2.2.2 sp⟩
+      · exact hostReadable_auth hok c hc
       · exact hportc c hc) htail]
   rw [hb, List.nil_append, List.append_assoc]
-  rw [run_host_chunk base sp (hostSerializer hst).toList (portChars port ++ (pathChars segs ++ qfList q f))
-    { ctx with buffer := [] } hov hsp hib
-    (fun c hc => ⟨(not_forbidden_host (hhostc c hc)).2.1,
-      (not_forbidden_host (hhostc c hc)).2.2.2.2 sp,
-      (not_forbidden_host (hhostc c hc)).2.2.1,
-      (not_forbidden_host (hhostc c hc)).2.2.2.1⟩)]
+  rw [run_host_serialized base sp hst (portChars port ++ (pathChars segs ++ qfList q f))
+    { ctx with buffer := [] } hov hsp hib hok]
   cases hp : port with
   | none =>
     rw [show portChars none = [] from rfl, List.nil_append]
@@ -2036,7 +2227,7 @@ theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) 
     (hu0 : ctx.url.username = "") (hp0 : ctx.url.password = "")
     (hu : ∀ c ∈ user.toList, userinfoSet c = false)
     (hp : ∀ c ∈ pass.toList, userinfoSet c = false)
-    (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
+    (hok : hostReadable sp hst)
     (hhne : sp = true ∨ (user.isEmpty && pass.isEmpty) = false ∨ port ≠ none →
       (hostSerializer hst).toList ≠ [])
     (hcan : hostParser ctx.toAscii (hostSerializer hst).toList (!sp) = some hst)
@@ -2065,7 +2256,7 @@ theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) 
     have hpe : pass = "" := by simp_all
     simp only [if_true, List.nil_append]
     rw [run_authority_hostpath base sp hst port segs q f ctx hsp hov hb hib hpath hport0 hnf
-      hq0 hf0 hhostc
+      hq0 hf0 hok
       (fun h => hhne (by
         rcases h with h | h | h
         · exact Or.inl h
@@ -2105,7 +2296,7 @@ theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) 
       simp only [if_true, List.append_nil]
       rw [userinfoFold_user user.toList ctx.url hu]
       rw [run_authority_hostpath base sp hst port segs q f _ ?b1 ?b2 ?b3 ?b4 ?b5 ?b6 ?b7
-        ?b11 ?b12 hhostc ?b8 ?b9 ?b10 hsegs hall ?b13 hfc]
+        ?b11 ?b12 hok ?b8 ?b9 ?b10 hsegs hall ?b13 hfc]
       case b1 => exact hsp
       case b2 => exact hov
       case b3 => rfl
@@ -2124,7 +2315,7 @@ theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) 
       simp only [Bool.false_eq_true, if_false]
       rw [userinfoFold_split ctx.url user.toList pass.toList hu hp]
       rw [run_authority_hostpath base sp hst port segs q f _ ?c1 ?c2 ?c3 ?c4 ?c5 ?c6 ?c7
-        ?c11 ?c12 hhostc ?c8 ?c9 ?c10 hsegs hall ?c13 hfc]
+        ?c11 ?c12 hok ?c8 ?c9 ?c10 hsegs hall ?c13 hfc]
       case c1 => exact hsp
       case c2 => exact hov
       case c3 => rfl
@@ -2269,7 +2460,7 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : O
     (hu : ∀ c ∈ user.toList, userinfoSet c = false)
     (hp : ∀ c ∈ pass.toList, userinfoSet c = false)
     (hcan : hostParser asciiDomainToASCII (hostSerializer hst).toList (!sp) = some hst)
-    (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
+    (hok : hostReadable sp hst)
     (hnc : ∀ c ∈ (hostSerializer hst).toList, isC0ControlOrSpace c = false)
     (hhead : sp = true →
       ∀ c ∈ ((hostSerializer hst).toList ++ (portChars port ++ (pathChars segs ++ qfList q f))).head?,
@@ -2424,7 +2615,7 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : O
     (by rw [hbuf, String.ofList_toList]; exact hsp) hhead2]
   rw [hbuf, String.ofList_toList]
   rw [run_authority_full none sp user pass hst port segs q f _ ?j1 rfl rfl rfl rfl rfl rfl rfl ?j2
-    rfl rfl rfl rfl hu hp hhostc ?j3 ?j4 ?j5 hsegs hall ?j6 hfc]
+    rfl rfl rfl rfl hu hp hok ?j3 ?j4 ?j5 hsegs hall ?j6 hfc]
   case j1 => simp [Url.isSpecial, hsp]
   case j2 => simpa using hfile
   case j3 => exact hhne
@@ -2438,7 +2629,7 @@ example : basicUrlParse
     = some { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] } :=
   roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
     (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (Or.inl (by decide)) (by decide) (by decide) (by decide)
     (by decide) (by simp) (by simp) (by decide) (by decide)
 
 /-- host が空でも往復する。`sc:///a` の形である。 -/
@@ -2447,7 +2638,7 @@ example : basicUrlParse
     = some { scheme := "sc", host := some .empty, path := .list ["a"] } :=
   roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
     (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (Or.inl (by decide)) (by decide) (by decide) (by decide)
     (by decide) (by simp) (by simp) (by decide) (by decide)
 
 /-- port が付いていても往復する。`sc://h:8080/a` の形である。 -/
@@ -2458,7 +2649,7 @@ example : basicUrlParse (urlSerializer
              path := .list ["a"] } :=
   roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
     (port := some 8080) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (Or.inl (by decide)) (by decide) (by decide) (by decide)
     (by decide) (by simp) (by simp) (by decide) (by decide)
 
 /-- query と fragment が付いていても往復する。`sc://h/a?q#f` の形である。 -/
@@ -2469,8 +2660,32 @@ example : basicUrlParse (urlSerializer
              query := some "q", fragment := some "f" } :=
   roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
     (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (Or.inl (by decide)) (by decide) (by decide) (by decide)
     (by decide) (by simp; decide) (by simp; decide) (by decide) (by decide)
+
+/-- IPv6 host も往復する。`sc://[::]/a` の形である。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "sc", host := some (.ipv6 [0, 0, 0, 0, 0, 0, 0, 0]),
+        path := .list ["a"] }) none
+    = some { scheme := "sc", host := some (.ipv6 [0, 0, 0, 0, 0, 0, 0, 0]),
+             path := .list ["a"] } :=
+  roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
+    (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (hostReadable_ipv6 _ _) (ipv6_no_c0 _)
+    (by decide) (by decide)
+    (by decide) (by simp) (by simp) (by decide) (by decide)
+
+/-- special な URL の IPv6 host も往復する。`http://[::]/a` の形である。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "http", host := some (.ipv6 [0, 0, 0, 0, 0, 0, 0, 0]),
+        path := .list ["a"] }) none
+    = some { scheme := "http", host := some (.ipv6 [0, 0, 0, 0, 0, 0, 0, 0]),
+             path := .list ["a"] } :=
+  roundtrip_host (a := 'h') (rest := ['t', 't', 'p']) (user := "") (pass := "") (sp := true)
+    (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (hostReadable_ipv6 _ _) (ipv6_no_c0 _)
+    (by decide) (by decide)
+    (by decide) (by simp) (by simp) (by decide) (by decide)
 
 /-!
 `http://h/a` がこの形であることは `decide` では確かめられない。
@@ -2478,6 +2693,10 @@ host parser が domain parser を通り、そこが UTF-8 の encode / decode（
 呼ぶので、`Decidable` 実体が簡約しないためである（`#audit_axioms` の制約でもある）。
 `#eval` では `hostParser asciiDomainToASCII "h".toList false = some (.domain "h")` になり、
 `UrlMain.lean` の ROUNDTRIP と CANONICAL が WPT の 820 件で同じことを見ている。
+
+IPv6 host は host parser が `[` の分岐へ行き domain parser を通らないので、
+`http://[::]/a` の方は `decide` で確かめられる。ただし `toHexString` は well-founded 再帰で
+簡約しないので、0 以外の piece を持つ address（`[::1]` など）は例に書けない。
 -/
 
 end Url

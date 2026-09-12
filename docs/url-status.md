@@ -589,7 +589,7 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | --- | --- |
 | `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が付いてもよい） |
 | `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。`sc:/.//x` のように serializer が `/.` を足す場合も含む。query と fragment が付いてもよい） |
-| `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも、query と fragment 付きも。`file:` と IPv6 host は除く） |
+| `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも IPv6 host 付きも、query と fragment 付きも。`file:` は除く） |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
@@ -601,6 +601,9 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | `run_query_full`, `run_fragment_full` | query state から先を、fragment も込めて読み切る |
 | `run_path_question`, `run_path_hash` | path state の `?` と `#`。最後の segment を確定させて次の state へ渡す |
 | `run_pathStart_question`, `run_pathStart_hash`, `run_pathStart_qf` | path start state の `?` と `#`（`sc://h?q` のように path が空の場合） |
+| `run_host_inside`, `run_host_bracket` | `[` から `]` まで。bracket の中では `:` が port の区切りにならない |
+| `hostReadable`, `run_host_serialized` | host を serialize した文字列が host state を素通りすること。domain と opaque host は forbidden host code point が無いことから、IPv6 host は bracket に囲まれていることから |
+| `ipv6Serializer_chars`, `toHexString_chars` | IPv6 を serialize した文字は 16 進の数字か `:` である |
 
 閉じたのは三つの経路である。
 
@@ -610,12 +613,17 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 
 三つ目は `sp : Bool` で special かどうかを持つので、`sc://h/a` と `http://h/a/b` が
 同じ定理になる。credentials（`user:pass@`）もここに入る。
+host は `hostReadable` という一つの仮定にまとめてあり、domain / IPv4 / opaque host は
+forbidden host code point が無いことから、IPv6 host は `[` と `]` に囲まれていることから
+それを満たす。IPv6 host は host parser が domain parser を通らないので、
+`http://[::]/a` は `decide` で確かめられる（`[::1]` は `toHexString` が
+well-founded 再帰なので簡約せず、例に書けない）。
 
 state ごとに「区切りでない文字を読み切る（chunk）」「区切りで次へ渡す」「EOF で返す」の
 三つを用意して積む。path は segment の列についての帰納法が一つ増える
 （最後の segment は buffer に残ったまま次へ渡る）。
 query と fragment は三つの経路のどれからも同じ `run_query_full` に合流する。
-残っているのは IPv6 host（host parser の `[` の分岐）と `file:`（file state）である。
+残っているのは `file:`（file state）である。
 
 state の補題は `special` を Bool の引数で持つようにしてあるので、
 非 special と special で同じものを使っている。`canonicalUrl` の条件は証明のたびに増えて、

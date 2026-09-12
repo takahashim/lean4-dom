@@ -349,6 +349,23 @@ open Dom.Audit
   Url.run_host_port
   Url.run_port_chunk
   Url.run_port_pathStart
+  Url.run_query_full
+  Url.run_fragment_full
+  Url.run_path_question
+  Url.run_path_hash
+  Url.run_pathStart_question
+  Url.run_pathStart_hash
+  Url.run_pathStart_qf
+  Url.qfList_c0
+  Url.url_qf_eta
+  Url.toHexString_chars
+  Url.ipv6Serializer_chars
+  Url.run_host_inside
+  Url.run_host_bracket
+  Url.hostReadable_auth
+  Url.run_host_serialized
+  Url.hostReadable_ipv6
+  Url.ipv6_no_c0
   Url.roundtrip_host
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
