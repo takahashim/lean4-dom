@@ -550,19 +550,70 @@ theorem PInv.portStep {base : Option Url} {ctx ctx2 : PCtx} (h : PInv base .port
 
 set_option linter.unusedSimpArgs false
 
+/-!
+`simp_all` に `maxDischargeDepth := 1` を渡してある。
+
+base の妥当性を `∀ b, base = some b → P b` の形で六つ文脈に置いているので、
+これらは条件付きの書き換え規則になる。既定の深さ 2 では、その条件
+`base = some b` を解くためにさらに書き換えを試すのを再帰的に繰り返すが、
+この証明では一段で足りる。深さを 1 にすると 190 秒が 152 秒になった。
+0 にすると条件付き書き換えが一切効かなくなって五つの case が閉じない。
+-/
+
 /-- state の判定と `fail` だけを開く。 -/
 local macro "url_simp_state" : tactic =>
-  `(tactic| simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail])
+  `(tactic| simp_all (config := { maxDischargeDepth := 1 }) +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail])
 
 /-- URL の述語も開く。 -/
 local macro "url_simp_url" : tactic =>
-  `(tactic| simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail,
+  `(tactic| simp_all (config := { maxDischargeDepth := 1 }) +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail,
       Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials])
 
 /-- special scheme の表まで開く。 -/
 local macro "url_simp_scheme" : tactic =>
-  `(tactic| simp_all +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail,
+  `(tactic| simp_all (config := { maxDischargeDepth := 1 }) +zetaDelta [mayOpaque, mayCred, usesBasePath, freshHost, freshCredPort, fail,
       Url.isSpecial, Url.hasOpaquePath, Url.includesCredentials, isSpecialScheme, defaultPort])
+
+/--
+第二段。29 case すべてがこの形（帰納法の仮定へ送る）で閉じる。
+`case` で名指しするために macro にしてある。macro は hygienic なので、
+局所仮説は引数で渡さないと捕まらない。
+-/
+local macro "url_stage2 " ih:ident u:ident heq:ident : tactic =>
+  `(tactic| (refine $ih ?_ $u ?_
+             all_goals (try constructor)
+             all_goals (try url_simp_url)
+             all_goals (try (intros; url_simp_url))
+             all_goals (try (split at $heq:ident <;> url_simp_url))
+             done))
+
+/-- 第三段その 1。port state から path start state への移送。 -/
+local macro "url_stage3_port " ih:ident hinv:ident u:ident : tactic =>
+  `(tactic| (refine $ih (($hinv).portStep ?_) $u ?_
+             all_goals (first | assumption | url_simp_scheme)
+             done))
+
+/-- 第三段その 2。分岐してから判定する。 -/
+local macro "url_stage3_split " heq:ident : tactic =>
+  `(tactic| (split at $heq:ident <;> url_simp_scheme
+             done))
+
+/-- 第三段その 3。終端。`heq` を代入してから不変条件を組む。 -/
+local macro "url_stage3_done " heq:ident hbv:ident : tactic =>
+  `(tactic| (url_simp_scheme
+             subst $heq:ident
+             first
+               | (simpa using $hbv)
+               | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> url_simp_scheme)
+             done))
+
+/-- 第三段その 4。不変条件を組み直してから帰納法の仮定へ送る。 -/
+local macro "url_stage3_rebuild " ih:ident u:ident heq:ident : tactic =>
+  `(tactic| (refine $ih ?_ $u ?_
+             · constructor <;> url_simp_scheme
+             · split at $heq:ident
+               · url_simp_scheme
+               · split at $heq:ident <;> url_simp_scheme))
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 0 in
@@ -601,6 +652,60 @@ theorem run_valid (base : Option Url) :
   -- 等式 lemma で畳めない case があるので `eq_def` へ落とす。
   all_goals (first | rw [run] at heq | rw [step] at heq
                    | simp only [run.eq_def] at heq | simp only [step.eq_def] at heq | skip)
+  -- 第一段で閉じない 38 case は、閉じる段の閉じる枝へ直接送る。
+  --
+  -- 三つの段は `try (first | ...)` なので、失敗しても goal は元のままである。
+  -- つまり後の段で閉じる case に前の段を走らせるのは純粋な空振りで、
+  -- 段と枝の両方を名指しすることでそれを全部省いてある。
+  --
+  -- `run` / `step` を変えると case の番号がずれる。ずれたら証明が失敗するので
+  -- 黙って壊れることはない。取り直し方は次のとおり。
+  --
+  --   1. この塊を消す。
+  --   2. 第一段の直後に `all_goals trace_state` と `all_goals sorry` を置いて
+  --      elaborate し、出力の `case caseNNN` を拾う。第一段で閉じない一覧である。
+  --   3. 同じことを第二段の直後でやると、第三段が要る一覧が出る。残りが第二段。
+  --   4. どの枝で閉じるかは、各枝の頭に `trace` を置いて走らせると分かる。
+  --      枝は順に試されるので、次の case の一つ目の trace の直前が勝った枝である。
+  case case10 => url_stage2 ih u heq
+  case case11 => url_stage2 ih u heq
+  case case12 => url_stage2 ih u heq
+  case case13 => url_stage2 ih u heq
+  case case14 => url_stage2 ih u heq
+  case case21 => url_stage2 ih u heq
+  case case29 => url_stage2 ih u heq
+  case case30 => url_stage2 ih u heq
+  case case31 => url_stage2 ih u heq
+  case case32 => url_stage2 ih u heq
+  case case34 => url_stage2 ih u heq
+  case case38 => url_stage2 ih u heq
+  case case54 => url_stage2 ih u heq
+  case case70 => url_stage2 ih u heq
+  case case71 => url_stage2 ih u heq
+  case case72 => url_stage2 ih u heq
+  case case75 => url_stage2 ih u heq
+  case case76 => url_stage2 ih u heq
+  case case78 => url_stage2 ih u heq
+  case case83 => url_stage2 ih u heq
+  case case86 => url_stage2 ih u heq
+  case case91 => url_stage2 ih u heq
+  case case92 => url_stage2 ih u heq
+  case case97 => url_stage2 ih u heq
+  case case98 => url_stage2 ih u heq
+  case case103 => url_stage2 ih u heq
+  case case104 => url_stage2 ih u heq
+  case case110 => url_stage2 ih u heq
+  case case113 => url_stage2 ih u heq
+  case case33 => url_stage3_done heq hbv
+  case case37 => url_stage3_split heq
+  case case59 => url_stage3_rebuild ih u heq
+  case case65 => url_stage3_port ih hinv u
+  case case69 => url_stage3_port ih hinv u
+  case case73 => url_stage3_done heq hbv
+  case case74 => url_stage3_rebuild ih u heq
+  case case99 => url_stage3_done heq hbv
+  case case108 => url_stage3_done heq hbv
+
   -- 第一段：url を変えない遷移と、失敗・即 ok の終端。
   all_goals
     (try (first
@@ -613,7 +718,7 @@ theorem run_valid (base : Option Url) :
          first
            | done
            | (exact valid_of_inv hsp hnp hoc hopo hoh hcs)
-           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> simp_all +zetaDelta))))
+           | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ <;> simp_all (config := { maxDischargeDepth := 1 }) +zetaDelta))))
   -- 第二段：`isSpecial` / `hasOpaquePath` / `includesCredentials` を開いて判定する。
   all_goals
     (try (first
