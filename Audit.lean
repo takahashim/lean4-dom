@@ -242,6 +242,11 @@ open Dom.Audit
   Url.Punycode.scanOne_eq
   Url.Punycode.scanFold_eq
   Url.Punycode.encodeLoop_eq
+  Url.Punycode.scanOne_lt
+  Url.Punycode.scanOne_gt
+  Url.Punycode.scanOne_hit
+  Url.Punycode.scanFold_no_hit
+  Url.Punycode.partialAt_zero
 
 -- UTS #46 ToASCII（表は仮定 `IdnaTable.Resolved` に押し込んである）
 #audit_axioms

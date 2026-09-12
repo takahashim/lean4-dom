@@ -330,6 +330,83 @@ theorem encode_ascii (input : List Char) : ∀ c ∈ encode input, c.toNat < 0x8
   · exact encodeLoop_ascii input _ _ _ _ (by simp) c hx
 
 
+
+/-!
+## 走査 1 回分の道具
+
+`encodeLoop` は非 ASCII の code point `m` を昇順に見て、`m` の出現ごとに差分を吐く。
+復号はそれを読んで `m` を挿す。その 1 回分を切り出すための道具を並べる。
+-/
+
+/-- `m` 未満の文字の個数。走査が `delta` に足す分である。 -/
+def countBelow (m : Nat) (l : List Char) : Nat := (l.filter (fun c => decide (c.toNat < m))).length
+
+theorem scanOne_lt (b m : Nat) (st : EncState) (c : Char) (h : c.toNat < m) :
+    scanOne b m st c = { st with delta := st.delta + 1 } := by
+  unfold scanOne; rw [if_pos h]
+
+theorem scanOne_gt (b m : Nat) (st : EncState) (c : Char) (h1 : ¬ c.toNat < m)
+    (h2 : c.toNat ≠ m) : scanOne b m st c = st := by
+  unfold scanOne; rw [if_neg h1, if_neg (by simp [h2])]
+
+theorem scanOne_hit (b m : Nat) (st : EncState) (c : Char) (h1 : ¬ c.toNat < m)
+    (h2 : c.toNat = m) :
+    scanOne b m st c
+      = { out := st.out ++ encodeDigits st.bias 36 st.delta, delta := 0,
+          bias := adapt st.delta (st.h + 1) (st.h == b), h := st.h + 1 } := by
+  unfold scanOne; rw [if_neg h1, if_pos (by simp [h2])]
+
+/-- **`m` を含まない走査は何も吐かない。** `delta` が `m` 未満の文字の個数だけ増える。 -/
+theorem scanFold_no_hit (b m : Nat) : ∀ (l : List Char) (d bi hh : Nat),
+    (∀ c ∈ l, c.toNat ≠ m) →
+    l.foldl (scanOne b m) { out := [], delta := d, bias := bi, h := hh }
+      = { out := [], delta := d + countBelow m l, bias := bi, h := hh } := by
+  intro l
+  induction l with
+  | nil => intro d bi hh _; simp [countBelow]
+  | cons c rest ih =>
+    intro d bi hh hne
+    show rest.foldl (scanOne b m) (scanOne b m { out := [], delta := d, bias := bi, h := hh } c) = _
+    have hc : c.toNat ≠ m := hne c List.mem_cons_self
+    by_cases hlt : c.toNat < m
+    · rw [scanOne_lt b m _ c hlt,
+        ih (d + 1) bi hh (fun x hx => hne x (List.mem_cons_of_mem _ hx))]
+      simp only [countBelow, List.filter_cons, hlt, decide_true, if_true, List.length_cons]
+      congr 1
+      omega
+    · rw [scanOne_gt b m _ c hlt hc,
+        ih d bi hh (fun x hx => hne x (List.mem_cons_of_mem _ hx))]
+      simp [countBelow, hlt]
+
+/--
+復号の途中の文字列。`input` のうち code point が `m` 未満のものすべてと、
+`m` に等しいものの先頭 `j` 個を、元の順に並べたもの。
+
+RFC 3492 の復号は「小さい code point から順に挿していく」ので、
+その途中経過がちょうどこれになる。
+-/
+def partialAt (input : List Char) (m j : Nat) : List Char :=
+  match input with
+  | [] => []
+  | c :: rest =>
+    if c.toNat < m then c :: partialAt rest m j
+    else if c.toNat == m then
+      if j = 0 then partialAt rest m 0 else c :: partialAt rest m (j - 1)
+    else partialAt rest m j
+
+/-- `m` 未満だけを残したもの。`j = 0` の場合である。 -/
+theorem partialAt_zero (input : List Char) (m : Nat) :
+    partialAt input m 0 = input.filter (fun c => decide (c.toNat < m)) := by
+  induction input with
+  | nil => rfl
+  | cons c rest ih =>
+    rw [partialAt, List.filter_cons]
+    split
+    · next h => simp [h, ih]
+    · split
+      · next h => simp_all
+      · next h => simp_all
+
 /-!
 ## 符号化の出力は自由な累積である
 
