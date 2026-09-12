@@ -70,4 +70,19 @@ example : ValidUrl { scheme := "https" } := by
 
 example : checkStrictUrl { scheme := "https" } = false := by decide
 
+/--
+path segment に `/` は含まれない（§4.1）。**serializer の正しさがこれに依存する。**
+
+この record を serialize すると `sc://x` になり、parse し直すと
+opaque host `x` を持つ別の record になる。`parse ∘ serialize` が壊れる。
+-/
+example : ValidUrl { scheme := "sc", path := .list ["/x"] } := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
+      isSpecialScheme, defaultPort]
+
+example : checkStrictUrl { scheme := "sc", path := .list ["/x"] } = false := by decide
+
+example : urlSerializer { scheme := "sc", path := .list ["/x"] } = "sc://x" := by rfl
+
 end Url

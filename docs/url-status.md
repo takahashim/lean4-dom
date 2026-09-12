@@ -451,10 +451,30 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 | host が空、または scheme が `file` なら credentials も port も持てない | 根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）にあり、`PInv` が `ctx.atSignSeen` を持つ必要がある |
 | scheme と host の組み合わせ表 | `freshHost` を `relative` まで広げ、`fileHost` で scheme が `file` だと足し、`hostParser` の返す host の種類の補題が要る |
 | special な URL の host は null でない | **終端でしか成り立たない。** parse の途中では scheme が決まって host が null の状態を必ず通る |
+| path segment に `/` は含まれない | **serializer の正しさがこれに依存する。** `{ scheme := "sc", path := .list ["/x"] }` は `ValidUrl` を満たすが、serialize すると `sc://x` になり、parse し直すと opaque host を持つ別の record になる |
 
-`Url/Strict.lean` の `checkStrictUrl` がこの三つを WPT の 820 件と setter の 705 件で
+`Url/Strict.lean` の `checkStrictUrl` がこの四つを WPT の 820 件と setter の 705 件で
 実行時に検査している（違反 0）。境界は `Url/RecordExamples.lean` に `example` で固定してある。
 `ValidUrl` を通るが仕様が禁じている record を、そこに並べてある。
+
+## serializer
+
+`urlSerializer` は `scheme ++ ":" ++ serializerTail` に分けてある。
+parse し直したときに読み直されるのは後半なので、性質はそこを見れば足りる。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `urlSerializer_split` | scheme と `:` を前置するだけである |
+| `pathFold_append` | segment を並べる畳み込みは前に付いた文字列をそのまま残す |
+| `pathSerializer_cons` | 先頭 segment の前に `/` が一つ入る |
+
+**`parse (serialize u) = u` は証明していない。** parse の結果については成り立ち、
+`--wpt` が毎回 573 件（parse に成功した分）で確かめている（不一致 0）。
+証明するには serialize した文字列の上で state machine を追うことになり、
+`run_valid` と同じかそれ以上の規模になる。
+
+上の表の最後の行はこれを調べていて見つかった。`ValidUrl` だけでは
+`parse ∘ serialize` は成り立たない。
 
 ### setter の側
 

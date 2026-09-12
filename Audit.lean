@@ -144,6 +144,9 @@ open Dom.Audit
 -- URL Standard §4.1 URL record の妥当性
 #audit_axioms
   Url.checkValidUrl_iff
+  Url.pathFold_append
+  Url.pathSerializer_cons
+  Url.urlSerializer_split
   Url.isSpecialScheme_of_defaultPort
 
 -- URL Standard §6.1 URL の IDL 属性（setter）

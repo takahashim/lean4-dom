@@ -61,12 +61,16 @@ def pathSerializer : Path → String
   | .opaque s => s
   | .list segs => segs.foldl (fun acc s => acc ++ "/" ++ s) ""
 
-/-- URL Standard §4.3 URL serializer。 -/
-def urlSerializer (u : Url) (excludeFragment : Bool := false) : String :=
-  let out := u.scheme ++ ":"
+/--
+serialize した文字列のうち、`scheme` と `:` の後ろ。
+
+parse し直したときに読み直されるのはここである。`urlSerializer` はこれに
+`scheme ++ ":"` を前置するだけなので、serializer の性質はここを見れば足りる。
+-/
+def serializerTail (u : Url) (excludeFragment : Bool := false) : String :=
   let out := match u.host with
     | some h =>
-      let out := out ++ "//"
+      let out := "//"
       let out := if u.includesCredentials then
           out ++ u.username ++ (if u.password.isEmpty then "" else ":" ++ u.password) ++ "@"
         else out
@@ -78,8 +82,8 @@ def urlSerializer (u : Url) (excludeFragment : Bool := false) : String :=
       -- host が null で、opaque path でなく、先頭 segment が空なら `/.` を足す。
       -- これが無いと `web+demo:/.//x/` が parse し直しで host を持ってしまう。
       match u.path with
-      | .list (seg :: _ :: _) => if seg.isEmpty then out ++ "/." else out
-      | _ => out
+      | .list (seg :: _ :: _) => if seg.isEmpty then "/." else ""
+      | _ => ""
   let out := out ++ pathSerializer u.path
   let out := match u.query with
     | some q => out ++ "?" ++ q
@@ -87,6 +91,40 @@ def urlSerializer (u : Url) (excludeFragment : Bool := false) : String :=
   match u.fragment with
   | some f => if excludeFragment then out else out ++ "#" ++ f
   | none => out
+
+/-- URL Standard §4.3 URL serializer。 -/
+def urlSerializer (u : Url) (excludeFragment : Bool := false) : String :=
+  u.scheme ++ ":" ++ serializerTail u excludeFragment
+
+/-! ## serializer の性質 -/
+
+/-- `foldl` で並べた segment の列は、前に付いた文字列をそのまま残す。 -/
+theorem pathFold_append : ∀ (segs : List String) (acc : String),
+    segs.foldl (fun a s => a ++ "/" ++ s) acc
+      = acc ++ segs.foldl (fun a s => a ++ "/" ++ s) "" := by
+  intro segs
+  induction segs with
+  | nil => intro acc; simp
+  | cons s rest ih =>
+    intro acc
+    show rest.foldl _ (acc ++ "/" ++ s) = _
+    rw [ih (acc ++ "/" ++ s)]
+    show _ = acc ++ rest.foldl _ ("" ++ "/" ++ s)
+    rw [ih ("" ++ "/" ++ s)]
+    simp [String.append_assoc]
+
+/-- 先頭 segment が空でなければ、path の serialize は `//` で始まらない。 -/
+theorem pathSerializer_cons (s : String) (rest : List String) :
+    pathSerializer (.list (s :: rest))
+      = "/" ++ s ++ (rest.foldl (fun a x => a ++ "/" ++ x) "") := by
+  show (s :: rest).foldl (fun a x => a ++ "/" ++ x) "" = _
+  show rest.foldl (fun a x => a ++ "/" ++ x) ("" ++ "/" ++ s) = _
+  rw [pathFold_append]
+  simp
+
+/-- **`urlSerializer` は scheme と `:` を前置するだけである。** -/
+theorem urlSerializer_split (u : Url) (ef : Bool) :
+    urlSerializer u ef = u.scheme ++ ":" ++ serializerTail u ef := rfl
 
 /-! ## origin -/
 

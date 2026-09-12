@@ -34,12 +34,19 @@ def hostKindOkOf (scheme : String) (host : Option Host) : Bool :=
   | some (.opaque _) => !isSpecialScheme scheme
   | some .empty => !isSpecialScheme scheme || scheme == "file"
 
+/-- §4.1「URL path segments never contain U+002F (/)」。 -/
+def pathSegsOk (u : Url) : Bool :=
+  match u.path with
+  | .opaque _ => true
+  | .list segs => segs.all fun s => !s.toList.contains '/'
+
 /--
 §4.1 のうち `ValidUrl` に入れていない条件。
 
 * host が空、または scheme が `file` なら credentials も port も持てない。
 * scheme と host の組み合わせは表に従う。
 * special な URL の host は null でない。
+* path segment に `/` は含まれない。
 -/
 def checkStrictUrl (u : Url) : Bool :=
   let emptyHost := match u.host with | some .empty => true | _ => false
@@ -48,5 +55,6 @@ def checkStrictUrl (u : Url) : Bool :=
     && (!(u.scheme == "file") || noCredPort)
     && hostKindOkOf u.scheme u.host
     && (!u.isSpecial || u.host.isSome)
+    && pathSegsOk u
 
 end Url

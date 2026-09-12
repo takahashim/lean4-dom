@@ -121,6 +121,16 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
         if !checkStrictUrl u then
           invalid := invalid + 1
           IO.println s!"STRICT input={repr c.input} base={repr c.base} -> {urlSerializer u}"
+        -- serialize して parse し直すと元の record に戻ること。
+        -- serializer には定理が無いので、ここが唯一の裏づけである。
+        match parseUrl (urlSerializer u) none (toAsciiOf idna) with
+        | none =>
+          invalid := invalid + 1
+          IO.println s!"ROUNDTRIP 再 parse 失敗 {repr (urlSerializer u)}"
+        | some u2 =>
+          if u2 != u then
+            invalid := invalid + 1
+            IO.println s!"ROUNDTRIP {repr (urlSerializer u)} -> {repr u} ≠ {repr u2}"
       | none => pure ()
       -- §4.7 origin。WPT の表が期待値を持っている case だけ見る。
       match got, c.origin with
