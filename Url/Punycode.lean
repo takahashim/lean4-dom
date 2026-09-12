@@ -479,6 +479,173 @@ theorem encodeLoop_eq (input : List Char) (b : Nat) :
             { out := [], delta := d + (m - n) * (h + 1), bias := bi, h := h }).out) _ _ _]
     simp only [List.append_assoc]
 
+
+/-!
+## 走査 1 回分の双模倣
+
+符号化が `m` の出現ごとに吐く差分を、復号がそのまま挿入に戻すことを言う。
+
+不変条件は `PassInv` にまとめてある。入力を「走査済み」と「これから」に割ると、
+復号が持っている文字列は `A ++ B` の形になる。`A` は挿し終わった前半
+（`partialAt pre m j`）、`B` はこれから来る `m` 未満（`partialAt suf m 0`）である。
+次の挿入位置はちょうど `A.length` で、そこは復号の `i + delta` に一致する。
+
+**`B` を落として考えることはできない。** `m` 未満の文字が来ると挿入位置は進むのに
+復号の文字列は伸びないので、「位置が長さを超えない」が単独では成り立たない。
+その文字が既に `B` に入っていること（前の pass で挿さっているから）が効いている。
+-/
+
+theorem insertIdx_append (A B : List Char) (x : Char) :
+    (A ++ B).insertIdx A.length x = (A ++ [x]) ++ B := by
+  induction A with
+  | nil => simp [List.insertIdx]
+  | cons a rest ih =>
+    have : ((a :: rest) ++ B).insertIdx (a :: rest).length x
+        = a :: (rest ++ B).insertIdx rest.length x := rfl
+    rw [this, ih]; simp
+
+theorem encodeDigits_ne_nil (bias k q : Nat) : encodeDigits bias k q ≠ [] := by
+  rw [encodeDigits]; split <;> simp
+
+/-- 一歩分の吐き出し。差分を読んで `A` の末尾に `m` を挿す。 -/
+theorem decode_emit (m : Nat) (hm : m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000))
+    (A B : List Char) (i d bi : Nat) (E : List Char)
+    (hlen : A.length = i + d) :
+    decodeLoop bi m i (A ++ B) (encodeDigits bi 36 d ++ E)
+      = decodeLoop (adapt d (A.length + B.length + 1) (i == 0)) m (A.length + 1)
+          ((A ++ [Char.ofNat m]) ++ B) E := by
+  obtain ⟨c0, t0, he⟩ : ∃ c0 t0, encodeDigits bi 36 d = c0 :: t0 := by
+    cases h : encodeDigits bi 36 d with
+    | nil => exact absurd h (encodeDigits_ne_nil _ _ _)
+    | cons a t => exact ⟨a, t, rfl⟩
+  have hdd : decodeDigits bi (c0 :: (t0 ++ E)) 36 1 i = some (i + d, E) := by
+    have h := decodeDigits_encodeDigits bi d 36 1 i E
+    rw [he] at h
+    simpa using h
+  rw [he, List.cons_append, decodeLoop]
+  split
+  · next hd => rw [hdd] at hd; simp at hd
+  · next i' rem hd =>
+    rw [hdd] at hd
+    have h1 : i' = i + d := (Prod.mk.injEq .. ▸ Option.some.inj hd).1.symm
+    have h2 : rem = E := (Prod.mk.injEq .. ▸ Option.some.inj hd).2.symm
+    subst h1; subst h2
+    have hnp : (A ++ B).length + 1 = A.length + B.length + 1 := by simp
+    have hlt : i + d < (A ++ B).length + 1 := by rw [hnp]; omega
+    simp only [Nat.div_eq_of_lt hlt, Nat.mod_eq_of_lt hlt, Nat.add_zero]
+    have hvalid : (decide (m < 55296) || decide (57343 < m) && decide (m < 1114112)) = true := by
+      rcases hm with hv | ⟨hv1, hv2⟩
+      · simp [hv]
+      · simp [hv1, hv2]
+    rw [if_pos hvalid]
+    rw [show i + d - i = d by omega, hnp, ← hlen, insertIdx_append]
+
+/-- 走査 1 回を追うための状態。`A` は挿し終わった前半、`B` はまだ来ていない `m` 未満。 -/
+structure PassState where
+  A : List Char
+  B : List Char
+  i : Nat
+  d : Nat
+  bias : Nat
+  hh : Nat
+
+/-- 走査 1 回で復号側に起きること。 -/
+def passRun (b m : Nat) : List Char → PassState → PassState
+  | [], st => st
+  | c :: rest, st =>
+    if c.toNat < m then
+      passRun b m rest { st with A := st.A ++ [c], B := st.B.tail, d := st.d + 1 }
+    else if c.toNat == m then
+      passRun b m rest
+        { A := st.A ++ [Char.ofNat m], B := st.B, i := st.A.length + 1, d := 0,
+          bias := adapt st.d (st.A.length + st.B.length + 1) (st.hh == b), hh := st.hh + 1 }
+    else passRun b m rest st
+
+/-- `m` が Unicode の scalar value であること。 -/
+def ValidCp (m : Nat) : Prop := m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000)
+
+/-- 不変条件。 -/
+structure PassInv (b m : Nat) (suf : List Char) (st : PassState) : Prop where
+  bEq : st.B = partialAt suf m 0
+  lenA : st.A.length = st.i + st.d
+  lenH : st.hh = st.A.length + st.B.length
+  firstFlag : (st.hh == b) = (st.i == 0)
+  bLe : b ≤ st.hh
+
+/-- **走査 1 回分の双模倣。** -/
+theorem decode_scan (b m : Nat) (hm : ValidCp m) :
+    ∀ (suf : List Char) (st : PassState) (rest : List Char),
+      PassInv b m suf st →
+      decodeLoop st.bias m st.i (st.A ++ st.B)
+          ((suf.foldl (scanOne b m)
+              { out := [], delta := st.d, bias := st.bias, h := st.hh }).out ++ rest)
+        = decodeLoop (passRun b m suf st).bias m (passRun b m suf st).i
+            ((passRun b m suf st).A ++ (passRun b m suf st).B) rest := by
+  intro suf
+  induction suf with
+  | nil => intro st rest _; simp [passRun]
+  | cons c rest' ih =>
+    intro st rest hinv
+    have hB : st.B = partialAt (c :: rest') m 0 := hinv.bEq
+    rw [partialAt] at hB
+    by_cases hlt : c.toNat < m
+    · -- `m` 未満。位置が一つ進むだけ。
+      rw [if_pos hlt] at hB
+      show decodeLoop st.bias m st.i (st.A ++ st.B)
+          ((rest'.foldl (scanOne b m)
+            (scanOne b m { out := [], delta := st.d, bias := st.bias, h := st.hh } c)).out
+            ++ rest) = _
+      rw [scanOne_lt b m _ c hlt]
+      rw [passRun, if_pos hlt]
+      have hsplit : st.A ++ st.B = (st.A ++ [c]) ++ st.B.tail := by
+        rw [hB]; simp
+      rw [hsplit]
+      exact ih { st with A := st.A ++ [c], B := st.B.tail, d := st.d + 1 } rest
+        { bEq := by rw [hB]; simp
+          lenA := by simpa using by rw [hinv.lenA]; omega
+          lenH := by
+            have := hinv.lenH
+            rw [hB] at this ⊢
+            simp at this ⊢
+            omega
+          firstFlag := by simpa using hinv.firstFlag
+          bLe := by simpa using hinv.bLe }
+    · rw [if_neg hlt] at hB
+      by_cases heq : c.toNat = m
+      · -- `m` に一致。差分を吐いて挿す。
+        rw [if_pos (by simp [heq])] at hB
+
+        show decodeLoop st.bias m st.i (st.A ++ st.B)
+            ((rest'.foldl (scanOne b m)
+              (scanOne b m { out := [], delta := st.d, bias := st.bias, h := st.hh } c)).out
+              ++ rest) = _
+        rw [scanOne_hit b m _ c hlt heq]
+        rw [scanFold_eq b m rest' ([] ++ encodeDigits st.bias 36 st.d) 0
+              (adapt st.d (st.hh + 1) (st.hh == b)) (st.hh + 1)]
+        simp only [List.nil_append, List.append_assoc]
+        rw [decode_emit m hm st.A st.B st.i st.d st.bias _ hinv.lenA]
+        rw [passRun, if_neg hlt, if_pos (by simp [heq])]
+        rw [← hinv.lenH, hinv.firstFlag]
+        exact ih { A := st.A ++ [Char.ofNat m], B := st.B, i := st.A.length + 1, d := 0,
+                   bias := adapt st.d (st.hh + 1) (st.i == 0), hh := st.hh + 1 } rest
+          { bEq := hB
+            lenA := by simp
+            lenH := by have := hinv.lenH; simp; omega
+            firstFlag := by
+              have := hinv.bLe
+              show (st.hh + 1 == b) = (st.A.length + 1 == 0)
+              simp
+              omega
+            bLe := by have := hinv.bLe; show b ≤ st.hh + 1; omega }
+      · -- `m` より大きい。何も起きない。
+        rw [if_neg (by simp [heq])] at hB
+        show decodeLoop st.bias m st.i (st.A ++ st.B)
+            ((rest'.foldl (scanOne b m)
+              (scanOne b m { out := [], delta := st.d, bias := st.bias, h := st.hh } c)).out
+              ++ rest) = _
+        rw [scanOne_gt b m _ c hlt heq, passRun, if_neg hlt, if_neg (by simp [heq])]
+        exact ih st rest { hinv with bEq := hB }
+
 /-! ## 符号化の枠が復号で戻ること -/
 
 theorem span_loop_all (p : Char → Bool) : ∀ (l acc : List Char), (∀ c ∈ l, p c = true) →
