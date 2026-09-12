@@ -139,105 +139,58 @@ RFC 3492 §7.1 の sample strings 19 件を、符号化と復号の両方で通�
 （`url-model --punycode`、38 件）。復号は RFC の綴りをそのまま食わせるので、
 §5 の case annotation（(I) の Russian に大文字が混じる）を受けることの検査にもなっている。
 
-`decode (encode s) = s` は途中である。外側の二層が付いた。
-
-| 層 | 定理 | 状態 |
-| --- | --- | --- |
-| 枠（区切りの位置） | `splitLastDelim_encode` | 済 |
-| 可変長整数 | `decodeDigits_encodeDigits` | 済 |
-| 差分と挿入位置の対応 | — | 未着手 |
-
-**枠。** `decode` はまず最後の `-` で基本部分と拡張部分に分ける。
-桁文字は `a`-`z` と `0`-`9` だけなので拡張部分に `-` は現れず、分け方は一意である
-（基本部分に `-` が何個あっても構わない）。
-`splitLastDelim (encode input) = (encodeBasic input, encodeExt input)` が言える。
-
-**可変長整数。**
+**`decode (encode s) = s` を証明した。**
 
 ```lean
-theorem decodeDigits_encodeDigits (bias : Nat) :
-    ∀ (q k w i : Nat) (rest : List Char),
-      decodeDigits bias (encodeDigits bias k q ++ rest) k w i = some (i + q * w, rest)
+theorem decode_encode (input : List Char) : decode (encode input) = some input
 ```
 
-符号化は `q` を閾値 `t` と `36 - t` で割り、復号は重みを `36 - t` 倍しながら足す。
-`Nat.mod_add_div'` がその二つを繋ぐ。後ろに何が続いていても触らずに返すので、
-上の層から呼べる形になっている。
+三層に分けてある。
 
-**残る層**が本体である。`encodeLoop` は非 ASCII の code point を昇順に見て、
-出現ごとに差分を吐く。`decodeLoop` はそれを読んで挿入位置を復元する。
+| 層 | 定理 | 言っていること |
+| --- | --- | --- |
+| 枠 | `splitLastDelim_encode` | 最後の区切りでの分割が符号化の置いたとおりに戻る |
+| 可変長整数 | `decodeDigits_encodeDigits` | 桁列を読むと元の差分が出る |
+| ループ | `decode_scan`, `decode_outer` | 差分の列と挿入の列が一対一に対応する |
 
-道具はそろえた。
+**枠。** 桁文字は `a`-`z` と `0`-`9` だけなので区切りより後ろに `-` は現れず、
+基本部分に `-` が何個あっても分け方は一意である。
 
-| 道具 | 言っていること |
-| --- | --- |
-| `scanFold_eq`, `encodeLoop_eq` | `out` は append しかされない。段ごとに切り出せる |
-| `scanOne_lt`, `scanOne_gt`, `scanOne_hit` | 走査の三つの動き |
-| `scanFold_no_hit` | `m` を含まない走査は何も吐かない |
-| `partialAt` | 復号の途中の文字列（`m` 未満すべて + `m` の先頭 `j` 個） |
+**可変長整数。** 符号化は差分を閾値 `t` と `36 - t` で割り、復号は重みを `36 - t` 倍しながら
+足す。`Nat.mod_add_div'` がその二つを繋ぐ。後ろに何が続いていても触らずに返すので、
+上の層からそのまま呼べる。
 
-### 不変条件（導出済み）
+**ループ。** ここが本体で、不変条件が二本ある。
 
-走査 1 回分の対応は、入力を `pre ++ suf` に割って次の形で書ける。
-
-* `j` は `pre` の中の `m` の個数
-* 復号の `out` は `A ++ B`、ただし `A = partialAt pre m j`、`B = partialAt suf m 0`
-* 次の挿入位置 `p = A.length`、復号の `i` と符号化の `delta` は `p = i + delta`
-* 復号の `n` は（その pass の最初の吐き出しの後は）`m` で止まる
-
-これが `suf` の先頭 1 文字で正しく回ることは確かめた。
-
-* `c < m` のとき。`partialAt pre' m j = A ++ [c]` で `B = c :: B'`。
-  `A ++ c :: B' = (A ++ [c]) ++ B'` なので、`p` が 1 増えるだけで形が保たれる。
-* `c = m` のとき。`out.insertIdx p` は `A ++ m :: B` を作り、
-  これは `(A ++ [m]) ++ B = partialAt pre' m (j+1) ++ B` である。
-* `c > m` のとき。`A` も `B` も `p` も動かない。
-
-**`insertPass` を単独で扱ってはいけない。** `out` を入力に紐付けないと
-「挿入位置が `out` の長さを超えない」が成り立たず、長さの補題すら書けない。
-`c < m` の枝で `p` は増えるが `out` は伸びないためで、その `c` が既に `out` に
-入っていること（前の pass で挿さっているから）が効いている。
-
-### 段取り
-
-1. **済。** pass 1 回分の双模倣（`decode_scan`）。復号の code point を状態に入れたので、
-   `n` が `m` まで跳ぶ最初の吐き出しも同じ一本に入っている。
-   走査の後の符号化状態が復号状態と一致することも付いた
-   （`passRun_inv`, `scanFold_passRun`）。
-2. 外側のループ（`sortedDistinct` の順に `m` を上げていく）の双模倣。**不変条件は出た。**
-3. 組み上げ。
-
-pass の不変条件は次の一本である。
+pass の中では、入力を走査済みとこれからに割ると復号の文字列が `A ++ B` の形になり、
 
 ```
 A.length + (m - n) * N = i + delta        N = A.length + B.length + 1
 ```
 
-最初の吐き出しの前は跳びが残っていて、後は跳びが消えて `A.length = i + delta` になる。
-同じ式で両方を書けるのが要点で、これが無いと pass の前口上を別に扱うことになる。
+が保たれる。`n` は復号がいま見ている code point で、pass の最初の吐き出しで `m` まで跳ぶ。
+跳びが残っている段階と消えた段階を同じ式で書けるのが要点である。
 
-### pass の境目で保たれるもの（導出済み）
+**`B` を落とすことはできない。** `m` 未満の文字が来ると挿入位置は進むのに文字列は伸びないので、
+「位置が長さを超えない」が単独では偽である。その文字が既に `B` にいること
+（前の pass で挿さっているから）が効いている。
+
+pass の境目では
 
 ```
-i + st.delta = (nEnc - nDec) * (out.length + 1)
+i + delta = (nEnc - nDec) * (out.length + 1)
 ```
 
-`nEnc` は `encodeLoop` の引数（前の code point + 1、最初は 128）、
+が保たれる。`nEnc` は `encodeLoop` の引数（前の code point + 1、最初は 128）、
 `nDec` は復号がいま見ている code point（前の code point、最初は 128）である。
 最初の pass では両者が等しく右辺は 0、二回目以降は 1 ずれて右辺は `out.length + 1` になる。
+前の pass の最後の挿入位置を `pos`、その後ろに残る文字数を `k` とすると、復号の `i` は
+`pos + 1`、符号化の `delta` は `k + 1`（pass の終わりに 1 足すため）、
+`out.length = pos + 1 + k` で両辺が一致する。
 
-後者が成り立つ理由。前の pass の最後の挿入位置を `pos`、その後ろに残る
-「前の code point 未満」の文字数を `k` とすると、復号の `i` は `pos + 1`、
-符号化の `delta` は `k + 1`（pass の終わりに 1 足すため）で、
-`out.length = pos + 1 + k` だから両辺が一致する。
-
-これがあると pass の最初の吐き出しで `decode_emit` の前提がちょうど出る。
-`d` は pass の頭で `(m - nEnc) * N` を足され、`m` が来るまでに `m` 未満の文字の個数だけ
-増えるので、`i + d = (nEnc - nDec) * N + (m - nEnc) * N + A.length = A.length + (m - nDec) * N`。
-
-外側の帰納法は `out = input.filter (· < nEnc)` を担いで回す。
-`todo` を使い切ったところで `out = input` になり、`decodeLoop` が `some input` を返す。
-終状態を式で書かずに済むので、これが取り回しやすい。
+外側の帰納法は「復号の文字列は入力を `nEnc` 未満で filter したもの」を担いで回す。
+`todo` を使い切ると filter が入力そのものになり、`decodeLoop` が `some input` を返す。
+終状態を式で書かずに済む。
 
 ### 表は証明の外に置く
 
@@ -609,9 +562,6 @@ def RunIH (base : Option Url) (r n : Nat) : Prop :=
 
 ## 未着手
 
-* **`Punycode.decode (encode s) = s` の最後の層。** 枠（`splitLastDelim_encode`）と
-  可変長整数（`decodeDigits_encodeDigits`）は付いた。残るのは `encodeLoop` が吐く差分と
-  `decodeLoop` が復元する挿入位置の対応で、適応バイアスを挟むぶん重い。
 * **UTS #46 の写像表・NFC・Bidi。** 規定データなので `IdnaTable` の仮定に押し込み、
   実行時の fixture から与える。`Resolved` は `checkResolved` が実行時に検査する。
   `outOfModel` の印が付いた code point（結合クラス ≠ 0、NFC_QC ≠ Yes、

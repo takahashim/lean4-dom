@@ -258,6 +258,12 @@ open Dom.Audit
   Url.Punycode.passRun_A
   Url.Punycode.filter_lt_eq
   Url.Punycode.decode_outer
+  Url.Punycode.mem_insertSorted
+  Url.Punycode.mem_sortedDistinct
+  Url.Punycode.strictSorted_insertSorted
+  Url.Punycode.strictSorted_sortedDistinct
+  Url.Punycode.char_valid
+  Url.Punycode.decode_encode
 
 -- UTS #46 ToASCII（表は仮定 `IdnaTable.Resolved` に押し込んである）
 #audit_axioms

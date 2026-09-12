@@ -1205,4 +1205,108 @@ theorem splitLastDelim_encode (input : List Char) :
     rw [this]
     exact splitLastDelim_append _ _ (encodeExt_no_delim input)
 
+
+/-!
+## 往復
+
+`sortedDistinct` が「入力の非 ASCII code point をちょうど覆う」ことを言えば、
+外側のループの不変条件が入口で成り立ち、往復が出る。
+-/
+
+theorem mem_insertSorted (x : Nat) : ∀ (l : List Nat) (y : Nat),
+    y ∈ insertSorted x l ↔ (y = x ∨ y ∈ l) := by
+  intro l
+  induction l with
+  | nil => intro y; simp [insertSorted]
+  | cons a t ih =>
+    intro y
+    rw [insertSorted]
+    split
+    · simp
+    · split
+      · next h =>
+        have : x = a := by simpa using h
+        subst this
+        simp
+      · rw [List.mem_cons, ih y, List.mem_cons]
+        constructor
+        · rintro (rfl | rfl | hy) <;> simp_all
+        · rintro (rfl | rfl | hy) <;> simp_all
+
+theorem mem_sortedDistinct : ∀ (l : List Nat) (y : Nat),
+    y ∈ sortedDistinct l ↔ y ∈ l := by
+  intro l
+  induction l with
+  | nil => intro y; simp [sortedDistinct]
+  | cons a t ih =>
+    intro y
+    rw [sortedDistinct, mem_insertSorted, ih, List.mem_cons]
+
+theorem strictSorted_insertSorted (x : Nat) : ∀ (l : List Nat),
+    StrictSorted l → StrictSorted (insertSorted x l) := by
+  intro l
+  induction l with
+  | nil => intro _; simp [insertSorted, StrictSorted]
+  | cons a t ih =>
+    intro hs
+    rw [insertSorted]
+    split
+    · next h =>
+      refine ⟨?_, hs⟩
+      intro z hz
+      rcases List.mem_cons.mp hz with rfl | hz
+      · exact h
+      · exact Nat.lt_trans h (hs.1 z hz)
+    · split
+      · exact hs
+      · next h1 h2 =>
+        refine ⟨?_, ih hs.2⟩
+        intro z hz
+        have hax : a < x := by simp at h2; omega
+        rcases (mem_insertSorted x t z).mp hz with rfl | hz
+        · exact hax
+        · exact hs.1 z hz
+
+theorem strictSorted_sortedDistinct : ∀ (l : List Nat), StrictSorted (sortedDistinct l) := by
+  intro l
+  induction l with
+  | nil => simp [sortedDistinct, StrictSorted]
+  | cons a t ih => rw [sortedDistinct]; exact strictSorted_insertSorted a _ ih
+
+/-- `Char` の番号は妥当な scalar value である。 -/
+theorem char_valid (c : Char) : c.toNat < 0xD800 ∨ (0xDFFF < c.toNat ∧ c.toNat < 0x110000) := by
+  exact c.valid
+
+/-- **Punycode の往復。** 符号化して復号すると元に戻る。 -/
+theorem decode_encode (input : List Char) : decode (encode input) = some input := by
+  unfold decode
+  rw [splitLastDelim_encode]
+  have hbasic : (encodeBasic input).any (fun c => decide (0x80 ≤ c.toNat)) = false := by
+    simp only [List.any_eq_false, encodeBasic]
+    intro c hc
+    have := (List.mem_filter.mp hc).2
+    simp at this ⊢
+    omega
+  simp only [hbasic, Bool.false_eq_true, if_false]
+  unfold encodeExt
+  refine decode_outer (encodeBasic input).length _ input 128 128 0 72 _ 0 ?_
+  refine { covers := ?_, occurs := ?_, ge := ?_, sorted := ?_, valid := ?_,
+           hEq := rfl, delta := by simp, nLe := Nat.le_refl _,
+           firstFlag := by simp, bLe := Nat.le_refl _ }
+  · intro c hc hge
+    refine (mem_sortedDistinct _ _).mpr ?_
+    exact List.mem_map.mpr ⟨c, List.mem_filter.mpr ⟨hc, by simpa using hge⟩, rfl⟩
+  · intro x hx
+    obtain ⟨c, hc, hcx⟩ := List.mem_map.mp ((mem_sortedDistinct _ _).mp hx)
+    exact ⟨c, (List.mem_filter.mp hc).1, hcx⟩
+  · intro x hx
+    obtain ⟨c, hc, hcx⟩ := List.mem_map.mp ((mem_sortedDistinct _ _).mp hx)
+    have := (List.mem_filter.mp hc).2
+    simp at this
+    omega
+  · exact strictSorted_sortedDistinct _
+  · intro x hx
+    obtain ⟨c, _, hcx⟩ := List.mem_map.mp ((mem_sortedDistinct _ _).mp hx)
+    rw [← hcx]
+    exact char_valid c
 end Url.Punycode
