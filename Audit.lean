@@ -290,6 +290,20 @@ open Dom.Audit
   Url.run_opaquePath_chunk
   Url.getLast?_mid
   Url.roundtrip_opaque
+  Url.run_path_chunk
+  Url.run_path_slash
+  Url.run_path_eof
+  Url.pathStepUrl_append
+  Url.run_path_segs
+  Url.pathSerializer_intercal
+  Url.intercal_mem
+  Url.intercal_head_ne_slash
+  Url.c0Set_of_pathSet
+  Url.run_scheme_pathOrAuthority
+  Url.run_pathOrAuthority_path
+  Url.dropLast_getLast?
+  Url.ne_c0_of_schemeChar
+  Url.roundtrip_path
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms

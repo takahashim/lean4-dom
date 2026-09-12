@@ -26,9 +26,10 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 
 ## この file が閉じた分
 
-いちばん短い経路（scheme start → scheme → opaque path → query → fragment）である。
-`roundtrip_opaque` が、scheme・opaque path・query・fragment について `canonicalUrl` に
-当たる条件を仮定して `parse ∘ serialize = id` を言う。
+* `roundtrip_opaque`：scheme start → scheme → opaque path → query → fragment
+* `roundtrip_path`：scheme start → scheme → path or authority → path
+
+どちらも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
 作り方は state ごとの等式を積む形で、`Url/ApiValid.lean` の setter の肯定側と同じである。
 一つの state について三種類を用意する。
@@ -37,7 +38,8 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
-残りは authority / host / port / path を通る経路で、state も条件も多い。
+path を通る経路（host を持たない非 special な URL）も同じ形で閉じた（`roundtrip_path`）。
+残りは authority / host / port を通る経路、つまり `//` で始まる URL である。
 -/
 
 namespace Url
@@ -100,6 +102,9 @@ def canonicalUrl (u : Url) (toAscii : List Char → Option String := asciiDomain
        encodedWith pathSet seg && !isSingleDot seg.toList && !isDoubleDot seg.toList &&
          -- special な URL では `\\` も区切りである（`pathSet` は encode しない）。
          (!u.isSpecial || seg.toList.all (fun c => c != '\\'))) &&
+  -- host が null で path が空だと、serialize しても path の跡が残らない。
+  -- parser は host が null の URL には必ず segment を一つ以上書く。
+  (match u.host, u.path with | none, .list [] => false | _, _ => true) &&
   -- host は serialize してから読み直すと同じもの
   (match u.host with
    | none => true
@@ -402,6 +407,335 @@ theorem ne_space_of_querySet {c : Char} (h : querySet c = false) : ¬c = ' ' := 
 /-- fragment set についても同じ。 -/
 theorem ne_space_of_fragmentSet {c : Char} (h : fragmentSet c = false) : ¬c = ' ' := by
   intro he; rw [he] at h; revert h; decide
+
+/-! ## path
+
+host を持たない非 special な URL の経路。scheme state から path or authority state へ入る。
+-/
+
+/-- path state が区切りでない文字を読み切る。special でない URL の場合。 -/
+theorem run_path_chunk (base : Option Url) : ∀ (l tail : List Char) (ctx : PCtx),
+    ctx.url.isSpecial = false → ctx.over = none →
+    (∀ c ∈ l, pathSet c = false ∧ ¬c = '/' ∧ ¬c = '?' ∧ ¬c = '#') →
+    run base .path (l ++ tail) ctx
+      = run base .path tail { ctx with buffer := ctx.buffer ++ l } := by
+  intro l
+  induction l with
+  | nil => intro tail ctx _ _ _; simp
+  | cons c rest ih =>
+    intro tail ctx hsp hov h
+    have hc := h c (by simp)
+    have henc : encChar pathSet c = String.ofList [c] := by
+      unfold encChar
+      rw [utf8PercentEncode_id (by intro x hx; simp at hx; subst hx; exact hc.1)]
+    simp only [List.cons_append]
+    rw [run, step]
+    rw [if_neg (by simp [hsp, hc.2.1, hc.2.2.1, hc.2.2.2, hov])]
+    rw [ih tail { ctx with buffer := ctx.buffer ++ (encChar pathSet c).toList } hsp hov
+      (fun x hx => h x (by simp [hx]))]
+    simp [henc]
+
+/-- path state の `/`。segment を確定させて次へ進む。 -/
+theorem run_path_slash (base : Option Url) (rest : List Char) (ctx : PCtx) :
+    run base .path ('/' :: rest) ctx
+      = run base .path rest
+          { ctx with url := pathStepUrl ctx.url true ctx.buffer, buffer := [] } := by
+  rw [run, step]
+  simp
+
+/-- path state の終わり。buffer を最後の segment にする。 -/
+theorem run_path_eof (base : Option Url) (ctx : PCtx) :
+    run base .path [] ctx = .ok (pathStepUrl ctx.url false ctx.buffer) := by
+  rw [run, step]
+  simp
+
+/-- `.` でも `..` でもない segment を、`file` でない URL の path の末尾に足す。 -/
+theorem pathStepUrl_append {u : Url} {pre : List String} {s : String}
+    (hp : u.path = .list pre) (hnf : ¬u.scheme = "file")
+    (h1 : isSingleDot s.toList = false) (h2 : isDoubleDot s.toList = false) (slash : Bool) :
+    pathStepUrl u slash s.toList = { u with path := .list (pre ++ [s]) } := by
+  unfold pathStepUrl
+  rw [if_neg (by simp [h2]), if_neg (by simp [h1])]
+  unfold pathStepUrl.windowsDriveBuffer
+  rw [if_neg (by simp [hnf])]
+  unfold appendSegment
+  rw [hp]
+  simp
+
+/-- serializer が segment を並べる分（先頭の `/` を除く）。 -/
+def intercal : List String → List Char
+  | [] => []
+  | [s] => s.toList
+  | s :: rest => s.toList ++ '/' :: intercal rest
+
+/-- path state が segment の列を読み切る。最後の segment は buffer に残る。 -/
+theorem run_path_segs (base : Option Url) : ∀ (segs : List String) (tail : List Char) (ctx : PCtx)
+    (pre : List String),
+    ctx.url.path = .list pre → ctx.buffer = [] →
+    ctx.url.isSpecial = false → ctx.over = none → ¬ctx.url.scheme = "file" →
+    (∀ s ∈ segs, (∀ c ∈ s.toList, pathSet c = false ∧ ¬c = '/' ∧ ¬c = '?' ∧ ¬c = '#') ∧
+      isSingleDot s.toList = false ∧ isDoubleDot s.toList = false) →
+    run base .path (intercal segs ++ tail) ctx
+      = run base .path tail
+          { ctx with
+            url := { ctx.url with path := .list (pre ++ segs.dropLast) }
+            buffer := (segs.getLast?.getD "").toList } := by
+  intro segs
+  induction segs with
+  | nil =>
+    intro tail ctx pre hp hb _ _ _ _
+    simp only [intercal, List.nil_append, List.dropLast_nil, List.append_nil,
+      List.getLast?_nil, Option.getD_none]
+    have h1 : ({ ctx.url with path := Path.list pre } : Url) = ctx.url := by rw [← hp]
+    have h2 : ("" : String).toList = ctx.buffer := by rw [hb]; simp
+    rw [h1, h2]
+  | cons s rest ih =>
+    intro tail ctx pre hp hb hsp hov hnf hall
+    have hs := hall s (by simp)
+    cases rest with
+    | nil =>
+      show run base .path (s.toList ++ tail) ctx = _
+      rw [run_path_chunk base s.toList tail ctx hsp hov hs.1]
+      have h1 : ({ ctx.url with path := Path.list (pre ++ ([s] : List String).dropLast) } : Url)
+          = ctx.url := by
+        show ({ ctx.url with path := Path.list (pre ++ ([] : List String)) } : Url) = ctx.url
+        rw [List.append_nil, ← hp]
+      rw [h1, hb, List.nil_append]
+      simp
+    | cons t u =>
+      show run base .path ((s.toList ++ '/' :: intercal (t :: u)) ++ tail) ctx = _
+      rw [List.append_assoc]
+      rw [run_path_chunk base s.toList ('/' :: intercal (t :: u) ++ tail) ctx hsp hov hs.1]
+      rw [List.cons_append, run_path_slash]
+      rw [ih tail
+        { ctx with
+          url := pathStepUrl ctx.url true (ctx.buffer ++ s.toList)
+          buffer := [] } (pre ++ [s])
+        (by rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]) rfl
+        (by rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]; exact hsp)
+        hov
+        (by rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]; exact hnf)
+        (fun x hx => hall x (by simp [hx]))]
+      rw [hb, List.nil_append, pathStepUrl_append hp hnf hs.2.1 hs.2.2]
+      simp [List.append_assoc]
+
+/-- path の serialize は `/` と segment を交互に並べたものである。 -/
+theorem pathSerializer_intercal : ∀ (segs : List String), segs ≠ [] →
+    (pathSerializer (.list segs)).toList = '/' :: intercal segs
+  | [], h => absurd rfl h
+  | [s], _ => by
+    rw [pathSerializer_cons]
+    simp [intercal]
+  | s :: t :: u, _ => by
+    rw [pathSerializer_cons]
+    have hrec : (t :: u).foldl (fun a x => a ++ "/" ++ x) "" = pathSerializer (.list (t :: u)) := rfl
+    rw [hrec]
+    rw [show ("/" ++ s ++ pathSerializer (.list (t :: u))).toList
+        = ("/" ++ s).toList ++ (pathSerializer (.list (t :: u))).toList from by simp]
+    rw [pathSerializer_intercal (t :: u) (by simp)]
+    simp [intercal]
+
+/-- `intercal` に現れる文字は `/` か segment の文字である。 -/
+theorem intercal_mem : ∀ (segs : List String) (c : Char), c ∈ intercal segs →
+    c = '/' ∨ ∃ s ∈ segs, c ∈ s.toList
+  | [], c, h => by simp [intercal] at h
+  | [s], c, h => Or.inr ⟨s, by simp, by simpa [intercal] using h⟩
+  | s :: t :: u, c, h => by
+    simp only [intercal, List.mem_append, List.mem_cons] at h
+    rcases h with h | h | h
+    · exact Or.inr ⟨s, by simp, h⟩
+    · exact Or.inl h
+    · rcases intercal_mem (t :: u) c h with h2 | ⟨x, hx, hc⟩
+      · exact Or.inl h2
+      · exact Or.inr ⟨x, by simp [hx], hc⟩
+
+/-- path set に入らない文字は C0 control percent-encode set にも入らない。 -/
+theorem c0Set_of_pathSet {c : Char} (h : pathSet c = false) : c0ControlSet c = false := by
+  simp only [pathSet, querySet, Bool.or_eq_false_iff] at h
+  exact h.1.1.1.1.1.1.1.1.1.1
+
+/-- path set に入らない文字は space でもない。 -/
+theorem ne_space_of_pathSet {c : Char} (h : pathSet c = false) : ¬c = ' ' := by
+  intro he; rw [he] at h; revert h; decide
+
+/-- scheme state の `:`：続きが `/` なら path or authority state へ。 -/
+theorem run_scheme_pathOrAuthority (base : Option Url) (rest2 : List Char) (ctx : PCtx)
+    (hov : ctx.over = none)
+    (hf : ¬(String.ofList ctx.buffer = "file"))
+    (hsp : isSpecialScheme (String.ofList ctx.buffer) = false) :
+    run base .scheme (':' :: '/' :: rest2) ctx
+      = run base .pathOrAuthority rest2
+          { ctx with
+            url := { ctx.url with scheme := String.ofList ctx.buffer }
+            buffer := [] } := by
+  rw [run, step]
+  rw [if_neg (by decide), if_pos (by decide)]
+  simp only [hov, Option.isSome_none, Bool.false_eq_true, if_false]
+  rw [if_neg (by simpa using hf), if_neg (by simp [Url.isSpecial, hsp]),
+    if_neg (by simp [Url.isSpecial, hsp])]
+
+/-- path or authority state：`/` でなければ path state へ、読んだ文字ごと渡す。 -/
+theorem run_pathOrAuthority_path (base : Option Url) (l : List Char) (ctx : PCtx)
+    (h : ∀ c ∈ l.head?, ¬c = '/') :
+    run base .pathOrAuthority l ctx = run base .path l ctx := by
+  cases l with
+  | nil => rw [run, step]; simp
+  | cons c t =>
+    rw [run, step]
+    rw [if_neg (by simpa using h c rfl)]
+
+/-- segment の列の先頭の文字は、先頭 segment の文字である（先頭が空でなければ）。 -/
+theorem intercal_head_ne_slash : ∀ (segs : List String) (c : Char),
+    (∀ x t, segs = x :: t → t ≠ [] → ¬x = "") →
+    (∀ x ∈ segs, ∀ d ∈ x.toList, ¬d = '/') →
+    c ∈ (intercal segs).head? → ¬c = '/'
+  | [], c, _, _, h => by simp [intercal] at h
+  | [x], c, _, hall, h => by
+    refine hall x (by simp) c ?_
+    simpa [intercal] using List.mem_of_mem_head? h
+  | x :: y :: u, c, hfirst, hall, h => by
+    have hx : ¬x = "" := hfirst x (y :: u) rfl (by simp)
+    have hxl : x.toList ≠ [] := by simp_all
+    cases hxx : x.toList with
+    | nil => exact absurd hxx hxl
+    | cons d t =>
+      refine hall x (by simp) c ?_
+      simp only [intercal, hxx, List.cons_append, List.head?_cons, Option.mem_def,
+        Option.some.injEq] at h
+      rw [hxx, ← h]
+      simp
+
+/-- 最後の segment を戻すと元の列になる。 -/
+theorem dropLast_getLast? : ∀ (l : List String), l ≠ [] →
+    l.dropLast ++ [l.getLast?.getD ""] = l
+  | [], h => absurd rfl h
+  | [s], _ => by simp
+  | s :: t :: u, _ => by
+    rw [List.dropLast_cons_cons, List.getLast?_cons_cons, List.cons_append,
+      dropLast_getLast? (t :: u) (by simp)]
+
+/-- scheme に使える文字は C0 control でも space でもない。 -/
+theorem ne_c0_of_schemeChar {c : Char} (h : schemeChar c = true) :
+    isC0ControlOrSpace c = false := by
+  simp only [schemeChar, isAsciiAlphanumeric, isAsciiDigit, isAsciiAlpha, isAsciiUpperAlpha,
+    isAsciiLowerAlpha, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at h
+  simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+  rcases h with (((h | h | h) | h) | h) | h <;> first | omega | (subst h; decide)
+
+/--
+**`/` で始まる path を持つ URL は、serialize して parse し直すと元に戻る。**
+
+`parse ∘ serialize = id` のうち、host を持たない非 special な URL の経路
+（scheme start → scheme → path or authority → path）である。
+先頭 segment が空で segment が二つ以上のときは serializer が `/.` を前置するので、
+その場合は除いてある。
+-/
+theorem roundtrip_path {s : String} {segs : List String} {a : Char} {rest : List Char}
+    (hs : s.toList = a :: rest) (ha : isAsciiLowerAlpha a = true)
+    (hr : ∀ c ∈ rest, schemeChar c = true)
+    (hlow : s.toList.map asciiLowerChar = s.toList)
+    (hsp : isSpecialScheme s = false)
+    (hne : segs ≠ [])
+    (hfirst : ∀ x t, segs = x :: t → t ≠ [] → ¬x = "")
+    (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ ¬c = '/' ∧ ¬c = '?' ∧ ¬c = '#') ∧
+      isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
+    basicUrlParse (urlSerializer { scheme := s, path := .list segs }) none
+      = some { scheme := s, path := .list segs } := by
+  have haa : isAsciiAlpha a = true := by
+    simp only [isAsciiAlpha, Bool.or_eq_true]; exact Or.inr ha
+  have hstr : (urlSerializer { scheme := s, path := .list segs }).toList
+      = s.toList ++ ':' :: '/' :: intercal segs := by
+    have hout : serializerTail { scheme := s, path := .list segs } false
+        = pathSerializer (.list segs) := by
+      simp only [serializerTail]
+      cases segs with
+      | nil => exact absurd rfl hne
+      | cons x t =>
+        cases t with
+        | nil => simp
+        | cons y u =>
+          simp only []
+          rw [if_neg (by simpa using hfirst x (y :: u) rfl (by simp))]
+          simp
+    simp only [urlSerializer, hout]
+    rw [show (s ++ ":" ++ pathSerializer (.list segs)).toList
+        = (s ++ ":").toList ++ (pathSerializer (.list segs)).toList from by simp]
+    rw [pathSerializer_intercal segs hne]
+    simp
+  have hbuf : ([] : List Char) ++ [asciiLowerChar a] ++ rest.map asciiLowerChar = s.toList := by
+    rw [List.nil_append, List.singleton_append, ← List.map_cons, ← hs, hlow]
+  have hfile : ¬s = "file" := by
+    intro he; rw [he] at hsp; exact absurd hsp (by decide)
+  have hallc : ∀ c ∈ s.toList ++ ':' :: '/' :: intercal segs, isC0ControlOrSpace c = false := by
+    intro c hcm
+    rcases List.mem_append.mp hcm with hcm | hcm
+    · rw [hs] at hcm
+      rcases List.mem_cons.mp hcm with rfl | hcm
+      · simp only [isAsciiLowerAlpha, Bool.and_eq_true, decide_eq_true_eq] at ha
+        simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+        omega
+      · exact ne_c0_of_schemeChar (hr c hcm)
+    · rcases List.mem_cons.mp hcm with rfl | hcm
+      · decide
+      · rcases List.mem_cons.mp hcm with rfl | hcm
+        · decide
+        · rcases intercal_mem segs c hcm with rfl | ⟨x, hx, hc⟩
+          · decide
+          · exact ne_c0_of_c0Set (c0Set_of_pathSet ((hall x hx).1 c hc).1)
+              (ne_space_of_pathSet ((hall x hx).1 c hc).1)
+  have hpre : preprocess (urlSerializer { scheme := s, path := .list segs })
+      = s.toList ++ ':' :: '/' :: intercal segs := by
+    rw [preprocess_eq_self ?head ?last ?tab, hstr]
+    case head =>
+      intro c hcm
+      rw [hstr] at hcm
+      exact hallc c (List.mem_of_mem_head? hcm)
+    case last =>
+      intro c hcm
+      rw [hstr, List.head?_reverse] at hcm
+      exact hallc c (List.mem_of_mem_getLast? hcm)
+    case tab =>
+      intro c hcm
+      rw [hstr] at hcm
+      have := hallc c hcm
+      simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le] at this
+      omega
+  -- 最後の segment を取り出す。
+  cases hlast : segs.getLast? with
+  | none => exact absurd (List.getLast?_eq_none_iff.mp hlast) hne
+  | some last =>
+    have hlmem : last ∈ segs := List.mem_of_mem_getLast? hlast
+    unfold basicUrlParse
+    rw [hpre, hs, List.cons_append]
+    rw [run_schemeStart_step none _ a (rest ++ ':' :: '/' :: intercal segs) haa]
+    rw [run_scheme_prefix none rest (':' :: '/' :: intercal segs) _ hr]
+    rw [run_scheme_pathOrAuthority none (intercal segs) _ rfl
+      (by rw [hbuf, String.ofList_toList]; exact hfile)
+      (by rw [hbuf, String.ofList_toList]; exact hsp)]
+    rw [hbuf, String.ofList_toList]
+    rw [run_pathOrAuthority_path none (intercal segs) _
+      (fun c hc => intercal_head_ne_slash segs c hfirst
+        (fun x hx d hd => ((hall x hx).1 d hd).2.1) hc)]
+    rw [show intercal segs = intercal segs ++ ([] : List Char) from by simp]
+    rw [run_path_segs none segs [] _ [] rfl rfl (by simp [Url.isSpecial, hsp]) rfl hfile hall]
+    rw [run_path_eof]
+    rw [hlast]
+    simp only [Option.getD_some]
+    rw [pathStepUrl_append (pre := ([] : List String) ++ segs.dropLast) rfl hfile
+      (hall last hlmem).2.1 (hall last hlmem).2.2]
+    simp only [List.nil_append]
+    rw [show segs.dropLast ++ [last] = segs from by
+      have := dropLast_getLast? segs hne
+      rw [hlast] at this
+      simpa using this]
+
+/-- 仮定が空でないことの確認。`sc:/a/b` は実際にこの形である。 -/
+example : basicUrlParse (urlSerializer { scheme := "sc", path := .list ["a", "b"] }) none
+    = some { scheme := "sc", path := .list ["a", "b"] } :=
+  roundtrip_path (a := 's') (rest := ['c']) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide)
+    (by intro x t h _; simp only [List.cons.injEq] at h; rw [← h.1]; simp)
+    (by decide)
 
 /-! ## 組み立て -/
 
