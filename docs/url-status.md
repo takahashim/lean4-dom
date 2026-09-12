@@ -200,10 +200,21 @@ theorem decodeDigits_encodeDigits (bias : Nat) :
 
 ### 段取り
 
-1. **済。** 走査 1 回分の双模倣（`decode_scan`）。一歩分は `decode_emit` で、
-   pass の最初の吐き出しで `n` が `m` まで跳ぶ場合も同じ式に含めてある。
+1. **済。** pass 1 回分の双模倣（`decode_scan`）。復号の code point を状態に入れたので、
+   `n` が `m` まで跳ぶ最初の吐き出しも同じ一本に入っている。
+   走査の後の符号化状態が復号状態と一致することも付いた
+   （`passRun_inv`, `scanFold_passRun`）。
 2. 外側のループ（`sortedDistinct` の順に `m` を上げていく）の双模倣。**不変条件は出た。**
 3. 組み上げ。
+
+pass の不変条件は次の一本である。
+
+```
+A.length + (m - n) * N = i + delta        N = A.length + B.length + 1
+```
+
+最初の吐き出しの前は跳びが残っていて、後は跳びが消えて `A.length = i + delta` になる。
+同じ式で両方を書けるのが要点で、これが無いと pass の前口上を別に扱うことになる。
 
 ### pass の境目で保たれるもの（導出済み）
 
