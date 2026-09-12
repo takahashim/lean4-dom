@@ -315,6 +315,13 @@ open Dom.Audit
   Url.pathSerializer_pathChars
   Url.run_pathStart_segs
   Url.roundtrip_authority
+  Url.isTerminator_false
+  Url.run_scheme_specialAuthoritySlashes
+  Url.run_specialAuthoritySlashes
+  Url.run_specialAuthorityIgnoreSlashes
+  Url.run_pathStart_slash_special
+  Url.run_pathStart_eof_special
+  Url.roundtrip_special
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms
