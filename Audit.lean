@@ -304,6 +304,17 @@ open Dom.Audit
   Url.dropLast_getLast?
   Url.ne_c0_of_schemeChar
   Url.roundtrip_path
+  Url.run_pathOrAuthority_authority
+  Url.run_authority_host
+  Url.run_host_chunk
+  Url.run_host_pathStart
+  Url.run_pathStart_slash
+  Url.run_pathStart_eof
+  Url.hostParser_opaque_no_forbidden
+  Url.not_forbidden_host
+  Url.pathSerializer_pathChars
+  Url.run_pathStart_segs
+  Url.roundtrip_authority
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms

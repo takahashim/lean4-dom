@@ -28,8 +28,10 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 
 * `roundtrip_opaque`：scheme start → scheme → opaque path → query → fragment
 * `roundtrip_path`：scheme start → scheme → path or authority → path
+* `roundtrip_authority`：scheme start → scheme → path or authority → authority → host
+  → path start → path
 
-どちらも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
+どれも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
 作り方は state ごとの等式を積む形で、`Url/ApiValid.lean` の setter の肯定側と同じである。
 一つの state について三種類を用意する。
@@ -38,8 +40,9 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
-path を通る経路（host を持たない非 special な URL）も同じ形で閉じた（`roundtrip_path`）。
-残りは authority / host / port を通る経路、つまり `//` で始まる URL である。
+残っているのは special な URL（`http:` など）と、credentials・port・IPv6 host である。
+special な URL は file state と special authority slashes state が加わり、
+port は port state が加わる。どれも同じ形で積める見込みである。
 -/
 
 namespace Url
@@ -965,5 +968,323 @@ example : basicUrlParse (urlSerializer
     = some { scheme := "sc", path := .opaque "x", query := some "a", fragment := some "b" } :=
   roundtrip_opaque (a := 's') (rest := ['c']) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+
+/-! ## authority
+
+`//` で始まる URL の経路。authority state が buffer を host state へ戻し、
+host state が host parser を呼ぶ。credentials と port はまだ扱っていない。
+-/
+
+/-- path or authority state：`/` なら authority state へ。 -/
+theorem run_pathOrAuthority_authority (base : Option Url) (rest : List Char) (ctx : PCtx) :
+    run base .pathOrAuthority ('/' :: rest) ctx = run base .authority rest ctx := by
+  rw [run, step]
+  simp
+
+/--
+authority state が `@` も区切りも無い文字列を読み切って host state へ渡す。
+
+`@` が無いので credentials は書かれない。buffer は host state の入力の先頭に戻る。
+-/
+theorem run_authority_host (base : Option Url) : ∀ (l tail : List Char) (ctx : PCtx),
+    ctx.url.isSpecial = false → ctx.atSignSeen = false →
+    (∀ c ∈ l, ¬c = '@' ∧ isTerminator false (some c) = false) →
+    (∀ c ∈ tail.head?, isTerminator false (some c) = true) →
+    run base .authority (l ++ tail) ctx
+      = run base .host (ctx.buffer ++ l ++ tail) { ctx with buffer := [] } := by
+  intro l
+  induction l with
+  | nil =>
+    intro tail ctx hsp has _ ht
+    simp only [List.nil_append, List.append_nil]
+    cases tail with
+    | nil =>
+      rw [run, step]
+      rw [if_neg (by simp [has])]
+    | cons t ts =>
+      have htt := ht t rfl
+      have hat : ¬t = '@' := by
+        intro he; rw [he] at htt; simp [isTerminator] at htt
+      rw [run, step]
+      simp only [hsp]
+      rw [if_neg (by simpa using hat), if_pos (by simpa using htt), if_neg (by simp [has])]
+  | cons c l' ih =>
+    intro tail ctx hsp has h ht
+    have hc := h c (by simp)
+    simp only [List.cons_append]
+    rw [run, step]
+    simp only [hsp]
+    rw [if_neg (by simpa using hc.1), if_neg (by simpa using hc.2)]
+    rw [ih tail { ctx with buffer := ctx.buffer ++ [c] } hsp has
+      (fun x hx => h x (by simp [hx])) ht]
+    simp
+
+/-- host state が区切りでも `:` でも bracket でもない文字を読み切る。override が無い側。 -/
+theorem run_host_chunk (base : Option Url) : ∀ (l tail : List Char) (ctx : PCtx),
+    ctx.over = none → ctx.url.isSpecial = false → ctx.insideBrackets = false →
+    (∀ c ∈ l, ¬c = ':' ∧ isTerminator false (some c) = false ∧ ¬c = '[' ∧ ¬c = ']') →
+    run base .host (l ++ tail) ctx = run base .host tail { ctx with buffer := ctx.buffer ++ l } := by
+  intro l
+  induction l with
+  | nil => intro tail ctx _ _ _ _; simp
+  | cons c l' ih =>
+    intro tail ctx hov hsp hib h
+    have hc := h c (by simp)
+    simp only [List.cons_append]
+    rw [run, step]
+    rw [if_neg (by simp [hov])]
+    rw [if_neg (by simp [hc.1])]
+    rw [if_neg (by simpa [hsp] using hc.2.1)]
+    have hib2 : (if (c == '[') = true then true else if (c == ']') = true then false
+        else ctx.insideBrackets) = false := by simp [hc.2.2.1, hc.2.2.2, hib]
+    simp +zetaDelta only [hib2]
+    rw [ih tail { ctx with buffer := ctx.buffer ++ [c], insideBrackets := false } hov hsp rfl
+      (fun x hx => h x (by simp [hx]))]
+    simp [← hib]
+
+/-- host state の区切り。buffer を host parser に渡して path start state へ移る。 -/
+theorem run_host_pathStart (base : Option Url) (tail : List Char) (ctx : PCtx) (hst : Host)
+    (hov : ctx.over = none) (hsp : ctx.url.isSpecial = false)
+    (ht : ∀ c ∈ tail.head?, isTerminator false (some c) = true ∧ ¬c = ':')
+    (hp : hostParser ctx.toAscii ctx.buffer true = some hst) :
+    run base .host tail ctx
+      = run base .pathStart tail
+          { ctx with url := { ctx.url with host := some hst }, buffer := [] } := by
+  cases tail with
+  | nil =>
+    rw [run, step]
+    rw [if_neg (by simp [hov])]
+    rw [if_neg (by simp)]
+    rw [if_pos (by simp [isTerminator])]
+    rw [if_neg (by simp [hsp])]
+    rw [if_neg (by simp [hov])]
+    simp only [hsp, Bool.not_false, hp]
+    rw [if_neg (by simp [hov])]
+  | cons t ts =>
+    have htt := ht t rfl
+    rw [run, step]
+    rw [if_neg (by simp [hov])]
+    rw [if_neg (by simp [htt.2])]
+    rw [if_pos (by simpa [hsp] using htt.1)]
+    rw [if_neg (by simp [hsp])]
+    rw [if_neg (by simp [hov])]
+    simp only [hsp, Bool.not_false, hp]
+    rw [if_neg (by simp [hov])]
+
+/-- path start state：非 special で override が無いとき、`/` を一つ落として path state へ。 -/
+theorem run_pathStart_slash (base : Option Url) (rest : List Char) (ctx : PCtx)
+    (hsp : ctx.url.isSpecial = false) (hov : ctx.over = none) :
+    run base .pathStart ('/' :: rest) ctx = run base .path rest ctx := by
+  rw [run, step]
+  rw [if_neg (by simp [hsp])]
+  rw [if_neg (by simp [hov])]
+  rw [if_neg (by simp [hov])]
+  simp
+
+/-- path start state の終わり。override が無ければ path は空のまま。 -/
+theorem run_pathStart_eof (base : Option Url) (ctx : PCtx)
+    (hsp : ctx.url.isSpecial = false) (hov : ctx.over = none) :
+    run base .pathStart [] ctx = .ok ctx.url := by
+  rw [run, step]
+  rw [if_neg (by simp [hsp])]
+  rw [if_neg (by simp [hov])]
+  rw [if_neg (by simp [hov])]
+  simp [hov]
+
+/-- opaque host parser を通ったなら、入力に forbidden host code point は無い。 -/
+theorem hostParser_opaque_no_forbidden {f : List Char → Option String} {input : List Char}
+    {h : Host} (hb : ∀ c ∈ input.head?, ¬c = '[') (hp : hostParser f input true = some h) :
+    input.any isForbiddenHost = false := by
+  unfold hostParser at hp
+  split at hp
+  · exact absurd (hb '[' rfl) (by simp)
+  · rw [if_pos rfl] at hp
+    exact opaqueHostParser_no_forbidden hp
+
+/-- forbidden host code point でなければ、host state も authority state も読み進む。 -/
+theorem not_forbidden_host {c : Char} (h : isForbiddenHost c = false) :
+    ¬c = '@' ∧ ¬c = ':' ∧ ¬c = '[' ∧ ¬c = ']' ∧ isTerminator false (some c) = false := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro he; rw [he] at h; revert h; decide
+  · intro he; rw [he] at h; revert h; decide
+  · intro he; rw [he] at h; revert h; decide
+  · intro he; rw [he] at h; revert h; decide
+  · simp only [isTerminator, Bool.false_and, Bool.or_false, Bool.or_eq_false_iff,
+      beq_eq_false_iff_ne, ne_eq]
+    refine ⟨⟨?_, ?_⟩, ?_⟩ <;> (intro he; rw [he] at h; revert h; decide)
+
+/-- serializer が path を並べる分（host の後ろ）。 -/
+def pathChars : List String → List Char
+  | [] => []
+  | s :: rest => '/' :: intercal (s :: rest)
+
+/-- path の serialize は `pathChars` である。 -/
+theorem pathSerializer_pathChars : ∀ (segs : List String),
+    (pathSerializer (.list segs)).toList = pathChars segs
+  | [] => rfl
+  | s :: rest => by rw [pathSerializer_intercal (s :: rest) (by simp)]; rfl
+
+/-- host の後ろの path を読み切る。 -/
+theorem run_pathStart_segs (base : Option Url) (segs : List String) (ctx : PCtx)
+    (hsp : ctx.url.isSpecial = false) (hov : ctx.over = none)
+    (hpath : ctx.url.path = .list []) (hb : ctx.buffer = []) (hnf : ¬ctx.url.scheme = "file")
+    (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ ¬c = '/' ∧ ¬c = '?' ∧ ¬c = '#') ∧
+      isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
+    run base .pathStart (pathChars segs) ctx = .ok { ctx.url with path := .list segs } := by
+  cases hseg : segs with
+  | nil =>
+    show run base .pathStart [] ctx = _
+    rw [run_pathStart_eof base ctx hsp hov, ← hpath]
+  | cons x t =>
+    show run base .pathStart ('/' :: intercal (x :: t)) ctx = _
+    rw [run_pathStart_slash base (intercal (x :: t)) ctx hsp hov]
+    rw [show intercal (x :: t) = intercal (x :: t) ++ ([] : List Char) from by simp]
+    rw [run_path_segs base (x :: t) [] ctx [] hpath hb hsp hov hnf (by rw [← hseg]; exact hall)]
+    rw [run_path_eof]
+    cases hlast : (x :: t).getLast? with
+    | none => simp at hlast
+    | some last =>
+      have hlmem : last ∈ (x :: t) := List.mem_of_mem_getLast? hlast
+      have hlall := hall last (by rw [hseg]; exact hlmem)
+      simp only [Option.getD_some, List.nil_append]
+      rw [pathStepUrl_append
+        (u := { ctx.url with path := Path.list (x :: t).dropLast })
+        (pre := (x :: t).dropLast) rfl hnf hlall.2.1 hlall.2.2]
+      rw [show (x :: t).dropLast ++ [last] = x :: t from by
+        have := dropLast_getLast? (x :: t) (by simp)
+        rw [hlast] at this
+        simpa using this]
+
+/--
+**host を持つ非 special な URL も、serialize して parse し直すと元に戻る。**
+
+`parse ∘ serialize = id` の三つ目の経路
+（scheme start → scheme → path or authority → authority → host → path start → path）である。
+credentials と port が無く、host が IPv6 でない場合を扱う。
+-/
+theorem roundtrip_authority {s : String} {hst : Host} {segs : List String} {a : Char}
+    {rest : List Char}
+    (hs : s.toList = a :: rest) (ha : isAsciiLowerAlpha a = true)
+    (hr : ∀ c ∈ rest, schemeChar c = true)
+    (hlow : s.toList.map asciiLowerChar = s.toList)
+    (hsp : isSpecialScheme s = false)
+    (hcan : hostParser asciiDomainToASCII (hostSerializer hst).toList true = some hst)
+    (hnb : ∀ c ∈ (hostSerializer hst).toList.head?, ¬c = '[')
+    (hnc : ∀ c ∈ (hostSerializer hst).toList, isC0ControlOrSpace c = false)
+    (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ ¬c = '/' ∧ ¬c = '?' ∧ ¬c = '#') ∧
+      isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
+    basicUrlParse (urlSerializer { scheme := s, host := some hst, path := .list segs }) none
+      = some { scheme := s, host := some hst, path := .list segs } := by
+  have haa : isAsciiAlpha a = true := by
+    simp only [isAsciiAlpha, Bool.or_eq_true]; exact Or.inr ha
+  have hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false := by
+    have := hostParser_opaque_no_forbidden hnb hcan
+    simpa using this
+  have hbuf : ([] : List Char) ++ [asciiLowerChar a] ++ rest.map asciiLowerChar = s.toList := by
+    rw [List.nil_append, List.singleton_append, ← List.map_cons, ← hs, hlow]
+  have hfile : ¬s = "file" := by
+    intro he; rw [he] at hsp; exact absurd hsp (by decide)
+  have hstr : (urlSerializer { scheme := s, host := some hst, path := .list segs }).toList
+      = s.toList ++ ':' :: '/' :: '/' :: ((hostSerializer hst).toList ++ pathChars segs) := by
+    have hout : serializerTail { scheme := s, host := some hst, path := .list segs } false
+        = "//" ++ hostSerializer hst ++ pathSerializer (.list segs) := by
+      simp [serializerTail, Url.includesCredentials]
+    simp only [urlSerializer, hout]
+    rw [show (s ++ ":" ++ ("//" ++ hostSerializer hst ++ pathSerializer (.list segs))).toList
+        = (s ++ ":").toList ++ ("//").toList ++ (hostSerializer hst).toList
+          ++ (pathSerializer (.list segs)).toList from by simp]
+    rw [pathSerializer_pathChars]
+    simp
+  have hallc : ∀ c ∈ s.toList ++ ':' :: '/' :: '/' :: ((hostSerializer hst).toList ++ pathChars segs),
+      isC0ControlOrSpace c = false := by
+    intro c hcm
+    rcases List.mem_append.mp hcm with hcm | hcm
+    · rw [hs] at hcm
+      rcases List.mem_cons.mp hcm with rfl | hcm
+      · simp only [isAsciiLowerAlpha, Bool.and_eq_true, decide_eq_true_eq] at ha
+        simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+        omega
+      · exact ne_c0_of_schemeChar (hr c hcm)
+    · rcases List.mem_cons.mp hcm with rfl | hcm
+      · decide
+      · rcases List.mem_cons.mp hcm with rfl | hcm
+        · decide
+        · rcases List.mem_cons.mp hcm with rfl | hcm
+          · decide
+          · rcases List.mem_append.mp hcm with hcm | hcm
+            · exact hnc c hcm
+            · cases segs with
+              | nil => simp [pathChars] at hcm
+              | cons x t =>
+                rcases List.mem_cons.mp hcm with rfl | hcm
+                · decide
+                · rcases intercal_mem (x :: t) c hcm with rfl | ⟨y, hy, hcy⟩
+                  · decide
+                  · exact ne_c0_of_c0Set (c0Set_of_pathSet ((hall y hy).1 c hcy).1)
+                      (ne_space_of_pathSet ((hall y hy).1 c hcy).1)
+  have hpre : preprocess (urlSerializer { scheme := s, host := some hst, path := .list segs })
+      = s.toList ++ ':' :: '/' :: '/' :: ((hostSerializer hst).toList ++ pathChars segs) := by
+    rw [preprocess_eq_self ?head ?last ?tab, hstr]
+    case head =>
+      intro c hcm
+      rw [hstr] at hcm
+      exact hallc c (List.mem_of_mem_head? hcm)
+    case last =>
+      intro c hcm
+      rw [hstr, List.head?_reverse] at hcm
+      exact hallc c (List.mem_of_mem_getLast? hcm)
+    case tab =>
+      intro c hcm
+      rw [hstr] at hcm
+      have := hallc c hcm
+      simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le] at this
+      omega
+  have htail : ∀ c ∈ (pathChars segs).head?, isTerminator false (some c) = true := by
+    intro c hc
+    cases segs with
+    | nil => simp [pathChars] at hc
+    | cons x t =>
+      simp only [pathChars, List.head?_cons, Option.mem_def, Option.some.injEq] at hc
+      rw [← hc]
+      decide
+  unfold basicUrlParse
+  rw [hpre, hs, List.cons_append]
+  rw [run_schemeStart_step none _ a
+    (rest ++ ':' :: '/' :: '/' :: ((hostSerializer hst).toList ++ pathChars segs)) haa]
+  rw [run_scheme_prefix none rest
+    (':' :: '/' :: '/' :: ((hostSerializer hst).toList ++ pathChars segs)) _ hr]
+  rw [run_scheme_pathOrAuthority none ('/' :: ((hostSerializer hst).toList ++ pathChars segs)) _ rfl
+    (by rw [hbuf, String.ofList_toList]; exact hfile)
+    (by rw [hbuf, String.ofList_toList]; exact hsp)]
+  rw [hbuf, String.ofList_toList]
+  rw [run_pathOrAuthority_authority]
+  rw [run_authority_host none (hostSerializer hst).toList (pathChars segs) _
+    (by simp [Url.isSpecial, hsp]) rfl
+    (fun c hc => ⟨(not_forbidden_host (hhostc c hc)).1,
+      (not_forbidden_host (hhostc c hc)).2.2.2.2⟩) htail]
+  simp only [List.nil_append]
+  rw [run_host_chunk none (hostSerializer hst).toList (pathChars segs) _ rfl
+    (by simp [Url.isSpecial, hsp]) rfl
+    (fun c hc => ⟨(not_forbidden_host (hhostc c hc)).2.1,
+      (not_forbidden_host (hhostc c hc)).2.2.2.2,
+      (not_forbidden_host (hhostc c hc)).2.2.1,
+      (not_forbidden_host (hhostc c hc)).2.2.2.1⟩)]
+  rw [run_host_pathStart none (pathChars segs) _ hst rfl (by simp [Url.isSpecial, hsp])
+    (fun c hc => ⟨htail c hc, by
+      cases segs with
+      | nil => simp [pathChars] at hc
+      | cons x t =>
+        simp only [pathChars, List.head?_cons, Option.mem_def, Option.some.injEq] at hc
+        rw [← hc]; decide⟩)
+    (by simpa using hcan)]
+  rw [run_pathStart_segs none segs _ (by simp [Url.isSpecial, hsp]) rfl rfl rfl
+    (by simpa using hfile) hall]
+
+/-- 仮定が空でないことの確認。`sc://h/a` は実際にこの形である。 -/
+example : basicUrlParse
+      (urlSerializer { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] }) none
+    = some { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] } :=
+  roundtrip_authority (a := 's') (rest := ['c']) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (by decide) (by decide)
 
 end Url

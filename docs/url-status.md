@@ -589,6 +589,7 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | --- | --- |
 | `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が付いてもよい） |
 | `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。先頭 segment が空で二つ以上のときは serializer が `/.` を足すので除く） |
+| `roundtrip_authority` | **host を持つ非 special な URL も戻る**（`sc://h/a` の形。credentials と port と IPv6 host は除く） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
 | `run_scheme_prefix`, `run_scheme_opaque` | scheme state が buffer に積み、`:` で opaque path state へ渡す |
@@ -597,15 +598,22 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | `run_fragment_plain` | fragment state は素通しの文字をそのまま fragment に足す |
 | `run_opaquePath_qf` | query と fragment の有無の四通りをまとめて読み切る |
 
-閉じたのは二つの経路である。
+閉じたのは三つの経路である。
 
 * scheme start → scheme → opaque path → query → fragment
 * scheme start → scheme → path or authority → path
+* scheme start → scheme → path or authority → authority → host → path start → path
 
 state ごとに「区切りでない文字を読み切る（chunk）」「区切りで次へ渡す」「EOF で返す」の
 三つを用意して積む。path は segment の列についての帰納法が一つ増える
 （最後の segment は buffer に残ったまま次へ渡る）。
-残りは authority / host / port を通る経路、つまり `//` で始まる URL である。
+残っているのは special な URL（`http:` など）と、credentials・port・IPv6 host である。
+special な URL は file state と special authority slashes state が加わり、
+port は port state が加わる。どれも同じ形で積める見込みである。
+
+host の条件は `hostParser (hostSerializer h) = some h`（canonical form の一つ）から出る。
+`opaqueHostParser_no_forbidden` が「host parser を通った入力に forbidden host code point は
+無い」と言うので、`@` も `:` も区切りも bracket も無いことが、そこから一度に出る。
 
 `canonicalUrl` の条件がまた一つ増えた。**host が null で path が空の record**は
 serialize すると path の跡が消え（`sc:` になり）、parse し直すと opaque path になる。
