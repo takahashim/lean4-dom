@@ -561,6 +561,27 @@ open Dom.Audit
   Url.hostParser_opaque_id
   Url.hostParser_domain_id
 
+-- URL Standard §3.3 / §3.5 IPv6 の往復（圧縮しない場合）
+#audit_axioms
+  Url.hexFold_acc
+  Url.hexValueOf_append
+  Url.hexValue_hexChar
+  Url.hexValueOf_toHexStringGo
+  Url.hexValueOf_toHexString
+  Url.toHexStringGo_hex
+  Url.toHexString_hex
+  Url.toHexStringGo_length
+  Url.toHexString_length
+  Url.takeHex_append
+  Url.takeHex_toHexString
+  Url.toHexStringGo_ne_nil
+  Url.toHexString_ne_nil
+  Url.toHexString_head
+  Url.ipv6Loop_piece
+  Url.ipv6Loop_last
+  Url.ipv6Serializer_go_nocompress
+  Url.ipv6Parser_serializer_nocompress
+
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms
   Infra.lexLt_self
