@@ -1017,4 +1017,99 @@ theorem setPathname_spec (u : Url) (v : String) (seg : List Char)
   rw [if_neg (by simp [hdd]), if_neg (by simp [hsd])]
   simp [appendSegment, pathStepUrl.windowsDriveBuffer, hnf]
 
+/-! ### host / hostname
+
+`host` setter と `hostname` setter は同じ host state から入る。`:` を含まない入力では
+二つの違い（port を読むかどうか）が出ないので、同じ形の定理になる。
+-/
+
+/-- host state が素直に buffer へ積む文字。区切りと bracket と tab/newline を除く。 -/
+def plainHostChar (c : Char) : Bool :=
+  c != ':' && c != '/' && c != '?' && c != '#' && c != '\\' && c != '[' && c != ']' &&
+    c.toNat != 0x09 && c.toNat != 0x0A && c.toNat != 0x0D
+
+theorem plainHostChar_spec {c : Char} (h : plainHostChar c = true) :
+    c ≠ ':' ∧ c ≠ '/' ∧ c ≠ '?' ∧ c ≠ '#' ∧ c ≠ '\\' ∧ c ≠ '[' ∧ c ≠ ']' ∧
+      c.toNat ≠ 0x09 ∧ c.toNat ≠ 0x0A ∧ c.toNat ≠ 0x0D := by
+  simp only [plainHostChar, Bool.and_eq_true, bne_iff_ne, ne_eq] at h
+  exact ⟨h.1.1.1.1.1.1.1.1.1, h.1.1.1.1.1.1.1.1.2, h.1.1.1.1.1.1.1.2, h.1.1.1.1.1.1.2,
+    h.1.1.1.1.1.2, h.1.1.1.1.2, h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩
+
+/-- override 付きの host state は、区切りを含まない入力をそのまま `hostParser` に渡す。 -/
+theorem run_host_seg (base : Option Url) : ∀ (seg : List Char) (ctx : PCtx),
+    ctx.over.isSome = true → ¬(ctx.url.scheme = "file") → ctx.insideBrackets = false →
+    (∀ c ∈ seg, plainHostChar c = true) → ctx.buffer ++ seg ≠ [] →
+    run base .host seg ctx
+      = (match hostParser ctx.toAscii (ctx.buffer ++ seg) (!ctx.url.isSpecial) with
+         | none => .ok ctx.url
+         | some h => .ok { ctx.url with host := some h }) := by
+  intro seg
+  induction seg with
+  | nil =>
+    intro ctx ho hnf hib _ hne
+    simp only [List.append_nil] at hne ⊢
+    have hbne : ctx.buffer.isEmpty = false := by
+      cases hb : ctx.buffer with
+      | nil => exact absurd hb hne
+      | cons => rfl
+    rw [run, step]
+    rw [if_neg (by simp [hnf]), if_neg (by simp), if_pos (by simp [isTerminator]),
+      if_neg (by simp [hbne]), if_neg (by simp [hbne])]
+    cases hp : hostParser ctx.toAscii ctx.buffer (!ctx.url.isSpecial) with
+    | none => simpa using fail_over ho
+    | some h => simp [ho]
+  | cons c rest ih =>
+    intro ctx ho hnf hib hs hne
+    have hc := plainHostChar_spec (hs c (by simp))
+    rw [run, step]
+    rw [if_neg (by simp [hnf]), if_neg (by simp [hc.1]),
+      if_neg (by simp [isTerminator, hc.2.1, hc.2.2.1, hc.2.2.2.1, hc.2.2.2.2.1])]
+    have hib2 : (if (c == '[') = true then true else if (c == ']') = true then false
+        else ctx.insideBrackets) = false := by
+      simp [hc.2.2.2.2.2.1, hc.2.2.2.2.2.2.1, hib]
+    simp +zetaDelta only [hib2]
+    rw [ih { ctx with buffer := ctx.buffer ++ [c], insideBrackets := false } ho hnf rfl
+      (fun x hx => hs x (by simp [hx])) (by simp)]
+    simp
+
+/-- plain な文字だけなら前処理で変わらない。 -/
+theorem stripTabNewline_host {l : List Char} (h : ∀ c ∈ l, plainHostChar c = true) :
+    stripTabNewline l = l :=
+  stripTabNewline_eq_self fun c hc => by
+    have hx := plainHostChar_spec (h c hc)
+    exact ⟨hx.2.2.2.2.2.2.2.1, hx.2.2.2.2.2.2.2.2.1, hx.2.2.2.2.2.2.2.2.2⟩
+
+/--
+**`hostname` setter は、`hostParser` が返した host をそのまま入れる。**
+
+`:` を含まない入力の場合である（`:` は hostname setter ではそこで打ち切られる）。
+host の中身の意味は §3.2 host parser に委ねてある。
+-/
+theorem setHostname_spec (u : Url) (v : String) (toAscii : List Char → Option String) (h : Host)
+    (hop : u.hasOpaquePath = false) (hnf : ¬(u.scheme = "file"))
+    (hc : ∀ c ∈ v.toList, plainHostChar c = true) (hne : v.toList ≠ [])
+    (hh : hostParser toAscii v.toList (!u.isSpecial) = some h) :
+    (u.setHostname v toAscii).host = some h := by
+  unfold Url.setHostname
+  rw [if_neg (by simp [hop])]
+  simp only [basicUrlParseOverride, SOverride.start, stripTabNewline_host hc]
+  rw [run_host_seg none v.toList { url := u, over := some SOverride.hostname, toAscii } (by simp)
+    hnf rfl hc (by simpa using hne)]
+  simp only [List.nil_append, hh]
+  rfl
+
+/-- **`host` setter も、`:` を含まない入力なら同じである。** -/
+theorem setHost_spec (u : Url) (v : String) (toAscii : List Char → Option String) (h : Host)
+    (hop : u.hasOpaquePath = false) (hnf : ¬(u.scheme = "file"))
+    (hc : ∀ c ∈ v.toList, plainHostChar c = true) (hne : v.toList ≠ [])
+    (hh : hostParser toAscii v.toList (!u.isSpecial) = some h) :
+    (u.setHost v toAscii).host = some h := by
+  unfold Url.setHost
+  rw [if_neg (by simp [hop])]
+  simp only [basicUrlParseOverride, SOverride.start, stripTabNewline_host hc]
+  rw [run_host_seg none v.toList { url := u, over := some SOverride.host, toAscii } (by simp)
+    hnf rfl hc (by simpa using hne)]
+  simp only [List.nil_append, hh]
+  rfl
+
 end Url

@@ -222,6 +222,11 @@ open Dom.Audit
   Url.run_path_seg
   Url.run_pathStart_step
   Url.setPathname_spec
+  Url.plainHostChar_spec
+  Url.run_host_seg
+  Url.stripTabNewline_host
+  Url.setHostname_spec
+  Url.setHost_spec
   Url.setAttr_valid
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
