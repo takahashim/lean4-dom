@@ -28,8 +28,8 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 
 * `roundtrip_opaque`：scheme start → scheme → opaque path → query → fragment
 * `roundtrip_path`：scheme start → scheme → path or authority → path
-* `roundtrip_host`：host を持つ URL。`sc://h/a` も `http://h/a/b` も、credentials 付きも。
-  special かどうかは `sp : Bool` で持つ
+* `roundtrip_host`：host を持つ URL。`sc://h/a` も `http://h/a/b` も、credentials 付きも
+  port 付きも。special かどうかは `sp : Bool` で持つ
 
 どれも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
@@ -40,9 +40,11 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
-残っているのは port（port state）、IPv6 host（host parser の `[` の分岐）、
-`file:`（file state）、先頭 segment が空の path（serializer の `/.`）、
-それと host が空で path が空でない場合である。
+残っているのは IPv6 host（host parser の `[` の分岐）、`file:`（file state）、
+先頭 segment が空の path（serializer の `/.`）、それと host が空で path が空でない場合である。
+
+port には 10 進の往復（`portValue_toString`）が要った。`Nat.toDigitsCore` についての
+帰納法で、桁を積む向きと読む向きが逆になるので `portValue (l1 ++ l2)` の形を経由する。
 -/
 
 namespace Url
@@ -986,6 +988,192 @@ example : basicUrlParse (urlSerializer
   roundtrip_opaque (a := 's') (rest := ['c']) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
+/-! ## port
+
+10 進で書いた port を読み直すところ。`portValue_toString` が数の往復を言う。
+-/
+
+/-- 10 進の畳み込みは、初期値を桁数ぶん持ち上げる。 -/
+theorem portFold_acc : ∀ (l : List Char) (a : Nat),
+    l.foldl (fun acc c => acc * 10 + (digitValue c).getD 0) a
+      = a * 10 ^ l.length + l.foldl (fun acc c => acc * 10 + (digitValue c).getD 0) 0
+  | [], a => by simp
+  | c :: rest, a => by
+    show rest.foldl _ (a * 10 + (digitValue c).getD 0) = _
+    rw [portFold_acc rest (a * 10 + (digitValue c).getD 0)]
+    show _ = a * 10 ^ (rest.length + 1) + rest.foldl _ (0 * 10 + (digitValue c).getD 0)
+    rw [portFold_acc rest (0 * 10 + (digitValue c).getD 0)]
+    rw [Nat.pow_succ]
+    simp only [Nat.zero_mul, Nat.zero_add]
+    rw [Nat.add_mul, Nat.mul_assoc]
+    rw [Nat.mul_comm 10 (10 ^ rest.length), ← Nat.mul_assoc]
+    omega
+
+/-- 連結した 10 進の値。 -/
+theorem portValue_append (l1 l2 : List Char) :
+    portValue (l1 ++ l2) = portValue l1 * 10 ^ l2.length + portValue l2 := by
+  unfold portValue
+  rw [List.foldl_append, portFold_acc l2 (l1.foldl _ 0)]
+
+/-- `digitChar` の逆。 -/
+theorem digitValue_digitChar : ∀ (d : Nat), d < 10 → digitValue (Nat.digitChar d) = some d
+  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ | 6, _ | 7, _ | 8, _ | 9, _ => by decide
+  | _ + 10, h => absurd h (by omega)
+
+/-- `Nat.toDigitsCore` が積む桁の値。 -/
+theorem portValue_toDigitsCore : ∀ (fuel n : Nat) (ds : List Char), n < fuel →
+    portValue (Nat.toDigitsCore 10 fuel n ds) = n * 10 ^ ds.length + portValue ds := by
+  intro fuel
+  induction fuel with
+  | zero => intro n ds h; exact absurd h (by omega)
+  | succ f ih =>
+    intro n ds h
+    rw [Nat.toDigitsCore]
+    have hd : digitValue (Nat.digitChar (n % 10)) = some (n % 10) :=
+      digitValue_digitChar _ (by omega)
+    have hcons : portValue (Nat.digitChar (n % 10) :: ds)
+        = (n % 10) * 10 ^ ds.length + portValue ds := by
+      rw [show (Nat.digitChar (n % 10) :: ds) = [Nat.digitChar (n % 10)] ++ ds from rfl,
+        portValue_append]
+      simp [portValue, hd]
+    split
+    · next hz =>
+      have h10 : n % 10 = n := by omega
+      rw [hcons, h10]
+    · next hz =>
+      rw [ih (n / 10) (Nat.digitChar (n % 10) :: ds) (by omega)]
+      rw [hcons]
+      simp only [List.length_cons, Nat.pow_succ]
+      have hn : n / 10 * (10 ^ ds.length * 10) = (n / 10 * 10) * 10 ^ ds.length := by
+        rw [Nat.mul_comm (10 ^ ds.length) 10, ← Nat.mul_assoc]
+      rw [hn, ← Nat.add_assoc, ← Nat.add_mul]
+      have : n / 10 * 10 + n % 10 = n := by omega
+      rw [this]
+
+/-- **10 進で書いた数は、読み直すと元に戻る。** -/
+theorem portValue_toString (n : Nat) : portValue (toString n).toList = n := by
+  show portValue (Nat.repr n).toList = n
+  unfold Nat.repr Nat.toDigits
+  rw [String.toList_ofList, portValue_toDigitsCore (n + 1) n [] (by omega)]
+  simp [portValue]
+
+/-- `digitChar` が返すのは ASCII digit である。 -/
+theorem isAsciiDigit_digitChar : ∀ (d : Nat), d < 10 → isAsciiDigit (Nat.digitChar d) = true
+  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ | 6, _ | 7, _ | 8, _ | 9, _ => by decide
+  | _ + 10, h => absurd h (by omega)
+
+/-- `Nat.toDigitsCore` が積むのは digit だけである。 -/
+theorem toDigitsCore_digits : ∀ (fuel n : Nat) (ds : List Char),
+    (∀ c ∈ ds, isAsciiDigit c = true) →
+    ∀ c ∈ Nat.toDigitsCore 10 fuel n ds, isAsciiDigit c = true := by
+  intro fuel
+  induction fuel with
+  | zero => intro n ds h; simpa [Nat.toDigitsCore] using h
+  | succ f ih =>
+    intro n ds h
+    rw [Nat.toDigitsCore]
+    have hd : isAsciiDigit (Nat.digitChar (n % 10)) = true :=
+      isAsciiDigit_digitChar _ (by omega)
+    split
+    · intro c hc
+      rcases List.mem_cons.mp hc with rfl | hc
+      · exact hd
+      · exact h c hc
+    · refine ih (n / 10) (Nat.digitChar (n % 10) :: ds) ?_
+      intro c hc
+      rcases List.mem_cons.mp hc with rfl | hc
+      · exact hd
+      · exact h c hc
+
+/-- `Nat.toDigitsCore` は積むだけなので、空にはならない。 -/
+theorem toDigitsCore_ne_nil : ∀ (fuel n : Nat) (ds : List Char), ds ≠ [] →
+    Nat.toDigitsCore 10 fuel n ds ≠ [] := by
+  intro fuel
+  induction fuel with
+  | zero => intro n ds h; simpa [Nat.toDigitsCore] using h
+  | succ f ih =>
+    intro n ds h
+    rw [Nat.toDigitsCore]
+    split
+    · simp
+    · exact ih (n / 10) _ (by simp)
+
+/-- 10 進で書いた数は空でない。 -/
+theorem toString_ne_nil (n : Nat) : (toString n).toList ≠ [] := by
+  show (Nat.repr n).toList ≠ []
+  unfold Nat.repr Nat.toDigits
+  rw [String.toList_ofList, Nat.toDigitsCore]
+  split
+  · simp
+  · exact toDigitsCore_ne_nil _ _ _ (by simp)
+
+/-- **10 進で書いた数は digit だけからなる。** -/
+theorem toString_digits (n : Nat) : ∀ c ∈ (toString n).toList, isAsciiDigit c = true := by
+  show ∀ c ∈ (Nat.repr n).toList, isAsciiDigit c = true
+  unfold Nat.repr Nat.toDigits
+  rw [String.toList_ofList]
+  exact toDigitsCore_digits (n + 1) n [] (by simp)
+
+/-- host state の `:`。host を確定させて port state へ移る。 -/
+theorem run_host_port (base : Option Url) (sp : Bool) (rest : List Char) (ctx : PCtx) (hst : Host)
+    (hov : ctx.over = none) (hsp : ctx.url.isSpecial = sp) (hib : ctx.insideBrackets = false)
+    (hne : ctx.buffer ≠ [])
+    (hp : hostParser ctx.toAscii ctx.buffer (!sp) = some hst) :
+    run base .host (':' :: rest) ctx
+      = run base .port rest
+          { ctx with url := { ctx.url with host := some hst }, buffer := [] } := by
+  rw [run, step]
+  rw [if_neg (by simp [hov])]
+  rw [if_pos (by simp [hib])]
+  rw [if_neg (by simpa using hne)]
+  rw [if_neg (by simp [hov])]
+  simp only [hsp, hp]
+
+/-- port state が digit を読み切る。 -/
+theorem run_port_chunk (base : Option Url) (sp : Bool) : ∀ (l tail : List Char) (ctx : PCtx),
+    ctx.url.isSpecial = sp → (∀ c ∈ l, isAsciiDigit c = true) →
+    run base .port (l ++ tail) ctx
+      = run base .port tail { ctx with buffer := ctx.buffer ++ l } := by
+  intro l
+  induction l with
+  | nil => intro tail ctx _ _; simp
+  | cons c l' ih =>
+    intro tail ctx hsp h
+    simp only [List.cons_append]
+    rw [run, step, if_pos (h c (by simp))]
+    rw [ih tail { ctx with buffer := ctx.buffer ++ [c] } hsp (fun x hx => h x (by simp [hx]))]
+    simp
+
+/-- port state の区切り。buffer を 10 進として読んで path start state へ移る。 -/
+theorem run_port_pathStart (base : Option Url) (sp : Bool) (tail : List Char) (ctx : PCtx)
+    (hov : ctx.over = none) (hsp : ctx.url.isSpecial = sp)
+    (hne : ctx.buffer ≠ []) (hle : portValue ctx.buffer ≤ 65535)
+    (ht : ∀ c ∈ tail.head?, isTerminator sp (some c) = true) :
+    run base .port tail ctx
+      = run base .pathStart tail
+          (portSet ctx (portOf ctx.url.scheme (portValue ctx.buffer))) := by
+  cases tail with
+  | nil =>
+    rw [run, step]
+    rw [portDone_digits hne hle]
+    simp only [hov, Option.isSome_none, Bool.false_eq_true, if_false]
+  | cons t ts =>
+    have htt := ht t rfl
+    rw [run, step]
+    rw [if_neg (by
+      intro hd
+      have ht2 : isTerminator sp (some t) = true := htt
+      simp only [isTerminator, Bool.or_eq_true, beq_iff_eq] at ht2
+      rcases ht2 with ((h | h) | h) | h
+      · rw [h] at hd; revert hd; decide
+      · rw [h] at hd; revert hd; decide
+      · rw [h] at hd; revert hd; decide
+      · simp only [Bool.and_eq_true, beq_iff_eq] at h
+        rw [h.2] at hd; revert hd; decide)]
+    rw [if_pos (by simp [hsp, htt])]
+    rw [portDone_digits hne hle]
+    simp only [hov, Option.isSome_none, Bool.false_eq_true, if_false]
+
 /-! ## authority
 
 `//` で始まる URL の経路。authority state が buffer を host state へ戻し、
@@ -1304,55 +1492,14 @@ def credChars (user pass : String) : List Char :=
   if user.isEmpty && pass.isEmpty then []
   else user.toList ++ (if pass.isEmpty then [] else ':' :: pass.toList) ++ ['@']
 
-/--
-authority state から先（host と path）を読み切る。
-
-credentials の有無で入口の `ctx` が変わるので、そこから先をこの補題にまとめてある。
--/
-theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (segs : List String)
-    (ctx : PCtx)
-    (hsp : ctx.url.isSpecial = sp) (hov : ctx.over = none) (hb : ctx.buffer = [])
-    (hib : ctx.insideBrackets = false) (hpath : ctx.url.path = .list [])
-    (hnf : ¬ctx.url.scheme = "file")
-    (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
-    (hhne : sp = true ∨ ctx.atSignSeen = true → (hostSerializer hst).toList ≠ [])
-    (hcan : hostParser ctx.toAscii (hostSerializer hst).toList (!sp) = some hst)
+/-- path start state から先の path を読み切る。 -/
+theorem run_pathStart_path (base : Option Url) (sp : Bool) (segs : List String) (ctx : PCtx)
+    (hsp : ctx.url.isSpecial = sp) (hov : ctx.over = none)
+    (hpath : ctx.url.path = .list []) (hb : ctx.buffer = []) (hnf : ¬ctx.url.scheme = "file")
     (hsegs : sp = true → segs ≠ [])
     (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ isTerminator sp (some c) = false) ∧
       isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
-    run base .authority ((hostSerializer hst).toList ++ pathChars segs) ctx
-      = .ok { ctx.url with host := some hst, path := .list segs } := by
-  have htail : ∀ c ∈ (pathChars segs).head?, isTerminator sp (some c) = true := by
-    intro c hc
-    cases segs with
-    | nil => simp [pathChars] at hc
-    | cons x t =>
-      simp only [pathChars, List.head?_cons, Option.mem_def, Option.some.injEq] at hc
-      rw [← hc]
-      cases sp <;> decide
-  rw [run_authority_host base sp (hostSerializer hst).toList (pathChars segs) ctx hsp
-    (fun h => by
-      rw [hb, List.nil_append]
-      exact hhne (Or.inr h))
-    (fun c hc => ⟨(not_forbidden_host (hhostc c hc)).1,
-      (not_forbidden_host (hhostc c hc)).2.2.2.2 sp⟩) htail]
-  rw [hb, List.nil_append]
-  rw [run_host_chunk base sp (hostSerializer hst).toList (pathChars segs)
-    { ctx with buffer := [] } hov hsp hib
-    (fun c hc => ⟨(not_forbidden_host (hhostc c hc)).2.1,
-      (not_forbidden_host (hhostc c hc)).2.2.2.2 sp,
-      (not_forbidden_host (hhostc c hc)).2.2.1,
-      (not_forbidden_host (hhostc c hc)).2.2.2.1⟩)]
-  rw [run_host_pathStart base sp (pathChars segs)
-    { ctx with buffer := [] ++ (hostSerializer hst).toList } hst hov hsp
-    (fun h => by simpa using hhne (Or.inl h))
-    (fun c hc => ⟨htail c hc, by
-      have := htail c hc
-      intro he
-      rw [he] at this
-      cases sp <;> simp [isTerminator] at this⟩)
-    (by simpa using hcan)]
-  -- path start から先
+    run base .pathStart (pathChars segs) ctx = .ok { ctx.url with path := .list segs } := by
   cases hseg : segs with
   | nil =>
     cases hspv : sp with
@@ -1371,7 +1518,7 @@ theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (seg
     rw [show intercal (x :: t) = intercal (x :: t) ++ ([] : List Char) from by simp]
     rw [run_path_segs base sp (x :: t) [] _ [] ?p1 ?p2 ?p3 ?p4 ?p5 ?p6]
     case p1 => exact hpath
-    case p2 => rfl
+    case p2 => exact hb
     case p3 => exact hsp
     case p4 => exact hov
     case p5 => exact hnf
@@ -1391,31 +1538,142 @@ theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (seg
         rw [hlast] at this
         simpa using this]
 
+/-- serializer が port を並べる分。 -/
+def portChars : Option Nat → List Char
+  | none => []
+  | some p => ':' :: (toString p).toList
+
+/--
+authority state から先（host と port と path）を読み切る。
+
+credentials の有無で入口の `ctx` が変わるので、そこから先をこの補題にまとめてある。
+-/
+theorem run_authority_hostpath (base : Option Url) (sp : Bool) (hst : Host) (port : Option Nat)
+    (segs : List String) (ctx : PCtx)
+    (hsp : ctx.url.isSpecial = sp) (hov : ctx.over = none) (hb : ctx.buffer = [])
+    (hib : ctx.insideBrackets = false) (hpath : ctx.url.path = .list [])
+    (hport0 : ctx.url.port = none) (hnf : ¬ctx.url.scheme = "file")
+    (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
+    (hhne : sp = true ∨ ctx.atSignSeen = true ∨ port ≠ none →
+      (hostSerializer hst).toList ≠ [])
+    (hcan : hostParser ctx.toAscii (hostSerializer hst).toList (!sp) = some hst)
+    (hport : ∀ p, port = some p → p ≤ 65535 ∧ portOf ctx.url.scheme p = some p)
+    (hsegs : sp = true → segs ≠ [])
+    (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ isTerminator sp (some c) = false) ∧
+      isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
+    run base .authority
+        ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs)) ctx
+      = .ok { ctx.url with host := some hst, port := port, path := .list segs } := by
+  have htail : ∀ c ∈ (pathChars segs).head?, isTerminator sp (some c) = true := by
+    intro c hc
+    cases segs with
+    | nil => simp [pathChars] at hc
+    | cons x t =>
+      simp only [pathChars, List.head?_cons, Option.mem_def, Option.some.injEq] at hc
+      rw [← hc]
+      cases sp <;> decide
+  have hportc : ∀ c ∈ portChars port, ¬c = '@' ∧ isTerminator sp (some c) = false := by
+    intro c hc
+    cases hp : port with
+    | none => rw [hp] at hc; simp [portChars] at hc
+    | some p =>
+      rw [hp] at hc
+      simp only [portChars, List.mem_cons] at hc
+      rcases hc with rfl | hc
+      · exact ⟨by decide, by cases sp <;> decide⟩
+      · have := toString_digits p c hc
+        simp only [isAsciiDigit, Bool.and_eq_true, decide_eq_true_eq] at this
+        refine ⟨?_, isTerminator_false ?_ ?_ ?_ (fun _ => ?_)⟩ <;>
+          (intro he; rw [he] at this; revert this; decide)
+  -- authority state は区切りまで（host と port）を buffer に積んで host state へ返す
+  rw [← List.append_assoc]
+  rw [run_authority_host base sp ((hostSerializer hst).toList ++ portChars port)
+    (pathChars segs) ctx hsp
+    (fun h => by
+      rw [hb, List.nil_append]
+      intro he
+      exact hhne (Or.inr (Or.inl h)) (List.append_eq_nil_iff.mp he).1)
+    (fun c hc => by
+      rcases List.mem_append.mp hc with hc | hc
+      · exact ⟨(not_forbidden_host (hhostc c hc)).1,
+          (not_forbidden_host (hhostc c hc)).2.2.2.2 sp⟩
+      · exact hportc c hc) htail]
+  rw [hb, List.nil_append, List.append_assoc]
+  rw [run_host_chunk base sp (hostSerializer hst).toList (portChars port ++ pathChars segs)
+    { ctx with buffer := [] } hov hsp hib
+    (fun c hc => ⟨(not_forbidden_host (hhostc c hc)).2.1,
+      (not_forbidden_host (hhostc c hc)).2.2.2.2 sp,
+      (not_forbidden_host (hhostc c hc)).2.2.1,
+      (not_forbidden_host (hhostc c hc)).2.2.2.1⟩)]
+  cases hp : port with
+  | none =>
+    rw [show portChars none = [] from rfl, List.nil_append]
+    rw [run_host_pathStart base sp (pathChars segs)
+      { ctx with buffer := [] ++ (hostSerializer hst).toList } hst hov hsp
+      (fun h => by simpa using hhne (Or.inl h))
+      (fun c hc => ⟨htail c hc, by
+        have := htail c hc
+        intro he
+        rw [he] at this
+        cases sp <;> simp [isTerminator] at this⟩)
+      (by simpa using hcan)]
+    rw [run_pathStart_path base sp segs _ ?n1 ?n2 ?n3 rfl ?n4 hsegs hall]
+    · rw [← hport0]
+    case n1 => exact hsp
+    case n2 => exact hov
+    case n3 => exact hpath
+    case n4 => exact hnf
+  | some p =>
+    obtain ⟨hle, hpo⟩ := hport p hp
+    rw [show portChars (some p) = ':' :: (toString p).toList from rfl, List.cons_append]
+    rw [run_host_port base sp ((toString p).toList ++ pathChars segs)
+      { ctx with buffer := [] ++ (hostSerializer hst).toList } hst hov hsp hib
+      (by simpa using hhne (Or.inr (Or.inr (by rw [hp]; simp))))
+      (by simpa using hcan)]
+    rw [run_port_chunk base sp (toString p).toList (pathChars segs) _ ?d1 (toString_digits p)]
+    case d1 => exact hsp
+    rw [run_port_pathStart base sp (pathChars segs) _ ?d2 ?d3 ?d4 ?d5 htail]
+    case d2 => exact hov
+    case d3 => exact hsp
+    case d4 => simp
+    case d5 => simp only [List.nil_append, portValue_toString]; exact hle
+    simp only [portSet, List.nil_append, portValue_toString, hpo]
+    rw [run_pathStart_path base sp segs _ ?m1 ?m2 ?m3 rfl ?m4 hsegs hall]
+    case m1 => exact hsp
+    case m2 => exact hov
+    case m3 => exact hpath
+    case m4 => exact hnf
+
 /--
 authority state から先を、credentials も込めて読み切る。
 
 credentials が無ければそのまま host へ、あれば `@` までを username と password に振り分ける。
 -/
 theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) (hst : Host)
-    (segs : List String) (ctx : PCtx)
+    (port : Option Nat) (segs : List String) (ctx : PCtx)
     (hsp : ctx.url.isSpecial = sp) (hov : ctx.over = none) (has : ctx.atSignSeen = false)
     (hb : ctx.buffer = []) (hib : ctx.insideBrackets = false) (hpt : ctx.passwordTokenSeen = false)
-    (hpath : ctx.url.path = .list []) (hnf : ¬ctx.url.scheme = "file")
+    (hpath : ctx.url.path = .list []) (hport0 : ctx.url.port = none)
+    (hnf : ¬ctx.url.scheme = "file")
     (hu0 : ctx.url.username = "") (hp0 : ctx.url.password = "")
     (hu : ∀ c ∈ user.toList, userinfoSet c = false)
     (hp : ∀ c ∈ pass.toList, userinfoSet c = false)
     (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
-    (hhne : sp = true ∨ (user.isEmpty && pass.isEmpty) = false →
+    (hhne : sp = true ∨ (user.isEmpty && pass.isEmpty) = false ∨ port ≠ none →
       (hostSerializer hst).toList ≠ [])
     (hcan : hostParser ctx.toAscii (hostSerializer hst).toList (!sp) = some hst)
+    (hport : ∀ p, port = some p → p ≤ 65535 ∧ portOf ctx.url.scheme p = some p)
     (hsegs : sp = true → segs ≠ [])
     (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ isTerminator sp (some c) = false) ∧
       isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
-    run base .authority (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs)) ctx
+    run base .authority
+        (credChars user pass ++ ((hostSerializer hst).toList
+          ++ (portChars port ++ pathChars segs))) ctx
       = .ok { ctx.url with
               username := user
               password := pass
               host := some hst
+              port := port
               path := .list segs } := by
   unfold credChars
   cases hc : (user.isEmpty && pass.isEmpty) with
@@ -1423,13 +1681,14 @@ theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) 
     have hue : user = "" := by simp_all
     have hpe : pass = "" := by simp_all
     simp only [if_true, List.nil_append]
-    rw [run_authority_hostpath base sp hst segs ctx hsp hov hb hib hpath hnf hhostc
+    rw [run_authority_hostpath base sp hst port segs ctx hsp hov hb hib hpath hport0 hnf hhostc
       (fun h => hhne (by
-        rcases h with h | h
+        rcases h with h | h | h
         · exact Or.inl h
         · rw [has] at h
-          exact absurd h (by simp)))
-      hcan hsegs hall]
+          exact absurd h (by simp)
+        · exact Or.inr (Or.inr h)))
+      hcan hport hsegs hall]
     simp [hue, hpe, hu0, hp0]
   | false =>
     -- credentials がある。`@` までを buffer に積んでから振り分ける。
@@ -1448,10 +1707,11 @@ theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) 
           · exact ⟨(not_userinfoSet (hp c hcm)).1, (not_userinfoSet (hp c hcm)).2.2 sp⟩
     simp only [Bool.false_eq_true, if_false]
     rw [List.append_assoc (user.toList ++ (if pass.isEmpty then [] else ':' :: pass.toList))
-      ['@'] ((hostSerializer hst).toList ++ pathChars segs), List.singleton_append]
+      ['@'] ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs)),
+      List.singleton_append]
     rw [run_authority_chunk base sp
       (user.toList ++ (if pass.isEmpty then [] else ':' :: pass.toList))
-      ('@' :: ((hostSerializer hst).toList ++ pathChars segs)) ctx hsp hchunk]
+      ('@' :: ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))) ctx hsp hchunk]
     rw [run_authority_at base _ _ ?a1]
     case a1 => exact has
     rw [hb, List.nil_append, hpt]
@@ -1460,77 +1720,60 @@ theorem run_authority_full (base : Option Url) (sp : Bool) (user pass : String) 
       have hpe' : pass = "" := by simp_all
       simp only [if_true, List.append_nil]
       rw [userinfoFold_user user.toList ctx.url hu]
-      rw [run_authority_hostpath base sp hst segs _ ?b1 ?b2 ?b3 ?b4 ?b5 ?b6 hhostc ?b7 ?b8 hsegs
-        hall]
+      rw [run_authority_hostpath base sp hst port segs _ ?b1 ?b2 ?b3 ?b4 ?b5 ?b6 ?b7 hhostc ?b8
+        ?b9 ?b10 hsegs hall]
       case b1 => exact hsp
       case b2 => exact hov
       case b3 => rfl
       case b4 => exact hib
       case b5 => exact hpath
-      case b6 => exact hnf
-      case b7 => intro _; exact hhne (Or.inr hc)
-      case b8 => exact hcan
+      case b6 => exact hport0
+      case b7 => exact hnf
+      case b8 => intro _; exact hhne (Or.inr (Or.inl hc))
+      case b9 => exact hcan
+      case b10 => exact hport
       simp [hu0, hpe', String.ofList_toList, hp0]
     | false =>
       simp only [Bool.false_eq_true, if_false]
       rw [userinfoFold_split ctx.url user.toList pass.toList hu hp]
-      rw [run_authority_hostpath base sp hst segs _ ?c1 ?c2 ?c3 ?c4 ?c5 ?c6 hhostc ?c7 ?c8 hsegs
-        hall]
+      rw [run_authority_hostpath base sp hst port segs _ ?c1 ?c2 ?c3 ?c4 ?c5 ?c6 ?c7 hhostc ?c8
+        ?c9 ?c10 hsegs hall]
       case c1 => exact hsp
       case c2 => exact hov
       case c3 => rfl
       case c4 => exact hib
       case c5 => exact hpath
-      case c6 => exact hnf
-      case c7 => intro _; exact hhne (Or.inr hc)
-      case c8 => exact hcan
+      case c6 => exact hport0
+      case c7 => exact hnf
+      case c8 => intro _; exact hhne (Or.inr (Or.inl hc))
+      case c9 => exact hcan
+      case c10 => exact hport
       simp [hu0, hp0, String.ofList_toList]
 
-/-- host を持つ URL の serialize は `//` と credentials と host と path を並べたものである。 -/
-theorem serializerTail_authority (s user pass : String) (hst : Host) (segs : List String) :
+/-- host を持つ URL の serialize は、`//` と credentials と host と port と path を並べたもの。 -/
+theorem serializerTail_authority (s user pass : String) (hst : Host) (port : Option Nat)
+    (segs : List String) :
     (serializerTail
         { scheme := s
           username := user
           password := pass
           host := some hst
+          port := port
           path := .list segs } false).toList
-      = '/' :: '/' :: (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs)) := by
+      = '/' :: '/' :: (credChars user pass
+          ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))) := by
   have hcred :
       ({ scheme := s
          username := user
          password := pass
          host := some hst
+         port := port
          path := .list segs } : Url).includesCredentials
         = !(user.isEmpty && pass.isEmpty) := by
     simp [Url.includesCredentials, String.isEmpty]
-  simp only [serializerTail, hcred, credChars]
-  cases hc : (user.isEmpty && pass.isEmpty) with
-  | true =>
-    simp only [Bool.not_true, Bool.false_eq_true, if_false, if_true, List.nil_append]
-    rw [show (("//" ++ hostSerializer hst) ++ pathSerializer (.list segs)).toList
-        = ("//").toList ++ (hostSerializer hst).toList ++ (pathSerializer (.list segs)).toList
-        from by simp]
-    rw [pathSerializer_pathChars]
-    simp
-  | false =>
-    simp only [Bool.not_false, if_true]
-    cases hp : pass.isEmpty with
-    | true =>
-      simp only [if_true, List.append_nil]
-      rw [show (("//" ++ user ++ "" ++ "@" ++ hostSerializer hst)
-            ++ pathSerializer (.list segs)).toList
-          = ("//").toList ++ user.toList ++ ("@").toList ++ (hostSerializer hst).toList
-            ++ (pathSerializer (.list segs)).toList from by simp]
-      rw [pathSerializer_pathChars]
-      simp
-    | false =>
-      simp only [Bool.false_eq_true, if_false]
-      rw [show (("//" ++ user ++ (":" ++ pass) ++ "@" ++ hostSerializer hst)
-            ++ pathSerializer (.list segs)).toList
-          = ("//").toList ++ user.toList ++ (":").toList ++ pass.toList ++ ("@").toList
-            ++ (hostSerializer hst).toList ++ (pathSerializer (.list segs)).toList from by simp]
-      rw [pathSerializer_pathChars]
-      simp
+  simp only [serializerTail, hcred, credChars, portChars]
+  cases hc : (user.isEmpty && pass.isEmpty) <;> cases hp : pass.isEmpty <;> cases hpo : port <;>
+    simp [String.toList_append, pathSerializer_pathChars]
 
 /-- userinfo set に入らない文字は C0 control でも space でもない。 -/
 theorem ne_c0_of_userinfoSet {c : Char} (h : userinfoSet c = false) :
@@ -1618,8 +1861,8 @@ special かどうかを `sp` で持つので、`sc://h/a` も `http://h/a/b` も
 credentials も扱う。除いてあるのは `file:`、port、IPv6 host、
 それと host が空で path が空でない場合（serialize すると `//` が続いてしまう）である。
 -/
-theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : List String}
-    {a : Char} {rest : List Char}
+theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : Option Nat}
+    {segs : List String} {a : Char} {rest : List Char}
     (hs : s.toList = a :: rest) (ha : isAsciiLowerAlpha a = true)
     (hr : ∀ c ∈ rest, schemeChar c = true)
     (hlow : s.toList.map asciiLowerChar = s.toList)
@@ -1629,9 +1872,11 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : L
     (hcan : hostParser asciiDomainToASCII (hostSerializer hst).toList (!sp) = some hst)
     (hhostc : ∀ c ∈ (hostSerializer hst).toList, isForbiddenHost c = false)
     (hnc : ∀ c ∈ (hostSerializer hst).toList, isC0ControlOrSpace c = false)
-    (hhead : ∀ c ∈ ((hostSerializer hst).toList ++ pathChars segs).head?, ¬c = '/' ∧ ¬c = '\\')
-    (hhne : sp = true ∨ (user.isEmpty && pass.isEmpty) = false →
+    (hhead : ∀ c ∈ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs)).head?,
+      ¬c = '/' ∧ ¬c = '\\')
+    (hhne : sp = true ∨ (user.isEmpty && pass.isEmpty) = false ∨ port ≠ none →
       (hostSerializer hst).toList ≠ [])
+    (hport : ∀ p, port = some p → p ≤ 65535 ∧ portOf s p = some p)
     (hsegs : sp = true → segs ≠ [])
     (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ isTerminator sp (some c) = false) ∧
       isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
@@ -1640,12 +1885,14 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : L
           username := user
           password := pass
           host := some hst
+          port := port
           path := .list segs }) none
       = some
         { scheme := s
           username := user
           password := pass
           host := some hst
+          port := port
           path := .list segs } := by
   have haa : isAsciiAlpha a = true := by
     simp only [isAsciiAlpha, Bool.or_eq_true]; exact Or.inr ha
@@ -1656,13 +1903,16 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : L
         username := user
         password := pass
         host := some hst
+        port := port
         path := .list segs }).toList
       = s.toList ++ ':' :: '/' :: '/'
-        :: (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs)) := by
+        :: (credChars user pass
+          ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))) := by
     simp only [urlSerializer, String.toList_append, serializerTail_authority]
     simp
   have hallc : ∀ c ∈ s.toList ++ ':' :: '/' :: '/'
-      :: (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs)),
+      :: (credChars user pass
+        ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))),
       isC0ControlOrSpace c = false := by
     intro c hcm
     rcases List.mem_append.mp hcm with hcm | hcm
@@ -1686,7 +1936,19 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : L
               · decide
             · rcases List.mem_append.mp hcm with hcm | hcm
               · exact hnc c hcm
-              · cases segs with
+              · rcases List.mem_append.mp hcm with hcm | hcm
+                · cases hpo : port with
+                  | none => rw [hpo] at hcm; simp [portChars] at hcm
+                  | some p =>
+                    rw [hpo] at hcm
+                    simp only [portChars, List.mem_cons] at hcm
+                    rcases hcm with rfl | hcm
+                    · decide
+                    · have := toString_digits p c hcm
+                      simp only [isAsciiDigit, Bool.and_eq_true, decide_eq_true_eq] at this
+                      simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le]
+                      omega
+                · cases segs with
                 | nil => simp [pathChars] at hcm
                 | cons x t =>
                   rcases List.mem_cons.mp hcm with rfl | hcm
@@ -1700,9 +1962,11 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : L
         username := user
         password := pass
         host := some hst
+        port := port
         path := .list segs })
       = s.toList ++ ':' :: '/' :: '/'
-        :: (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs)) := by
+        :: (credChars user pass
+          ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))) := by
     rw [preprocess_eq_self ?head ?last ?tab, hstr]
     case head =>
       intro c hcm
@@ -1719,7 +1983,8 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : L
       simp only [isC0ControlOrSpace, decide_eq_false_iff_not, Nat.not_le] at this
       omega
   have hhead2 : ∀ c ∈ (credChars user pass
-      ++ ((hostSerializer hst).toList ++ pathChars segs)).head?, ¬c = '/' ∧ ¬c = '\\' := by
+      ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))).head?,
+      ¬c = '/' ∧ ¬c = '\\' := by
     intro c hc
     cases hcc : credChars user pass with
     | nil =>
@@ -1733,20 +1998,52 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {segs : L
   rw [hpre, hs, List.cons_append]
   rw [run_schemeStart_step none _ a
     (rest ++ ':' :: '/' :: '/'
-      :: (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs))) haa]
+      :: (credChars user pass
+        ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs)))) haa]
   rw [run_scheme_prefix none rest
     (':' :: '/' :: '/'
-      :: (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs))) _ hr]
+      :: (credChars user pass
+        ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs)))) _ hr]
   rw [run_scheme_authority sp
-    (credChars user pass ++ ((hostSerializer hst).toList ++ pathChars segs)) _ rfl
+    (credChars user pass
+      ++ ((hostSerializer hst).toList ++ (portChars port ++ pathChars segs))) _ rfl
     (by rw [hbuf, String.ofList_toList]; exact hfile)
     (by rw [hbuf, String.ofList_toList]; exact hsp) hhead2]
   rw [hbuf, String.ofList_toList]
-  rw [run_authority_full none sp user pass hst segs _ ?j1 rfl rfl rfl rfl rfl rfl ?j2 rfl rfl
-    hu hp hhostc ?j3 ?j4 hsegs hall]
+  rw [run_authority_full none sp user pass hst port segs _ ?j1 rfl rfl rfl rfl rfl rfl rfl ?j2
+    rfl rfl hu hp hhostc ?j3 ?j4 ?j5 hsegs hall]
   case j1 => simp [Url.isSpecial, hsp]
   case j2 => simpa using hfile
   case j3 => exact hhne
   case j4 => simpa using hcan
+  case j5 => exact hport
+
+/-- 仮定が空でないことの確認。`sc://h/a` は実際にこの形である。 -/
+example : basicUrlParse
+      (urlSerializer { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] }) none
+    = some { scheme := "sc", host := some (.opaque "h"), path := .list ["a"] } :=
+  roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
+    (port := none) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide)
+
+/-- port が付いていても往復する。`sc://h:8080/a` の形である。 -/
+example : basicUrlParse (urlSerializer
+      { scheme := "sc", host := some (.opaque "h"), port := some 8080,
+        path := .list ["a"] }) none
+    = some { scheme := "sc", host := some (.opaque "h"), port := some 8080,
+             path := .list ["a"] } :=
+  roundtrip_host (a := 's') (rest := ['c']) (user := "") (pass := "") (sp := false)
+    (port := some 8080) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by decide) (by decide)
+
+/-!
+`http://h/a` がこの形であることは `decide` では確かめられない。
+host parser が domain parser を通り、そこが UTF-8 の encode / decode（well-founded 再帰）を
+呼ぶので、`Decidable` 実体が簡約しないためである（`#audit_axioms` の制約でもある）。
+`#eval` では `hostParser asciiDomainToASCII "h".toList false = some (.domain "h")` になり、
+`UrlMain.lean` の ROUNDTRIP と CANONICAL が WPT の 820 件で同じことを見ている。
+-/
 
 end Url

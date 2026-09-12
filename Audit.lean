@@ -333,6 +333,20 @@ open Dom.Audit
   Url.serializerTail_authority
   Url.run_authority_hostpath
   Url.run_authority_full
+  Url.run_pathStart_path
+  Url.portFold_acc
+  Url.portValue_append
+  Url.digitValue_digitChar
+  Url.portValue_toDigitsCore
+  Url.portValue_toString
+  Url.isAsciiDigit_digitChar
+  Url.toDigitsCore_digits
+  Url.toDigitsCore_ne_nil
+  Url.toString_ne_nil
+  Url.toString_digits
+  Url.run_host_port
+  Url.run_port_chunk
+  Url.run_port_pathStart
   Url.roundtrip_host
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
