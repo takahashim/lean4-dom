@@ -445,19 +445,27 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 * opaque path なら credentials も port も持てず host も持たない
 * port は 16 bit に収まる
 * scheme が `file` なら credentials も port も持てない
+* scheme と host の組み合わせは §4.1 の表に従う
 
 入っていないのは三つで、どれも parser も setter も作れないが、不変条件にするには足場が要る。
 
 | §4.1 の条件 | 入れていない理由 |
 | --- | --- |
 | host が**空**なら credentials も port も持てない | 根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）にあり、その情報は host state へ**入力として**渡るので、`PInv` が残りの入力を見る必要がある。同じ条文の scheme が `file` の側は入れてある（state について `PInv.notFile` を持ち回れば済む） |
-| scheme と host の組み合わせ表 | `freshHost` を `relative` まで広げ、`fileHost` で scheme が `file` だと足し、`hostParser` の返す host の種類の補題が要る |
 | special な URL の host は null でない | **終端でしか成り立たない。** parse の途中では scheme が決まって host が null の状態を必ず通る |
-| path segment に `/` は含まれない | **serializer の正しさがこれに依存する。** `{ scheme := "sc", path := .list ["/x"] }` は `ValidUrl` を満たすが、serialize すると `sc://x` になり、parse し直すと opaque host を持つ別の record になる |
+| path segment に `/` は含まれない | **serializer の正しさがこれに依存する。** `{ scheme := "sc", path := .list ["/x"] }` は `ValidUrl` を満たすが、serialize すると `sc://x` になり、parse し直すと opaque host を持つ別の record になる。parser がこういう segment を作らない根拠は buffer の側にあるので、`PInv` が `ctx.buffer` を見る必要がある |
 
-`Url/Strict.lean` の `checkStrictUrl` がこの四つを WPT の 820 件と setter の 705 件で
+`Url/Strict.lean` の `checkStrictUrl` がこの三つを WPT の 820 件と setter の 705 件で
 実行時に検査している（違反 0）。境界は `Url/RecordExamples.lean` に `example` で固定してある。
 `ValidUrl` を通るが仕様が禁じている record を、そこに並べてある。
+
+scheme と host の表を不変条件にするのに要ったのは次の三つである。
+
+| 足場 | 言っていること |
+| --- | --- |
+| `hostParser_hostKind` | **host parser が返す host は、その scheme の表に合う**（special なら domain / IPv4、でなければ opaque / empty、IPv6 はどちらでも） |
+| `PInv.hostNull`, `PInv.fileScheme`, `PInv.baseSchemeEq` | scheme を書き換える state では host が null、file slash / file host state では scheme が `file`、relative slash state では url の scheme が base の scheme |
+| `hostKindOkOf_congr` | scheme を取り替えても表は通る。表が見るのは `isSpecialScheme` だけで、例外は empty host と `file` の一点だけ（protocol setter の四つ目の門がそこを止めている） |
 
 ## setter が何をするか
 

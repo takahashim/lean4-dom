@@ -19,23 +19,11 @@ import Url.Record
 * 「special な URL の host は null でない」は終端でしか成り立たない。
   parse の途中では scheme が決まって host がまだ null の状態を必ず通る。
 
-scheme と host の組み合わせ表（`hostKindOkOf`）は不変条件にできるが、
-そのためには `freshHost` を `relative` まで広げ、`fileHost` state では scheme が
-`file` であることを足し、`hostParser` が返す host の種類の補題を用意する必要がある。
-着手して芋づるになったので、いまは実行時の検査にとどめてある。
+scheme と host の組み合わせ表（`hostKindOkOf`）は `ValidUrl` に入れた。
+残りのうち path segment の `/` は、`PInv` が buffer を見れば不変条件にできる見込みがある。
 -/
 
 namespace Url
-
-/-- §4.1 の scheme と host の組み合わせ表。 -/
-def hostKindOkOf (scheme : String) (host : Option Host) : Bool :=
-  match host with
-  | none => true
-  | some (.ipv6 _) => true
-  | some (.domain _) => isSpecialScheme scheme
-  | some (.ipv4 _) => isSpecialScheme scheme
-  | some (.opaque _) => !isSpecialScheme scheme
-  | some .empty => !isSpecialScheme scheme || scheme == "file"
 
 /-- §4.1「URL path segments never contain U+002F (/)」。 -/
 def pathSegsOk (u : Url) : Bool :=
@@ -59,7 +47,6 @@ def ipv6Ok (u : Url) : Bool :=
 §4.1 のうち `ValidUrl` に入れていない条件。
 
 * host が空なら credentials も port も持てない（`file` の側は `ValidUrl` に入れた）。
-* scheme と host の組み合わせは表に従う。
 * special な URL の host は null でない。
 * path segment に `/` は含まれない。
 * IPv6 address は 8 piece で各 piece は 16 bit。
@@ -68,7 +55,6 @@ def checkStrictUrl (u : Url) : Bool :=
   let emptyHost := match u.host with | some .empty => true | _ => false
   let noCredPort := !u.includesCredentials && u.port.isNone
   (!emptyHost || noCredPort)
-    && hostKindOkOf u.scheme u.host
     && (!u.isSpecial || u.host.isSome)
     && pathSegsOk u
     && ipv6Ok u

@@ -289,7 +289,8 @@ theorem setUsername_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.
       fun hf => by
         have hcc : u.cannotHaveCredentials = true := by
           simp [Url.cannotHaveCredentials, show u.scheme = "file" from hf]
-        rw [hcc] at hc; simp at hc⟩
+        rw [hcc] at hc; simp at hc,
+      h.hostKind⟩
 
 theorem setPassword_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.setPassword v) := by
   cases hc : u.cannotHaveCredentials with
@@ -310,7 +311,8 @@ theorem setPassword_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.
       fun hf => by
         have hcc : u.cannotHaveCredentials = true := by
           simp [Url.cannotHaveCredentials, show u.scheme = "file" from hf]
-        rw [hcc] at hc; simp at hc⟩
+        rw [hcc] at hc; simp at hc,
+      h.hostKind⟩
 
 /-- `port` setter に空文字列を渡すと port が消え、`ValidUrl` は保たれる。 -/
 theorem setPort_empty_valid {u : Url} (h : ValidUrl u) : ValidUrl (u.setPort "") := by
@@ -321,6 +323,6 @@ theorem setPort_empty_valid {u : Url} (h : ValidUrl u) : ValidUrl (u.setPort "")
     rw [he]
     exact ⟨h.specialHasList, h.nullHostNoCredentials, fun _ => rfl,
       h.opaqueNoCredentials, fun _ => rfl, h.opaqueNoHost, by simp,
-      h.fileNoCredentials, fun _ => rfl⟩
+      h.fileNoCredentials, fun _ => rfl, h.hostKind⟩
 
 end Url

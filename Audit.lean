@@ -167,6 +167,12 @@ open Dom.Audit
 -- URL Standard §4.1 URL record の妥当性
 #audit_axioms
   Url.checkValidUrl_iff
+  Url.hostKindOkOf_none
+  Url.hostKindOkOf_file_empty
+  Url.hostKindOkOf_congr
+  Url.hostParser_hostKind
+  Url.empty_kind
+  Url.fileHost_kind
   Url.pathFold_append
   Url.pathSerializer_cons
   Url.urlSerializer_split

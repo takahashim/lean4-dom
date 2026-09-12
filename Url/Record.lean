@@ -140,6 +140,91 @@ def originSerializer : Origin → String
 /-! ## 妥当な URL record -/
 
 /--
+§4.1 の scheme と host の組み合わせ表。
+
+* null と IPv6 address はどの scheme でも置ける。
+* domain と IPv4 address は special な URL だけ。
+* opaque host は special でない URL だけ。
+* empty host は special でない URL と `file` だけ。
+-/
+def hostKindOkOf (scheme : String) (host : Option Host) : Bool :=
+  match host with
+  | none => true
+  | some (.ipv6 _) => true
+  | some (.domain _) => isSpecialScheme scheme
+  | some (.ipv4 _) => isSpecialScheme scheme
+  | some (.opaque _) => !isSpecialScheme scheme
+  | some .empty => !isSpecialScheme scheme || scheme == "file"
+
+/-- host が null なら表は通る。 -/
+@[simp] theorem hostKindOkOf_none (scheme : String) : hostKindOkOf scheme none = true := rfl
+
+/-- `file` URL は empty host を持てる。file state と file host state がこれを使う。 -/
+@[simp] theorem hostKindOkOf_file_empty : hostKindOkOf "file" (some Host.empty) = true := rfl
+
+/--
+scheme を取り替えても表が通ること。
+
+表が見るのは `isSpecialScheme` だけで、唯一の例外が empty host と `file` である。
+protocol setter がその一点を別の guard で止めている。
+-/
+theorem hostKindOkOf_congr {s t : String} {h : Option Host}
+    (hsp : isSpecialScheme s = isSpecialScheme t)
+    (hfe : ¬(t = "file" ∧ h = some Host.empty))
+    (hk : hostKindOkOf t h = true) : hostKindOkOf s h = true := by
+  match h with
+  | none => rfl
+  | some (.ipv6 _) => rfl
+  | some (.domain _) => simpa [hostKindOkOf, hsp] using hk
+  | some (.ipv4 _) => simpa [hostKindOkOf, hsp] using hk
+  | some (.opaque _) => simpa [hostKindOkOf, hsp] using hk
+  | some .empty =>
+    simp only [hostKindOkOf, Bool.or_eq_true, Bool.not_eq_true', beq_iff_eq] at hk ⊢
+    rcases hk with hk | hk
+    · exact Or.inl (by rw [hsp]; exact hk)
+    · exact absurd ⟨hk, rfl⟩ hfe
+
+/--
+**host parser が返す host は、その scheme の表に合う。**
+
+basic URL parser が host parser を呼ぶときの第二引数は「special でない」なので、
+special なら domain か IPv4（か IPv6）、special でなければ opaque か empty（か IPv6）になる。
+§4.1 の表はこれをそのまま書いたものである。
+-/
+theorem hostParser_hostKind {f : List Char → Option String} {input : List Char}
+    {scheme : String} {h : Host} (hp : hostParser f input (!isSpecialScheme scheme) = some h) :
+    hostKindOkOf scheme (some h) = true := by
+  unfold hostParser at hp
+  split at hp
+  · -- IPv6。どの scheme でも置ける。
+    split at hp
+    · simp only [Option.map_eq_some_iff] at hp
+      obtain ⟨a, -, rfl⟩ := hp
+      rfl
+    · simp at hp
+  · split at hp
+    · -- opaque host parser。special でないときだけ呼ばれる。
+      next hb =>
+        have hs : isSpecialScheme scheme = false := by simpa using hb
+        unfold opaqueHostParser at hp
+        split at hp
+        · simp at hp
+        · rw [← Option.some.inj hp]
+          split <;> simp [hostKindOkOf, hs]
+    · next hb =>
+      have hs : isSpecialScheme scheme = true := by simpa using hb
+      split at hp
+      · simp at hp
+      · simp +zetaDelta only [] at hp
+        split at hp
+        · simp at hp
+        · split at hp
+          · simp only [Option.map_eq_some_iff] at hp
+            obtain ⟨a, -, rfl⟩ := hp
+            simp [hostKindOkOf, hs]
+          · rw [← Option.some.inj hp]; simp [hostKindOkOf, hs]
+
+/--
 URL record の局所不変条件。**§4.1 が並べている条件のうち、ここに入れた分である。**
 
 * opaque path を持てるのは special でない URL だけ。
@@ -147,6 +232,7 @@ URL record の局所不変条件。**§4.1 が並べている条件のうち、�
 * opaque path なら credentials も port も持てず、host も持たない。
 * port は 16 bit に収まる。
 * scheme が `file` なら credentials も port も持てない。
+* scheme と host の組み合わせは §4.1 の表に従う。
 
 「opaque path なら host は null」は仕様が §4.1 に並べていないが成り立つ。
 opaque path を作るのは scheme state の一分岐だけで、そこでは host はまだ null、
@@ -164,9 +250,9 @@ WPT と setter の全 case で実行時に検査していて、
   guard（`atSignSeen && buffer.isEmpty` なら失敗）にあり、その情報は host state へ
   **入力として**渡る。不変条件にするには `PInv` が `ctx.url` だけでなく
   残りの入力を見る必要がある。`scheme = "file"` の側は入れてある。
-* 「scheme と host の組み合わせ」（§4.1 の表）。不変条件にはできるが、
-  `freshHost` を `relative` まで広げ、`fileHost` state では scheme が `file` だと足し、
-  `hostParser` が返す host の種類の補題を用意する必要がある。
+* 「path segment に `/` は含まれない」。**serializer の正しさがこれに依存する。**
+  parser がそういう segment を作らない根拠は buffer の側にあるので、
+  `PInv` が `ctx.buffer` を見る必要がある。
 * 「special な URL の host は null でない」。**これは終端でしか成り立たない。**
   parse の途中では scheme が決まって host がまだ null の状態を必ず通る。
 -/
@@ -182,6 +268,8 @@ structure ValidUrl (u : Url) : Prop where
   /-- §4.1「cannot have a username/password/port ... if its scheme is "file"」。 -/
   fileNoCredentials : u.scheme = "file" → u.includesCredentials = false
   fileNoPort : u.scheme = "file" → u.port = none
+  /-- §4.1 の scheme と host の組み合わせ表。 -/
+  hostKind : hostKindOkOf u.scheme u.host = true
 
 /-! ## 実行時の検査 -/
 
@@ -198,15 +286,16 @@ def checkValidUrl (u : Url) : Bool :=
     (u.host.isSome || (!u.includesCredentials && u.port.isNone)) &&
     (!u.hasOpaquePath || (!u.includesCredentials && u.port.isNone && u.host.isNone)) &&
     (match u.port with | none => true | some p => p < 65536) &&
-    (!(u.scheme == "file") || (!u.includesCredentials && u.port.isNone))
+    (!(u.scheme == "file") || (!u.includesCredentials && u.port.isNone)) &&
+    hostKindOkOf u.scheme u.host
 
 theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := by
   unfold checkValidUrl
   constructor
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
-    obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := h
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h6⟩
     · intro hs; rcases h1 with h1 | h1
       · rw [hs] at h1; simp at h1
       · exact h1
@@ -243,7 +332,7 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
       · simpa using h5.2
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true']
-    refine ⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩
+    refine ⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, h.hostKind⟩
     · cases hs : u.isSpecial with
       | false => exact Or.inl rfl
       | true => exact Or.inr (h.specialHasList hs)

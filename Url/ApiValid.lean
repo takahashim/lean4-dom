@@ -98,7 +98,7 @@ theorem validUrl_setOpaque {u : Url} (h : ValidUrl u) (o : String) (hop : u.hasO
   ⟨fun hs => absurd (h.specialHasList hs) (by rw [hop]; simp),
     h.nullHostNoCredentials, h.nullHostNoPort,
     fun _ => h.opaqueNoCredentials hop, fun _ => h.opaqueNoPort hop, fun _ => h.opaqueNoHost hop,
-    h.portRange, h.fileNoCredentials, h.fileNoPort⟩
+    h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind⟩
 
 theorem stripTrailingSpaces_valid {u : Url} (h : ValidUrl u) :
     ValidUrl (stripTrailingSpaces u) := by
@@ -150,7 +150,7 @@ theorem validUrl_setPort {u : Url} (h : ValidUrl u) (hh : u.host.isSome = true)
     ValidUrl { u with port := p } := by
   have hne : u.host ≠ none := by intro hn; rw [hn] at hh; simp at hh
   refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_, hpr, h.fileNoCredentials,
-    fun hf => absurd hf hnf⟩ <;> intro hx
+    fun hf => absurd hf hnf, h.hostKind⟩ <;> intro hx
   · exact absurd hx hne
   · exact absurd hx hne
   · exact h.opaqueNoCredentials (by rw [← hx]; rfl)
@@ -190,10 +190,11 @@ theorem run_port_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
       · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
 
 /-- opaque でなければ host を書き込んでも `ValidUrl` は保たれる。 -/
-theorem validUrl_setHost {u : Url} (h : ValidUrl u) (ho : u.hasOpaquePath = false) (hst : Host) :
+theorem validUrl_setHost {u : Url} (h : ValidUrl u) (ho : u.hasOpaquePath = false) (hst : Host)
+    (hk : hostKindOkOf u.scheme (some hst) = true) :
     ValidUrl { u with host := some hst } := by
   refine ⟨h.specialHasList, ?_, ?_, ?_, ?_, ?_, h.portRange, h.fileNoCredentials,
-    h.fileNoPort⟩ <;> intro hx
+    h.fileNoPort, hk⟩ <;> intro hx
   · exact absurd hx (by simp)
   · exact absurd hx (by simp)
   · exact h.opaqueNoCredentials (by rw [← hx]; rfl)
@@ -206,32 +207,48 @@ theorem over_isNone_false {ctx : PCtx} (h : ctx.over.isSome = true) : ctx.over.i
   | none => rw [hc] at h; simp at h
   | some _ => rfl
 
+/-- `file` URL に empty host は置ける（§4.1 の表）。 -/
+theorem empty_kind {u : Url} (hf : u.scheme = "file") :
+    hostKindOkOf u.scheme (some Host.empty) = true := by rw [hf]; rfl
+
+/-- file host state が書き込む host は §4.1 の表に合う。`localhost` は empty host になる。 -/
+theorem fileHost_kind {ctx : PCtx} (hf : ctx.url.scheme = "file") (hst : Host)
+    (hp : hostParser ctx.toAscii ctx.buffer (!ctx.url.isSpecial) = some hst) :
+    hostKindOkOf ctx.url.scheme
+      (some (if hostSerializer hst == "localhost" then Host.empty else hst)) = true := by
+  split
+  · rw [hf]; rfl
+  · exact hostParser_hostKind hp
+
 /-- override 付きの file host state は `ValidUrl` を保つ。 -/
 theorem run_fileHost_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
     ∀ (u : Url), run base .fileHost input ctx = .ok u →
-    ctx.over.isSome = true → ValidUrl ctx.url → ctx.url.hasOpaquePath = false → ValidUrl u
-  | [], ctx, u, h, hov, hv, ho => by
+    ctx.over.isSome = true → ValidUrl ctx.url → ctx.url.hasOpaquePath = false →
+    ctx.url.scheme = "file" → ValidUrl u
+  | [], ctx, u, h, hov, hv, ho, hf => by
     rw [run, step] at h
     simp only [over_isNone_false hov, hov, Bool.false_and, Bool.false_eq_true, if_false,
       if_true] at h
     split at h
     · split at h
-      · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _
+      · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _ (empty_kind hf)
       · split at h
         · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-        · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _
+        · rw [← PResult.ok.inj h]
+          exact validUrl_setHost hv ho _ (fileHost_kind hf _ (by assumption))
     · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-  | ch :: t, ctx, u, h, hov, hv, ho => by
+  | ch :: t, ctx, u, h, hov, hv, ho, hf => by
     rw [run, step] at h
     simp only [over_isNone_false hov, hov, Bool.false_and, Bool.false_eq_true, if_false,
       if_true] at h
     split at h
     · split at h
-      · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _
+      · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _ (empty_kind hf)
       · split at h
         · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-        · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _
-    · exact run_fileHost_valid base t _ u h hov hv ho
+        · rw [← PResult.ok.inj h]
+          exact validUrl_setHost hv ho _ (fileHost_kind hf _ (by assumption))
+    · exact run_fileHost_valid base t _ u h hov hv ho hf
 
 /-- override 付きの host state は `ValidUrl` を保つ。 -/
 theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
@@ -241,7 +258,7 @@ theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
     rw [run, step] at h
     simp only [hov, Bool.true_and, if_true] at h
     split at h
-    · exact run_fileHost_valid base [] _ u h hov hv ho
+    · next gf => exact run_fileHost_valid base [] _ u h hov hv ho (by simpa using gf)
     · next gnf =>
       have hnf : ctx.url.scheme ≠ "file" := by simpa using gnf
       split at h
@@ -251,7 +268,8 @@ theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
           · rw [← PResult.ok.inj h]; exact hv
           · split at h
             · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-            · exact run_port_valid base [] _ u h hov (validUrl_setHost hv ho _) ho (by simp) hnf
+            · exact run_port_valid base [] _ u h hov
+                (validUrl_setHost hv ho _ (hostParser_hostKind (by assumption))) ho (by simp) hnf
       · split at h
         · split at h
           · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
@@ -259,13 +277,14 @@ theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
             · rw [← PResult.ok.inj h]; exact hv
             · split at h
               · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-              · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _
+              · rw [← PResult.ok.inj h]
+                exact validUrl_setHost hv ho _ (hostParser_hostKind (by assumption))
         · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
   | ch :: t, ctx, u, h, hov, hv, ho => by
     rw [run, step] at h
     simp only [hov, Bool.true_and, if_true] at h
     split at h
-    · exact run_fileHost_valid base (ch :: t) _ u h hov hv ho
+    · next gf => exact run_fileHost_valid base (ch :: t) _ u h hov hv ho (by simpa using gf)
     · next gnf =>
       have hnf : ctx.url.scheme ≠ "file" := by simpa using gnf
       split at h
@@ -275,7 +294,8 @@ theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
           · rw [← PResult.ok.inj h]; exact hv
           · split at h
             · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-            · exact run_port_valid base t _ u h hov (validUrl_setHost hv ho _) ho (by simp) hnf
+            · exact run_port_valid base t _ u h hov
+                (validUrl_setHost hv ho _ (hostParser_hostKind (by assumption))) ho (by simp) hnf
       · split at h
         · split at h
           · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
@@ -283,23 +303,26 @@ theorem run_host_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx
             · rw [← PResult.ok.inj h]; exact hv
             · split at h
               · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact hv
-              · rw [← PResult.ok.inj h]; exact validUrl_setHost hv ho _
+              · rw [← PResult.ok.inj h]
+                exact validUrl_setHost hv ho _ (hostParser_hostKind (by assumption))
         · exact run_host_valid base t _ u h hov hv ho
 
 /-! ## scheme -/
 
 theorem validUrl_clearPort {u : Url} (h : ValidUrl u) : ValidUrl { u with port := none } :=
   ⟨h.specialHasList, h.nullHostNoCredentials, fun _ => rfl, h.opaqueNoCredentials,
-    fun _ => rfl, h.opaqueNoHost, by simp, h.fileNoCredentials, fun _ => rfl⟩
+    fun _ => rfl, h.opaqueNoHost, by simp, h.fileNoCredentials, fun _ => rfl, h.hostKind⟩
 
 /-- special かどうかが変わらない scheme の書き換えは `ValidUrl` を保つ。 -/
 theorem validUrl_setScheme {u : Url} (h : ValidUrl u) (s : String)
     (hsp : isSpecialScheme s = u.isSpecial)
-    (hf : s = "file" → u.includesCredentials = false ∧ u.port = none) :
+    (hf : s = "file" → u.includesCredentials = false ∧ u.port = none)
+    (hfe : ¬(u.scheme = "file" ∧ u.host = some Host.empty)) :
     ValidUrl { u with scheme := s } := by
   refine ⟨fun hx => ?_, h.nullHostNoCredentials, h.nullHostNoPort, h.opaqueNoCredentials,
-    h.opaqueNoPort, h.opaqueNoHost, h.portRange, fun hx => (hf hx).1, fun hx => (hf hx).2⟩
-  exact h.specialHasList (by rw [← hsp]; exact hx)
+    h.opaqueNoPort, h.opaqueNoHost, h.portRange, fun hx => (hf hx).1, fun hx => (hf hx).2, ?_⟩
+  · exact h.specialHasList (by rw [← hsp]; exact hx)
+  · exact hostKindOkOf_congr hsp hfe h.hostKind
 
 /-- protocol setter の本体は `ValidUrl` を保つ。 -/
 theorem schemeOverride_valid {ctx : PCtx} (hv : ValidUrl ctx.url) (u : Url)
@@ -332,11 +355,16 @@ theorem schemeOverride_valid {ctx : PCtx} (hv : ValidUrl ctx.url) (u : Url)
             | some q => exact absurd hb (g3 (Or.inr (by rw [hp]; rfl)))
         split at h
         · rw [← PResult.ok.inj h]; exact hv
-        · split at h
+        · next g4 =>
+          -- `file` の empty host を別の scheme へ移さない。§4.1 の表の唯一の例外。
+          have hfe : ¬(ctx.url.scheme = "file" ∧ ctx.url.host = some Host.empty) := by
+            simp only [Bool.and_eq_true, beq_iff_eq, not_and] at g4 ⊢
+            exact fun hs hh => g4 hs hh
+          split at h
           · rw [← PResult.ok.inj h]
-            exact validUrl_clearPort (validUrl_setScheme hv _ hsp hf)
+            exact validUrl_clearPort (validUrl_setScheme hv _ hsp hf hfe)
           · rw [← PResult.ok.inj h]
-            exact validUrl_setScheme hv _ hsp hf
+            exact validUrl_setScheme hv _ hsp hf hfe
 
 /-- override 付きの scheme state は `ValidUrl` を保つ。 -/
 theorem run_scheme_valid (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
@@ -381,7 +409,7 @@ theorem validUrl_setPath {u : Url} (h : ValidUrl u) (p : Path)
     fun hx => h.opaqueNoCredentials (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
     fun hx => h.opaqueNoPort (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
     fun hx => h.opaqueNoHost (by rw [Url.hasOpaquePath] at hx; rw [hop] at hx; exact hx),
-    h.portRange, h.fileNoCredentials, h.fileNoPort⟩
+    h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind⟩
 
 theorem validUrl_appendSegment {u : Url} (h : ValidUrl u) (s : String) :
     ValidUrl (appendSegment u s) := by
