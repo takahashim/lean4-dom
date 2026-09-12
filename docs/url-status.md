@@ -588,8 +588,8 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | 定理 | 言っていること |
 | --- | --- |
 | `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が付いてもよい） |
-| `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。`sc:/.//x` のように serializer が `/.` を足す場合も含む） |
-| `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも。`file:` と IPv6 host は除く） |
+| `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。`sc:/.//x` のように serializer が `/.` を足す場合も含む。query と fragment が付いてもよい） |
+| `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも、query と fragment 付きも。`file:` と IPv6 host は除く） |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
@@ -598,12 +598,15 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | `run_query_chunk`, `run_query_hash`, `run_query_eof`, `run_query_plain` | query state の同じ三種類 |
 | `run_fragment_plain` | fragment state は素通しの文字をそのまま fragment に足す |
 | `run_opaquePath_qf` | query と fragment の有無の四通りをまとめて読み切る |
+| `run_query_full`, `run_fragment_full` | query state から先を、fragment も込めて読み切る |
+| `run_path_question`, `run_path_hash` | path state の `?` と `#`。最後の segment を確定させて次の state へ渡す |
+| `run_pathStart_question`, `run_pathStart_hash`, `run_pathStart_qf` | path start state の `?` と `#`（`sc://h?q` のように path が空の場合） |
 
 閉じたのは三つの経路である。
 
 * scheme start → scheme → opaque path → query → fragment
-* scheme start → scheme → path or authority → path
-* scheme start → scheme →（special かどうかで二通り）→ authority → host → path start → path
+* scheme start → scheme → path or authority → path →（query → fragment）
+* scheme start → scheme →（special かどうかで二通り）→ authority → host → path start → path →（query → fragment）
 
 三つ目は `sp : Bool` で special かどうかを持つので、`sc://h/a` と `http://h/a/b` が
 同じ定理になる。credentials（`user:pass@`）もここに入る。
@@ -611,6 +614,7 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 state ごとに「区切りでない文字を読み切る（chunk）」「区切りで次へ渡す」「EOF で返す」の
 三つを用意して積む。path は segment の列についての帰納法が一つ増える
 （最後の segment は buffer に残ったまま次へ渡る）。
+query と fragment は三つの経路のどれからも同じ `run_query_full` に合流する。
 残っているのは IPv6 host（host parser の `[` の分岐）と `file:`（file state）である。
 
 state の補題は `special` を Bool の引数で持つようにしてあるので、
