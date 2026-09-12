@@ -579,6 +579,8 @@ parse の結果については成り立ち、`--wpt` が毎回 573 件（parse �
 * host は `hostParser (hostSerializer h) = some h` を満たす（empty host を除く）
 * `file:` の host は `localhost` でない（parser が empty host に直す）
 * `file:` の先頭 segment は、Windows drive letter なら正規化されている（`c|` でなく `c:`）
+* special な URL の host は null でない（authority state が必ず host を書く）
+* host が空なら credentials は持てない（authority state が `@` の後で失敗する）
 
 `checkValidUrl` と同じく WPT の 820 件と setter の 705 件で実行時に検査している（違反 0）。
 実行時の検査で分かるのは**強すぎないこと**だけで、**弱すぎるかどうかは証明でしか分からない**。
@@ -593,6 +595,7 @@ Windows drive letter は、証明を書いていて足りないことに気づ�
 | `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。`sc:/.//x` のように serializer が `/.` を足す場合も含む。query と fragment が付いてもよい） |
 | `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも port 付きも IPv6 host 付きも、query と fragment 付きも。`file:` は除く） |
 | `roundtrip_file` | **`file:` URL も戻る**（`file:///a` も `file://[::]/a` も。authority state を通らない別経路） |
+| `roundtrip_canonical` | **`ValidUrl` と `canonicalUrl` を満たす record は戻る**（四つの経路を選び分ける。host の文字についての条件だけ仮定に残る） |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
@@ -632,12 +635,15 @@ state ごとに「区切りでない文字を読み切る（chunk）」「区切
 三つを用意して積む。path は segment の列についての帰納法が一つ増える
 （最後の segment は buffer に残ったまま次へ渡る）。
 query と fragment は四つの経路のどれからも同じ `run_query_full` に合流する。
-四つで parser の経路は出揃った。残っているのは、それぞれの仮定を `canonicalUrl` から
-出して一つの定理にまとめるところである。
+四つで parser の経路は出揃い、`roundtrip_canonical` が `ValidUrl` と `canonicalUrl` から
+四つを選び分ける。残っているのは host を serialize した文字列についての条件
+（`hostReadable` と、C0 control も space も含まないこと）で、いまは仮定に置いてある。
+host の種類ごとに、domain は `asciiDomainToASCII_no_forbidden`、opaque host は
+`opaqueHostParser_no_forbidden`、IPv4 は 10 進の文字の補題が要る分である。
 
 state の補題は `special` を Bool の引数で持つようにしてあるので、
 非 special と special で同じものを使っている。`canonicalUrl` の条件は証明のたびに増えて、
-いまは七つが「テストでは見つからず、証明が指した」ものである。
+いまは九つが「テストでは見つからず、証明が指した」ものである。
 
 host の条件は `hostParser (hostSerializer h) = some h`（canonical form の一つ）から出る。
 `opaqueHostParser_no_forbidden` が「host parser を通った入力に forbidden host code point は

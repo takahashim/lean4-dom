@@ -379,6 +379,14 @@ open Dom.Audit
   Url.run_fileHost_empty
   Url.run_fileHost_pathStart
   Url.roundtrip_file
+  Url.asciiLowerChar_of_schemeChar
+  Url.schemeChar_of_canonical
+  Url.canonicalScheme_shape
+  Url.encodedWith_mem
+  Url.hostParser_nil_opaque
+  Url.not_drive_of_hostReadable
+  Url.ne_qh_of_pathSet
+  Url.roundtrip_canonical
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms

@@ -31,6 +31,7 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * `roundtrip_host`：host を持つ URL。`sc://h/a` も `http://h/a/b` も、credentials 付きも
   port 付きも IPv6 host も。special かどうかは `sp : Bool` で持つ
 * `roundtrip_file`：`file:` URL。authority state を通らない別経路である
+* `roundtrip_canonical`：`ValidUrl` と `canonicalUrl` から四つを選び分ける
 
 どれも `canonicalUrl` のうち通る成分に当たる条件を仮定して `parse ∘ serialize = id` を言う。
 
@@ -41,8 +42,8 @@ WPT の 820 件と setter の 705 件で実行時に確かめている（違反 
 * **区切り**：1 文字で次の state へ渡す（`run_opaquePath_question` ほか）
 * **終端**：EOF で `.ok` を返す（`run_opaquePath_eof` ほか）
 
-四つで parser の経路は出揃った。残っているのは、それぞれの仮定を `canonicalUrl` から
-出して一つの定理にまとめるところである。
+四つで parser の経路は出揃い、`roundtrip_canonical` が `ValidUrl` と `canonicalUrl` から
+四つを選び分ける。残っているのは host を serialize した文字列についての条件である。
 
 port には 10 進の往復（`portValue_toString`）が要った。`Nat.toDigitsCore` についての
 帰納法で、桁を積む向きと読む向きが逆になるので `portValue (l1 ++ l2)` の形を経由する。
@@ -127,7 +128,11 @@ def canonicalUrl (u : Url) (toAscii : List Char → Option String := asciiDomain
   (match u.path with
    | .list (seg :: _) =>
      u.scheme != "file" || !isWindowsDrive seg.toList || isNormalizedWindowsDrive seg.toList
-   | _ => true)
+   | _ => true) &&
+  -- special な URL の host は null でない（authority state が必ず host を書く）。
+  (!u.isSpecial || u.host.isSome) &&
+  -- host が空なら credentials は持てない（authority state が `@` の後で失敗する）。
+  (u.host != some Host.empty || !u.includesCredentials)
 
 /-- 先頭が落ちない文字なら `dropWhile` は何もしない。 -/
 theorem dropWhile_of_head : ∀ (l : List Char) (p : Char → Bool), (∀ c ∈ l.head?, p c = false) →
@@ -3039,5 +3044,372 @@ example : basicUrlParse (urlSerializer
              path := .list ["a"] } :=
   roundtrip_file (Or.inr (by decide)) (hostReadable_ipv6 _ _) (ipv6_no_c0 _) (by decide)
     (by decide) (by decide) (by simp; decide) (by decide) (by simp) (by simp)
+
+/-! ## まとめ
+
+四つの経路を `canonicalUrl` から選び分けて一つの定理にする。
+-/
+
+/-- canonical な scheme の文字は、小文字にしても変わらない。 -/
+theorem asciiLowerChar_of_schemeChar {c : Char}
+    (h : isAsciiLowerAlpha c = true ∨ schemeChar c = true ∧ isAsciiUpperAlpha c = false) :
+    asciiLowerChar c = c := by
+  unfold asciiLowerChar
+  rcases h with h | h
+  · rw [if_neg ?_]
+    simp only [isAsciiLowerAlpha, Bool.and_eq_true, decide_eq_true_eq] at h
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_le]
+    omega
+  · rw [if_neg (by simp [h.2])]
+
+/-- canonical な scheme の残りの文字は scheme の文字で、大文字ではない。 -/
+theorem schemeChar_of_canonical {c : Char}
+    (h : (isAsciiDigit c || isAsciiLowerAlpha c || c == '+' || c == '-' || c == '.') = true) :
+    schemeChar c = true ∧ isAsciiUpperAlpha c = false := by
+  simp only [Bool.or_eq_true, beq_iff_eq] at h
+  simp only [schemeChar, isAsciiAlphanumeric, isAsciiAlpha, isAsciiUpperAlpha, isAsciiLowerAlpha,
+    isAsciiDigit, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq,
+    Bool.eq_false_iff, ne_eq, not_and, Nat.not_le] at *
+  rcases h with (((h | h) | h) | h) | h <;> simp_all <;> omega
+
+/-- 各文字を変えない写像なら、list は変わらない。 -/
+theorem map_self_of_mem : ∀ {l : List Char} {f : Char → Char}, (∀ c ∈ l, f c = c) → l.map f = l
+  | [], _, _ => rfl
+  | c :: t, f, h => by
+    simp only [List.map_cons, h c (by simp)]
+    rw [map_self_of_mem (fun x hx => h x (by simp [hx]))]
+
+/-- canonical な scheme は、先頭が小文字 alpha、残りが scheme の文字で、すでに小文字である。 -/
+theorem canonicalScheme_shape {s : String} (h : canonicalScheme s = true) :
+    ∃ a rest, s.toList = a :: rest ∧ isAsciiLowerAlpha a = true ∧
+      (∀ c ∈ rest, schemeChar c = true) ∧ s.toList.map asciiLowerChar = s.toList := by
+  unfold canonicalScheme at h
+  match hsl : s.toList, h with
+  | [], h => simp at h
+  | a :: rest, h =>
+    simp only [Bool.and_eq_true, List.all_eq_true] at h
+    refine ⟨a, rest, rfl, h.1, fun c hc => (schemeChar_of_canonical (h.2 c hc)).1, ?_⟩
+    simp only [List.map_cons, List.cons.injEq]
+    refine ⟨asciiLowerChar_of_schemeChar (Or.inl h.1), ?_⟩
+    exact map_self_of_mem
+      (fun c hc => asciiLowerChar_of_schemeChar (Or.inr (schemeChar_of_canonical (h.2 c hc))))
+
+/-- `encodedWith` から文字ごとの条件を取り出す。 -/
+theorem encodedWith_mem {set : Char → Bool} {s : String} (h : encodedWith set s = true) :
+    ∀ c ∈ s.toList, set c = false := by
+  unfold encodedWith at h
+  simp only [List.all_eq_true, Bool.not_eq_true'] at h
+  exact h
+
+/-- 空の入力を opaque host として読むと empty host になる。 -/
+theorem hostParser_nil_opaque {f : List Char → Option String} :
+    hostParser f [] true = some Host.empty := rfl
+
+/-- 空の入力を domain として読むことはできない。 -/
+theorem hostParser_nil_domain {f : List Char → Option String} :
+    hostParser f [] false = none := rfl
+
+/-- host を serialize した文字列は Windows drive letter にならない。 -/
+theorem not_drive_of_hostReadable {sp : Bool} {h : Host} (hok : hostReadable sp h) :
+    isWindowsDrive (hostSerializer h).toList = false := by
+  rcases hok with hf | ⟨inner, he, _⟩
+  · unfold isWindowsDrive
+    split
+    · rename_i a b hb
+      have hb2 := hf b (by rw [hb]; simp)
+      have hne1 : ¬b = ':' := by intro hx; rw [hx] at hb2; revert hb2; decide
+      have hne2 : ¬b = '|' := by intro hx; rw [hx] at hb2; revert hb2; decide
+      simp [hne1, hne2]
+    · rfl
+  · rw [he]
+    unfold isWindowsDrive
+    split
+    · rename_i a b hb
+      simp only [List.cons.injEq] at hb
+      rw [← hb.1]
+      simp [isAsciiAlpha, isAsciiUpperAlpha, isAsciiLowerAlpha]
+    · rfl
+
+/-- path set に入らない文字は `?` でも `#` でもない。 -/
+theorem ne_qh_of_pathSet {c : Char} (h : pathSet c = false) : ¬c = '?' ∧ ¬c = '#' := by
+  constructor <;> (intro he; rw [he] at h; revert h; decide)
+
+/--
+**canonical な record は、serialize して parse し直すと元に戻る。**
+
+`hh` は host を serialize した文字列についての条件で、host state が読み直せること
+（`hostReadable`）と、前処理が落とす文字を含まないことである。`canonicalUrl` の
+`hostParser (hostSerializer h) = some h` から出るはずだが、そこはまだ証明していない。
+host の種類ごとに、domain は `asciiDomainToASCII_no_forbidden`、opaque host は
+`opaqueHostParser_no_forbidden`、IPv6 は `hostReadable_ipv6` が要る分である。
+-/
+theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = true)
+    (hh : ∀ h, u.host = some h → hostReadable u.isSpecial h ∧
+      (∀ c ∈ (hostSerializer h).toList, isC0ControlOrSpace c = false)) :
+    basicUrlParse (urlSerializer u) none = some u := by
+  simp only [canonicalUrl, Bool.and_eq_true] at hc
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c1, c2⟩, c3⟩, c4⟩, c5⟩, c6⟩, c7⟩, c8⟩, c9⟩, c10⟩, c11⟩, c12⟩, c13⟩, c14⟩ := hc
+  obtain ⟨a, rest, hs, ha, hr, hlow⟩ := canonicalScheme_shape c1
+  obtain ⟨sc, un, pw, ho, po, pa, qu, fr⟩ := u
+  cases pa with
+  | «opaque» o =>
+    have hop : Url.hasOpaquePath ⟨sc, un, pw, ho, po, Path.opaque o, qu, fr⟩ = true := rfl
+    have hsp : isSpecialScheme sc = false := by
+      have h2 := hv.specialHasList
+      cases hx : isSpecialScheme sc with
+      | false => rfl
+      | true =>
+        rw [hop] at h2
+        simp [Url.isSpecial, hx] at h2
+    have hcred := hv.opaqueNoCredentials hop
+    have hport := hv.opaqueNoPort hop
+    have hhost := hv.opaqueNoHost hop
+    simp only [Url.includesCredentials, Bool.or_eq_false_iff, Bool.not_eq_false',
+      String.isEmpty_iff] at hcred
+    simp only at hcred hport hhost
+    obtain ⟨hu0, hp0⟩ := hcred
+    subst hu0
+    subst hp0
+    subst hport
+    subst hhost
+    simp only [Bool.and_eq_true, Bool.not_eq_true', beq_eq_false_iff_ne, ne_eq,
+      List.all_eq_true] at c7
+    refine roundtrip_opaque hs ha hr hlow hsp ?ho ?hlast ?hhead ?hqc ?hfc
+    case ho =>
+      intro c hcm
+      have h2 := c7.1.2 c hcm
+      simp only [bne_iff_ne, ne_eq] at h2
+      exact ⟨encodedWith_mem c7.1.1.1 c hcm, h2.1, h2.2⟩
+    case hlast =>
+      intro c hcm he
+      simp only [Option.mem_def] at hcm
+      exact c7.1.1.2 (by rw [← he]; exact hcm)
+    case hhead =>
+      intro c hcm he
+      simp only [Option.mem_def] at hcm
+      exact c7.2 (by rw [← he]; exact hcm)
+    case hqc =>
+      intro x hx c hcm
+      simp only at c5
+      rw [hx] at c5
+      rw [if_neg (by simp [Url.isSpecial, hsp])] at c5
+      exact encodedWith_mem c5 c hcm
+    case hfc =>
+      intro x hx c hcm
+      simp only at c6
+      rw [hx] at c6
+      exact encodedWith_mem c6 c hcm
+  | list segs =>
+    have hps := hv.pathSegs
+    simp only [pathSegsOk_list, List.all_eq_true] at hps
+    simp only [List.all_eq_true, Bool.and_eq_true, Bool.not_eq_true'] at c7
+    have hseg : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false) ∧
+        isSingleDot x.toList = false ∧ isDoubleDot x.toList = false ∧
+        (∀ c ∈ x.toList, ¬c = '/') ∧
+        (isSpecialScheme sc = true → ∀ c ∈ x.toList, ¬c = '\\') := by
+      intro x hx
+      have h2 := c7 x hx
+      refine ⟨encodedWith_mem h2.1.1.1, h2.1.1.2, h2.1.2,
+        fun c hc => noSlash_mem (hps x hx) hc, ?_⟩
+      intro hsv c hc
+      have h3 := h2.2
+      simp only [Url.isSpecial, hsv, Bool.not_true, Bool.false_or, List.all_eq_true,
+        bne_iff_ne, ne_eq] at h3
+      exact h3 c hc
+    cases ho with
+    | none =>
+      have hsp : isSpecialScheme sc = false := by
+        cases hx : isSpecialScheme sc with
+        | false => rfl
+        | true => simp [Url.isSpecial, hx] at c13
+      have hcred := hv.nullHostNoCredentials rfl
+      have hport := hv.nullHostNoPort rfl
+      simp only [Url.includesCredentials, Bool.or_eq_false_iff, Bool.not_eq_false',
+        String.isEmpty_iff] at hcred
+      simp only at hcred hport
+      obtain ⟨hu0, hp0⟩ := hcred
+      subst hu0
+      subst hp0
+      subst hport
+      have hne : segs ≠ [] := by
+        cases segs with
+        | nil => simp at c8
+        | cons x t => simp
+      refine roundtrip_path hs ha hr hlow hsp hne ?hqc ?hfc ?hall
+      case hqc =>
+        intro x hx c hcm
+        simp only at c5
+        rw [hx] at c5
+        rw [if_neg (by simp [Url.isSpecial, hsp])] at c5
+        exact encodedWith_mem c5 c hcm
+      case hfc =>
+        intro x hx c hcm
+        simp only at c6
+        rw [hx] at c6
+        exact encodedWith_mem c6 c hcm
+      case hall =>
+        intro x hx
+        obtain ⟨h1, h2, h3, h4, _⟩ := hseg x hx
+        exact ⟨fun c hc => ⟨h1 c hc, h4 c hc, (ne_qh_of_pathSet (h1 c hc)).1,
+          (ne_qh_of_pathSet (h1 c hc)).2⟩, h2, h3⟩
+    | some hst =>
+      obtain ⟨hok, hnc⟩ := hh hst rfl
+      have hcan : hst = Host.empty ∨
+          hostParser asciiDomainToASCII (hostSerializer hst).toList
+            (!Url.isSpecial ⟨sc, un, pw, some hst, po, Path.list segs, qu, fr⟩) = some hst := by
+        cases hst with
+        | empty => exact Or.inl rfl
+        | domain d => exact Or.inr (by simpa using c10)
+        | ipv4 x => exact Or.inr (by simpa using c10)
+        | ipv6 x => exact Or.inr (by simpa using c10)
+        | «opaque» o => exact Or.inr (by simpa using c10)
+      by_cases hfile : sc = "file"
+      · subst hfile
+        have hcred := hv.fileNoCredentials rfl
+        have hport := hv.fileNoPort rfl
+        simp only [Url.includesCredentials, Bool.or_eq_false_iff, Bool.not_eq_false',
+          String.isEmpty_iff] at hcred
+        simp only at hcred hport
+        obtain ⟨hu0, hp0⟩ := hcred
+        subst hu0
+        subst hp0
+        subst hport
+        have hsp : Url.isSpecial ⟨"file", "", "", some hst, none, Path.list segs, qu, fr⟩
+            = true := rfl
+        rw [hsp] at hcan hok
+        have hne : segs ≠ [] := by
+          cases segs with
+          | nil => simp [Url.isSpecial, isSpecialScheme] at c9
+          | cons x t => simp
+        refine roundtrip_file (by simpa using hcan) hok hnc
+          (not_drive_of_hostReadable hok) ?hloc hne ?hdrive ?hall ?hqc ?hfc
+        case hloc =>
+          simp only [bne_iff_ne, ne_eq, Bool.or_eq_true] at c11
+          rcases c11 with h | h
+          · exact absurd trivial h
+          · exact h
+        case hdrive =>
+          intro x hx
+          cases segs with
+          | nil => exact absurd rfl hne
+          | cons y t =>
+            simp only [List.head?_cons, Option.some.injEq] at hx
+            subst hx
+            simp only [bne_iff_ne, ne_eq, Bool.or_eq_true, Bool.not_eq_true'] at c12
+            rcases c12 with (h | h) | h
+            · exact absurd trivial h
+            · exact Or.inl h
+            · exact Or.inr h
+        case hall =>
+          intro x hx
+          obtain ⟨h1, h2, h3, h4, h5⟩ := hseg x hx
+          exact ⟨fun c hc => ⟨h1 c hc, isTerminator_false (h4 c hc)
+            (ne_qh_of_pathSet (h1 c hc)).1 (ne_qh_of_pathSet (h1 c hc)).2
+            (fun _ => h5 (by decide) c hc)⟩, h2, h3⟩
+        case hqc =>
+          intro x hx c hcm
+          simp only at c5
+          rw [hx] at c5
+          rw [if_pos (show Url.isSpecial ⟨"file", "", "", some hst, none, Path.list segs,
+            some x, fr⟩ = true from rfl)] at c5
+          exact encodedWith_mem c5 c hcm
+        case hfc =>
+          intro x hx c hcm
+          simp only at c6
+          rw [hx] at c6
+          exact encodedWith_mem c6 c hcm
+      · have hok' : hostReadable (isSpecialScheme sc) hst := by
+          simpa [Url.isSpecial] using hok
+        have hkind := hv.hostKind
+        have hempty : (hostSerializer hst).toList = [] → hst = Host.empty := by
+          intro he
+          rcases hcan with h | h
+          · exact h
+          · rw [he] at h
+            cases hsx : isSpecialScheme sc with
+            | false =>
+              rw [show Url.isSpecial ⟨sc, un, pw, some hst, po, Path.list segs, qu, fr⟩ = false from
+                by simp [Url.isSpecial, hsx]] at h
+              rw [Bool.not_false, hostParser_nil_opaque] at h
+              exact (Option.some.injEq _ _ ▸ h).symm
+            | true =>
+              rw [show Url.isSpecial ⟨sc, un, pw, some hst, po, Path.list segs, qu, fr⟩ = true from
+                by simp [Url.isSpecial, hsx]] at h
+              rw [Bool.not_true, hostParser_nil_domain] at h
+              exact absurd h (by simp)
+        have hnotempty : isSpecialScheme sc = true → ¬hst = Host.empty := by
+          intro hsv he
+          rw [he] at hkind
+          simp only [hostKindOkOf, Bool.or_eq_true, Bool.not_eq_true', hsv, beq_iff_eq] at hkind
+          rcases hkind with h | h
+          · exact absurd h (by simp)
+          · exact hfile h
+        have hhne : isSpecialScheme sc = true ∨ (un.isEmpty && pw.isEmpty) = false ∨ po ≠ none →
+            (hostSerializer hst).toList ≠ [] := by
+          intro hcond he
+          have hE := hempty he
+          rcases hcond with h | h | h
+          · exact hnotempty h hE
+          · rw [hE] at c14
+            simp only [bne_iff_ne, ne_eq, Bool.or_eq_true, Bool.not_eq_true'] at c14
+            rcases c14 with hx | hx
+            · exact absurd trivial hx
+            · simp only [Url.includesCredentials, Bool.or_eq_false_iff, Bool.not_eq_false'] at hx
+              rw [hx.1, hx.2] at h
+              simp at h
+          · exact h (hv.emptyHostNoPort (by rw [hE]))
+        have hcan' : hostParser asciiDomainToASCII (hostSerializer hst).toList
+            (!isSpecialScheme sc) = some hst := by
+          rcases hcan with h | h
+          · subst h
+            cases hsx : isSpecialScheme sc with
+            | false => exact hostParser_nil_opaque
+            | true => exact absurd rfl (hnotempty hsx)
+          · simpa [Url.isSpecial] using h
+        refine roundtrip_host hs ha hr hlow rfl hfile (encodedWith_mem c3) (encodedWith_mem c4)
+          hcan' hok' hnc ?hhead hhne ?hport ?hqc ?hfc ?hsegs ?hall
+        case hhead =>
+          intro hsv c hc
+          rw [hsv] at hok'
+          cases hx : (hostSerializer hst).toList with
+          | nil => exact absurd hx (hhne (Or.inl hsv))
+          | cons d t =>
+            rw [hx] at hc
+            simp only [List.cons_append, List.head?_cons, Option.mem_def,
+              Option.some.injEq] at hc
+            have h2 := (hostReadable_auth hok' d (by rw [hx]; simp)).2
+            subst hc
+            constructor <;> (intro he; rw [he] at h2; revert h2; decide)
+        case hport =>
+          intro p hp
+          refine ⟨by have := hv.portRange p hp; omega, ?_⟩
+          simp only at c2
+          rw [hp] at c2
+          simp only [bne_iff_ne, ne_eq] at c2
+          simp only [portOf, beq_iff_eq]
+          rw [if_neg c2]
+        case hqc =>
+          intro x hx c hcm
+          simp only at c5
+          rw [hx] at c5
+          exact encodedWith_mem c5 c hcm
+        case hfc =>
+          intro x hx c hcm
+          simp only at c6
+          rw [hx] at c6
+          exact encodedWith_mem c6 c hcm
+        case hsegs =>
+          intro hsv
+          cases segs with
+          | nil =>
+            simp only [Url.isSpecial, hsv, Bool.not_true, Bool.false_or] at c9
+            exact absurd c9 (by simp)
+          | cons x t => simp
+        case hall =>
+          intro x hx
+          obtain ⟨h1, h2, h3, h4, h5⟩ := hseg x hx
+          exact ⟨fun c hc => ⟨h1 c hc, isTerminator_false (h4 c hc)
+            (ne_qh_of_pathSet (h1 c hc)).1 (ne_qh_of_pathSet (h1 c hc)).2
+            (fun hsv => h5 hsv c hc)⟩, h2, h3⟩
 
 end Url
