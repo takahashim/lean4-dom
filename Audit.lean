@@ -169,6 +169,9 @@ open Dom.Audit
   Url.setUsername_cannot
   Url.setPassword_cannot
   Url.setPort_cannot
+  Url.setUsername_spec
+  Url.setPassword_spec
+  Url.setPort_empty_spec
   Url.setHost_opaque
   Url.setHostname_opaque
   Url.setPathname_opaque

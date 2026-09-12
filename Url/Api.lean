@@ -208,6 +208,25 @@ theorem setPort_cannot {u : Url} (h : u.cannotHaveCredentials = true) (v : Strin
     u.setPort v = u := by
   simp [Url.setPort, h]
 
+/--
+**`username` setter は、できるときは与えた文字列を userinfo として encode して入れる。**
+
+`password` も同じ。`setUsername_cannot` と `setUsername_valid` だけでは
+引数を無視する setter も満たすので、肯定側をここに置く。
+-/
+theorem setUsername_spec {u : Url} (h : u.cannotHaveCredentials = false) (v : String) :
+    (u.setUsername v).username = userinfoEncode v := by
+  simp [Url.setUsername, h]
+
+theorem setPassword_spec {u : Url} (h : u.cannotHaveCredentials = false) (v : String) :
+    (u.setPassword v).password = userinfoEncode v := by
+  simp [Url.setPassword, h]
+
+/-- **空文字列を入れると `port` は消える。** -/
+theorem setPort_empty_spec {u : Url} (h : u.cannotHaveCredentials = false) :
+    (u.setPort "").port = none := by
+  simp [Url.setPort, h]
+
 /-- opaque path を持つ URL では `host` setter は何もしない。`hostname` も同じ。 -/
 theorem setHost_opaque {u : Url} (h : u.hasOpaquePath = true) (v : String) :
     u.setHost v = u := by
