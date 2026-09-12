@@ -660,6 +660,56 @@ theorem decode_scan (b m : Nat) (hm : ValidCp m) :
         rw [scanOne_gt b m _ c hlt heq, passRun, if_neg hlt, if_neg (by simp [heq])]
         exact ih st rest { hinv with bEq := hB }
 
+
+/-!
+## 外側のループ
+
+`encodeLoop` は `sortedDistinct` の順に code point を上げていく。
+pass の境目で何が保たれるかが要点で、それは次の一本である。
+
+```
+i + st.delta = (nEnc - nDec) * (out.length + 1)
+```
+
+`nEnc` は `encodeLoop` の引数（前の code point + 1、最初は 128）、
+`nDec` は復号がいま見ている code point（前の code point、最初は 128）である。
+最初の pass では両者が等しく右辺は 0、二回目以降は 1 ずれるので右辺は `out.length + 1` になる。
+
+後者が成り立つ理由はこうである。前の pass の最後の挿入位置を `pos`、
+その後ろに残る「前の code point 未満」の文字数を `k` とすると、
+復号の `i` は `pos + 1`、符号化の `delta` は `k + 1`（pass の終わりに 1 足すため）で、
+`out.length = pos + 1 + k` だから両辺が一致する。
+
+この一本があると、pass の最初の吐き出しで `decode_emit` の前提
+
+```
+A.length + (m - nDec) * N = i + d
+```
+
+がちょうど出る。`d` は pass の頭で `(m - nEnc) * N` を足され、
+`m` が来るまでに `m` 未満の文字の個数だけ増えるので、
+`i + d = (nEnc - nDec) * N + (m - nEnc) * N + A.length = A.length + (m - nDec) * N` となる。
+-/
+
+/-- `m` が現れるなら、最初の出現で入力を割れる。 -/
+theorem split_first_hit (m : Nat) : ∀ (l : List Char), (∃ c ∈ l, c.toNat = m) →
+    ∃ pre c suf, l = pre ++ c :: suf ∧ (∀ x ∈ pre, x.toNat ≠ m) ∧ c.toNat = m := by
+  intro l
+  induction l with
+  | nil => intro h; simp at h
+  | cons a rest ih =>
+    intro h
+    by_cases ha : a.toNat = m
+    · exact ⟨[], a, rest, by simp, by simp, ha⟩
+    · obtain ⟨c, hc, hcm⟩ := h
+      rcases List.mem_cons.mp hc with rfl | hc
+      · exact absurd hcm ha
+      · obtain ⟨pre, c', suf, hl, hpre, hc'⟩ := ih ⟨c, hc, hcm⟩
+        exact ⟨a :: pre, c', suf, by rw [hl]; simp,
+          by intro x hx; rcases List.mem_cons.mp hx with rfl | hx
+             · exact ha
+             · exact hpre x hx, hc'⟩
+
 /-! ## 符号化の枠が復号で戻ること -/
 
 theorem span_loop_all (p : Char → Bool) : ∀ (l acc : List Char), (∀ c ∈ l, p c = true) →

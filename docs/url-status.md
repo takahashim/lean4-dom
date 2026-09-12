@@ -198,14 +198,35 @@ theorem decodeDigits_encodeDigits (bias : Nat) :
 `c < m` の枝で `p` は増えるが `out` は伸びないためで、その `c` が既に `out` に
 入っていること（前の pass で挿さっているから）が効いている。
 
-### 残っている段取り
+### 段取り
 
-1. 上の不変条件を担いだ走査 1 回分の双模倣。適応バイアスの一致には
-   `delta = i' - i`、`h + 1 = out.length + 1`、`(h == b) ↔ (i == 0)` が要る。
-2. 外側のループ（`sortedDistinct` の順に `m` を上げていく）の双模倣。
-   pass の最初の吐き出しだけ `n` が `m` まで跳ぶので、そこは別に扱う。
-3. `partialAt input m (m の個数) = partialAt input (m+1) 0` などの繋ぎ。
-4. 組み上げ。
+1. **済。** 走査 1 回分の双模倣（`decode_scan`）。一歩分は `decode_emit` で、
+   pass の最初の吐き出しで `n` が `m` まで跳ぶ場合も同じ式に含めてある。
+2. 外側のループ（`sortedDistinct` の順に `m` を上げていく）の双模倣。**不変条件は出た。**
+3. 組み上げ。
+
+### pass の境目で保たれるもの（導出済み）
+
+```
+i + st.delta = (nEnc - nDec) * (out.length + 1)
+```
+
+`nEnc` は `encodeLoop` の引数（前の code point + 1、最初は 128）、
+`nDec` は復号がいま見ている code point（前の code point、最初は 128）である。
+最初の pass では両者が等しく右辺は 0、二回目以降は 1 ずれて右辺は `out.length + 1` になる。
+
+後者が成り立つ理由。前の pass の最後の挿入位置を `pos`、その後ろに残る
+「前の code point 未満」の文字数を `k` とすると、復号の `i` は `pos + 1`、
+符号化の `delta` は `k + 1`（pass の終わりに 1 足すため）で、
+`out.length = pos + 1 + k` だから両辺が一致する。
+
+これがあると pass の最初の吐き出しで `decode_emit` の前提がちょうど出る。
+`d` は pass の頭で `(m - nEnc) * N` を足され、`m` が来るまでに `m` 未満の文字の個数だけ
+増えるので、`i + d = (nEnc - nDec) * N + (m - nEnc) * N + A.length = A.length + (m - nDec) * N`。
+
+外側の帰納法は `out = input.filter (· < nEnc)` を担いで回す。
+`todo` を使い切ったところで `out = input` になり、`decodeLoop` が `some input` を返す。
+終状態を式で書かずに済むので、これが取り回しやすい。
 
 ### 表は証明の外に置く
 
