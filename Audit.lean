@@ -229,6 +229,16 @@ open Dom.Audit
   Url.Punycode.encodeDigits_ascii
   Url.Punycode.decodeDigits_length
   Url.Punycode.encode_ascii
+  Url.Punycode.digitValue_digitChar
+  Url.Punycode.decodeDigits_encodeDigits
+  Url.Punycode.digitChar_ne_delim
+  Url.Punycode.encodeDigits_no_delim
+  Url.Punycode.encodeExt_no_delim
+  Url.Punycode.span_loop_all
+  Url.Punycode.span_loop_split
+  Url.Punycode.splitLastDelim_no_delim
+  Url.Punycode.splitLastDelim_append
+  Url.Punycode.splitLastDelim_encode
 
 -- UTS #46 ToASCII（表は仮定 `IdnaTable.Resolved` に押し込んである）
 #audit_axioms

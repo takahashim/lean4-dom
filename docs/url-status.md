@@ -139,8 +139,35 @@ RFC 3492 §7.1 の sample strings 19 件を、符号化と復号の両方で通�
 （`url-model --punycode`、38 件）。復号は RFC の綴りをそのまま食わせるので、
 §5 の case annotation（(I) の Russian に大文字が混じる）を受けることの検査にもなっている。
 
-`decode (encode s) = s` は未着手である。19 件で往復することは確かめたが、
-適応バイアスを挟んだ双方向の対応を一般に示すのは `ValidUrl` の保存より重いと見ている。
+`decode (encode s) = s` は途中である。外側の二層が付いた。
+
+| 層 | 定理 | 状態 |
+| --- | --- | --- |
+| 枠（区切りの位置） | `splitLastDelim_encode` | 済 |
+| 可変長整数 | `decodeDigits_encodeDigits` | 済 |
+| 差分と挿入位置の対応 | — | 未着手 |
+
+**枠。** `decode` はまず最後の `-` で基本部分と拡張部分に分ける。
+桁文字は `a`-`z` と `0`-`9` だけなので拡張部分に `-` は現れず、分け方は一意である
+（基本部分に `-` が何個あっても構わない）。
+`splitLastDelim (encode input) = (encodeBasic input, encodeExt input)` が言える。
+
+**可変長整数。**
+
+```lean
+theorem decodeDigits_encodeDigits (bias : Nat) :
+    ∀ (q k w i : Nat) (rest : List Char),
+      decodeDigits bias (encodeDigits bias k q ++ rest) k w i = some (i + q * w, rest)
+```
+
+符号化は `q` を閾値 `t` と `36 - t` で割り、復号は重みを `36 - t` 倍しながら足す。
+`Nat.mod_add_div'` がその二つを繋ぐ。後ろに何が続いていても触らずに返すので、
+上の層から呼べる形になっている。
+
+**残る層**が本体である。`encodeLoop` は非 ASCII の code point を昇順に見て、
+出現ごとに差分を吐く。`decodeLoop` はそれを読んで挿入位置を復元する。
+適応バイアスを挟んだ双方向の対応をここで示すことになる。
+`ValidUrl` の保存より重いと見ている。
 
 ### 表は証明の外に置く
 
@@ -512,8 +539,9 @@ def RunIH (base : Option Url) (r n : Nat) : Prop :=
 
 ## 未着手
 
-* **`Punycode.decode (encode s) = s`。** 19 件で往復することは確かめたが、
-  適応バイアスを挟んだ双方向の対応を一般に示すのは `ValidUrl` の保存より重いと見ている。
+* **`Punycode.decode (encode s) = s` の最後の層。** 枠（`splitLastDelim_encode`）と
+  可変長整数（`decodeDigits_encodeDigits`）は付いた。残るのは `encodeLoop` が吐く差分と
+  `decodeLoop` が復元する挿入位置の対応で、適応バイアスを挟むぶん重い。
 * **UTS #46 の写像表・NFC・Bidi。** 規定データなので `IdnaTable` の仮定に押し込み、
   実行時の fixture から与える。`Resolved` は `checkResolved` が実行時に検査する。
   `outOfModel` の印が付いた code point（結合クラス ≠ 0、NFC_QC ≠ Yes、
