@@ -171,6 +171,9 @@ open Dom.Audit
   Url.hostKindOkOf_file_empty
   Url.hostKindOkOf_congr
   Url.hostParser_hostKind
+  Url.hostParser_empty
+  Url.host_ne_empty
+  Url.empty_host_port
   Url.noSlash_mem
   Url.noSlash_of_mem
   Url.encChar_no_slash

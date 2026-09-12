@@ -447,17 +447,27 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 * scheme が `file` なら credentials も port も持てない
 * scheme と host の組み合わせは §4.1 の表に従う
 * path segment に `/` は含まれない
+* host が空なら port は持てない
 
 入っていないのは二つで、どちらも parser も setter も作れないが、不変条件にするには足場が要る。
 
 | §4.1 の条件 | 入れていない理由 |
 | --- | --- |
-| host が**空**なら credentials も port も持てない | 根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）にあり、その情報は host state へ**入力として**渡るので、`PInv` が残りの入力を見る必要がある。同じ条文の scheme が `file` の側は入れてある（state について `PInv.notFile` を持ち回れば済む） |
+| host が**空**なら **credentials** は持てない | 根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）にあり、その情報は host state へ**入力として**渡るので、`PInv` が残りの入力を見る必要がある。同じ条文の port の側と scheme が `file` の側は入れてある |
 | special な URL の host は null でない | **終端でしか成り立たない。** parse の途中では scheme が決まって host が null の状態を必ず通る |
 
 `Url/Strict.lean` の `checkStrictUrl` がこの二つと IPv6 の形を WPT の 820 件と
 setter の 705 件で実行時に検査している（違反 0）。境界は `Url/RecordExamples.lean` に
 `example` で固定してある。`ValidUrl` を通るが仕様が禁じている record を、そこに並べてある。
+
+「host が空なら port は持てない」は port を書く場所が一つしかないことで出る。
+
+| 足場 | 言っていること |
+| --- | --- |
+| `hostParser_empty` | **host parser が empty host を返すのは入力が空のときだけ** |
+| `PInv.portHostNotEmpty` | port state へ入るときの host は空でない。入口は host state の `:` の分岐だけで、そこは buffer が空なら失敗する |
+| `PInv.freshPortState` | port state より前の state には port が無い（`freshCred` を port 用に広げたもの）。host を書く瞬間に port が null だと言うのに要る |
+| `empty_host_port` | setter 側。host state の終端の guard が、credentials か port があるときは host を空にしない |
 
 path segment の `/` は **serializer の正しさが依存する条件**である。
 `{ scheme := "sc", path := .list ["/x"] }` を serialize すると `sc://x` になり、

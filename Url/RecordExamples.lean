@@ -50,6 +50,11 @@ example : ¬ ValidUrl { scheme := "https", host := some .empty } := by
   intro h
   exact absurd h.hostKind (by decide)
 
+/-- host が空なら port は持てない（§4.1）。 -/
+example : ¬ ValidUrl { scheme := "sc", host := some .empty, port := some 80 } := by
+  intro h
+  exact absurd (h.emptyHostNoPort rfl) (by simp)
+
 /--
 path segment に `/` は含まれない（§4.1）。**serializer の正しさがこれに依存する。**
 
@@ -67,18 +72,23 @@ example : ¬ ValidUrl { scheme := "sc", path := .list ["/x"] } := by
 -/
 
 
-/-- host が空なら port は持てない（§4.1）。 -/
-example : ValidUrl { scheme := "sc", host := some .empty, port := some 80 } := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+/--
+host が空なら credentials は持てない（§4.1）。これは `PInv` が入力を見ないと出せない。
+
+成り立つ根拠は authority state の guard（`atSignSeen && buffer.isEmpty` なら失敗）にあり、
+その情報は host state へ入力として渡る。同じ条文の port の側は `ValidUrl` に入れた。
+-/
+example : ValidUrl { scheme := "sc", host := some .empty, username := "user" } := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort, hostKindOkOf, pathSegsOk_list, noSlash]
 
-example : checkStrictUrl { scheme := "sc", host := some .empty, port := some 80 } = false := by
+example : checkStrictUrl { scheme := "sc", host := some .empty, username := "user" } = false := by
   decide
 
 /-- special な URL の host は null でない（§4.1 の表）。これは終端でしか成り立たない。 -/
 example : ValidUrl { scheme := "https" } := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort, hostKindOkOf, pathSegsOk_list, noSlash]
 

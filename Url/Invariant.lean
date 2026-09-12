@@ -537,7 +537,7 @@ theorem pathSegsOk_fileSlashDrive {u : Url} {bp : Path} {input : List Char}
   constructor <;> intro h <;>
     exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
       h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost, h.portRange,
-      h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs⟩
+      h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs, h.emptyHostNoPort⟩
 
 /-- fragment についても同じ。 -/
 @[simp] theorem validUrl_setFragment (u : Url) (f : Option String) :
@@ -545,7 +545,7 @@ theorem pathSegsOk_fileSlashDrive {u : Url} {bp : Path} {input : List Char}
   constructor <;> intro h <;>
     exact ⟨h.specialHasList, h.nullHostNoCredentials, h.nullHostNoPort,
       h.opaqueNoCredentials, h.opaqueNoPort, h.opaqueNoHost, h.portRange,
-      h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs⟩
+      h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs, h.emptyHostNoPort⟩
 
 /-! ## state で添字づけた不変条件 -/
 
@@ -607,17 +607,29 @@ def freshHost : PState → Bool
   | _ => false
 
 /--
-credentials も port もまだ書かれていない state。
+credentials がまだ書かれていない state。
 
-credentials を書くのは authority state、port を書くのは port state で、
-どちらもここに挙げた state より後にある。base から成分を写す state
-（no scheme / file / file slash）が、写さない成分について
+credentials を書くのは authority state で、ここに挙げた state より後にある。
+base から成分を写す state（no scheme / file / file slash）が、写さない成分について
 `ValidUrl` を出すのにこれが要る。
 -/
-def freshCredPort : PState → Bool
+def freshCred : PState → Bool
   | .schemeStart | .scheme | .noScheme | .specialRelativeOrAuthority
   | .relative | .relativeSlash | .specialAuthoritySlashes | .specialAuthorityIgnoreSlashes
   | .pathOrAuthority | .file | .fileSlash | .fileHost => true
+  | _ => false
+
+/--
+port がまだ書かれていない state。
+
+port を書くのは port state だけで、そこへは host state からしか来ない。
+credentials より一つ後まで（authority state と host state まで）伸びる。
+§4.1「host が空なら port は持てない」を、host を書く瞬間に出すのにこれが要る。
+-/
+def freshPort : PState → Bool
+  | .schemeStart | .scheme | .noScheme | .specialRelativeOrAuthority
+  | .relative | .relativeSlash | .specialAuthoritySlashes | .specialAuthorityIgnoreSlashes
+  | .pathOrAuthority | .file | .fileSlash | .fileHost | .authority | .host => true
   | _ => false
 
 /-- base の path をそのまま取り込む state。 -/
@@ -669,10 +681,19 @@ structure PInv (base : Option Url) (st : PState) (ctx : PCtx) : Prop where
   hostKind : hostKindOkOf ctx.url.scheme ctx.url.host = true
   /-- §4.1「URL path segments never contain U+002F (/)」。 -/
   pathSegs : pathSegsOk ctx.url.path = true
+  /-- §4.1「host が空なら port は持てない」。 -/
+  emptyHostNoPort : ctx.url.host = some Host.empty → ctx.url.port = none
   /-- credentials や port を書く state へは、scheme が `file` では入らない。 -/
   notFile : notFileState st = true → ctx.url.scheme ≠ "file"
   /-- file slash / file host state へは file state からしか来ない。 -/
   fileScheme : fileState st = true → ctx.url.scheme = "file"
+  /--
+  port state へ入るときの host は空でない。
+
+  port state へ入るのは host state の `:` の分岐だけで、そこは buffer が空なら失敗する。
+  空でない buffer から host parser が empty host を返すことは無い（`hostParser_empty`）。
+  -/
+  portHostNotEmpty : st = .port → ctx.url.host ≠ some Host.empty
   /--
   query state 以外では buffer に `/` が入らない。
 
@@ -706,9 +727,10 @@ structure PInv (base : Option Url) (st : PState) (ctx : PCtx) : Prop where
   no scheme state が relative state へ渡すときに `notFile` を出すのにこれが要る。
   -/
   schemeEmpty : freshHost st = true → ctx.url.scheme = ""
-  /-- host を決める前の state には credentials も port も無い。 -/
-  freshState : freshCredPort st = true →
-    ctx.url.includesCredentials = false ∧ ctx.url.port = none
+  /-- host を決める前の state には credentials が無い。 -/
+  freshState : freshCred st = true → ctx.url.includesCredentials = false
+  /-- port state より前の state には port が無い。 -/
+  freshPortState : freshPort st = true → ctx.url.port = none
 
 /-- `mayOpaque` が false の state では path は opaque でない。 -/
 theorem PInv.notOpaque {base st ctx} (h : PInv base st ctx) (hm : mayOpaque st = false) :
@@ -721,7 +743,8 @@ theorem PInv.notOpaque {base st ctx} (h : PInv base st ctx) (hm : mayOpaque st =
 theorem PInv.valid {base st ctx} (h : PInv base st ctx) (hm : mayCred st = false) :
     ValidUrl ctx.url := by
   refine ⟨h.specialHasList, ?_, h.nullHostNoPort, h.opaqueNoCredentials, h.opaqueNoPort,
-    h.opaqueNoHost, h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs⟩
+    h.opaqueNoHost, h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind, h.pathSegs,
+    h.emptyHostNoPort⟩
   intro hh
   cases hc : ctx.url.includesCredentials with
   | false => rfl
@@ -739,8 +762,9 @@ theorem valid_of_inv {u : Url}
     (hfc : u.scheme = "file" → u.includesCredentials = false)
     (hfp : u.scheme = "file" → u.port = none)
     (hhk : hostKindOkOf u.scheme u.host = true)
-    (hps : pathSegsOk u.path = true) : ValidUrl u := by
-  refine ⟨hsp, ?_, hnp, hoc, hopo, hoh, hpr, hfc, hfp, hhk, hps⟩
+    (hps : pathSegsOk u.path = true)
+    (hep : u.host = some Host.empty → u.port = none) : ValidUrl u := by
+  refine ⟨hsp, ?_, hnp, hoc, hopo, hoh, hpr, hfc, hfp, hhk, hps, hep⟩
   intro hh
   cases hc : u.includesCredentials with
   | false => rfl
@@ -779,15 +803,21 @@ theorem PInv.portStep {base : Option Url} {ctx ctx2 : PCtx} (h : PInv base .port
       exact absurd (h.notFile (by decide)) (by simpa using hf)
     hostKind := by rw [hu]; exact h.hostKind
     pathSegs := by rw [hu]; exact h.pathSegs
+    emptyHostNoPort := by
+      intro he
+      rw [hu] at he ⊢
+      exact absurd he (h.portHostNotEmpty rfl)
     notFile := by intro hn; exact absurd hn (by decide)
     fileScheme := by intro hn; exact absurd hn (by decide)
+    portHostNotEmpty := by intro hn; exact absurd hn (by decide)
     bufferNoSlash := by intro _; rw [portDone_buffer hp]; rfl
     opaqueState := by intro ho'; rw [hs] at ho'; exact absurd ho' (by simp)
     credState := by intro hn; exact absurd hn hne
     portHost := by intro he; exact absurd he (by decide)
     schemeNoHost := by intro he; exact absurd he (by decide)
     schemeEmpty := by intro he; exact absurd he (by decide)
-    freshState := by intro he; exact absurd he (by decide) }
+    freshState := by intro he; exact absurd he (by decide)
+    freshPortState := by intro he; exact absurd he (by decide) }
 
 /-! ## 帰納段
 
@@ -814,7 +844,7 @@ theorem PInv_empty {base : Option Url} {st : PState}
     (h4 : fileState st = false) :
     PInv base st { url := {}, toAscii } := by
   refine ⟨rfl, hb, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, ?_, ?_⟩ <;>
+    ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp_all [Url.isSpecial, Url.hasOpaquePath, Path.isOpaque, Url.includesCredentials,
       isSpecialScheme, defaultPort, hostKindOkOf, pathSegsOk_list]
 

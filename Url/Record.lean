@@ -225,6 +225,40 @@ theorem hostKindOkOf_congr {s t : String} {h : Option Host}
     · exact absurd ⟨hk, rfl⟩ hfe
 
 /--
+**host parser が empty host を返すのは入力が空のときだけ。**
+
+§4.1「host が空なら port は持てない」を parser 側で支える。port state へ入るのは
+host state の `:` 分岐だけで、そこは buffer が空なら失敗するからである。
+-/
+theorem hostParser_empty {f : List Char → Option String} {input : List Char} {b : Bool}
+    (h : hostParser f input b = some .empty) : input = [] := by
+  unfold hostParser at h
+  split at h
+  · split at h
+    · simp only [Option.map_eq_some_iff] at h
+      obtain ⟨a, -, ha⟩ := h
+      exact absurd ha (by simp)
+    · simp at h
+  · split at h
+    · unfold opaqueHostParser at h
+      split at h
+      · simp at h
+      · next hf =>
+        split at h
+        · next he => simpa using he
+        · exact absurd (Option.some.inj h) (by simp)
+    · split at h
+      · simp at h
+      · simp +zetaDelta only [] at h
+        split at h
+        · simp at h
+        · split at h
+          · simp only [Option.map_eq_some_iff] at h
+            obtain ⟨a, -, ha⟩ := h
+            exact absurd ha (by simp)
+          · exact absurd (Option.some.inj h) (by simp)
+
+/--
 **host parser が返す host は、その scheme の表に合う。**
 
 basic URL parser が host parser を呼ぶときの第二引数は「special でない」なので、
@@ -287,10 +321,11 @@ parse では作れない record が反例になる。
 WPT と setter の全 case で実行時に検査していて、
 `Url/RecordExamples.lean` に反例を置いてある。
 
-* 「host が**空**なら credentials も port も持てない」。成り立つ根拠は authority state の
+* 「host が**空**なら **credentials** は持てない」。成り立つ根拠は authority state の
   guard（`atSignSeen && buffer.isEmpty` なら失敗）にあり、その情報は host state へ
   **入力として**渡る。不変条件にするには `PInv` が `ctx.url` だけでなく
-  残りの入力を見る必要がある。`scheme = "file"` の側は入れてある。
+  残りの入力を見る必要がある。同じ条文の port の側は入れてある
+  （port state へ入るのは host state の `:` の分岐だけで、そこは buffer が空なら失敗する）。
 * 「special な URL の host は null でない」。**これは終端でしか成り立たない。**
   parse の途中では scheme が決まって host がまだ null の状態を必ず通る。
 -/
@@ -310,6 +345,8 @@ structure ValidUrl (u : Url) : Prop where
   hostKind : hostKindOkOf u.scheme u.host = true
   /-- §4.1「URL path segments never contain U+002F (/)」。 -/
   pathSegs : pathSegsOk u.path = true
+  /-- §4.1「host が空なら port は持てない」。credentials の側は入っていない。 -/
+  emptyHostNoPort : u.host = some Host.empty → u.port = none
 
 /-! ## 実行時の検査 -/
 
@@ -328,15 +365,16 @@ def checkValidUrl (u : Url) : Bool :=
     (match u.port with | none => true | some p => p < 65536) &&
     (!(u.scheme == "file") || (!u.includesCredentials && u.port.isNone)) &&
     hostKindOkOf u.scheme u.host &&
-    pathSegsOk u.path
+    pathSegsOk u.path &&
+    (!(u.host == some Host.empty) || u.port.isNone)
 
 theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := by
   unfold checkValidUrl
   constructor
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
-    obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩ := h
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h6, h7⟩
+    obtain ⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩ := h
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h6, h7, ?_⟩
     · intro hs; rcases h1 with h1 | h1
       · rw [hs] at h1; simp at h1
       · exact h1
@@ -371,9 +409,13 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
       rcases h5 with h5 | h5
       · rw [hf] at h5; simp at h5
       · simpa using h5.2
+    · intro he
+      rcases h8 with h8 | h8
+      · rw [he] at h8; simp at h8
+      · simpa using h8
   · intro h
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true']
-    refine ⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, h.hostKind⟩, h.pathSegs⟩
+    refine ⟨⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, h.hostKind⟩, h.pathSegs⟩, ?_⟩
     · cases hs : u.isSpecial with
       | false => exact Or.inl rfl
       | true => exact Or.inr (h.specialHasList hs)
@@ -395,6 +437,9 @@ theorem checkValidUrl_iff (u : Url) : checkValidUrl u = true ↔ ValidUrl u := b
       | true =>
         have hfe : u.scheme = "file" := by simpa using hf
         exact Or.inr (by simp [h.fileNoCredentials hfe, h.fileNoPort hfe])
+    · cases he : u.host == some Host.empty with
+      | false => exact Or.inl rfl
+      | true => exact Or.inr (by simp [h.emptyHostNoPort (by simpa using he)])
 
 /-- 既定の port を持つ scheme は special である。 -/
 theorem isSpecialScheme_of_defaultPort {scheme : String} {p : Nat}
