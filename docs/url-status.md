@@ -553,13 +553,43 @@ parse し直したときに読み直されるのは後半なので、性質は�
 | `pathFold_append` | segment を並べる畳み込みは前に付いた文字列をそのまま残す |
 | `pathSerializer_cons` | 先頭 segment の前に `/` が一つ入る |
 
-**`parse (serialize u) = u` は証明していない。** parse の結果については成り立ち、
-`--wpt` が毎回 573 件（parse に成功した分）で確かめている（不一致 0）。
-証明するには serialize した文字列の上で state machine を追うことになり、
-`run_valid` と同じかそれ以上の規模になる。
+**`parse (serialize u) = u` は一部だけ証明した**（`Url/Roundtrip.lean`）。
+parse の結果については成り立ち、`--wpt` が毎回 573 件（parse に成功した分）で
+確かめている（不一致 0）。
 
-上の表の最後の行はこれを調べていて見つかった。`ValidUrl` だけでは
-`parse ∘ serialize` は成り立たない。
+### `ValidUrl` では足りない
+
+`ValidUrl`（と `checkStrictUrl`）を満たすだけの record では成り立たない。
+どれも §4.1 は禁じていないが、parser が作らない形である。
+
+| record | serialize | parse し直すと |
+| --- | --- | --- |
+| `{ scheme := "sc", query := some " " }` | `sc:? ` | query が `""` になる（前処理が末尾の space を落とす） |
+| `{ scheme := "http", host := "a", port := some 80, path := .list [""] }` | `http://a:80/` | port が `none` になる（既定 port） |
+| `{ scheme := "sc", path := .list [".."] }` | `sc:/..` | path が `[""]` になる（double-dot segment） |
+
+つまり **record が parser の出力の形（canonical form）である**ことが要る。
+少なくとも次が必要で、どれも §4.1 には無い。
+
+* scheme は小文字で、先頭が ASCII alpha、残りが alphanumeric か `+` `-` `.`
+* port は既定 port でない
+* credentials / query / fragment / path segment / opaque path は percent-encode 済み
+* path segment は `.` でも `..` でもない
+* host は `hostParser (hostSerializer h) = some h` を満たす
+* serialize した文字列の先頭と末尾が C0 control or space でない
+
+### 閉じた分
+
+| 定理 | 言っていること |
+| --- | --- |
+| `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（scheme が小文字の ASCII、opaque path が素通しの文字だけの場合） |
+| `preprocess_eq_self` | C0 control も space も無ければ前処理は何もしない |
+| `run_scheme_prefix`, `run_scheme_opaque` | scheme state が buffer に積み、`:` で opaque path state へ渡す |
+| `run_opaquePath_plain` | opaque path state は素通しの文字をそのまま path に足す |
+
+いちばん短い経路（scheme start → scheme → opaque path）だけである。
+残りは authority / host / port / path を通る経路で、state も条件も多い。
+やり方は setter の肯定側（`Url/ApiValid.lean`）と同じで、state ごとの等式を積む。
 
 ### setter の側
 

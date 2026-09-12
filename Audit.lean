@@ -264,6 +264,15 @@ open Dom.Audit
   Url.setHost_spec
   Url.setAttr_valid
 
+-- parse ∘ serialize
+#audit_axioms
+  Url.dropWhile_self
+  Url.preprocess_eq_self
+  Url.run_scheme_prefix
+  Url.run_scheme_opaque
+  Url.run_opaquePath_plain
+  Url.roundtrip_opaque
+
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms
   Url.shortenPath_spec
