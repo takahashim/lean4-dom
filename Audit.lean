@@ -205,6 +205,9 @@ open Dom.Audit
   Url.run_fragment_spec
   Url.run_fragment_ok
   Url.setHash_spec
+  Url.run_query_spec
+  Url.run_query_ok
+  Url.setSearch_spec
   Url.setAttr_valid
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと

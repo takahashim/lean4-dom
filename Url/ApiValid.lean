@@ -642,4 +642,71 @@ theorem setHash_spec (u : Url) (v : String) (hv : v.isEmpty = false) :
       { url := { u with fragment := some "" }, over := some SOverride.fragment }
     exact hnone u' hu'
 
+/-- override 付きの query state は、入力を全部 buffer に積んで最後に encode する。 -/
+theorem run_query_spec (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    ctx.over.isSome = true →
+    run base .query input ctx = .ok u →
+    u = { ctx.url with query := some (queryOf { ctx with buffer := ctx.buffer ++ input }) } := by
+  intro input
+  induction input with
+  | nil =>
+    intro ctx u ho h
+    rw [run, step] at h
+    rw [← PResult.ok.inj h]
+    simp
+  | cons c rest ih =>
+    intro ctx u ho h
+    rw [run] at h
+    by_cases hc : c = '#'
+    · subst hc
+      rw [step] at h
+      simp only [if_pos ho] at h
+      rw [ih { ctx with buffer := ctx.buffer ++ ['#'] } u ho h]
+      simp
+    · rw [step] at h
+      · rw [ih { ctx with buffer := ctx.buffer ++ [c] } u ho h]
+        simp
+      · exact hc
+
+/-- query state は失敗しない。 -/
+theorem run_query_ok (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
+    ctx.over.isSome = true → ∃ u, run base .query input ctx = .ok u := by
+  intro input
+  induction input with
+  | nil => intro ctx _; exact ⟨_, by rw [run, step]⟩
+  | cons c rest ih =>
+    intro ctx ho
+    by_cases hc : c = '#'
+    · subst hc
+      obtain ⟨u, hu⟩ := ih { ctx with buffer := ctx.buffer ++ ['#'] } ho
+      exact ⟨u, by rw [run, step]; simp only [if_pos ho]; exact hu⟩
+    · obtain ⟨u, hu⟩ := ih { ctx with buffer := ctx.buffer ++ [c] } ho
+      refine ⟨u, ?_⟩
+      rw [run, step]
+      · exact hu
+      · exact hc
+
+/--
+**`search` setter は、先頭の `?` を落とした残りを percent-encode して query に入れる。**
+
+`queryOf` は special かどうかで encode set を選ぶので、その判定ごと `queryOf` に委ねてある。
+-/
+theorem setSearch_spec (u : Url) (v : String) (hv : v.isEmpty = false) :
+    (u.setSearch v).query
+      = some (queryOf { url := { u with query := some "" },
+                        buffer := stripTabNewline (dropLeading '?' v).toList,
+                        over := some SOverride.query }) := by
+  unfold Url.setSearch
+  rw [if_neg (by simp [hv])]
+  unfold basicUrlParseOverride
+  split
+  · next u' he =>
+    rw [Option.getD_some, run_query_spec none _ _ u' (by simp) he]
+    simp
+  · next hnone =>
+    exfalso
+    obtain ⟨u', hu'⟩ := run_query_ok none (stripTabNewline (dropLeading '?' v).toList)
+      { url := { u with query := some "" }, over := some SOverride.query } (by simp)
+    exact hnone u' hu'
+
 end Url
