@@ -219,6 +219,9 @@ open Dom.Audit
   Url.schemeOverride_ok
   Url.schemeOverride_spec
   Url.setProtocol_spec
+  Url.run_path_seg
+  Url.run_pathStart_step
+  Url.setPathname_spec
   Url.setAttr_valid
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと

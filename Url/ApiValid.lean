@@ -945,4 +945,76 @@ theorem setProtocol_spec (u : Url) (v : String) (c : Char) (rest : List Char)
   rw [schemeOverride_spec (by rw [hbuf]; exact hsp) (by rw [hbuf]; exact hf) hfe hu']
   exact hbuf
 
+/-! ### pathname
+
+`pathname` setter は path start state から path state へ入る。override があるので
+`?` と `#` は segment の一部になり、query state や fragment state へは移らない。
+-/
+
+/-- path state が buffer に積む形。 -/
+def pathEncode (l : List Char) : List Char :=
+  l.flatMap (fun c => (encChar pathSet c).toList)
+
+/-- override 付きの path state は、区切りを含まない入力を一つの segment にする。 -/
+theorem run_path_seg (base : Option Url) : ∀ (seg : List Char) (ctx : PCtx),
+    ctx.over.isSome = true → (∀ c ∈ seg, c ≠ '/' ∧ c ≠ '\\') →
+    run base .path seg ctx
+      = .ok (pathStepUrl ctx.url false (ctx.buffer ++ pathEncode seg)) := by
+  intro seg
+  induction seg with
+  | nil => intro ctx _ _; rw [run, step]; simp [pathEncode]
+  | cons c rest ih =>
+    intro ctx ho hs
+    have h1 := (hs c (by simp)).1
+    have h2 := (hs c (by simp)).2
+    rw [run, step, if_neg (by simp [h1, h2, over_isNone_false ho])]
+    rw [ih { ctx with buffer := ctx.buffer ++ (encChar pathSet c).toList } ho
+      (fun x hx => hs x (by simp [hx]))]
+    simp [pathEncode]
+
+/-- override 付きの path start state は、先頭の `/` を一つ落として path state へ渡す。 -/
+theorem run_pathStart_step (base : Option Url) (ctx : PCtx) (ch : Char) (rest : List Char)
+    (ho : ctx.over.isSome = true) (hb : ch ≠ '\\') :
+    run base .pathStart (ch :: rest) ctx
+      = if ch = '/' then run base .path rest ctx else run base .path (ch :: rest) ctx := by
+  rw [run, step]
+  by_cases hs : ctx.url.isSpecial = true
+  · by_cases hc : ch = '/'
+    · subst hc; simp [hs]
+    · simp [hs, hc, hb]
+  · simp only [Bool.not_eq_true] at hs
+    by_cases hc : ch = '/'
+    · subst hc; simp [hs, over_isNone_false ho]
+    · simp [hs, hc, over_isNone_false ho]
+
+/--
+**`pathname` setter は、与えた segment を percent-encode してそのまま入れる。**
+
+区切りを含まない一 segment の場合である。`.` と `..` は落ちたり縮めたりするので除く。
+`file` URL は先頭 segment の `c|` を `c:` に直すのでこれも除く。
+-/
+theorem setPathname_spec (u : Url) (v : String) (seg : List Char)
+    (hop : u.hasOpaquePath = false) (hv : v.toList = '/' :: seg)
+    (hseg : ∀ c ∈ seg, c ≠ '/' ∧ c ≠ '\\' ∧ c.toNat ≠ 0x09 ∧ c.toNat ≠ 0x0A ∧ c.toNat ≠ 0x0D)
+    (hnf : ¬(u.scheme = "file"))
+    (hsd : isSingleDot (pathEncode seg) = false)
+    (hdd : isDoubleDot (pathEncode seg) = false) :
+    (u.setPathname v).path = .list [String.ofList (pathEncode seg)] := by
+  have hstrip : stripTabNewline v.toList = '/' :: seg := by
+    rw [hv]
+    refine stripTabNewline_eq_self ?_
+    intro c hc
+    rcases List.mem_cons.mp hc with rfl | hc
+    · decide
+    · exact ⟨(hseg c hc).2.2.1, (hseg c hc).2.2.2⟩
+  unfold Url.setPathname
+  rw [if_neg (by simp [hop])]
+  simp only [basicUrlParseOverride, SOverride.start, hstrip]
+  rw [run_pathStart_step none _ '/' seg (by simp) (by decide), if_pos rfl]
+  rw [run_path_seg none seg _ (by simp) (fun c hc => ⟨(hseg c hc).1, (hseg c hc).2.1⟩)]
+  simp only [Option.getD_some]
+  unfold pathStepUrl
+  rw [if_neg (by simp [hdd]), if_neg (by simp [hsd])]
+  simp [appendSegment, pathStepUrl.windowsDriveBuffer, hnf]
+
 end Url
