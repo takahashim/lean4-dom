@@ -306,22 +306,34 @@ open Dom.Audit
   Url.roundtrip_path
   Url.run_pathOrAuthority_authority
   Url.run_authority_host
+  Url.run_authority_chunk
+  Url.run_authority_at
   Url.run_host_chunk
   Url.run_host_pathStart
   Url.run_pathStart_slash
   Url.run_pathStart_eof
+  Url.run_pathStart_slash_any
   Url.hostParser_opaque_no_forbidden
   Url.not_forbidden_host
+  Url.not_userinfoSet
   Url.pathSerializer_pathChars
-  Url.run_pathStart_segs
-  Url.roundtrip_authority
   Url.isTerminator_false
   Url.run_scheme_specialAuthoritySlashes
   Url.run_specialAuthoritySlashes
   Url.run_specialAuthorityIgnoreSlashes
   Url.run_pathStart_slash_special
   Url.run_pathStart_eof_special
-  Url.roundtrip_special
+  Url.run_scheme_authority
+  Url.userinfoFold_user
+  Url.userinfoFold_pass
+  Url.userinfoFold_split
+  Url.credChars_head
+  Url.credChars_mem
+  Url.ne_c0_of_userinfoSet
+  Url.serializerTail_authority
+  Url.run_authority_hostpath
+  Url.run_authority_full
+  Url.roundtrip_host
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
 #audit_axioms

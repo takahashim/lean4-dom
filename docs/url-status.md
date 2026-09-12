@@ -589,8 +589,7 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | --- | --- |
 | `roundtrip_opaque` | **opaque path を持つ URL は serialize して parse し直すと戻る**（query と fragment が付いてもよい） |
 | `roundtrip_path` | **host を持たない非 special な URL も戻る**（`sc:/a/b` の形。先頭 segment が空で二つ以上のときは serializer が `/.` を足すので除く） |
-| `roundtrip_authority` | **host を持つ非 special な URL も戻る**（`sc://h/a` の形。credentials と port と IPv6 host は除く） |
-| `roundtrip_special` | **`http://h/a/b` のような special な URL も戻る**（`file:` と credentials と port と IPv6 host は除く） |
+| `roundtrip_host` | **host を持つ URL も戻る**（`sc://h/a` も `http://h/a/b` も、credentials 付きも。`file:` と port と IPv6 host は除く） |
 | `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
 | `run_scheme_prefix`, `run_scheme_opaque` | scheme state が buffer に積み、`:` で opaque path state へ渡す |
@@ -599,24 +598,25 @@ opaque path の `?` `#` と先頭の `/`、segment の `\` は、証明を書い
 | `run_fragment_plain` | fragment state は素通しの文字をそのまま fragment に足す |
 | `run_opaquePath_qf` | query と fragment の有無の四通りをまとめて読み切る |
 
-閉じたのは四つの経路である。
+閉じたのは三つの経路である。
 
 * scheme start → scheme → opaque path → query → fragment
 * scheme start → scheme → path or authority → path
-* scheme start → scheme → path or authority → authority → host → path start → path
-* scheme start → scheme → special authority slashes → special authority ignore slashes
-  → authority → host → path start → path（`http:` など）
+* scheme start → scheme →（special かどうかで二通り）→ authority → host → path start → path
+
+三つ目は `sp : Bool` で special かどうかを持つので、`sc://h/a` と `http://h/a/b` が
+同じ定理になる。credentials（`user:pass@`）もここに入る。
 
 state ごとに「区切りでない文字を読み切る（chunk）」「区切りで次へ渡す」「EOF で返す」の
 三つを用意して積む。path は segment の列についての帰納法が一つ増える
 （最後の segment は buffer に残ったまま次へ渡る）。
-残っているのは credentials（authority state の `@` の分岐）、port（port state）、
-IPv6 host（host parser の `[` の分岐）、`file:`（file state）、
-それと先頭 segment が空の path（serializer の `/.`）である。
+残っているのは port（port state）、IPv6 host（host parser の `[` の分岐）、
+`file:`（file state）、先頭 segment が空の path（serializer の `/.`）、
+それと host が空で path が空でない場合である。
 
 state の補題は `special` を Bool の引数で持つようにしてあるので、
-非 special と special で同じものを使っている。`canonicalUrl` の条件がまた一つ増えた
-（**special な URL の path は空でない**。`http://h` を読み直すと空の segment が一つできる）。
+非 special と special で同じものを使っている。`canonicalUrl` の条件は証明のたびに増えて、
+いまは五つが「テストでは見つからず、証明が指した」ものである。
 
 host の条件は `hostParser (hostSerializer h) = some h`（canonical form の一つ）から出る。
 `opaqueHostParser_no_forbidden` が「host parser を通った入力に forbidden host code point は
