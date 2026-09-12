@@ -41,12 +41,25 @@ def pathSegsOk (u : Url) : Bool :=
   | .list segs => segs.all fun s => !s.toList.contains '/'
 
 /--
+IPv6 address が 8 piece で各 piece が 16 bit に収まること。
+
+長さは `ipv6Parser_length` で証明してあるが、piece の範囲は証明していない
+（`ipv4InIpv6` の `let afterDot` が guard を隠すので、`ipv4InIpv6.induct` から
+取り直したうえで `numbersSeen` の偶奇を記帳する必要がある）。ここで実行時に見る。
+-/
+def ipv6Ok (u : Url) : Bool :=
+  match u.host with
+  | some (.ipv6 a) => a.length == 8 && a.all (fun p => p < 65536)
+  | _ => true
+
+/--
 §4.1 のうち `ValidUrl` に入れていない条件。
 
 * host が空、または scheme が `file` なら credentials も port も持てない。
 * scheme と host の組み合わせは表に従う。
 * special な URL の host は null でない。
 * path segment に `/` は含まれない。
+* IPv6 address は 8 piece で各 piece は 16 bit。
 -/
 def checkStrictUrl (u : Url) : Bool :=
   let emptyHost := match u.host with | some .empty => true | _ => false
@@ -56,5 +69,6 @@ def checkStrictUrl (u : Url) : Bool :=
     && hostKindOkOf u.scheme u.host
     && (!u.isSpecial || u.host.isSome)
     && pathSegsOk u
+    && ipv6Ok u
 
 end Url

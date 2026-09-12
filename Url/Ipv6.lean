@@ -153,6 +153,166 @@ where
     | some c => some (ipv6Expand address pieceIndex c)
     | none => if pieceIndex == 8 then some address else none
 
+
+/-!
+## 性質
+
+`Ipv6` は `List Nat` なので、長さも各 piece の範囲も型では言えない。
+`ipv6Serializer` は 8 piece を前提に `i == 7` で区切りを落とし、
+`ipv6Expand` は `8 - compress - swaps` と自然数減算をするので、
+parser が 8 piece を返すことは言明しておく必要がある。
+-/
+
+/-- `takeHex` が読む個数は上限以下。 -/
+theorem takeHex_len : ∀ (n : Nat) (l : List Char), (takeHex n l).2.1 ≤ n
+  | 0, l => by simp [takeHex]
+  | _ + 1, [] => by simp [takeHex]
+  | n + 1, c :: rest => by
+    rw [takeHex]
+    split
+    · simp
+    · show (takeHex n rest).2.1 + 1 ≤ n + 1
+      have := takeHex_len n rest
+      omega
+
+/-- `takeHex` が読む値は桁数ぶんに収まる。 -/
+theorem takeHex_lt : ∀ (n : Nat) (l : List Char), (takeHex n l).1 < 16 ^ (takeHex n l).2.1
+  | 0, l => by simp [takeHex]
+  | _ + 1, [] => by simp [takeHex]
+  | n + 1, c :: rest => by
+    rw [takeHex]
+    split
+    · simp
+    · next v hv =>
+      have hlt := hexValue_lt hv
+      have hrec := takeHex_lt n rest
+      have hpow : 0 < 16 ^ (takeHex n rest).2.1 := Nat.pow_pos (by omega)
+      simp only []
+      rw [Nat.pow_succ]
+      calc v * 16 ^ (takeHex n rest).2.1 + (takeHex n rest).1
+          < v * 16 ^ (takeHex n rest).2.1 + 16 ^ (takeHex n rest).2.1 := by omega
+        _ = (v + 1) * 16 ^ (takeHex n rest).2.1 := by rw [Nat.succ_mul]
+        _ ≤ 16 * 16 ^ (takeHex n rest).2.1 := Nat.mul_le_mul_right _ (by omega)
+        _ = 16 ^ (takeHex n rest).2.1 * 16 := by rw [Nat.mul_comm]
+
+/-- `takeHex 4` が読む値は 16 bit に収まる。 -/
+theorem takeHex4_lt (l : List Char) : (takeHex 4 l).1 < 65536 := by
+  have h1 := takeHex_lt 4 l
+  have h2 := takeHex_len 4 l
+  calc (takeHex 4 l).1 < 16 ^ (takeHex 4 l).2.1 := h1
+    _ ≤ 16 ^ 4 := Nat.pow_le_pow_right (by omega) h2
+    _ = 65536 := by decide
+
+/-- 書き込む値が 16 bit に収まるなら、`set` は範囲を保つ。 -/
+theorem set_lt {a : Ipv6} {i v : Nat} (ha : ∀ p ∈ a, p < 65536) (hv : v < 65536) :
+    ∀ p ∈ a.set i v, p < 65536 := by
+  intro p hp
+  rcases List.mem_or_eq_of_mem_set hp with h | h
+  · exact ha p h
+  · omega
+
+theorem getD_set_self (l : List Nat) (i v d : Nat) (h : i < l.length) :
+    (l.set i v).getD i d = v := by simp [List.getD_eq_getElem?_getD, h]
+
+theorem getD_set_other (l : List Nat) (i j v d : Nat) (h : i ≠ j) :
+    (l.set i v).getD j d = l.getD j d := by simp [List.getD_eq_getElem?_getD, h]
+
+/-- `ipv4InIpv6` は piece を書き換えるだけで、個数を変えない。 -/
+theorem ipv4InIpv6_length : ∀ (fuel : Nat) (input : List Char) (a : Ipv6) (pi ns : Nat) (a' : Ipv6),
+    ipv4InIpv6 fuel input a pi ns = some a' → a'.length = a.length := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro input a pi ns a' h
+    simp only [ipv4InIpv6] at h
+    split at h
+    · exact congrArg List.length (Option.some.inj h).symm
+    · simp at h
+  | succ f ih =>
+    intro input a pi ns a' h
+    simp only [ipv4InIpv6] at h
+    repeat' split at h
+    all_goals first
+      | (simp at h; done)
+      | exact congrArg List.length (Option.some.inj h).symm
+      | (rw [ih _ _ _ _ _ h]; simp)
+      | (simp at h; exact congrArg List.length h.symm)
+
+/--
+`ipv6Loop` は個数を変えず、`pieceIndex` は 8 以下に留まり、
+圧縮位置は `pieceIndex` を超えない。
+-/
+theorem ipv6Loop_inv : ∀ (fuel : Nat) (input : List Char) (a : Ipv6) (pi : Nat)
+    (co : Option Nat) (a' : Ipv6) (pi' : Nat) (co' : Option Nat),
+    ipv6Loop fuel input a pi co = some (a', pi', co') →
+    pi ≤ 8 → (∀ c, co = some c → c ≤ pi) →
+    a'.length = a.length ∧ pi' ≤ 8 ∧ (∀ c, co' = some c → c ≤ pi') := by
+  intro fuel
+  induction fuel with
+  | zero => intro input a pi co a' pi' co' h _ _; simp [ipv6Loop] at h
+  | succ f ih =>
+    intro input a pi co a' pi' co' h hpi hco
+    simp only [ipv6Loop] at h
+    repeat' split at h
+    all_goals first
+      | (simp at h; done)
+      | (simp only [Option.some.injEq, Prod.mk.injEq] at h
+         obtain ⟨rfl, rfl, rfl⟩ := h
+         exact ⟨by simp, by first | omega | (simp_all; omega),
+           by intro c hc; have := hco c hc; omega⟩)
+      | (simp only [Option.some.injEq, Prod.mk.injEq] at h
+         obtain ⟨rfl, rfl, rfl⟩ := h
+         refine ⟨ipv4InIpv6_length 4 input a pi 0 _ (by assumption),
+           by first | omega | (simp_all; omega), ?_⟩
+         intro c hc; have := hco c hc; omega)
+      | (have hx := ih _ _ _ _ _ _ _ h (by first | omega | (simp_all; omega))
+              (by intro c hc; simp at hc; omega)
+         exact ⟨by simpa using hx.1, hx.2.1, hx.2.2⟩)
+      | (have hx := ih _ _ _ _ _ _ _ h (by first | omega | (simp_all; omega))
+              (by intro c hc; have := hco c hc; omega)
+         exact ⟨by simpa using hx.1, hx.2.1, hx.2.2⟩)
+
+/-- `ipv6Expand` は 8 piece を保つ。圧縮位置が `pieceIndex` 以下で、`pieceIndex` が 8 以下なら。 -/
+theorem ipv6Expand_length {a : Ipv6} {pi co : Nat} (ha : a.length = 8)
+    (hco : co ≤ pi) (hpi : pi ≤ 8) : (ipv6Expand a pi co).length = 8 := by
+  unfold ipv6Expand
+  simp [List.length_append, List.length_take, List.length_drop, ha]
+  omega
+
+/-- step 6-8 は 8 piece を保つ。 -/
+theorem ipv6Finish_length {a : Ipv6} {pi : Nat} {co : Option Nat} {a' : Ipv6}
+    (ha : a.length = 8) (hpi : pi ≤ 8) (hco : ∀ c, co = some c → c ≤ pi)
+    (h : ipv6Parser.ipv6Finish a pi co = some a') : a'.length = 8 := by
+  rw [ipv6Parser.ipv6Finish.eq_def] at h
+  split at h
+  · next c =>
+    rw [← Option.some.inj h]
+    exact ipv6Expand_length ha (hco c rfl) hpi
+  · split at h
+    · rw [← Option.some.inj h]; exact ha
+    · simp at h
+
+/--
+**IPv6 parser が返す address は必ず 8 piece である。**
+
+`ipv6Serializer` は 8 piece を前提に `i == 7` で区切りを落とすので、これが要る。
+-/
+theorem ipv6Parser_length {input : List Char} {a : Ipv6}
+    (h : ipv6Parser input = some a) : a.length = 8 := by
+  unfold ipv6Parser at h
+  have hz : ipv6Zero.length = 8 := by simp [ipv6Zero]
+  repeat' split at h
+  all_goals first
+    | (simp at h; done)
+    | (rename_i hr
+       obtain ⟨hl, hpi, hc⟩ := ipv6Loop_inv 9 _ ipv6Zero 1 (some 1) _ _ _ hr
+         (by omega) (by intro c hc; simp at hc; omega)
+       exact ipv6Finish_length (by omega) hpi hc h)
+    | (rename_i hr
+       obtain ⟨hl, hpi, hc⟩ := ipv6Loop_inv 9 _ ipv6Zero 0 none _ _ _ hr
+         (by omega) (by intro c hc; simp at hc)
+       exact ipv6Finish_length (by omega) hpi hc h)
+
 /-! ## serializer -/
 
 /-- URL Standard §3.5 "find the IPv6 address compressed piece index"。 -/

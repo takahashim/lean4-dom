@@ -457,6 +457,24 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 実行時に検査している（違反 0）。境界は `Url/RecordExamples.lean` に `example` で固定してある。
 `ValidUrl` を通るが仕様が禁じている record を、そこに並べてある。
 
+## IPv6
+
+`Ipv6` は `List Nat` なので、長さも piece の範囲も型では言えない。
+`ipv6Serializer` は 8 piece を前提に `i == 7` で区切りを落とし、
+`ipv6Expand` は `8 - compress - swaps` と自然数減算をする。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `ipv6Parser_length` | **parser が返す address は必ず 8 piece である** |
+| `ipv6Loop_inv` | 走査は個数を変えず、`pieceIndex` は 8 以下、圧縮位置は `pieceIndex` 以下 |
+| `ipv6Expand_length` | 圧縮を右へ寄せても 8 piece のまま |
+| `takeHex4_lt` | 4 桁の 16 進は 16 bit に収まる |
+
+**各 piece が 16 bit に収まることは証明していない。** `ipv4InIpv6` の中の
+`let afterDot` が `numbersSeen < 4` の guard を隠すので、`ipv4InIpv6.induct` から
+取り直したうえで `numbersSeen` の偶奇（偶数なら対象の piece は 0、奇数なら 255 以下）を
+記帳する必要がある。不変条件は導出済みで、`checkStrictUrl` が実行時に見ている。
+
 ## serializer
 
 `urlSerializer` は `scheme ++ ":" ++ serializerTail` に分けてある。

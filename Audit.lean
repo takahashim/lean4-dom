@@ -130,6 +130,20 @@ open Dom.Audit
   Dom.removeAttribute_erases
   Dom.validateAndExtractAttribute_ok
 
+-- URL Standard §3.3 IPv6
+#audit_axioms
+  Url.takeHex_len
+  Url.takeHex_lt
+  Url.takeHex4_lt
+  Url.set_lt
+  Url.getD_set_self
+  Url.getD_set_other
+  Url.ipv4InIpv6_length
+  Url.ipv6Loop_inv
+  Url.ipv6Expand_length
+  Url.ipv6Finish_length
+  Url.ipv6Parser_length
+
 -- URL Standard §3.3 IPv4
 #audit_axioms
   Url.ipv4Parser_lt
