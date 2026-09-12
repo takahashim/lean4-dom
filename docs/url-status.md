@@ -166,8 +166,46 @@ theorem decodeDigits_encodeDigits (bias : Nat) :
 
 **残る層**が本体である。`encodeLoop` は非 ASCII の code point を昇順に見て、
 出現ごとに差分を吐く。`decodeLoop` はそれを読んで挿入位置を復元する。
-適応バイアスを挟んだ双方向の対応をここで示すことになる。
-`ValidUrl` の保存より重いと見ている。
+
+道具はそろえた。
+
+| 道具 | 言っていること |
+| --- | --- |
+| `scanFold_eq`, `encodeLoop_eq` | `out` は append しかされない。段ごとに切り出せる |
+| `scanOne_lt`, `scanOne_gt`, `scanOne_hit` | 走査の三つの動き |
+| `scanFold_no_hit` | `m` を含まない走査は何も吐かない |
+| `partialAt` | 復号の途中の文字列（`m` 未満すべて + `m` の先頭 `j` 個） |
+
+### 不変条件（導出済み）
+
+走査 1 回分の対応は、入力を `pre ++ suf` に割って次の形で書ける。
+
+* `j` は `pre` の中の `m` の個数
+* 復号の `out` は `A ++ B`、ただし `A = partialAt pre m j`、`B = partialAt suf m 0`
+* 次の挿入位置 `p = A.length`、復号の `i` と符号化の `delta` は `p = i + delta`
+* 復号の `n` は（その pass の最初の吐き出しの後は）`m` で止まる
+
+これが `suf` の先頭 1 文字で正しく回ることは確かめた。
+
+* `c < m` のとき。`partialAt pre' m j = A ++ [c]` で `B = c :: B'`。
+  `A ++ c :: B' = (A ++ [c]) ++ B'` なので、`p` が 1 増えるだけで形が保たれる。
+* `c = m` のとき。`out.insertIdx p` は `A ++ m :: B` を作り、
+  これは `(A ++ [m]) ++ B = partialAt pre' m (j+1) ++ B` である。
+* `c > m` のとき。`A` も `B` も `p` も動かない。
+
+**`insertPass` を単独で扱ってはいけない。** `out` を入力に紐付けないと
+「挿入位置が `out` の長さを超えない」が成り立たず、長さの補題すら書けない。
+`c < m` の枝で `p` は増えるが `out` は伸びないためで、その `c` が既に `out` に
+入っていること（前の pass で挿さっているから）が効いている。
+
+### 残っている段取り
+
+1. 上の不変条件を担いだ走査 1 回分の双模倣。適応バイアスの一致には
+   `delta = i' - i`、`h + 1 = out.length + 1`、`(h == b) ↔ (i == 0)` が要る。
+2. 外側のループ（`sortedDistinct` の順に `m` を上げていく）の双模倣。
+   pass の最初の吐き出しだけ `n` が `m` まで跳ぶので、そこは別に扱う。
+3. `partialAt input m (m の個数) = partialAt input (m+1) 0` などの繋ぎ。
+4. 組み上げ。
 
 ### 表は証明の外に置く
 
