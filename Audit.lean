@@ -239,6 +239,9 @@ open Dom.Audit
   Url.Punycode.splitLastDelim_no_delim
   Url.Punycode.splitLastDelim_append
   Url.Punycode.splitLastDelim_encode
+  Url.Punycode.scanOne_eq
+  Url.Punycode.scanFold_eq
+  Url.Punycode.encodeLoop_eq
 
 -- UTS #46 ToASCII（表は仮定 `IdnaTable.Resolved` に押し込んである）
 #audit_axioms

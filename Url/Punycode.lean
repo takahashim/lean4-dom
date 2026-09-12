@@ -329,6 +329,79 @@ theorem encode_ascii (input : List Char) : ∀ c ∈ encode input, c.toNat < 0x8
         subst hx; decide
   · exact encodeLoop_ascii input _ _ _ _ (by simp) c hx
 
+
+/-!
+## 符号化の出力は自由な累積である
+
+`out` は append しかされない。符号化の途中状態から「そこで吐いた分」だけを
+切り出せるので、復号との対応を段ごとに切って考えられる。
+`delta` / `bias` / `h` は `out` に依らない。
+-/
+
+/-- `scanOne` が吐く分。`out` には依らない。 -/
+def scanEmit (m : Nat) (d bi : Nat) (c : Char) : List Char :=
+  if c.toNat < m then [] else if c.toNat == m then encodeDigits bi 36 d else []
+
+theorem scanOne_eq (b m : Nat) (o : List Char) (d bi h : Nat) (c : Char) :
+    scanOne b m { out := o, delta := d, bias := bi, h := h } c
+      = { out := o ++ scanEmit m d bi c,
+          delta := (scanOne b m { out := [], delta := d, bias := bi, h := h } c).delta,
+          bias := (scanOne b m { out := [], delta := d, bias := bi, h := h } c).bias,
+          h := (scanOne b m { out := [], delta := d, bias := bi, h := h } c).h } := by
+  unfold scanOne scanEmit
+  split
+  · simp
+  · split <;> simp
+
+/-- **`out` は自由な累積である。** 畳み込みの結果は、前に付いていた `out` をそのまま前置する。 -/
+theorem scanFold_eq (b m : Nat) : ∀ (l : List Char) (o : List Char) (d bi h : Nat),
+    l.foldl (scanOne b m) { out := o, delta := d, bias := bi, h := h }
+      = { out := o ++ (l.foldl (scanOne b m) { out := [], delta := d, bias := bi, h := h }).out,
+          delta := (l.foldl (scanOne b m) { out := [], delta := d, bias := bi, h := h }).delta,
+          bias := (l.foldl (scanOne b m) { out := [], delta := d, bias := bi, h := h }).bias,
+          h := (l.foldl (scanOne b m) { out := [], delta := d, bias := bi, h := h }).h } := by
+  intro l
+  induction l with
+  | nil => intro o d bi h; simp
+  | cons c rest ih =>
+    intro o d bi h
+    show rest.foldl (scanOne b m) (scanOne b m { out := o, delta := d, bias := bi, h := h } c) = _
+    rw [scanOne_eq b m o d bi h c, ih]
+    rw [show (c :: rest).foldl (scanOne b m) { out := [], delta := d, bias := bi, h := h }
+          = rest.foldl (scanOne b m)
+              (scanOne b m { out := [], delta := d, bias := bi, h := h } c) from rfl]
+    rw [scanOne_eq b m [] d bi h c,
+      ih ([] ++ scanEmit m d bi c)
+        (scanOne b m { out := [], delta := d, bias := bi, h := h } c).delta
+        (scanOne b m { out := [], delta := d, bias := bi, h := h } c).bias
+        (scanOne b m { out := [], delta := d, bias := bi, h := h } c).h]
+    simp
+
+/-- `encodeLoop` でも `out` は自由な累積である。 -/
+theorem encodeLoop_eq (input : List Char) (b : Nat) :
+    ∀ (todo : List Nat) (n : Nat) (o : List Char) (d bi h : Nat),
+      encodeLoop input b todo n { out := o, delta := d, bias := bi, h := h }
+        = { out := o ++ (encodeLoop input b todo n
+                { out := [], delta := d, bias := bi, h := h }).out,
+            delta := (encodeLoop input b todo n
+                { out := [], delta := d, bias := bi, h := h }).delta,
+            bias := (encodeLoop input b todo n
+                { out := [], delta := d, bias := bi, h := h }).bias,
+            h := (encodeLoop input b todo n
+                { out := [], delta := d, bias := bi, h := h }).h } := by
+  intro todo
+  induction todo with
+  | nil => intro n o d bi h; simp [encodeLoop]
+  | cons m rest ih =>
+    intro n o d bi h
+    simp only [encodeLoop]
+    rw [scanFold_eq b m input o (d + (m - n) * (h + 1)) bi h]
+    rw [ih (m + 1) (o ++ (input.foldl (scanOne b m)
+            { out := [], delta := d + (m - n) * (h + 1), bias := bi, h := h }).out) _ _ _,
+        ih (m + 1) ((input.foldl (scanOne b m)
+            { out := [], delta := d + (m - n) * (h + 1), bias := bi, h := h }).out) _ _ _]
+    simp only [List.append_assoc]
+
 /-! ## 符号化の枠が復号で戻ること -/
 
 theorem span_loop_all (p : Char → Bool) : ∀ (l acc : List Char), (∀ c ∈ l, p c = true) →
