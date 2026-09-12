@@ -553,10 +553,16 @@ theorem decode_emit (n m : Nat) (hnm : n ≤ m)
     rw [if_pos hvalid]
     rw [show i + d - i = d by omega, hnp, insertIdx_append]
 
-/-- 走査 1 回を追うための状態。`A` は挿し終わった前半、`B` はまだ来ていない `m` 未満。 -/
+/--
+走査 1 回を追うための状態。
+
+`A` は挿し終わった前半、`B` はまだ来ていない `m` 未満、`n` は復号がいま見ている
+code point である。`n` は pass の最初の吐き出しで `m` まで跳び、以降は動かない。
+-/
 structure PassState where
   A : List Char
   B : List Char
+  n : Nat
   i : Nat
   d : Nat
   bias : Nat
@@ -570,29 +576,33 @@ def passRun (b m : Nat) : List Char → PassState → PassState
       passRun b m rest { st with A := st.A ++ [c], B := st.B.tail, d := st.d + 1 }
     else if c.toNat == m then
       passRun b m rest
-        { A := st.A ++ [Char.ofNat m], B := st.B, i := st.A.length + 1, d := 0,
+        { A := st.A ++ [Char.ofNat m], B := st.B, n := m, i := st.A.length + 1, d := 0,
           bias := adapt st.d (st.A.length + st.B.length + 1) (st.hh == b), hh := st.hh + 1 }
     else passRun b m rest st
 
-/-- `m` が Unicode の scalar value であること。 -/
-def ValidCp (m : Nat) : Prop := m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000)
+/--
+不変条件。
 
-/-- 不変条件。 -/
+`lenA` が要。次の挿入位置 `A.length` に、まだ残っている code point の跳び
+`(m - n) * N` を足したものが、復号の `i + delta` に一致する。
+最初の吐き出しの後は `n = m` なので跳びが消え、`A.length = i + delta` になる。
+-/
 structure PassInv (b m : Nat) (suf : List Char) (st : PassState) : Prop where
   bEq : st.B = partialAt suf m 0
-  lenA : st.A.length = st.i + st.d
+  nLe : st.n ≤ m
+  lenA : st.A.length + (m - st.n) * (st.A.length + st.B.length + 1) = st.i + st.d
   lenH : st.hh = st.A.length + st.B.length
   firstFlag : (st.hh == b) = (st.i == 0)
   bLe : b ≤ st.hh
 
 /-- **走査 1 回分の双模倣。** -/
-theorem decode_scan (b m : Nat) (hm : ValidCp m) :
+theorem decode_scan (b m : Nat) (hm : m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000)) :
     ∀ (suf : List Char) (st : PassState) (rest : List Char),
       PassInv b m suf st →
-      decodeLoop st.bias m st.i (st.A ++ st.B)
+      decodeLoop st.bias st.n st.i (st.A ++ st.B)
           ((suf.foldl (scanOne b m)
               { out := [], delta := st.d, bias := st.bias, h := st.hh }).out ++ rest)
-        = decodeLoop (passRun b m suf st).bias m (passRun b m suf st).i
+        = decodeLoop (passRun b m suf st).bias (passRun b m suf st).n (passRun b m suf st).i
             ((passRun b m suf st).A ++ (passRun b m suf st).B) rest := by
   intro suf
   induction suf with
@@ -604,7 +614,7 @@ theorem decode_scan (b m : Nat) (hm : ValidCp m) :
     by_cases hlt : c.toNat < m
     · -- `m` 未満。位置が一つ進むだけ。
       rw [if_pos hlt] at hB
-      show decodeLoop st.bias m st.i (st.A ++ st.B)
+      show decodeLoop st.bias st.n st.i (st.A ++ st.B)
           ((rest'.foldl (scanOne b m)
             (scanOne b m { out := [], delta := st.d, bias := st.bias, h := st.hh } c)).out
             ++ rest) = _
@@ -613,22 +623,30 @@ theorem decode_scan (b m : Nat) (hm : ValidCp m) :
       have hsplit : st.A ++ st.B = (st.A ++ [c]) ++ st.B.tail := by
         rw [hB]; simp
       rw [hsplit]
-      exact ih { st with A := st.A ++ [c], B := st.B.tail, d := st.d + 1 } rest
-        { bEq := by rw [hB]; simp
-          lenA := by simpa using by rw [hinv.lenA]; omega
-          lenH := by
-            have := hinv.lenH
-            rw [hB] at this ⊢
-            simp at this ⊢
-            omega
-          firstFlag := by simpa using hinv.firstFlag
-          bLe := by simpa using hinv.bLe }
+      refine ih { st with A := st.A ++ [c], B := st.B.tail, d := st.d + 1 } rest ?_
+      have hBlen : st.B.length = (partialAt rest' m 0).length + 1 := by rw [hB]; simp
+      refine { bEq := by rw [hB]; simp
+               nLe := hinv.nLe
+               lenA := ?_
+               lenH := ?_
+               firstFlag := by simpa using hinv.firstFlag
+               bLe := by simpa using hinv.bLe }
+      · have h := hinv.lenA
+        simp only [List.length_append, List.length_cons, List.length_nil]
+        rw [hB] at h ⊢
+        simp at h ⊢
+        rw [show st.A.length + 1 + (partialAt rest' m 0).length + 1
+              = st.A.length + ((partialAt rest' m 0).length + 1) + 1 by omega]
+        omega
+      · have h := hinv.lenH
+        rw [hB] at h ⊢
+        simp at h ⊢
+        omega
     · rw [if_neg hlt] at hB
       by_cases heq : c.toNat = m
       · -- `m` に一致。差分を吐いて挿す。
         rw [if_pos (by simp [heq])] at hB
-
-        show decodeLoop st.bias m st.i (st.A ++ st.B)
+        show decodeLoop st.bias st.n st.i (st.A ++ st.B)
             ((rest'.foldl (scanOne b m)
               (scanOne b m { out := [], delta := st.d, bias := st.bias, h := st.hh } c)).out
               ++ rest) = _
@@ -636,13 +654,13 @@ theorem decode_scan (b m : Nat) (hm : ValidCp m) :
         rw [scanFold_eq b m rest' ([] ++ encodeDigits st.bias 36 st.d) 0
               (adapt st.d (st.hh + 1) (st.hh == b)) (st.hh + 1)]
         simp only [List.nil_append, List.append_assoc]
-        rw [decode_emit m m (Nat.le_refl m) hm st.A st.B st.i st.d st.bias _
-          (by simpa using hinv.lenA)]
+        rw [decode_emit st.n m hinv.nLe hm st.A st.B st.i st.d st.bias _ hinv.lenA]
         rw [passRun, if_neg hlt, if_pos (by simp [heq])]
         rw [← hinv.lenH, hinv.firstFlag]
-        exact ih { A := st.A ++ [Char.ofNat m], B := st.B, i := st.A.length + 1, d := 0,
+        exact ih { A := st.A ++ [Char.ofNat m], B := st.B, n := m, i := st.A.length + 1, d := 0,
                    bias := adapt st.d (st.hh + 1) (st.i == 0), hh := st.hh + 1 } rest
           { bEq := hB
+            nLe := Nat.le_refl m
             lenA := by simp
             lenH := by have := hinv.lenH; simp; omega
             firstFlag := by
@@ -653,13 +671,12 @@ theorem decode_scan (b m : Nat) (hm : ValidCp m) :
             bLe := by have := hinv.bLe; show b ≤ st.hh + 1; omega }
       · -- `m` より大きい。何も起きない。
         rw [if_neg (by simp [heq])] at hB
-        show decodeLoop st.bias m st.i (st.A ++ st.B)
+        show decodeLoop st.bias st.n st.i (st.A ++ st.B)
             ((rest'.foldl (scanOne b m)
               (scanOne b m { out := [], delta := st.d, bias := st.bias, h := st.hh } c)).out
               ++ rest) = _
         rw [scanOne_gt b m _ c hlt heq, passRun, if_neg hlt, if_neg (by simp [heq])]
         exact ih st rest { hinv with bEq := hB }
-
 
 /-- `PassInv` は走査を通して保たれる。使い切ると `B` は空になる。 -/
 theorem passRun_inv (b m : Nat) : ∀ (suf : List Char) (st : PassState),
@@ -676,7 +693,15 @@ theorem passRun_inv (b m : Nat) : ∀ (suf : List Char) (st : PassState),
       rw [passRun, if_pos hlt]
       exact ih _
         { bEq := by rw [hB]; simp
-          lenA := by simpa using by rw [hinv.lenA]; omega
+          nLe := hinv.nLe
+          lenA := by
+            have h := hinv.lenA
+            simp only [List.length_append, List.length_cons, List.length_nil]
+            rw [hB] at h ⊢
+            simp at h ⊢
+            rw [show st.A.length + 1 + (partialAt rest' m 0).length + 1
+                  = st.A.length + ((partialAt rest' m 0).length + 1) + 1 by omega]
+            omega
           lenH := by
             have := hinv.lenH
             rw [hB] at this ⊢
@@ -690,6 +715,7 @@ theorem passRun_inv (b m : Nat) : ∀ (suf : List Char) (st : PassState),
         rw [passRun, if_neg hlt, if_pos (by simp [heq])]
         exact ih _
           { bEq := hB
+            nLe := Nat.le_refl m
             lenA := by simp
             lenH := by have := hinv.lenH; simp; omega
             firstFlag := by
@@ -728,7 +754,15 @@ theorem scanFold_passRun (b m : Nat) : ∀ (suf : List Char) (st : PassState) (o
       dsimp only
       exact ih { st with A := st.A ++ [c], B := st.B.tail, d := st.d + 1 } o
         { bEq := by rw [hB]; simp
-          lenA := by simpa using by rw [hinv.lenA]; omega
+          nLe := hinv.nLe
+          lenA := by
+            have h := hinv.lenA
+            simp only [List.length_append, List.length_cons, List.length_nil]
+            rw [hB] at h ⊢
+            simp at h ⊢
+            rw [show st.A.length + 1 + (partialAt rest' m 0).length + 1
+                  = st.A.length + ((partialAt rest' m 0).length + 1) + 1 by omega]
+            omega
           lenH := by
             have := hinv.lenH
             rw [hB] at this ⊢
@@ -743,9 +777,10 @@ theorem scanFold_passRun (b m : Nat) : ∀ (suf : List Char) (st : PassState) (o
         rw [scanOne_hit b m _ c hlt heq, passRun, if_neg hlt, if_pos (by simp [heq])]
         dsimp only
         rw [← hinv.lenH]
-        exact ih { A := st.A ++ [Char.ofNat m], B := st.B, i := st.A.length + 1, d := 0,
+        exact ih { A := st.A ++ [Char.ofNat m], B := st.B, n := m, i := st.A.length + 1, d := 0,
                    bias := adapt st.d (st.hh + 1) (st.hh == b), hh := st.hh + 1 } _
           { bEq := hB
+            nLe := Nat.le_refl m
             lenA := by simp
             lenH := by have := hinv.lenH; simp; omega
             firstFlag := by
