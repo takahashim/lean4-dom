@@ -75,10 +75,13 @@ def loadIdnaTable (path : String) : IO (Option (Array IdnaRange)) := do
     match idnaRangeOfJson j with
     | .error e => IO.eprintln s!"範囲を読めない: {e}"; return none
     | .ok r => rs := rs.push r
+  if !checkSorted rs then
+    IO.eprintln s!"{path}: 区間が昇順でないか重なっている（二分探索が正しく引けない）"
+    return none
   if !checkResolved rs then
     IO.eprintln s!"{path}: 写像先が valid でない項がある（IdnaTable.Resolved を満たさない）"
     return none
-  IO.println s!"UTS #46 の表: {rs.size} 範囲、Resolved を満たす"
+  IO.println s!"UTS #46 の表: {rs.size} 範囲、昇順・非重複、Resolved を満たす"
   return some rs
 
 /-- 表があればそれを使う ToASCII、無ければ ASCII だけの既定。 -/

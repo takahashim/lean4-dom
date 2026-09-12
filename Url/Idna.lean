@@ -367,6 +367,188 @@ theorem findRange_mem {rs : Array IdnaRange} {n : Nat} {r : IdnaRange}
 theorem toNat_ofNat_of_valid {n : Nat} (h : n.isValidChar) : (Char.ofNat n).toNat = n := by
   simp [Char.ofNat, h, Char.ofNatAux, Char.toNat]
 
+/-- 二分探索が返す区間は `n` を含む。表が整っていなくても成り立つ。 -/
+theorem findRange_go_contains (rs : Array IdnaRange) (n : Nat) :
+    ∀ lo hi, ∀ r, findRange.go rs n lo hi = some r → r.lo ≤ n ∧ n ≤ r.hi := by
+  intro lo hi
+  induction lo, hi using findRange.go.induct rs n with
+  | case1 lo hi hlo mid hnone =>
+    intro r h
+    have hn : rs[(lo + hi) / 2]? = none := hnone
+    rw [findRange.go] at h; simp [hlo, hn] at h
+  | case2 lo hi hlo mid r' hsome hlt ih =>
+    intro r h
+    have hs : rs[(lo + hi) / 2]? = some r' := hsome
+    rw [findRange.go] at h; simp only [hlo, hs, hlt, dif_pos, if_true] at h
+    exact ih r h
+  | case3 lo hi hlo mid r' hsome hge hhi ih =>
+    intro r h
+    have hs : rs[(lo + hi) / 2]? = some r' := hsome
+    rw [findRange.go] at h
+    simp only [hlo, hs, hge, hhi, dif_pos, if_false, if_true] at h
+    exact ih r h
+  | case4 lo hi hlo mid r' hsome hge hhi =>
+    intro r h
+    have hs : rs[(lo + hi) / 2]? = some r' := hsome
+    rw [findRange.go] at h
+    simp only [hlo, hs, hge, hhi, dif_pos, if_false] at h
+    rw [← Option.some.inj h]
+    exact ⟨by omega, by omega⟩
+  | case5 lo hi hlo =>
+    intro r h; rw [findRange.go] at h; simp [hlo] at h
+
+theorem findRange_contains {rs : Array IdnaRange} {n : Nat} {r : IdnaRange}
+    (h : findRange rs n = some r) : r.lo ≤ n ∧ n ≤ r.hi :=
+  findRange_go_contains rs n 0 rs.size r h
+
+/--
+区間が昇順で重なっていないことの検査。
+
+`findRange` は二分探索なので、これが成り立たないと「含む区間があるのに見つからない」
+ことが起きうる。`tableOfRanges` はそれを `disallowed` かつ対象外と読むので
+失敗側に倒れるが、静かに間違うよりは読み込み時に弾く。
+-/
+def checkSorted (rs : Array IdnaRange) : Bool :=
+  (rs.all fun r => r.lo ≤ r.hi) &&
+    (List.range (rs.size - 1)).all fun i =>
+      match rs[i]?, rs[i + 1]? with
+      | some a, some b => a.hi < b.lo
+      | _, _ => true
+
+/-- 隣どうしは昇順で重ならない。 -/
+theorem sorted_step {rs : Array IdnaRange} (h : checkSorted rs = true) (i : Nat)
+    (hi : i + 1 < rs.size) : (rs[i]'(by omega)).hi < (rs[i + 1]'hi).lo := by
+  have h2 := (Bool.and_eq_true .. ▸ h).2
+  have hmem : i ∈ List.range (rs.size - 1) := List.mem_range.mpr (by omega)
+  have := List.all_eq_true.mp h2 i hmem
+  rw [Array.getElem?_eq_getElem (by omega), Array.getElem?_eq_getElem hi] at this
+  simpa using this
+
+/-- 離れていても昇順である。 -/
+theorem range_le {rs : Array IdnaRange} (h : checkSorted rs = true) (i : Nat)
+    (hi : i < rs.size) : (rs[i]'hi).lo ≤ (rs[i]'hi).hi := by
+  have h1 := (Bool.and_eq_true .. ▸ h).1
+  simpa using Array.all_eq_true.mp h1 i hi
+
+theorem sorted_lt {rs : Array IdnaRange} (h : checkSorted rs = true) :
+    ∀ (b : Nat) (hb : b < rs.size) (a : Nat) (hab : a < b),
+      (rs[a]'(by omega)).hi < (rs[b]'hb).lo := by
+  intro b
+  induction b with
+  | zero => intro _ a ha; omega
+  | succ k ih =>
+    intro hb a ha
+    have hk : k < rs.size := by omega
+    rcases Nat.lt_or_ge a k with hak | hak
+    · have h1 := ih hk a hak
+      have h2 := sorted_step h k hb
+      have h3 := range_le h k hk
+      omega
+    · have hak2 : a = k := by omega
+      subst hak2
+      exact sorted_step h a hb
+
+/--
+**表が整っていれば、`n` を含む区間は必ず見つかる。**
+
+二分探索の不変条件は「答えの添字 `i` が `[lo, hi)` にある」である。
+昇順・非重複なので、`n < rs[mid].lo` なら `i < mid`、`rs[mid].hi < n` なら `mid < i`、
+どちらでもなければ `rs[mid]` が `n` を含み、非重複から `i = mid` が出る。
+-/
+theorem findRange_go_complete {rs : Array IdnaRange} {n : Nat} (hs : checkSorted rs = true)
+    (i : Nat) (hi : i < rs.size) (h1 : (rs[i]'hi).lo ≤ n) (h2 : n ≤ (rs[i]'hi).hi) :
+    ∀ lo hi', lo ≤ i → i < hi' → hi' ≤ rs.size →
+      findRange.go rs n lo hi' = some (rs[i]'hi) := by
+  intro lo hi'
+  induction lo, hi' using findRange.go.induct rs n with
+  | case1 lo hi2 hlo mid hnone =>
+    intro hli hih hsz
+    exfalso
+    have hm : (lo + hi2) / 2 < rs.size := by omega
+    have hq : rs[(lo + hi2) / 2]? = none := hnone
+    rw [Array.getElem?_eq_getElem hm] at hq
+    simp at hq
+  | case2 lo hi2 hlo mid r' hsome hlt ih =>
+    intro hli hih hsz
+    have hm : (lo + hi2) / 2 < rs.size := by omega
+    have hq : rs[(lo + hi2) / 2]? = some r' := hsome
+    have hr : r' = rs[(lo + hi2) / 2]'hm := by
+      have := hq
+      rw [Array.getElem?_eq_getElem hm] at this
+      exact (Option.some.inj this).symm
+    rw [findRange.go]
+    simp only [hlo, hq, hlt, dif_pos, if_true]
+    refine ih hli ?_ (by omega)
+    -- `n < rs[mid].lo` なので `i < mid`
+    rcases Nat.lt_or_ge i ((lo + hi2) / 2) with h | h
+    · exact h
+    · exfalso
+      rcases Nat.eq_or_lt_of_le h with heq | h'
+      · have hb : r'.lo = (rs[i]'hi).lo := by rw [hr]; simp [heq]
+        omega
+      · have hlt2 := sorted_lt hs i hi ((lo + hi2) / 2) h'
+        have hb1 : r'.lo = (rs[(lo + hi2) / 2]'hm).lo := by rw [hr]
+        have hb2 : r'.hi = (rs[(lo + hi2) / 2]'hm).hi := by rw [hr]
+        have := range_le hs ((lo + hi2) / 2) hm
+        omega
+  | case3 lo hi2 hlo mid r' hsome hge hhi ih =>
+    intro hli hih hsz
+    have hm : (lo + hi2) / 2 < rs.size := by omega
+    have hq : rs[(lo + hi2) / 2]? = some r' := hsome
+    have hr : r' = rs[(lo + hi2) / 2]'hm := by
+      have := hq
+      rw [Array.getElem?_eq_getElem hm] at this
+      exact (Option.some.inj this).symm
+    rw [findRange.go]
+    simp only [hlo, hq, hge, hhi, dif_pos, if_false, if_true]
+    refine ih ?_ hih hsz
+    -- `rs[mid].hi < n` なので `mid < i`
+    rcases Nat.lt_or_ge ((lo + hi2) / 2) i with h | h
+    · omega
+    · exfalso
+      rcases Nat.eq_or_lt_of_le h with heq | h'
+      · have hb : r'.hi = (rs[i]'hi).hi := by rw [hr]; simp [heq]
+        omega
+      · have hlt2 := sorted_lt hs ((lo + hi2) / 2) hm i h'
+        have hb1 : r'.lo = (rs[(lo + hi2) / 2]'hm).lo := by rw [hr]
+        have hb2 : r'.hi = (rs[(lo + hi2) / 2]'hm).hi := by rw [hr]
+        have := range_le hs i hi
+        omega
+  | case4 lo hi2 hlo mid r' hsome hge hhi =>
+    intro hli hih hsz
+    have hm : (lo + hi2) / 2 < rs.size := by omega
+    have hq : rs[(lo + hi2) / 2]? = some r' := hsome
+    have hr : r' = rs[(lo + hi2) / 2]'hm := by
+      have := hq
+      rw [Array.getElem?_eq_getElem hm] at this
+      exact (Option.some.inj this).symm
+    rw [findRange.go]
+    simp only [hlo, hq, hge, hhi, dif_pos, if_false]
+    -- 非重複なので `i = mid`
+    have : i = (lo + hi2) / 2 := by
+      rcases Nat.lt_trichotomy i ((lo + hi2) / 2) with h | h | h
+      · exfalso
+        have hx := sorted_lt hs ((lo + hi2) / 2) hm i h
+        have hb1 : r'.lo = (rs[(lo + hi2) / 2]'hm).lo := by rw [hr]
+        have hb2 : r'.hi = (rs[(lo + hi2) / 2]'hm).hi := by rw [hr]
+        omega
+      · exact h
+      · exfalso
+        have hx := sorted_lt hs i hi ((lo + hi2) / 2) h
+        have hb1 : r'.lo = (rs[(lo + hi2) / 2]'hm).lo := by rw [hr]
+        have hb2 : r'.hi = (rs[(lo + hi2) / 2]'hm).hi := by rw [hr]
+        omega
+    subst this
+    rw [hr]
+  | case5 lo hi2 hlo =>
+    intro hli hih hsz
+    exact absurd hih (by omega)
+
+theorem findRange_complete {rs : Array IdnaRange} {n : Nat} (hs : checkSorted rs = true)
+    (i : Nat) (hi : i < rs.size) (h1 : (rs[i]'hi).lo ≤ n) (h2 : n ≤ (rs[i]'hi).hi) :
+    findRange rs n = some (rs[i]'hi) :=
+  findRange_go_complete hs i hi h1 h2 0 rs.size (Nat.zero_le i) hi (Nat.le_refl _)
+
 /--
 **`checkResolved` が通れば `Resolved` が成り立つ。**
 

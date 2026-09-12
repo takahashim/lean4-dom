@@ -277,6 +277,13 @@ open Dom.Audit
   Url.validALabel
   Url.findRange_go_mem
   Url.findRange_mem
+  Url.findRange_go_contains
+  Url.findRange_contains
+  Url.sorted_step
+  Url.range_le
+  Url.sorted_lt
+  Url.findRange_go_complete
+  Url.findRange_complete
   Url.toNat_ofNat_of_valid
   Url.checkResolved_sound
 
