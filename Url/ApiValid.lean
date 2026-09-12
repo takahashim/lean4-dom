@@ -732,4 +732,217 @@ theorem setSearch_spec (u : Url) (v : String) (hv : v.isEmpty = false) :
       { url := { u with query := some "" }, over := some SOverride.query } (by simp)
     exact hnone u' hu'
 
+/-! ### 前処理
+
+setter は入力から tab と newline を落としてから parse する。
+どの肯定側の定理も、まずそこを通り抜ける必要がある。
+-/
+
+theorem stripTabNewline_eq_self {l : List Char}
+    (h : ∀ c ∈ l, c.toNat ≠ 0x09 ∧ c.toNat ≠ 0x0A ∧ c.toNat ≠ 0x0D) :
+    stripTabNewline l = l := by
+  unfold stripTabNewline
+  refine List.filter_eq_self.mpr ?_
+  intro c hc
+  have hd := h c hc
+  simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq]
+  omega
+
+/-! ### port
+
+`setPort_valid` は「port setter が `ValidUrl` を壊さない」しか言わない。
+引数を無視する setter でもそれは満たすので、ここで「入れた数がそのまま入る」を言う。
+-/
+
+/-- digit だけの入力は tab も newline も含まないので、前処理で変わらない。 -/
+theorem stripTabNewline_digits {l : List Char} (h : ∀ c ∈ l, isAsciiDigit c = true) :
+    stripTabNewline l = l :=
+  stripTabNewline_eq_self fun c hc => by
+    have hd := h c hc
+    simp only [isAsciiDigit, Bool.and_eq_true, decide_eq_true_eq] at hd
+    omega
+
+/-- 16 bit に収まる 10 進を積んだ buffer は、その値を port に書いて終わる。 -/
+theorem portDone_digits {ctx : PCtx} (hne : ctx.buffer ≠ [])
+    (hle : portValue ctx.buffer ≤ 65535) :
+    portDone ctx = some (portSet ctx (portOf ctx.url.scheme (portValue ctx.buffer))) := by
+  unfold portDone
+  rw [if_neg (by simpa using hne), if_neg (by simp; omega)]
+
+/-- override 付きの port state は、digit を全部 buffer に積んで最後に `portDone` する。 -/
+theorem run_port_spec (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    ctx.over.isSome = true → (∀ c ∈ input, isAsciiDigit c = true) →
+    run base .port input ctx = .ok u →
+    u = (match portDone { ctx with buffer := ctx.buffer ++ input } with
+         | some ctx2 => ctx2.url
+         | none => ctx.url) := by
+  intro input
+  induction input with
+  | nil =>
+    intro ctx u ho _ h
+    have hce : ({ ctx with buffer := ctx.buffer ++ [] } : PCtx) = ctx := by simp
+    rw [hce]
+    rw [run, step] at h
+    split at h
+    · next hn =>
+      rw [hn]
+      rw [fail_over ho] at h
+      exact (PResult.ok.inj h).symm
+    · next ctx2 hs =>
+      rw [hs]
+      rw [if_pos ho] at h
+      exact (PResult.ok.inj h).symm
+  | cons c rest ih =>
+    intro ctx u ho hd h
+    rw [run, step] at h
+    rw [if_pos (hd c (by simp))] at h
+    have := ih { ctx with buffer := ctx.buffer ++ [c] } u ho (fun x hx => hd x (by simp [hx])) h
+    simpa using this
+
+/-- override 付きの port state は digit だけの入力では失敗しない。 -/
+theorem run_port_ok (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
+    ctx.over.isSome = true → (∀ c ∈ input, isAsciiDigit c = true) →
+    ∃ u, run base .port input ctx = .ok u := by
+  intro input
+  induction input with
+  | nil =>
+    intro ctx ho _
+    rw [run, step]
+    split
+    · exact ⟨ctx.url, fail_over ho⟩
+    · next ctx2 _ => exact ⟨ctx2.url, by rw [if_pos ho]⟩
+  | cons c rest ih =>
+    intro ctx ho hd
+    obtain ⟨u, hu⟩ := ih { ctx with buffer := ctx.buffer ++ [c] } ho (fun x hx => hd x (by simp [hx]))
+    refine ⟨u, ?_⟩
+    rw [run, step, if_pos (hd c (by simp))]
+    exact hu
+
+/--
+**`port` setter は、与えた 10 進数をそのまま port に入れる。**
+
+既定 port と同じときに null になるところまで込みで `portOf` が言っている。
+-/
+theorem setPort_spec (u : Url) (v : String) (hc : u.cannotHaveCredentials = false)
+    (hv : v.isEmpty = false) (hd : ∀ c ∈ v.toList, isAsciiDigit c = true)
+    (hle : portValue v.toList ≤ 65535) :
+    (u.setPort v).port = portOf u.scheme (portValue v.toList) := by
+  have hne : v.toList ≠ [] := by simp_all
+  have hstrip : stripTabNewline v.toList = v.toList := stripTabNewline_digits hd
+  unfold Url.setPort
+  rw [if_neg (by simp [hc]), if_neg (by simp [hv])]
+  unfold basicUrlParseOverride
+  split
+  · next u' he =>
+    rw [Option.getD_some]
+    rw [run_port_spec none _ _ u' (by simp) (by rw [hstrip]; exact hd) he]
+    rw [portDone_digits (by simp [hstrip, hne]) (by simp [hstrip]; omega)]
+    simp [portSet, hstrip]
+  · next hnone =>
+    exfalso
+    obtain ⟨u', hu'⟩ := run_port_ok none (stripTabNewline v.toList)
+      { url := u, over := some SOverride.port } (by simp) (by rw [hstrip]; exact hd)
+    exact hnone u' hu'
+
+/-! ### protocol
+
+`protocol` setter は scheme start state から scheme state へ入り、`:` で `schemeOverride` に着く。
+入力を `v ++ ":"` にしているので、`:` は必ず最後に一つだけある。
+-/
+
+theorem run_schemeStart_step (base : Option Url) (ctx : PCtx) (c : Char) (rest : List Char)
+    (ha : isAsciiAlpha c = true) :
+    run base .schemeStart (c :: rest) ctx
+      = run base .scheme rest { ctx with buffer := ctx.buffer ++ [asciiLowerChar c] } := by
+  rw [run, step, if_pos ha]
+  simp [asciiLowercase]
+
+theorem run_scheme_eq (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
+    ctx.over.isSome = true → (∀ c ∈ input, isAsciiAlphanumeric c = true) →
+    run base .scheme (input ++ [':']) ctx
+      = schemeOverride { ctx with buffer := ctx.buffer ++ input.map asciiLowerChar } := by
+  intro input
+  induction input with
+  | nil =>
+    intro ctx ho _
+    simp only [List.nil_append, List.map_nil, List.append_nil]
+    rw [run, step, if_neg (by decide), if_pos (by decide), if_pos ho]
+  | cons c rest ih =>
+    intro ctx ho hd
+    simp only [List.cons_append]
+    rw [run, step, if_pos (by simp [hd c (by simp)])]
+    rw [ih { ctx with buffer := ctx.buffer ++ (asciiLowercase (String.ofList [c])).toList } ho
+        (fun x hx => hd x (by simp [hx]))]
+    simp [asciiLowercase]
+
+theorem schemeOverride_ok (ctx : PCtx) : ∃ u, schemeOverride ctx = .ok u := by
+  simp +zetaDelta only [schemeOverride]
+  repeat' split
+  all_goals exact ⟨_, rfl⟩
+
+theorem schemeOverride_spec {ctx : PCtx} {u : Url}
+    (hsp : isSpecialScheme (String.ofList ctx.buffer) = ctx.url.isSpecial)
+    (hf : String.ofList ctx.buffer = "file" →
+      ctx.url.includesCredentials = false ∧ ctx.url.port = none)
+    (hfe : ¬(ctx.url.scheme = "file" ∧ ctx.url.host = some Host.empty))
+    (h : schemeOverride ctx = .ok u) : u.scheme = String.ofList ctx.buffer := by
+  have g1 : ¬((ctx.url.isSpecial && !isSpecialScheme (String.ofList ctx.buffer)) = true) := by
+    rw [← hsp]; cases isSpecialScheme (String.ofList ctx.buffer) <;> simp
+  have g2 : ¬((!ctx.url.isSpecial && isSpecialScheme (String.ofList ctx.buffer)) = true) := by
+    rw [← hsp]; cases isSpecialScheme (String.ofList ctx.buffer) <;> simp
+  have g3 : ¬(((ctx.url.includesCredentials || ctx.url.port.isSome)
+      && (String.ofList ctx.buffer == "file")) = true) := by
+    cases hb : (String.ofList ctx.buffer == "file") with
+    | false => simp
+    | true => have := hf (by simpa using hb); simp [this.1, this.2]
+  have g4 : ¬((ctx.url.scheme == "file" && ctx.url.host == some Host.empty) = true) := by
+    simp only [Bool.and_eq_true, beq_iff_eq]; exact hfe
+  simp +zetaDelta only [schemeOverride] at h
+  rw [if_neg g1, if_neg g2, if_neg g3, if_neg g4] at h
+  split at h <;> rw [← PResult.ok.inj h]
+
+/--
+**`protocol` setter は、与えた scheme を小文字にしてそのまま入れる。**
+
+`setProtocol_valid` は「壊さない」しか言わない。ここは肯定側である。
+仮定は §4.4 scheme state の override 分岐の四つの門をそのまま写したものである。
+-/
+theorem setProtocol_spec (u : Url) (v : String) (c : Char) (rest : List Char)
+    (hv : v.toList = c :: rest) (ha : isAsciiAlpha c = true)
+    (hr : ∀ x ∈ rest, isAsciiAlphanumeric x = true)
+    (hsp : isSpecialScheme (asciiLowercase v) = u.isSpecial)
+    (hf : asciiLowercase v = "file" → u.includesCredentials = false ∧ u.port = none)
+    (hfe : ¬(u.scheme = "file" ∧ u.host = some Host.empty)) :
+    (u.setProtocol v).scheme = asciiLowercase v := by
+  have hrange : ∀ x ∈ c :: rest ++ [':'], x.toNat ≠ 0x09 ∧ x.toNat ≠ 0x0A ∧ x.toNat ≠ 0x0D := by
+    intro x hx
+    simp only [List.mem_cons, List.mem_append, List.not_mem_nil, or_false] at hx
+    rcases hx with (rfl | hx) | rfl
+    · simp only [isAsciiAlpha, isAsciiUpperAlpha, isAsciiLowerAlpha, Bool.or_eq_true,
+        Bool.and_eq_true, decide_eq_true_eq] at ha
+      omega
+    · have := hr x hx
+      simp only [isAsciiAlphanumeric, isAsciiDigit, isAsciiAlpha, isAsciiUpperAlpha,
+        isAsciiLowerAlpha, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at this
+      omega
+    · decide
+  have hinput : stripTabNewline (v ++ ":").toList = c :: (rest ++ [':']) := by
+    have : (v ++ ":").toList = c :: (rest ++ [':']) := by
+      rw [String.toList_append, hv]; rfl
+    rw [this]
+    exact stripTabNewline_eq_self (by simpa using hrange)
+  have hbuf : String.ofList ([] ++ [asciiLowerChar c] ++ rest.map asciiLowerChar)
+      = asciiLowercase v := by
+    simp [asciiLowercase, hv]
+  unfold Url.setProtocol basicUrlParseOverride
+  simp only [SOverride.start, hinput]
+  rw [run_schemeStart_step none _ c (rest ++ [':']) ha,
+    run_scheme_eq none rest _ (by simp) hr]
+  obtain ⟨u', hu'⟩ := schemeOverride_ok
+    { url := u, buffer := [] ++ [asciiLowerChar c] ++ rest.map asciiLowerChar,
+      over := some SOverride.scheme }
+  rw [hu', Option.getD_some]
+  rw [schemeOverride_spec (by rw [hbuf]; exact hsp) (by rw [hbuf]; exact hf) hfe hu']
+  exact hbuf
+
 end Url

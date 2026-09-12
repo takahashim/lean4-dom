@@ -53,10 +53,13 @@ def isAsciiAlphanumeric (c : Char) : Bool := isAsciiDigit c || isAsciiAlpha c
 /-- Infra の ASCII code point。 -/
 def isAscii (c : Char) : Bool := c.toNat ≤ 0x7F
 
+/-- ASCII lowercase の 1 文字分。 -/
+def asciiLowerChar (c : Char) : Char :=
+  if isAsciiUpperAlpha c then Char.ofNat (c.toNat + 32) else c
+
 /-- ASCII の大文字を小文字にする（Infra の "ASCII lowercase"）。 -/
 def asciiLowercase (s : String) : String :=
-  String.ofList (s.toList.map fun c =>
-    if isAsciiUpperAlpha c then Char.ofNat (c.toNat + 32) else c)
+  String.ofList (s.toList.map asciiLowerChar)
 
 /-- ASCII の小文字を大文字にする（Infra の "ASCII uppercase"）。 -/
 def asciiUppercase (s : String) : String :=

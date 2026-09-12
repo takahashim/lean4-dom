@@ -208,6 +208,17 @@ open Dom.Audit
   Url.run_query_spec
   Url.run_query_ok
   Url.setSearch_spec
+  Url.stripTabNewline_eq_self
+  Url.stripTabNewline_digits
+  Url.portDone_digits
+  Url.run_port_spec
+  Url.run_port_ok
+  Url.setPort_spec
+  Url.run_schemeStart_step
+  Url.run_scheme_eq
+  Url.schemeOverride_ok
+  Url.schemeOverride_spec
+  Url.setProtocol_spec
   Url.setAttr_valid
 
 -- URL Standard §4.4 parser が `ValidUrl` を保つこと
