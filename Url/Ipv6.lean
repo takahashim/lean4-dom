@@ -160,7 +160,8 @@ where
 `Ipv6` は `List Nat` なので、長さも各 piece の範囲も型では言えない。
 `ipv6Serializer` は 8 piece を前提に `i == 7` で区切りを落とし、
 `ipv6Expand` は `8 - compress - swaps` と自然数減算をするので、
-parser が 8 piece を返すことは言明しておく必要がある。
+parser が 8 piece を返すことと、どの piece も 16 bit に収まることを
+言明しておく必要がある。
 -/
 
 /-- `takeHex` が読む個数は上限以下。 -/
@@ -312,6 +313,151 @@ theorem ipv6Parser_length {input : List Char} {a : Ipv6}
        obtain ⟨hl, hpi, hc⟩ := ipv6Loop_inv 9 _ ipv6Zero 0 none _ _ _ hr
          (by omega) (by intro c hc; simp at hc)
        exact ipv6Finish_length (by omega) hpi hc h)
+
+/-! ### piece の範囲
+
+長さの次は各 piece が 16 bit に収まること。hex を読む枝は `takeHex4_lt` で足りるが、
+IPv4-in-IPv6 の枝は `old * 0x100 + piece` と積み上げるので、
+「まだ書いていない piece は 0」「いま書いている piece は 8 bit」を記帳する必要がある。
+`numbersSeen` の偶奇がその二つを行き来する。
+-/
+
+theorem ipv6Zero_getD : ∀ j, ipv6Zero.getD j 0 = 0
+  | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 => rfl
+  | _ + 8 => rfl
+
+/-- 書き込んだ場所を読み直すと、書いた値か（範囲外なら）既定値である。 -/
+theorem getD_set_lt (l : List Nat) (i v b : Nat) (hv : v < b) (hb : 0 < b) :
+    (l.set i v).getD i 0 < b := by
+  by_cases h : i < l.length
+  · rw [getD_set_self l i v 0 h]; exact hv
+  · rw [List.getD_eq_getElem?_getD]
+    have : (l.set i v)[i]? = none := by
+      apply List.getElem?_eq_none
+      simpa using h
+    rw [this]
+    exact hb
+
+/--
+`ipv4InIpv6` の 1 歩。
+
+`ns` 番目の 10 進を書き込んでも、piece は 16 bit に収まり、
+まだ書いていない piece は 0 のまま、いま書いた piece は 8 bit に収まる。
+-/
+theorem ipv4InIpv6_step {a : Ipv6} {pi ns piece : Nat} (hp : piece ≤ 255)
+    (ha : ∀ p ∈ a, p < 65536)
+    (hz : ∀ j, pi + (ns + 1) / 2 ≤ j → a.getD j 0 = 0)
+    (hb : a.getD (pi + ns / 2) 0 < 256) :
+    (∀ p ∈ a.set (pi + ns / 2) (a.getD (pi + ns / 2) 0 * 0x100 + piece), p < 65536) ∧
+    (∀ j, pi + (ns + 1 + 1) / 2 ≤ j →
+      (a.set (pi + ns / 2) (a.getD (pi + ns / 2) 0 * 0x100 + piece)).getD j 0 = 0) ∧
+    (a.set (pi + ns / 2) (a.getD (pi + ns / 2) 0 * 0x100 + piece)).getD (pi + (ns + 1) / 2) 0
+      < 256 := by
+  refine ⟨set_lt ha (by omega), ?_, ?_⟩
+  · intro j hj
+    rw [getD_set_other _ _ _ _ _ (show pi + ns / 2 ≠ j by omega)]
+    exact hz j (by omega)
+  · by_cases hpar : ns % 2 = 0
+    · have hidx : pi + (ns + 1) / 2 = pi + ns / 2 := by omega
+      rw [hidx, hz (pi + ns / 2) (by omega)]
+      exact getD_set_lt _ _ _ _ (by omega) (by omega)
+    · rw [getD_set_other _ _ _ _ _ (show pi + ns / 2 ≠ pi + (ns + 1) / 2 by omega)]
+      have := hz (pi + (ns + 1) / 2) (by omega)
+      omega
+
+/-- `ipv4InIpv6` が返す address の piece は 16 bit に収まる。 -/
+theorem ipv4InIpv6_lt : ∀ (fuel : Nat) (input : List Char) (a : Ipv6) (pi ns : Nat) (a' : Ipv6),
+    ipv4InIpv6 fuel input a pi ns = some a' →
+    (∀ p ∈ a, p < 65536) →
+    (∀ j, pi + (ns + 1) / 2 ≤ j → a.getD j 0 = 0) →
+    a.getD (pi + ns / 2) 0 < 256 →
+    ∀ p ∈ a', p < 65536 := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro input a pi ns a' h ha _ _
+    simp only [ipv4InIpv6] at h
+    split at h
+    · rw [← Option.some.inj h]; exact ha
+    · simp at h
+  | succ f ih =>
+    intro input a pi ns a' h ha hz hb
+    simp only [ipv4InIpv6] at h
+    repeat' split at h
+    all_goals first
+      | (simp at h; done)
+      | (rw [← Option.some.inj h]; exact ha)
+      | (refine ih _ _ _ _ _ h ?_ ?_ ?_
+         · exact (ipv4InIpv6_step (by omega) ha hz hb).1
+         · exact (ipv4InIpv6_step (by omega) ha hz hb).2.1
+         · exact (ipv4InIpv6_step (by omega) ha hz hb).2.2)
+
+/-- `ipv6Loop` が返す address の piece は 16 bit に収まる。 -/
+theorem ipv6Loop_lt : ∀ (fuel : Nat) (input : List Char) (a : Ipv6) (pi : Nat)
+    (co : Option Nat) (a' : Ipv6) (pi' : Nat) (co' : Option Nat),
+    ipv6Loop fuel input a pi co = some (a', pi', co') →
+    (∀ p ∈ a, p < 65536) → (∀ j, pi ≤ j → a.getD j 0 = 0) →
+    ∀ p ∈ a', p < 65536 := by
+  intro fuel
+  induction fuel with
+  | zero => intro input a pi co a' pi' co' h _ _; simp [ipv6Loop] at h
+  | succ f ih =>
+    intro input a pi co a' pi' co' h ha hz
+    simp only [ipv6Loop] at h
+    repeat' split at h
+    all_goals first
+      | (simp at h; done)
+      | (simp only [Option.some.injEq, Prod.mk.injEq] at h
+         obtain ⟨rfl, rfl, rfl⟩ := h
+         first
+           | exact ha
+           | exact set_lt ha (takeHex4_lt _)
+           | (refine ipv4InIpv6_lt 4 _ a pi 0 _ (by assumption) ha
+                (fun j hj => hz j (by omega)) ?_
+              have := hz (pi + 0 / 2) (by omega)
+              omega))
+      | (exact ih _ _ _ _ _ _ _ h ha (fun j hj => hz j (by omega)))
+      | (refine ih _ _ _ _ _ _ _ h (set_lt ha (takeHex4_lt _)) (fun j hj => ?_)
+         rw [getD_set_other _ _ _ _ _ (show pi ≠ j by omega)]
+         exact hz j (by omega))
+
+/-- `ipv6Expand` は 0 を挟むだけなので範囲を保つ。 -/
+theorem ipv6Expand_lt {a : Ipv6} {pi co : Nat} (ha : ∀ p ∈ a, p < 65536) :
+    ∀ p ∈ ipv6Expand a pi co, p < 65536 := by
+  intro p hp
+  unfold ipv6Expand at hp
+  simp only [List.mem_append] at hp
+  rcases hp with (h | h) | h
+  · exact ha p (List.mem_of_mem_take h)
+  · rw [List.eq_of_mem_replicate h]; omega
+  · exact ha p (List.mem_of_mem_drop (List.mem_of_mem_take h))
+
+/-- step 6-8 は範囲を保つ。 -/
+theorem ipv6Finish_lt {a : Ipv6} {pi : Nat} {co : Option Nat} {a' : Ipv6}
+    (ha : ∀ p ∈ a, p < 65536) (h : ipv6Parser.ipv6Finish a pi co = some a') :
+    ∀ p ∈ a', p < 65536 := by
+  rw [ipv6Parser.ipv6Finish.eq_def] at h
+  split at h
+  · rw [← Option.some.inj h]; exact ipv6Expand_lt ha
+  · split at h
+    · rw [← Option.some.inj h]; exact ha
+    · simp at h
+
+/--
+**IPv6 parser が返す piece はどれも 16 bit に収まる。**
+
+`ipv6Serializer` は piece を 16 進 4 桁までとして書くので、これが要る。
+-/
+theorem ipv6Parser_lt {input : List Char} {a : Ipv6} (h : ipv6Parser input = some a) :
+    ∀ p ∈ a, p < 65536 := by
+  unfold ipv6Parser at h
+  have hz : ∀ p ∈ ipv6Zero, p < 65536 := by decide
+  repeat' split at h
+  all_goals first
+    | (simp at h; done)
+    | (rename_i hr
+       exact ipv6Finish_lt (ipv6Loop_lt 9 _ ipv6Zero _ _ _ _ _ hr hz
+         (fun j _ => ipv6Zero_getD j)) h)
 
 /-! ## serializer -/
 

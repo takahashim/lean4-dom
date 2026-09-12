@@ -492,14 +492,23 @@ state をまたぐぶん帰納法が段になるので入れていない。WPT �
 | 定理 | 言っていること |
 | --- | --- |
 | `ipv6Parser_length` | **parser が返す address は必ず 8 piece である** |
+| `ipv6Parser_lt` | **parser が返す piece はどれも 16 bit に収まる** |
 | `ipv6Loop_inv` | 走査は個数を変えず、`pieceIndex` は 8 以下、圧縮位置は `pieceIndex` 以下 |
-| `ipv6Expand_length` | 圧縮を右へ寄せても 8 piece のまま |
+| `ipv6Loop_lt` | 走査は piece を 16 bit に保つ |
+| `ipv4InIpv6_lt`, `ipv4InIpv6_step` | IPv4-in-IPv6 の 1 歩と、その繰り返し |
+| `ipv6Expand_length`, `ipv6Expand_lt` | 圧縮を右へ寄せても 8 piece のまま、範囲もそのまま |
 | `takeHex4_lt` | 4 桁の 16 進は 16 bit に収まる |
 
-**各 piece が 16 bit に収まることは証明していない。** `ipv4InIpv6` の中の
-`let afterDot` が `numbersSeen < 4` の guard を隠すので、`ipv4InIpv6.induct` から
-取り直したうえで `numbersSeen` の偶奇（偶数なら対象の piece は 0、奇数なら 255 以下）を
-記帳する必要がある。不変条件は導出済みで、`checkStrictUrl` が実行時に見ている。
+範囲のほうは hex を読む枝なら `takeHex4_lt` で足りるが、IPv4-in-IPv6 の枝は
+`old * 0x100 + piece` と積み上げるので、`ipv4InIpv6` の不変条件を二つに分けてある。
+
+* まだ書いていない piece（添字が `pieceIndex + (numbersSeen + 1) / 2` 以上）は 0
+* いま書いている piece（添字が `pieceIndex + numbersSeen / 2`）は 8 bit に収まる
+
+`numbersSeen` が偶数なら二つ目は一つ目から出て、奇数なら書いた直後の値そのものである。
+`checkStrictUrl` の `ipv6Ok` は残してある。parser の側は証明できたが、
+URL record の host に入っている `Ipv6` がその parser の出力であることは、
+`hostParser` の spec が無いとつながらない。
 
 ## serializer
 

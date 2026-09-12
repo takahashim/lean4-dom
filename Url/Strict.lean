@@ -46,9 +46,9 @@ def pathSegsOk (u : Url) : Bool :=
 /--
 IPv6 address が 8 piece で各 piece が 16 bit に収まること。
 
-長さは `ipv6Parser_length` で証明してあるが、piece の範囲は証明していない
-（`ipv4InIpv6` の `let afterDot` が guard を隠すので、`ipv4InIpv6.induct` から
-取り直したうえで `numbersSeen` の偶奇を記帳する必要がある）。ここで実行時に見る。
+どちらも parser については証明してある（`ipv6Parser_length`、`ipv6Parser_lt`）。
+残っているのは、URL record の host に入っている `Ipv6` がその parser の出力だという
+ところで、`hostParser` の spec が無いとつながらない。ここで実行時に見る。
 -/
 def ipv6Ok (u : Url) : Bool :=
   match u.host with

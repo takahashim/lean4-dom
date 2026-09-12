@@ -143,6 +143,14 @@ open Dom.Audit
   Url.ipv6Expand_length
   Url.ipv6Finish_length
   Url.ipv6Parser_length
+  Url.ipv6Zero_getD
+  Url.getD_set_lt
+  Url.ipv4InIpv6_step
+  Url.ipv4InIpv6_lt
+  Url.ipv6Loop_lt
+  Url.ipv6Expand_lt
+  Url.ipv6Finish_lt
+  Url.ipv6Parser_lt
 
 -- URL Standard §3.3 IPv4
 #audit_axioms
