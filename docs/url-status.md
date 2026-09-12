@@ -303,6 +303,7 @@ ASCII だけの domain は model 内で閉じる（UTS #46 の写像は ASCII �
 | `urlencodedEncode_no_separator` | serialize した成分に `&` も `=` も現れない。parser が区切れる根拠 |
 | `percentEncodeByte_alnum`, `hexDigitChar_alnum` | `%XX` は `%` と 16 進の数字からなる |
 | `setUsername_cannot`, `setPassword_cannot`, `setPort_cannot` | credentials を置けない URL では、その setter は何もしない |
+| `setUsername_spec`, `setPassword_spec`, `setPort_spec`, `setProtocol_spec`, `setPathname_spec`, `setHost_spec`, `setHostname_spec`, `setHash_spec`, `setSearch_spec` | **その setter が何を入れるか**（肯定側） |
 | `setHost_opaque`, `setHostname_opaque`, `setPathname_opaque` | opaque path を持つ URL では、その setter は何もしない |
 | `not_opaque_of_canHaveCredentials` | credentials を置ける URL は host を持ち、opaque path でない |
 | `setUsername_valid`, `setPassword_valid`, `setPort_empty_valid` | record の中で閉じる setter は `ValidUrl` を保つ |
@@ -443,12 +444,13 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 * host が null なら credentials も port も持てない
 * opaque path なら credentials も port も持てず host も持たない
 * port は 16 bit に収まる
+* scheme が `file` なら credentials も port も持てない
 
 入っていないのは三つで、どれも parser も setter も作れないが、不変条件にするには足場が要る。
 
 | §4.1 の条件 | 入れていない理由 |
 | --- | --- |
-| host が空、または scheme が `file` なら credentials も port も持てない | 根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）にあり、`PInv` が `ctx.atSignSeen` を持つ必要がある |
+| host が**空**なら credentials も port も持てない | 根拠が parser の guard（authority state の `atSignSeen && buffer.isEmpty`）にあり、その情報は host state へ**入力として**渡るので、`PInv` が残りの入力を見る必要がある。同じ条文の scheme が `file` の側は入れてある（state について `PInv.notFile` を持ち回れば済む） |
 | scheme と host の組み合わせ表 | `freshHost` を `relative` まで広げ、`fileHost` で scheme が `file` だと足し、`hostParser` の返す host の種類の補題が要る |
 | special な URL の host は null でない | **終端でしか成り立たない。** parse の途中では scheme が決まって host が null の状態を必ず通る |
 | path segment に `/` は含まれない | **serializer の正しさがこれに依存する。** `{ scheme := "sc", path := .list ["/x"] }` は `ValidUrl` を満たすが、serialize すると `sc://x` になり、parse し直すと opaque host を持つ別の record になる |
@@ -460,18 +462,26 @@ parse が成功したときの URL record が `ValidUrl` を満たすことを�
 ## setter が何をするか
 
 `setX_cannot`（できないときは何もしない）と `setX_valid`（`ValidUrl` を壊さない）だけでは、
-**引数を無視する setter でも両方を満たす**。肯定側を書き始めた。
+**引数を無視する setter でも両方を満たす**。そこで肯定側を書いた。
+**いまはどの setter にも肯定側の定理がある。**
 
 | 定理 | 言っていること |
 | --- | --- |
 | `setHash_spec` | **`hash` setter は、先頭の `#` を落とした残りを percent-encode して fragment に入れる** |
-| `run_fragment_spec` | fragment state は入力を encode して fragment の末尾に足す |
-| `run_fragment_ok` | fragment state は失敗しない |
-| `setHash_empty_hash`, `setSearch_empty_search` | 空文字列を入れると消える |
+| `setSearch_spec` | **`search` setter は、先頭の `?` を落とした残りを percent-encode して query に入れる** |
+| `setPort_spec` | **`port` setter は、与えた 10 進数をそのまま port に入れる**（既定 port なら null。`portOf` がそこまで言う） |
+| `setProtocol_spec` | **`protocol` setter は、与えた scheme を小文字にして入れる**。仮定は scheme state の override 分岐の四つの門そのもの |
+| `setPathname_spec` | **`pathname` setter は、区切りを含まない一 segment を percent-encode して入れる**（`.` `..` と `file` は除く） |
+| `setHostname_spec`, `setHost_spec` | **`hostParser` が返した host をそのまま入れる**（`:` を含まない入力） |
+| `setUsername_spec`, `setPassword_spec` | 与えた文字列を userinfo として encode して入れる |
+| `setHash_empty_hash`, `setSearch_empty_search`, `setPort_empty_spec` | 空文字列を入れると消える |
+| `run_fragment_spec`, `run_query_spec`, `run_port_spec`, `run_scheme_eq`, `run_path_seg`, `run_host_seg` | 各 state が override 付きで何をするか |
+| `run_fragment_ok`, `run_query_ok`, `run_port_ok`, `schemeOverride_ok` | その state が失敗しないこと |
 
-`host` / `hostname` / `port` / `pathname` / `protocol` の肯定側はまだ無い。
-どれも override 付きの parser を走らせるので、`run_fragment_spec` と同じ形の
-state ごとの spec が要る。WPT の setter 705 件が当面の裏づけである。
+仮定の付き方はそれぞれ違う。`pathname` は区切りを含まない一 segment、
+`host` は `:` を含まない入力に限ってある。複数 segment や port 付きの host は、
+state をまたぐぶん帰納法が段になるので入れていない。WPT の setter 705 件が
+そこの裏づけである。
 
 ## IPv6
 
