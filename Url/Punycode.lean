@@ -507,11 +507,18 @@ theorem insertIdx_append (A B : List Char) (x : Char) :
 theorem encodeDigits_ne_nil (bias k q : Nat) : encodeDigits bias k q ≠ [] := by
   rw [encodeDigits]; split <;> simp
 
-/-- 一歩分の吐き出し。差分を読んで `A` の末尾に `m` を挿す。 -/
-theorem decode_emit (m : Nat) (hm : m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000))
+/--
+一歩分の吐き出し。差分を読んで `A` の末尾に `m` を挿す。
+
+`n` は復号側がいま見ている code point で、pass の最初の吐き出しではここが `m` まで跳ぶ
+（符号化が `(m - n) * (h + 1)` を差分に足しているため）。同じ pass の二回目以降は
+`n = m` で、その場合は `(m - n) * N = 0` なので同じ式で表せる。
+-/
+theorem decode_emit (n m : Nat) (hnm : n ≤ m)
+    (hm : m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000))
     (A B : List Char) (i d bi : Nat) (E : List Char)
-    (hlen : A.length = i + d) :
-    decodeLoop bi m i (A ++ B) (encodeDigits bi 36 d ++ E)
+    (hlen : A.length + (m - n) * (A.length + B.length + 1) = i + d) :
+    decodeLoop bi n i (A ++ B) (encodeDigits bi 36 d ++ E)
       = decodeLoop (adapt d (A.length + B.length + 1) (i == 0)) m (A.length + 1)
           ((A ++ [Char.ofNat m]) ++ B) E := by
   obtain ⟨c0, t0, he⟩ : ∃ c0 t0, encodeDigits bi 36 d = c0 :: t0 := by
@@ -527,18 +534,24 @@ theorem decode_emit (m : Nat) (hm : m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000)
   · next hd => rw [hdd] at hd; simp at hd
   · next i' rem hd =>
     rw [hdd] at hd
-    have h1 : i' = i + d := (Prod.mk.injEq .. ▸ Option.some.inj hd).1.symm
-    have h2 : rem = E := (Prod.mk.injEq .. ▸ Option.some.inj hd).2.symm
+    have hp := Option.some.inj hd
+    have h1 : i' = i + d := (congrArg Prod.fst hp).symm
+    have h2 : rem = E := (congrArg Prod.snd hp).symm
     subst h1; subst h2
     have hnp : (A ++ B).length + 1 = A.length + B.length + 1 := by simp
-    have hlt : i + d < (A ++ B).length + 1 := by rw [hnp]; omega
-    simp only [Nat.div_eq_of_lt hlt, Nat.mod_eq_of_lt hlt, Nat.add_zero]
+    have hN : 0 < A.length + B.length + 1 := by omega
+    have hAlt : A.length < A.length + B.length + 1 := by omega
+    have hdiv : (i + d) / ((A ++ B).length + 1) = m - n := by
+      rw [hnp, ← hlen, Nat.add_mul_div_right _ _ hN, Nat.div_eq_of_lt hAlt, Nat.zero_add]
+    have hmod : (i + d) % ((A ++ B).length + 1) = A.length := by
+      rw [hnp, ← hlen, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hAlt]
+    simp only [hdiv, hmod, show n + (m - n) = m by omega]
     have hvalid : (decide (m < 55296) || decide (57343 < m) && decide (m < 1114112)) = true := by
       rcases hm with hv | ⟨hv1, hv2⟩
       · simp [hv]
       · simp [hv1, hv2]
     rw [if_pos hvalid]
-    rw [show i + d - i = d by omega, hnp, ← hlen, insertIdx_append]
+    rw [show i + d - i = d by omega, hnp, insertIdx_append]
 
 /-- 走査 1 回を追うための状態。`A` は挿し終わった前半、`B` はまだ来ていない `m` 未満。 -/
 structure PassState where
@@ -623,7 +636,8 @@ theorem decode_scan (b m : Nat) (hm : ValidCp m) :
         rw [scanFold_eq b m rest' ([] ++ encodeDigits st.bias 36 st.d) 0
               (adapt st.d (st.hh + 1) (st.hh == b)) (st.hh + 1)]
         simp only [List.nil_append, List.append_assoc]
-        rw [decode_emit m hm st.A st.B st.i st.d st.bias _ hinv.lenA]
+        rw [decode_emit m m (Nat.le_refl m) hm st.A st.B st.i st.d st.bias _
+          (by simpa using hinv.lenA)]
         rw [passRun, if_neg hlt, if_pos (by simp [heq])]
         rw [← hinv.lenH, hinv.firstFlag]
         exact ih { A := st.A ++ [Char.ofNat m], B := st.B, i := st.A.length + 1, d := 0,
