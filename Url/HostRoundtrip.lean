@@ -21,6 +21,8 @@ host の種類ごとに段取りが違う。
 
 * **IPv6**（`hostParser_ipv6`）。`[` と `]` を外して `Url/Ipv6Roundtrip.lean` の
   `ipv6Parser_serializer` に渡す。
+
+`hostParser_idem` はこの四つをまとめて、**parser が返した host は往復する**と言う。
 -/
 
 namespace Url
@@ -247,5 +249,294 @@ example : hostParser asciiDomainToASCII
       (hostSerializer (Host.ipv6 [0, 0, 0, 0, 0, 0, 0, 1])).toList false
     = some (Host.ipv6 [0, 0, 0, 0, 0, 0, 0, 1]) :=
   hostParser_ipv6 (by decide) (by decide)
+
+
+/-! ## parser の出力について
+
+`canonicalUrl` の host の条件は、host parser の出力ならいつでも成り立つ（`hostParser_idem`）。
+host の種類ごとに、上の四つの往復へ振り分ける。
+-/
+
+/-- 小文字に直す操作は二度やっても同じである。 -/
+theorem asciiLowerChar_idem (c : Char) : asciiLowerChar (asciiLowerChar c) = asciiLowerChar c := by
+  unfold asciiLowerChar
+  split
+  · next h =>
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [if_neg ?_]
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_le]
+    rw [toNat_ofNat_ascii (by omega)]
+    omega
+  · rfl
+
+/-- 小文字に直しても ASCII のままである。 -/
+theorem asciiLowerChar_ascii {c : Char} (h : isAscii c = true) :
+    isAscii (asciiLowerChar c) = true := by
+  simp only [isAscii, decide_eq_true_eq] at h ⊢
+  unfold asciiLowerChar
+  split
+  · next h2 =>
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq] at h2
+    rw [toNat_ofNat_ascii (by omega)]
+    omega
+  · exact h
+
+/-- domain parser の出力は、空でない小文字の ASCII で、forbidden domain code point を含まない。 -/
+theorem asciiDomainToASCII_out {dom : List Char} {d : String}
+    (h : asciiDomainToASCII dom = some d) :
+    ¬d.toList = [] ∧
+      ∀ c ∈ d.toList, isAscii c = true ∧ asciiLowerChar c = c ∧ isForbiddenDomain c = false := by
+  unfold asciiDomainToASCII at h
+  split at h
+  · next hasc =>
+    unfold asciiDomainToASCII.asciiDomainCheck at h
+    split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · next hemp hfor =>
+        simp only [Option.some.injEq] at h
+        subst h
+        simp only [List.all_eq_true] at hasc
+        constructor
+        · intro hx
+          apply hemp
+          rw [String.isEmpty_iff]
+          have h2 : (asciiLowercase (String.ofList dom)) = String.ofList (asciiLowercase
+            (String.ofList dom)).toList := by simp
+          rw [h2, hx]
+        · intro c hc
+          have hfor2 : isForbiddenDomain c = false := by
+            simp only [Bool.not_eq_true] at hfor
+            have := hfor
+            simp [String.any] at this
+            exact this c hc
+          simp only [asciiLowercase, String.toList_ofList, List.mem_map] at hc
+          obtain ⟨x, hx, rfl⟩ := hc
+          refine ⟨asciiLowerChar_ascii (hasc x (by simpa using hx)), asciiLowerChar_idem x, ?_⟩
+          exact hfor2
+  · simp at h
+
+/-- IPv6 host が返るなら、bracket の中を IPv6 parser が読んでいる。 -/
+theorem hostParser_ipv6_eq {f : List Char → Option String} {input : List Char} {a : Ipv6}
+    {b : Bool} (h : hostParser f input b = some (.ipv6 a)) : ∃ s, ipv6Parser s = some a := by
+  unfold hostParser at h
+  split at h
+  · split at h
+    · simp only [Option.map_eq_some_iff] at h
+      obtain ⟨x, hx, hx2⟩ := h
+      simp only [Host.ipv6.injEq] at hx2
+      exact ⟨_, by rw [hx, hx2]⟩
+    · simp at h
+  · split at h
+    · unfold opaqueHostParser at h
+      split at h
+      · simp at h
+      · split at h <;> simp at h
+    · split at h
+      · simp at h
+      · dsimp only at h
+        split at h
+        · simp at h
+        · split at h
+          · simp only [Option.map_eq_some_iff] at h
+            obtain ⟨x, -, hx⟩ := h
+            simp at hx
+          · simp at h
+
+/-- IPv4 host が返るなら、domain の枝を通っている。 -/
+theorem hostParser_ipv4_eq {f : List Char → Option String} {input : List Char} {addr : Nat}
+    {b : Bool} (h : hostParser f input b = some (.ipv4 addr)) :
+    b = false ∧ ∃ s, ipv4Parser s = some addr := by
+  unfold hostParser at h
+  split at h
+  · split at h
+    · simp only [Option.map_eq_some_iff] at h
+      obtain ⟨x, -, hx⟩ := h
+      simp at hx
+    · simp at h
+  · split at h
+    · unfold opaqueHostParser at h
+      split at h
+      · simp at h
+      · split at h <;> simp at h
+    · next hb =>
+      refine ⟨by simpa using hb, ?_⟩
+      split at h
+      · simp at h
+      · dsimp only at h
+        split at h
+        · simp at h
+        · split at h
+          · simp only [Option.map_eq_some_iff] at h
+            obtain ⟨x, hx, hx2⟩ := h
+            simp only [Host.ipv4.injEq] at hx2
+            exact ⟨_, by rw [hx, hx2]⟩
+          · simp at h
+
+/-- domain が返るなら、domain parser を通っていて、数字で終わらない。 -/
+theorem hostParser_domain_eq' {f : List Char → Option String} {input : List Char} {d : String}
+    {b : Bool} (h : hostParser f input b = some (.domain d)) :
+    b = false ∧ (∃ dom, f dom = some d) ∧ endsInANumber d.toList = false := by
+  unfold hostParser at h
+  split at h
+  · split at h
+    · simp only [Option.map_eq_some_iff] at h
+      obtain ⟨x, -, hx⟩ := h
+      simp at hx
+    · simp at h
+  · split at h
+    · unfold opaqueHostParser at h
+      split at h
+      · simp at h
+      · split at h <;> simp at h
+    · next hb =>
+      refine ⟨by simpa using hb, ?_⟩
+      split at h
+      · simp at h
+      · dsimp only at h
+        split at h
+        · simp at h
+        · next dom hdom =>
+          split at h
+          · simp only [Option.map_eq_some_iff] at h
+            obtain ⟨x, -, hx⟩ := h
+            simp at hx
+          · next hend =>
+            simp only [Option.some.injEq, Host.domain.injEq] at h
+            subst h
+            exact ⟨⟨_, hdom⟩, by simpa using hend⟩
+
+/-- percent-encode の出力の文字は、元からあったか、`%` か、16 進の数字である。 -/
+theorem utf8PercentEncode_mem {set : Char → Bool} :
+    ∀ {l : List Char}, ∀ c ∈ utf8PercentEncode set l,
+      c ∈ l ∨ c = '%' ∨ isAsciiAlphanumeric c = true := by
+  intro l c hc
+  unfold utf8PercentEncode at hc
+  obtain ⟨x, hx, hc⟩ := List.mem_flatMap.mp hc
+  split at hc
+  · obtain ⟨bt, -, hb⟩ := List.mem_flatMap.mp hc
+    have h2 := percentEncodeByte_alnum bt c hb
+    simp only [Bool.or_eq_true, beq_iff_eq] at h2
+    exact Or.inr h2
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+    subst hc
+    exact Or.inl hx
+
+/-- alphanumeric は forbidden host code point ではない。 -/
+theorem not_forbidden_of_alnum {c : Char} (h : isAsciiAlphanumeric c = true) :
+    isForbiddenHost c = false := by
+  simp only [isAsciiAlphanumeric, isAsciiAlpha, isAsciiUpperAlpha, isAsciiLowerAlpha, isAsciiDigit,
+    Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [isForbiddenHost, Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq]
+  repeat' constructor
+  all_goals first
+    | omega
+    | (intro he; rw [he] at h; revert h; decide)
+
+/-- percent-encode の出力は空でない。 -/
+theorem utf8PercentEncode_ne_nil {set : Char → Bool} :
+    ∀ {l : List Char}, ¬l = [] → ¬utf8PercentEncode set l = []
+  | [], h => absurd rfl h
+  | c :: t, _ => by
+    unfold utf8PercentEncode
+    rw [List.flatMap_cons]
+    split
+    · next hs =>
+      intro hx
+      have h2 := List.append_eq_nil_iff.mp hx
+      have h3 : (utf8EncodeChar c).flatMap percentEncodeByte = [] := h2.1
+      have h4 : ¬(utf8EncodeChar c) = [] := by
+        unfold utf8EncodeChar
+        dsimp only
+        repeat' split
+        all_goals simp
+      cases hb : utf8EncodeChar c with
+      | nil => exact h4 hb
+      | cons b t2 =>
+        rw [hb, List.flatMap_cons] at h3
+        have := List.append_eq_nil_iff.mp h3
+        exact absurd this.1 (by simp [percentEncodeByte])
+    · simp
+
+/--
+**parser が返した host は、serialize して parse し直すと元に戻る。**
+
+`canonicalUrl` の host の条件は、parser の出力ならいつでも成り立つ、ということである。
+empty host は `canonicalUrl` でも除いてある（parser が直に書くもので、
+host parser の出力ではない）。
+-/
+theorem hostParser_idem {input : List Char} {h : Host} {b : Bool}
+    (hp : hostParser asciiDomainToASCII input b = some h) (hne : ¬h = Host.empty) :
+    hostParser asciiDomainToASCII (hostSerializer h).toList b = some h := by
+  cases h with
+  | empty => exact absurd rfl hne
+  | ipv6 a =>
+    obtain ⟨s, hs⟩ := hostParser_ipv6_eq hp
+    exact hostParser_ipv6 (ipv6Parser_length hs) (ipv6Parser_lt hs)
+  | ipv4 addr =>
+    obtain ⟨hb, s, hs⟩ := hostParser_ipv4_eq hp
+    subst hb
+    exact hostParser_ipv4 (by have := ipv4Parser_lt hs; omega)
+  | domain d =>
+    obtain ⟨hb, ⟨dom, hdom⟩, hend⟩ := hostParser_domain_eq' hp
+    subst hb
+    obtain ⟨hne2, hall⟩ := asciiDomainToASCII_out hdom
+    exact hostParser_domain_id hne2 hall hend
+  | «opaque» o =>
+    have hop : opaqueHostParser input = some (.opaque o) := hostParser_opaque_eq hp
+    have hb : b = true := by
+      unfold hostParser at hp
+      split at hp
+      · split at hp
+        · simp only [Option.map_eq_some_iff] at hp
+          obtain ⟨x, -, hx⟩ := hp
+          simp at hx
+        · simp at hp
+      · split at hp
+        · next h2 => simpa using h2
+        · split at hp
+          · simp at hp
+          · dsimp only at hp
+            split at hp
+            · simp at hp
+            · split at hp
+              · simp only [Option.map_eq_some_iff] at hp
+                obtain ⟨x, -, hx⟩ := hp
+                simp at hx
+              · simp at hp
+    subst hb
+    -- opaque host parser の中身を開く
+    have hnf : input.any isForbiddenHost = false := opaqueHostParser_no_forbidden hop
+    have hnf2 : ∀ c ∈ input, isForbiddenHost c = false := by
+      simp only [List.any_eq_false] at hnf
+      exact fun c hc => by simpa using hnf c hc
+    have hshape : o.toList = utf8PercentEncode c0ControlSet input ∧ ¬input = [] := by
+      unfold opaqueHostParser at hop
+      rw [if_neg (by simp [hnf])] at hop
+      split at hop
+      · simp at hop
+      · next hie =>
+        simp only [Option.some.injEq, Host.opaque.injEq] at hop
+        refine ⟨by rw [← hop, String.toList_ofList], ?_⟩
+        intro hx
+        rw [hx] at hie
+        simp at hie
+    obtain ⟨hshape, hine⟩ := hshape
+    refine hostParser_opaque_id ?_ ?_ ?_
+    · show ¬o.toList = []
+      rw [hshape]
+      exact utf8PercentEncode_ne_nil hine
+    · show ∀ c ∈ o.toList, isForbiddenHost c = false
+      intro c hc
+      rw [hshape] at hc
+      rcases utf8PercentEncode_mem c hc with h2 | h2 | h2
+      · exact hnf2 c h2
+      · rw [h2]; decide
+      · exact not_forbidden_of_alnum h2
+    · show ∀ c ∈ o.toList, c0ControlSet c = false
+      intro c hc
+      rw [hshape] at hc
+      exact utf8PercentEncode_out (by decide) (fun x hx => c0Set_of_alnum hx) c hc
 
 end Url

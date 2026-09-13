@@ -561,6 +561,16 @@ open Dom.Audit
   Url.hostParser_opaque_id
   Url.hostParser_domain_id
   Url.hostParser_ipv6
+  Url.asciiLowerChar_idem
+  Url.asciiLowerChar_ascii
+  Url.asciiDomainToASCII_out
+  Url.hostParser_ipv6_eq
+  Url.hostParser_ipv4_eq
+  Url.hostParser_domain_eq'
+  Url.utf8PercentEncode_mem
+  Url.not_forbidden_of_alnum
+  Url.utf8PercentEncode_ne_nil
+  Url.hostParser_idem
 
 -- URL Standard §3.3 / §3.5 IPv6 の往復（圧縮しない場合）
 #audit_axioms

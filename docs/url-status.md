@@ -604,6 +604,7 @@ Windows drive letter は、証明を書いていて足りないことに気づ�
 | `ipv6Parser_serializer` | **IPv6 address も戻る**（`::` の圧縮を含む。`Url/Ipv6Roundtrip.lean`） |
 | `ipv6CompressIndex_run` | **圧縮する位置は長さ 2 以上の 0 の並びの先頭である**（8 piece の 0 かどうかで 256 通りに割って畳み込みを計算する） |
 | `hostParser_ipv6` | **IPv6 host も戻る**。これで `canonicalUrl` の host の条件は四種類とも定理になった |
+| `hostParser_idem` | **parser が返した host は往復する**。`canonicalUrl` の host の条件の逆向き（parser の出力がそれを満たすこと）である |
 | `hostReadable_of_canonical` | canonical な host は serialize した文字列を host state が読み直せる（host の種類ごとに根拠が違う） |
 | `ipv4Serializer_chars`, `utf8PercentEncode_out` | IPv4 は 10 進と `.`、opaque host は percent-encode 済みなので C0 control が無い |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
@@ -649,9 +650,12 @@ query と fragment は四つの経路のどれからも同じ `run_query_full` �
 四つで parser の経路は出揃い、`roundtrip_canonical` が `ValidUrl` と `canonicalUrl` から
 四つを選び分ける。**`parse ∘ serialize = id` はこの二つの述語だけを仮定に閉じた。**
 
-逆向き（parser の出力が必ず `canonicalUrl` を満たすこと）は実行時の検査のままである。
-ただしその一部である host の条件（`hostParser (hostSerializer h) = some h`）は、
-`Url/HostRoundtrip.lean` で **IPv4・opaque host・domain・IPv6 の四種類とも定理になった**。
+逆向き（parser の出力が必ず `canonicalUrl` を満たすこと）は、**host の条件だけ証明に上がった**。
+`hostParser_idem`（`Url/HostRoundtrip.lean`）が「host parser の出力は serialize して
+parse し直すと戻る」と言う。四種類の往復
+（IPv4・opaque host・domain・IPv6）へ host の種類ごとに振り分ける形である。
+残りの条件（scheme が小文字であること、各成分が percent-encode 済みであることなど）は
+実行時の検査のままで、`PInv` と同じ形の state 不変条件を新しく立てる必要がある。
 IPv6 は `Url/Ipv6Roundtrip.lean` の `ipv6Parser_serializer` に乗る。`::` の圧縮は
 address を 0 の並びで割り（`ipv6_run_decompose`）、serialize の形を四つの補題で決め、
 parser の側を `ipv6Loop_pieces` と `ipv6Loop_colon` で進める。最後の `ipv6Expand` の
