@@ -1,0 +1,129 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "locate a namespace prefix",
+      "lookupPrefix",
+      "isDefaultNamespace"
+    ],
+    "steps": "locate a namespace prefix 1-4 / lookupPrefix 1-2",
+    "note": "lookupPrefix の step 1 は「namespace が一致して、かつ prefix が非 null」なので、prefix の無い element は自分では答えられない。step 2 は `xmlns:` を prefix に持つ属性の最初の一つで、attribute list の順が効く。DocumentType と DocumentFragment はどちらも null。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 0,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "localName": "html"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "namespace": "http://www.w3.org/2000/svg",
+      "prefix": "s",
+      "localName": "svg",
+      "attributes": [
+        {
+          "namespace": "http://www.w3.org/2000/xmlns/",
+          "prefix": "xmlns",
+          "localName": "s",
+          "value": "http://www.w3.org/2000/svg"
+        },
+        {
+          "namespace": "http://www.w3.org/2000/xmlns/",
+          "prefix": "xmlns",
+          "localName": "t",
+          "value": "http://www.w3.org/2000/svg"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 4,
+      "data": "x"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "lookupPrefix",
+      "node": 2,
+      "namespace": "http://www.w3.org/1999/xhtml"
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 3,
+      "namespace": "http://www.w3.org/2000/svg"
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 2,
+      "namespace": "http://www.w3.org/2000/svg"
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 4,
+      "namespace": "http://www.w3.org/2000/svg"
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 5,
+      "namespace": "http://www.w3.org/2000/svg"
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 1,
+      "namespace": "http://www.w3.org/1999/xhtml"
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 0,
+      "namespace": "http://www.w3.org/2000/svg"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 4,
+      "prefix": "s"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 5,
+      "prefix": "s"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 1,
+      "prefix": "s"
+    },
+    {
+      "op": "isDefaultNamespace",
+      "node": 1,
+      "namespace": null
+    },
+    {
+      "op": "isDefaultNamespace",
+      "node": 3,
+      "namespace": "http://www.w3.org/1999/xhtml"
+    }
+  ]
+}

@@ -31,6 +31,7 @@ module Generate
            compareDocumentPosition nodeContains getRootNode isEqualNode
            getTextContent getNodeValue substringData
            getAttribute hasAttribute getAttributeNames
+           lookupNamespaceURI lookupPrefix isDefaultNamespace
            walkerParentNode walkerFirstChild walkerLastChild
            walkerPreviousSibling walkerNextSibling walkerPreviousNode walkerNextNode
            replaceData appendData insertData deleteData setData
@@ -43,7 +44,8 @@ module Generate
   #   ChildNode   DocumentType / Element / CharacterData
   NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize
                 compareDocumentPosition nodeContains getRootNode isEqualNode
-                getTextContent getNodeValue].freeze
+                getTextContent getNodeValue
+                lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
   PARENT_NODE_OPS = %w[replaceChildren moveBefore].freeze
   CHILD_NODE_OPS = %w[before after replaceWith remove].freeze
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData
@@ -267,6 +269,13 @@ module Generate
     when "getAttribute", "hasAttribute"
       { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng) }
     when "getAttributeNames" then { "op" => op, "element" => pick.call }
+    when "lookupNamespaceURI"
+      { "op" => op, "node" => pick.call,
+        "prefix" => [nil, "", "p", "xml", "xmlns", "q"].sample(random: rng) }
+    when "lookupPrefix", "isDefaultNamespace"
+      { "op" => op, "node" => pick.call,
+        "namespace" => [nil, "", "urn:x", "urn:y", ATTR_NAMESPACES.compact.sample(random: rng),
+                        "http://www.w3.org/1999/xhtml"].sample(random: rng) }
     when "replaceData"
       { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4),
         "data" => ["x", "yz", "abc", ASTRAL][rng.rand(4)] }
@@ -317,7 +326,8 @@ module Generate
   # 操作の受け手（method を呼ぶ相手）の id。
   # 受け手（method を呼ぶ相手）の id。§4.4 の query は `node` を受け手に取る。
   NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
-                         getTextContent getNodeValue].freeze
+                         getTextContent getNodeValue
+                         lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 
   def receiver_id(op)
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])

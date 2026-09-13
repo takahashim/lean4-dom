@@ -1,4 +1,5 @@
 import Dom.Basic.Order
+import Dom.Attribute.Name
 
 /-!
 # 値を返すだけの `Node` の method（§4.4）
@@ -166,5 +167,114 @@ def getNodeValue (t : Tree) (n : NodeId) : Option String :=
   match t.get? n with
   | none => none
   | some d => if d.kind.isCharacterData then some d.data else none
+
+/-! ## 名前空間の探索（§4.4） -/
+
+/-- `n` の parent element。parent が element でなければ null。 -/
+def parentElement (t : Tree) (n : NodeId) : Option NodeId :=
+  match parentOf t n with
+  | none => none
+  | some p => if kindOf t p == some NodeKind.element then some p else none
+
+/-- Document の document element（最初の element の子）。 -/
+def documentElement (t : Tree) (n : NodeId) : Option NodeId :=
+  (childrenOf t n).find? fun c => kindOf t c == some NodeKind.element
+
+/--
+`e` から parent element をたどれるだけたどった列。
+
+仕様の "locate a namespace" / "locate a namespace prefix" は
+parent element へ再帰するので、element でない親に当たったところで止まる。
+-/
+def elementChain (t : Tree) (e : NodeId) : List NodeId :=
+  (e :: ancestors t e).takeWhile fun x => kindOf t x == some NodeKind.element
+
+/-- DOM Standard §4.4 "locate a namespace" の Element の枝。 -/
+def locateNamespaceIn (t : Tree) («prefix» : Option String) : List NodeId → Option String
+  | [] => none
+  | e :: rest =>
+    -- step 1-2
+    if «prefix» == some "xml" then some xmlNamespace
+    else if «prefix» == some "xmlns" then some xmlnsNamespace
+    else
+      match t.get? e with
+      | none => none
+      | some d =>
+        -- step 3
+        if d.namespace.isSome && d.prefix == «prefix» then d.namespace
+        else
+          -- step 4。見つかれば値が空でも **そこで止まる**（空なら null）。
+          match d.attributes.find? fun a =>
+              (a.namespace == some xmlnsNamespace && a.prefix == some "xmlns" &&
+                some a.localName == «prefix») ||
+              («prefix».isNone && a.namespace == some xmlnsNamespace && a.prefix.isNone &&
+                a.localName == "xmlns") with
+          | some a => if a.value == "" then none else some a.value
+          -- step 5-6
+          | none => locateNamespaceIn t «prefix» rest
+
+/-- DOM Standard §4.4 "locate a namespace"。 -/
+def locateNamespace (t : Tree) (n : NodeId) («prefix» : Option String) : Option String :=
+  match t.get? n with
+  | none => none
+  | some d =>
+    match d.kind with
+    | .element => locateNamespaceIn t «prefix» (elementChain t n)
+    | .document =>
+      match documentElement t n with
+      | none => none
+      | some e => locateNamespaceIn t «prefix» (elementChain t e)
+    | .documentType | .documentFragment => none
+    | _ =>
+      match parentElement t n with
+      | none => none
+      | some e => locateNamespaceIn t «prefix» (elementChain t e)
+
+/-- DOM Standard §4.4 "locate a namespace prefix"。 -/
+def locateNamespacePrefixIn (t : Tree) («namespace» : String) : List NodeId → Option String
+  | [] => none
+  | e :: rest =>
+    match t.get? e with
+    | none => none
+    | some d =>
+      -- step 1
+      if d.namespace == some «namespace» && d.prefix.isSome then d.prefix
+      else
+        -- step 2。`xmlns:` の prefix を持つ attribute だけを見る（namespace は見ない）。
+        match d.attributes.find? fun a => a.prefix == some "xmlns" && a.value == «namespace» with
+        | some a => some a.localName
+        -- step 3-4
+        | none => locateNamespacePrefixIn t «namespace» rest
+
+/-- DOM Standard §4.4 `lookupNamespaceURI(prefix)`。空文字列は null と同じ。 -/
+def lookupNamespaceURI (t : Tree) (n : NodeId) («prefix» : Option String) : Option String :=
+  locateNamespace t n (if «prefix» == some "" then none else «prefix»)
+
+/-- DOM Standard §4.4 `lookupPrefix(namespace)`。 -/
+def lookupPrefix (t : Tree) (n : NodeId) («namespace» : Option String) : Option String :=
+  match «namespace» with
+  | none => none
+  | some ns =>
+    if ns == "" then none
+    else
+      match t.get? n with
+      | none => none
+      | some d =>
+        match d.kind with
+        | .element => locateNamespacePrefixIn t ns (elementChain t n)
+        | .document =>
+          match documentElement t n with
+          | none => none
+          | some e => locateNamespacePrefixIn t ns (elementChain t e)
+        | .documentType | .documentFragment => none
+        | _ =>
+          match parentElement t n with
+          | none => none
+          | some e => locateNamespacePrefixIn t ns (elementChain t e)
+
+/-- DOM Standard §4.4 `isDefaultNamespace(namespace)`。 -/
+def isDefaultNamespace (t : Tree) (n : NodeId) («namespace» : Option String) : Bool :=
+  let ns := if «namespace» == some "" then none else «namespace»
+  locateNamespace t n none == ns
 
 end Dom

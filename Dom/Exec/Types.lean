@@ -104,6 +104,10 @@ inductive Operation where
   | getAttribute (element : Nat) (qualifiedName : String)
   | hasAttribute (element : Nat) (qualifiedName : String)
   | getAttributeNames (element : Nat)
+  /-- §4.4 の名前空間の探索。 -/
+  | lookupNamespaceURI (node : Nat) («prefix» : Option String)
+  | lookupPrefix (node : Nat) («namespace» : Option String)
+  | isDefaultNamespace (node : Nat) («namespace» : Option String)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
   /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/

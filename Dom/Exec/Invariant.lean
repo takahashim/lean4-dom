@@ -149,6 +149,9 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | getAttribute e q => exact admissible_requireNodes h hop
   | hasAttribute e q => exact admissible_requireNodes h hop
   | getAttributeNames e => exact admissible_requireNodes h hop
+  | lookupNamespaceURI n p => exact admissible_requireNodes h hop
+  | lookupPrefix n ns => exact admissible_requireNodes h hop
+  | isDefaultNamespace n ns => exact admissible_requireNodes h hop
   | setAttribute e qn v => exact admissible_setAttribute h hop
   | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
   | removeAttribute e qn => exact admissible_removeAttribute h hop

@@ -229,6 +229,9 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .getAttribute e q => .str (getAttribute s.tree ⟨e⟩ q)
   | .hasAttribute e q => .bool (hasAttribute s.tree ⟨e⟩ q)
   | .getAttributeNames e => .strs (getAttributeNames s.tree ⟨e⟩)
+  | .lookupNamespaceURI n p => .str (lookupNamespaceURI s.tree ⟨n⟩ p)
+  | .lookupPrefix n ns => .str (lookupPrefix s.tree ⟨n⟩ ns)
+  | .isDefaultNamespace n ns => .bool (isDefaultNamespace s.tree ⟨n⟩ ns)
   | .appendData _ _ => .unit
   | .insertData _ _ _ => .unit
   | .deleteData _ _ _ => .unit
@@ -310,6 +313,9 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .getAttribute e _ => requireNodes s [⟨e⟩]
   | .hasAttribute e _ => requireNodes s [⟨e⟩]
   | .getAttributeNames e => requireNodes s [⟨e⟩]
+  | .lookupNamespaceURI n _ => requireNodes s [⟨n⟩]
+  | .lookupPrefix n _ => requireNodes s [⟨n⟩]
+  | .isDefaultNamespace n _ => requireNodes s [⟨n⟩]
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn

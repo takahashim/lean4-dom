@@ -2263,11 +2263,35 @@ Dommy は**どちら向きでも `DISCONNECTED|IMPLEMENTATION_SPECIFIC|PRECEDING
 `compare-document-position-disconnected-is-consistent` を
 `comparable: false` の model 固有 scenario として置き、model 側の答えを固定してある。
 
+### 名前空間の探索（§4.4）
+
+同じく値を返すだけだが、仕様の分岐が多いので別に入れた。
+`lookupNamespaceURI` / `lookupPrefix` / `isDefaultNamespace` の三つで、
+どれも "locate a namespace" / "locate a namespace prefix" を parent element へ
+遡って走らせる。model では祖先の列（`elementChain`）を作って畳む形にした。
+
+読み違えやすいところが三つある。
+
+* `xml` と `xmlns` は木を見ずに決まる（locate a namespace の step 1-2）。
+* element 自身の namespace の一致（step 3）は `xmlns` 属性（step 4）より**先**である。
+  既定 namespace の属性があっても、element の namespace が勝つ。
+* step 4 は属性が見つかった時点で**止まる**。値が空文字列なら null を返して、
+  親へは遡らない。
+
+`lookupPrefix` の step 1 は「namespace が一致し、かつ prefix が非 null」なので、
+prefix の無い element は自分では答えられず、`xmlns:` 属性か祖先に回る。
+
+Dommy はこの三つを `internal/namespaces.rb` と `node.rb` に持っていて、
+**固定 scenario 二本と生成 scenario 140 本（seed 101 / 102）で不一致は無かった**。
+ただし生成器が作る element は HTML namespace で prefix が無いものだけなので、
+prefix 付きの element が絡む枝は固定 scenario でしか見ていない。
+
 ### 差分テスト
 
-固定 scenario は 91 本になり、一致 80・skip 4・不一致 7（findings 6-9）・
-model 固有 2 である。新しく入れた八本はすべて一致した。
-生成 scenario は seed 91 / 92（計 120 本）で、この範囲の操作に不一致は無い。
+固定 scenario は 93 本になり、一致 82・skip 4・不一致 7（findings 6-9）・
+model 固有 2 である。新しく入れた十本はすべて一致した。
+生成 scenario は seed 91 / 92 / 101 / 102（計 260 本）で、
+この範囲の操作に不一致は無い。
 
 ## 未着手
 

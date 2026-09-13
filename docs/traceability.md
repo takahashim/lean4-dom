@@ -113,6 +113,9 @@ roadmap §13.2 の対象外である。`insertNode` の step 7（start node が 
 | substring data / `substringData(offset, count)` | 1-4 | `substringData` | — | `characterdata-substring-data`, `-index-size` | `test_wpt_character_data.rb` | 済 |
 | `getAttribute` / `hasAttribute` / `getAttributeNames` | 1-2 ほか | `getAttribute`, `hasAttribute`, `getAttributeNames`, `attrNameFor` | — | `attribute-getters` | `test_wpt_attributes.rb` | 済 |
 | `Range` の stringifier | 1-6 | `rangeToString` | — | `range-to-string`, `-within-one-text` | `test_wpt_range_contents.rb` | 済 |
+| locate a namespace / `lookupNamespaceURI(prefix)` | Element 1-6 / Document 1-2 / lookupNamespaceURI 1-2 | `locateNamespace`, `locateNamespaceIn`, `elementChain` | — | `namespace-lookup-chain`, `namespace-lookup-edges` | `test_wpt_node_namespace.rb` | 済（Attr は対象外） |
+| locate a namespace prefix / `lookupPrefix(namespace)` | 1-4 / lookupPrefix 1-2 | `lookupPrefix`, `locateNamespacePrefixIn` | — | 同上 | 同上 | 済 |
+| `isDefaultNamespace(namespace)` | 1-3 | `isDefaultNamespace` | — | 同上 | 同上 | 済 |
 
 `compareDocumentPosition` の step 6（同じ木にない）は PRECEDING と FOLLOWING の
 どちらを返すかを実装に任せている。差分テストはその二 bit を落として比べる

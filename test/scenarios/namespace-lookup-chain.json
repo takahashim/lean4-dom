@@ -1,0 +1,144 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "locate a namespace",
+      "lookupNamespaceURI",
+      "isDefaultNamespace"
+    ],
+    "steps": "locate a namespace（Element 1-6 / Document 1-2）/ lookupNamespaceURI 1-2",
+    "note": "prefix は親 element へ遡って解決する。`xml` と `xmlns` は木を見ずに決まる（step 1-2）。element 自身の namespace の一致（step 3）は xmlns 属性（step 4）より先に見るので、既定 namespace の属性があっても element の namespace が勝つ。xmlns 属性の値が空文字列なら、そこで止まって null を返す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "localName": "html",
+      "attributes": [
+        {
+          "namespace": "http://www.w3.org/2000/xmlns/",
+          "prefix": "xmlns",
+          "localName": "p",
+          "value": "urn:x"
+        },
+        {
+          "namespace": "http://www.w3.org/2000/xmlns/",
+          "localName": "xmlns",
+          "value": "urn:d"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "namespace": "urn:x",
+      "prefix": "p",
+      "localName": "e"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "t"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": "http://www.w3.org/2000/xmlns/",
+          "prefix": "xmlns",
+          "localName": "q",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 0,
+      "data": "c"
+    },
+    {
+      "id": 6,
+      "kind": "element"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "lookupNamespaceURI",
+      "node": 2,
+      "prefix": "p"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 3,
+      "prefix": "p"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 2,
+      "prefix": null
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 2,
+      "prefix": ""
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 2,
+      "prefix": "xml"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 2,
+      "prefix": "xmlns"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 4,
+      "prefix": "q"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 0,
+      "prefix": "p"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 5,
+      "prefix": "p"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 6,
+      "prefix": "p"
+    },
+    {
+      "op": "isDefaultNamespace",
+      "node": 2,
+      "namespace": "urn:d"
+    },
+    {
+      "op": "isDefaultNamespace",
+      "node": 6,
+      "namespace": null
+    }
+  ]
+}

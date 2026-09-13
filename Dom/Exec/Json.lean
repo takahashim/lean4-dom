@@ -233,6 +233,11 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "getAttribute" => return .getAttribute (← natField j "element") (← strField j "name" "")
   | "hasAttribute" => return .hasAttribute (← natField j "element") (← strField j "name" "")
   | "getAttributeNames" => return .getAttributeNames (← natField j "element")
+  | "lookupNamespaceURI" =>
+    return .lookupNamespaceURI (← natField j "node") (← strField? j "prefix")
+  | "lookupPrefix" => return .lookupPrefix (← natField j "node") (← strField? j "namespace")
+  | "isDefaultNamespace" =>
+    return .isDefaultNamespace (← natField j "node") (← strField? j "namespace")
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← strField j "name" "")
       (← strField j "value" "")

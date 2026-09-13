@@ -61,7 +61,8 @@ module DommyRunner
   # 呼び出しは `js_call` / `js_get` を通す。
   QUERY_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
                  getTextContent getNodeValue substringData
-                 getAttribute hasAttribute getAttributeNames].freeze
+                 getAttribute hasAttribute getAttributeNames
+                 lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 
   # 上の操作が呼ぶ JS 側の名前。`nodeContains` と `getTextContent` ほかは
   # model 側の操作名と IDL 名が違う。
@@ -75,7 +76,10 @@ module DommyRunner
     "substringData" => "substringData",
     "getAttribute" => "getAttribute",
     "hasAttribute" => "hasAttribute",
-    "getAttributeNames" => "getAttributeNames"
+    "getAttributeNames" => "getAttributeNames",
+    "lookupNamespaceURI" => "lookupNamespaceURI",
+    "lookupPrefix" => "lookupPrefix",
+    "isDefaultNamespace" => "isDefaultNamespace"
   }.freeze
 
   # attribute の getter として読むもの（method ではなく IDL attribute）。
@@ -222,9 +226,10 @@ module DommyRunner
       { "kind" => "boolean", "value" => !!returned }
     when "rangeCompareBoundaryPoints", "rangeComparePoint", "compareDocumentPosition"
       { "kind" => "number", "value" => returned.to_i }
-    when "nodeContains", "isEqualNode", "hasAttribute"
+    when "nodeContains", "isEqualNode", "hasAttribute", "isDefaultNamespace"
       { "kind" => "boolean", "value" => !!returned }
-    when "getTextContent", "getNodeValue", "substringData", "getAttribute", "rangeToString"
+    when "getTextContent", "getNodeValue", "substringData", "getAttribute", "rangeToString",
+         "lookupNamespaceURI", "lookupPrefix"
       { "kind" => "string", "value" => returned.nil? ? nil : returned.to_s }
     when "getAttributeNames"
       { "kind" => "strings", "value" => (returned || []).to_a.map(&:to_s) }
@@ -589,6 +594,8 @@ module DommyRunner
              when "substringData" then js_call(receiver, name, [op["offset"], op["count"]])
              when "getAttribute", "hasAttribute" then js_call(receiver, name, [op["name"]])
              when "getAttributeNames" then js_call(receiver, name, [])
+             when "lookupNamespaceURI" then js_call(receiver, name, [op["prefix"]])
+             when "lookupPrefix", "isDefaultNamespace" then js_call(receiver, name, [op["namespace"]])
              end
     end
 
