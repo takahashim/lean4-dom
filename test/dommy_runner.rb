@@ -48,6 +48,11 @@ module DommyRunner
     "normalize" => :normalize
   }.freeze
 
+  # 受け手が range である操作（§5.5 の Range の method）。
+  RANGE_OPS = %w[rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
+                 rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
+                 rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode].freeze
+
   # 受け手が `node` である操作（CharacterData の method）。
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
 
@@ -177,7 +182,7 @@ module DommyRunner
     case op["op"]
     when *NODE_RETURNING_OPS
       { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
-    when "toggleAttribute"
+    when "toggleAttribute", "rangeIsPointInRange", "rangeIntersectsNode"
       { "kind" => "boolean", "value" => !!returned }
     when "takeRecords"
       { "kind" => "records",
@@ -458,6 +463,27 @@ module DommyRunner
       return obs.__js_call__("takeRecords", [])
     when "notify"
       return run_microtask_checkpoint(ctx[:documents] || {})
+    end
+    if RANGE_OPS.include?(op["op"])
+      range = (ctx[:ranges] || [])[op["range"]]
+      raise NotImplementedError, "range index" if range.nil?
+
+      node = op.key?("node") ? objects[op["node"]] : nil
+      raise NotImplementedError, "missing node" if op.key?("node") && node.nil?
+
+      return case op["op"]
+             when "rangeSetStart" then range.set_start(node, op["offset"])
+             when "rangeSetEnd" then range.set_end(node, op["offset"])
+             when "rangeSetStartBefore" then range.set_start_before(node)
+             when "rangeSetStartAfter" then range.set_start_after(node)
+             when "rangeSetEndBefore" then range.set_end_before(node)
+             when "rangeSetEndAfter" then range.set_end_after(node)
+             when "rangeCollapse" then range.collapse(op["toStart"] ? true : false)
+             when "rangeSelectNode" then range.select_node(node)
+             when "rangeSelectNodeContents" then range.select_node_contents(node)
+             when "rangeIsPointInRange" then range.is_point_in_range(node, op["offset"])
+             when "rangeIntersectsNode" then range.intersects_node(node)
+             end
     end
     if CHARACTER_DATA_OPS.include?(op["op"])
       node = objects[op["node"]]

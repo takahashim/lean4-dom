@@ -1156,6 +1156,10 @@ harness が「存在しない id を指した引数」を意図的に飛ばし�
 ## 残っている Dommy の不一致
 
 * **finding 4**（上記）。Makiri 側の `XML::DocumentFragment#add_child`。
+* **finding 6**。`Range` の `selectNode` / `setStartBefore` ほかに
+  「parent が null なら `InvalidNodeTypeError`」の検査が無い。
+  `selectNodeContents` の doctype の検査も無い。
+  固定 scenario は `range-boundary-needs-parent`。
 
 ## Phase 8：MutationObserver の record（一巡した）
 
@@ -2020,11 +2024,59 @@ Dommy が実装したら比較対象になる。
 固定 scenario 六本が一致（capability の印の二本は skip）。
 生成 scenario は seed 7 / 11 / 23 / 31 で不一致 0。
 
+## `Range` の API（§5.5、boundary point を動かす側）
+
+model の range は「scenario が初期状態として与え、木の変更が動かす」だけで、
+API そのものは走らせていなかった。Dommy には `range.rb` が 1100 行あるので、
+oracle の無い塊として一番大きい。boundary point を動かす method を model に入れ
+（`Dom/Range/Api.lean`）、保存を証明し（`Dom/Validity/RangeApi.lean`）、
+`Operation` に足して差分テストに載せた。
+
+対象は `setStart` / `setEnd` / `setStartBefore` ほか四つ / `collapse` /
+`selectNode` / `selectNodeContents` / `isPointInRange` / `intersectsNode` である。
+`extractContents` ほかは node を生むので roadmap §13.2 の対象外、
+`deleteContents` / `insertNode` / `compareBoundaryPoints` / `comparePoint` は未着手。
+
+### 保存は一つの補題に落ちる
+
+どの method も `ranges` の一要素を差し替えるだけなので、
+`admissible_withRange`（差し替えた range の両端が木の中にあれば admissibility は保たれる）
+に帰着する。新しい端点の妥当性の出どころは三つある。
+
+* `setStart` / `setEnd` — 仕様の step 1-2 の検査（`rangeBoundaryError`）
+* `collapse` — 元の range の端点
+* `selectNode` — 「子の index は parent の length 未満」（`index_lt_children_length`）
+
+### 見つかったこと：parent の無い node の検査が無い（findings 6）
+
+parent の無い node は boundary point を決められないので、仕様は
+
+* `selectNode(node)` step 2
+* `setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter` step 2
+
+で `InvalidNodeTypeError` を投げる。Dommy はこの検査を持たず、`parent_of(node)` の
+`nil` をそのまま `set_start` へ渡すので、次のどちらかになる。
+
+* `selectNode(document)` — **container が nil の range** ができる
+  （`startContainer` は IDL で non-nullable なのに null になる）
+* `setEndAfter(root)` — `nil` の length を 0 と見て `IndexSizeError`
+
+生成 scenario 180 件で出た不一致 23 件はすべてこの一件が原因だった。
+`selectNodeContents(doctype)` の step 1（`InvalidNodeTypeError`）も同じく抜けている。
+
+`range-boundary-needs-parent` がこの四つを固定した scenario で、
+**Dommy を直すまで固定 scenario の差分テストは赤である**。
+
+### 差分テスト
+
+固定 scenario は `range-boundary-needs-parent` 以外の六本が一致。
+生成 scenario は seed 5 / 12 / 19 で、上記以外の不一致は無い。
+
 ## 未着手
 
-* Range の API（§5.5 の `setStart` / `deleteContents` / `insertNode` ほか）。
-  model の range は初期状態として与えて mutation が動かすだけで、
-  API そのものは走らせていない。Dommy には 1100 行あるので oracle が無い塊として大きい。
+* Range の API のうち木を変えるもの（§5.5 の `deleteContents` / `insertNode`）と
+  比較するもの（`compareBoundaryPoints` / `comparePoint`）。
+  boundary point を動かす側は済んだ。
 * TreeWalker（§6.2）。NodeIterator は model にあるが TreeWalker は無い。
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
   element の attribute list とは別の仕組みで、attribute の mutation record を積まない。

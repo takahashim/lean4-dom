@@ -1,0 +1,76 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "selectNode",
+      "selectNodeContents",
+      "setStartBefore",
+      "setEndAfter"
+    ],
+    "steps": "selectNode 1-2 / selectNodeContents 1 / setStartBefore 1-2 / setEndAfter 1-2",
+    "note": "parent の無い node は boundary point を決められないので、selectNode・setStartBefore・setEndAfter はどれも InvalidNodeTypeError になる（それぞれ step 2）。doctype を selectNodeContents するのも同じ（step 1）。Dommy にはこの検査が無く、いまは不一致になる（docs/status.md の findings 6）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "ab"
+    },
+    {
+      "id": 4,
+      "kind": "element"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 0
+      },
+      "end": {
+        "node": 3,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeSelectNode",
+      "range": 0,
+      "node": 0
+    },
+    {
+      "op": "rangeSelectNodeContents",
+      "range": 0,
+      "node": 1
+    },
+    {
+      "op": "rangeSetStartBefore",
+      "range": 0,
+      "node": 4
+    },
+    {
+      "op": "rangeSetEndAfter",
+      "range": 0,
+      "node": 4
+    }
+  ]
+}

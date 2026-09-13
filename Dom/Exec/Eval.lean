@@ -1,6 +1,7 @@
 import Dom.Exec.Types
 import Dom.Validity.State
 import Dom.CharacterData.Normalize
+import Dom.Range.Api
 
 /-!
 # 操作列の評価
@@ -180,6 +181,21 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .moveBefore _ _ _ => .unit
   | .replaceData _ _ _ _ => .unit
   | .normalize _ => .unit
+  | .rangeSetStart _ _ _ => .unit
+  | .rangeSetEnd _ _ _ => .unit
+  | .rangeSetStartSibling _ _ _ => .unit
+  | .rangeSetEndSibling _ _ _ => .unit
+  | .rangeCollapse _ _ => .unit
+  | .rangeSelectNode _ _ => .unit
+  | .rangeSelectNodeContents _ _ => .unit
+  | .rangeIsPointInRange i n o =>
+    match rangeIsPointInRange s i ⟨⟨n⟩, o⟩ with
+    | .error _ => .unit
+    | .ok b => .bool b
+  | .rangeIntersectsNode i n =>
+    match rangeIntersectsNode s i ⟨n⟩ with
+    | .error _ => .unit
+    | .ok b => .bool b
   | .appendData _ _ => .unit
   | .insertData _ _ _ => .unit
   | .deleteData _ _ _ => .unit
@@ -226,6 +242,15 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .deleteData n o c => deleteData s ⟨n⟩ o c
   | .setData n d => setData s ⟨n⟩ d
   | .normalize tgt => normalize s ⟨tgt⟩
+  | .rangeSetStart i n o => rangeSetStart s i ⟨⟨n⟩, o⟩
+  | .rangeSetEnd i n o => rangeSetEnd s i ⟨⟨n⟩, o⟩
+  | .rangeSetStartSibling i n a => rangeSetStartSibling s i ⟨n⟩ a
+  | .rangeSetEndSibling i n a => rangeSetEndSibling s i ⟨n⟩ a
+  | .rangeCollapse i t => rangeCollapse s i t
+  | .rangeSelectNode i n => rangeSelectNode s i ⟨n⟩
+  | .rangeSelectNodeContents i n => rangeSelectNodeContents s i ⟨n⟩
+  | .rangeIsPointInRange i n o => (rangeIsPointInRange s i ⟨⟨n⟩, o⟩).map (fun _ => s)
+  | .rangeIntersectsNode i n => (rangeIntersectsNode s i ⟨n⟩).map (fun _ => s)
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn

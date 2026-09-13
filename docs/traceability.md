@@ -73,6 +73,22 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 | nextNode / previousNode（traverse） | traverse 1-6 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before`, `iterator-whattoshow-skips` | `test_wpt_node_edges.rb` | 済（filter は null） |
 | filter（`whatToShow`、filter は null） | filter 1-3 | `showsNode`, `NodeKind.nodeType` | 同上 | `iterator-whattoshow-skips` | 同上 | 済 |
 
+## §5.5 `Range` の API（boundary point を動かす側）
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| set the start / set the end | 1 doctype / 2 offset / 3-5 反対の端の正規化 | `rangeSetStart`, `rangeSetEnd`, `setStartBP`, `setEndBP`, `rangeBoundaryError` | preservation `admissible_rangeSetStart` `admissible_rangeSetEnd` | `range-setstart-past-end-collapses`, `range-setstart-other-root-carries-range`, `range-setstart-errors` | `test_wpt_range_mutations.rb` | 済 |
+| `setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter` | 1 parent / 2 null なら InvalidNodeTypeError / 3 set the start(end) | `rangeSetStartSibling`, `rangeSetEndSibling`, `siblingBP` | preservation `admissible_rangeSetStartSibling` ほか | `range-sibling-setters-and-collapse`, `range-boundary-needs-parent` | 同上 | 済 |
+| `collapse(toStart)` | 1-2 | `rangeCollapse` | preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
+| `selectNode(node)` | 1 parent / 2 null なら InvalidNodeTypeError / 3-5 両端 | `rangeSelectNode` | preservation `admissible_rangeSelectNode` | `range-select-node-and-contents`, `range-boundary-needs-parent` | 同上 | 済 |
+| `selectNodeContents(node)` | 1 doctype / 2-4 両端 | `rangeSelectNodeContents` | preservation `admissible_rangeSelectNodeContents` | 同上 | 同上 | 済 |
+| `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | — | `range-point-predicates` | 同上 | 済 |
+| `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | — | 同上 | 同上 | 済 |
+
+`extractContents` / `cloneContents` / `surroundContents` / `cloneRange` は node を生むので
+roadmap §13.2 の対象外である。`deleteContents` / `insertNode` / `compareBoundaryPoints` /
+`comparePoint` は未着手。
+
 ## §4.3 MutationObserver
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |

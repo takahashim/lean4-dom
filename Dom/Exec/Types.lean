@@ -64,6 +64,20 @@ inductive Operation where
   | setData (node : Nat) (data : String)
   /-- `Node.normalize()`。 -/
   | normalize (target : Nat)
+  /-- `Range.setStart(node, offset)` / `setEnd`。 -/
+  | rangeSetStart (range node offset : Nat)
+  | rangeSetEnd (range node offset : Nat)
+  /-- `Range.setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter`。 -/
+  | rangeSetStartSibling (range node : Nat) (after : Bool)
+  | rangeSetEndSibling (range node : Nat) (after : Bool)
+  /-- `Range.collapse(toStart)`。 -/
+  | rangeCollapse (range : Nat) (toStart : Bool)
+  /-- `Range.selectNode(node)` / `selectNodeContents(node)`。 -/
+  | rangeSelectNode (range node : Nat)
+  | rangeSelectNodeContents (range node : Nat)
+  /-- `Range.isPointInRange(node, offset)` / `intersectsNode(node)`。 -/
+  | rangeIsPointInRange (range node offset : Nat)
+  | rangeIntersectsNode (range node : Nat)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
   /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/

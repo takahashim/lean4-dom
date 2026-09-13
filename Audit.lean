@@ -93,6 +93,13 @@ open Dom.Audit
   Dom.admissible_deleteData
   Dom.admissible_setData
   Dom.admissible_normalize
+  Dom.admissible_rangeSetStart
+  Dom.admissible_rangeSetEnd
+  Dom.admissible_rangeSetStartSibling
+  Dom.admissible_rangeSetEndSibling
+  Dom.admissible_rangeCollapse
+  Dom.admissible_rangeSelectNode
+  Dom.admissible_rangeSelectNodeContents
 
 -- §16 の live object をまとめた形
 #audit_axioms

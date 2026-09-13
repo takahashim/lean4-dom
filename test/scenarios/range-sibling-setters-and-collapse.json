@@ -1,0 +1,91 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "setStartBefore",
+      "setEndAfter",
+      "collapse"
+    ],
+    "steps": "setStartBefore 1-3 / collapse 1-2",
+    "note": "setStartBefore / setEndAfter は兄弟の位置を使う。collapse は片方の端へ潰す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abcd"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "xy"
+    },
+    {
+      "id": 5,
+      "kind": "element"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 0
+      },
+      "end": {
+        "node": 2,
+        "offset": 0
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeSetStartBefore",
+      "range": 0,
+      "node": 2
+    },
+    {
+      "op": "rangeSetEndAfter",
+      "range": 0,
+      "node": 3
+    },
+    {
+      "op": "rangeCollapse",
+      "range": 0,
+      "toStart": false
+    },
+    {
+      "op": "rangeSetStartAfter",
+      "range": 0,
+      "node": 2
+    },
+    {
+      "op": "rangeSetEndBefore",
+      "range": 0,
+      "node": 3
+    },
+    {
+      "op": "rangeCollapse",
+      "range": 0,
+      "toStart": true
+    }
+  ]
+}

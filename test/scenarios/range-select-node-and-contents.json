@@ -1,0 +1,70 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "selectNode",
+      "selectNodeContents"
+    ],
+    "steps": "selectNode 1-5 / selectNodeContents 1-4",
+    "note": "selectNode は parent の中の位置を両端にし、selectNodeContents は node の中の全体を指す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abcd"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "xy"
+    },
+    {
+      "id": 5,
+      "kind": "element"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 0
+      },
+      "end": {
+        "node": 2,
+        "offset": 0
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeSelectNode",
+      "range": 0,
+      "node": 3
+    },
+    {
+      "op": "rangeSelectNodeContents",
+      "range": 0,
+      "node": 1
+    }
+  ]
+}

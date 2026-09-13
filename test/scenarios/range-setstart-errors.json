@@ -1,0 +1,82 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "set the start"
+    ],
+    "steps": "set the start 1-2",
+    "note": "doctype は boundary point になれず（step 1）、length を超える offset は IndexSizeError（step 2）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 6,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abcd"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "xy"
+    },
+    {
+      "id": 5,
+      "kind": "element"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 0
+      },
+      "end": {
+        "node": 2,
+        "offset": 0
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeSetStart",
+      "range": 0,
+      "node": 6,
+      "offset": 0
+    },
+    {
+      "op": "rangeSetEnd",
+      "range": 0,
+      "node": 2,
+      "offset": 5
+    },
+    {
+      "op": "rangeSetStart",
+      "range": 0,
+      "node": 2,
+      "offset": 4
+    }
+  ]
+}

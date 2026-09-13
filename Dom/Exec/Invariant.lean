@@ -1,6 +1,7 @@
 import Dom.Exec.Eval
 import Dom.Validity.Admissible
 import Dom.Validity.Normalize
+import Dom.Validity.RangeApi
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -74,6 +75,23 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | deleteData n o c => exact admissible_deleteData h hop
   | setData n d => exact admissible_setData h hop
   | normalize tgt => exact admissible_normalize h hop
+  | rangeSetStart i n o => exact admissible_rangeSetStart h hop
+  | rangeSetEnd i n o => exact admissible_rangeSetEnd h hop
+  | rangeSetStartSibling i n a => exact admissible_rangeSetStartSibling h hop
+  | rangeSetEndSibling i n a => exact admissible_rangeSetEndSibling h hop
+  | rangeCollapse i t => exact admissible_rangeCollapse h hop
+  | rangeSelectNode i n => exact admissible_rangeSelectNode h hop
+  | rangeSelectNodeContents i n => exact admissible_rangeSelectNodeContents h hop
+  | rangeIsPointInRange i n o =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · rw [← Except.ok.inj hop]; exact h
+  | rangeIntersectsNode i n =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · rw [← Except.ok.inj hop]; exact h
   | setAttribute e qn v => exact admissible_setAttribute h hop
   | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
   | removeAttribute e qn => exact admissible_removeAttribute h hop

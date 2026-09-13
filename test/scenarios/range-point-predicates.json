@@ -1,0 +1,93 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "isPointInRange",
+      "intersectsNode"
+    ],
+    "steps": "isPointInRange 1-5 / intersectsNode 1-6",
+    "note": "isPointInRange は別の木なら false、doctype なら InvalidNodeTypeError。intersectsNode は parent の無い node に true を返す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abcd"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "xy"
+    },
+    {
+      "id": 5,
+      "kind": "element"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 1
+      },
+      "end": {
+        "node": 4,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeIsPointInRange",
+      "range": 0,
+      "node": 2,
+      "offset": 2
+    },
+    {
+      "op": "rangeIsPointInRange",
+      "range": 0,
+      "node": 2,
+      "offset": 0
+    },
+    {
+      "op": "rangeIsPointInRange",
+      "range": 0,
+      "node": 5,
+      "offset": 0
+    },
+    {
+      "op": "rangeIntersectsNode",
+      "range": 0,
+      "node": 3
+    },
+    {
+      "op": "rangeIntersectsNode",
+      "range": 0,
+      "node": 0
+    },
+    {
+      "op": "rangeIntersectsNode",
+      "range": 0,
+      "node": 5
+    }
+  ]
+}

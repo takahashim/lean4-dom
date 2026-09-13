@@ -12,6 +12,7 @@ import Dom.Mutation.Insert
 import Dom.Mutation.Adopt
 import Dom.Range.BoundaryPoint
 import Dom.Range.Adjust
+import Dom.Range.Api
 import Dom.Traversal.NodeIterator
 import Dom.Observer.Record
 import Dom.Observer.Deliver
@@ -41,6 +42,7 @@ import Dom.Validity.Observers
 import Dom.Validity.Attributes
 import Dom.Validity.Admissible
 import Dom.Validity.Normalize
+import Dom.Validity.RangeApi
 import Dom.Properties.Contract
 import Dom.Properties.Counterexample
 import Dom.Observation

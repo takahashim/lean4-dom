@@ -180,6 +180,28 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .deleteData (← natField j "node") (← natField j "offset") (← natField j "count")
   | "setData" => return .setData (← natField j "node") (← strField j "data" "")
   | "normalize" => return .normalize (← natField j "target")
+  | "rangeSetStart" =>
+    return .rangeSetStart (← natField j "range") (← natField j "node") (← natField j "offset")
+  | "rangeSetEnd" =>
+    return .rangeSetEnd (← natField j "range") (← natField j "node") (← natField j "offset")
+  | "rangeSetStartBefore" =>
+    return .rangeSetStartSibling (← natField j "range") (← natField j "node") false
+  | "rangeSetStartAfter" =>
+    return .rangeSetStartSibling (← natField j "range") (← natField j "node") true
+  | "rangeSetEndBefore" =>
+    return .rangeSetEndSibling (← natField j "range") (← natField j "node") false
+  | "rangeSetEndAfter" =>
+    return .rangeSetEndSibling (← natField j "range") (← natField j "node") true
+  | "rangeCollapse" =>
+    return .rangeCollapse (← natField j "range") ((← boolField? j "toStart").getD false)
+  | "rangeSelectNode" => return .rangeSelectNode (← natField j "range") (← natField j "node")
+  | "rangeSelectNodeContents" =>
+    return .rangeSelectNodeContents (← natField j "range") (← natField j "node")
+  | "rangeIsPointInRange" =>
+    return .rangeIsPointInRange (← natField j "range") (← natField j "node")
+      (← natField j "offset")
+  | "rangeIntersectsNode" =>
+    return .rangeIntersectsNode (← natField j "range") (← natField j "node")
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← strField j "name" "")
       (← strField j "value" "")

@@ -23,6 +23,9 @@ module Generate
   # `moveBefore` は Dommy が未実装なので、既定では生成しない。
   OPS = %w[appendChild insertBefore replaceChild removeChild replaceChildren
            before after replaceWith remove normalize
+           rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
+           rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
+           rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
            replaceData appendData insertData deleteData setData
            setAttribute setAttributeNS removeAttribute removeAttributeNS
            toggleAttribute].freeze
@@ -182,7 +185,7 @@ module Generate
     b.nodes
   end
 
-  def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0)
+  def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0, range_count = 0)
     op = ops.sample(random: rng)
     if ITERATOR_OPS.include?(op)
       return nil if iterator_count.zero?
@@ -199,6 +202,18 @@ module Generate
       # `observe` の options は `random_observed_types` が作る。
       return { "op" => op, "observer" => mo, "target" => ids.sample(random: rng),
                "subtree" => rng.rand < 0.6 }.merge(random_observed_types(rng))
+    end
+    if RANGE_OPS.include?(op)
+      return nil if range_count.zero?
+
+      r = rng.rand(range_count)
+      node = ids.sample(random: rng)
+      return case op
+             when "rangeSetStart", "rangeSetEnd", "rangeIsPointInRange"
+               { "op" => op, "range" => r, "node" => node, "offset" => rng.rand(4) }
+             when "rangeCollapse" then { "op" => op, "range" => r, "toStart" => rng.rand < 0.5 }
+             else { "op" => op, "range" => r, "node" => node }
+             end
     end
     pick = -> { ids.sample(random: rng) }
     # 存在しない id をたまに混ぜて notFoundError を誘う。
@@ -395,6 +410,11 @@ module Generate
   # iterator を動かす操作。受け手が node ではないので kind の絞り込みは要らない。
   ITERATOR_OPS = %w[iteratorNext iteratorPrevious].freeze
 
+  # range を動かす操作。受け手は range なので、node は引数として渡す。
+  RANGE_OPS = %w[rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
+                 rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
+                 rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode].freeze
+
   # MutationObserver の操作。`notify` は microtask checkpoint である。
   # `observe` だけは受け手が node（target）なので、kind の絞り込みを通す。
   OBSERVER_OPS = %w[observe disconnect takeRecords notify].freeze
@@ -469,8 +489,13 @@ module Generate
     attempts = 0
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
-      op = random_operation(rng, ids, ops, iterator_count, observer_count)
+      op = random_operation(rng, ids, ops, iterator_count, observer_count, range_count)
       next if op.nil?
+      if RANGE_OPS.include?(op["op"])
+        # 受け手は range なので kind の絞り込みは要らない。
+        operations << op
+        next
+      end
       if ITERATOR_OPS.include?(op["op"]) || %w[disconnect takeRecords notify].include?(op["op"])
         operations << op
         next
