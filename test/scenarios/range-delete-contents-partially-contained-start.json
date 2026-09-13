@@ -1,0 +1,64 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "deleteContents"
+    ],
+    "steps": "deleteContents 4, 6, 7",
+    "note": "上と逆向き。start が text の途中、end が共通祖先の直下の境界で、消えるのは start node の後ろの兄弟である。これも common ancestor の子ではない（docs/status.md の findings 7）。step 6 の reference node で新しい boundary point は (1,1) になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "ab"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 2,
+      "data": "cd"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 1
+      },
+      "end": {
+        "node": 1,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeDeleteContents",
+      "range": 0
+    }
+  ]
+}

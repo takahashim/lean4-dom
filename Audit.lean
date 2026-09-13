@@ -100,6 +100,8 @@ open Dom.Audit
   Dom.admissible_rangeCollapse
   Dom.admissible_rangeSelectNode
   Dom.admissible_rangeSelectNodeContents
+  Dom.admissible_rangeDeleteContents
+  Dom.admissible_rangeInsertNode
 
 -- §16 の live object をまとめた形
 #audit_axioms

@@ -17,6 +17,8 @@ inductive DOMException where
   | indexSizeError
   | invalidNodeTypeError
   | wrongDocumentError
+  /-- §5.5 `compareBoundaryPoints(how, …)` の `how` が四つの定数のどれでもない場合。 -/
+  | notSupportedError
   /-- §4.9 の attribute 名検査。valid attribute local name / valid namespace prefix。 -/
   | invalidCharacterError
   /-- §4.9 の namespace 検査（"validate and extract" の step 7-10）。 -/
@@ -52,6 +54,7 @@ def name : DOMException → String
   | indexSizeError => "IndexSizeError"
   | invalidNodeTypeError => "InvalidNodeTypeError"
   | wrongDocumentError => "WrongDocumentError"
+  | notSupportedError => "NotSupportedError"
   | invalidCharacterError => "InvalidCharacterError"
   | namespaceError => "NamespaceError"
   | typeError => "TypeError"

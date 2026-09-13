@@ -1,0 +1,63 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insertNode"
+    ],
+    "steps": "insertNode 11-13",
+    "note": "DocumentFragment を入れると children がその場に展開され、end は最後の子の次に来る（step 11 の「node の length だけ増やす」）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 3
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 3,
+      "data": "c"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 1,
+        "offset": 0
+      },
+      "end": {
+        "node": 1,
+        "offset": 0
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeInsertNode",
+      "range": 0,
+      "node": 3
+    }
+  ]
+}

@@ -196,6 +196,16 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     match rangeIntersectsNode s i ⟨n⟩ with
     | .error _ => .unit
     | .ok b => .bool b
+  | .rangeCompareBoundaryPoints i how j =>
+    match rangeCompareBoundaryPoints s i how j with
+    | .error _ => .unit
+    | .ok v => .int v
+  | .rangeComparePoint i n o =>
+    match rangeComparePoint s i ⟨⟨n⟩, o⟩ with
+    | .error _ => .unit
+    | .ok v => .int v
+  | .rangeDeleteContents _ => .unit
+  | .rangeInsertNode _ _ => .unit
   | .appendData _ _ => .unit
   | .insertData _ _ _ => .unit
   | .deleteData _ _ _ => .unit
@@ -251,6 +261,10 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .rangeSelectNodeContents i n => rangeSelectNodeContents s i ⟨n⟩
   | .rangeIsPointInRange i n o => (rangeIsPointInRange s i ⟨⟨n⟩, o⟩).map (fun _ => s)
   | .rangeIntersectsNode i n => (rangeIntersectsNode s i ⟨n⟩).map (fun _ => s)
+  | .rangeCompareBoundaryPoints i how j => (rangeCompareBoundaryPoints s i how j).map (fun _ => s)
+  | .rangeComparePoint i n o => (rangeComparePoint s i ⟨⟨n⟩, o⟩).map (fun _ => s)
+  | .rangeDeleteContents i => rangeDeleteContents s i
+  | .rangeInsertNode i n => rangeInsertNode s i ⟨n⟩
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn

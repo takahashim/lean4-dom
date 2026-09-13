@@ -50,6 +50,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
 | `appendData` / `insertData` / `deleteData` / `setData` | `Dom.admissible_appendData` ほか |
 | `normalize` | `Dom.admissible_normalize` |
 | `Range.setStart` / `setEnd` / `setStartBefore` ほか / `collapse` / `selectNode` / `selectNodeContents` | `Dom.admissible_rangeSetStart` ほか |
+| `Range.deleteContents` / `insertNode` | `Dom.admissible_rangeDeleteContents`, `Dom.admissible_rangeInsertNode` |
 | `MutationObserver.observe` / `disconnect` / `takeRecords` | `Dom.admissible_observe` ほか |
 | notify mutation observers | `Dom.admissible_notifyMutationObservers` |
 | `setAttribute` / `setAttributeNS` / `removeAttribute` / `removeAttributeNS` / `toggleAttribute` | `Dom.admissible_setAttribute` ほか |

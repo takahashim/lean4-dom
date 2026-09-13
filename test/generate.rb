@@ -26,6 +26,8 @@ module Generate
            rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
            rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
            rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
+           rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
+           rangeInsertNode
            replaceData appendData insertData deleteData setData
            setAttribute setAttributeNS removeAttribute removeAttributeNS
            toggleAttribute].freeze
@@ -212,6 +214,12 @@ module Generate
              when "rangeSetStart", "rangeSetEnd", "rangeIsPointInRange"
                { "op" => op, "range" => r, "node" => node, "offset" => rng.rand(4) }
              when "rangeCollapse" then { "op" => op, "range" => r, "toStart" => rng.rand < 0.5 }
+             when "rangeDeleteContents" then { "op" => op, "range" => r }
+             when "rangeComparePoint"
+               { "op" => op, "range" => r, "node" => node, "offset" => rng.rand(4) }
+             when "rangeCompareBoundaryPoints"
+               # `how` は 0-3 のほかに範囲外も混ぜて NotSupportedError を撫でる。
+               { "op" => op, "range" => r, "how" => rng.rand(5), "source" => rng.rand(range_count) }
              else { "op" => op, "range" => r, "node" => node }
              end
     end
@@ -413,7 +421,9 @@ module Generate
   # range を動かす操作。受け手は range なので、node は引数として渡す。
   RANGE_OPS = %w[rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
                  rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
-                 rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode].freeze
+                 rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
+                 rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
+                 rangeInsertNode].freeze
 
   # MutationObserver の操作。`notify` は microtask checkpoint である。
   # `observe` だけは受け手が node（target）なので、kind の絞り込みを通す。

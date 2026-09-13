@@ -202,6 +202,14 @@ def operationOfJson (j : Json) : Except String Operation := do
       (← natField j "offset")
   | "rangeIntersectsNode" =>
     return .rangeIntersectsNode (← natField j "range") (← natField j "node")
+  | "rangeCompareBoundaryPoints" =>
+    return .rangeCompareBoundaryPoints (← natField j "range") (← natField j "how")
+      (← natField j "source")
+  | "rangeComparePoint" =>
+    return .rangeComparePoint (← natField j "range") (← natField j "node")
+      (← natField j "offset")
+  | "rangeDeleteContents" => return .rangeDeleteContents (← natField j "range")
+  | "rangeInsertNode" => return .rangeInsertNode (← natField j "range") (← natField j "node")
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← strField j "name" "")
       (← strField j "value" "")
@@ -364,6 +372,7 @@ def returnValueJson : ReturnValue → Json
   | .records rs =>
     Json.mkObj [("kind", Json.str "records"),
                 ("records", Json.arr (rs.map recordJson).toArray)]
+  | .int i => Json.mkObj [("kind", Json.str "number"), ("value", Json.num (.fromInt i))]
 
 /--
 `Observation` の外部表現。

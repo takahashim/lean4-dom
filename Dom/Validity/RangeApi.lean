@@ -166,4 +166,147 @@ theorem admissible_rangeSelectNodeContents {s s' : DOMState} {i : Nat} {n : Node
       · show d.length ≤ d.length
         omega
 
+
+/-! ## `deleteContents` -/
+
+/-- node の列を順に外しても admissibility は保たれる。 -/
+theorem admissible_removeEach : ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool},
+    AdmissibleDOMState s → removeEach s ns b = .ok s' → AdmissibleDOMState s'
+  | [], s, s', b, h, hr => by
+    simp only [removeEach] at hr
+    rw [← Except.ok.inj hr]
+    exact h
+  | n :: rest, s, s', b, h, hr => by
+    simp only [removeEach] at hr
+    cases hs : remove s n b with
+    | error e => rw [hs] at hr; simp at hr
+    | ok s₁ =>
+      rw [hs] at hr
+      dsimp only at hr
+      exact admissible_removeEach rest (admissible_remove h hs) hr
+
+/-- **`deleteContents` は admissibility を保つ。** -/
+theorem admissible_rangeDeleteContents {s s' : DOMState} {i : Nat}
+    (h : AdmissibleDOMState s) (hr : rangeDeleteContents s i = .ok s') :
+    AdmissibleDOMState s' := by
+  unfold rangeDeleteContents at hr
+  split at hr
+  · simp at hr
+  · next r hrr =>
+    split at hr
+    · rw [← Except.ok.inj hr]; exact h
+    · split at hr
+      · next ds de hds hde =>
+        split at hr
+        · exact admissible_replaceData h hr
+        · split at hr
+          · simp at hr
+          · next s₁ hs₁ =>
+            have h₁ : AdmissibleDOMState s₁ := by
+              split at hs₁
+              · exact admissible_replaceData h hs₁
+              · rw [← Except.ok.inj hs₁]; exact h
+            dsimp only at hr
+            cases hs₂ : removeEach s₁ (nodesToRemove s.tree r) with
+            | error e => rw [hs₂] at hr; simp at hr
+            | ok s₂ =>
+              rw [hs₂] at hr
+              dsimp only at hr
+              have h₂ := admissible_removeEach _ h₁ hs₂
+              cases hs₃ : (if de.kind.isCharacterData then
+                  replaceData s₂ r.«end».node 0 r.«end».offset "" else Except.ok s₂) with
+              | error e => rw [hs₃] at hr; simp at hr
+              | ok s₃ =>
+                rw [hs₃] at hr
+                dsimp only at hr
+                have h₃ : AdmissibleDOMState s₃ := by
+                  split at hs₃
+                  · exact admissible_replaceData h₂ hs₃
+                  · rw [← Except.ok.inj hs₃]; exact h₂
+                cases hr₃ : s₃.ranges[i]? with
+                | none => rw [hr₃] at hr; simp at hr
+                | some r₃ =>
+                  rw [hr₃] at hr
+                  dsimp only at hr
+                  rw [← Except.ok.inj hr]
+                  refine admissible_withRange h₃ ?_
+                  split
+                  · next hv =>
+                    have hval := (checkValidBoundaryPoint_iff s₃.tree _).mp hv
+                    exact ⟨hval, hval⟩
+                  · have hv := (h₃.rangeEndpoints r₃ (List.mem_of_getElem? hr₃)).1
+                    exact ⟨hv, hv⟩
+      · simp at hr
+
+/-- `siblingBP` が返す boundary point は妥当である。 -/
+theorem validBoundaryPoint_of_siblingBP {s : DOMState} {n : NodeId} {a : Bool}
+    {bp : BoundaryPoint} (h : AdmissibleDOMState s) (hs : siblingBP s.tree n a = some bp) :
+    ValidBoundaryPoint s.tree bp := by
+  unfold siblingBP at hs
+  split at hs
+  · next p idx hp hidx =>
+    have hlen : ChildCountKind s.tree p := h.childCountKind hp
+    have hilt : idx < (childrenOf s.tree p).length := index_lt_children_length hp hidx
+    obtain ⟨pd, hpd⟩ : ∃ pd, s.tree.get? p = some pd := exists_data_of_parentOf h.wellFormed hp
+    have hpl : pd.length = (childrenOf s.tree p).length := by
+      have := lengthOf_eq_children hlen
+      unfold lengthOf at this
+      rw [hpd] at this
+      exact this
+    rw [← Option.some.inj hs]
+    refine ⟨pd, hpd, ?_⟩
+    dsimp only
+    split <;> omega
+  · simp at hs
+
+/--
+**`insertNode` は admissibility を保つ。**
+
+step 9 の `remove` と step 12 の `preInsert` はそれぞれ保存が証明済みで、
+step 13 が置く end は「入った node の次」なので `siblingBP` の妥当性から出る。
+-/
+theorem admissible_rangeInsertNode {s s' : DOMState} {i : Nat} {n : NodeId}
+    (h : AdmissibleDOMState s) (hr : rangeInsertNode s i n = .ok s') : AdmissibleDOMState s' := by
+  unfold rangeInsertNode at hr
+  split at hr
+  · simp at hr
+  · next r hrr =>
+    split at hr
+    · simp at hr
+    · next ds hds =>
+      split at hr
+      · simp at hr
+      · split at hr
+        · simp at hr
+        · dsimp only at hr
+          split at hr
+          · simp at hr
+          ·
+            cases hrm : (if (parentOf s.tree n).isSome then remove s n else Except.ok s) with
+            | error e => rw [hrm] at hr; simp at hr
+            | ok s₁ =>
+              rw [hrm] at hr
+              dsimp only at hr
+              have h₁ : AdmissibleDOMState s₁ := by
+                split at hrm
+                · exact admissible_remove h hrm
+                · rw [← Except.ok.inj hrm]; exact h
+              split at hr
+              · simp at hr
+              · next s₂ hpi =>
+                have h₂ : AdmissibleDOMState s₂ := admissible_preInsert h₁ hpi
+                split at hr
+                · simp at hr
+                · next r₂ hr₂ =>
+                  split at hr
+                  · split at hr
+                    · rw [← Except.ok.inj hr]; exact h₂
+                    · next bp hbp =>
+                      rw [← Except.ok.inj hr]
+                      obtain ⟨m, -, hsib⟩ := Option.bind_eq_some_iff.mp hbp
+                      refine admissible_withRange h₂ ⟨?_, ?_⟩
+                      · exact (h₂.rangeEndpoints r₂ (List.mem_of_getElem? hr₂)).1
+                      · exact validBoundaryPoint_of_siblingBP h₂ hsib
+                  · rw [← Except.ok.inj hr]; exact h₂
+
 end Dom

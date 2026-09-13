@@ -1,4 +1,6 @@
 import Dom.Range.BoundaryPoint
+import Dom.Mutation.Algorithms
+import Dom.CharacterData.ReplaceData
 
 /-!
 # `Range` の API（§5.5）
@@ -122,6 +124,46 @@ def rangeSelectNodeContents (s : DOMState) (i : Nat) (n : NodeId) :
 
 /-! ## 値を返すだけの method -/
 
+/--
+DOM Standard §5.5 `Range.compareBoundaryPoints(how, sourceRange)`。
+
+`how` は 0 START_TO_START / 1 START_TO_END / 2 END_TO_END / 3 END_TO_START。
+step 3 の組み合わせは対称ではない。1 は「this の end と source の start」、
+3 は「this の start と source の end」である。
+-/
+def rangeCompareBoundaryPoints (s : DOMState) (i : Nat) (how : Nat) (j : Nat) :
+    Except DOMException Int :=
+  match s.ranges[i]?, s.ranges[j]? with
+  | some r, some other =>
+    if 3 < how then .error .notSupportedError
+    else if root s.tree r.start.node != root s.tree other.start.node then
+      .error .wrongDocumentError
+    else
+      let a := if how == 1 || how == 2 then r.«end» else r.start
+      let b := if how == 2 || how == 3 then other.«end» else other.start
+      .ok (match bpPosition s.tree a b with
+           | .lt => -1
+           | .eq => 0
+           | .gt => 1)
+  | _, _ => .error .notFoundError
+
+/-- DOM Standard §5.5 `Range.comparePoint(node, offset)`。 -/
+def rangeComparePoint (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
+    Except DOMException Int :=
+  match s.ranges[i]? with
+  | none => .error .notFoundError
+  | some r =>
+    if s.tree.get? bp.node |>.isNone then .error .notFoundError
+    else if root s.tree bp.node != root s.tree r.start.node then .error .wrongDocumentError
+    else
+      match rangeBoundaryError s.tree bp with
+      | some e => .error e
+      | none =>
+        .ok (if bpPosition s.tree bp r.start == .lt then -1
+             else if bpPosition s.tree bp r.«end» == .gt then 1
+             else 0)
+
+
 /-- DOM Standard §5.5 `Range.isPointInRange(node, offset)`。 -/
 def rangeIsPointInRange (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
     Except DOMException Bool :=
@@ -150,5 +192,159 @@ def rangeIntersectsNode (s : DOMState) (i : Nat) (n : NodeId) : Except DOMExcept
       | some p, some idx =>
         .ok (bpPosition s.tree ⟨p, idx⟩ r.«end» == .lt &&
              bpPosition s.tree ⟨p, idx + 1⟩ r.start == .gt)
+
+/-! ## `deleteContents` -/
+
+/-- `a` が `b` の inclusive ancestor か。 -/
+def isInclusiveAncestorB (t : Tree) (a b : NodeId) : Bool :=
+  a == b || (ancestors t b).contains a
+
+/--
+DOM Standard §5.5 "contained"。
+
+node 全体が range の中に入っていること。
+-/
+def containedInRange (t : Tree) (r : RangeState) (n : NodeId) : Bool :=
+  root t n == root t r.start.node &&
+    bpPosition t ⟨n, 0⟩ r.start == .gt &&
+    bpPosition t ⟨n, lengthOf t n⟩ r.«end» == .lt
+
+/--
+DOM Standard §5.5 `deleteContents` の step 4。
+
+range に含まれる node を tree order で並べ、親も含まれるものを落とす。
+-/
+def nodesToRemove (t : Tree) (r : RangeState) : List NodeId :=
+  (treeOrder t r.start.node).filter fun n =>
+    containedInRange t r n &&
+      !(match parentOf t n with
+        | some p => containedInRange t r p
+        | none => false)
+
+/--
+DOM Standard §5.5 `deleteContents` の step 5-6。
+
+start node が end node の inclusive ancestor ならその場に潰れる。
+そうでなければ、start 側の祖先を「end node の inclusive ancestor の子」になるまで上り、
+その次の位置に潰れる。
+-/
+def deleteContentsNewBP (t : Tree) (r : RangeState) : BoundaryPoint :=
+  if isInclusiveAncestorB t r.start.node r.«end».node then r.start
+  else
+    let ref := ((r.start.node :: ancestors t r.start.node).find? fun x =>
+        match parentOf t x with
+        | none => true
+        | some p => isInclusiveAncestorB t p r.«end».node).getD r.start.node
+    match parentOf t ref, index t ref with
+    | some p, some idx => ⟨p, idx + 1⟩
+    | _, _ => r.start
+
+/--
+DOM Standard §5.5 `Range.deleteContents()`。
+
+step 10 が置く boundary point が最終状態でも妥当であることは仕様の帰結だが、
+本 model ではまだ証明していない。妥当でなければ live range の調整が残した端点を使う
+（そちらは `remove_preserves_endpoints` などで妥当である）。
+差分テストではこの枝に落ちたことは無い。
+-/
+def rangeDeleteContents (s : DOMState) (i : Nat) : Except DOMException DOMState :=
+  match s.ranges[i]? with
+  | none => .error .notFoundError
+  | some r =>
+    -- step 1
+    if r.start == r.«end» then .ok s
+    else
+      match s.tree.get? r.start.node, s.tree.get? r.«end».node with
+      | some ds, some de =>
+        -- step 3
+        if r.start.node == r.«end».node && ds.kind.isCharacterData then
+          replaceData s r.start.node r.start.offset (r.«end».offset - r.start.offset) ""
+        else
+          let newBP := deleteContentsNewBP s.tree r
+          let toRemove := nodesToRemove s.tree r
+          -- step 7
+          match (if ds.kind.isCharacterData then
+                   replaceData s r.start.node r.start.offset (ds.length - r.start.offset) ""
+                 else .ok s) with
+          | .error e => .error e
+          | .ok s₁ =>
+            -- step 8
+            match removeEach s₁ toRemove with
+            | .error e => .error e
+            | .ok s₂ =>
+              -- step 9
+              match (if de.kind.isCharacterData then
+                       replaceData s₂ r.«end».node 0 r.«end».offset ""
+                     else .ok s₂) with
+              | .error e => .error e
+              | .ok s₃ =>
+                -- step 10
+                match s₃.ranges[i]? with
+                | none => .error .notFoundError
+                | some r₃ =>
+                  let bp := if checkValidBoundaryPoint s₃.tree newBP then newBP else r₃.start
+                  .ok (withRange s₃ i { start := bp, «end» := bp })
+      | _, _ => .error .notFoundError
+
+/-! ## `insertNode` -/
+
+/--
+DOM Standard §5.5 `Range.insertNode(node)`。
+
+step 7（start node が Text なら offset で split する）は node を作るので
+roadmap §13.2 の対象外である。start node が Text の場合は `outsideModel` を返す。
+ただし step 1 の「parent の無い Text」は先に検査するので、そちらは `HierarchyRequestError` になる。
+
+step 10-11 の newOffset は「入った node の最後の次」に等しい。
+model はその形で書く（`siblingBP`）。そうすると端点の妥当性が
+`index` の上界から出るので、step 13 が置く boundary point を実行時に検査しなくてよい。
+DocumentFragment が空なら何も入らないので、range は collapsed のまま動かない。
+-/
+def rangeInsertNode (s : DOMState) (i : Nat) (node : NodeId) : Except DOMException DOMState :=
+  match s.ranges[i]? with
+  | none => .error .notFoundError
+  | some r =>
+    match s.tree.get? r.start.node with
+    | none => .error .notFoundError
+    | some ds =>
+      -- step 1
+      if ds.kind == .processingInstruction || ds.kind == .comment ||
+          (ds.kind == .text && (parentOf s.tree r.start.node).isNone) ||
+          r.start.node == node then
+        .error .hierarchyRequestError
+      -- step 3 と step 7（split text）
+      else if ds.kind == .text then .error .outsideModel
+      else
+        -- step 4-5。start node は Text ではないので parent は start node 自身である。
+        let referenceNode := ds.children[r.start.offset]?
+        let parent := r.start.node
+        -- step 6
+        match ensurePreInsertionValidity s.tree node parent referenceNode [] with
+        | .error e => .error e
+        | .ok () =>
+          -- step 8
+          let ref := if referenceNode == some node then nextSibling s.tree node else referenceNode
+          -- step 9
+          match (if (parentOf s.tree node).isSome then remove s node else .ok s) with
+          | .error e => .error e
+          | .ok s₁ =>
+            -- step 10-11 に使う「最後に入る node」
+            let last :=
+              match s₁.tree.get? node with
+              | some nd => if nd.kind == NodeKind.documentFragment then nd.children.getLast? else some node
+              | none => some node
+            -- step 12
+            match preInsert s₁ node parent ref with
+            | .error e => .error e
+            | .ok s₂ =>
+              -- step 13
+              match s₂.ranges[i]? with
+              | none => .error .notFoundError
+              | some r₂ =>
+                if r₂.start == r₂.«end» then
+                  match last.bind (fun n => siblingBP s₂.tree n true) with
+                  | none => .ok s₂
+                  | some bp => .ok (withRange s₂ i { r₂ with «end» := bp })
+                else .ok s₂
 
 end Dom

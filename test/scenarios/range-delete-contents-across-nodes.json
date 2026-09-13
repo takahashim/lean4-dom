@@ -1,0 +1,82 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "deleteContents"
+    ],
+    "steps": "deleteContents 4-10",
+    "note": "両端が別の Text にある range。間の node が外れ、両端の Text が切り詰められ、range は継ぎ目へ潰れる（step 4-10）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abc"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "xy"
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 1,
+      "data": "cc"
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 1,
+      "data": "def"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 1
+      },
+      "end": {
+        "node": 6,
+        "offset": 2
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "childList": true,
+      "characterData": true,
+      "subtree": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "rangeDeleteContents",
+      "range": 0
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

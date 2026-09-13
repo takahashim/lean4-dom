@@ -1,0 +1,58 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insertNode"
+    ],
+    "steps": "insertNode 9-11",
+    "note": "newOffset は step 9 で node を外した「後」に数える。node が同じ parent の前方にいると index がひとつずれるので、先に数えると end が一つ後ろになる。Dommy は先に数えている（docs/status.md の findings 8）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 1,
+        "offset": 2
+      },
+      "end": {
+        "node": 1,
+        "offset": 2
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeInsertNode",
+      "range": 0,
+      "node": 2
+    }
+  ]
+}

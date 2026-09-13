@@ -78,6 +78,13 @@ inductive Operation where
   /-- `Range.isPointInRange(node, offset)` / `intersectsNode(node)`。 -/
   | rangeIsPointInRange (range node offset : Nat)
   | rangeIntersectsNode (range node : Nat)
+  /-- `Range.compareBoundaryPoints(how, sourceRange)` / `comparePoint(node, offset)`。 -/
+  | rangeCompareBoundaryPoints (range how source : Nat)
+  | rangeComparePoint (range node offset : Nat)
+  /-- `Range.deleteContents()`。 -/
+  | rangeDeleteContents (range : Nat)
+  /-- `Range.insertNode(node)`。 -/
+  | rangeInsertNode (range node : Nat)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
   /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/

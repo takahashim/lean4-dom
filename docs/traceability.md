@@ -84,10 +84,20 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 | `selectNodeContents(node)` | 1 doctype / 2-4 両端 | `rangeSelectNodeContents` | preservation `admissible_rangeSelectNodeContents` | 同上 | 同上 | 済 |
 | `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | — | `range-point-predicates` | 同上 | 済 |
 | `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | — | 同上 | 同上 | 済 |
+| `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | — | `range-compare-boundary-points` | 同上 | 済 |
+| `comparePoint(node, offset)` | 1 WrongDocumentError / 2 doctype / 3 offset / 4-6 位置 | `rangeComparePoint` | — | 同上 | 同上 | 済 |
+
+## §5.5 `Range` の API（木を変える側）
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `deleteContents()` | 1 collapsed / 3 同じ CharacterData / 4 nodes to remove / 5-6 新しい端点 / 7-9 削除と切り詰め / 10 両端 | `rangeDeleteContents`, `nodesToRemove`, `containedInRange`, `deleteContentsNewBP` | preservation `admissible_rangeDeleteContents`（step 10 の端点は実行時検査） | `range-delete-contents-within-text`, `-across-nodes`, `-ancestor-start`, `-collapsed-is-noop`, `range-delete-contents-partially-contained-end`, `-start` | `test_wpt_range_contents.rb` | 済 |
+| `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode` | preservation `admissible_rangeInsertNode`, `validBoundaryPoint_of_siblingBP` | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start` | 同上 | 済（step 7 の split text は対象外） |
 
 `extractContents` / `cloneContents` / `surroundContents` / `cloneRange` は node を生むので
-roadmap §13.2 の対象外である。`deleteContents` / `insertNode` / `compareBoundaryPoints` /
-`comparePoint` は未着手。
+roadmap §13.2 の対象外である。`insertNode` の step 7（start node が Text なら split する）も
+同じ理由で対象外で、model は `__outsideModel__` を返す
+（`range-insert-node-into-text-is-outside-model`）。
 
 ## §4.3 MutationObserver
 

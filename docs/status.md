@@ -2034,8 +2034,9 @@ oracle の無い塊として一番大きい。boundary point を動かす method
 
 対象は `setStart` / `setEnd` / `setStartBefore` ほか四つ / `collapse` /
 `selectNode` / `selectNodeContents` / `isPointInRange` / `intersectsNode` である。
-`extractContents` ほかは node を生むので roadmap §13.2 の対象外、
-`deleteContents` / `insertNode` / `compareBoundaryPoints` / `comparePoint` は未着手。
+`extractContents` ほかは node を生むので roadmap §13.2 の対象外である。
+`deleteContents` / `insertNode` / `compareBoundaryPoints` / `comparePoint` は
+この節の時点では未着手で、下の「木を変える側と比べる側」で入れた。
 
 ### 保存は一つの補題に落ちる
 
@@ -2072,11 +2073,84 @@ parent の無い node は boundary point を決められないので、仕様は
 固定 scenario は `range-boundary-needs-parent` 以外の六本が一致。
 生成 scenario は seed 5 / 12 / 19 で、上記以外の不一致は無い。
 
+## `Range` の API（§5.5、木を変える側と比べる側）
+
+boundary point を動かす側に続けて、残りの四つを入れた。
+`compareBoundaryPoints` / `comparePoint` は値を返すだけ、
+`deleteContents` / `insertNode` は木を変える。
+`extractContents` ほかは node を生むので roadmap §13.2 の対象外のままである。
+
+### `deleteContents`
+
+仕様の step 4「nodes to remove」は **range に contained な node 全部**から、
+親も contained なものを落としたものである（`nodesToRemove`）。
+step 5-6 が新しい boundary point を決め、step 7-9 が
+「start 側の切り詰め → node の削除 → end 側の切り詰め」の順に木を変える。
+
+保存は `admissible_removeEach` と `admissible_replaceData` に落ちるが、
+**step 10 が置く boundary point が最終状態でも妥当であること**は証明していない。
+仕様の帰結ではあるので、model は実行時に `checkValidBoundaryPoint` で検査し、
+妥当でなければ live range の調整が残した端点を使う。
+差分テストでその枝に落ちたことは無い。
+
+### `insertNode`
+
+step 7（start node が Text なら offset で split する）は node を作るので
+roadmap §13.2 の対象外で、その場合は `__outsideModel__` を返す
+（`range-insert-node-into-text-is-outside-model`）。
+ただし step 1 の検査はその前に置くので、
+`HierarchyRequestError` になる場合はちゃんと例外になる。
+
+step 10-11 の newOffset は「入った node の最後の次」に等しいので、
+model はそちらの形で書いた（`siblingBP`）。
+そうすると step 13 が置く端点の妥当性が `index` の上界から出るので、
+`deleteContents` と違って実行時検査が要らない（`admissible_rangeInsertNode`）。
+
+### 見つかったこと 1：`deleteContents` が共通祖先の子しか消さない（findings 7）
+
+`extractContents` / `cloneContents` の step は
+「common ancestor の contained な**子**」を集め、
+両端に掛かる子を再帰で処理する。`deleteContents` にはその再帰が無いので、
+step 4 は木全体から contained な node を集める。
+Dommy は前者の helper（`nodes_to_remove` が `common_ancestor_container.child_nodes` を見る）を
+`delete_contents` でも使っているので、
+**共通祖先の子より深いところしか contained でない range では何も消さない**。
+
+start node が end node の inclusive ancestor になる形が最小例で、
+`range-delete-contents-partially-contained-end` と `-start` が固定した。
+どちらも Dommy は木を変えない。
+
+### 見つかったこと 2：`insertNode` の step 1 と step 9-10 の順序（findings 8）
+
+* **step 1 の検査が無い。** start node が ProcessingInstruction / Comment、
+  parent の無い Text、あるいは入れようとしている node 自身なら
+  `HierarchyRequestError` である。Dommy にこの検査は無い。
+  Comment が start node の場合は pre-insert の側で同じ例外になるので表に出ないが、
+  **start node が Text でそれ自身を入れる**場合は通ってしまい、
+  Text を split して自分自身を入れた木になる
+  （`range-insert-node-start-text-is-self`）。
+  parent の無い Text が start node なら黙って何もしない
+  （`range-insert-node-detached-text-start`）。
+* **newOffset を数える位置。** 仕様は step 9 で node を外して**から**
+  step 10-11 で newOffset を数える。Dommy は外す前に数えている。
+  node が同じ parent の前方にいると index がひとつずれるので、
+  collapsed だった range の end が一つ後ろになる
+  （`range-insert-node-moves-preceding-sibling`）。
+  referenceNode が null になる形では、
+  end が parent の length を超えた **妥当でない boundary point** にもなる。
+
+### 差分テスト
+
+固定 scenario 78 本のうち、一致 68・skip 4（model の対象外と capability の欠落）・
+不一致 6 である。不一致は findings 6 が一本（`range-boundary-needs-parent`）、
+findings 7 が二本（`range-delete-contents-partially-contained-end` / `-start`）、
+findings 8 が三本（`range-insert-node-moves-preceding-sibling`,
+`-start-text-is-self`, `-detached-text-start`）で、
+**どれも Dommy を直すまで赤である**。
+生成 scenario は seed 51 / 52 / 53 で、上記以外の不一致は無い。
+
 ## 未着手
 
-* Range の API のうち木を変えるもの（§5.5 の `deleteContents` / `insertNode`）と
-  比較するもの（`compareBoundaryPoints` / `comparePoint`）。
-  boundary point を動かす側は済んだ。
 * TreeWalker（§6.2）。NodeIterator は model にあるが TreeWalker は無い。
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
   element の attribute list とは別の仕組みで、attribute の mutation record を積まない。

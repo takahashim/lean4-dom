@@ -1,0 +1,64 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "deleteContents"
+    ],
+    "steps": "deleteContents 4",
+    "note": "step 4 の \"nodes to remove\" は range に contained な node 全部（parent も contained なものを除く）であって、common ancestor の子だけではない。start node が end node の inclusive ancestor のとき、消えるのは end node の子である。Dommy は common ancestor の子しか見ないので何も消さない（docs/status.md の findings 7）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "ab"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 2,
+      "data": "cd"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 1,
+        "offset": 0
+      },
+      "end": {
+        "node": 2,
+        "offset": 3
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeDeleteContents",
+      "range": 0
+    }
+  ]
+}

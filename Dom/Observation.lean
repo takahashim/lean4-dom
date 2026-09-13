@@ -82,6 +82,8 @@ inductive ReturnValue where
   | node (n : Option NodeId)
   | bool (b : Bool)
   | records (rs : List MutationRecord)
+  /-- `compareBoundaryPoints` と `comparePoint` の −1 / 0 / 1。 -/
+  | int (i : Int)
 deriving DecidableEq, Repr, Inhabited
 
 /-- 一 step の観測。 -/

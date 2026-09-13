@@ -1,0 +1,49 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insertNode"
+    ],
+    "steps": "insertNode 1",
+    "note": "start node そのものを入れようとするのも HierarchyRequestError（step 1）。こちらも Dommy では pre-insert の「node は parent の inclusive ancestor」の検査で同じ例外になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "comment",
+      "parent": 1,
+      "data": "xy"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 1,
+        "offset": 0
+      },
+      "end": {
+        "node": 1,
+        "offset": 0
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeInsertNode",
+      "range": 0,
+      "node": 1
+    }
+  ]
+}

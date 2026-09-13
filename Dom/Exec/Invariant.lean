@@ -92,6 +92,18 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
     split at hop
     · simp at hop
     · rw [← Except.ok.inj hop]; exact h
+  | rangeCompareBoundaryPoints i how j =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · rw [← Except.ok.inj hop]; exact h
+  | rangeComparePoint i n o =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · rw [← Except.ok.inj hop]; exact h
+  | rangeDeleteContents i => exact admissible_rangeDeleteContents h hop
+  | rangeInsertNode i n => exact admissible_rangeInsertNode h hop
   | setAttribute e qn v => exact admissible_setAttribute h hop
   | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
   | removeAttribute e qn => exact admissible_removeAttribute h hop

@@ -51,7 +51,9 @@ module DommyRunner
   # 受け手が range である操作（§5.5 の Range の method）。
   RANGE_OPS = %w[rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
                  rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
-                 rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode].freeze
+                 rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
+                 rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
+                 rangeInsertNode].freeze
 
   # 受け手が `node` である操作（CharacterData の method）。
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
@@ -184,6 +186,8 @@ module DommyRunner
       { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
     when "toggleAttribute", "rangeIsPointInRange", "rangeIntersectsNode"
       { "kind" => "boolean", "value" => !!returned }
+    when "rangeCompareBoundaryPoints", "rangeComparePoint"
+      { "kind" => "number", "value" => returned.to_i }
     when "takeRecords"
       { "kind" => "records",
         "records" => (returned || []).to_a.map { |rec| record_snapshot(objects, rec) } }
@@ -483,6 +487,14 @@ module DommyRunner
              when "rangeSelectNodeContents" then range.select_node_contents(node)
              when "rangeIsPointInRange" then range.is_point_in_range(node, op["offset"])
              when "rangeIntersectsNode" then range.intersects_node(node)
+             when "rangeCompareBoundaryPoints"
+               other = (ctx[:ranges] || [])[op["source"]]
+               raise NotImplementedError, "range index" if other.nil?
+
+               range.compare_boundary_points(op["how"], other)
+             when "rangeComparePoint" then range.compare_point(node, op["offset"])
+             when "rangeDeleteContents" then range.delete_contents
+             when "rangeInsertNode" then range.insert_node(node)
              end
     end
     if CHARACTER_DATA_OPS.include?(op["op"])

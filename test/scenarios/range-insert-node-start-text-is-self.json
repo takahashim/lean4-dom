@@ -1,0 +1,49 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insertNode"
+    ],
+    "steps": "insertNode 1",
+    "note": "start node そのものを入れようとすれば HierarchyRequestError（step 1）。start node が Text だと step 7 の split が先に進んでしまうので、検査の有無が表に出る。Dommy は step 1 を持たず、Text を split して自分自身を入れる（docs/status.md の findings 8）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 1
+      },
+      "end": {
+        "node": 2,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeInsertNode",
+      "range": 0,
+      "node": 2
+    }
+  ]
+}
