@@ -1,0 +1,98 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "add an event listener",
+      "remove an event listener"
+    ],
+    "steps": "add 5 / remove 2",
+    "note": "同じ (type, callback, capture) は二度足されない（add の step 5）。removeEventListener は同じ三つ組を外す。capture が違えば別の listener である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 2,
+      "type": "x"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "x",
+      "bubbles": true
+    },
+    {
+      "op": "addEventListener",
+      "target": 2,
+      "type": "x",
+      "source": 0,
+      "capture": false
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "x",
+      "bubbles": true
+    },
+    {
+      "op": "addEventListener",
+      "target": 2,
+      "type": "x",
+      "source": 0,
+      "capture": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "x",
+      "bubbles": true
+    },
+    {
+      "op": "removeEventListener",
+      "target": 2,
+      "type": "x",
+      "callback": 0,
+      "capture": false
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "x",
+      "bubbles": true
+    },
+    {
+      "op": "removeEventListener",
+      "target": 2,
+      "type": "x",
+      "callback": 0,
+      "capture": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "x",
+      "bubbles": true
+    }
+  ]
+}

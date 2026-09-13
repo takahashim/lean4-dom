@@ -2293,6 +2293,132 @@ model 固有 2 である。新しく入れた十本はすべて一致した。
 生成 scenario は seed 91 / 92 / 101 / 102（計 260 本）で、
 この範囲の操作に不一致は無い。
 
+## event の配送（§2.7 / §2.9）
+
+model が一行も触れていなかった最大の塊である。Dommy は `event.rb` に 2000 行持っていて
+WPT も通しているのに、oracle が無かった。
+
+### callback をどう扱うか
+
+listener の callback は `NodeFilter` と同じく model の外である。
+ただし **呼ばれた順序は観測できる**ので、scenario 側で listener に
+「決まった副作用」（`ListenerAction`）を宣言させることにした。
+
+* `stopPropagation` / `stopImmediatePropagation` / `preventDefault`
+* `removeListener`（配送中に他の listener を外す）
+* `addListener`（配送中に listener を足す）
+
+観測は「呼ばれた listener の列」（`invocations`、callback 番号・currentTarget・eventPhase）と
+`dispatchEvent` の戻り値である。listener list そのものは Dommy が外から見せないので、
+**配送を二度行って差を見る**形にしてある（`once` や配送中の削除はこれで見える）。
+
+### model の範囲
+
+shadow tree が無いので retargeting も slot も composed path も要らず、
+event path は target から根までの祖先列そのものになる。
+`Window` が無いので Document の "get the parent" は null、
+activation behavior（`click` の既定動作）は HTML 側の hook なので扱わない。
+`isTrusted` は常に false なので、invoke の step 10（legacy な type の付け替え）も起きない。
+
+### 保存は「listener list しか変わらない」に尽きる
+
+`listeners` は `walkers` と同じく `AdmissibleDOMState` の成分ではない。
+木の形とは独立で、木を変える algorithm はこれを触らないからである
+（node が木から外れても listener はその node に付いたまま、というのが仕様の挙動）。
+配送の側は `ListenersOnly`（listener list 以外は同じ）を
+`innerInvoke` → `invokeItem` → `runPass` → `dispatchEvent` と積み上げて示し、
+そこから admissibility を出した（`docs/theorems.md` の 12）。
+
+### 見つかったこと：CharacterData を target にすると event path が壊れる（findings 11）
+
+dispatch の step 5.9.6 は「parent が Window であるか、**target の root が parent の
+shadow-including inclusive ancestor** であるなら、shadow-adjusted target が null の item を積む」
+と言う。そうでない場合（= shadow の境界を越えた場合）だけ、その parent を新しい target にする。
+
+Dommy の `root_of(node)` は `node.root_node` を、**その method を持つ node にだけ**尋ねる。
+`root_node` は Element と Document にはあるが `CharacterData` には無いので、
+Text / Comment / ProcessingInstruction を target にすると root が nil になり、
+検査が常に false になって**祖先が次々と「新しい target」として積まれる**。結果として
+
+* 祖先の listener の `eventPhase` が CAPTURING / BUBBLING ではなく **AT_TARGET** になる、
+* `bubbles` が false でも祖先の listener が呼ばれる、
+* `event.target` が配送の途中で祖先に**すり替わる**（document の listener から見ても）。
+
+target が Element なら正しい。`event-dispatch-at-character-data-target` がこれを固定した
+最小の scenario である。
+
+### 差分テスト
+
+固定 scenario は 97 本になり、一致 85・skip 4・不一致 8・model 固有 2 である。
+event の四本のうち赤は findings 11 の一本だけで、
+phase の順序・`once`・二つの stop・`preventDefault`・配送中の追加と削除はすべて一致した。
+生成 scenario は seed 111 / 112 / 113（計 200 本）で不一致 5、
+**すべて findings 11（target が Text / Comment / PI）**だった。
+直るまで、event を混ぜた生成 scenario はこの原因で赤が出続ける。
+
+## event の配送（§2.7 / §2.9）
+
+model が一行も触れていなかった最大の塊である。Dommy は `event.rb` に 2000 行持っていて
+WPT も通しているのに、oracle が無かった。
+
+### callback をどう扱うか
+
+listener の callback は `NodeFilter` と同じく model の外である。
+ただし **呼ばれた順序は観測できる**ので、scenario 側で listener に
+「決まった副作用」（`ListenerAction`）を宣言させることにした。
+
+* `stopPropagation` / `stopImmediatePropagation` / `preventDefault`
+* `removeListener`（配送中に他の listener を外す）
+* `addListener`（配送中に listener を足す）
+
+観測は「呼ばれた listener の列」（`invocations`、callback 番号・currentTarget・eventPhase）と
+`dispatchEvent` の戻り値である。listener list そのものは Dommy が外から見せないので、
+**配送を二度行って差を見る**形にしてある（`once` や配送中の削除はこれで見える）。
+
+### model の範囲
+
+shadow tree が無いので retargeting も slot も composed path も要らず、
+event path は target から根までの祖先列そのものになる。
+`Window` が無いので Document の "get the parent" は null、
+activation behavior（`click` の既定動作）は HTML 側の hook なので扱わない。
+`isTrusted` は常に false なので、invoke の step 10（legacy な type の付け替え）も起きない。
+
+### 保存は「listener list しか変わらない」に尽きる
+
+`listeners` は `walkers` と同じく `AdmissibleDOMState` の成分ではない。
+木の形とは独立で、木を変える algorithm はこれを触らないからである
+（node が木から外れても listener はその node に付いたまま、というのが仕様の挙動）。
+配送の側は `ListenersOnly`（listener list 以外は同じ）を
+`innerInvoke` → `invokeItem` → `runPass` → `dispatchEvent` と積み上げて示し、
+そこから admissibility を出した（`docs/theorems.md` の 12）。
+
+### 見つかったこと：CharacterData を target にすると event path が壊れる（findings 11）
+
+dispatch の step 5.9.6 は「parent が Window であるか、**target の root が parent の
+shadow-including inclusive ancestor** であるなら、shadow-adjusted target が null の item を積む」
+と言う。そうでない場合（= shadow の境界を越えた場合）だけ、その parent を新しい target にする。
+
+Dommy の `root_of(node)` は `node.root_node` を、**その method を持つ node にだけ**尋ねる。
+`root_node` は Element と Document にはあるが `CharacterData` には無いので、
+Text / Comment / ProcessingInstruction を target にすると root が nil になり、
+検査が常に false になって**祖先が次々と「新しい target」として積まれる**。結果として
+
+* 祖先の listener の `eventPhase` が CAPTURING / BUBBLING ではなく **AT_TARGET** になる、
+* `bubbles` が false でも祖先の listener が呼ばれる、
+* `event.target` が配送の途中で祖先に**すり替わる**（document の listener から見ても）。
+
+target が Element なら正しい。`event-dispatch-at-character-data-target` がこれを固定した
+最小の scenario である。
+
+### 差分テスト
+
+固定 scenario は 97 本になり、一致 85・skip 4・不一致 8・model 固有 2 である。
+event の四本のうち赤は findings 11 の一本だけで、
+phase の順序・`once`・二つの stop・`preventDefault`・配送中の追加と削除はすべて一致した。
+生成 scenario は seed 111 / 112 / 113（計 200 本）で不一致 5、
+**すべて findings 11（target が Text / Comment / PI）**だった。
+直るまで、event を混ぜた生成 scenario はこの原因で赤が出続ける。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

@@ -105,6 +105,10 @@ open Dom.Audit
   Dom.admissible_walkerStep
   Dom.walkersValid_walkerStep
   Dom.compareDocumentPosition_disconnected_consistent
+  Dom.admissible_dispatchEvent
+  Dom.listenersOnly_dispatchEvent
+  Dom.admissible_addEventListener
+  Dom.admissible_removeEventListener
 
 -- §16 の live object をまとめた形
 #audit_axioms

@@ -1,0 +1,46 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "dispatch"
+    ],
+    "steps": "dispatch 5.9.6",
+    "note": "target が Text や Comment でも event path は変わらない。祖先は shadow-adjusted target を持たない item なので、phase は CAPTURING / BUBBLING であり、bubbles が false なら bubble の周では飛ばされる。Dommy は target の root を Element にしかない method で取るため、CharacterData が target だと root が nil になり、祖先を「新しい target」として path に積む（docs/status.md の findings 11）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "t"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 1,
+      "type": "x"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "x",
+      "bubbles": false
+    }
+  ]
+}

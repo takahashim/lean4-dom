@@ -1,0 +1,166 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "inner invoke",
+      "add an event listener",
+      "remove an event listener"
+    ],
+    "steps": "inner invoke 2.5, 2.14 / invoke 5, 8",
+    "note": "once は呼ぶ前に外す。stopPropagation は次の item から、stopImmediatePropagation は同じ item の残りからも止める。preventDefault は cancelable のときだけ効く。配送中に外した listener は（clone を回していても）呼ばれず、配送中に足した listener はこの配送では呼ばれない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 3,
+      "type": "a",
+      "once": true
+    },
+    {
+      "target": 3,
+      "type": "a"
+    },
+    {
+      "target": 2,
+      "type": "b",
+      "capture": true,
+      "action": "stopPropagation"
+    },
+    {
+      "target": 2,
+      "type": "b",
+      "capture": true
+    },
+    {
+      "target": 3,
+      "type": "b"
+    },
+    {
+      "target": 3,
+      "type": "c",
+      "action": "stopImmediatePropagation"
+    },
+    {
+      "target": 3,
+      "type": "c"
+    },
+    {
+      "target": 1,
+      "type": "c"
+    },
+    {
+      "target": 3,
+      "type": "d",
+      "action": "preventDefault"
+    },
+    {
+      "target": 3,
+      "type": "e",
+      "action": {
+        "kind": "removeListener",
+        "index": 10
+      }
+    },
+    {
+      "target": 3,
+      "type": "e"
+    },
+    {
+      "target": 3,
+      "type": "f",
+      "action": {
+        "kind": "addListener",
+        "target": 3,
+        "type": "f",
+        "source": 12,
+        "capture": false
+      }
+    },
+    {
+      "target": 1,
+      "type": "f"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "a",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "a",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "b",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "c",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "d",
+      "bubbles": true,
+      "cancelable": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "d",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "e",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "f",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "f",
+      "bubbles": true
+    }
+  ]
+}

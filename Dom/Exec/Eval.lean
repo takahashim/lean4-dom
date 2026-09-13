@@ -126,7 +126,8 @@ def buildState (sc : Scenario) : Except String DOMState := do
   let observers : List ObserverState := sc.observers.map fun o =>
     { nodeList := match o.target with | none => [] | some t => [⟨t⟩] }
   let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators,
-                        walkers := sc.walkers, observers, registrations }
+                        walkers := sc.walkers, listeners := sc.listeners,
+                        observers, registrations }
   unless checkStructurallyValid t do
     throw "初期状態が構造上の制約（leaf に children、Document に parent など）を満たしていない"
   unless checkNodeDocumentsValid t do
@@ -232,6 +233,12 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .lookupNamespaceURI n p => .str (lookupNamespaceURI s.tree ⟨n⟩ p)
   | .lookupPrefix n ns => .str (lookupPrefix s.tree ⟨n⟩ ns)
   | .isDefaultNamespace n ns => .bool (isDefaultNamespace s.tree ⟨n⟩ ns)
+  | .addEventListener _ _ _ _ _ => .unit
+  | .removeEventListener _ _ _ _ => .unit
+  | .dispatchEvent t ty b c =>
+    match dispatchEvent s ⟨t⟩ ty b c with
+    | .error _ => .unit
+    | .ok (_, r, _) => .bool r
   | .appendData _ _ => .unit
   | .insertData _ _ _ => .unit
   | .deleteData _ _ _ => .unit
@@ -256,6 +263,18 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
 -/
 def deliveredBy (s : DOMState) : Operation → List (Nat × List MutationRecord)
   | .notify => (notifyMutationObservers s).2
+  | _ => []
+
+/--
+その操作が event の配送なら、呼ばれた listener の列を返す。
+
+`deliveredBy` と同じく、操作前の状態から決まる純関数である。
+-/
+def invokedBy (s : DOMState) : Operation → List Invocation
+  | .dispatchEvent t ty b c =>
+    match dispatchEvent s ⟨t⟩ ty b c with
+    | .error _ => []
+    | .ok (_, _, log) => log
   | _ => []
 
 /--
@@ -316,6 +335,9 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .lookupNamespaceURI n _ => requireNodes s [⟨n⟩]
   | .lookupPrefix n _ => requireNodes s [⟨n⟩]
   | .isDefaultNamespace n _ => requireNodes s [⟨n⟩]
+  | .addEventListener t ty src cap once => addEventListener s ⟨t⟩ ty src cap once
+  | .removeEventListener t ty cb cap => removeEventListener s ⟨t⟩ ty cb cap
+  | .dispatchEvent t ty b c => (dispatchEvent s ⟨t⟩ ty b c).map (·.1)
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn
@@ -345,23 +367,24 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
     | .ok s' =>
       let delivered := deliveredBy s op
       let returned := returnValueOf s op
-      if !s'.tree.checkWellFormed then ([.ok s' delivered returned], some (i, "wellFormed"))
+      let invoked := invokedBy s op
+      if !s'.tree.checkWellFormed then ([.ok s' delivered returned invoked], some (i, "wellFormed"))
       else if !checkStructurallyValid s'.tree then
-        ([.ok s' delivered returned], some (i, "structurallyValid"))
+        ([.ok s' delivered returned invoked], some (i, "structurallyValid"))
       else if !checkNodeDocumentsValid s'.tree then
-        ([.ok s' delivered returned], some (i, "nodeDocumentsValid"))
+        ([.ok s' delivered returned invoked], some (i, "nodeDocumentsValid"))
       else if !checkDocumentTreesValid s'.tree then
-        ([.ok s' delivered returned], some (i, "documentTreesValid"))
+        ([.ok s' delivered returned invoked], some (i, "documentTreesValid"))
       else if !checkRangeEndpointsValid s' then
-        ([.ok s' delivered returned], some (i, "rangeEndpointsValid"))
-      else if !checkIteratorsValid s' then ([.ok s' delivered returned], some (i, "iteratorsValid"))
+        ([.ok s' delivered returned invoked], some (i, "rangeEndpointsValid"))
+      else if !checkIteratorsValid s' then ([.ok s' delivered returned invoked], some (i, "iteratorsValid"))
       else if !checkObserverRegistrationsValid s' then
-        ([.ok s' delivered returned], some (i, "observerRegistrationsValid"))
+        ([.ok s' delivered returned invoked], some (i, "observerRegistrationsValid"))
       else if !checkAttributesValid s'.tree then
-        ([.ok s' delivered returned], some (i, "attributesValid"))
+        ([.ok s' delivered returned invoked], some (i, "attributesValid"))
       else
         let (rest, viol) := runOperations s' ops (i + 1)
-        (.ok s' delivered returned :: rest, viol)
+        (.ok s' delivered returned invoked :: rest, viol)
 
 /--
 scenario を評価して、invariant 違反があればその step 番号と名前を返す。

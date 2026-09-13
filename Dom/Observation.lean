@@ -101,6 +101,8 @@ structure Observation where
   records : List (List MutationRecord)
   /-- microtask checkpoint で callback に渡された record。配送が無い step では空。 -/
   delivered : List (Nat × List MutationRecord) := []
+  /-- その step で呼ばれた event listener の列（§2.9）。 -/
+  invocations : List Invocation := []
   /-- 操作の戻り値。 -/
   returned : ReturnValue := .unit
   result : OperationResult
@@ -154,13 +156,15 @@ def observedNodes (s : DOMState) : List ObservedNode :=
 -/
 def observe (s : DOMState) (result : OperationResult)
     (delivered : List (Nat × List MutationRecord) := [])
-    (returned : ReturnValue := .unit) : Observation where
+    (returned : ReturnValue := .unit)
+    (invocations : List Invocation := []) : Observation where
   nodes := observedNodes s
   ranges := s.ranges
   iterators := s.iterators
   walkers := s.walkers
   records := s.observers.map (·.records)
   delivered := delivered
+  invocations := invocations
   returned := returned
   result := result
 

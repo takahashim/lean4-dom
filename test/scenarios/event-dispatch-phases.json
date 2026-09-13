@@ -1,0 +1,91 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "dispatch",
+      "invoke",
+      "inner invoke"
+    ],
+    "steps": "dispatch 5, 12-13 / inner invoke 2.3-2.4",
+    "note": "capture の周は根から target へ、bubble の周は target から根へ。target では両方の周が AT_TARGET として走るので、capture の listener が先、そうでない listener が後になる。bubbles が false なら bubble の周は target だけである。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 0,
+      "type": "x",
+      "capture": true
+    },
+    {
+      "target": 1,
+      "type": "x",
+      "capture": true
+    },
+    {
+      "target": 1,
+      "type": "x"
+    },
+    {
+      "target": 3,
+      "type": "x",
+      "capture": true
+    },
+    {
+      "target": 3,
+      "type": "x"
+    },
+    {
+      "target": 2,
+      "type": "x"
+    },
+    {
+      "target": 2,
+      "type": "y"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "x",
+      "bubbles": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "x",
+      "bubbles": false
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "y",
+      "bubbles": true
+    }
+  ]
+}

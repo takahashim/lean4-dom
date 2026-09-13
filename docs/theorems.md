@@ -52,7 +52,8 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
 | `Range.setStart` / `setEnd` / `setStartBefore` ほか / `collapse` / `selectNode` / `selectNodeContents` | `Dom.admissible_rangeSetStart` ほか |
 | `Range.deleteContents` / `insertNode` | `Dom.admissible_rangeDeleteContents`, `Dom.admissible_rangeInsertNode` |
 | `TreeWalker` の走査七つ | `Dom.admissible_walkerStep` |
-| 値を返すだけの九つ（`compareDocumentPosition` ほか） | `Dom.Exec.admissible_requireNodes` |
+| 値を返すだけの十二（`compareDocumentPosition` ほか） | `Dom.Exec.admissible_requireNodes` |
+| `addEventListener` / `removeEventListener` / `dispatchEvent` | `Dom.admissible_addEventListener` ほか |
 | `MutationObserver.observe` / `disconnect` / `takeRecords` | `Dom.admissible_observe` ほか |
 | notify mutation observers | `Dom.admissible_notifyMutationObservers` |
 | `setAttribute` / `setAttributeNS` / `removeAttribute` / `removeAttributeNS` / `toggleAttribute` | `Dom.admissible_setAttribute` ほか |
@@ -193,7 +194,26 @@ PRECEDING と FOLLOWING のどちらを返すかを実装に任せたうえで�
 逆から呼べば逆の答えになる。37 は `DISCONNECTED+IMPLEMENTATION_SPECIFIC+FOLLOWING`、
 35 は `+PRECEDING` である。
 
-## 12. oracle は自分の invariant を破らない
+## 12. event の配送は listener list しか変えない
+
+| 定理 | module |
+| --- | --- |
+| `Dom.listenersOnly_dispatchEvent` | `Dom/Validity/Events.lean` |
+| `Dom.admissible_dispatchEvent` | 同上 |
+
+```lean
+theorem listenersOnly_dispatchEvent {s s' : DOMState} {target : NodeId} {ty : String}
+    {b c r : Bool} {log : List Invocation}
+    (hd : dispatchEvent s target ty b c = .ok (s', r, log)) : ListenersOnly s s'
+```
+
+`ListenersOnly s s'` は `{ s with listeners := s'.listeners } = s'`、
+つまり「listener list 以外は同じ」である。配送は木も range も iterator も触らないので、
+admissibility の保存はここから出る。listener の callback は model の外だが、
+scenario が宣言した副作用（`ListenerAction`）は listener list しか変えないので、
+この定理はその範囲での主張である。
+
+## 13. oracle は自分の invariant を破らない
 
 | 定理 | module |
 | --- | --- |

@@ -74,6 +74,7 @@ module Compare
       "walkers" => state["walkers"] || [],
       "observers" => state["observers"] || [],
       "delivered" => state["delivered"] || [],
+      "invocations" => state["invocations"] || [],
       "returned" => normalize_returned(state["returned"])
     }
   end
@@ -104,6 +105,9 @@ module Compare
       na["observers"].zip(nb["observers"]).each_with_index do |(x, y), i|
         details << "  observer #{i}: lean=#{x.inspect} dommy=#{y.inspect}" if x != y
       end
+    end
+    if na["invocations"] != nb["invocations"]
+      details << "  invocations: lean=#{na['invocations'].inspect} dommy=#{nb['invocations'].inspect}"
     end
     if na["delivered"] != nb["delivered"]
       details << "  delivered: lean=#{na['delivered'].inspect} dommy=#{nb['delivered'].inspect}"

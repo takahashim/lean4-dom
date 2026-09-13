@@ -3,6 +3,7 @@ import Dom.Validity.Admissible
 import Dom.Validity.Normalize
 import Dom.Validity.RangeApi
 import Dom.Validity.Walkers
+import Dom.Validity.Events
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -152,6 +153,18 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | lookupNamespaceURI n p => exact admissible_requireNodes h hop
   | lookupPrefix n ns => exact admissible_requireNodes h hop
   | isDefaultNamespace n ns => exact admissible_requireNodes h hop
+  | addEventListener t ty src cap once => exact admissible_addEventListener h hop
+  | removeEventListener t ty cb cap => exact admissible_removeEventListener h hop
+  | dispatchEvent t ty b c =>
+    -- `applyOperation` は戻り値と log を捨てるので、`Except.map` を剥がす。
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · next res he =>
+      obtain ⟨s₁, r, log⟩ := res
+      have : s₁ = s' := by simpa using hop
+      subst this
+      exact admissible_dispatchEvent h he
   | setAttribute e qn v => exact admissible_setAttribute h hop
   | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
   | removeAttribute e qn => exact admissible_removeAttribute h hop

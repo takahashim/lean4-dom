@@ -238,6 +238,16 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "lookupPrefix" => return .lookupPrefix (← natField j "node") (← strField? j "namespace")
   | "isDefaultNamespace" =>
     return .isDefaultNamespace (← natField j "node") (← strField? j "namespace")
+  | "addEventListener" =>
+    return .addEventListener (← natField j "target") (← strField j "type" "")
+      (← natField j "source") ((← boolField? j "capture").getD false)
+      ((← boolField? j "once").getD false)
+  | "removeEventListener" =>
+    return .removeEventListener (← natField j "target") (← strField j "type" "")
+      (← natField j "callback") ((← boolField? j "capture").getD false)
+  | "dispatchEvent" =>
+    return .dispatchEvent (← natField j "target") (← strField j "type" "")
+      ((← boolField? j "bubbles").getD false) ((← boolField? j "cancelable").getD false)
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← strField j "name" "")
       (← strField j "value" "")
@@ -288,6 +298,39 @@ def walkerOfJson (j : Json) : Except String WalkerState := do
     | some v => v.getNat?
   return { root := ⟨root⟩, current := ⟨current⟩, whatToShow }
 
+/--
+listener の callback の代わりの副作用。
+
+文字列なら引数の無いもの、object なら `kind` と引数を読む。
+-/
+def listenerActionOfJson (j : Option Json) : Except String ListenerAction :=
+  match j with
+  | none => .ok .none
+  | some (Json.str "none") => .ok .none
+  | some (Json.str "stopPropagation") => .ok .stopPropagation
+  | some (Json.str "stopImmediatePropagation") => .ok .stopImmediatePropagation
+  | some (Json.str "preventDefault") => .ok .preventDefault
+  | some (Json.obj o) => do
+    let j := Json.obj o
+    let some (Json.str kind) := field? j "kind" | .error "action に `kind` がない"
+    match kind with
+    | "removeListener" => return .removeListener (← natField j "index")
+    | "addListener" =>
+      return .addListener (← natField j "target") (← strField j "type" "")
+        (← natField j "source") ((← boolField? j "capture").getD false)
+    | k => .error s!"知らない listener action: {k}"
+  | some _ => .error "action は文字列か object でなければならない"
+
+/-- scenario の listener。`callback` を省略すると宣言順の番号になる。 -/
+def listenerOfJson (j : Json) (index : Nat) : Except String EventListener := do
+  let action ← listenerActionOfJson (field? j "action")
+  return { target := ⟨← natField j "target"⟩
+           «type» := ← strField j "type" ""
+           callback := (← natField? j "callback").getD index
+           capture := (← boolField? j "capture").getD false
+           once := (← boolField? j "once").getD false
+           action := action }
+
 def rangeOfJson (j : Json) : Except String RangeState := do
   let some st := field? j "start" | .error "range に `start` がない"
   let some en := field? j "end" | .error "range に `end` がない"
@@ -324,6 +367,9 @@ def scenarioOfJson (j : Json) : Except String Scenario := do
   let walkersJson ← match field? j "walkers" with
     | none => pure #[]
     | some v => v.getArr?
+  let listenersJson ← match field? j "listeners" with
+    | none => pure #[]
+    | some v => v.getArr?
   let obsJson ← match field? j "observers" with
     | none => pure #[]
     | some v => v.getArr?
@@ -331,9 +377,10 @@ def scenarioOfJson (j : Json) : Except String Scenario := do
   let ranges ← rangesJson.toList.mapM rangeOfJson
   let iterators ← itersJson.toList.mapM iteratorOfJson
   let walkers ← walkersJson.toList.mapM walkerOfJson
+  let listeners ← listenersJson.toList.zipIdx.mapM fun (l, i) => listenerOfJson l i
   let observers ← obsJson.toList.mapM observerOfJson
   let operations ← opsJson.toList.mapM operationOfJson
-  return { nodes, ranges, iterators, walkers, observers, operations }
+  return { nodes, ranges, iterators, walkers, listeners, observers, operations }
 
 def scenarioOfString (s : String) : Except String Scenario := do
   scenarioOfJson (← Json.parse s)
@@ -394,6 +441,12 @@ def walkerJson (w : WalkerState) : Json :=
     [ ("root", natJson w.root.id)
     , ("current", natJson w.current.id)
     , ("whatToShow", natJson w.whatToShow) ]
+
+def invocationJson (v : Invocation) : Json :=
+  Json.mkObj
+    [ ("callback", natJson v.callback)
+    , ("currentTarget", natJson v.currentTarget.id)
+    , ("eventPhase", natJson v.eventPhase) ]
 
 def recordTypeName : RecordType → String
   | .attributes => "attributes"
@@ -457,6 +510,7 @@ def observationFields (o : Observation) : List (String × Json) :=
     , ("walkers", Json.arr (o.walkers.map walkerJson).toArray)
     , ("observers", Json.arr
         (o.records.map fun rs => Json.arr (rs.map recordJson).toArray).toArray)
+    , ("invocations", Json.arr (o.invocations.map invocationJson).toArray)
     , ("delivered", Json.arr (o.delivered.map fun p =>
         Json.mkObj [("observer", natJson p.1),
                     ("records", Json.arr (p.2.map recordJson).toArray)]).toArray) ]
@@ -470,7 +524,8 @@ def stateJson (s : DOMState) : Json :=
     p.1 ≠ "ok" && p.1 ≠ "returned")
 
 def stepJson : StepResult → Json
-  | .ok s delivered returned => observationJson (observe s .ok delivered returned)
+  | .ok s delivered returned invoked =>
+    observationJson (observe s .ok delivered returned invoked)
   | .failed before e => observationJson (observe before (.failed e))
 
 end Dom.Exec

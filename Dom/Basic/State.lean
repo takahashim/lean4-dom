@@ -59,6 +59,65 @@ structure WalkerState where
   whatToShow : Nat := 0xFFFFFFFF
 deriving DecidableEq, Repr, Inhabited
 
+/-! ## event listener（§2.7） -/
+
+/--
+listener の callback の代わりに置く、決まった副作用。
+
+callback そのものは model の外（`NodeFilter` と同じ）だが、
+**何をするか**を scenario が宣言しておけば、配送の順序と打ち切りは model で決まる。
+差分テストはそれを比べる。
+-/
+inductive ListenerAction where
+  | none
+  | stopPropagation
+  | stopImmediatePropagation
+  | preventDefault
+  /-- 配送中に `index` 番の listener を外す。 -/
+  | removeListener (index : Nat)
+  /--
+  配送中に listener を足す。callback は `source` 番の listener のものを使い回す。
+
+  仕様の "invoke" は listener list の **clone** を回すので、
+  ここで足したものはこの配送では呼ばれない。
+  -/
+  | addListener (target : Nat) («type» : String) (source : Nat) (capture : Bool)
+deriving DecidableEq, Repr, Inhabited
+
+/--
+DOM Standard §2.7 の event listener。
+
+仕様の listener list は EventTarget ごとだが、model では一本の list に `target` を持たせる。
+同じ target の中の順序（登録順）は保たれるので、"inner invoke" の意味は変わらない。
+
+`removed` は仕様のフラグである。"remove an event listener" は list から取り除きつつ
+このフラグを立てる。model は取り除かずにフラグだけ立てて、list の index を安定させる
+（配送中の clone が「外された listener」を飛ばす、という意味も同じになる）。
+-/
+structure EventListener where
+  target : NodeId
+  «type» : String
+  /-- callback object の代わりの番号。重複判定（add の step 5）に使う。 -/
+  callback : Nat
+  capture : Bool := false
+  once : Bool := false
+  action : ListenerAction := .none
+  removed : Bool := false
+deriving DecidableEq, Repr, Inhabited
+
+/--
+listener が呼ばれたことの記録。
+
+listener そのものではなく **callback の番号**で書く。
+配送中に listener を足したり外したりすると list の index は動くが、
+callback の番号は scenario が宣言したまま動かないので、差分テストで突き合わせられる。
+-/
+structure Invocation where
+  callback : Nat
+  currentTarget : NodeId
+  eventPhase : Nat
+deriving DecidableEq, Repr, Inhabited
+
 /-! ## MutationObserver -/
 
 /-- DOM Standard §4.3.1 の `MutationRecord` の type。 -/
@@ -151,6 +210,8 @@ structure DOMState where
   §6.2 の `TreeWalker`。木の変更に追随しないので、どの algorithm もこれを触らない。
   -/
   walkers : List WalkerState := []
+  /-- §2.7 の event listener。target ごとの list を一本にまとめたもの。 -/
+  listeners : List EventListener := []
   observers : List ObserverState := []
   registrations : List Registration := []
   /-- 仕様の agent の "mutation observer microtask queued"。 -/

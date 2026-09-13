@@ -99,6 +99,26 @@ roadmap §13.2 の対象外である。`insertNode` の step 7（start node が 
 同じ理由で対象外で、model は `__outsideModel__` を返す
 （`range-insert-node-into-text-is-outside-model`）。
 
+## §2.7 EventTarget / §2.9 event の配送
+
+callback は model の外だが、**何をするか**は scenario が `ListenerAction` として宣言する。
+そうすると「どの listener がどの順で呼ばれたか」が model で決まるので、
+差分テストはその列（`invocations`）を比べる。
+
+shadow tree が無いので retargeting も composed path も要らず、event path は
+target から根までの祖先列そのものである。`Window` が無いので Document の
+"get the parent" は null、activation behavior（`click` の既定動作）は HTML 側の hook なので
+扱わない。`isTrusted` は常に false なので legacy な type の付け替えも起きない。
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| dispatch | 1-5, 12-13, 14-18 | `dispatchEvent`, `eventPath`, `runPass` | `admissible_dispatchEvent`, `listenersOnly_dispatchEvent` | `event-dispatch-phases`, `event-dispatch-at-character-data-target` | `test_wpt_event_dispatch.rb` | 済（shadow / activation は対象外） |
+| invoke | 1-9 | `invokeItem` | 同上 | `event-listener-flags` | 同上 | 済 |
+| inner invoke | 1-3 | `innerInvoke`, `invokeOne` | 同上 | 同上 | 同上 | 済 |
+| add an event listener / `addEventListener` | add 5 | `addListener`, `addEventListener` | `admissible_addEventListener` | `event-listener-add-and-remove` | 同上 | 済（`signal` / `passive` は対象外） |
+| remove an event listener / `removeEventListener` | remove 2 | `removeListenerAt`, `removeEventListener` | `admissible_removeEventListener` | 同上 | 同上 | 済 |
+| `stopPropagation` / `stopImmediatePropagation` / `preventDefault` | — | `runAction` | 同上 | `event-listener-flags` | 同上 | 済 |
+
 ## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.5 stringifier
 
 木も live object も変えないので、差分テストでは戻り値だけを比べる。

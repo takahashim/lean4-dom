@@ -32,6 +32,7 @@ module Generate
            getTextContent getNodeValue substringData
            getAttribute hasAttribute getAttributeNames
            lookupNamespaceURI lookupPrefix isDefaultNamespace
+           dispatchEvent addEventListener removeEventListener
            walkerParentNode walkerFirstChild walkerLastChild
            walkerPreviousSibling walkerNextSibling walkerPreviousNode walkerNextNode
            replaceData appendData insertData deleteData setData
@@ -42,10 +43,18 @@ module Generate
   #   Node        すべての node
   #   ParentNode  Document / DocumentFragment / Element
   #   ChildNode   DocumentType / Element / CharacterData
+  # event の操作。受け手は EventTarget（= どの node でもよい）。
+  EVENT_OPS = %w[dispatchEvent addEventListener removeEventListener].freeze
+
+  # 生成する event の type。少なくしておくと listener と当たりやすい。
+  EVENT_TYPES = %w[a b].freeze
+
   NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize
                 compareDocumentPosition nodeContains getRootNode isEqualNode
                 getTextContent getNodeValue
-                lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
+                dispatchEvent addEventListener removeEventListener
+                lookupNamespaceURI lookupPrefix isDefaultNamespace
+           dispatchEvent addEventListener removeEventListener].freeze
   PARENT_NODE_OPS = %w[replaceChildren moveBefore].freeze
   CHILD_NODE_OPS = %w[before after replaceWith remove].freeze
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData
@@ -198,7 +207,7 @@ module Generate
   end
 
   def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0, range_count = 0,
-                       walker_count = 0)
+                       walker_count = 0, listener_count = 0)
     op = ops.sample(random: rng)
     if ITERATOR_OPS.include?(op)
       return nil if iterator_count.zero?
@@ -269,6 +278,20 @@ module Generate
     when "getAttribute", "hasAttribute"
       { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng) }
     when "getAttributeNames" then { "op" => op, "element" => pick.call }
+    when "dispatchEvent"
+      { "op" => op, "target" => pick.call, "type" => EVENT_TYPES.sample(random: rng),
+        "bubbles" => rng.rand < 0.6, "cancelable" => rng.rand < 0.5 }
+    when "addEventListener"
+      return nil if listener_count.zero?
+
+      { "op" => op, "target" => pick.call, "type" => EVENT_TYPES.sample(random: rng),
+        "source" => rng.rand(listener_count), "capture" => rng.rand < 0.4,
+        "once" => rng.rand < 0.3 }
+    when "removeEventListener"
+      return nil if listener_count.zero?
+
+      { "op" => op, "target" => pick.call, "type" => EVENT_TYPES.sample(random: rng),
+        "callback" => rng.rand(listener_count), "capture" => rng.rand < 0.4 }
     when "lookupNamespaceURI"
       { "op" => op, "node" => pick.call,
         "prefix" => [nil, "", "p", "xml", "xmlns", "q"].sample(random: rng) }
@@ -323,7 +346,6 @@ module Generate
     [ns, "#{%w[p xml xmlns].sample(random: rng)}:#{local}"]
   end
 
-  # 操作の受け手（method を呼ぶ相手）の id。
   # 受け手（method を呼ぶ相手）の id。§4.4 の query は `node` を受け手に取る。
   NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
                          getTextContent getNodeValue
@@ -480,6 +502,32 @@ module Generate
   SHOW_COMMENT = 0x80
   SHOW_DOCUMENT = 0x100
 
+  # event listener を宣言する。
+  #
+  # callback の副作用は scenario が決める（model には callback が無い）。
+  # `removeListener` と `addListener` は他の宣言を指すので、index が範囲に入るように作る。
+  def random_listeners(rng, nodes, count)
+    return [] if count.zero? || nodes.empty?
+
+    Array.new(count) do |i|
+      spec = nodes.sample(random: rng)
+      listener = { "target" => spec["id"], "type" => EVENT_TYPES.sample(random: rng),
+                   "capture" => rng.rand < 0.4, "once" => rng.rand < 0.25 }
+      action =
+        case rng.rand(10)
+        when 0 then "stopPropagation"
+        when 1 then "stopImmediatePropagation"
+        when 2 then "preventDefault"
+        when 3 then { "kind" => "removeListener", "index" => rng.rand(count) }
+        when 4
+          { "kind" => "addListener", "target" => nodes.sample(random: rng)["id"],
+            "type" => EVENT_TYPES.sample(random: rng), "source" => rng.rand(count),
+            "capture" => rng.rand < 0.4 }
+        end
+      action ? listener.merge("action" => action) : listener
+    end
+  end
+
   # TreeWalker を作る。current は `createTreeWalker` と同じく root から始める。
   def random_walkers(rng, nodes, count)
     return [] if count.zero? || nodes.empty?
@@ -550,7 +598,8 @@ module Generate
   # `allow` は `(op, receiver_kind) -> Boolean`。
   # Dommy が実装していない (kind, op) の組を避けたいときに渡す。
   def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0,
-               range_count: 2, iterator_count: 1, observer_count: 0, walker_count: 0)
+               range_count: 2, iterator_count: 1, observer_count: 0, walker_count: 0,
+               listener_count: 0)
     nodes = build_tree(rng, node_count, doctype_prob: doctype_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
@@ -559,8 +608,13 @@ module Generate
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
       op = random_operation(rng, ids, ops, iterator_count, observer_count, range_count,
-                            walker_count)
+                            walker_count, listener_count)
       next if op.nil?
+      if EVENT_OPS.include?(op["op"])
+        # 受け手は EventTarget なので kind の絞り込みは要らない。
+        operations << op
+        next
+      end
       if WALKER_OPS.include?(op["op"])
         # 受け手は walker なので kind の絞り込みは要らない。
         operations << op
@@ -590,6 +644,7 @@ module Generate
     { "nodes" => nodes, "ranges" => random_ranges(rng, nodes, range_count),
       "iterators" => random_iterators(rng, nodes, iterator_count),
       "walkers" => random_walkers(rng, nodes, walker_count),
+      "listeners" => random_listeners(rng, nodes, listener_count),
       "observers" => random_observers(rng, nodes, observer_count),
       "operations" => operations }
   end
@@ -598,7 +653,7 @@ end
 if $PROGRAM_NAME == __FILE__
   require "optparse"
   opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0,
-           ranges: 2, iterators: 1, observers: 0, walkers: 1 }
+           ranges: 2, iterators: 1, observers: 0, walkers: 1, listeners: 0 }
   OptionParser.new do |o|
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
     o.on("--nodes N", Integer) { |v| opts[:nodes] = v }
@@ -609,6 +664,7 @@ if $PROGRAM_NAME == __FILE__
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
     o.on("--observers N", Integer) { |v| opts[:observers] = v }
     o.on("--walkers N", Integer) { |v| opts[:walkers] = v }
+    o.on("--listeners N", Integer) { |v| opts[:listeners] = v }
   end.parse!
   ops = opts[:move] ? Generate::OPS + ["moveBefore"] : Generate::OPS
   rng = Random.new(opts[:seed])
@@ -616,6 +672,6 @@ if $PROGRAM_NAME == __FILE__
     Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops], ops: ops,
                            doctype_prob: opts[:doctype], range_count: opts[:ranges],
                            iterator_count: opts[:iterators], observer_count: opts[:observers],
-                           walker_count: opts[:walkers])
+                           walker_count: opts[:walkers], listener_count: opts[:listeners])
   )
 end

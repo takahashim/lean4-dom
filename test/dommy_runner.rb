@@ -45,6 +45,9 @@ module DommyRunner
     "removeAttribute" => :remove_attribute,
     "removeAttributeNS" => :remove_attribute_ns,
     "toggleAttribute" => :toggle_attribute,
+    "dispatchEvent" => :dispatch_event,
+    "addEventListener" => :add_event_listener,
+    "removeEventListener" => :remove_event_listener,
     "normalize" => :normalize
   }.freeze
 
@@ -226,6 +229,8 @@ module DommyRunner
       { "kind" => "boolean", "value" => !!returned }
     when "rangeCompareBoundaryPoints", "rangeComparePoint", "compareDocumentPosition"
       { "kind" => "number", "value" => returned.to_i }
+    when "dispatchEvent"
+      { "kind" => "boolean", "value" => !!returned }
     when "nodeContains", "isEqualNode", "hasAttribute", "isDefaultNamespace"
       { "kind" => "boolean", "value" => !!returned }
     when "getTextContent", "getNodeValue", "substringData", "getAttribute", "rangeToString",
@@ -366,6 +371,66 @@ module DommyRunner
     return node.respond_to?(:__js_get__) if QUERY_GETTERS.include?(op)
 
     js_method?(node, name)
+  end
+
+  # scenario の event listener を Dommy の listener として登録する。
+  #
+  # callback そのものは model の外なので、scenario が宣言した「決まった副作用」を
+  # 行う lambda を作る。呼ばれたことは `log` に積み、差分テストはその列を比べる。
+  # callback object の同一性（add の重複判定と removeEventListener が使う）は
+  # 宣言ごとに一つの lambda を使い回すことで model の callback 番号と対応させる。
+  def build_listeners(objects, specs, log)
+    specs = specs || []
+    callbacks = []
+    specs.each_with_index do |spec, i|
+      callback_id = spec["callback"] || i
+      callbacks[i] = make_listener_callback(objects, callbacks, specs, spec, callback_id, log)
+    end
+    specs.each_with_index do |spec, i|
+      target = objects[spec["target"]]
+      raise NotImplementedError, "missing listener target" if target.nil?
+
+      target.add_event_listener(spec["type"].to_s, callbacks[i],
+                                { "capture" => !!spec["capture"], "once" => !!spec["once"] })
+    end
+    callbacks
+  end
+
+  def make_listener_callback(objects, callbacks, specs, spec, callback_id, log)
+    action = spec["action"]
+    lambda do |event|
+      log << { "callback" => callback_id,
+               "currentTarget" => node_id(objects, event.__js_get__("currentTarget")),
+               "eventPhase" => event.__js_get__("eventPhase") }
+      begin
+        run_listener_action(objects, callbacks, specs, action, event)
+      rescue StandardError => e
+        # Dommy は listener の例外を握り潰すので、握り潰される前に印を残す。
+        # 残しておけば差分として出るので、runner の不具合を見落とさない。
+        log << { "callback" => callback_id, "error" => "#{e.class}: #{e.message}" }
+      end
+      nil
+    end
+  end
+
+  def run_listener_action(objects, callbacks, specs, action, event)
+    kind = action.is_a?(Hash) ? action["kind"] : action
+    case kind
+    when nil, "none" then nil
+    when "stopPropagation" then event.__js_call__("stopPropagation", [])
+    when "stopImmediatePropagation" then event.__js_call__("stopImmediatePropagation", [])
+    when "preventDefault" then event.__js_call__("preventDefault", [])
+    when "removeListener"
+      i = action["index"]
+      spec = specs[i] or raise NotImplementedError, "listener index"
+      objects[spec["target"]].remove_event_listener(spec["type"].to_s, callbacks[i],
+                                                    { "capture" => !!spec["capture"] })
+    when "addListener"
+      source = callbacks[action["source"]] or raise NotImplementedError, "listener index"
+      objects[action["target"]].add_event_listener(action["type"].to_s, source,
+                                                   { "capture" => !!action["capture"] })
+    else raise NotImplementedError, "listener action #{kind}"
+    end
   end
 
   # scenario の TreeWalker を Dommy の TreeWalker として作る。
@@ -577,6 +642,33 @@ module DommyRunner
       return run_microtask_checkpoint(ctx[:documents] || {})
     end
 
+    case op["op"]
+    when "dispatchEvent"
+      target = objects[op["target"]]
+      raise NotImplementedError, "missing node" if target.nil?
+
+      event = Dommy::Event.new(op["type"].to_s,
+                               { "bubbles" => !!op["bubbles"], "cancelable" => !!op["cancelable"] })
+      return target.dispatch_event(event)
+    when "addEventListener"
+      target = objects[op["target"]]
+      raise NotImplementedError, "missing node" if target.nil?
+
+      cb = (ctx[:callbacks] || [])[op["source"]]
+      raise NotImplementedError, "listener index" if cb.nil?
+
+      return target.add_event_listener(op["type"].to_s, cb,
+                                       { "capture" => !!op["capture"], "once" => !!op["once"] })
+    when "removeEventListener"
+      target = objects[op["target"]]
+      raise NotImplementedError, "missing node" if target.nil?
+
+      cb = (ctx[:callbacks] || [])[op["callback"]]
+      raise NotImplementedError, "listener index" if cb.nil?
+
+      return target.remove_event_listener(op["type"].to_s, cb, { "capture" => !!op["capture"] })
+    end
+
     if QUERY_OPS.include?(op["op"])
       receiver = objects[op.key?("element") ? op["element"] : op["node"]]
       raise NotImplementedError, "missing node" if receiver.nil?
@@ -734,15 +826,19 @@ module DommyRunner
     ranges = build_ranges(objects, builder.documents, scenario["ranges"])
     iterators = build_iterators(objects, builder.documents, scenario["iterators"])
     walkers = build_walkers(objects, builder.documents, scenario["walkers"])
+    invocation_log = []
+    callbacks = build_listeners(objects, scenario["listeners"], invocation_log)
     observers, delivery_log = build_observers(objects, builder.documents, scenario["observers"])
     ctx = { objects: objects, kinds: kinds, ranges: ranges, iterators: iterators,
-            walkers: walkers, observers: observers, documents: builder.documents }
+            walkers: walkers, observers: observers, documents: builder.documents,
+            callbacks: callbacks }
     initial = snapshot(objects, kinds, ranges, iterators,
                        observers.empty? ? nil : queued_records(objects, observers), walkers)
                 .merge("delivered" => [])
     steps = []
     (scenario["operations"] || []).each do |op|
       delivery_log.clear
+      invocation_log.clear
       begin
         returned = apply(objects, op, iterators, ctx)
       rescue NotImplementedError, NoMethodError => e
@@ -757,12 +853,14 @@ module DommyRunner
         recs = observers.empty? ? nil : queued_records(objects, observers)
         steps << snapshot(objects, kinds, ranges, iterators, recs, walkers)
                  .merge("ok" => false, "exception" => exception_name(e),
-                        "delivered" => delivered_snapshot(delivery_log))
+                        "delivered" => delivered_snapshot(delivery_log),
+                        "invocations" => invocation_log.dup)
         break
       end
       recs = observers.empty? ? nil : queued_records(objects, observers)
       steps << snapshot(objects, kinds, ranges, iterators, recs, walkers)
                .merge("ok" => true, "delivered" => delivered_snapshot(delivery_log),
+                      "invocations" => invocation_log.dup,
                       "returned" => return_value_snapshot(objects, op, returned))
     end
     { "initial" => initial, "steps" => steps }

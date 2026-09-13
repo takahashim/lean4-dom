@@ -4,6 +4,7 @@ import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.Traversal.TreeWalker
 import Dom.Query.NodeQuery
+import Dom.Event.Dispatch
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
 import Dom.Observer.Deliver
@@ -108,6 +109,10 @@ inductive Operation where
   | lookupNamespaceURI (node : Nat) («prefix» : Option String)
   | lookupPrefix (node : Nat) («namespace» : Option String)
   | isDefaultNamespace (node : Nat) («namespace» : Option String)
+  /-- §2.7 `addEventListener` / `removeEventListener`、§2.9 `dispatchEvent`。 -/
+  | addEventListener (target : Nat) («type» : String) (source : Nat) (capture once : Bool)
+  | removeEventListener (target : Nat) («type» : String) (callback : Nat) (capture : Bool)
+  | dispatchEvent (target : Nat) («type» : String) (bubbles cancelable : Bool)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
   /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/
@@ -157,6 +162,7 @@ structure Scenario where
   ranges : List RangeState := []
   iterators : List IteratorState := []
   walkers : List WalkerState := []
+  listeners : List EventListener := []
   observers : List ObserverSpec := []
   operations : List Operation
 deriving Repr
@@ -169,6 +175,7 @@ Dommy は木をその場で書き換えるので、失敗した操作が状態�
 -/
 inductive StepResult where
   | ok (s : DOMState) (delivered : List (Nat × List MutationRecord)) (returned : ReturnValue)
+      (invocations : List Invocation)
   | failed (before : DOMState) (e : DOMException)
 
 end Dom.Exec
