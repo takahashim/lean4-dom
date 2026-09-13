@@ -602,6 +602,7 @@ Windows drive letter は、証明を書いていて足りないことに気づ�
 | `ipv4Parser_serializer` | **IPv4 アドレスは serialize して parse し直すと元に戻る**（`Url/Ipv4Roundtrip.lean`） |
 | `hostParser_ipv4`, `hostParser_opaque_id`, `hostParser_domain_id` | **host も戻る**（IPv4 / opaque / domain。`canonicalUrl` の host の条件そのもの。`Url/HostRoundtrip.lean`） |
 | `ipv6Parser_serializer_nocompress` | **圧縮しない IPv6 address も戻る**（`::` が出ない address。`Url/Ipv6Roundtrip.lean`） |
+| `ipv6CompressIndex_run` | **圧縮する位置は長さ 2 以上の 0 の並びの先頭である**（8 piece の 0 かどうかで 256 通りに割って畳み込みを計算する） |
 | `hostReadable_of_canonical` | canonical な host は serialize した文字列を host state が読み直せる（host の種類ごとに根拠が違う） |
 | `ipv4Serializer_chars`, `utf8PercentEncode_out` | IPv4 は 10 進と `.`、opaque host は percent-encode 済みなので C0 control が無い |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
@@ -650,8 +651,10 @@ query と fragment は四つの経路のどれからも同じ `run_query_full` �
 その一部である host の条件（`hostParser (hostSerializer h) = some h`）は、
 `Url/HostRoundtrip.lean` で IPv4・opaque host・domain の三つが済んだ。残りは IPv6 で、
 `Url/Ipv6Roundtrip.lean` に圧縮しない場合（`::` が出ない address）まで入れてある。
-`::` が出る場合は `ipv6CompressIndex` が選ぶ 0 の並びと `ipv6Expand` の
-自然数演算（`take` / `drop` / `replicate`）を通す必要があり、まだ入れていない。
+`::` が出る場合は、`ipv6CompressIndex_run`（圧縮位置は長さ 2 以上の 0 の並びの先頭）と
+serialize の形（`ipv6Serializer_go_seg` ほか三つ）まで来ている。残りは parser の側で、
+piece の列をまとめて読む補題と `::` の一歩、それに `ipv6Expand` の算術
+（`take` / `drop` / `replicate`）である。
 
 host を serialize した文字列が host state を読み直せることは、host の種類ごとに根拠が違う。
 domain は `asciiDomainToASCII_no_forbidden`、opaque host は `opaqueHostParser_no_forbidden` と

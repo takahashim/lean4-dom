@@ -17,8 +17,9 @@ import Url.Ipv6
 * **serialize の形**（`ipv6Serializer_go_nocompress`）。圧縮が無いので
   `ignore0` は `false` のままで、piece と `:` が交互に並ぶ。
 
-圧縮する場合（`::`）は、`ipv6CompressIndex` が選ぶ 0 の並びと `ipv6Expand` の
-自然数演算が要るので、まだ入れていない。
+圧縮する場合（`::`）は、`ipv6CompressIndex` が選ぶ 0 の並び（`ipv6CompressIndex_run`）と
+serialize の形（`ipv6Serializer_go_seg` ほか三つ）まで来ている。残りは parser の側で、
+piece の列をまとめて読む補題と `::` の一歩、それに `ipv6Expand` の算術である。
 -/
 
 namespace Url
@@ -370,6 +371,91 @@ theorem ipv6Parser_serializer_nocompress {a : Ipv6}
     rw [ipv6Loop_piece hp6 3 2 rfl _ _ _ _ (by decide) (toHexString_ne_nil p7)]
     rw [ipv6Loop_last hp7 2 1 rfl _ _ _ (by decide)]
     rfl
+
+/-! ## 圧縮する場合
+
+`::` が出る場合の足場。serialize の側は四つの補題で形が決まる。
+parser の側（piece の列をまとめて読む補題と `::` の一歩、`ipv6Expand` の算術）は
+まだ入れていない。
+-/
+
+/--
+**圧縮する位置は、長さ 2 以上の 0 の並びの先頭である。**
+
+`ipv6CompressIndex` の畳み込みは `longestSize` を 1 から始めるので、
+返ってくるのは長さ 2 以上の並びだけである。
+-/
+theorem ipv6CompressIndex_run {p0 p1 p2 p3 p4 p5 p6 p7 c : Nat}
+    (hc : ipv6CompressIndex [p0, p1, p2, p3, p4, p5, p6, p7] = some c) :
+    c + 1 < 8 ∧ [p0, p1, p2, p3, p4, p5, p6, p7].getD c 0 = 0
+      ∧ [p0, p1, p2, p3, p4, p5, p6, p7].getD (c + 1) 0 = 0 := by
+  by_cases h0 : p0 = 0 <;> by_cases h1 : p1 = 0 <;> by_cases h2 : p2 = 0 <;>
+    by_cases h3 : p3 = 0 <;> by_cases h4 : p4 = 0 <;> by_cases h5 : p5 = 0 <;>
+    by_cases h6 : p6 = 0 <;> by_cases h7 : p7 = 0 <;>
+    simp [ipv6CompressIndex, List.zipIdx, h0, h1, h2, h3, h4, h5, h6, h7] at hc ⊢ <;>
+    (subst hc; simp_all)
+
+/-- 圧縮の位置でない piece は、そのまま並ぶ。 -/
+theorem ipv6Serializer_go_seg : ∀ (l rest : List (Nat × Nat)) (c : Nat), (∀ pi ∈ l, ¬pi.2 = c) →
+    (ipv6Serializer.go (some c) (l ++ rest) false).toList
+      = l.flatMap (fun pi => (toHexString pi.1).toList ++ (if pi.2 = 7 then [] else [':']))
+        ++ (ipv6Serializer.go (some c) rest false).toList := by
+  intro l
+  induction l with
+  | nil => intro rest c _; simp
+  | cons pi t ih =>
+    obtain ⟨p, i⟩ := pi
+    intro rest c h
+    rw [List.cons_append, ipv6Serializer.go]
+    simp only [Bool.false_and, Bool.false_eq_true, if_false]
+    rw [if_neg (by
+      simp only [beq_iff_eq, Option.some.injEq]
+      exact fun hx => h (p, i) (by simp) hx.symm)]
+    rw [String.toList_append, String.toList_append]
+    rw [ih rest c (fun x hx => h x (by simp [hx]))]
+    simp only [List.flatMap_cons, List.append_assoc]
+    congr 2
+    split <;> simp_all
+
+/-- 圧縮の位置。`::` か `:` を書いて、以後の 0 を飛ばす。 -/
+theorem ipv6Serializer_go_at (c p : Nat) (rest : List (Nat × Nat)) :
+    (ipv6Serializer.go (some c) ((p, c) :: rest) false).toList
+      = (if c = 0 then [':', ':'] else [':']) ++ (ipv6Serializer.go (some c) rest true).toList := by
+  rw [ipv6Serializer.go]
+  simp only [Bool.false_and, Bool.false_eq_true, if_false]
+  rw [if_pos (by simp)]
+  rw [String.toList_append]
+  congr 1
+  split <;> simp_all
+
+/-- 圧縮の後ろの 0 は飛ばされる。 -/
+theorem ipv6Serializer_go_skip : ∀ (mid rest : List (Nat × Nat)) (c : Nat),
+    (∀ pi ∈ mid, pi.1 = 0) →
+    (ipv6Serializer.go (some c) (mid ++ rest) true).toList
+      = (ipv6Serializer.go (some c) rest true).toList := by
+  intro mid
+  induction mid with
+  | nil => intro rest c _; simp
+  | cons pi t ih =>
+    obtain ⟨p, i⟩ := pi
+    intro rest c h
+    rw [List.cons_append, ipv6Serializer.go]
+    rw [if_pos (by simp only [Bool.and_eq_true, beq_iff_eq]
+                   exact ⟨trivial, h (p, i) (by simp)⟩)]
+    exact ih rest c (fun x hx => h x (by simp [hx]))
+
+/-- 0 の並びが切れたところ。以後は `ignore0` が `false` に戻る。 -/
+theorem ipv6Serializer_go_resume (c p i : Nat) (rest : List (Nat × Nat)) (hp : ¬p = 0)
+    (hi : ¬i = c) :
+    (ipv6Serializer.go (some c) ((p, i) :: rest) true).toList
+      = (toHexString p).toList ++ (if i = 7 then [] else [':'])
+        ++ (ipv6Serializer.go (some c) rest false).toList := by
+  rw [ipv6Serializer.go]
+  rw [if_neg (by simp [hp])]
+  rw [if_neg (by simp only [beq_iff_eq, Option.some.injEq]; exact fun hx => hi hx.symm)]
+  rw [String.toList_append, String.toList_append]
+  congr 2
+  split <;> simp_all
 
 /-- 圧縮の無い address の例。`2001:db8:1:2:3:4:5:6` は実際にこの形である。 -/
 example : ipv6Parser (ipv6Serializer [0x2001, 0xdb8, 1, 2, 3, 4, 5, 6]).toList

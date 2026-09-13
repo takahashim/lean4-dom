@@ -581,6 +581,11 @@ open Dom.Audit
   Url.ipv6Loop_last
   Url.ipv6Serializer_go_nocompress
   Url.ipv6Parser_serializer_nocompress
+  Url.ipv6CompressIndex_run
+  Url.ipv6Serializer_go_seg
+  Url.ipv6Serializer_go_at
+  Url.ipv6Serializer_go_skip
+  Url.ipv6Serializer_go_resume
 
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms
