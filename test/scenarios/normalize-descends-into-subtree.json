@@ -1,0 +1,76 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "normalize"
+    ],
+    "steps": "normalize 1",
+    "note": "対象は descendant すべてなので、子 element の中の Text も畳む。Comment を挟むと run が切れる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "x"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 2,
+      "data": "y"
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 1,
+      "data": "p"
+    },
+    {
+      "id": 6,
+      "kind": "comment",
+      "parent": 1,
+      "data": "q"
+    },
+    {
+      "id": 7,
+      "kind": "text",
+      "parent": 1,
+      "data": "r"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "childList": true,
+      "characterData": true,
+      "subtree": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "normalize",
+      "target": 1
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

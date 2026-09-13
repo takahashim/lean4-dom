@@ -1,5 +1,6 @@
 import Dom.Exec.Types
 import Dom.Validity.State
+import Dom.CharacterData.Normalize
 
 /-!
 # 操作列の評価
@@ -178,6 +179,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .remove _ => .unit
   | .moveBefore _ _ _ => .unit
   | .replaceData _ _ _ _ => .unit
+  | .normalize _ => .unit
   | .appendData _ _ => .unit
   | .insertData _ _ _ => .unit
   | .deleteData _ _ _ => .unit
@@ -223,6 +225,7 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .insertData n o d => insertData s ⟨n⟩ o d
   | .deleteData n o c => deleteData s ⟨n⟩ o c
   | .setData n d => setData s ⟨n⟩ d
+  | .normalize tgt => normalize s ⟨tgt⟩
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn

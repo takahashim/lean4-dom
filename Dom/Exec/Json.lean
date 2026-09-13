@@ -179,6 +179,7 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "deleteData" =>
     return .deleteData (← natField j "node") (← natField j "offset") (← natField j "count")
   | "setData" => return .setData (← natField j "node") (← strField j "data" "")
+  | "normalize" => return .normalize (← natField j "target")
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← strField j "name" "")
       (← strField j "value" "")

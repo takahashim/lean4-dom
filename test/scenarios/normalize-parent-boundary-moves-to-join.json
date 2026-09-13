@@ -1,0 +1,59 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "normalize"
+    ],
+    "steps": "normalize 6.3-6.4",
+    "note": "parent の中で、畳まれる兄弟の位置を指していた boundary point は survivor の継ぎ目へ移る。remove の pre-remove steps より前に渡すのがその効果である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 1,
+      "data": "cd"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 1,
+        "offset": 1
+      },
+      "end": {
+        "node": 1,
+        "offset": 2
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "normalize",
+      "target": 1
+    }
+  ]
+}

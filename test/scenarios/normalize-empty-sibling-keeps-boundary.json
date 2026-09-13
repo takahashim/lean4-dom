@@ -1,0 +1,71 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "normalize"
+    ],
+    "steps": "normalize 3-7",
+    "note": "run の途中にある空の Text は data を変えないので characterData record を積まない。boundary point は継ぎ目へ渡す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 1,
+      "data": ""
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 1,
+      "data": "cd"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 0
+      },
+      "end": {
+        "node": 4,
+        "offset": 2
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "childList": true,
+      "characterData": true,
+      "subtree": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "normalize",
+      "target": 1
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

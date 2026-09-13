@@ -44,7 +44,8 @@ module DommyRunner
     "setAttributeNS" => :set_attribute_ns,
     "removeAttribute" => :remove_attribute,
     "removeAttributeNS" => :remove_attribute_ns,
-    "toggleAttribute" => :toggle_attribute
+    "toggleAttribute" => :toggle_attribute,
+    "normalize" => :normalize
   }.freeze
 
   # 受け手が `node` である操作（CharacterData の method）。
@@ -532,6 +533,8 @@ module DommyRunner
       receiver.public_send(method, o[op["node"]])
     when "remove"
       receiver.remove
+    when "normalize"
+      receiver.normalize
     when "moveBefore"
       raise NotImplementedError, "missing node" if o[op["node"]].nil?
       raise NotImplementedError, "missing child" if op["child"] && o[op["child"]].nil?

@@ -62,6 +62,8 @@ inductive Operation where
   | insertData (node : Nat) (offset : Nat) (data : String)
   | deleteData (node : Nat) (offset count : Nat)
   | setData (node : Nat) (data : String)
+  /-- `Node.normalize()`。 -/
+  | normalize (target : Nat)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
   /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/

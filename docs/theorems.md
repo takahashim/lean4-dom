@@ -48,6 +48,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
 | `before` / `after` / `replaceWith` / `remove` | `Dom.admissible_before` ほか |
 | `moveBefore` | `Dom.admissible_moveBefore` |
 | `appendData` / `insertData` / `deleteData` / `setData` | `Dom.admissible_appendData` ほか |
+| `normalize` | `Dom.admissible_normalize` |
 | `MutationObserver.observe` / `disconnect` / `takeRecords` | `Dom.admissible_observe` ほか |
 | notify mutation observers | `Dom.admissible_notifyMutationObservers` |
 | `setAttribute` / `setAttributeNS` / `removeAttribute` / `removeAttributeNS` / `toggleAttribute` | `Dom.admissible_setAttribute` ほか |

@@ -1,0 +1,43 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "normalize"
+    ],
+    "steps": "normalize 1",
+    "note": "normalize() は Node の method なので Text でも呼べる。descendant が無いので何も起きない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 1,
+      "data": "cd"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "normalize",
+      "target": 2
+    }
+  ]
+}

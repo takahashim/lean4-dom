@@ -1,0 +1,66 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "normalize"
+    ],
+    "steps": "normalize 3-7",
+    "note": "四つの Text の run。仕様を字義どおり読むと characterData は一つだが、engine は兄弟ごとに積む（Dommy issue #24）。model は engine に合わせる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "a"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 1,
+      "data": "b"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 1,
+      "data": "c"
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 1,
+      "data": "d"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "childList": true,
+      "characterData": true,
+      "subtree": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "normalize",
+      "target": 1
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

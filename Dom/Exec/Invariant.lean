@@ -1,5 +1,6 @@
 import Dom.Exec.Eval
 import Dom.Validity.Admissible
+import Dom.Validity.Normalize
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -72,6 +73,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | insertData n o d => exact admissible_insertData h hop
   | deleteData n o c => exact admissible_deleteData h hop
   | setData n d => exact admissible_setData h hop
+  | normalize tgt => exact admissible_normalize h hop
   | setAttribute e qn v => exact admissible_setAttribute h hop
   | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
   | removeAttribute e qn => exact admissible_removeAttribute h hop

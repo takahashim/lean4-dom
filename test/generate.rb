@@ -22,7 +22,7 @@ module Generate
 
   # `moveBefore` は Dommy が未実装なので、既定では生成しない。
   OPS = %w[appendChild insertBefore replaceChild removeChild replaceChildren
-           before after replaceWith remove
+           before after replaceWith remove normalize
            replaceData appendData insertData deleteData setData
            setAttribute setAttributeNS removeAttribute removeAttributeNS
            toggleAttribute].freeze
@@ -31,7 +31,7 @@ module Generate
   #   Node        すべての node
   #   ParentNode  Document / DocumentFragment / Element
   #   ChildNode   DocumentType / Element / CharacterData
-  NODE_OPS = %w[appendChild insertBefore replaceChild removeChild].freeze
+  NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize].freeze
   PARENT_NODE_OPS = %w[replaceChildren moveBefore].freeze
   CHILD_NODE_OPS = %w[before after replaceWith remove].freeze
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
@@ -221,6 +221,7 @@ module Generate
     when "before", "after", "replaceWith"
       { "op" => op, "target" => pick.call, "node" => maybe.call }
     when "remove" then { "op" => op, "target" => pick.call }
+    when "normalize" then { "op" => op, "target" => pick.call }
     when "replaceData"
       { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4),
         "data" => ["x", "yz", "abc", ASTRAL][rng.rand(4)] }

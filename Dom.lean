@@ -16,6 +16,7 @@ import Dom.Traversal.NodeIterator
 import Dom.Observer.Record
 import Dom.Observer.Deliver
 import Dom.CharacterData.ReplaceData
+import Dom.CharacterData.Normalize
 import Dom.Attribute.Name
 import Dom.Attribute.Algorithms
 import Dom.Mutation.Algorithms
@@ -39,6 +40,7 @@ import Dom.Validity.Iterators
 import Dom.Validity.Observers
 import Dom.Validity.Attributes
 import Dom.Validity.Admissible
+import Dom.Validity.Normalize
 import Dom.Properties.Contract
 import Dom.Properties.Counterexample
 import Dom.Observation

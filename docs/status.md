@@ -1961,8 +1961,71 @@ wrapper が作り直されたら不一致になるべきである
 collection の端で null を返す `nextNode()`、
 空にする前後の `takeRecords()`、`undefined` との区別を通す。
 
+## `Node.normalize()`（§4.4）
+
+Dommy が実装しているのに oracle の無かった algorithm の一つ。
+model（`Dom/CharacterData/Normalize.lean`）と保存の証明
+（`Dom/Validity/Normalize.lean`）を置き、`Operation.normalize` として
+差分テストに載せた。
+
+### 算法
+
+descendant の exclusive Text node を tree order で辿り、
+長さ 0 のものを外し（step 2）、続く exclusive Text の兄弟を先頭へ畳む。
+畳む側は `replaceData` と `remove` の合成で、その間に boundary point の
+引き渡し（step 6.1-6.4）を挟む。**引き渡しは remove より前**でなければならない。
+後にすると live range の pre-remove steps が boundary point を parent 側へ移してしまう。
+
+保存の証明で新しいのは引き渡しの部分だけである。
+消える兄弟の中を指していた boundary point は survivor の継ぎ目より後ろへ移るが、
+その時点で survivor の長さは「継ぎ目 + 兄弟の長さ」まで伸びているので、
+端点は木の中に収まったままである（`endpointsValid_normalizeMerge`）。
+
+### record の並びは仕様と engine で違う
+
+仕様を字義どおり読むと、step 3-4 は run 全体の data を一度に連結して
+"replace data" を一回呼ぶので、characterData の record は run ごとに一つになる。
+実際の engine（Blink・WebCore・Gecko）は兄弟ごとに畳み、
+四つの Text の run に対して characterData / childList / characterData / childList …
+と積む。WPT が固定しているのは childList の側だけである。
+
+**model は engine 側の読みを採った。** 木と live range の最終状態はどちらの読みでも同じで、
+違うのは record の並びだけだからである。Dommy も同じ判断をしていて
+（実装の comment に三つの engine で確かめた記録がある）、
+`normalize-record-order-per-sibling` で両者が一致することを確かめている。
+
+### 見つかったこと：`normalize()` が Node に無い
+
+`normalize()` は WebIDL では `Node` の method なので、
+Document・Text・Comment・ProcessingInstruction・DocumentType でも呼べる
+（descendant が無ければ何も起きないだけである）。
+Dommy は ParentNode の側にしか置いていないため、次のようになっている。
+
+| 受け手 | Dommy |
+| --- | --- |
+| Element / DocumentFragment | あり |
+| **Document** | **無し** |
+| Text / Comment / ProcessingInstruction / DocumentType | 無し |
+
+Ruby から呼ぶと `NoMethodError`、JS bridge 経由（`__js_call__`）だと
+**黙って何もしない**。Document の分は観測できる差で、
+`document.normalize()` が隣り合う Text を畳まない。
+
+差分テストの capability 報告がこれを並べる。`normalize-on-document` と
+`normalize-on-text-is-noop` はその印として置いた scenario で、
+Dommy が実装したら比較対象になる。
+
+### 差分テスト
+
+固定 scenario 六本が一致（capability の印の二本は skip）。
+生成 scenario は seed 7 / 11 / 23 / 31 で不一致 0。
+
 ## 未着手
 
+* Range の API（§5.5 の `setStart` / `deleteContents` / `insertNode` ほか）。
+  model の range は初期状態として与えて mutation が動かすだけで、
+  API そのものは走らせていない。Dommy には 1100 行あるので oracle が無い塊として大きい。
+* TreeWalker（§6.2）。NodeIterator は model にあるが TreeWalker は無い。
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
   element の attribute list とは別の仕組みで、attribute の mutation record を積まない。
   Dommy も未実装なので差分テストで裏を取れない。

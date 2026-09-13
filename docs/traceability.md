@@ -38,6 +38,25 @@ roadmap §5 が求める「任意の declarative layer」はまだ無い。
 | replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
 | move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 10-11 pre-remove / 14 外す / 16 offset 調整 / 18 入れる / 23-24 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、exception 順序 `moveValidity_step1`〜`_step4`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move` | `test_wpt_move_before.rb` | 済（success は未） |
 
+## §4.4 `Node.normalize()`
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| normalize | 1 descendant exclusive Text を順に / 2 長さ 0 なら外す / 3-4 続く兄弟の data を足す / 5-6 live range の引き渡し / 7 兄弟を外す | `normalize`, `normalizeList`, `normalizeRun`, `normalizeMergeOne`, `normalizeMergeBP` | preservation `admissible_normalize`、`endpointsValid_normalizeMerge` | `normalize-merges-adjacent-text`, `normalize-record-order-per-sibling`, `normalize-empty-sibling-keeps-boundary`, `normalize-parent-boundary-moves-to-join`, `normalize-descends-into-subtree`, `normalize-moves-iterator-off-merged-text` | （Dommy に normalize の WPT 由来 test は無い） | 済（record は engine の読み） |
+
+### normalize の分岐
+
+| step | 分岐 | 固定 scenario |
+| --- | --- | --- |
+| 1 | descendant を tree order で辿る（子 element の中も） | `normalize-descends-into-subtree` |
+| 2 | 長さ 0 の Text を外す | `normalize-merges-adjacent-text` |
+| 3-4 | run の data を足す（兄弟ごと） | `normalize-record-order-per-sibling` |
+| 3-4 | 空の兄弟は data の step を飛ばす | `normalize-empty-sibling-keeps-boundary` |
+| 6.1-6.2 | 兄弟の中を指す boundary point | `normalize-merges-adjacent-text` |
+| 6.3-6.4 | parent の中で兄弟の位置を指す boundary point | `normalize-parent-boundary-moves-to-join` |
+| 7 | 外すので NodeIterator も動く | `normalize-moves-iterator-off-merged-text` |
+| IDL | Node の method なので Text / Document でも呼べる | `normalize-on-text-is-noop`, `normalize-on-document`（Dommy 未実装なので比較は skip） |
+
 ## §4.10 CharacterData
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
@@ -161,6 +180,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。node は scenario が初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | method の戻り値 | 済 | `returnValueOf`（`Dom/Exec/Eval.lean`）。`Node?` / boolean / record 列を kind つきで観測する。`undefined` と `null` は区別する |
 | wrapper の object identity | 対象外 | roadmap §13.3。model は node を生成しないので wrapper を作る API の同一性は観測できない。node を返す method の戻り値は `NodeId` で比べるので「返ってきたのは渡した node そのものか」は観測できる |
+| `normalize()` の record の並び | engine に合わせた | 仕様を字義どおり読むと run ごとに characterData が一つだが、Blink・WebCore・Gecko は兄弟ごとに積む。WPT が固定しているのは childList の側だけである。木と live range の最終状態はどちらの読みでも同じ |
 | `Attr` の identity | 対象外 | `setAttributeNode` / `NamedNodeMap` / `InUseAttributeError` が要求する。attribute は element の状態なので object にならない |
 | `NodeFilter` の callback | 対象外 | roadmap §13.4。callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
 | WebIDL の TypeError | 近似 | `observe` の step 3-6、attribute の method の receiver が Element でない場合、`moveBefore` の receiver が ParentNode でない場合（`move-receiver-must-be-parentnode`）を `DOMException.typeError` で表す。名前は一致するが実際には `DOMException` ではない |

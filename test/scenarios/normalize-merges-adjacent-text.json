@@ -1,0 +1,82 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "normalize"
+    ],
+    "steps": "normalize 1-7",
+    "note": "隣り合う Text を先頭へ畳み、長さ 0 の Text は step 2 で外す。record は engine に合わせて兄弟ごとに積む。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 1,
+      "data": "cd"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 1,
+      "data": ""
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 1,
+      "data": "ef"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 1
+      },
+      "end": {
+        "node": 6,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "childList": true,
+      "characterData": true,
+      "subtree": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "normalize",
+      "target": 1
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

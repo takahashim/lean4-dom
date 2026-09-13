@@ -92,6 +92,7 @@ open Dom.Audit
   Dom.admissible_insertData
   Dom.admissible_deleteData
   Dom.admissible_setData
+  Dom.admissible_normalize
 
 -- §16 の live object をまとめた形
 #audit_axioms
