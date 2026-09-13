@@ -54,6 +54,30 @@ def idx {α : Type _} [DecidableEq α] : List α → α → Nat
 theorem idx_cons_ne {α : Type _} [DecidableEq α] {x a : α} (h : x ≠ a) (l : List α) :
     idx (x :: l) a = idx l a + 1 := by simp [idx, h]
 
+/-- 列にある要素は、位置で一意に決まる。 -/
+theorem idx_inj {α : Type _} [DecidableEq α] {x y : α} :
+    ∀ {l : List α}, x ∈ l → y ∈ l → idx l x = idx l y → x = y
+  | [], hx, _, _ => by simp at hx
+  | a :: rest, hx, hy, h => by
+    by_cases hax : a = x
+    · by_cases hay : a = y
+      · rw [← hax, ← hay]
+      · subst hax
+        rw [idx_cons_self, idx_cons_ne (fun he => hay he)] at h
+        omega
+    · by_cases hay : a = y
+      · subst hay
+        rw [idx_cons_self, idx_cons_ne (fun he => hax he)] at h
+        omega
+      · rw [idx_cons_ne hax, idx_cons_ne hay] at h
+        refine idx_inj (l := rest) ?_ ?_ (by omega)
+        · rcases List.mem_cons.mp hx with he | h'
+          · exact absurd he.symm hax
+          · exact h'
+        · rcases List.mem_cons.mp hy with he | h'
+          · exact absurd he.symm hay
+          · exact h'
+
 /--
 互いに素な部分列の連結は重複を持たない。
 

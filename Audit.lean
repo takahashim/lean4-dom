@@ -118,6 +118,7 @@ open Dom.Audit
   Dom.Spec.remove_sound_tree
   Dom.Spec.remove_sound_transient
   Dom.Spec.remove_sound_record
+  Dom.Spec.removeSpec_deterministic
 
 -- §16 の live object をまとめた形
 #audit_axioms

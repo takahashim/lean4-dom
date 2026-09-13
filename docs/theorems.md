@@ -236,7 +236,22 @@ theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}
 | `TransientAdded` | 20 | `Dom.Spec.remove_sound_transient` |
 | `RecordQueued` | 21 | `Dom.Spec.remove_sound_record` |
 
-逆向き（completeness、あるいは `RemoveSpec` を満たす状態の一意性）はまだ無い。
+逆向きのうち **一意性** は示してある。
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.removeSpec_deterministic` | `Dom/Spec/RemoveDeterministic.lean` |
+
+```lean
+theorem removeSpec_deterministic {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (h₁ : RemoveSpec s n b s₁) (h₂ : RemoveSpec s n b s₂) :
+    (∀ m, s₁.tree.get? m = s₂.tree.get? m) ∧ s₁.ranges = s₂.ranges ∧ ...
+```
+
+木の表現そのものは決まらない（store が association list なので、同じ `get?` を持つ表現が
+複数ある）。決まるのは **観測**である。registered observer list は順序を決めていないので
+所属の一致になる。soundness と合わせると「`remove` の結果は、関係が許す唯一の観測である」
+と言える。completeness（関係を満たす状態が必ず作れること）はまだ無い。
 
 ## 14. oracle は自分の invariant を破らない
 

@@ -52,6 +52,7 @@ import Dom.Properties.Record
 import Dom.Properties.Contract
 import Dom.Spec.Remove
 import Dom.Spec.RemoveSound
+import Dom.Spec.RemoveDeterministic
 import Dom.Properties.Counterexample
 import Dom.Observation
 

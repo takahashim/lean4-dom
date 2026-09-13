@@ -30,7 +30,7 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 
 | Algorithm | 関係 | soundness | completeness / determinism |
 | --- | --- | --- | --- |
-| remove | `Dom.Spec.RemoveSpec` | `Dom.Spec.remove_sound` | 未 |
+| remove | `Dom.Spec.RemoveSpec` | `Dom.Spec.remove_sound` | `Dom.Spec.removeSpec_deterministic`（観測の一意性） |
 | insert | 未 | 未 | 未 |
 | replace | 未 | 未 | 未 |
 | move | 未 | 未 | 未 |

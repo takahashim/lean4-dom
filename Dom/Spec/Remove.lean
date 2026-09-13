@@ -221,6 +221,7 @@ record は interested な observer の queue の末尾に一つだけ積まれ�
 def RecordQueued (s s' : DOMState) (node parent : NodeId)
     (oldPrev oldNext : Option NodeId) (suppress : Bool) : Prop :=
   if suppress then
+    s'.observers.length = s.observers.length ∧
     (∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
       s'.observers[mo]? = some o' → o'.records = o.records) ∧
     s'.pendingObservers = s.pendingObservers ∧ s'.microtaskQueued = s.microtaskQueued
@@ -234,6 +235,7 @@ def RecordQueued (s s' : DOMState) (node parent : NodeId)
       (InterestedInChildList s mo parent → o'.records = o.records ++ [rec']) ∧
       (¬ InterestedInChildList s mo parent → o'.records = o.records)) ∧
     (∀ mo, InterestedInChildList s mo parent → mo ∈ s'.pendingObservers) ∧
+    (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
     (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInChildList s mo parent) ∧
     s'.microtaskQueued = true
 

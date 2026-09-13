@@ -327,7 +327,7 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
     · -- suppressObservers が true なら record は積まない。
       next hb =>
       rw [← Except.ok.inj h, if_pos hb]
-      refine ⟨?_, ?_, ?_⟩
+      refine ⟨hlen₂, ?_, ?_, ?_⟩
       · intro mo o o' ho ho'
         exact records_addTransientObservers s₁ n p mo o o' (by rw [hobs₁]; exact ho) ho'
       · show (addTransientObservers s₁ n p).pendingObservers = _
@@ -349,7 +349,7 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
            previousSibling := previousSibling s.tree n,
            nextSibling := nextSibling s.tree n } : MutationRecord) rfl rfl rfl rfl
       rw [hqueue]
-      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
       · rw [queueMutationRecord_observers_length, hlen₂]
       · intro mo o o' ho ho'
         obtain ⟨o₂, ho₂, hrec₂⟩ := hget₂ mo o ho
@@ -362,6 +362,11 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
       · intro mo hint
         refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inr ?_)
         exact (hbridge mo).mpr hint
+      · intro mo hmo
+        refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inl ?_)
+        show mo ∈ s₁.pendingObservers
+        rw [hpend₁]
+        exact hmo
       · intro mo hmo
         rcases (mem_pendingObservers_queueMutationRecord _ _ _ mo).mp hmo with hm | hm
         · left
@@ -461,20 +466,6 @@ theorem not_firstFollowingOutside_of_none {t : Tree} (hwf : WellFormed t) {root 
       cases hb : isInclusiveAncestorOf t n next with
       | false => rfl
       | true => exact absurd ((isInclusiveAncestorOf_iff hwf n next).mp hb) hspec.2.2.1)
-
-/-- 前の兄弟は parent の children に入っている。 -/
-theorem previousSibling_mem_children {t : Tree} {n p prev : NodeId}
-    (hp : parentOf t n = some p) (h : previousSibling t n = some prev) :
-    prev ∈ childrenOf t p := by
-  unfold previousSibling at h
-  rw [hp] at h
-  dsimp only at h
-  split at h
-  · simp at h
-  · next bef aft hs =>
-    have hsplit : childrenOf t p = bef ++ n :: aft := Dom.ListUtil.splitAt?_eq_some hs
-    rw [hsplit]
-    exact List.mem_append_left _ (List.mem_of_getLast? h)
 
 /-- 仕様の step 3、前の兄弟が無い場合。 -/
 theorem lastBeforeRemoval_none {t : Tree} {n p : NodeId} (hp : parentOf t n = some p)

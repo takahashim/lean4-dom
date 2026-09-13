@@ -2475,10 +2475,27 @@ record queue の変化）を置いた。これは `insert` の step でもその
   "queue a mutation record" の step 2.3.2-2.3.3 が効かない）。
   attributes / characterData を含む一般形は `insert` 側と一緒に広げる。
 
+### 関係が結果を一つに決めること
+
+soundness だけでは足りない。関係が緩ければ、どんな実装でもそれを満たしてしまう。
+そこで **`RemoveSpec` を満たす状態は観測として一つしかない**ことも示した
+（`removeSpec_deterministic`）。
+
+木の表現そのものは決まらない。store が association list なので、同じ `get?` を持つ
+表現が複数ある。決まるのは観測——各 node の `get?`、live range、NodeIterator、
+observer ごとの record queue、pending と microtask、registered observer list の所属——である。
+
+これを書く途中で、関係が **弱すぎる箇所が二つ**見つかった。どちらも直した。
+
+* `suppressObservers` が true の枝で observer の個数を言っていなかった。
+* record を積む枝で「元からあった pending observer が残る」ことを言っていなかった。
+
+どちらも実行関数は満たしているが、関係が言っていなければ一意性は出ない。
+一意性の証明は、関係が実装を本当に縛れているかの検査になっている。
+
 ### 次
 
-逆向き（completeness、あるいは `RemoveSpec` を満たす状態の一意性）はまだ無い。
-`insert` の関係意味論が次の候補である。
+completeness（関係を満たす状態が必ず作れること）と、`insert` の関係意味論が次である。
 
 ## 生成 scenario の最小化を広げた
 

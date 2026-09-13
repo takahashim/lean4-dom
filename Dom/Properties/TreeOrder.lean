@@ -126,6 +126,28 @@ theorem precedesIn_lastD_eq_false :
       · exact absurd he.symm hxa
       · exact h
 
+/-- 先行するなら、その node は列にある。 -/
+theorem mem_of_precedesIn {a b : NodeId} :
+    ∀ (l : List NodeId), precedesIn l a b = true → b ∈ l
+  | [], h => by simp at h
+  | x :: rest, h => by
+    by_cases hxa : x = a
+    · subst hxa
+      rw [precedesIn_cons_self] at h
+      exact List.mem_cons_of_mem _ (by simpa using h)
+    · by_cases hxb : x = b
+      · exact hxb ▸ List.mem_cons_self ..
+      · rw [precedesIn_cons_ne hxa hxb] at h
+        exact List.mem_cons_of_mem _ (mem_of_precedesIn rest h)
+
+/-- 列の中の相異なる二つは、どちらかがどちらかに先行する。 -/
+theorem precedesIn_total {l : List NodeId} {x y : NodeId} (hx : x ∈ l) (hy : y ∈ l)
+    (hxy : x ≠ y) : precedesIn l x y = true ∨ precedesIn l y x = true := by
+  rcases Nat.lt_trichotomy (Dom.ListUtil.idx l x) (Dom.ListUtil.idx l y) with h | h | h
+  · exact Or.inl ((precedesIn_iff_idx hxy l hx hy).mpr h)
+  · exact absurd (Dom.ListUtil.idx_inj hx hy h) hxy
+  · exact Or.inr ((precedesIn_iff_idx (Ne.symm hxy) l hy hx).mpr h)
+
 /-! ## 部分木の列でも前後関係は同じ -/
 
 /--
@@ -165,6 +187,29 @@ theorem precedes_eq_precedesIn_preorder {t : Tree} (hwf : WellFormed t) {r x y :
     · exact absurd (h1.mpr (h2.mp hb2)) (by simp [hb1])
     · exact absurd (h2.mpr (h1.mp hb1)) (by simp [hb2])
     · rfl
+
+/-- 同じ木にある相異なる二つは、どちらかがどちらかに先行する。 -/
+theorem precedes_total {t : Tree} (hwf : WellFormed t) {r x y : NodeId} {rd : NodeData}
+    (hr : t.get? r = some rd) (hx : InclusiveDescendant t x r) (hy : InclusiveDescendant t y r)
+    (hxy : x ≠ y) : precedes t x y = true ∨ precedes t y x = true := by
+  rw [precedes_eq_precedesIn_preorder hwf hr hx hy,
+    precedes_eq_precedesIn_preorder hwf hr hy hx]
+  exact precedesIn_total ((mem_preorder_iff hwf hr x).mpr hx)
+    ((mem_preorder_iff hwf hr y).mpr hy) hxy
+
+/-- 前の兄弟は parent の children に入っている。 -/
+theorem previousSibling_mem_children {t : Tree} {n p prev : NodeId}
+    (hp : parentOf t n = some p) (h : previousSibling t n = some prev) :
+    prev ∈ childrenOf t p := by
+  unfold previousSibling at h
+  rw [hp] at h
+  dsimp only at h
+  split at h
+  · simp at h
+  · next bef aft hs =>
+    have hsplit : childrenOf t p = bef ++ n :: aft := Dom.ListUtil.splitAt?_eq_some hs
+    rw [hsplit]
+    exact List.mem_append_left _ (List.mem_of_getLast? h)
 
 /-! ## tree order の列を切ったとき -/
 
