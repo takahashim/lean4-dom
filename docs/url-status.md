@@ -651,10 +651,11 @@ query と fragment は四つの経路のどれからも同じ `run_query_full` �
 その一部である host の条件（`hostParser (hostSerializer h) = some h`）は、
 `Url/HostRoundtrip.lean` で IPv4・opaque host・domain の三つが済んだ。残りは IPv6 で、
 `Url/Ipv6Roundtrip.lean` に圧縮しない場合（`::` が出ない address）まで入れてある。
-`::` が出る場合は、`ipv6CompressIndex_run`（圧縮位置は長さ 2 以上の 0 の並びの先頭）と
-serialize の形（`ipv6Serializer_go_seg` ほか三つ）まで来ている。残りは parser の側で、
-piece の列をまとめて読む補題と `::` の一歩、それに `ipv6Expand` の算術
-（`take` / `drop` / `replicate`）である。
+`::` が出る場合は、`ipv6CompressIndex_run`（圧縮位置は長さ 2 以上の 0 の並びの先頭）、
+serialize の形（`ipv6Serializer_go_seg` ほか三つ）、parser の側
+（`ipv6Loop_pieces`, `ipv6Loop_colon`, `ipv6Loop_nil`）、address の分解
+（`ipv6_run_decompose`）まで来ている。残りは組み立てで、`zipIdx` の分割と
+`ipv6Expand` の算術（`take` / `drop` / `replicate`）である。
 
 host を serialize した文字列が host state を読み直せることは、host の種類ごとに根拠が違う。
 domain は `asciiDomainToASCII_no_forbidden`、opaque host は `opaqueHostParser_no_forbidden` と

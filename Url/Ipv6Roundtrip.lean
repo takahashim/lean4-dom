@@ -374,9 +374,10 @@ theorem ipv6Parser_serializer_nocompress {a : Ipv6}
 
 /-! ## 圧縮する場合
 
-`::` が出る場合の足場。serialize の側は四つの補題で形が決まる。
-parser の側（piece の列をまとめて読む補題と `::` の一歩、`ipv6Expand` の算術）は
-まだ入れていない。
+`::` が出る場合の足場。serialize の側は四つの補題で形が決まり、
+parser の側は piece の列をまとめて読む補題（`ipv6Loop_pieces`）と `::` の一歩
+（`ipv6Loop_colon`）で進む。address の 0 の並びでの分解は `ipv6_run_decompose` である。
+組み立て（`ipv6Expand` の算術を含む）はまだ入れていない。
 -/
 
 /--
@@ -456,6 +457,157 @@ theorem ipv6Serializer_go_resume (c p i : Nat) (rest : List (Nat × Nat)) (hp : 
   rw [String.toList_append, String.toList_append]
   congr 2
   split <;> simp_all
+
+/-- piece の列を address に順に書き込む。 -/
+def setPieces : Ipv6 → Nat → List Nat → Ipv6
+  | addr, _, [] => addr
+  | addr, i, p :: ps => setPieces (addr.set i p) (i + 1) ps
+
+/-- serializer が piece と `:` を交互に並べる分。 -/
+def sepPieces (ps : List Nat) : List Char :=
+  ps.flatMap (fun p => (toHexString p).toList ++ [':'])
+
+@[simp] theorem sepPieces_nil : sepPieces [] = [] := rfl
+
+theorem sepPieces_cons (p : Nat) (ps : List Nat) :
+    sepPieces (p :: ps) = (toHexString p).toList ++ ':' :: sepPieces ps := by
+  simp [sepPieces]
+
+/-- piece の列を読み切る。 -/
+theorem ipv6Loop_pieces : ∀ (ps : List Nat) (fuel : Nat) (tail : List Char) (addr : Ipv6)
+    (pi : Nat) (compress : Option Nat),
+    (∀ p ∈ ps, p < 65536) → ps.length ≤ fuel → pi + ps.length ≤ 8 → ¬tail = [] →
+    ipv6Loop fuel (sepPieces ps ++ tail) addr pi compress
+      = ipv6Loop (fuel - ps.length) tail (setPieces addr pi ps) (pi + ps.length) compress := by
+  intro ps
+  induction ps with
+  | nil => intro fuel tail addr pi compress _ _ _ _; simp [setPieces]
+  | cons p ps ih =>
+    intro fuel tail addr pi compress hp hlen hpi hne
+    rw [sepPieces_cons, List.append_assoc, List.cons_append]
+    rw [ipv6Loop_piece (hp p (by simp)) fuel (fuel - 1) (by simp at hlen; omega) _ _ _ _
+      (by simp at hpi; omega) (by
+        intro hx
+        exact hne (List.append_eq_nil_iff.mp hx).2)]
+    rw [ih (fuel - 1) tail (addr.set pi p) (pi + 1) compress
+      (fun x hx => hp x (by simp [hx])) (by simp at hlen; omega) (by simp at hpi; omega) hne]
+    simp only [setPieces, List.length_cons]
+    congr 1
+    · omega
+    · omega
+
+/-- 入力が尽きたところ。 -/
+theorem ipv6Loop_nil (fuel : Nat) (hf : 0 < fuel) (addr : Ipv6) (pi : Nat)
+    (compress : Option Nat) :
+    ipv6Loop fuel [] addr pi compress = some (addr, pi, compress) := by
+  obtain ⟨f, rfl⟩ : ∃ f, fuel = f + 1 := ⟨fuel - 1, by omega⟩
+  rw [ipv6Loop]
+
+/-- `::` の `:`。piece を一つ飛ばして、そこを圧縮の位置として覚える。 -/
+theorem ipv6Loop_colon (fuel : Nat) (hf : 0 < fuel) (rest : List Char) (addr : Ipv6) (pi : Nat)
+    (hpi : ¬pi = 8) :
+    ipv6Loop fuel (':' :: rest) addr pi none
+      = ipv6Loop (fuel - 1) rest addr (pi + 1) (some (pi + 1)) := by
+  obtain ⟨f, rfl⟩ : ∃ f, fuel = f + 1 := ⟨fuel - 1, by omega⟩
+  rw [ipv6Loop]
+  rw [if_neg (by simp [hpi])]
+  simp
+
+/-- 最後の piece。fuel は 0 でなければよい。 -/
+theorem ipv6Loop_last' {p : Nat} (hp : p < 65536) (fuel : Nat) (hf : 0 < fuel) (addr : Ipv6)
+    (pi : Nat) (compress : Option Nat) (hpi : ¬pi = 8) :
+    ipv6Loop fuel (toHexString p).toList addr pi compress
+      = some (addr.set pi p, pi + 1, compress) :=
+  ipv6Loop_last hp fuel (fuel - 1) (by omega) addr pi compress hpi
+
+/-- 前半の長さのところに書くと、その一つが差し替わる。 -/
+theorem set_append_length : ∀ (l1 : List Nat) (q : Nat) (t : List Nat) (p : Nat),
+    (l1 ++ q :: t).set l1.length p = l1 ++ p :: t
+  | [], q, t, p => rfl
+  | a :: l1, q, t, p => by
+    simp only [List.cons_append, List.length_cons, List.set_cons_succ]
+    rw [set_append_length l1 q t p]
+
+/-- piece の列を書き込むと、その分だけ差し替わる。 -/
+theorem setPieces_append : ∀ (ps : List Nat) (l1 l2 : Ipv6), ps.length ≤ l2.length →
+    setPieces (l1 ++ l2) l1.length ps = l1 ++ ps ++ l2.drop ps.length := by
+  intro ps
+  induction ps with
+  | nil => intro l1 l2 _; simp [setPieces]
+  | cons p ps ih =>
+    intro l1 l2 h
+    cases l2 with
+    | nil => simp at h
+    | cons q t =>
+      rw [setPieces, set_append_length]
+      rw [show l1 ++ p :: t = (l1 ++ [p]) ++ t from by simp]
+      rw [show l1.length + 1 = (l1 ++ [p]).length from by simp]
+      rw [ih (l1 ++ [p]) t (by simp at h ⊢; omega)]
+      simp
+
+/-- 先頭から続く 0 は `replicate` である。 -/
+theorem takeWhile_zero_replicate : ∀ (l : List Nat),
+    l.takeWhile (fun p => p == 0) = List.replicate (l.takeWhile (fun p => p == 0)).length 0
+  | [] => rfl
+  | q :: t => by
+    rw [List.takeWhile_cons]
+    split
+    · next h =>
+      simp only [List.length_cons, List.replicate_succ, List.cons.injEq]
+      refine ⟨by simpa using h, takeWhile_zero_replicate t⟩
+    · simp
+
+/-- 0 の並びが切れたところは 0 でない。 -/
+theorem head_dropWhile_zero : ∀ (l : List Nat),
+    ∀ q ∈ (l.dropWhile (fun p => p == 0)).head?, ¬q = 0
+  | [] => by simp
+  | a :: t => by
+    rw [List.dropWhile_cons]
+    split
+    · exact head_dropWhile_zero t
+    · next h =>
+      intro q hq
+      simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hq
+      subst hq
+      simpa using h
+
+/-- 0 の並びの先頭が分かれば、address をその並びで三つに割れる。 -/
+theorem ipv6_run_decompose {a : Ipv6} {c : Nat} (h8 : a.length = 8) (hc1 : c + 1 < 8)
+    (hz0 : a.getD c 0 = 0) (hz1 : a.getD (c + 1) 0 = 0) :
+    ∃ (L : Nat) (post : List Nat),
+      a = a.take c ++ List.replicate L 0 ++ post ∧ 2 ≤ L ∧
+        (∀ q ∈ post.head?, ¬q = 0) ∧ c + L + post.length = 8 := by
+  have hd0 : (a.drop c).getD 0 0 = 0 := by
+    simp only [List.getD_eq_getElem?_getD, List.getElem?_drop, Nat.add_zero]
+    simpa [List.getD_eq_getElem?_getD] using hz0
+  have hd1 : (a.drop c).getD 1 0 = 0 := by
+    simp only [List.getD_eq_getElem?_getD, List.getElem?_drop]
+    simpa [List.getD_eq_getElem?_getD] using hz1
+  have hdlen : (a.drop c).length = 8 - c := by simp [h8]
+  refine ⟨((a.drop c).takeWhile (fun p => p == 0)).length,
+    (a.drop c).dropWhile (fun p => p == 0), ?_, ?_, head_dropWhile_zero _, ?_⟩
+  · calc a = a.take c ++ a.drop c := (List.take_append_drop c a).symm
+      _ = a.take c ++ ((a.drop c).takeWhile (fun p => p == 0)
+            ++ (a.drop c).dropWhile (fun p => p == 0)) := by
+          rw [List.takeWhile_append_dropWhile]
+      _ = a.take c ++ List.replicate ((a.drop c).takeWhile (fun p => p == 0)).length 0
+            ++ (a.drop c).dropWhile (fun p => p == 0) := by
+          rw [← takeWhile_zero_replicate, List.append_assoc]
+  · cases hd : a.drop c with
+    | nil => rw [hd] at hdlen; simp at hdlen; omega
+    | cons d0 t =>
+      cases t with
+      | nil => rw [hd] at hdlen; simp at hdlen; omega
+      | cons d1 t2 =>
+        have h0 : d0 = 0 := by rw [hd] at hd0; simpa using hd0
+        have h1 : d1 = 0 := by rw [hd] at hd1; simpa using hd1
+        rw [List.takeWhile_cons, if_pos (by simp [h0]), List.takeWhile_cons,
+          if_pos (by simp [h1])]
+        simp
+  · have h2 := congrArg List.length
+      (List.takeWhile_append_dropWhile (p := fun p => p == 0) (l := a.drop c))
+    simp only [List.length_append] at h2
+    omega
 
 /-- 圧縮の無い address の例。`2001:db8:1:2:3:4:5:6` は実際にこの形である。 -/
 example : ipv6Parser (ipv6Serializer [0x2001, 0xdb8, 1, 2, 3, 4, 5, 6]).toList

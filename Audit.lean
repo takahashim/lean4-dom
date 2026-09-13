@@ -586,6 +586,15 @@ open Dom.Audit
   Url.ipv6Serializer_go_at
   Url.ipv6Serializer_go_skip
   Url.ipv6Serializer_go_resume
+  Url.ipv6Loop_pieces
+  Url.ipv6Loop_nil
+  Url.ipv6Loop_colon
+  Url.ipv6Loop_last'
+  Url.set_append_length
+  Url.setPieces_append
+  Url.takeWhile_zero_replicate
+  Url.head_dropWhile_zero
+  Url.ipv6_run_decompose
 
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms
