@@ -1,4 +1,5 @@
 import Url.Ipv4Roundtrip
+import Url.Ipv6Roundtrip
 import Url.UrlencodedRoundtrip
 
 /-!
@@ -18,7 +19,8 @@ host の種類ごとに段取りが違う。
   無いので、domain parser を素通りする。「数字で終わらない」ことは仮定に置く
   （終わるなら parser は IPv4 として読むので、その record は domain にならない）。
 
-残りは IPv6 で、`ipv6Parser` と `ipv6Serializer` の往復（`::` の圧縮を含む）が要る。
+* **IPv6**（`hostParser_ipv6`）。`[` と `]` を外して `Url/Ipv6Roundtrip.lean` の
+  `ipv6Parser_serializer` に渡す。
 -/
 
 namespace Url
@@ -223,5 +225,27 @@ example : hostParser asciiDomainToASCII (hostSerializer (Host.ipv4 16909060)).to
 example : hostParser asciiDomainToASCII (hostSerializer (Host.opaque "h")).toList true
     = some (Host.opaque "h") :=
   hostParser_opaque_id (by decide) (by decide) (by decide)
+
+/-- **IPv6 host も、serialize して host parser に通すと元に戻る。** -/
+theorem hostParser_ipv6 {f : List Char → Option String} {a : Ipv6} {b : Bool}
+    (h8 : a.length = 8) (hp : ∀ p ∈ a, p < 65536) :
+    hostParser f (hostSerializer (Host.ipv6 a)).toList b = some (Host.ipv6 a) := by
+  have hser : (hostSerializer (Host.ipv6 a)).toList
+      = '[' :: ((ipv6Serializer a).toList ++ [']']) := by
+    simp only [hostSerializer, String.toList_append]
+    rw [show ("[" : String).toList = ['['] from rfl, show ("]" : String).toList = [']'] from rfl]
+    simp
+  rw [hser, hostParser]
+  rw [show ((ipv6Serializer a).toList ++ [']']).reverse
+      = ']' :: (ipv6Serializer a).toList.reverse from by simp]
+  simp only [List.reverse_reverse]
+  rw [ipv6Parser_serializer h8 hp]
+  rfl
+
+/-- `[::1]` も戻る。 -/
+example : hostParser asciiDomainToASCII
+      (hostSerializer (Host.ipv6 [0, 0, 0, 0, 0, 0, 0, 1])).toList false
+    = some (Host.ipv6 [0, 0, 0, 0, 0, 0, 0, 1]) :=
+  hostParser_ipv6 (by decide) (by decide)
 
 end Url

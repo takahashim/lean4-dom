@@ -560,6 +560,7 @@ open Dom.Audit
   Url.hostParser_ipv4
   Url.hostParser_opaque_id
   Url.hostParser_domain_id
+  Url.hostParser_ipv6
 
 -- URL Standard §3.3 / §3.5 IPv6 の往復（圧縮しない場合）
 #audit_axioms
@@ -595,6 +596,19 @@ open Dom.Audit
   Url.takeWhile_zero_replicate
   Url.head_dropWhile_zero
   Url.ipv6_run_decompose
+  Url.piecesChars_sep
+  Url.piecesChars_snoc
+  Url.zipIdx_snd_range
+  Url.zipIdx_replicate_zero
+  Url.ipv6Serializer_go_tail
+  Url.ipv6Serializer_compress_shape
+  Url.ipv6Parser_colon_colon
+  Url.ipv6Parser_no_colon
+  Url.setPieces_snoc
+  Url.ipv6Loop_post
+  Url.setPieces_zero_shape
+  Url.ipv6Parser_serializer_compress
+  Url.ipv6Parser_serializer
 
 -- URL Standard §6.2 `URLSearchParams`
 #audit_axioms

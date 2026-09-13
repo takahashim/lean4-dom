@@ -17,9 +17,8 @@ import Url.Ipv6
 * **serialize の形**（`ipv6Serializer_go_nocompress`）。圧縮が無いので
   `ignore0` は `false` のままで、piece と `:` が交互に並ぶ。
 
-圧縮する場合（`::`）は、`ipv6CompressIndex` が選ぶ 0 の並び（`ipv6CompressIndex_run`）と
-serialize の形（`ipv6Serializer_go_seg` ほか三つ）まで来ている。残りは parser の側で、
-piece の列をまとめて読む補題と `::` の一歩、それに `ipv6Expand` の算術である。
+圧縮する場合（`::`）も `ipv6Parser_serializer_compress` で閉じた。
+`ipv6Parser_serializer` が両方をまとめる。
 -/
 
 namespace Url
@@ -374,10 +373,12 @@ theorem ipv6Parser_serializer_nocompress {a : Ipv6}
 
 /-! ## 圧縮する場合
 
-`::` が出る場合の足場。serialize の側は四つの補題で形が決まり、
-parser の側は piece の列をまとめて読む補題（`ipv6Loop_pieces`）と `::` の一歩
-（`ipv6Loop_colon`）で進む。address の 0 の並びでの分解は `ipv6_run_decompose` である。
-組み立て（`ipv6Expand` の算術を含む）はまだ入れていない。
+`::` が出る場合。address を 0 の並びで `pre ++ replicate L 0 ++ post` に割り
+（`ipv6_run_decompose`）、serialize の形を四つの補題で決め、parser の側は
+piece の列をまとめて読む補題（`ipv6Loop_pieces`）と `::` の一歩（`ipv6Loop_colon`）で進む。
+
+最後の `ipv6Expand` の帳尻は、parser の `compress` が圧縮位置 `c` ではなく `c + 1` に
+なることで合う。`take (c + 1)` に 0 が一つ含まれ、`replicate` が残り `L - 1` 個を戻す。
 -/
 
 /--
@@ -608,6 +609,290 @@ theorem ipv6_run_decompose {a : Ipv6} {c : Nat} (h8 : a.length = 8) (hc1 : c + 1
       (List.takeWhile_append_dropWhile (p := fun p => p == 0) (l := a.drop c))
     simp only [List.length_append] at h2
     omega
+
+/-- serializer が索引付きの piece を並べる分。 -/
+def piecesChars (l : List (Nat × Nat)) : List Char :=
+  l.flatMap (fun pi => (toHexString pi.1).toList ++ (if pi.2 = 7 then [] else [':']))
+
+/-- 索引が 7 にならない範囲では、区切りは必ず `:` である。 -/
+theorem piecesChars_sep : ∀ (l : List Nat) (n : Nat),
+    (∀ i, n ≤ i → i < n + l.length → ¬i = 7) →
+    piecesChars (l.zipIdx n) = sepPieces l := by
+  intro l
+  induction l with
+  | nil => intro n _; simp [piecesChars, sepPieces]
+  | cons p t ih =>
+    intro n h
+    rw [List.zipIdx_cons]
+    simp only [piecesChars, List.flatMap_cons]
+    rw [if_neg (h n (by omega) (by simp))]
+    rw [show (t.zipIdx (n + 1)).flatMap
+        (fun pi => (toHexString pi.1).toList ++ (if pi.2 = 7 then [] else [':']))
+        = sepPieces t from
+      ih (n + 1) (fun i h1 h2 => h i (by omega) (by simp at h2 ⊢; omega))]
+    rw [sepPieces_cons]
+    simp
+
+/-- 最後の piece には区切りが付かない。 -/
+theorem piecesChars_snoc (init : List Nat) (q n : Nat) (h : n + init.length = 7) :
+    piecesChars ((init ++ [q]).zipIdx n) = sepPieces init ++ (toHexString q).toList := by
+  rw [List.zipIdx_append]
+  simp only [piecesChars, List.flatMap_append]
+  rw [show (init.zipIdx n).flatMap
+      (fun pi => (toHexString pi.1).toList ++ (if pi.2 = 7 then [] else [':']))
+      = sepPieces init from piecesChars_sep init n (fun i h1 h2 => by omega)]
+  rw [h]
+  simp
+
+/-- `zipIdx` が付ける索引の範囲。 -/
+theorem zipIdx_snd_range : ∀ (l : List Nat) (n : Nat),
+    ∀ pi ∈ l.zipIdx n, n ≤ pi.2 ∧ pi.2 < n + l.length
+  | [], n => by simp
+  | p :: t, n => by
+    intro pi hpi
+    rw [List.zipIdx_cons] at hpi
+    rcases List.mem_cons.mp hpi with rfl | hpi
+    · simp
+    · have := zipIdx_snd_range t (n + 1) pi hpi
+      simp only [List.length_cons]
+      omega
+
+/-- `replicate` の piece はどれも 0 である。 -/
+theorem zipIdx_replicate_zero : ∀ (L n : Nat), ∀ pi ∈ (List.replicate L 0).zipIdx n, pi.1 = 0
+  | 0, n => by simp
+  | L + 1, n => by
+    intro pi hpi
+    rw [List.replicate_succ, List.zipIdx_cons] at hpi
+    rcases List.mem_cons.mp hpi with rfl | hpi
+    · rfl
+    · exact zipIdx_replicate_zero L (n + 1) pi hpi
+
+/-- 圧縮の位置を含まない残り全部。 -/
+theorem ipv6Serializer_go_tail (l : List (Nat × Nat)) (c : Nat) (h : ∀ pi ∈ l, ¬pi.2 = c) :
+    (ipv6Serializer.go (some c) l false).toList = piecesChars l := by
+  have h2 := ipv6Serializer_go_seg l [] c h
+  rw [List.append_nil] at h2
+  rw [h2]
+  simp [ipv6Serializer.go, piecesChars]
+
+/-- 圧縮する場合の serialize の形。 -/
+theorem ipv6Serializer_compress_shape {a : Ipv6} {c L : Nat} {pre post : List Nat}
+    (hsplit : a = pre ++ List.replicate L 0 ++ post) (hpre : pre.length = c)
+    (hL : 2 ≤ L) (hpost : ∀ q ∈ post.head?, ¬q = 0) (hlen : c + L + post.length = 8)
+    (hc : ipv6CompressIndex a = some c) :
+    (ipv6Serializer a).toList
+      = sepPieces pre ++ (if c = 0 then [':', ':'] else [':'])
+        ++ piecesChars (post.zipIdx (c + L)) := by
+  obtain ⟨M, rfl⟩ : ∃ M, L = M + 1 := ⟨L - 1, by omega⟩
+  show (ipv6Serializer.go (ipv6CompressIndex a) a.zipIdx false).toList = _
+  rw [hc, hsplit]
+  rw [List.zipIdx_append, List.zipIdx_append, List.append_assoc]
+  simp only [hpre, Nat.zero_add]
+  rw [ipv6Serializer_go_seg pre.zipIdx _ c (fun pi hpi => by
+    have := zipIdx_snd_range pre 0 pi hpi
+    omega)]
+  rw [show List.flatMap (fun pi => (toHexString pi.fst).toList ++ if pi.snd = 7 then [] else [':'])
+      pre.zipIdx = sepPieces pre from piecesChars_sep pre 0 (fun i h1 h2 => by omega)]
+  have hlen2 : (pre ++ List.replicate (M + 1) 0).length = c + (M + 1) := by
+    simp only [List.length_append, List.length_replicate, hpre]
+  rw [hlen2]
+  rw [List.replicate_succ, List.zipIdx_cons, List.cons_append]
+  rw [ipv6Serializer_go_at c 0 _]
+  rw [ipv6Serializer_go_skip ((List.replicate M 0).zipIdx (c + 1)) _ c
+    (zipIdx_replicate_zero M (c + 1))]
+  cases hpo : post with
+  | nil =>
+    simp [ipv6Serializer.go, piecesChars]
+  | cons q t =>
+    have hq : ¬q = 0 := hpost q (by rw [hpo]; simp)
+    rw [List.zipIdx_cons]
+    rw [ipv6Serializer_go_resume c q (c + (M + 1)) _ hq (by omega)]
+    rw [ipv6Serializer_go_tail (t.zipIdx (c + (M + 1) + 1)) c (fun pi hpi => by
+      have := zipIdx_snd_range t (c + (M + 1) + 1) pi hpi
+      omega)]
+    simp only [piecesChars, List.flatMap_cons]
+    simp [List.append_assoc]
+
+/-- 末尾に一つ足して書き込む。 -/
+theorem setPieces_snoc : ∀ (init : List Nat) (addr : Ipv6) (i q : Nat),
+    setPieces addr i (init ++ [q]) = (setPieces addr i init).set (i + init.length) q
+  | [], addr, i, q => by simp [setPieces]
+  | p :: t, addr, i, q => by
+    rw [List.cons_append, setPieces, setPieces, setPieces_snoc t (addr.set i p) (i + 1) q]
+    simp only [List.length_cons]
+    congr 1
+    omega
+
+/-- 圧縮の後ろの piece を読み切る。 -/
+theorem ipv6Loop_post {post : List Nat} {c L : Nat} (hpp : ∀ p ∈ post, p < 65536)
+    (hlen : c + L + post.length = 8) (_hc1 : c + 1 < 8) (hL : 2 ≤ L)
+    (fuel : Nat) (hf : post.length < fuel) (addr : Ipv6) :
+    ipv6Loop fuel (piecesChars (post.zipIdx (c + L))) addr (c + 1) (some (c + 1))
+      = some (setPieces addr (c + 1) post, c + 1 + post.length, some (c + 1)) := by
+  by_cases hpe : post = []
+  · subst hpe
+    simp only [piecesChars, List.zipIdx_nil, List.flatMap_nil, setPieces, List.length_nil,
+      Nat.add_zero]
+    exact ipv6Loop_nil fuel (by omega) _ _ _
+  · obtain ⟨init, q, hq⟩ : ∃ init q, post = init ++ [q] :=
+      ⟨post.dropLast, post.getLast hpe, (List.dropLast_concat_getLast hpe).symm⟩
+    subst hq
+    have hil : init.length + 1 = (init ++ [q]).length := by simp
+    rw [piecesChars_snoc init q (c + L) (by simp at hlen ⊢; omega)]
+    rw [ipv6Loop_pieces init fuel _ addr (c + 1) (some (c + 1))
+      (fun x hx => hpp x (by simp [hx])) (by simp at hf ⊢; omega) (by simp at hlen ⊢; omega)
+      (toHexString_ne_nil q)]
+    rw [ipv6Loop_last' (hpp q (by simp)) (fuel - init.length) (by simp at hf ⊢; omega) _ _ _
+      (by simp at hlen ⊢; omega)]
+    rw [setPieces_snoc]
+    simp only [List.length_append, List.length_cons, List.length_nil]
+    congr 2
+
+/-- `::` で始まる入力の入口。 -/
+theorem ipv6Parser_colon_colon {rest : List Char} {addr : Ipv6} {pi : Nat} {comp : Option Nat}
+    (h : ipv6Loop 9 rest ipv6Zero 1 (some 1) = some (addr, pi, comp)) :
+    ipv6Parser (':' :: ':' :: rest) = ipv6Parser.ipv6Finish addr pi comp := by
+  rw [ipv6Parser, h]
+
+/-- `:` で始まらない入力の入口。 -/
+theorem ipv6Parser_no_colon {input : List Char} {d : Char} {rest : List Char}
+    {addr : Ipv6} {pi : Nat} {comp : Option Nat}
+    (hin : input = d :: rest) (hd : ¬d = ':')
+    (h : ipv6Loop 9 input ipv6Zero 0 none = some (addr, pi, comp)) :
+    ipv6Parser input = ipv6Parser.ipv6Finish addr pi comp := by
+  rw [hin] at h ⊢
+  rw [ipv6Parser]
+  case x_1 =>
+    intro r h2
+    simp only [List.cons.injEq] at h2
+    exact hd h2.1
+  case x_2 =>
+    intro r h2
+    simp only [List.cons.injEq] at h2
+    exact hd h2.1
+  rw [h]
+
+/-- 書き込んだ address の形。 -/
+theorem setPieces_zero_shape {pre post : List Nat} {c L : Nat} (hpre : pre.length = c)
+    (hlen : c + L + post.length = 8) (hL : 2 ≤ L) :
+    setPieces (setPieces ipv6Zero 0 pre) (c + 1) post
+      = (pre ++ [0]) ++ post ++ List.replicate (L - 1) 0 := by
+  have h1 : setPieces ipv6Zero 0 pre = pre ++ List.replicate (8 - c) 0 := by
+    have := setPieces_append pre [] ipv6Zero (by simp [ipv6Zero]; omega)
+    simp only [List.nil_append, List.length_nil] at this
+    rw [this]
+    congr 1
+    rw [show ipv6Zero = List.replicate 8 0 from rfl, List.drop_replicate, hpre]
+  have h2 : List.replicate (8 - c) 0 = (0 : Nat) :: List.replicate (7 - c) 0 := by
+    rw [show 8 - c = (7 - c) + 1 from by omega, List.replicate_succ]
+  rw [h1, h2]
+  rw [show pre ++ (0 : Nat) :: List.replicate (7 - c) 0 = (pre ++ [0]) ++ List.replicate (7 - c) 0
+    from by simp]
+  have h3 : (pre ++ [(0 : Nat)]).length = c + 1 := by simp [hpre]
+  rw [← h3]
+  rw [setPieces_append post (pre ++ [0]) (List.replicate (7 - c) 0) (by simp; omega)]
+  rw [List.drop_replicate]
+  congr 2
+  omega
+
+/-- **圧縮する IPv6 address も、serialize して parse し直すと元に戻る。** -/
+theorem ipv6Parser_serializer_compress {a : Ipv6} {c : Nat}
+    (h8 : a.length = 8) (hp : ∀ p ∈ a, p < 65536) (hc : ipv6CompressIndex a = some c) :
+    ipv6Parser (ipv6Serializer a).toList = some a := by
+  obtain ⟨hc1, hz0, hz1⟩ : c + 1 < 8 ∧ a.getD c 0 = 0 ∧ a.getD (c + 1) 0 = 0 := by
+    match a, h8 with
+    | [p0, p1, p2, p3, p4, p5, p6, p7], _ => exact ipv6CompressIndex_run hc
+  obtain ⟨L, post, hsplit, hL, hpost, hlen⟩ := ipv6_run_decompose h8 hc1 hz0 hz1
+  have hpre : (a.take c).length = c := by rw [List.length_take, h8]; omega
+  have hpp : ∀ p ∈ post, p < 65536 := by
+    intro p hpm
+    exact hp p (by rw [hsplit]; simp [hpm])
+  have hprep : ∀ p ∈ a.take c, p < 65536 := fun p hpm => hp p (List.mem_of_mem_take hpm)
+  have hfin : ipv6Parser.ipv6Finish
+      (setPieces (setPieces ipv6Zero 0 (a.take c)) (c + 1) post) (c + 1 + post.length)
+      (some (c + 1)) = some a := by
+    simp only [ipv6Parser.ipv6Finish, ipv6Expand]
+    rw [setPieces_zero_shape hpre hlen hL]
+    have hk : ((a.take c ++ [(0 : Nat)]) ++ (post ++ List.replicate (L - 1) 0)).take (c + 1)
+        = a.take c ++ [0] := by
+      rw [show c + 1 = (a.take c ++ [(0 : Nat)]).length from by simp [hpre]]
+      exact List.take_left
+    have hd : ((a.take c ++ [(0 : Nat)]) ++ (post ++ List.replicate (L - 1) 0)).drop (c + 1)
+        = post ++ List.replicate (L - 1) 0 := by
+      rw [show c + 1 = (a.take c ++ [(0 : Nat)]).length from by simp [hpre]]
+      exact List.drop_left
+    rw [List.append_assoc (a.take c ++ [0]) post, hk, hd]
+    rw [show c + 1 + post.length - (c + 1) = post.length from by omega]
+    have htk : (post ++ List.replicate (L - 1) 0).take post.length = post := List.take_left
+    rw [htk]
+    rw [show 8 - (c + 1) - post.length = L - 1 from by omega]
+    rw [hsplit]
+    rw [show L = (L - 1) + 1 from by omega, List.replicate_succ]
+    have hlt : ((a.take c ++ (0 : Nat) :: List.replicate (L - 1) 0) ++ post).take
+        (a.take c).length = a.take c := by
+      rw [List.append_assoc]
+      exact List.take_left
+    rw [hpre] at hlt
+    rw [hlt]
+    simp
+  rw [ipv6Serializer_compress_shape hsplit hpre hL hpost hlen hc]
+  by_cases hc0 : c = 0
+  · subst hc0
+    have hpost0 := ipv6Loop_post (c := 0) (L := L) hpp hlen hc1 hL 9
+      (by simp at hlen; omega) ipv6Zero
+    simp only [List.take_zero, sepPieces_nil, List.nil_append, ite_true]
+    rw [show ([':', ':'] ++ piecesChars (post.zipIdx (0 + L)))
+        = ':' :: ':' :: piecesChars (post.zipIdx (0 + L)) from rfl]
+    simp only [Nat.zero_add] at hpost0 ⊢
+    rw [ipv6Parser_colon_colon hpost0]
+    simpa only [List.take_zero, setPieces, Nat.zero_add] using hfin
+  · have hpne : ¬(a.take c) = [] := by
+      intro hx
+      rw [hx] at hpre
+      simp at hpre
+      omega
+    obtain ⟨p0, t0, hpt⟩ : ∃ p0 t0, a.take c = p0 :: t0 := by
+      cases hx : a.take c with
+      | nil => exact absurd hx hpne
+      | cons p0 t0 => exact ⟨p0, t0, rfl⟩
+    obtain ⟨d0, tl0, hd0, hdne, -⟩ := toHexString_head (n := p0)
+    rw [if_neg hc0, List.append_assoc]
+    have hloop : ipv6Loop 9 (sepPieces (a.take c) ++ ([':'] ++ piecesChars (post.zipIdx (c + L))))
+        ipv6Zero 0 none
+        = some (setPieces (setPieces ipv6Zero 0 (a.take c)) (c + 1) post,
+            c + 1 + post.length, some (c + 1)) := by
+      rw [ipv6Loop_pieces (a.take c) 9 _ ipv6Zero 0 none hprep (by omega) (by omega) (by simp)]
+      rw [hpre]
+      rw [List.singleton_append]
+      rw [ipv6Loop_colon (9 - c) (by omega) _ _ (0 + c) (by omega)]
+      simp only [Nat.zero_add]
+      exact ipv6Loop_post hpp hlen hc1 hL (9 - c - 1) (by omega) _
+    rw [ipv6Parser_no_colon (d := d0)
+      (rest := tl0 ++ ':' :: sepPieces t0 ++ ([':'] ++ piecesChars (post.zipIdx (c + L))))
+      (by rw [hpt, sepPieces_cons, hd0]; simp) hdne hloop]
+    exact hfin
+
+/-- **IPv6 address は serialize して parse し直すと元に戻る。**（§3.5 → §3.3） -/
+theorem ipv6Parser_serializer {a : Ipv6} (h8 : a.length = 8) (hp : ∀ p ∈ a, p < 65536) :
+    ipv6Parser (ipv6Serializer a).toList = some a := by
+  cases hc : ipv6CompressIndex a with
+  | none => exact ipv6Parser_serializer_nocompress h8 hp hc
+  | some c => exact ipv6Parser_serializer_compress h8 hp hc
+
+/-- `::1` も戻る。`toHexString` が簡約しないので `decide` では確かめられない分である。 -/
+example : ipv6Parser (ipv6Serializer [0, 0, 0, 0, 0, 0, 0, 1]).toList
+    = some [0, 0, 0, 0, 0, 0, 0, 1] :=
+  ipv6Parser_serializer (by decide) (by decide)
+
+/-- 全部 0 の `::` も戻る。 -/
+example : ipv6Parser (ipv6Serializer [0, 0, 0, 0, 0, 0, 0, 0]).toList
+    = some [0, 0, 0, 0, 0, 0, 0, 0] :=
+  ipv6Parser_serializer (by decide) (by decide)
+
+/-- 真ん中で圧縮する `2001:db8::1` も戻る。 -/
+example : ipv6Parser (ipv6Serializer [0x2001, 0xdb8, 0, 0, 0, 0, 0, 1]).toList
+    = some [0x2001, 0xdb8, 0, 0, 0, 0, 0, 1] :=
+  ipv6Parser_serializer (by decide) (by decide)
 
 /-- 圧縮の無い address の例。`2001:db8:1:2:3:4:5:6` は実際にこの形である。 -/
 example : ipv6Parser (ipv6Serializer [0x2001, 0xdb8, 1, 2, 3, 4, 5, 6]).toList
