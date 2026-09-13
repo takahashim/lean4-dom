@@ -4,6 +4,7 @@
 #
 #   ruby test/difftest.rb [--count N] [--seed N] [--nodes N] [--ops N]
 #                         [--move] [--all-ops] [--fixed-only]
+#   ruby test/difftest.rb --shrink FILE   # 既にある scenario を最小化する
 #
 # この script 自身は Dommy を読み込まない。Dommy 側の評価は別 process に投げる。
 # makiri を AddressSanitizer 付きで build している環境では、
@@ -21,6 +22,9 @@
 # 既定では、Dommy が実装している (kind, 操作) の組だけを生成する。
 # `--all-ops` を付けると仕様上の全 API を生成するので、未実装の箇所が可視化される。
 # 不一致が見つかった scenario は最小化して `test/scenarios/` に保存する（PLAN §7.3）。
+# 最小化は「操作 → 生きている object → node → 文字列」の順に一つずつ落とし、
+# 不一致が保たれる限り落としたままにする。候補はまとめて評価するので、
+# 1 round につき process 起動は 2 回で済む。
 
 require "json"
 require "optparse"
@@ -85,35 +89,157 @@ module Difftest
     end
   end
 
-  # 操作を一つずつ落として、まだ不一致なら落としたままにする。
-  # 候補をまとめて評価するので、1 round につき process 起動は 2 回で済む。
-  def shrink(scenario)
-    current = scenario
-    loop do
-      candidates = current["operations"].each_index.map do |i|
-        current.merge("operations" => current["operations"].reject.with_index { |_, j| j == i })
-      end
-      break if candidates.empty?
+  # 操作が参照する node の id。scenario の全 field を見る。
+  NODE_REF_KEYS = %w[parent node child target element other source].freeze
 
-      hits = mismatching(candidates)
-      break if hits.empty?
-
-      current = candidates[hits.first]
+  # live object の collection と、それを index で指す操作の field。
+  #
+  # `listeners` の `callback` は宣言の番号ではなく callback の id なので付け替えない
+  # （`materialize_callbacks` で明示してあるので、落としても他の listener に影響しない）。
+  def index_fields(key, op)
+    case key
+    when "ranges"
+      op["op"] == "rangeCompareBoundaryPoints" ? %w[range source] : %w[range]
+    when "iterators" then %w[iterator]
+    when "walkers" then %w[walker]
+    when "observers" then %w[observer]
+    when "listeners" then op["op"] == "addEventListener" ? %w[source] : []
+    else []
     end
+  end
 
-    used = current["operations"]
-           .flat_map { |op| op.values_at("parent", "node", "child", "target") }.compact.to_set
-    loop do
-      removable = current["nodes"].select do |n|
-        !used.include?(n["id"]) && current["nodes"].none? { |m| m["parent"] == n["id"] }
+  # listener の callback 番号を明示しておく。既定値は宣言の順なので、
+  # 一つ落とすと残りの番号が動いてしまう。
+  def materialize_callbacks(scenario)
+    listeners = scenario["listeners"]
+    return scenario if listeners.nil? || listeners.empty?
+
+    scenario.merge("listeners" => listeners.each_with_index.map { |l, i|
+      l.key?("callback") ? l : l.merge("callback" => i)
+    })
+  end
+
+  # `k` 番を落としたときに、操作の index 参照を付け替える。落ちた番号を指す操作は捨てる。
+  def reindex_ops(ops, key, k)
+    ops.filter_map do |op|
+      fields = index_fields(key, op)
+      next op if fields.empty?
+      next nil if fields.any? { |f| op[f] == k }
+
+      fields.reduce(op) { |acc, f| acc[f].is_a?(Integer) && acc[f] > k ? acc.merge(f => acc[f] - 1) : acc }
+    end
+  end
+
+  # listener の action が持つ listener 番号も同じように付け替える。
+  def reindex_listeners(listeners, key, k)
+    return listeners unless key == "listeners"
+
+    listeners.map do |l|
+      a = l["action"]
+      next l unless a.is_a?(Hash)
+
+      field = { "removeListener" => "index", "addListener" => "source" }[a["kind"]]
+      next l if field.nil? || !a[field].is_a?(Integer)
+      next l.reject { |kk, _| kk == "action" } if a[field] == k
+
+      a[field] > k ? l.merge("action" => a.merge(field => a[field] - 1)) : l
+    end
+  end
+
+  # 生きている object を一つ落とした候補。
+  def drop_live(scenario, key, k)
+    list = scenario[key] || []
+    dropped = scenario.merge(key => list.reject.with_index { |_, j| j == k })
+    dropped = dropped.merge("listeners" => reindex_listeners(dropped["listeners"] || [], key, k)) if key == "listeners"
+    dropped.merge("operations" => reindex_ops(dropped["operations"], key, k))
+  end
+
+  # 文字列を短くした候補。
+  def string_candidates(scenario)
+    out = []
+    (scenario["nodes"] || []).each_with_index do |n, i|
+      data = n["data"]
+      next if data.nil? || data.empty?
+
+      ["", data[0]].uniq.reject { |v| v == data }.each do |v|
+        out << scenario.merge("nodes" => scenario["nodes"].each_with_index.map { |m, j|
+          j == i ? m.merge("data" => v) : m
+        })
       end
-      break if removable.empty?
+      next unless (attrs = n["attributes"])
 
-      candidates = removable.map { |n| current.merge("nodes" => current["nodes"] - [n]) }
-      hits = mismatching(candidates)
-      break if hits.empty?
+      attrs.each_with_index do |a, ai|
+        next if a["value"].nil? || a["value"].empty?
 
-      current = candidates[hits.first]
+        out << scenario.merge("nodes" => scenario["nodes"].each_with_index.map { |m, j|
+          next m unless j == i
+
+          m.merge("attributes" => attrs.each_with_index.map { |b, bi| bi == ai ? b.merge("value" => "") : b })
+        })
+      end
+    end
+    out
+  end
+
+  # 候補を試し、まだ不一致なものがあればそれに進む。進めたかどうかを返す。
+  def try_candidates(current, candidates)
+    return [current, false] if candidates.empty?
+
+    hits = mismatching(candidates)
+    hits.empty? ? [current, false] : [candidates[hits.first], true]
+  end
+
+  # 不一致を保ったまま scenario を小さくする。
+  #
+  # 操作 → 生きている object → node → 文字列 の順に一つずつ落とし、
+  # 一巡して何も落とせなくなるまで繰り返す。候補はまとめて評価するので、
+  # 1 round につき process 起動は 2 回で済む。
+  def shrink(scenario)
+    current = materialize_callbacks(scenario)
+    loop do
+      progress = false
+
+      # 操作
+      loop do
+        candidates = current["operations"].each_index.map do |i|
+          current.merge("operations" => current["operations"].reject.with_index { |_, j| j == i })
+        end
+        current, moved = try_candidates(current, candidates)
+        progress ||= moved
+        break unless moved
+      end
+
+      # live object
+      %w[ranges iterators walkers listeners observers].each do |key|
+        loop do
+          list = current[key] || []
+          candidates = list.each_index.map { |k| drop_live(current, key, k) }
+          current, moved = try_candidates(current, candidates)
+          progress ||= moved
+          break unless moved
+        end
+      end
+
+      # node
+      loop do
+        used = current["operations"].flat_map { |op| op.values_at(*NODE_REF_KEYS) }.compact.to_set
+        removable = current["nodes"].select do |n|
+          !used.include?(n["id"]) && current["nodes"].none? { |m| m["parent"] == n["id"] }
+        end
+        candidates = removable.map { |n| current.merge("nodes" => current["nodes"] - [n]) }
+        current, moved = try_candidates(current, candidates)
+        progress ||= moved
+        break unless moved
+      end
+
+      # 文字列
+      loop do
+        current, moved = try_candidates(current, string_candidates(current))
+        progress ||= moved
+        break unless moved
+      end
+
+      break unless progress
     end
     current
   end
@@ -159,7 +285,15 @@ if $PROGRAM_NAME == __FILE__
     o.on("--listeners N", Integer) { |v| opts[:listeners] = v }
     # 特定の操作だけを生成する（新しく入れた API を集中して撫でるため）。
     o.on("--only-ops LIST", String) { |v| opts[:only] = v.split(",") }
+    # 既にある scenario を最小化して標準出力に書く。
+    o.on("--shrink FILE", String) { |v| opts[:shrink] = v }
   end.parse!
+
+  if opts[:shrink]
+    scenario = JSON.parse(File.read(opts[:shrink]))
+    puts JSON.pretty_generate(Difftest.shrink(scenario))
+    exit 0
+  end
 
   Difftest.report_capabilities
 

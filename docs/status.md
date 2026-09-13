@@ -2478,7 +2478,27 @@ record queue の変化）を置いた。これは `insert` の step でもその
 ### 次
 
 逆向き（completeness、あるいは `RemoveSpec` を満たす状態の一意性）はまだ無い。
-`insert` の関係意味論と、生成 scenario の自動最小化（shrinker）が次の候補である。
+`insert` の関係意味論が次の候補である。
+
+## 生成 scenario の最小化を広げた
+
+不一致が出た生成 scenario を小さくする shrinker は前からあったが、落とせるのは
+**操作と node だけ**だった。live object と文字列も落とすようにした（`test/difftest.rb`）。
+
+順序は「操作 → 生きている object（range / iterator / walker / listener / observer）→
+node → 文字列」で、一巡して何も落とせなくなるまで繰り返す。
+候補はまとめて評価するので、1 round につき process 起動は 2 回のままである。
+
+index で指す live object を落とすと参照がずれるので、操作側の index を付け替え、
+落ちた番号を指す操作は捨てる。listener の `action` が持つ listener 番号も同じく直す。
+listener の `callback` は宣言順の既定値なので、最小化の前に明示しておく
+（そうしないと一つ落としただけで他の listener の番号が動く）。
+
+効果は分かりやすい。findings 11 の例は
+**node 6・listener 4・操作 8 から、node 3・listener 1・操作 1** になった。
+range の例も 3 本あった range が 1 本に落ちる。
+
+既にある scenario を最小化するには `--shrink FILE` を使う。
 
 ## 未着手
 
