@@ -14,22 +14,6 @@ boundary point を動かす method はどれも `ranges` の一要素を差し�
 
 namespace Dom
 
-/-- 差し替えた要素か、元からあった要素か。 -/
-theorem mem_set {α : Type} : ∀ (l : List α) (i : Nat) (b x : α), x ∈ l.set i b → x = b ∨ x ∈ l
-  | [], _, _, _, h => by simp at h
-  | a :: t, 0, b, x, h => by
-    simp only [List.set] at h
-    rcases List.mem_cons.mp h with rfl | h
-    · exact Or.inl rfl
-    · exact Or.inr (List.mem_cons_of_mem _ h)
-  | a :: t, n + 1, b, x, h => by
-    simp only [List.set] at h
-    rcases List.mem_cons.mp h with rfl | h
-    · exact Or.inr List.mem_cons_self
-    · rcases mem_set t n b x h with rfl | h2
-      · exact Or.inl rfl
-      · exact Or.inr (List.mem_cons_of_mem _ h2)
-
 /-- range を一つ差し替える操作は、その端点が妥当なら admissibility を保つ。 -/
 theorem admissible_withRange {s : DOMState} {i : Nat} {r : RangeState}
     (h : AdmissibleDOMState s) (hr : EndpointsValid s.tree r) :
@@ -37,7 +21,7 @@ theorem admissible_withRange {s : DOMState} {i : Nat} {r : RangeState}
   refine ⟨h.structural, h.nodeDocuments, h.documentTrees, ?_, h.iterators,
     h.observerRegistrations, h.attributes⟩
   intro r' hr'
-  rcases mem_set s.ranges i r r' hr' with rfl | hmem
+  rcases Dom.ListUtil.mem_set s.ranges i r r' hr' with rfl | hmem
   · exact hr
   · exact h.rangeEndpoints r' hmem
 

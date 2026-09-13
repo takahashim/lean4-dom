@@ -77,6 +77,23 @@ well-formed な木ではちょうど inclusive descendant 全体を重複なく�
 def preorder (t : Tree) (n : NodeId) : List NodeId :=
   preorderFuel t t.size n
 
+/--
+`preorder` の鏡像。children を逆順にたどる preorder である。
+
+DOM Standard §6.2 の `lastChild()` / `previousSibling()` は
+「最後の子から、さらにその最後の子へ」と降りるので、この順に候補を見る。
+列としては `preorder` と同じ node の集合を、逆向きの兄弟順で並べたものになる
+（`mem_mirrorPreorderFuel_iff`）。
+-/
+def mirrorPreorderFuel (t : Tree) : Nat → NodeId → List NodeId
+  | 0, _ => []
+  | f + 1, n =>
+    if t.contains n then n :: (childrenOf t n).reverse.flatMap (mirrorPreorderFuel t f) else []
+
+/-- `mirrorPreorderFuel` に `preorder` と同じ fuel を与えたもの。 -/
+def mirrorPreorder (t : Tree) (n : NodeId) : List NodeId :=
+  mirrorPreorderFuel t t.size n
+
 /-- `n` が属する木全体を tree order で列挙する。 -/
 def treeOrder (t : Tree) (n : NodeId) : List NodeId :=
   preorder t (root t n)

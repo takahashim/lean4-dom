@@ -102,6 +102,8 @@ open Dom.Audit
   Dom.admissible_rangeSelectNodeContents
   Dom.admissible_rangeDeleteContents
   Dom.admissible_rangeInsertNode
+  Dom.admissible_walkerStep
+  Dom.walkersValid_walkerStep
 
 -- §16 の live object をまとめた形
 #audit_axioms

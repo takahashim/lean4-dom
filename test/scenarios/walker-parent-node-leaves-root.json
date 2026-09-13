@@ -1,0 +1,65 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "TreeWalker"
+    ],
+    "steps": "parentNode 2",
+    "note": "parentNode の loop は「node が root でない間、親へ上がる」だけで、root へ戻れるかは見ない。current が remove で root の外に出ていれば、外れた木の親を返す。Dommy は root から辿れる node に限る検査を持っているので null を返す（docs/status.md の findings 9）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "ab"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [
+    {
+      "root": 1
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "removeChild",
+      "parent": 1,
+      "node": 2
+    },
+    {
+      "op": "walkerParentNode",
+      "walker": 0
+    }
+  ]
+}

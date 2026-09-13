@@ -1,0 +1,90 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "TreeWalker",
+      "filter"
+    ],
+    "steps": "filter 1-3 / traverse children 3.3 / traverse siblings 3.2",
+    "note": "filter が null なら結果は FILTER_ACCEPT か FILTER_SKIP しかない。SKIP された node は透けるので、firstChild は element を素通りしてその中の comment まで降りる。previousSibling は同じことを後ろ向きに行う（最後の子から降りる）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c1"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 1,
+      "data": "t"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 6,
+      "kind": "comment",
+      "parent": 5,
+      "data": "c2"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [
+    {
+      "root": 1,
+      "whatToShow": 128
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextSibling",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousSibling",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerParentNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerLastChild",
+      "walker": 0
+    }
+  ]
+}

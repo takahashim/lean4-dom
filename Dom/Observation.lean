@@ -91,6 +91,8 @@ structure Observation where
   nodes : List ObservedNode
   ranges : List RangeState
   iterators : List IteratorState
+  /-- §6.2 の `TreeWalker`。root は動かないので `current` だけが観測対象になる。 -/
+  walkers : List WalkerState := []
   /-- observer ごとの record queue。`takeRecords()` が返すものである。 -/
   records : List (List MutationRecord)
   /-- microtask checkpoint で callback に渡された record。配送が無い step では空。 -/
@@ -152,6 +154,7 @@ def observe (s : DOMState) (result : OperationResult)
   nodes := observedNodes s
   ranges := s.ranges
   iterators := s.iterators
+  walkers := s.walkers
   records := s.observers.map (·.records)
   delivered := delivered
   returned := returned

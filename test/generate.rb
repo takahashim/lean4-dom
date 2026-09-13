@@ -28,6 +28,8 @@ module Generate
            rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
            rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
            rangeInsertNode
+           walkerParentNode walkerFirstChild walkerLastChild
+           walkerPreviousSibling walkerNextSibling walkerPreviousNode walkerNextNode
            replaceData appendData insertData deleteData setData
            setAttribute setAttributeNS removeAttribute removeAttributeNS
            toggleAttribute].freeze
@@ -187,7 +189,8 @@ module Generate
     b.nodes
   end
 
-  def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0, range_count = 0)
+  def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0, range_count = 0,
+                       walker_count = 0)
     op = ops.sample(random: rng)
     if ITERATOR_OPS.include?(op)
       return nil if iterator_count.zero?
@@ -222,6 +225,11 @@ module Generate
                { "op" => op, "range" => r, "how" => rng.rand(5), "source" => rng.rand(range_count) }
              else { "op" => op, "range" => r, "node" => node }
              end
+    end
+    if WALKER_OPS.include?(op)
+      return nil if walker_count.zero?
+
+      return { "op" => op, "walker" => rng.rand(walker_count) }
     end
     pick = -> { ids.sample(random: rng) }
     # 存在しない id をたまに混ぜて notFoundError を誘う。
@@ -425,6 +433,11 @@ module Generate
                  rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
                  rangeInsertNode].freeze
 
+  # TreeWalker を動かす操作。受け手は walker なので、node は引数に取らない。
+  WALKER_OPS = %w[walkerParentNode walkerFirstChild walkerLastChild
+                  walkerPreviousSibling walkerNextSibling
+                  walkerPreviousNode walkerNextNode].freeze
+
   # MutationObserver の操作。`notify` は microtask checkpoint である。
   # `observe` だけは受け手が node（target）なので、kind の絞り込みを通す。
   OBSERVER_OPS = %w[observe disconnect takeRecords notify].freeze
@@ -437,6 +450,23 @@ module Generate
   SHOW_TEXT = 0x4
   SHOW_COMMENT = 0x80
   SHOW_DOCUMENT = 0x100
+
+  # TreeWalker を作る。current は `createTreeWalker` と同じく root から始める。
+  def random_walkers(rng, nodes, count)
+    return [] if count.zero? || nodes.empty?
+
+    Array.new(count) do
+      spec = nodes.sample(random: rng)
+      what =
+        if rng.rand < 0.5
+          SHOW_ALL
+        else
+          [SHOW_ELEMENT, SHOW_TEXT, SHOW_ELEMENT | SHOW_TEXT,
+           SHOW_COMMENT, SHOW_ELEMENT | SHOW_COMMENT | SHOW_DOCUMENT].sample(random: rng)
+        end
+      { "root" => spec["id"], "whatToShow" => what }
+    end
+  end
 
   def random_iterators(rng, nodes, count)
     Array.new(count) do
@@ -491,7 +521,7 @@ module Generate
   # `allow` は `(op, receiver_kind) -> Boolean`。
   # Dommy が実装していない (kind, op) の組を避けたいときに渡す。
   def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0,
-               range_count: 2, iterator_count: 1, observer_count: 0)
+               range_count: 2, iterator_count: 1, observer_count: 0, walker_count: 0)
     nodes = build_tree(rng, node_count, doctype_prob: doctype_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
@@ -499,8 +529,14 @@ module Generate
     attempts = 0
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
-      op = random_operation(rng, ids, ops, iterator_count, observer_count, range_count)
+      op = random_operation(rng, ids, ops, iterator_count, observer_count, range_count,
+                            walker_count)
       next if op.nil?
+      if WALKER_OPS.include?(op["op"])
+        # 受け手は walker なので kind の絞り込みは要らない。
+        operations << op
+        next
+      end
       if RANGE_OPS.include?(op["op"])
         # 受け手は range なので kind の絞り込みは要らない。
         operations << op
@@ -524,6 +560,7 @@ module Generate
     end
     { "nodes" => nodes, "ranges" => random_ranges(rng, nodes, range_count),
       "iterators" => random_iterators(rng, nodes, iterator_count),
+      "walkers" => random_walkers(rng, nodes, walker_count),
       "observers" => random_observers(rng, nodes, observer_count),
       "operations" => operations }
   end
@@ -532,7 +569,7 @@ end
 if $PROGRAM_NAME == __FILE__
   require "optparse"
   opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0,
-           ranges: 2, iterators: 1, observers: 0 }
+           ranges: 2, iterators: 1, observers: 0, walkers: 1 }
   OptionParser.new do |o|
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
     o.on("--nodes N", Integer) { |v| opts[:nodes] = v }
@@ -542,12 +579,14 @@ if $PROGRAM_NAME == __FILE__
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
     o.on("--observers N", Integer) { |v| opts[:observers] = v }
+    o.on("--walkers N", Integer) { |v| opts[:walkers] = v }
   end.parse!
   ops = opts[:move] ? Generate::OPS + ["moveBefore"] : Generate::OPS
   rng = Random.new(opts[:seed])
   puts JSON.pretty_generate(
     Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops], ops: ops,
                            doctype_prob: opts[:doctype], range_count: opts[:ranges],
-                           iterator_count: opts[:iterators], observer_count: opts[:observers])
+                           iterator_count: opts[:iterators], observer_count: opts[:observers],
+                           walker_count: opts[:walkers])
   )
 end

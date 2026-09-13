@@ -1,0 +1,80 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "TreeWalker"
+    ],
+    "steps": "traverse children 2, 3.3",
+    "note": "lastChild は最後の子から見て、SKIP された node には「最後の子」へ降りる。tree order をそのまま逆にたどるのではなく、兄弟の順だけを逆にした preorder（model の mirrorPreorder）になる。ここでは a2 が先に来る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 2,
+      "data": "a1"
+    },
+    {
+      "id": 4,
+      "kind": "comment",
+      "parent": 2,
+      "data": "a2"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 5
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [
+    {
+      "root": 1,
+      "whatToShow": 128
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "walkerLastChild",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousSibling",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextSibling",
+      "walker": 0
+    }
+  ]
+}

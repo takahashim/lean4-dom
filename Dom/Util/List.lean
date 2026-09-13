@@ -195,6 +195,22 @@ theorem insertBeforeFirst_eq_of_mem {α : Type _} [DecidableEq α] {c : α} (a :
       obtain ⟨s₁, s₂, h₁, h₂⟩ := insertBeforeFirst_eq_of_mem a hrest
       exact ⟨y :: s₁, s₂, by rw [h₁]; rfl, by rw [insertBeforeFirst_cons_ne hy, h₂]; rfl⟩
 
+/-- 差し替えた要素か、元からあった要素か。 -/
+theorem mem_set {α : Type _} : ∀ (l : List α) (i : Nat) (b x : α), x ∈ l.set i b → x = b ∨ x ∈ l
+  | [], _, _, _, h => by simp at h
+  | a :: t, 0, b, x, h => by
+    simp only [List.set] at h
+    rcases List.mem_cons.mp h with rfl | h
+    · exact Or.inl rfl
+    · exact Or.inr (List.mem_cons_of_mem _ h)
+  | a :: t, n + 1, b, x, h => by
+    simp only [List.set] at h
+    rcases List.mem_cons.mp h with rfl | h
+    · exact Or.inr List.mem_cons_self
+    · rcases mem_set t n b x h with rfl | h2
+      · exact Or.inl rfl
+      · exact Or.inr (List.mem_cons_of_mem _ h2)
+
 /--
 `l` から `a` をすべて取り除く。
 

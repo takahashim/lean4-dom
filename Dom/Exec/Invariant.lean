@@ -2,6 +2,7 @@ import Dom.Exec.Eval
 import Dom.Validity.Admissible
 import Dom.Validity.Normalize
 import Dom.Validity.RangeApi
+import Dom.Validity.Walkers
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -104,6 +105,16 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
     · rw [← Except.ok.inj hop]; exact h
   | rangeDeleteContents i => exact admissible_rangeDeleteContents h hop
   | rangeInsertNode i n => exact admissible_rangeInsertNode h hop
+  | walkerMove i m =>
+    -- `applyOperation` は返した node を捨てるので、`Except.map` を剥がす。
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · next res he =>
+      obtain ⟨r, s₁⟩ := res
+      have : s₁ = s' := by simpa using hop
+      subst this
+      exact admissible_walkerStep h he
   | setAttribute e qn v => exact admissible_setAttribute h hop
   | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
   | removeAttribute e qn => exact admissible_removeAttribute h hop

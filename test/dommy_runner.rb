@@ -55,6 +55,11 @@ module DommyRunner
                  rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
                  rangeInsertNode].freeze
 
+  # 受け手が TreeWalker である操作（§6.2）。
+  WALKER_OPS = %w[walkerParentNode walkerFirstChild walkerLastChild
+                  walkerPreviousSibling walkerNextSibling
+                  walkerPreviousNode walkerNextNode].freeze
+
   # 受け手が `node` である操作（CharacterData の method）。
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
 
@@ -178,7 +183,10 @@ module DommyRunner
   # `undefined` と `null` を取り違えないよう kind を添える
   # （`removeChild` が null を返したら不一致、`remove()` が undefined を返すのは正しい）。
   NODE_RETURNING_OPS = %w[appendChild insertBefore replaceChild removeChild
-                          iteratorNext iteratorPrevious].freeze
+                          iteratorNext iteratorPrevious
+                          walkerParentNode walkerFirstChild walkerLastChild
+                          walkerPreviousSibling walkerNextSibling
+                          walkerPreviousNode walkerNextNode].freeze
 
   def return_value_snapshot(objects, op, returned)
     case op["op"]
@@ -282,6 +290,29 @@ module DommyRunner
         "reference" => node_id(objects, iterator_attr(it, "referenceNode")),
         "pointerBeforeReference" => iterator_attr(it, "pointerBeforeReferenceNode"),
         "whatToShow" => iterator_attr(it, "whatToShow") }
+    end
+  end
+
+  # scenario の TreeWalker を Dommy の TreeWalker として作る。
+  #
+  # `createTreeWalker` は current を root に置く。scenario が `current` を指定した場合は
+  # setter で動かす（§6.2 の `currentNode` は書ける）。
+  def build_walkers(objects, documents, specs)
+    (specs || []).map do |spec|
+      doc = documents.values.first or raise "document が無いので TreeWalker を作れない"
+      what = spec["whatToShow"] || SHOW_ALL
+      walker = doc.create_tree_walker(objects.fetch(spec["root"]), what, nil)
+      current = spec["current"]
+      walker.current_node = objects.fetch(current) if current && current != spec["root"]
+      walker
+    end
+  end
+
+  def walker_snapshot(objects, walkers)
+    walkers.map do |w|
+      { "root" => node_id(objects, w.root),
+        "current" => node_id(objects, w.current_node),
+        "whatToShow" => w.what_to_show }
     end
   end
 
@@ -411,7 +442,7 @@ module DommyRunner
     node_id(objects, node.owner_document)
   end
 
-  def snapshot(objects, kinds, ranges = [], iterators = [], observers = nil)
+  def snapshot(objects, kinds, ranges = [], iterators = [], observers = nil, walkers = [])
     nodes = objects.keys.sort.map do |id|
       node = objects[id]
       {
@@ -429,7 +460,8 @@ module DommyRunner
       }
     end
     out = { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),
-            "iterators" => iterator_snapshot(objects, iterators) }
+            "iterators" => iterator_snapshot(objects, iterators),
+            "walkers" => walker_snapshot(objects, walkers) }
     out["observers"] = observers if observers
     out
   end
@@ -467,6 +499,21 @@ module DommyRunner
       return obs.__js_call__("takeRecords", [])
     when "notify"
       return run_microtask_checkpoint(ctx[:documents] || {})
+    end
+
+    if WALKER_OPS.include?(op["op"])
+      walker = (ctx[:walkers] || [])[op["walker"]]
+      raise NotImplementedError, "walker index" if walker.nil?
+
+      return case op["op"]
+             when "walkerParentNode" then walker.parent_node
+             when "walkerFirstChild" then walker.first_child
+             when "walkerLastChild" then walker.last_child
+             when "walkerPreviousSibling" then walker.previous_sibling
+             when "walkerNextSibling" then walker.next_sibling
+             when "walkerPreviousNode" then walker.previous_node
+             when "walkerNextNode" then walker.next_node
+             end
     end
     if RANGE_OPS.include?(op["op"])
       range = (ctx[:ranges] || [])[op["range"]]
@@ -587,11 +634,12 @@ module DommyRunner
     objects = builder.build
     ranges = build_ranges(objects, builder.documents, scenario["ranges"])
     iterators = build_iterators(objects, builder.documents, scenario["iterators"])
+    walkers = build_walkers(objects, builder.documents, scenario["walkers"])
     observers, delivery_log = build_observers(objects, builder.documents, scenario["observers"])
     ctx = { objects: objects, kinds: kinds, ranges: ranges, iterators: iterators,
-            observers: observers, documents: builder.documents }
+            walkers: walkers, observers: observers, documents: builder.documents }
     initial = snapshot(objects, kinds, ranges, iterators,
-                       observers.empty? ? nil : queued_records(objects, observers))
+                       observers.empty? ? nil : queued_records(objects, observers), walkers)
                 .merge("delivered" => [])
     steps = []
     (scenario["operations"] || []).each do |op|
@@ -608,13 +656,13 @@ module DommyRunner
         # 失敗した操作は状態を変えてはならない（roadmap §9）。
         # 変えていないことを比べられるように、失敗した step でも観測を出す。
         recs = observers.empty? ? nil : queued_records(objects, observers)
-        steps << snapshot(objects, kinds, ranges, iterators, recs)
+        steps << snapshot(objects, kinds, ranges, iterators, recs, walkers)
                  .merge("ok" => false, "exception" => exception_name(e),
                         "delivered" => delivered_snapshot(delivery_log))
         break
       end
       recs = observers.empty? ? nil : queued_records(objects, observers)
-      steps << snapshot(objects, kinds, ranges, iterators, recs)
+      steps << snapshot(objects, kinds, ranges, iterators, recs, walkers)
                .merge("ok" => true, "delivered" => delivered_snapshot(delivery_log),
                       "returned" => return_value_snapshot(objects, op, returned))
     end

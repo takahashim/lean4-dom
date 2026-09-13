@@ -99,6 +99,27 @@ roadmap §13.2 の対象外である。`insertNode` の step 7（start node が 
 同じ理由で対象外で、model は `__outsideModel__` を返す
 （`range-insert-node-into-text-is-outside-model`）。
 
+## §6.2 TreeWalker
+
+filter は null なので、"filter" は FILTER_ACCEPT か FILTER_SKIP しか返さない。
+FILTER_REJECT が出ないぶん、仕様の pointer 走査は
+「tree order（あるいはその鏡像 `mirrorPreorder`）に並べた候補列を、
+先頭から accept されるまで見る」ことに等しい。model はその形で書いてある。
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `nextNode()` | 3.1-3.5 | `walkerNextNode`, `walkerBase` | `exists_data_of_walkerNextNode` | `walker-basic-traversal`, `walker-not-adjusted-by-remove` | `test_wpt_tree_walker.rb` | 済（filter は null） |
+| `previousNode()` | 2.1-2.5 | `walkerPreviousNode` | `exists_data_of_walkerPreviousNode` | 同上 | 同上 | 済 |
+| `parentNode()` | 1-3 | `walkerParentNode`, `takeUntilIncl` | `exists_data_of_walkerParentNode` | `walker-parent-node-leaves-root` | 同上 | 済 |
+| `firstChild()` / `lastChild()`（traverse children） | 1-4 | `walkerFirstChild`, `walkerLastChild`, `mirrorPreorder` | `exists_data_of_walkerFirstChild` ほか | `walker-whattoshow-skips`, `walker-last-child-mirrors-order` | 同上 | 済 |
+| `nextSibling()` / `previousSibling()`（traverse siblings） | 1-3 | `walkerSibling`, `walkerSiblingSearch`, `siblingCandidates` | `exists_data_of_walkerSibling` | 同上 | 同上 | 済 |
+| filter（`whatToShow`、filter は null） | filter 1-3 | `walkerAccepts`, `showsNode` | — | `walker-whattoshow-skips` | 同上 | 済 |
+| walker の保存 | — | `walkerStep` | `walkersValid_walkerStep`, `admissible_walkerStep` | — | — | 済 |
+
+`currentNode` の setter は scenario の初期状態（`walkers` の `current`）としてだけ使える。
+`TreeWalker` を作る API（`createTreeWalker`）は object を生むので roadmap §13.2 の対象外で、
+scenario が最初から walker を与える形にしてある。
+
 ## §4.3 MutationObserver
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |

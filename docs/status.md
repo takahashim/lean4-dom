@@ -2149,9 +2149,78 @@ findings 8 が三本（`range-insert-node-moves-preceding-sibling`,
 **どれも Dommy を直すまで赤である**。
 生成 scenario は seed 51 / 52 / 53 で、上記以外の不一致は無い。
 
+## TreeWalker（§6.2）
+
+`NodeIterator` は model にあったが `TreeWalker` は無かった。Dommy には
+`tree_walker.rb` が 620 行あり、WPT も通している。oracle の無い塊としては
+`range.rb` の次に大きい。七つの走査 method を model に入れ
+（`Dom/Traversal/TreeWalker.lean`）、保存を証明し（`Dom/Properties/Walker.lean`、
+`Dom/Validity/Walkers.lean`）、差分テストに載せた。
+
+### FILTER_REJECT が出ないので、走査は列の探索になる
+
+`NodeFilter` の callback は model の外なので filter は null である。すると
+"filter" は **FILTER_ACCEPT か FILTER_SKIP しか返さない**。SKIP された node は
+透けるだけなので、仕様の pointer 走査（親へ上がったり最後の子へ降りたりする loop）は
+どれも「ある順に並べた候補列を、先頭から accept されるまで見る」ことに等しくなる。
+
+| method | 候補列 |
+| --- | --- |
+| `nextNode` | `preorder`（root の部分木）の current より後ろ |
+| `previousNode` | 同じ列の current より前を逆順に |
+| `firstChild` | `preorder` の current の部分木（自身を除く） |
+| `lastChild` | 同じものを `mirrorPreorder`（children を逆にたどる preorder）で |
+| `nextSibling` / `previousSibling` | 段ごとに「後ろ（前）の兄弟の部分木」、尽きたら親へ |
+| `parentNode` | current の祖先を root まで（root 自身も含む） |
+
+`mirrorPreorder` が `preorder` と同じ node の集合を並べ替えただけであることは
+`mem_mirrorPreorderFuel_iff` で示した。これで `lastChild` /
+`previousSibling` の結果も「木の中の node」だと分かる。
+
+`nextSibling` の段の上がり方だけは列に潰せない。上がった先が accept されるなら
+そこで止まる（step 3.5）ので、祖先の chain を引数に取る再帰
+（`walkerSiblingSearch`）にしてある。降りる途中の node は SKIP されたものばかりなので、
+止まりうるのは current の祖先だけである。
+
+### 不変条件は `NodeIterator` より弱い
+
+`walkers` は `DOMState` の成分だが、**`AdmissibleDOMState` には入れていない**。
+
+§6.2 には `NodeIterator` の "removing steps" にあたるものが無い。
+current の祖先が remove されても walker は動かないので、
+「current は root の inclusive descendant」という `ValidIterator` 並みの条件は
+**remove で壊れる**。それは仕様どおりの挙動なので、状態の不変条件にはできない
+（`walker-not-adjusted-by-remove`）。
+
+残るのは「root と current が木にある」（`WalkersValid`）で、これは
+走査が返すのが常に木の中の node であることから出る（`walkersValid_walkerStep`）。
+木を変える algorithm は `walkers` を触らないので、そちらは定義から保たれる。
+
+### 見つかったこと：`parentNode` に仕様に無い検査がある（findings 9）
+
+仕様の `parentNode()` は「node が root でない間、親へ上がって accept を見る」だけで、
+**root へ戻れるかは見ない**。current が remove で root の外に出ていれば、
+外れた木の親を返す。Dommy は `reachable_from_root?` で「root から辿れる node」に
+限っているので、その場合 null を返す。
+
+`walker-parent-node-leaves-root` がそれを固定した scenario である。
+`nextNode` / `previousNode` / `firstChild` / 兄弟の残りは、
+外れた木の中でも仕様と一致していた（`walker-not-adjusted-by-remove`）。
+食い違うのは `parentNode` だけである。
+
+### 差分テスト
+
+固定 scenario は 83 本になり、一致 72・skip 4・不一致 7 である。
+walker の五本では `walker-parent-node-leaves-root` だけが赤で、残りは一致する。
+`walker-last-child-mirrors-order` は `lastChild` の順序が
+「tree order の逆」ではなく「兄弟の順だけを逆にした preorder」であることを固定している。
+生成 scenario は walker の走査だけ（seed 71）、走査と remove / insert を混ぜたもの
+（seed 81 / 82、計 160 本）で不一致 0 だった。
+findings 9 は「current が外れた木の *内側* にいる」という狭い形なので、
+生成 scenario では出ず、手で作って初めて出た。
+
 ## 未着手
 
-* TreeWalker（§6.2）。NodeIterator は model にあるが TreeWalker は無い。
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
   element の attribute list とは別の仕組みで、attribute の mutation record を積まない。
   Dommy も未実装なので差分テストで裏を取れない。

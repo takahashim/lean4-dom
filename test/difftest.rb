@@ -142,7 +142,7 @@ if $PROGRAM_NAME == __FILE__
   # 操作の意味論の比較ができなくなる。
   opts = { count: 50, seed: Random.new_seed, nodes: 8, ops: 6,
            move: false, all: false, fixed_only: false, doctype: 0.0,
-           ranges: 2, iterators: 1, observers: 0 }
+           ranges: 2, iterators: 1, observers: 0, walkers: 1 }
   OptionParser.new do |o|
     o.on("--count N", Integer) { |v| opts[:count] = v }
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
@@ -155,6 +155,9 @@ if $PROGRAM_NAME == __FILE__
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
     o.on("--observers N", Integer) { |v| opts[:observers] = v }
+    o.on("--walkers N", Integer) { |v| opts[:walkers] = v }
+    # 特定の操作だけを生成する（新しく入れた API を集中して撫でるため）。
+    o.on("--only-ops LIST", String) { |v| opts[:only] = v.split(",") }
   end.parse!
 
   Difftest.report_capabilities
@@ -197,13 +200,14 @@ if $PROGRAM_NAME == __FILE__
     ops = Generate::OPS + Generate::ITERATOR_OPS
     ops += Generate::OBSERVER_OPS if opts[:observers].to_i.positive?
     ops << "moveBefore" if opts[:move]
+    ops = opts[:only] if opts[:only]
     allow = opts[:all] ? nil : Difftest.allow_lambda
     rng = Random.new(opts[:seed])
     generated = Array.new(opts[:count]) do
       Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops],
                              ops: ops, allow: allow, doctype_prob: opts[:doctype],
                              range_count: opts[:ranges], iterator_count: opts[:iterators],
-                             observer_count: opts[:observers])
+                             observer_count: opts[:observers], walker_count: opts[:walkers])
     end
     puts "生成 scenario（seed=#{opts[:seed]}, count=#{opts[:count]}）:"
     stats = Hash.new(0)

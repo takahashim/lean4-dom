@@ -23,6 +23,7 @@ JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使�
   ],
   "ranges": [],
   "iterators": [],
+  "walkers": [],
   "operations": [
     {"op": "insertBefore", "parent": 1, "node": 3, "child": null},
     {"op": "removeChild", "parent": 1, "node": 2}
@@ -37,14 +38,16 @@ JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使�
 * `data` は CharacterData 以外では無視する。
 * `ranges` は `{"start": {"node": 1, "offset": 0}, "end": {"node": 1, "offset": 2}}` の形。
 * `iterators` は `{"root": 1, "reference": 2, "pointerBeforeReference": true}` の形。
+* `walkers` は `{"root": 1, "current": 2, "whatToShow": 128}` の形。
+  `current` を省略すると `root` になる（`createTreeWalker` の初期値）。
 
 ## 出力形式
 
 ```json
 {
-  "initial": {"nodes": [...], "ranges": [], "iterators": []},
+  "initial": {"nodes": [...], "ranges": [], "iterators": [], "walkers": []},
   "steps": [
-    {"ok": true, "nodes": [...], "ranges": [], "iterators": []},
+    {"ok": true, "nodes": [...], "ranges": [], "iterators": [], "walkers": []},
     {"ok": false, "exception": "NotFoundError"}
   ]
 }
@@ -210,6 +213,13 @@ def operationOfJson (j : Json) : Except String Operation := do
       (← natField j "offset")
   | "rangeDeleteContents" => return .rangeDeleteContents (← natField j "range")
   | "rangeInsertNode" => return .rangeInsertNode (← natField j "range") (← natField j "node")
+  | "walkerParentNode" => return .walkerMove (← natField j "walker") .parentNode
+  | "walkerFirstChild" => return .walkerMove (← natField j "walker") .firstChild
+  | "walkerLastChild" => return .walkerMove (← natField j "walker") .lastChild
+  | "walkerPreviousSibling" => return .walkerMove (← natField j "walker") .previousSibling
+  | "walkerNextSibling" => return .walkerMove (← natField j "walker") .nextSibling
+  | "walkerPreviousNode" => return .walkerMove (← natField j "walker") .previousNode
+  | "walkerNextNode" => return .walkerMove (← natField j "walker") .nextNode
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← strField j "name" "")
       (← strField j "value" "")
@@ -245,6 +255,21 @@ def iteratorOfJson (j : Json) : Except String IteratorState := do
   return { root := ⟨← natField j "root"⟩, reference := ⟨← natField j "reference"⟩,
            pointerBeforeReference := pb, whatToShow }
 
+/--
+`TreeWalker` の読み取り。
+
+`current` を省略すると `root` になる（`createTreeWalker` が置く初期値）。
+-/
+def walkerOfJson (j : Json) : Except String WalkerState := do
+  let root ← natField j "root"
+  let current ← match field? j "current" with
+    | none => pure root
+    | some v => v.getNat?
+  let whatToShow ← match field? j "whatToShow" with
+    | none => pure 0xFFFFFFFF
+    | some v => v.getNat?
+  return { root := ⟨root⟩, current := ⟨current⟩, whatToShow }
+
 def rangeOfJson (j : Json) : Except String RangeState := do
   let some st := field? j "start" | .error "range に `start` がない"
   let some en := field? j "end" | .error "range に `end` がない"
@@ -278,15 +303,19 @@ def scenarioOfJson (j : Json) : Except String Scenario := do
   let itersJson ← match field? j "iterators" with
     | none => pure #[]
     | some v => v.getArr?
+  let walkersJson ← match field? j "walkers" with
+    | none => pure #[]
+    | some v => v.getArr?
   let obsJson ← match field? j "observers" with
     | none => pure #[]
     | some v => v.getArr?
   let nodes ← nodesJson.toList.mapM nodeSpecOfJson
   let ranges ← rangesJson.toList.mapM rangeOfJson
   let iterators ← itersJson.toList.mapM iteratorOfJson
+  let walkers ← walkersJson.toList.mapM walkerOfJson
   let observers ← obsJson.toList.mapM observerOfJson
   let operations ← opsJson.toList.mapM operationOfJson
-  return { nodes, ranges, iterators, observers, operations }
+  return { nodes, ranges, iterators, walkers, observers, operations }
 
 def scenarioOfString (s : String) : Except String Scenario := do
   scenarioOfJson (← Json.parse s)
@@ -342,6 +371,12 @@ def iteratorJson (it : IteratorState) : Json :=
     , ("pointerBeforeReference", Json.bool it.pointerBeforeReference)
     , ("whatToShow", natJson it.whatToShow) ]
 
+def walkerJson (w : WalkerState) : Json :=
+  Json.mkObj
+    [ ("root", natJson w.root.id)
+    , ("current", natJson w.current.id)
+    , ("whatToShow", natJson w.whatToShow) ]
+
 def recordTypeName : RecordType → String
   | .attributes => "attributes"
   | .childList => "childList"
@@ -395,6 +430,7 @@ def observationFields (o : Observation) : List (String × Json) :=
     [ ("nodes", Json.arr (o.nodes.map observedNodeJson).toArray)
     , ("ranges", Json.arr (o.ranges.map rangeJson).toArray)
     , ("iterators", Json.arr (o.iterators.map iteratorJson).toArray)
+    , ("walkers", Json.arr (o.walkers.map walkerJson).toArray)
     , ("observers", Json.arr
         (o.records.map fun rs => Json.arr (rs.map recordJson).toArray).toArray)
     , ("delivered", Json.arr (o.delivered.map fun p =>

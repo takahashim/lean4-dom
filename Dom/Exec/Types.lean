@@ -2,6 +2,7 @@ import Dom.Mutation.Api
 import Dom.Attribute.Algorithms
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
+import Dom.Traversal.TreeWalker
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
 import Dom.Observer.Deliver
@@ -85,6 +86,8 @@ inductive Operation where
   | rangeDeleteContents (range : Nat)
   /-- `Range.insertNode(node)`。 -/
   | rangeInsertNode (range node : Nat)
+  /-- `TreeWalker` の走査 method（§6.2）。 -/
+  | walkerMove (walker : Nat) (method : WalkerMethod)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
   /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/
@@ -133,6 +136,7 @@ structure Scenario where
   nodes : List NodeSpec
   ranges : List RangeState := []
   iterators : List IteratorState := []
+  walkers : List WalkerState := []
   observers : List ObserverSpec := []
   operations : List Operation
 deriving Repr

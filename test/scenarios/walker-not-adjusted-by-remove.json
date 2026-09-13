@@ -1,0 +1,70 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "TreeWalker",
+      "remove"
+    ],
+    "steps": "remove 4 / nextNode",
+    "note": "§6.2 には NodeIterator のような \"removing steps\" が無い。current の祖先が remove されても current はそのままで、走査はその（外れた）木の中を進む。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "ab"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [
+    {
+      "root": 1
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "removeChild",
+      "parent": 1,
+      "node": 2
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 0
+    }
+  ]
+}

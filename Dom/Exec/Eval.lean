@@ -126,7 +126,7 @@ def buildState (sc : Scenario) : Except String DOMState := do
   let observers : List ObserverState := sc.observers.map fun o =>
     { nodeList := match o.target with | none => [] | some t => [⟨t⟩] }
   let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators,
-                        observers, registrations }
+                        walkers := sc.walkers, observers, registrations }
   unless checkStructurallyValid t do
     throw "初期状態が構造上の制約（leaf に children、Document に parent など）を満たしていない"
   unless checkNodeDocumentsValid t do
@@ -137,6 +137,8 @@ def buildState (sc : Scenario) : Except String DOMState := do
     throw "初期状態の range の端点が木の中にない"
   unless checkIteratorsValid s do
     throw "初期状態の iterator が valid でない"
+  unless checkWalkersValid s do
+    throw "初期状態の TreeWalker の root か current が木に無い"
   unless checkObserverRegistrationsValid s do
     throw "初期状態の observer registration が木に無い node か範囲外の observer を指している"
   unless checkAttributesValid t do
@@ -206,6 +208,10 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     | .ok v => .int v
   | .rangeDeleteContents _ => .unit
   | .rangeInsertNode _ _ => .unit
+  | .walkerMove i m =>
+    match walkerStep s i m with
+    | .error _ => .unit
+    | .ok (r, _) => .node r
   | .appendData _ _ => .unit
   | .insertData _ _ _ => .unit
   | .deleteData _ _ _ => .unit
@@ -265,6 +271,7 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .rangeComparePoint i n o => (rangeComparePoint s i ⟨⟨n⟩, o⟩).map (fun _ => s)
   | .rangeDeleteContents i => rangeDeleteContents s i
   | .rangeInsertNode i n => rangeInsertNode s i ⟨n⟩
+  | .walkerMove i m => (walkerStep s i m).map (·.2)
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn

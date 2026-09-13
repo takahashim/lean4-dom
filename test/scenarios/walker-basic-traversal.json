@@ -1,0 +1,86 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "TreeWalker"
+    ],
+    "steps": "firstChild / nextNode / nextSibling / lastChild / parentNode / previousNode / previousSibling",
+    "note": "filter が null で whatToShow が SHOW_ALL なら、走査は tree order をそのまま前後にたどる。返す node が無ければ current は動かない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "ab"
+    },
+    {
+      "id": 4,
+      "kind": "comment",
+      "parent": 1,
+      "data": "c"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [
+    {
+      "root": 1
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextSibling",
+      "walker": 0
+    },
+    {
+      "op": "walkerLastChild",
+      "walker": 0
+    },
+    {
+      "op": "walkerParentNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousSibling",
+      "walker": 0
+    }
+  ]
+}

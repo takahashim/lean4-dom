@@ -43,6 +43,22 @@ structure IteratorState where
   whatToShow : Nat := 0xFFFFFFFF
 deriving DecidableEq, Repr, Inhabited
 
+/--
+DOM Standard §6.2 の `TreeWalker`。
+
+`NodeIterator` と同じく `filter` は callback なので model の外にあり、常に null として扱う。
+`whatToShow` は node type の bitmask なので純粋であり、そのまま持つ（既定は `SHOW_ALL`）。
+
+`NodeIterator` と違い **remove に追随しない**（仕様に "removing steps" が無い）ので、
+`current` は木から外れた node のままになりうる。それでも observation は決まるので、
+model はそのまま持つ。
+-/
+structure WalkerState where
+  root : NodeId
+  current : NodeId
+  whatToShow : Nat := 0xFFFFFFFF
+deriving DecidableEq, Repr, Inhabited
+
 /-! ## MutationObserver -/
 
 /-- DOM Standard §4.3.1 の `MutationRecord` の type。 -/
@@ -131,6 +147,10 @@ structure DOMState where
   tree : Tree
   ranges : List RangeState := []
   iterators : List IteratorState := []
+  /--
+  §6.2 の `TreeWalker`。木の変更に追随しないので、どの algorithm もこれを触らない。
+  -/
+  walkers : List WalkerState := []
   observers : List ObserverState := []
   registrations : List Registration := []
   /-- 仕様の agent の "mutation observer microtask queued"。 -/

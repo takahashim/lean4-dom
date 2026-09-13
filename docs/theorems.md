@@ -51,6 +51,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
 | `normalize` | `Dom.admissible_normalize` |
 | `Range.setStart` / `setEnd` / `setStartBefore` ほか / `collapse` / `selectNode` / `selectNodeContents` | `Dom.admissible_rangeSetStart` ほか |
 | `Range.deleteContents` / `insertNode` | `Dom.admissible_rangeDeleteContents`, `Dom.admissible_rangeInsertNode` |
+| `TreeWalker` の走査七つ | `Dom.admissible_walkerStep` |
 | `MutationObserver.observe` / `disconnect` / `takeRecords` | `Dom.admissible_observe` ほか |
 | notify mutation observers | `Dom.admissible_notifyMutationObservers` |
 | `setAttribute` / `setAttributeNS` / `removeAttribute` / `removeAttributeNS` / `toggleAttribute` | `Dom.admissible_setAttribute` ほか |
@@ -152,7 +153,27 @@ theorem exists_insert_breaking_boundaryLE :
 `native_decide` は使っていないので kernel で検査される。
 同じ例の JSON 版が `test/scenarios/range-order-broken-by-insert.json` である。
 
-## 10. oracle は自分の invariant を破らない
+## 10. `TreeWalker` は走査で木から出ない（ただし remove には追随しない）
+
+| 定理 | module |
+| --- | --- |
+| `Dom.walkersValid_walkerStep` | `Dom/Properties/Walker.lean` |
+
+```lean
+theorem walkersValid_walkerStep {s s' : DOMState} {i : Nat} {m : WalkerMethod}
+    {r : Option NodeId} (hwf : WellFormed s.tree) (h : WalkersValid s)
+    (hs : walkerStep s i m = .ok (r, s')) : WalkersValid s'
+```
+
+`WalkersValid` は「root と current が木にある」である。
+`NodeIterator` の `ValidIterator` のように
+**「current は root の inclusive descendant」までは要求しない**。
+§6.2 には "removing steps" が無いので remove がその関係を壊すからで、
+それは仕様どおりの挙動である（`test/scenarios/walker-not-adjusted-by-remove.json`）。
+そのため `walkers` は `AdmissibleDOMState` の成分ではない
+（`Dom/Validity/Walkers.lean` にその理由を書いてある）。
+
+## 11. oracle は自分の invariant を破らない
 
 | 定理 | module |
 | --- | --- |

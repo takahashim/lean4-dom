@@ -14,6 +14,7 @@ import Dom.Range.BoundaryPoint
 import Dom.Range.Adjust
 import Dom.Range.Api
 import Dom.Traversal.NodeIterator
+import Dom.Traversal.TreeWalker
 import Dom.Observer.Record
 import Dom.Observer.Deliver
 import Dom.CharacterData.ReplaceData
@@ -33,6 +34,7 @@ import Dom.Properties.Algorithms
 import Dom.Properties.Path
 import Dom.Properties.Range
 import Dom.Properties.Iterator
+import Dom.Properties.Walker
 import Dom.Properties.CharacterData
 import Dom.Validity.Derived
 import Dom.Validity.Preservation
@@ -43,6 +45,7 @@ import Dom.Validity.Attributes
 import Dom.Validity.Admissible
 import Dom.Validity.Normalize
 import Dom.Validity.RangeApi
+import Dom.Validity.Walkers
 import Dom.Properties.Contract
 import Dom.Properties.Counterexample
 import Dom.Observation

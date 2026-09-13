@@ -504,6 +504,43 @@ theorem mem_preorder_iff (hwf : WellFormed t) {n : NodeId} {d : NodeData} (hn : 
   · exact inclusive_descendant_of_mem_preorderFuel hwf t.size n x
   · exact mem_preorderFuel_of_inclusive_descendant hwf t.size n d hn (Nat.sub_le _ _) x
 
+/-! ## 鏡像の preorder -/
+
+theorem mirrorPreorderFuel_succ_pos {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d)
+    (f : Nat) :
+    mirrorPreorderFuel t (f + 1) n
+      = n :: (childrenOf t n).reverse.flatMap (mirrorPreorderFuel t f) := by
+  simp [mirrorPreorderFuel, contains_eq_true h]
+
+theorem mirrorPreorderFuel_succ_neg {t : Tree} {n : NodeId} (h : t.get? n = none) (f : Nat) :
+    mirrorPreorderFuel t (f + 1) n = [] := by
+  simp [mirrorPreorderFuel, contains_eq_false h]
+
+/-- 鏡像の preorder は、同じ node を並べ替えただけである。 -/
+theorem mem_mirrorPreorderFuel_iff {t : Tree} :
+    ∀ (f : Nat) (n x : NodeId), x ∈ mirrorPreorderFuel t f n ↔ x ∈ preorderFuel t f n := by
+  intro f
+  induction f with
+  | zero => intro n x; simp [mirrorPreorderFuel]
+  | succ f ih =>
+    intro n x
+    cases hn : t.get? n with
+    | none => rw [mirrorPreorderFuel_succ_neg hn, preorderFuel_succ_neg hn]
+    | some d =>
+      rw [mirrorPreorderFuel_succ_pos hn, preorderFuel_succ_pos hn]
+      simp only [List.mem_cons, List.mem_flatMap, List.mem_reverse]
+      constructor
+      · rintro (rfl | ⟨c, hc, hx⟩)
+        · exact Or.inl rfl
+        · exact Or.inr ⟨c, hc, (ih c x).mp hx⟩
+      · rintro (rfl | ⟨c, hc, hx⟩)
+        · exact Or.inl rfl
+        · exact Or.inr ⟨c, hc, (ih c x).mpr hx⟩
+
+theorem mem_mirrorPreorder_iff_mem_preorder {t : Tree} (n x : NodeId) :
+    x ∈ mirrorPreorder t n ↔ x ∈ preorder t n :=
+  mem_mirrorPreorderFuel_iff _ _ _
+
 /-- PLAN §4.2。`preorder` の結果は重複を持たない。 -/
 theorem preorderFuel_nodup (hwf : WellFormed t) :
     ∀ (f : Nat) (n : NodeId), (preorderFuel t f n).Nodup := by
