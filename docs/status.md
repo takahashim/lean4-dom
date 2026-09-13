@@ -2493,9 +2493,36 @@ observer ごとの record queue、pending と microtask、registered observer li
 どちらも実行関数は満たしているが、関係が言っていなければ一意性は出ない。
 一意性の証明は、関係が実装を本当に縛れているかの検査になっている。
 
+### `adopt` と `insert` も同じ形で入れた
+
+`insert` は step 4 で `remove` を、step 7.1 で `adopt` を呼ぶ。
+関係もそれぞれ `RemoveSpec` / `AdoptSpec` を composition する形にした。
+**仕様本文が "remove node" / "adopt node" と書いているとおりの構成**であって、
+実行関数の再利用ではない。
+
+component は七つ。
+
+| component | 仕様の step |
+| --- | --- |
+| `NodesToInsert` | 1（fragment なら children、そうでなければ node 一つ） |
+| `FragmentPrepared` | 4（children を外し、抑制に関わらず fragment に record を積む） |
+| `ChildIndex` / `PreviousSiblingOf` | 5 の index と 6 |
+| `RangeInsertAdjusted` | 5 |
+| `InsertedEach` | 7（各 node を adopt してから木に入れる） |
+| `TreeRecordQueued` | 9 |
+
+childList の record を積む step は `remove` の step 21 と同じなので、
+`TreeRecordQueued` として切り出して両方で共有している。
+
+証明で一つ手間だったのは step 5 の「child の index」である。
+関係の側は「index が存在する」と書いたが、実行側は `.getD 0` で逃げている。
+そこで **step 7 の最初の `insertAt` が「child は parent の子」を検査すること**から
+遡って index の存在を導いた（`adopt` が外すのは入れる node だけなので、
+step 5 の時点でも child は parent の子である）。
+
 ### 次
 
-completeness（関係を満たす状態が必ず作れること）と、`insert` の関係意味論が次である。
+completeness（関係を満たす状態が必ず作れること）と、`insert` の一意性が次である。
 
 ## 生成 scenario の最小化を広げた
 

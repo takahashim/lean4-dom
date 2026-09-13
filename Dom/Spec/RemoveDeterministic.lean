@@ -297,7 +297,7 @@ theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
       rw [hoa, hob]
       simp only [Option.map_some, Option.some.injEq]
       exact hrec mo o oa ho hoa ob hob
-  unfold RecordQueued at h₁ h₂
+  unfold RecordQueued TreeRecordQueued at h₁ h₂
   split at h₁
   · next hsup =>
     rw [if_pos hsup] at h₂

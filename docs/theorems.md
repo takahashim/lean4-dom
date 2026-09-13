@@ -218,6 +218,8 @@ scenario が宣言した副作用（`ListenerAction`）は listener list しか�
 | 定理 | module |
 | --- | --- |
 | `Dom.Spec.remove_sound` | `Dom/Spec/RemoveSound.lean` |
+| `Dom.Spec.adopt_sound` | `Dom/Spec/AdoptSound.lean` |
+| `Dom.Spec.insert_sound` | `Dom/Spec/InsertSound.lean` |
 
 ```lean
 theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}
@@ -236,7 +238,11 @@ theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}
 | `TransientAdded` | 20 | `Dom.Spec.remove_sound_transient` |
 | `RecordQueued` | 21 | `Dom.Spec.remove_sound_record` |
 
-逆向きのうち **一意性** は示してある。
+`adopt`（§4.5）と `insert`（§4.2.3）も同じ形で入れた。`insert` は step 4 で `remove` を、
+step 7.1 で `adopt` を呼ぶので、関係もそれぞれ `RemoveSpec` / `AdoptSpec` を composition する
+（仕様本文がそう書いているとおりの構成であり、実行関数の再利用ではない）。
+
+`remove` の逆向きのうち **一意性** は示してある。
 
 | 定理 | module |
 | --- | --- |

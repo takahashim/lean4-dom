@@ -322,7 +322,7 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
         · omega
         · rw [List.getElem?_eq_none hk] at ho; simp at ho
       · exact ⟨o₂, rfl, records_addTransientObservers s₁ n p mo o o₂ (by rw [hobs₁]; exact ho) hq⟩
-    unfold RecordQueued
+    unfold RecordQueued TreeRecordQueued
     split at h
     · -- suppressObservers が true なら record は積まない。
       next hb =>

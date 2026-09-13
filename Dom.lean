@@ -53,8 +53,12 @@ import Dom.Properties.Contract
 import Dom.Spec.Remove
 import Dom.Spec.RemoveSound
 import Dom.Spec.RemoveDeterministic
+import Dom.Spec.Record
+import Dom.Spec.RecordSound
 import Dom.Spec.Adopt
 import Dom.Spec.AdoptSound
+import Dom.Spec.Insert
+import Dom.Spec.InsertSound
 import Dom.Properties.Counterexample
 import Dom.Observation
 

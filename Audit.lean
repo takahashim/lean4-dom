@@ -120,6 +120,9 @@ open Dom.Audit
   Dom.Spec.remove_sound_record
   Dom.Spec.removeSpec_deterministic
   Dom.Spec.adopt_sound
+  Dom.Spec.insert_sound
+  Dom.Spec.insertEach_sound
+  Dom.Spec.removeEach_sound
 
 -- §16 の live object をまとめた形
 #audit_axioms

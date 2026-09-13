@@ -32,10 +32,13 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | --- | --- | --- | --- |
 | remove | `Dom.Spec.RemoveSpec` | `Dom.Spec.remove_sound` | `Dom.Spec.removeSpec_deterministic`（観測の一意性） |
 | adopt（§4.5） | `Dom.Spec.AdoptSpec` | `Dom.Spec.adopt_sound` | 未 |
-| insert | 未 | 未 | 未 |
+| insert | `Dom.Spec.InsertSpec` | `Dom.Spec.insert_sound` | 未 |
 | replace | 未 | 未 | 未 |
 | move | 未 | 未 | 未 |
 | replace data | 未 | 未 | 未 |
+
+childList の record を積む step（`remove` の step 21 と `insert` の step 4.2 / 9）は
+`Dom.Spec.TreeRecordQueued` に切り出してあり、両方が共有する。
 
 `RemoveSpec` は仕様の副作用ごとに六つの component に分かれていて、
 soundness も component 単位で証明してある

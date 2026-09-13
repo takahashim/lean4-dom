@@ -1,5 +1,6 @@
 import Dom.Basic.State
 import Dom.Basic.Order
+import Dom.Spec.Record
 
 /-!
 # `remove` の関係意味論（§4.2.3）
@@ -203,41 +204,14 @@ def TransientAdded (s s' : DOMState) (node parent : NodeId) : Prop :=
 /-! ## step 21：mutation record -/
 
 /--
-§4.3.4 "queue a mutation record" の step 2.3 のうち、childList record に効く部分。
-
-childList の record は oldValue を持たないので、step 2.3.2-2.3.3 の
-「同じ observer が二度出たら oldValue を上書きする」は効かない。
--/
-def InterestedInChildList (s : DOMState) (mo : Nat) (target : NodeId) : Prop :=
-  ∃ r ∈ s.registrations, r.observer = mo ∧ r.childList = true ∧
-    InclusiveAncestor s.tree r.node target ∧ (r.node = target ∨ r.subtree = true)
-
-/--
 仕様の step 21。`suppressObservers` が false なら childList の record を積む。
 
-record は interested な observer の queue の末尾に一つだけ積まれ、
-その observer は pending mutation observers に入り、microtask が予約される。
+一般形は `Dom/Spec/Record.lean` の `TreeRecordQueued` にある。
+remove が積むのは「`parent` を target とし、`node` を removedNodes とする record」である。
 -/
 def RecordQueued (s s' : DOMState) (node parent : NodeId)
     (oldPrev oldNext : Option NodeId) (suppress : Bool) : Prop :=
-  if suppress then
-    s'.observers.length = s.observers.length ∧
-    (∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
-      s'.observers[mo]? = some o' → o'.records = o.records) ∧
-    s'.pendingObservers = s.pendingObservers ∧ s'.microtaskQueued = s.microtaskQueued
-  else
-    let rec' : MutationRecord :=
-      { type := .childList, target := parent, addedNodes := [], removedNodes := [node],
-        previousSibling := oldPrev, nextSibling := oldNext }
-    s'.observers.length = s.observers.length ∧
-    (∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
-      s'.observers[mo]? = some o' →
-      (InterestedInChildList s mo parent → o'.records = o.records ++ [rec']) ∧
-      (¬ InterestedInChildList s mo parent → o'.records = o.records)) ∧
-    (∀ mo, InterestedInChildList s mo parent → mo ∈ s'.pendingObservers) ∧
-    (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
-    (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInChildList s mo parent) ∧
-    s'.microtaskQueued = true
+  TreeRecordQueued s s' parent [] [node] oldPrev oldNext suppress
 
 /-! ## 全体 -/
 

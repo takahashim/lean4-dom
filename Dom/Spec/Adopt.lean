@@ -27,7 +27,7 @@ structure DocumentAssigned (t t' : Tree) (node doc : NodeId) : Prop where
   outside : ∀ m : NodeId, ¬ InclusiveDescendant t m node → t'.get? m = t.get? m
 
 /-- 木以外の成分が変わらないこと。node document の付け替えは木しか触らない。 -/
-structure LiveObjectsUnchanged (s s' : DOMState) : Prop where
+structure LiveObjectsUnchangedExceptTree (s s' : DOMState) : Prop where
   ranges : s'.ranges = s.ranges
   iterators : s'.iterators = s.iterators
   registrations : s'.registrations = s.registrations
@@ -49,6 +49,14 @@ def AdoptSpec (s : DOMState) (node doc : NodeId) (s' : DOMState) : Prop :=
         ((∃ p, parentOf s.tree node = some p) ∧ RemoveSpec s node false s₁)) ∧
       -- step 3
       (if doc = oldDoc then s' = s₁
-       else DocumentAssigned s₁.tree s'.tree node doc ∧ LiveObjectsUnchanged s₁ s')
+       else DocumentAssigned s₁.tree s'.tree node doc ∧ LiveObjectsUnchangedExceptTree s₁ s')
+
+/-- range 以外が変わらないこと。live range の調整は range しか触らない。 -/
+structure LiveObjectsUnchangedExceptRanges (s s' : DOMState) : Prop where
+  iterators : s'.iterators = s.iterators
+  registrations : s'.registrations = s.registrations
+  observers : s'.observers = s.observers
+  pendingObservers : s'.pendingObservers = s.pendingObservers
+  microtaskQueued : s'.microtaskQueued = s.microtaskQueued
 
 end Dom.Spec
