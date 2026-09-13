@@ -213,7 +213,32 @@ admissibility の保存はここから出る。listener の callback は model �
 scenario が宣言した副作用（`ListenerAction`）は listener list しか変えないので、
 この定理はその範囲での主張である。
 
-## 13. oracle は自分の invariant を破らない
+## 13. 実行関数は関係意味論を満たす（`remove`）
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.remove_sound` | `Dom/Spec/RemoveSound.lean` |
+
+```lean
+theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (h : remove s n b = .ok s') : RemoveSpec s n b s'
+```
+
+`RemoveSpec`（`Dom/Spec/Remove.lean`）は仕様本文から独立に書き写した関係で、
+実行側の algorithm を一つも呼ばない。仕様の副作用ごとに六つの component に分かれる。
+
+| component | 仕様の step | soundness |
+| --- | --- | --- |
+| `RemovePre` | 1-2 | `remove_ok` |
+| `RangeAdjusted` | 3 | `Dom.Spec.remove_sound_range` |
+| `IteratorAdjusted` | 4 | `Dom.Spec.remove_sound_iterator` |
+| `TreeRemoved` | 7 | `Dom.Spec.remove_sound_tree` |
+| `TransientAdded` | 20 | `Dom.Spec.remove_sound_transient` |
+| `RecordQueued` | 21 | `Dom.Spec.remove_sound_record` |
+
+逆向き（completeness、あるいは `RemoveSpec` を満たす状態の一意性）はまだ無い。
+
+## 14. oracle は自分の invariant を破らない
 
 | 定理 | module |
 | --- | --- |

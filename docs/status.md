@@ -2419,6 +2419,67 @@ phase の順序・`once`・二つの stop・`preventDefault`・配送中の追�
 **すべて findings 11（target が Text / Comment / PI）**だった。
 直るまで、event を混ぜた生成 scenario はこの原因で赤が出続ける。
 
+## 関係意味論の層を作り始めた（`remove`）
+
+これまで本 model は **実行関数そのものを意味論**としてきた。
+`docs/traceability.md` にも「spec relation の列は置いていない」と書いてあったとおりで、
+この形だと仕様の翻訳を誤っても、その誤った関数についての定理は証明できてしまう。
+
+そこで仕様本文から独立に書き写した関係を `Dom/Spec/` に置き、
+実行関数がそれを満たすこと（soundness）を別に証明する層を作った。最初の対象は `remove` である。
+`remove` は tree mutation・live range・NodeIterator・MutationObserver の四つすべてに触るので、
+この層の形を決めるのにちょうどよい。
+
+### 関係は実行側を呼ばない
+
+`Dom/Spec/Remove.lean` は `liveRangePreRemove` / `detach` / `adjustNodePointer` /
+`addTransientObservers` / `queueTreeMutationRecord` を **一つも呼ばない**。
+使うのは `parentOf` / `childrenOf` / `ancestors` / `precedes` といった観測の語彙だけである。
+そうしないと二層に分けた意味が無くなる。
+
+`RemoveSpec` は仕様の副作用ごとに六つの component の連言にしてある。
+
+| component | 仕様の step | 中身 |
+| --- | --- | --- |
+| `RemovePre` | 1-2 | parent が非 null |
+| `RangeAdjusted` | 3 | 各 boundary point が三つの枝のどれかで決まる |
+| `IteratorAdjusted` | 4 | node pointer が `PointerAdjusted` で決まる |
+| `TreeRemoved` | 7 | parent の children から消える + frame |
+| `TransientAdded` | 20 | transient registered observer の集合 |
+| `RecordQueued` | 21 | interested な observer の queue に一つだけ積む |
+
+component に分けたのは、`insert` へ広げるときに `TreeRemoved` 以外の骨格を
+そのまま使えるからである。
+
+### 証明で要った道具
+
+`PointerAdjusted` の step 2「部分木の外にある最初の following」を
+「その条件を満たす他のどの node より前にある」と宣言的に書いたので、
+tree order の列を切ったときの補題が要った（`Dom/Properties/TreeOrder.lean`）。
+
+* `precedes_iff_mem_after` — `n` が先行するのは列の `n` より後ろにあるものだけ
+* `precedes_eq_precedesIn_preorder` — 前後関係はどの祖先を根に取っても同じ
+* `precedesIn_lastD_eq_false` — 列の最後の要素は誰にも先行しない
+
+step 21 のほうは「どの observer が record を受け取るか」を
+`interestedObservers` の二重の畳み込みから取り出す必要があり、
+`Dom/Properties/Record.lean` に畳み込みの一般補題（membership・重複の無さ・
+record queue の変化）を置いた。これは `insert` の step でもそのまま使える。
+
+### model 側の近似として分かったこと
+
+* 仕様の step 20 は registered observer list にしか触れないが、model は配送時の掃除が
+  届くように observer の node list にも足している。その差は record の中身には出ないので、
+  `TransientAdded` は node list について何も言わない。
+* `RecordQueued` は childList の record に限った形で書いてある（oldValue が付かないので
+  "queue a mutation record" の step 2.3.2-2.3.3 が効かない）。
+  attributes / characterData を含む一般形は `insert` 側と一緒に広げる。
+
+### 次
+
+逆向き（completeness、あるいは `RemoveSpec` を満たす状態の一意性）はまだ無い。
+`insert` の関係意味論と、生成 scenario の自動最小化（shrinker）が次の候補である。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

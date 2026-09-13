@@ -110,6 +110,15 @@ open Dom.Audit
   Dom.admissible_addEventListener
   Dom.admissible_removeEventListener
 
+-- 関係意味論（§4.2.3 remove）
+#audit_axioms
+  Dom.Spec.remove_sound
+  Dom.Spec.remove_sound_range
+  Dom.Spec.remove_sound_iterator
+  Dom.Spec.remove_sound_tree
+  Dom.Spec.remove_sound_transient
+  Dom.Spec.remove_sound_record
+
 -- §16 の live object をまとめた形
 #audit_axioms
   Dom.remove_preserves_live_objects

@@ -30,6 +30,7 @@ import Dom.Validity.DocumentTree
 import Dom.Validity.AttributeList
 import Dom.Validity.State
 import Dom.Properties.Tree
+import Dom.Properties.TreeOrder
 import Dom.Properties.Mutation
 import Dom.Properties.Algorithms
 import Dom.Properties.Path
@@ -47,7 +48,10 @@ import Dom.Validity.Admissible
 import Dom.Validity.Normalize
 import Dom.Validity.RangeApi
 import Dom.Validity.Walkers
+import Dom.Properties.Record
 import Dom.Properties.Contract
+import Dom.Spec.Remove
+import Dom.Spec.RemoveSound
 import Dom.Properties.Counterexample
 import Dom.Observation
 

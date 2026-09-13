@@ -19,10 +19,30 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | WPT | Dommy 側の WPT 由来 test（`gems/dommy/test/wpt/`） |
 | Status | 済 / 部分 / 未 |
 
-**spec relation の列は置いていない。** 本 model は関係意味論と実行関数を分けておらず、
-実行関数 `Except DOMException DOMState` そのものを意味論としている。
-妥当性は述語（`AdmissibleDOMState` など）として別に持つ。
-roadmap §5 が求める「任意の declarative layer」はまだ無い。
+**関係意味論（spec relation）は `remove` だけにある。** 本 model は長く
+実行関数 `Except DOMException DOMState` そのものを意味論としてきた。
+それだと仕様の翻訳を誤っても、その誤った関数についての定理は証明できてしまう。
+そこで仕様本文から独立に書き写した関係を `Dom/Spec/` に置き、
+実行関数がそれを満たすこと（soundness）を別に証明する層を作り始めた。
+現状は下の表のとおり `remove` のみで、残りは実行関数が意味論のままである。
+
+## §4.2.3 の関係意味論（`Dom/Spec/`）
+
+| Algorithm | 関係 | soundness | completeness / determinism |
+| --- | --- | --- | --- |
+| remove | `Dom.Spec.RemoveSpec` | `Dom.Spec.remove_sound` | 未 |
+| insert | 未 | 未 | 未 |
+| replace | 未 | 未 | 未 |
+| move | 未 | 未 | 未 |
+| replace data | 未 | 未 | 未 |
+
+`RemoveSpec` は仕様の副作用ごとに六つの component に分かれていて、
+soundness も component 単位で証明してある
+（`RemovePre` / `RangeAdjusted` / `IteratorAdjusted` / `TreeRemoved` /
+`TransientAdded` / `RecordQueued`）。
+関係の側は実行側の algorithm（`liveRangePreRemove` / `detach` / `adjustNodePointer` /
+`addTransientObservers` / `queueTreeMutationRecord`）を一切呼ばず、
+`parentOf` / `childrenOf` / `ancestors` / `precedes` といった観測の語彙だけで書いてある。
 
 ## §4.2.3 node tree の mutation
 
