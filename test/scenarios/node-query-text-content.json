@@ -1,0 +1,108 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "get text content",
+      "nodeValue"
+    ],
+    "steps": "get text content / nodeValue getter",
+    "note": "Element と DocumentFragment は子孫 Text の連結、CharacterData は data、Document と DocumentType は null。nodeValue は CharacterData だけが値を持つ。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "a😀"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "bc"
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 1,
+      "data": "no"
+    },
+    {
+      "id": 6,
+      "kind": "processingInstruction",
+      "parent": 1,
+      "data": "pi"
+    },
+    {
+      "id": 7,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 8,
+      "kind": "text",
+      "parent": 7,
+      "data": "f"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getTextContent",
+      "node": 1
+    },
+    {
+      "op": "getTextContent",
+      "node": 7
+    },
+    {
+      "op": "getTextContent",
+      "node": 2
+    },
+    {
+      "op": "getTextContent",
+      "node": 5
+    },
+    {
+      "op": "getTextContent",
+      "node": 6
+    },
+    {
+      "op": "getTextContent",
+      "node": 0
+    },
+    {
+      "op": "getNodeValue",
+      "node": 2
+    },
+    {
+      "op": "getNodeValue",
+      "node": 5
+    },
+    {
+      "op": "getNodeValue",
+      "node": 1
+    },
+    {
+      "op": "getNodeValue",
+      "node": 0
+    }
+  ]
+}

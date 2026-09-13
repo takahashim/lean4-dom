@@ -46,6 +46,14 @@ theorem admissible_stepIterator {s : DOMState} {i : Nat}
         · exact h.iterators x hx'
       · exact h.observerRegistrations
 
+/-- 値を返すだけの操作は状態を変えない。 -/
+theorem admissible_requireNodes {s s' : DOMState} {ns : List NodeId}
+    (h : AdmissibleDOMState s) (hr : requireNodes s ns = .ok s') : AdmissibleDOMState s' := by
+  unfold requireNodes at hr
+  split at hr
+  · rw [← Except.ok.inj hr]; exact h
+  · simp at hr
+
 /-- 一つの操作は admissibility を保つ。 -/
 theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
     (h : AdmissibleDOMState s) (hop : applyOperation s op = .ok s') : AdmissibleDOMState s' := by
@@ -115,6 +123,32 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
       have : s₁ = s' := by simpa using hop
       subst this
       exact admissible_walkerStep h he
+  | rangeToString i =>
+    -- 値を返すだけなので状態は変わらない。
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · next res he =>
+      have : s = s' := by simpa using hop
+      subst this
+      exact h
+  | substringData n o c =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · next res he =>
+      have : s = s' := by simpa using hop
+      subst this
+      exact h
+  | compareDocumentPosition n o => exact admissible_requireNodes h hop
+  | nodeContains n o => exact admissible_requireNodes h hop
+  | getRootNode n => exact admissible_requireNodes h hop
+  | isEqualNode n o => exact admissible_requireNodes h hop
+  | getTextContent n => exact admissible_requireNodes h hop
+  | getNodeValue n => exact admissible_requireNodes h hop
+  | getAttribute e q => exact admissible_requireNodes h hop
+  | hasAttribute e q => exact admissible_requireNodes h hop
+  | getAttributeNames e => exact admissible_requireNodes h hop
   | setAttribute e qn v => exact admissible_setAttribute h hop
   | setAttributeNS e ns qn v => exact admissible_setAttributeNS h hop
   | removeAttribute e qn => exact admissible_removeAttribute h hop

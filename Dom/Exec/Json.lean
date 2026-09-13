@@ -220,6 +220,19 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "walkerNextSibling" => return .walkerMove (← natField j "walker") .nextSibling
   | "walkerPreviousNode" => return .walkerMove (← natField j "walker") .previousNode
   | "walkerNextNode" => return .walkerMove (← natField j "walker") .nextNode
+  | "rangeToString" => return .rangeToString (← natField j "range")
+  | "compareDocumentPosition" =>
+    return .compareDocumentPosition (← natField j "node") (← natField j "other")
+  | "nodeContains" => return .nodeContains (← natField j "node") (← natField j "other")
+  | "getRootNode" => return .getRootNode (← natField j "node")
+  | "isEqualNode" => return .isEqualNode (← natField j "node") (← natField j "other")
+  | "getTextContent" => return .getTextContent (← natField j "node")
+  | "getNodeValue" => return .getNodeValue (← natField j "node")
+  | "substringData" =>
+    return .substringData (← natField j "node") (← natField j "offset") (← natField j "count")
+  | "getAttribute" => return .getAttribute (← natField j "element") (← strField j "name" "")
+  | "hasAttribute" => return .hasAttribute (← natField j "element") (← strField j "name" "")
+  | "getAttributeNames" => return .getAttributeNames (← natField j "element")
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← strField j "name" "")
       (← strField j "value" "")
@@ -408,6 +421,12 @@ def returnValueJson : ReturnValue → Json
     Json.mkObj [("kind", Json.str "records"),
                 ("records", Json.arr (rs.map recordJson).toArray)]
   | .int i => Json.mkObj [("kind", Json.str "number"), ("value", Json.num (.fromInt i))]
+  | .str s =>
+    Json.mkObj [("kind", Json.str "string"),
+                ("value", match s with | none => Json.null | some x => Json.str x)]
+  | .strs l =>
+    Json.mkObj [("kind", Json.str "strings"),
+                ("value", Json.arr (l.map Json.str).toArray)]
 
 /--
 `Observation` の外部表現。

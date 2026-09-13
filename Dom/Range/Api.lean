@@ -347,4 +347,46 @@ def rangeInsertNode (s : DOMState) (i : Nat) (node : NodeId) : Except DOMExcepti
                   | some bp => .ok (withRange s₂ i { r₂ with «end» := bp })
                 else .ok s₂
 
+/-! ## stringifier -/
+
+/--
+DOM Standard §5.5 `Range` の stringification behavior。
+
+step 4 の「contained な Text を tree order で」は `nodesToRemove` と同じ
+`containedInRange` で決まる。**common ancestor の子だけではない。**
+
+start / end の Text を切り出すところは UTF-16 の code unit で数えるので、
+surrogate pair の途中を指していれば `outsideModel` になる（`substringData` と同じ）。
+-/
+def rangeToString (s : DOMState) (i : Nat) : Except DOMException String :=
+  match s.ranges[i]? with
+  | none => .error .notFoundError
+  | some r =>
+    match s.tree.get? r.start.node, s.tree.get? r.«end».node with
+    | some ds, some de =>
+      -- step 2
+      if r.start.node == r.«end».node && ds.kind.isText then
+        substringData s.tree r.start.node r.start.offset (r.«end».offset - r.start.offset)
+      else
+        -- step 3
+        match (if ds.kind.isText then
+                 substringData s.tree r.start.node r.start.offset (ds.length - r.start.offset)
+               else .ok "") with
+        | .error e => .error e
+        | .ok head =>
+          -- step 4
+          let mid := ((treeOrder s.tree r.start.node).filterMap fun n =>
+            match s.tree.get? n with
+            | none => none
+            | some d =>
+              if d.kind.isText && containedInRange s.tree r n then some d.data else none).foldl
+              (· ++ ·) ""
+          -- step 5
+          match (if de.kind.isText then
+                   substringData s.tree r.«end».node 0 r.«end».offset
+                 else .ok "") with
+          | .error e => .error e
+          | .ok tail => .ok (head ++ mid ++ tail)
+    | _, _ => .error .notFoundError
+
 end Dom

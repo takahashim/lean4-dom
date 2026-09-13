@@ -53,7 +53,33 @@ module DommyRunner
                  rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
                  rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
                  rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
-                 rangeInsertNode].freeze
+                 rangeInsertNode rangeToString].freeze
+
+  # 値を返すだけの操作（§4.4 / §4.9 / §4.10）。受け手は node か element。
+  #
+  # Ruby 側に snake_case の method が無くても JS bridge が持っていることがあるので、
+  # 呼び出しは `js_call` / `js_get` を通す。
+  QUERY_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
+                 getTextContent getNodeValue substringData
+                 getAttribute hasAttribute getAttributeNames].freeze
+
+  # 上の操作が呼ぶ JS 側の名前。`nodeContains` と `getTextContent` ほかは
+  # model 側の操作名と IDL 名が違う。
+  QUERY_JS_NAME = {
+    "compareDocumentPosition" => "compareDocumentPosition",
+    "nodeContains" => "contains",
+    "getRootNode" => "getRootNode",
+    "isEqualNode" => "isEqualNode",
+    "getTextContent" => "textContent",
+    "getNodeValue" => "nodeValue",
+    "substringData" => "substringData",
+    "getAttribute" => "getAttribute",
+    "hasAttribute" => "hasAttribute",
+    "getAttributeNames" => "getAttributeNames"
+  }.freeze
+
+  # attribute の getter として読むもの（method ではなく IDL attribute）。
+  QUERY_GETTERS = %w[getTextContent getNodeValue].freeze
 
   # 受け手が TreeWalker である操作（§6.2）。
   WALKER_OPS = %w[walkerParentNode walkerFirstChild walkerLastChild
@@ -183,7 +209,7 @@ module DommyRunner
   # `undefined` と `null` を取り違えないよう kind を添える
   # （`removeChild` が null を返したら不一致、`remove()` が undefined を返すのは正しい）。
   NODE_RETURNING_OPS = %w[appendChild insertBefore replaceChild removeChild
-                          iteratorNext iteratorPrevious
+                          iteratorNext iteratorPrevious getRootNode
                           walkerParentNode walkerFirstChild walkerLastChild
                           walkerPreviousSibling walkerNextSibling
                           walkerPreviousNode walkerNextNode].freeze
@@ -194,8 +220,14 @@ module DommyRunner
       { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
     when "toggleAttribute", "rangeIsPointInRange", "rangeIntersectsNode"
       { "kind" => "boolean", "value" => !!returned }
-    when "rangeCompareBoundaryPoints", "rangeComparePoint"
+    when "rangeCompareBoundaryPoints", "rangeComparePoint", "compareDocumentPosition"
       { "kind" => "number", "value" => returned.to_i }
+    when "nodeContains", "isEqualNode", "hasAttribute"
+      { "kind" => "boolean", "value" => !!returned }
+    when "getTextContent", "getNodeValue", "substringData", "getAttribute", "rangeToString"
+      { "kind" => "string", "value" => returned.nil? ? nil : returned.to_s }
+    when "getAttributeNames"
+      { "kind" => "strings", "value" => (returned || []).to_a.map(&:to_s) }
     when "takeRecords"
       { "kind" => "records",
         "records" => (returned || []).to_a.map { |rec| record_snapshot(objects, rec) } }
@@ -291,6 +323,44 @@ module DommyRunner
         "pointerBeforeReference" => iterator_attr(it, "pointerBeforeReferenceNode"),
         "whatToShow" => iterator_attr(it, "whatToShow") }
     end
+  end
+
+  # JS 名の method を呼ぶ。Ruby 側の snake_case（あるいは述語形）があればそれを使い、
+  # 無ければ bridge 経由で呼ぶ。bridge も持っていなければ「比べられない」とする。
+  def js_call(obj, name, args = [])
+    snake = name.gsub(/([A-Z])/) { "_#{Regexp.last_match(1).downcase}" }
+    return obj.public_send(snake, *args) if obj.respond_to?(snake)
+    return obj.public_send("#{snake}?", *args) if obj.respond_to?("#{snake}?")
+    raise NotImplementedError, name unless js_method?(obj, name)
+
+    obj.__js_call__(name, args)
+  end
+
+  # IDL attribute の getter を読む。
+  def js_get(obj, name)
+    snake = name.gsub(/([A-Z])/) { "_#{Regexp.last_match(1).downcase}" }
+    return obj.public_send(snake) if obj.respond_to?(snake)
+    raise NotImplementedError, name unless obj.respond_to?(:__js_get__)
+
+    value = obj.__js_get__(name)
+    raise NotImplementedError, name if defined?(Dommy::Bridge::ABSENT) && value == Dommy::Bridge::ABSENT
+
+    value
+  end
+
+  # bridge が公開している JS method か。
+  def js_method?(obj, name)
+    obj.respond_to?(:__js_method_names__) && obj.__js_method_names__.include?(name)
+  end
+
+  # その kind がその操作を持つか（capability report 用）。
+  def supports_query?(node, op)
+    name = QUERY_JS_NAME.fetch(op)
+    snake = name.gsub(/([A-Z])/) { "_#{Regexp.last_match(1).downcase}" }
+    return true if node.respond_to?(snake) || node.respond_to?("#{snake}?")
+    return node.respond_to?(:__js_get__) if QUERY_GETTERS.include?(op)
+
+    js_method?(node, name)
   end
 
   # scenario の TreeWalker を Dommy の TreeWalker として作る。
@@ -469,6 +539,7 @@ module DommyRunner
   # 操作の受け手（method を呼ぶ相手）の id。
   def receiver_id(op)
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
+    return op["node"] if QUERY_OPS.include?(op["op"]) && op.key?("node")
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
 
     op.key?("target") ? op["target"] : op["parent"]
@@ -499,6 +570,26 @@ module DommyRunner
       return obs.__js_call__("takeRecords", [])
     when "notify"
       return run_microtask_checkpoint(ctx[:documents] || {})
+    end
+
+    if QUERY_OPS.include?(op["op"])
+      receiver = objects[op.key?("element") ? op["element"] : op["node"]]
+      raise NotImplementedError, "missing node" if receiver.nil?
+
+      name = QUERY_JS_NAME.fetch(op["op"])
+      return js_get(receiver, name) if QUERY_GETTERS.include?(op["op"])
+
+      return case op["op"]
+             when "compareDocumentPosition", "nodeContains", "isEqualNode"
+               other = objects[op["other"]]
+               raise NotImplementedError, "missing node" if other.nil?
+
+               js_call(receiver, name, [other])
+             when "getRootNode" then js_call(receiver, name, [])
+             when "substringData" then js_call(receiver, name, [op["offset"], op["count"]])
+             when "getAttribute", "hasAttribute" then js_call(receiver, name, [op["name"]])
+             when "getAttributeNames" then js_call(receiver, name, [])
+             end
     end
 
     if WALKER_OPS.include?(op["op"])
@@ -542,6 +633,7 @@ module DommyRunner
              when "rangeComparePoint" then range.compare_point(node, op["offset"])
              when "rangeDeleteContents" then range.delete_contents
              when "rangeInsertNode" then range.insert_node(node)
+             when "rangeToString" then range.to_s
              end
     end
     if CHARACTER_DATA_OPS.include?(op["op"])
@@ -691,7 +783,9 @@ module DommyRunner
       rescue StandardError
         next nil
       end
-      [kind, OP_METHOD.select { |_, m| node.respond_to?(m) }.keys]
+      ops = OP_METHOD.select { |_, m| node.respond_to?(m) }.keys
+      ops += QUERY_OPS.select { |q| supports_query?(node, q) }
+      [kind, ops]
     end.to_h
   end
 

@@ -2219,6 +2219,56 @@ walker の五本では `walker-parent-node-leaves-root` だけが赤で、残り
 findings 9 は「current が外れた木の *内側* にいる」という狭い形なので、
 生成 scenario では出ず、手で作って初めて出た。
 
+## 値を返すだけの method（§4.4 / §4.9 / §4.10 / §5.5）
+
+Dommy が実装していて model に無かったもののうち、**木も live object も変えない**ものを
+まとめて入れた。どれも純関数なので、admissibility の保存は
+「状態を返すだけ」という一本の補題（`admissible_requireNodes`）で済む。
+
+* §4.4 `compareDocumentPosition` / `contains` / `getRootNode` / `isEqualNode` /
+  `textContent`（getter）/ `nodeValue`（getter）
+* §4.10 `substringData`
+* §4.9 `getAttribute` / `hasAttribute` / `getAttributeNames`（model には既にあったが、
+  harness から呼べていなかった）
+* §5.5 `Range` の stringifier
+
+`isEqualNode` は attribute を **順序非依存**で、しかも **prefix を見ずに**
+（namespace・local name・value だけで）突き合わせる。
+`Range` の stringifier の step 4 は `deleteContents` と同じ
+「contained な Text を tree order で」であって、common ancestor の子ではない。
+
+model が持っていない持ち物が二つある。DocumentType の name / public ID / system ID と
+ProcessingInstruction の target で、`equals` はどちらも見る。
+harness はどちらも固定値（`"html"` と `"pi"`）で作るので判定は変わらないが、
+その範囲でしか検証していない。
+
+### 実装依存の枝をどう比べるか（findings 10）
+
+`compareDocumentPosition` の step 6 は、同じ木にない二つの node について
+
+> DISCONNECTED と IMPLEMENTATION_SPECIFIC に、PRECEDING **か** FOLLOWING を足したもの。
+> ただし**一貫していること**（"with the constraint that this is to be consistent"）
+
+と言う。どちらを選ぶかは実装に任されているので、差分テストはその二 bit を落として比べる
+（`test/compare.rb` の `normalize_returned`）。model は node id の順という全順序で決めていて、
+**逆から呼べば逆の答えになる**ことを定理にした
+（`compareDocumentPosition_disconnected_consistent`、`docs/theorems.md` の 11）。
+
+Dommy は**どちら向きでも `DISCONNECTED|IMPLEMENTATION_SPECIFIC|PRECEDING`（35）を返す**。
+`a.compareDocumentPosition(b)` と `b.compareDocumentPosition(a)` が両方「相手が先」になるので、
+どんな全順序とも整合しない。ブラウザは逆向きの値を返す。
+仕様が実装に任せているのは**選び方**であって、一貫性は任されていない。
+
+この枝は上記のとおり比較から落としてあるので、**差分テストでは赤にならない**。
+`compare-document-position-disconnected-is-consistent` を
+`comparable: false` の model 固有 scenario として置き、model 側の答えを固定してある。
+
+### 差分テスト
+
+固定 scenario は 91 本になり、一致 80・skip 4・不一致 7（findings 6-9）・
+model 固有 2 である。新しく入れた八本はすべて一致した。
+生成 scenario は seed 91 / 92（計 120 本）で、この範囲の操作に不一致は無い。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

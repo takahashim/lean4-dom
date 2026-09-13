@@ -99,6 +99,25 @@ roadmap §13.2 の対象外である。`insertNode` の step 7（start node が 
 同じ理由で対象外で、model は `__outsideModel__` を返す
 （`range-insert-node-into-text-is-outside-model`）。
 
+## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.5 stringifier
+
+木も live object も変えないので、差分テストでは戻り値だけを比べる。
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `compareDocumentPosition(other)` | 1, 6-10 | `compareDocumentPosition` | `compareDocumentPosition_disconnected_consistent` | `node-query-position-and-containment`, `compare-document-position-disconnected-is-consistent` | `test_wpt_node_edges.rb` | 済（attribute の step 3-5 は対象外） |
+| `contains(other)` / `getRootNode()` | — | `nodeContains`, `getRootNode` | — | `node-query-position-and-containment` | 同上 | 済（`composed` は対象外） |
+| `equals` / `isEqualNode(other)` | equals | `nodeEquals`, `nodeOwnPropertiesEqual`, `attrEquals` | — | `node-query-is-equal-node` | 同上 | 済（DocumentType の name ほかは対象外） |
+| get text content / `textContent` getter | — | `getTextContent`, `descendantTextContent` | — | `node-query-text-content` | 同上 | 済（setter は node を作るので対象外） |
+| `nodeValue` getter | — | `getNodeValue` | — | 同上 | 同上 | 済 |
+| substring data / `substringData(offset, count)` | 1-4 | `substringData` | — | `characterdata-substring-data`, `-index-size` | `test_wpt_character_data.rb` | 済 |
+| `getAttribute` / `hasAttribute` / `getAttributeNames` | 1-2 ほか | `getAttribute`, `hasAttribute`, `getAttributeNames`, `attrNameFor` | — | `attribute-getters` | `test_wpt_attributes.rb` | 済 |
+| `Range` の stringifier | 1-6 | `rangeToString` | — | `range-to-string`, `-within-one-text` | `test_wpt_range_contents.rb` | 済 |
+
+`compareDocumentPosition` の step 6（同じ木にない）は PRECEDING と FOLLOWING の
+どちらを返すかを実装に任せている。差分テストはその二 bit を落として比べる
+（`test/compare.rb` の `normalize_returned`）。一貫性そのものは model 側の定理で見る。
+
 ## §6.2 TreeWalker
 
 filter は null なので、"filter" は FILTER_ACCEPT か FILTER_SKIP しか返さない。

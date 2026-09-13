@@ -1,0 +1,77 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "stringification behavior"
+    ],
+    "steps": "Range stringifier 2-5",
+    "note": "start と end の Text は offset で切り、間は **contained な Text を tree order で** 連結する。Text 以外（comment や PI）は入らない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "ab😀cd"
+    },
+    {
+      "id": 4,
+      "kind": "comment",
+      "parent": 1,
+      "data": "no"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 5,
+      "data": "ef"
+    },
+    {
+      "id": 7,
+      "kind": "text",
+      "parent": 1,
+      "data": "gh"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 1
+      },
+      "end": {
+        "node": 7,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeToString",
+      "range": 0
+    }
+  ]
+}

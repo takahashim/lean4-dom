@@ -1,0 +1,127 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "equals",
+      "isEqualNode"
+    ],
+    "steps": "equals",
+    "note": "attribute の比較は順序非依存で、しかも **prefix を見ない**（namespace・local name・value だけ）。子は index ごとに順序どおり一致しなければならない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "localName": "b",
+          "value": "1"
+        },
+        {
+          "namespace": "http://www.w3.org/1999/xlink",
+          "prefix": "xlink",
+          "localName": "href",
+          "value": "u"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://www.w3.org/1999/xlink",
+          "prefix": "p",
+          "localName": "href",
+          "value": "u"
+        },
+        {
+          "localName": "b",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "localName": "b",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 5,
+      "data": "x"
+    },
+    {
+      "id": 7,
+      "kind": "comment",
+      "parent": 1,
+      "data": "x"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "isEqualNode",
+      "node": 2,
+      "other": 3
+    },
+    {
+      "op": "isEqualNode",
+      "node": 2,
+      "other": 4
+    },
+    {
+      "op": "isEqualNode",
+      "node": 4,
+      "other": 5
+    },
+    {
+      "op": "isEqualNode",
+      "node": 5,
+      "other": 2
+    },
+    {
+      "op": "isEqualNode",
+      "node": 6,
+      "other": 7
+    },
+    {
+      "op": "isEqualNode",
+      "node": 6,
+      "other": 6
+    }
+  ]
+}

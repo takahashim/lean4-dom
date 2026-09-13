@@ -52,6 +52,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
 | `Range.setStart` / `setEnd` / `setStartBefore` ほか / `collapse` / `selectNode` / `selectNodeContents` | `Dom.admissible_rangeSetStart` ほか |
 | `Range.deleteContents` / `insertNode` | `Dom.admissible_rangeDeleteContents`, `Dom.admissible_rangeInsertNode` |
 | `TreeWalker` の走査七つ | `Dom.admissible_walkerStep` |
+| 値を返すだけの九つ（`compareDocumentPosition` ほか） | `Dom.Exec.admissible_requireNodes` |
 | `MutationObserver.observe` / `disconnect` / `takeRecords` | `Dom.admissible_observe` ほか |
 | notify mutation observers | `Dom.admissible_notifyMutationObservers` |
 | `setAttribute` / `setAttributeNS` / `removeAttribute` / `removeAttributeNS` / `toggleAttribute` | `Dom.admissible_setAttribute` ほか |
@@ -173,7 +174,26 @@ theorem walkersValid_walkerStep {s s' : DOMState} {i : Nat} {m : WalkerMethod}
 そのため `walkers` は `AdmissibleDOMState` の成分ではない
 （`Dom/Validity/Walkers.lean` にその理由を書いてある）。
 
-## 11. oracle は自分の invariant を破らない
+## 11. `compareDocumentPosition` は実装依存の枝でも一貫している
+
+| 定理 | module |
+| --- | --- |
+| `Dom.compareDocumentPosition_disconnected_consistent` | `Dom/Query/NodeQuery.lean` |
+
+```lean
+theorem compareDocumentPosition_disconnected_consistent {t : Tree} {a b : NodeId}
+    (hne : a ≠ b) (hr : root t a ≠ root t b) :
+    (compareDocumentPosition t a b = 37 ∧ compareDocumentPosition t b a = 35) ∨
+    (compareDocumentPosition t a b = 35 ∧ compareDocumentPosition t b a = 37)
+```
+
+仕様 §4.4 step 6 は、同じ木にない二つの node について
+PRECEDING と FOLLOWING のどちらを返すかを実装に任せたうえで、
+**一貫していること**を求めている。model は node id の順で決めるので、
+逆から呼べば逆の答えになる。37 は `DISCONNECTED+IMPLEMENTATION_SPECIFIC+FOLLOWING`、
+35 は `+PRECEDING` である。
+
+## 12. oracle は自分の invariant を破らない
 
 | 定理 | module |
 | --- | --- |

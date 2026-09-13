@@ -3,6 +3,7 @@ import Dom.Attribute.Algorithms
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.Traversal.TreeWalker
+import Dom.Query.NodeQuery
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
 import Dom.Observer.Deliver
@@ -88,6 +89,21 @@ inductive Operation where
   | rangeInsertNode (range node : Nat)
   /-- `TreeWalker` の走査 method（§6.2）。 -/
   | walkerMove (walker : Nat) (method : WalkerMethod)
+  /-- `Range` の stringifier（§5.5）。 -/
+  | rangeToString (range : Nat)
+  /-- §4.4 の、値を返すだけの method。 -/
+  | compareDocumentPosition (node other : Nat)
+  | nodeContains (node other : Nat)
+  | getRootNode (node : Nat)
+  | isEqualNode (node other : Nat)
+  | getTextContent (node : Nat)
+  | getNodeValue (node : Nat)
+  /-- `CharacterData.substringData(offset, count)`（§4.10）。 -/
+  | substringData (node offset count : Nat)
+  /-- §4.9 の、値を返すだけの attribute の method。 -/
+  | getAttribute (element : Nat) (qualifiedName : String)
+  | hasAttribute (element : Nat) (qualifiedName : String)
+  | getAttributeNames (element : Nat)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
   /-- `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/

@@ -104,6 +104,7 @@ open Dom.Audit
   Dom.admissible_rangeInsertNode
   Dom.admissible_walkerStep
   Dom.walkersValid_walkerStep
+  Dom.compareDocumentPosition_disconnected_consistent
 
 -- §16 の live object をまとめた形
 #audit_axioms

@@ -42,6 +42,24 @@ module Compare
     order
   end
 
+  # `compareDocumentPosition` の実装依存の枝を落とす。
+  #
+  # 仕様 §4.4 step 6 は、同じ木にない二つの node について
+  # DISCONNECTED と IMPLEMENTATION_SPECIFIC に PRECEDING か FOLLOWING を足した値を返せと言い、
+  # **どちらにするかは実装に任せている**（一貫していることだけを求める）。
+  # そこを比べると実装ごとの選択の違いが不一致として出てしまうので、
+  # IMPLEMENTATION_SPECIFIC (0x20) が立っているときは PRECEDING|FOLLOWING (0x06) を落とす。
+  # 一貫性そのものは model 側の定理
+  # （`compareDocumentPosition_disconnected_consistent`）と固定 scenario で見る。
+  def normalize_returned(returned)
+    return returned unless returned.is_a?(Hash) && returned["kind"] == "number"
+
+    value = returned["value"]
+    return returned unless value.is_a?(Integer) && (value & 0x20) != 0
+
+    returned.merge("value" => value & ~0x06)
+  end
+
   # 比較に使う正規形。Lean 側の `ObservedNode` の field をそのまま並べる。
   def normalize_state(state)
     nodes = (state["nodes"] || []).sort_by { |n| n["id"] }
@@ -56,7 +74,7 @@ module Compare
       "walkers" => state["walkers"] || [],
       "observers" => state["observers"] || [],
       "delivered" => state["delivered"] || [],
-      "returned" => state["returned"]
+      "returned" => normalize_returned(state["returned"])
     }
   end
 

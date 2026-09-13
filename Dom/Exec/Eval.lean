@@ -212,6 +212,23 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     match walkerStep s i m with
     | .error _ => .unit
     | .ok (r, _) => .node r
+  | .rangeToString i =>
+    match rangeToString s i with
+    | .error _ => .unit
+    | .ok str => .str (some str)
+  | .compareDocumentPosition n o => .int (compareDocumentPosition s.tree ⟨n⟩ ⟨o⟩)
+  | .nodeContains n o => .bool (nodeContains s.tree ⟨n⟩ ⟨o⟩)
+  | .getRootNode n => .node (some (getRootNode s.tree ⟨n⟩))
+  | .isEqualNode n o => .bool (nodeEquals s.tree ⟨n⟩ ⟨o⟩)
+  | .getTextContent n => .str (getTextContent s.tree ⟨n⟩)
+  | .getNodeValue n => .str (getNodeValue s.tree ⟨n⟩)
+  | .substringData n o c =>
+    match substringData s.tree ⟨n⟩ o c with
+    | .error _ => .unit
+    | .ok str => .str (some str)
+  | .getAttribute e q => .str (getAttribute s.tree ⟨e⟩ q)
+  | .hasAttribute e q => .bool (hasAttribute s.tree ⟨e⟩ q)
+  | .getAttributeNames e => .strs (getAttributeNames s.tree ⟨e⟩)
   | .appendData _ _ => .unit
   | .insertData _ _ _ => .unit
   | .deleteData _ _ _ => .unit
@@ -237,6 +254,16 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
 def deliveredBy (s : DOMState) : Operation → List (Nat × List MutationRecord)
   | .notify => (notifyMutationObservers s).2
   | _ => []
+
+/--
+値を返すだけの操作の前提。
+
+木も live object も変えないので、指した node が木にあることだけを見て状態を返す。
+仕様上の受け手が存在しない（IDL の receiver が無い）場合は差分テストの対象外なので、
+`NotFoundError` にしておく。
+-/
+def requireNodes (s : DOMState) (ns : List NodeId) : Except DOMException DOMState :=
+  if ns.all fun n => (s.tree.get? n).isSome then .ok s else .error .notFoundError
 
 /-- 一つの操作を public API に割り当てる。 -/
 def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
@@ -272,6 +299,17 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .rangeDeleteContents i => rangeDeleteContents s i
   | .rangeInsertNode i n => rangeInsertNode s i ⟨n⟩
   | .walkerMove i m => (walkerStep s i m).map (·.2)
+  | .rangeToString i => (rangeToString s i).map (fun _ => s)
+  | .compareDocumentPosition n o => requireNodes s [⟨n⟩, ⟨o⟩]
+  | .nodeContains n o => requireNodes s [⟨n⟩, ⟨o⟩]
+  | .getRootNode n => requireNodes s [⟨n⟩]
+  | .isEqualNode n o => requireNodes s [⟨n⟩, ⟨o⟩]
+  | .getTextContent n => requireNodes s [⟨n⟩]
+  | .getNodeValue n => requireNodes s [⟨n⟩]
+  | .substringData n o c => (substringData s.tree ⟨n⟩ o c).map (fun _ => s)
+  | .getAttribute e _ => requireNodes s [⟨e⟩]
+  | .hasAttribute e _ => requireNodes s [⟨e⟩]
+  | .getAttributeNames e => requireNodes s [⟨e⟩]
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn

@@ -27,7 +27,10 @@ module Generate
            rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
            rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
            rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
-           rangeInsertNode
+           rangeInsertNode rangeToString
+           compareDocumentPosition nodeContains getRootNode isEqualNode
+           getTextContent getNodeValue substringData
+           getAttribute hasAttribute getAttributeNames
            walkerParentNode walkerFirstChild walkerLastChild
            walkerPreviousSibling walkerNextSibling walkerPreviousNode walkerNextNode
            replaceData appendData insertData deleteData setData
@@ -38,12 +41,15 @@ module Generate
   #   Node        すべての node
   #   ParentNode  Document / DocumentFragment / Element
   #   ChildNode   DocumentType / Element / CharacterData
-  NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize].freeze
+  NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize
+                compareDocumentPosition nodeContains getRootNode isEqualNode
+                getTextContent getNodeValue].freeze
   PARENT_NODE_OPS = %w[replaceChildren moveBefore].freeze
   CHILD_NODE_OPS = %w[before after replaceWith remove].freeze
-  CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData].freeze
+  CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData
+                          substringData].freeze
   ATTRIBUTE_OPS = %w[setAttribute setAttributeNS removeAttribute removeAttributeNS
-                     toggleAttribute].freeze
+                     toggleAttribute getAttribute hasAttribute getAttributeNames].freeze
 
   # attribute の local name は少ない候補から選ぶ。
   # そうしないと `attributeFilter` も「同じ鍵への二度目の書き込み」も当たらない。
@@ -217,7 +223,7 @@ module Generate
              when "rangeSetStart", "rangeSetEnd", "rangeIsPointInRange"
                { "op" => op, "range" => r, "node" => node, "offset" => rng.rand(4) }
              when "rangeCollapse" then { "op" => op, "range" => r, "toStart" => rng.rand < 0.5 }
-             when "rangeDeleteContents" then { "op" => op, "range" => r }
+             when "rangeDeleteContents", "rangeToString" then { "op" => op, "range" => r }
              when "rangeComparePoint"
                { "op" => op, "range" => r, "node" => node, "offset" => rng.rand(4) }
              when "rangeCompareBoundaryPoints"
@@ -253,6 +259,14 @@ module Generate
       { "op" => op, "target" => pick.call, "node" => maybe.call }
     when "remove" then { "op" => op, "target" => pick.call }
     when "normalize" then { "op" => op, "target" => pick.call }
+    when "compareDocumentPosition", "nodeContains", "isEqualNode"
+      { "op" => op, "node" => pick.call, "other" => pick.call }
+    when "getRootNode", "getTextContent", "getNodeValue" then { "op" => op, "node" => pick.call }
+    when "substringData"
+      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4) }
+    when "getAttribute", "hasAttribute"
+      { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng) }
+    when "getAttributeNames" then { "op" => op, "element" => pick.call }
     when "replaceData"
       { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4),
         "data" => ["x", "yz", "abc", ASTRAL][rng.rand(4)] }
@@ -301,8 +315,13 @@ module Generate
   end
 
   # 操作の受け手（method を呼ぶ相手）の id。
+  # 受け手（method を呼ぶ相手）の id。§4.4 の query は `node` を受け手に取る。
+  NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
+                         getTextContent getNodeValue].freeze
+
   def receiver_id(op)
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
+    return op["node"] if NODE_RECEIVER_OPS.include?(op["op"])
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
 
     op.key?("target") ? op["target"] : op["parent"]
@@ -431,7 +450,7 @@ module Generate
                  rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
                  rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
                  rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
-                 rangeInsertNode].freeze
+                 rangeInsertNode rangeToString].freeze
 
   # TreeWalker を動かす操作。受け手は walker なので、node は引数に取らない。
   WALKER_OPS = %w[walkerParentNode walkerFirstChild walkerLastChild

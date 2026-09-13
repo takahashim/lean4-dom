@@ -1,0 +1,49 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "stringification behavior"
+    ],
+    "steps": "Range stringifier 2",
+    "note": "start node と end node が同じ Text なら、その切り出しだけを返す（step 2）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab😀cd"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 2
+      },
+      "end": {
+        "node": 2,
+        "offset": 4
+      }
+    }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "rangeToString",
+      "range": 0
+    }
+  ]
+}

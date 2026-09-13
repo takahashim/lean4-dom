@@ -15,6 +15,7 @@ import Dom.Range.Adjust
 import Dom.Range.Api
 import Dom.Traversal.NodeIterator
 import Dom.Traversal.TreeWalker
+import Dom.Query.NodeQuery
 import Dom.Observer.Record
 import Dom.Observer.Deliver
 import Dom.CharacterData.ReplaceData

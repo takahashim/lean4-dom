@@ -82,8 +82,12 @@ inductive ReturnValue where
   | node (n : Option NodeId)
   | bool (b : Bool)
   | records (rs : List MutationRecord)
-  /-- `compareBoundaryPoints` と `comparePoint` の −1 / 0 / 1。 -/
+  /-- `compareBoundaryPoints` と `comparePoint` の −1 / 0 / 1、`compareDocumentPosition` の mask。 -/
   | int (i : Int)
+  /-- `textContent` のように null になりうる `DOMString?`。 -/
+  | str (s : Option String)
+  /-- `getAttributeNames()` の `sequence<DOMString>`。 -/
+  | strs (l : List String)
 deriving DecidableEq, Repr, Inhabited
 
 /-- 一 step の観測。 -/

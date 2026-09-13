@@ -1,0 +1,105 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "compareDocumentPosition",
+      "contains",
+      "getRootNode"
+    ],
+    "steps": "compareDocumentPosition 1, 7-10 / contains / getRootNode",
+    "note": "mask は「other が this から見てどこにいるか」。子孫は CONTAINED_BY|FOLLOWING (20)、祖先は CONTAINS|PRECEDING (10)、兄弟は tree order で PRECEDING (2) か FOLLOWING (4)。同じ node なら 0。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "ab"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 1,
+      "data": "c"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "compareDocumentPosition",
+      "node": 2,
+      "other": 4
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 4,
+      "other": 2
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 1,
+      "other": 3
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 3,
+      "other": 1
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 3,
+      "other": 3
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 3,
+      "other": 5
+    },
+    {
+      "op": "nodeContains",
+      "node": 1,
+      "other": 3
+    },
+    {
+      "op": "nodeContains",
+      "node": 3,
+      "other": 1
+    },
+    {
+      "op": "nodeContains",
+      "node": 3,
+      "other": 3
+    },
+    {
+      "op": "getRootNode",
+      "node": 3
+    },
+    {
+      "op": "getRootNode",
+      "node": 0
+    }
+  ]
+}

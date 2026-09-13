@@ -1,0 +1,43 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "compareDocumentPosition"
+    ],
+    "steps": "compareDocumentPosition 6",
+    "note": "同じ木にない二つの node については、仕様は DISCONNECTED と IMPLEMENTATION_SPECIFIC に PRECEDING か FOLLOWING を足せと言い、どちらにするかは実装に任せたうえで「一貫していること」を求める。model は node id の順で決めるので、逆に呼べば逆になる（37 と 35）。実装依存の枝なので差分比較の対象にしない（docs/status.md の findings 10）。",
+    "comparable": false
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "compareDocumentPosition",
+      "node": 1,
+      "other": 2
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 2,
+      "other": 1
+    }
+  ]
+}

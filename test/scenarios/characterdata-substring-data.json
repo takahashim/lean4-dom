@@ -1,0 +1,70 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "substring data"
+    ],
+    "steps": "substring data 1-4",
+    "note": "offset と count は UTF-16 の code unit。offset + count が length を超えたら末尾まで（step 3）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "ab😀cd"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 1,
+      "data": "xyz"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": 0,
+      "count": 2
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": 1,
+      "count": 3
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": 4,
+      "count": 99
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": 6,
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 3,
+      "offset": 1,
+      "count": 1
+    }
+  ]
+}
