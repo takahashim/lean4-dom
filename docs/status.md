@@ -3105,31 +3105,56 @@ Chromium はそのとおりに振る舞い、model は仕様の番号どおり�
 `insertBeforeTests` の先頭の群（"Moving a node to its current position"）が
 まさに同じ parent の中での移動で、reference child も非 null である。
 
-### 決めることが残っている
+### ところが WPT はその場所を試していない
 
-証拠はこう並ぶ。
+期待値モデルが「外す調整 → 入れる調整」でも、**二つの順序が違う結果になる場合を
+test case が持っていない**。二つが割れるのは、**同じ parent の中で node の index が
+変わるとき**だけである。
 
-| | 順序 |
-| --- | --- |
-| 仕様の番号（pinned commit） | step 5（入れる調整）→ step 7（adopt → remove） |
-| WPT の期待値モデル | 外す調整 → 入れる調整 |
-| Chromium | 外す調整 → 入れる調整 |
-| jsdom checkout | 仕様の番号どおり |
-| jsdom 30.0.1 / happy-dom | 外す調整 → 入れる調整 |
-| model・Dommy | 仕様の番号どおり |
+`insertBeforeTests` の同じ parent の群は先頭の "Moving a node to its current
+position"（`testDiv`, `paras[0]`, `paras[1]`）だけで、これは paras[0] を
+paras[1] の前へ、つまり**もとの位置へ**動かす。old index も new index も 0 なので
+入れる側の調整（`offset > new index`）が当たらず、どちらの順序でも同じ答えになる。
+残りは別の parent へ動かす群で、そちらは外す側と入れる側で parent が違うから
+やはり割れない。
 
-normalize のときと同じ形（字義より engine）だが、今度は **WPT 自身が engine 側を
-期待値として書いている**ぶん証拠が強い。model を engine に寄せるなら、影響は小さくない。
+こちらの `range-adjust-order-on-before` は old index 1 → new index 0 で、
+そこがちょうど抜けている。
 
-* 実行側の `liveRangeInsertAdjust` と `insert` の段の順序
-* 関係側の `RangeInsertAdjusted` と `InsertSpec`、その soundness と congruence
-* **公開している負の定理 `exists_insert_breaking_boundaryLE` の witness が死ぬ。**
-  あの例（range `(2,0)-(3,2)` に `insertBefore(1, 3, 2)`）は engine の順序だと
-  `(2,0)-(1,2)` になり、node 2 は index 1 なので start < end で order は壊れない。
-  別の witness があるかは別途調べることになる。
-* Dommy も同じ変更が要る（いま model と一致している）。
+### jsdom を変えたのは DOM Standard の editor だった
 
-仕様の字義と、WPT を含む実装すべてが割れているので、**whatwg/dom へ報告する値打ちもある。**
+`94301581 Align node insertion with the DOM Standard`（Domenic Denicola、2026-08-01）。
+pre-insertion validity・insert・replace・replace all を現行の algorithm に揃える
+commit で、live range の調整の位置もそこで仕様の番号どおりになった。
+30.0.1 はその前の版である。
+
+jsdom は `Range-mutations-insertBefore.html` を expected-failure にしていない。
+上のとおり test が割れる場所を踏んでいないので、仕様どおりに直しても通る。
+
+### 証拠の並び直し
+
+| | 順序 | 重み |
+| --- | --- | --- |
+| 仕様の番号（pinned commit） | step 5 → step 7 | 曖昧さは無い |
+| model・Dommy | 同上 | |
+| jsdom checkout | 同上 | **editor 自身が仕様に揃えた** |
+| WPT の期待値モデル | 外す → 入れる | **割れる場所を試していない** |
+| Chromium | 外す → 入れる | test で固定されていない |
+| jsdom 30.0.1 / happy-dom | 外す → 入れる | |
+
+**model は孤立していない。** 仕様の字義と、いちばん最近いちばん意識して仕様を
+読んだ実装（jsdom）と一致している。WPT の helper の書き方は engine 寄りだが、
+そこを試す case が無いので固定されていない。
+
+よってここは **model を変えない**。やることは二つである。
+
+* **WPT に case を足す。** 同じ parent の中で index が変わる移動。
+  これがあれば engine のどれが仕様どおりかが固定される。
+* **Chromium の振る舞いを known divergence として記録する。**
+  `dommy-conformance` の `expectations/known-divergences.yml` と同じ形が要る。
+
+normalize とは形が違う。あちらは engine が揃っていて仕様の字義のほうが
+書き足りなかった。こちらは仕様に曖昧さが無く、engine の側が試されていないだけである。
 
 もう一つ、`replacechildren-bypasses-validity` で Chromium が通してしまう
 （model は `HierarchyRequestError`）。これも未調査である。
