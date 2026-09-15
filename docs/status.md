@@ -1156,10 +1156,9 @@ harness が「存在しない id を指した引数」を意図的に飛ばし�
 ## 残っている Dommy の不一致
 
 * **finding 4**（上記）。Makiri 側の `XML::DocumentFragment#add_child`。
-* **finding 6**。`Range` の `selectNode` / `setStartBefore` ほかに
-  「parent が null なら `InvalidNodeTypeError`」の検査が無い。
-  `selectNodeContents` の doctype の検査も無い。
-  固定 scenario は `range-boundary-needs-parent`。
+* ~~**finding 6**。`Range` の `selectNode` / `setStartBefore` ほかに
+  「parent が null なら `InvalidNodeTypeError`」の検査が無い。~~
+  Dommy `f9618d1` で修正。固定 scenario `range-boundary-needs-parent` は緑になった。
 
 ## Phase 8：MutationObserver の record（一巡した）
 
@@ -2065,8 +2064,11 @@ parent の無い node は boundary point を決められないので、仕様は
 生成 scenario 180 件で出た不一致 23 件はすべてこの一件が原因だった。
 `selectNodeContents(doctype)` の step 1（`InvalidNodeTypeError`）も同じく抜けている。
 
-`range-boundary-needs-parent` がこの四つを固定した scenario で、
-**Dommy を直すまで固定 scenario の差分テストは赤である**。
+`range-boundary-needs-parent` がこの四つを固定した scenario である。
+
+**Dommy `f9618d1` で修正した。** `selectNode` と四つの sibling setter に step 1-2 を、
+`selectNodeContents` に step 1 の doctype 検査を入れた
+（WPT `dom/ranges/Range-selectNode.html` を写した test も付けた）。
 
 ### 差分テスト
 
@@ -2656,6 +2658,22 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 候補を評価する前に「live object が指す node が残っているか」と
 「range の両端が木の中にあり start ≤ end か」を検査するようにした
 （`Difftest#sane_scenario?`）。落とせる候補が減るだけで、最小化の結果は変わらない。
+
+### nightly が赤かった中身
+
+`4b1fe81` で Range API の操作が生成器に入って以降、nightly の Differential は
+毎晩赤である。中身を数えたところ、一晩 154 件の counterexample のうち
+
+* 約 146 件が **finding 6**（parent の無い node の検査）
+* 約 10 件が **findings 7 / 8**（`deleteContents` と `insertNode`）
+* 3 件が上の最小化の副産物
+
+で、新しい発見は無かった。finding 6 を Dommy 側で直したので、
+同じ設定（nodes 8 / ops 6 / ranges 4、seed 3、100 件）の不一致は
+**14 件から 2 件**になった。残る 2 件はどちらも finding 8 である。
+
+nightly は既知の不一致でも赤のままにする方針である
+（不一致を expected に落とすと、直ったことに気付けなくなる）。
 
 ## 未着手
 
