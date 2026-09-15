@@ -3699,6 +3699,49 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
+## findings 12-34 の索引
+
+Selectors の形式化のあいだに出た findings。どれも固定 scenario を赤のままにしてある
+（不一致を expected に落とすと直ったことに気付けなくなる）。
+
+| # | 実装 | 内容 | scenario |
+| --- | --- | --- | --- |
+| 12 | Dommy | `importNode(document)` が `NotSupportedError` にならない | `import-node-copies-into-the-receiver` |
+| 13 | Dommy | import した PI が Comment `"?pi …"` になる | `import-node-keeps-the-interface` |
+| 14 | Dommy | import した SVG element が namespace を失う | `import-node-keeps-the-namespace` |
+| 15 | Dommy | `document.cloneNode(deep)` が html/head/body を増やす | `clone-document-copies-only-its-children` |
+| 16 | Dommy | import が attribute の namespace を落とす | `import-node-keeps-attribute-namespace` |
+| 17 | Dommy | `removeAttributeNode` が element を検査しない | `remove-attribute-node-checks-the-element` |
+| 18 | Dommy | `Range.insertNode` の後の `textContent` で segfault | `test/crashers/` |
+| 19 | Dommy / jsdom | `:empty` が空白だけの text を許さない | `empty-pseudo-allows-white-space` |
+| 20 | Dommy / jsdom | virtual scoping root が combinator の左に来ない | `scope-pseudo-is-the-scoping-root` |
+| 21 | Dommy | `#1` が id selector として通る | `id-selector-needs-an-identifier` |
+| 22 | Dommy | `div` が大文字の local name に当たる | `type-selector-case-follows-namespace` |
+| 23 | Dommy | `a[href` が Ruby の `TypeError` になる | `unclosed-block-is-closed-at-eof` |
+| 24 | Dommy / jsdom | `[att]` が namespace 付きの attribute に当たる | `selector-attributes-have-no-namespace` |
+| 25 | jsdom | forgiving な list が空の項目で例外になる／`:has(>)` を通す | `forgiving-selector-list-drops-bad-items`, `has-argument-needs-a-compound` |
+| 26 | Dommy | `.--foo` と `.a\` が読めない | `ident-can-start-with-two-hyphens` |
+| 27 | jsdom | pseudo-class の名前が大文字小文字を区別する | `pseudo-class-names-are-case-insensitive` |
+| 28 | jsdom | U+10000 以上を含む値が照合できない | `astral-code-points-in-selector-values` |
+| 29 | Dommy / jsdom | ident code point の一覧が古い（`.☃` を通す） | `non-ascii-ident-code-points-are-a-list` |
+| 30 | Dommy | selector の中に comment を書けない | `comments-are-removed-by-the-tokenizer` |
+| 31 | Dommy | `:nth-child(- n)` が通る | `anb-hyphen-n-is-one-token` |
+| 32 | Dommy | NULL を含む selector が読めない | `null-becomes-replacement-character` |
+| 33 | jsdom | `div/* c */p` が通る | `comments-are-removed-by-the-tokenizer` |
+| 34 | jsdom | element に対する scoped query が compound 三つ以上で当たらない | `only-the-subject-must-be-in-scope` |
+
+19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
+（`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
+
+model 側の誤りも四つ出た。どれも直してある。
+
+| 見つけ方 | 内容 | scenario |
+| --- | --- | --- |
+| 生成 scenario | `*.v` が読めない（universal selector に subclass が続く形） | `universal-selector-takes-subclasses` |
+| 生成 scenario | 閉じ括弧が無い入力を失敗にしていた | `unclosed-block-is-closed-at-eof` |
+| 仕様の読み直し | `:has()` の入れ子を通していた | `has-cannot-be-nested` |
+| 仕様の読み直し | `:has()` の空の引数を通していた | `has-argument-cannot-be-empty` |
+
 ## Selectors（CSS Selectors Level 4）
 
 selector を読んで node tree に当てる部分を入れた。版は
