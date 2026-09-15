@@ -2641,6 +2641,22 @@ range の例も 3 本あった range が 1 本に落ちる。
 
 既にある scenario を最小化するには `--shrink FILE` を使う。
 
+### 最小化が別の不一致へ逃げていた
+
+nightly の counterexample を見直したところ、154 件のうち 3 件が
+**最小化の副産物**だった。operations が空なのに「初期状態が一致しない」と出る。
+
+原因は二つある。node を落とすと children の index が動くので、
+range の両端の tree order が入れ替わる。文字列を縮めると offset が length を超える。
+どちらも **Dommy では作れない初期状態**である（Dommy は `setStart` / `setEnd` を
+通すので、逆順の端点はその場で畳まれる）。model は初期状態をそのまま組み立てるので、
+そこで不一致が出る。最小化は「不一致が残るか」しか見ていないので、
+元の不一致を離れてこちらへ滑り落ちていた。
+
+候補を評価する前に「live object が指す node が残っているか」と
+「range の両端が木の中にあり start ≤ end か」を検査するようにした
+（`Difftest#sane_scenario?`）。落とせる候補が減るだけで、最小化の結果は変わらない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

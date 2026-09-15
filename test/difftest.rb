@@ -181,8 +181,53 @@ module Difftest
     out
   end
 
+  # live object が指す node の id。落とした node を指したままにしないために見る。
+  def live_node_refs(scenario)
+    refs = []
+    (scenario["ranges"] || []).each { |r| refs << r["start"]["node"] << r["end"]["node"] }
+    %w[iterators walkers].each do |key|
+      (scenario[key] || []).each { |o| refs << o["root"] << o["reference"] }
+    end
+    (scenario["observers"] || []).each { |o| refs << o["target"] }
+    (scenario["listeners"] || []).each do |l|
+      refs << l["target"]
+      a = l["action"]
+      refs << a["target"] if a.is_a?(Hash)
+    end
+    refs.compact
+  end
+
+  # range の両端が「木の中にあり、start が end 以下」であること。
+  def ranges_sane?(scenario, nodes, by_id)
+    (scenario["ranges"] || []).all? do |r|
+      bps = [r["start"], r["end"]]
+      next false unless bps.all? { |bp| bp["offset"] <= Generate.length_of(by_id[bp["node"]], nodes) }
+      next false unless bps.map { |bp| Generate.root_of(by_id, bp["node"]) }.uniq.size == 1
+
+      keys = bps.map { |bp| Generate.bp_key(nodes, by_id, bp["node"], bp["offset"]) }
+      Generate.lex_compare(keys[0], keys[1]) <= 0
+    end
+  end
+
+  # 最小化が壊してはいけない初期状態の条件。
+  #
+  # node を落とすと children の index が動くので、range の両端の順序が
+  # 入れ替わることがある。文字列を縮めると offset が length を超える。
+  # どちらも **Dommy では作れない初期状態**である（Dommy は `setStart` /
+  # `setEnd` を通すので、逆順の端点はその場で畳まれる）。
+  # そのまま候補にすると、最小化が元の不一致を離れて
+  # 「初期状態の作り方が違う」という別の不一致へ逃げてしまう。
+  def sane_scenario?(scenario)
+    nodes = scenario["nodes"] || []
+    by_id = Generate.index_by_id(nodes)
+    return false unless live_node_refs(scenario).all? { |id| by_id.key?(id) }
+
+    ranges_sane?(scenario, nodes, by_id)
+  end
+
   # 候補を試し、まだ不一致なものがあればそれに進む。進めたかどうかを返す。
   def try_candidates(current, candidates)
+    candidates = candidates.select { |c| sane_scenario?(c) }
     return [current, false] if candidates.empty?
 
     hits = mismatching(candidates)
