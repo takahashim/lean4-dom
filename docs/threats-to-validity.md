@@ -40,7 +40,7 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | MutationObserver の callback 本体 | callback は model の外。どの observer にどの record が配送されるかまでは比べる |
 | `NodeFilter` の callback | 同じく callback なので filter は常に null。`whatToShow` は純粋なので扱う |
 | `Attr` を node として扱う API | model の attribute は element の状態で、node tree に入らない |
-| node の生成 | model は §4.5 の factory と §4.4 の `cloneNode` を持つが、harness の比較対象には入れていない。scenario の element の namespace と local name は初期状態が与える |
+| node の生成 | model は §4.5 の factory と §4.4 の `cloneNode`、§4.5 の `importNode` / `adoptNode` を持つが、harness の比較対象には入れていない。scenario の element の namespace と local name は初期状態が与える |
 | Shadow tree | 対象外 |
 | custom element / insertion steps / removing steps | hook の位置だけを保っている |
 
@@ -52,7 +52,7 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | --- | --- |
 | `move` step 1 は shadow-including root ではなく root で判定する | shadow tree を含む木では仕様と違う。対象外なので実害は無い |
 | `convert nodes into a node` は呼び出し側で済ませた形で受け取る | `x.replaceWith(x)` のような「変換が node を動かす」場合を model 側で再現できない |
-| WebIDL の TypeError を `DOMException` と同じ型で扱う | `moveBefore` と attribute の method の receiver、`observe` の options、`Range` の `Node` 引数がこれに当たる。名前は "TypeError" で一致するが、実際には `DOMException` ではない |
+| WebIDL の TypeError を `DOMException` と同じ型で扱う | `moveBefore` と attribute の method の receiver、`observe` の options、`Range` の `Node` 引数、§4.5 の factory と `importNode` / `adoptNode` の receiver がこれに当たる。名前は "TypeError" で一致するが、実際には `DOMException` ではない |
 | `NodeStore` は association list | 性能ではなく証明の都合。`keys` に重複が無いことは構造では保証していない（`observe` は id で正規化して吸収する） |
 
 ## 5. 「実装の不一致」の判定

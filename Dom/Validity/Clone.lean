@@ -93,6 +93,27 @@ theorem admissible_cloneMany (fuel : Nat) : ∀ (s : DOMState) (l : List NodeId)
                 ih s₂ d.children doc (some (cloneSingle s d doc).1) kids₀ s₃ hv₂ hdoc₂ hkids
               exact ih s₃ rest doc parent siblings s₄ hv₃ hdoc₃ hsib
 
+/-- **clone は妥当性を保つ。** -/
+theorem admissible_cloneNodeIn {s s' : DOMState} {n doc c : NodeId} {subtree : Bool}
+    (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (h : cloneNodeIn s n doc subtree = .ok (c, s')) : AdmissibleDOMState s' := by
+  unfold cloneNodeIn at h
+  split at h
+  · simp at h
+  · next d hd =>
+    split at h
+    · split at h
+      · simp at h
+      · next c₀ kids s₀ hcm =>
+        simp only [Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨-, rfl⟩ := h
+        exact (admissible_cloneMany _ s [n] doc none (c₀ :: kids) s₀ hv hdoc hcm).1
+      · simp at h
+    · have he := Except.ok.inj h
+      have hs : (cloneSingle s d doc).2 = s' := congrArg Prod.snd he
+      rw [← hs]
+      exact admissible_createsNode hv (createsNode_withFresh (freshNodeData_cloneData hv hd hdoc))
+
 /-- **`cloneNode` は妥当性を保つ。** -/
 theorem admissible_cloneNode {s s' : DOMState} {n c : NodeId} {deep : Bool}
     (hv : AdmissibleDOMState s) (h : cloneNode s n deep = .ok (c, s')) :
@@ -101,19 +122,6 @@ theorem admissible_cloneNode {s s' : DOMState} {n c : NodeId} {deep : Bool}
   split at h
   · simp at h
   · next d hd =>
-    have hdoc : IsDocument s.tree d.ownerDocument :=
-      hv.wellFormed.ownerDocument_is_document n d hd
-    split at h
-    · split at h
-      · simp at h
-      · next c₀ kids s₀ hcm =>
-        simp only [Except.ok.injEq, Prod.mk.injEq] at h
-        obtain ⟨-, rfl⟩ := h
-        exact (admissible_cloneMany _ s [n] d.ownerDocument none (c₀ :: kids) s₀ hv hdoc hcm).1
-      · simp at h
-    · have he := Except.ok.inj h
-      have hs : (cloneSingle s d d.ownerDocument).2 = s' := congrArg Prod.snd he
-      rw [← hs]
-      exact admissible_createsNode hv (createsNode_withFresh (freshNodeData_cloneData hv hd hdoc))
+    exact admissible_cloneNodeIn hv (hv.wellFormed.ownerDocument_is_document n d hd) h
 
 end Dom

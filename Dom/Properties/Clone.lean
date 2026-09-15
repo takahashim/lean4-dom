@@ -75,7 +75,8 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
     (∃ nd', s'.tree.get? node = some nd' ∧ nd'.shape = nd.shape ∧ nd'.data = nd.data ∧
       nd'.children = []) ∧
     (∀ pd, s.tree.get? parent = some pd → ∃ pd', s'.tree.get? parent = some pd' ∧
-      pd'.children = pd.children ++ [node] ∧ pd'.shape = pd.shape ∧ pd'.data = pd.data) ∧
+      pd'.children = pd.children ++ [node] ∧ pd'.shape = pd.shape ∧ pd'.data = pd.data ∧
+      pd'.ownerDocument = pd.ownerDocument) ∧
     s'.ranges = s.ranges := by
   -- append = pre-insert（child は null）
   unfold append preInsert at h
@@ -131,7 +132,7 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
         exact (Option.some.inj hpd₁).symm
       subst hpe
       refine ⟨{ pd₁ with children := ListUtil.insertBefore pd₁.children none node }, ?_, ?_,
-        rfl, rfl⟩
+        rfl, rfl, rfl⟩
       · rw [htree, get?_insertAtIn_parent hnp]
       · simp
 
@@ -172,7 +173,7 @@ structure CloneManyPre (t₀ : Tree) (s : DOMState) (l : List NodeId) (doc : Nod
     xd.kind ≠ .documentFragment
 
 /-- `cloneMany` の結果が満たすこと。 -/
-structure CloneManySpec (t₀ : Tree) (s : DOMState) (l : List NodeId)
+structure CloneManySpec (t₀ : Tree) (s : DOMState) (l : List NodeId) (doc : NodeId)
     (parent : Option NodeId) (kids : List NodeId) (s' : DOMState) : Prop where
   /-- append 先以外の node は動かない。 -/
   keep : ∀ m md, s.tree.get? m = some md → (∀ p, parent = some p → m ≠ p) →
@@ -180,28 +181,36 @@ structure CloneManySpec (t₀ : Tree) (s : DOMState) (l : List NodeId)
   /-- append 先の children には copy が順に並ぶ。 -/
   parentGrows : ∀ p pd, parent = some p → s.tree.get? p = some pd →
     ∃ pd', s'.tree.get? p = some pd' ∧ pd'.children = pd.children ++ kids ∧
-      pd'.shape = pd.shape ∧ pd'.data = pd.data
+      pd'.shape = pd.shape ∧ pd'.data = pd.data ∧ pd'.ownerDocument = pd.ownerDocument
   len : kids.length = l.length
   kidsNew : ∀ c ∈ kids, s.tree.get? c = none
   /-- live range は動かない。 -/
   ranges : s'.ranges = s.ranges
+  /--
+  parent が null なら、copy の node document は引数の document である。
+  Document を clone した場合だけは copy 自身になるので、そこは除く。
+  -/
+  kidsDoc : parent = none → ∀ (i : Nat) (a b : NodeId), kids[i]? = some a → l[i]? = some b →
+    ∀ ad bd, s'.tree.get? a = some ad → t₀.get? b = some bd →
+      bd.kind ≠ NodeKind.document → ad.ownerDocument = doc
   corr : ∃ C, CloneCorr t₀ s s' C ∧
     ∀ (i : Nat) (a b : NodeId), kids[i]? = some a → l[i]? = some b → C a b
 
-theorem cloneManySpec_nil (t₀ : Tree) (s : DOMState) (parent : Option NodeId) :
-    CloneManySpec t₀ s [] parent [] s where
+theorem cloneManySpec_nil (t₀ : Tree) (s : DOMState) (doc : NodeId)
+    (parent : Option NodeId) : CloneManySpec t₀ s [] doc parent [] s where
   keep := fun _ _ h _ => h
-  parentGrows := fun p pd _ hpd => ⟨pd, hpd, by simp, rfl, rfl⟩
+  parentGrows := fun p pd _ hpd => ⟨pd, hpd, by simp, rfl, rfl, rfl⟩
   len := rfl
   kidsNew := by intro c hc; simp at hc
   ranges := rfl
+  kidsDoc := by intro _ i a b ha; simp at ha
   corr := ⟨fun _ _ => False, ⟨fun _ _ h => h.elim, fun _ _ h => h.elim⟩, by
     intro i a b ha; simp at ha⟩
 
 
 /-- `cloneMany` の一段。copy 一つと、その children・兄弟の結果をつなぐ。 -/
-theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy : NodeId} {d : NodeData}
-    {rest kids₀ siblings : List NodeId} {parent : Option NodeId}
+theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy doc : NodeId}
+    {d : NodeData} {rest kids₀ siblings : List NodeId} {parent : Option NodeId}
     (hd : s.tree.get? n = some d) (ht0n : t₀.get? n = some d)
     (hcopyFresh : s.tree.get? copy = none)
     (hpn : ∀ p, parent = some p → s.tree.get? p ≠ none)
@@ -211,11 +220,13 @@ theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy :
       cd'.children = [])
     (hparent₂ : ∀ p pd, parent = some p → s.tree.get? p = some pd →
       ∃ pd', s₂.tree.get? p = some pd' ∧ pd'.children = pd.children ++ [copy] ∧
-        pd'.shape = pd.shape ∧ pd'.data = pd.data)
+        pd'.shape = pd.shape ∧ pd'.data = pd.data ∧ pd'.ownerDocument = pd.ownerDocument)
     (hranges₂ : s₂.ranges = s.ranges)
-    (h₁ : CloneManySpec t₀ s₂ d.children (some copy) kids₀ s₃)
-    (h₂ : CloneManySpec t₀ s₃ rest parent siblings s₄) :
-    CloneManySpec t₀ s (n :: rest) parent (copy :: siblings) s₄ := by
+    (hcopyDoc : parent = none → d.kind ≠ NodeKind.document →
+      ∀ cd', s₂.tree.get? copy = some cd' → cd'.ownerDocument = doc)
+    (h₁ : CloneManySpec t₀ s₂ d.children doc (some copy) kids₀ s₃)
+    (h₂ : CloneManySpec t₀ s₃ rest doc parent siblings s₄) :
+    CloneManySpec t₀ s (n :: rest) doc parent (copy :: siblings) s₄ := by
   obtain ⟨cd', hcd'₂, hsh', hda', hch'⟩ := hcopy₂
   have hcopyNe : ∀ p, parent = some p → copy ≠ p := by
     intro p hp he
@@ -223,7 +234,7 @@ theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy :
   have hkeep₃ : ∀ m md, s₂.tree.get? m = some md → m ≠ copy → s₃.tree.get? m = some md := by
     intro m md hm hmc
     exact h₁.keep m md hm (by intro q hq; cases hq; exact hmc)
-  obtain ⟨cd'', hcd''₃, hch'', hsh'', hda''⟩ := h₁.parentGrows copy cd' rfl hcd'₂
+  obtain ⟨cd'', hcd''₃, hch'', hsh'', hda'', hdo''⟩ := h₁.parentGrows copy cd' rfl hcd'₂
   -- 戻り向き：後の状態に無い node は前の状態にも無い。
   have hback₂ : ∀ a, s₂.tree.get? a = none → s.tree.get? a = none := by
     intro a ha
@@ -257,18 +268,19 @@ theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy :
     | some pd => obtain ⟨pd', hpd', -⟩ := hparent₂ p pd hp hx; rw [hpd']; simp
   obtain ⟨C₁, hC₁, hC₁k⟩ := h₁.corr
   obtain ⟨C₂, hC₂, hC₂k⟩ := h₂.corr
-  refine ⟨?_, ?_, by simp [h₂.len], ?_, by rw [h₂.ranges, h₁.ranges, hranges₂], ?_⟩
+  refine ⟨?_, ?_, by simp [h₂.len], ?_, by rw [h₂.ranges, h₁.ranges, hranges₂], ?_, ?_⟩
   · -- keep
     intro m md hm hmp
     have hmc : m ≠ copy := by intro he; rw [he, hcopyFresh] at hm; simp at hm
     exact h₂.keep m md (hkeep₃ m md (hkeep₂ m md hm hmp) hmc) hmp
   · -- parentGrows
     intro p pd hp hpd
-    obtain ⟨pd', hpd'₂, hchp, hshp, hdap⟩ := hparent₂ p pd hp hpd
+    obtain ⟨pd', hpd'₂, hchp, hshp, hdap, hdop⟩ := hparent₂ p pd hp hpd
     have hpc : p ≠ copy := by intro he; rw [← he, hpd] at hcopyFresh; simp at hcopyFresh
-    obtain ⟨pd'', hpd''₄, hchp', hshp', hdap'⟩ :=
+    obtain ⟨pd'', hpd''₄, hchp', hshp', hdap', hdop'⟩ :=
       h₂.parentGrows p pd' hp (hkeep₃ p pd' hpd'₂ hpc)
-    refine ⟨pd'', hpd''₄, ?_, by rw [hshp', hshp], by rw [hdap', hdap]⟩
+    refine ⟨pd'', hpd''₄, ?_, by rw [hshp', hshp], by rw [hdap', hdap],
+      by rw [hdop', hdop]⟩
     rw [hchp', hchp]
     simp
   · -- kidsNew
@@ -276,6 +288,23 @@ theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy :
     rcases List.mem_cons.mp hc with rfl | hc'
     · exact hcopyFresh
     · exact hback₂ c (hback₃ c (h₂.kidsNew c hc'))
+  · -- kidsDoc
+    intro hpar i a b ha hb ad bd had hbd hk
+    cases i with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at ha hb
+      subst ha
+      subst hb
+      rw [ht0n] at hbd
+      cases hbd
+      have hc4 : s₄.tree.get? copy = some cd'' := h₂.keep copy cd'' hcd''₃ hcopyNe
+      rw [hc4] at had
+      cases had
+      rw [hdo'']
+      exact hcopyDoc hpar hk cd' hcd'₂
+    | succ j =>
+      simp only [List.getElem?_cons_succ] at ha hb
+      exact h₂.kidsDoc hpar j a b ha hb ad bd had hbd hk
   · -- corr
     refine ⟨fun a b => C₁ a b ∨ C₂ a b ∨ (a = copy ∧ b = n), ⟨?_, ?_⟩, ?_⟩
     · rintro a b (hab | hab | ⟨hac, hbn⟩)
@@ -315,7 +344,7 @@ theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy :
 theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List NodeId)
     (doc : NodeId) (parent : Option NodeId) (kids : List NodeId) (s' : DOMState),
     CloneManyPre t₀ s l doc parent → cloneMany fuel s l doc parent = .ok (kids, s') →
-    CloneManySpec t₀ s l parent kids s' := by
+    CloneManySpec t₀ s l doc parent kids s' := by
   induction fuel with
   | zero =>
     intro t₀ s l doc parent kids s' hpre h
@@ -323,7 +352,7 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
     | nil =>
       simp only [cloneMany, Except.ok.injEq, Prod.mk.injEq] at h
       obtain ⟨rfl, rfl⟩ := h
-      exact cloneManySpec_nil t₀ s parent
+      exact cloneManySpec_nil t₀ s doc parent
     | cons n rest => simp [cloneMany] at h
   | succ fuel ih =>
     intro t₀ s l doc parent kids s' hpre h
@@ -331,7 +360,7 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
     | nil =>
       simp only [cloneMany, Except.ok.injEq, Prod.mk.injEq] at h
       obtain ⟨rfl, rfl⟩ := h
-      exact cloneManySpec_nil t₀ s parent
+      exact cloneManySpec_nil t₀ s doc parent
     | cons n rest =>
       simp only [cloneMany] at h
       split at h
@@ -378,7 +407,8 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                   (∀ p pd, parent = some p → s.tree.get? p = some pd →
                     ∃ pd', s₂.tree.get? p = some pd' ∧
                       pd'.children = pd.children ++ [(cloneSingle s d doc).1] ∧
-                      pd'.shape = pd.shape ∧ pd'.data = pd.data) ∧
+                      pd'.shape = pd.shape ∧ pd'.data = pd.data ∧
+                      pd'.ownerDocument = pd.ownerDocument) ∧
                   s₂.ranges = s.ranges := by
                 cases hpar : parent with
                 | none =>
@@ -470,18 +500,31 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                 · intro p hp x hx xd hxd
                   exact hpre.notFragment p hp x (List.mem_cons_of_mem _ hx) xd hxd
               have h₂ := ih t₀ s₃ rest doc parent siblings s₄ hpre₂ hsib
-              exact cloneManySpec_cons hd ht0n hcopyFresh hpn hkeep₂ hcopy₂ hparent₂ hranges₂ h₁ h₂
+              refine cloneManySpec_cons hd ht0n hcopyFresh hpn hkeep₂ hcopy₂ hparent₂ hranges₂
+                ?_ h₁ h₂
+              -- parent が null なら append は起きないので、copy の node document はそのままである。
+              intro hpar hk cd' hcd'
+              rw [hpar] at happ
+              simp only [cloneAppend] at happ
+              have he : (cloneSingle s d doc).2 = s₂ := Except.ok.inj happ
+              rw [← he] at hcd'
+              rw [hA.created] at hcd'
+              cases hcd'
+              simp [cloneDocumentOf, hk]
 
 
-/-! ## `cloneNode` -/
+/-! ## `cloneNode` / `cloneNodeIn` -/
 
 /-- **deep clone がすること。** -/
-theorem cloneNode_deep_spec {s s' : DOMState} {n c : NodeId}
-    (hv : AdmissibleDOMState s) (h : cloneNode s n true = .ok (c, s')) :
+theorem cloneNodeIn_deep_spec {s s' : DOMState} {n doc c : NodeId}
+    (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (h : cloneNodeIn s n doc true = .ok (c, s')) :
     ∃ d, s.tree.get? n = some d ∧
       (∀ m md, s.tree.get? m = some md → s'.tree.get? m = some md) ∧
-      s.tree.get? c = none ∧ CloneOf s'.tree c n ∧ s'.ranges = s.ranges := by
-  simp only [cloneNode] at h
+      s.tree.get? c = none ∧ CloneOf s'.tree c n ∧ s'.ranges = s.ranges ∧
+      (d.kind ≠ NodeKind.document → ∀ cd, s'.tree.get? c = some cd →
+        cd.ownerDocument = doc) := by
+  simp only [cloneNodeIn] at h
   split at h
   · simp at h
   · next d hd =>
@@ -491,56 +534,113 @@ theorem cloneNode_deep_spec {s s' : DOMState} {n c : NodeId}
     · next c₀ kids s₀ hcm =>
       simp only [Except.ok.injEq, Prod.mk.injEq] at h
       obtain ⟨rfl, rfl⟩ := h
-      have hpre : CloneManyPre s.tree s [n] d.ownerDocument none := by
-        refine ⟨hv.wellFormed, hv, hv.wellFormed.ownerDocument_is_document n d hd,
-          fun _ _ hm => hm, by simp, ?_, by simp⟩
+      have hpre : CloneManyPre s.tree s [n] doc none := by
+        refine ⟨hv.wellFormed, hv, hdoc, fun _ _ hm => hm, by simp, ?_, by simp⟩
         intro x hx
         rcases List.mem_singleton.mp hx with rfl
         rw [hd]; simp
-      have hspec := cloneMany_spec (s.tree.size + 1) s.tree s [n] d.ownerDocument none
+      have hspec := cloneMany_spec (s.tree.size + 1) s.tree s [n] doc none
         (c₀ :: kids) s₀ hpre hcm
       have hkeep : ∀ m md, s.tree.get? m = some md → s₀.tree.get? m = some md :=
         fun m md hm => hspec.keep m md hm (by simp)
       obtain ⟨C, hC, hCk⟩ := hspec.corr
-      refine ⟨d, hd, hkeep, hspec.kidsNew c₀ (List.mem_cons_self ..), ⟨C, ?_, ?_⟩, hspec.ranges⟩
+      refine ⟨d, hd, hkeep, hspec.kidsNew c₀ (List.mem_cons_self ..), ⟨C, ?_, ?_⟩,
+        hspec.ranges, ?_⟩
       · exact hCk 0 c₀ n (by simp) (by simp)
       · intro a b hab
         obtain ⟨ad, bd, had, hbd, hsh, hda, hlen, hch⟩ := hC.step a b hab
         exact ⟨ad, bd, had, hkeep b bd hbd, hsh, hda, hlen, hch⟩
+      · intro hk cd hcd
+        exact hspec.kidsDoc rfl 0 c₀ n (by simp) (by simp) cd d hcd hd hk
     · simp at h
 
 /--
 **shallow clone がすること。** §4.4 "clone a single node" そのものである。
 children を持たない detach された copy が一つ増える。
 -/
-theorem cloneNode_shallow_spec {s s' : DOMState} {n c : NodeId}
-    (h : cloneNode s n false = .ok (c, s')) :
+theorem cloneNodeIn_shallow_spec {s s' : DOMState} {n doc c : NodeId}
+    (h : cloneNodeIn s n doc false = .ok (c, s')) :
     ∃ d cd, s.tree.get? n = some d ∧ cd.shape = d.shape ∧ cd.data = d.data ∧
-      cd.children = [] ∧ cd.parent = none ∧ AddsNode s.tree s'.tree c cd := by
-  simp only [cloneNode] at h
+      cd.children = [] ∧ cd.parent = none ∧
+      cd.ownerDocument = cloneDocumentOf d doc c ∧ AddsNode s.tree s'.tree c cd := by
+  simp only [cloneNodeIn] at h
   split at h
   · simp at h
   · next d hd =>
     rw [if_neg (by simp : ¬(false = true))] at h
     have he := Except.ok.inj h
-    have hc : (cloneSingle s d d.ownerDocument).1 = c := congrArg Prod.fst he
-    have hs : (cloneSingle s d d.ownerDocument).2 = s' := congrArg Prod.snd he
-    refine ⟨d, cloneData d (cloneDocumentOf d d.ownerDocument (freshId s.tree)),
-      hd, rfl, rfl, rfl, rfl, ?_⟩
+    have hc : (cloneSingle s d doc).1 = c := congrArg Prod.fst he
+    have hs : (cloneSingle s d doc).2 = s' := congrArg Prod.snd he
+    refine ⟨d, cloneData d (cloneDocumentOf d doc (freshId s.tree)),
+      hd, rfl, rfl, rfl, rfl, by rw [← hc]; rfl, ?_⟩
     rw [← hc, ← hs]
     exact withFresh_addsNode s _
 
 /-- **clone の id は木にまだ無い。** -/
-theorem cloneNode_fresh {s s' : DOMState} {n c : NodeId} {deep : Bool}
-    (hv : AdmissibleDOMState s) (h : cloneNode s n deep = .ok (c, s')) :
-    s.tree.get? c = none := by
-  cases deep with
+theorem cloneNodeIn_fresh {s s' : DOMState} {n doc c : NodeId} {subtree : Bool}
+    (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (h : cloneNodeIn s n doc subtree = .ok (c, s')) : s.tree.get? c = none := by
+  cases subtree with
   | false =>
-    obtain ⟨d₀, cd, -, -, -, -, -, hadd⟩ := cloneNode_shallow_spec h
+    obtain ⟨d₀, cd, -, -, -, -, -, -, hadd⟩ := cloneNodeIn_shallow_spec h
     exact hadd.fresh
   | true =>
-    obtain ⟨-, -, -, hfr, -, -⟩ := cloneNode_deep_spec hv h
+    obtain ⟨-, -, -, hfr, -, -, -⟩ := cloneNodeIn_deep_spec hv hdoc h
     exact hfr
+
+/-- **clone は木にあった node を動かさない。** -/
+theorem cloneNodeIn_keep {s s' : DOMState} {n doc c : NodeId} {subtree : Bool}
+    (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (h : cloneNodeIn s n doc subtree = .ok (c, s'))
+    {m : NodeId} {md : NodeData} (hm : s.tree.get? m = some md) :
+    s'.tree.get? m = some md := by
+  cases subtree with
+  | false =>
+    obtain ⟨d₀, cd, -, -, -, -, -, -, hadd⟩ := cloneNodeIn_shallow_spec h
+    rw [hadd.others m (hadd.ne_of_mem hm)]
+    exact hm
+  | true =>
+    obtain ⟨-, -, hk, -, -, -, -⟩ := cloneNodeIn_deep_spec hv hdoc h
+    exact hk m md hm
+
+/-- **clone は live range を動かさない。** copy の中を指す range はまだ無いからである。 -/
+theorem cloneNodeIn_ranges {s s' : DOMState} {n doc c : NodeId} {subtree : Bool}
+    (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (h : cloneNodeIn s n doc subtree = .ok (c, s')) : s'.ranges = s.ranges := by
+  cases subtree with
+  | false =>
+    simp only [cloneNodeIn] at h
+    split at h
+    · simp at h
+    · next d hd =>
+      rw [if_neg (by simp : ¬(false = true))] at h
+      have hs : (cloneSingle s d doc).2 = s' := congrArg Prod.snd (Except.ok.inj h)
+      rw [← hs]
+      rfl
+  | true =>
+    obtain ⟨-, -, -, -, -, hr, -⟩ := cloneNodeIn_deep_spec hv hdoc h
+    exact hr
+
+/-- **copy の node document は引数の document である。** Document の clone だけは別。 -/
+theorem cloneNodeIn_ownerDocument {s s' : DOMState} {n doc c : NodeId} {subtree : Bool}
+    {d cd : NodeData} (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (hd : s.tree.get? n = some d) (hk : d.kind ≠ NodeKind.document)
+    (h : cloneNodeIn s n doc subtree = .ok (c, s')) (hcd : s'.tree.get? c = some cd) :
+    cd.ownerDocument = doc := by
+  cases subtree with
+  | false =>
+    obtain ⟨d₀, cd₀, hd₀, -, -, -, -, hdo, hadd⟩ := cloneNodeIn_shallow_spec h
+    rw [hd] at hd₀
+    cases hd₀
+    rw [hadd.created] at hcd
+    cases hcd
+    rw [hdo]
+    simp [cloneDocumentOf, hk]
+  | true =>
+    obtain ⟨d₀, hd₀, -, -, -, -, hdo⟩ := cloneNodeIn_deep_spec hv hdoc h
+    rw [hd] at hd₀
+    cases hd₀
+    exact hdo hk cd hcd
 
 /--
 **clone は原本と同じ形である。**
@@ -548,58 +648,73 @@ theorem cloneNode_fresh {s s' : DOMState} {n c : NodeId} {deep : Bool}
 roadmap §8.4 の「structurally equivalent」。deep clone について、copy の subtree が
 原本の subtree と kind・data・attribute・名前・children の並びまで一致する。
 -/
-theorem cloneNode_cloneOf {s s' : DOMState} {n c : NodeId}
-    (hv : AdmissibleDOMState s) (h : cloneNode s n true = .ok (c, s')) :
-    CloneOf s'.tree c n := by
-  obtain ⟨-, -, -, -, hcl, -⟩ := cloneNode_deep_spec hv h
+theorem cloneNodeIn_cloneOf {s s' : DOMState} {n doc c : NodeId}
+    (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (h : cloneNodeIn s n doc true = .ok (c, s')) : CloneOf s'.tree c n := by
+  obtain ⟨-, -, -, -, hcl, -, -⟩ := cloneNodeIn_deep_spec hv hdoc h
   exact hcl
 
-/--
-**clone は原本とは別の node である。**
-
-roadmap §8.4 の「identity is different」。同じ形でも `NodeId` は違う。
--/
-theorem cloneNode_ne {s s' : DOMState} {n c : NodeId} {deep : Bool}
-    (hv : AdmissibleDOMState s) (h : cloneNode s n deep = .ok (c, s')) : c ≠ n := by
+/-- **clone は原本とは別の node である。** roadmap §8.4 の「identity is different」。 -/
+theorem cloneNodeIn_ne {s s' : DOMState} {n doc c : NodeId} {subtree : Bool}
+    (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (h : cloneNodeIn s n doc subtree = .ok (c, s')) : c ≠ n := by
   intro he
   have hn : s.tree.get? n ≠ none := by
-    simp only [cloneNode] at h
+    simp only [cloneNodeIn] at h
     split at h
     · simp at h
     · next d hd => rw [hd]; simp
-  exact hn (he ▸ cloneNode_fresh hv h)
+  exact hn (he ▸ cloneNodeIn_fresh hv hdoc h)
 
-/-- **clone は木にあった node を動かさない。** 原本の subtree はそのまま残る。 -/
+/-! ### `cloneNode` -/
+
+/-- clone する node の node document は Document である。 -/
+theorem isDocument_of_get? {s : DOMState} {n : NodeId} {d : NodeData}
+    (hv : AdmissibleDOMState s) (hd : s.tree.get? n = some d) :
+    IsDocument s.tree d.ownerDocument :=
+  hv.wellFormed.ownerDocument_is_document n d hd
+
+theorem cloneNode_cases {s s' : DOMState} {n c : NodeId} {deep : Bool}
+    (h : cloneNode s n deep = .ok (c, s')) :
+    ∃ d, s.tree.get? n = some d ∧ cloneNodeIn s n d.ownerDocument deep = .ok (c, s') := by
+  unfold cloneNode at h
+  split at h
+  · simp at h
+  · next d hd => exact ⟨d, hd, h⟩
+
+/-- **clone は原本と同じ形である。** -/
+theorem cloneNode_cloneOf {s s' : DOMState} {n c : NodeId}
+    (hv : AdmissibleDOMState s) (h : cloneNode s n true = .ok (c, s')) :
+    CloneOf s'.tree c n := by
+  obtain ⟨d, hd, h'⟩ := cloneNode_cases h
+  exact cloneNodeIn_cloneOf hv (isDocument_of_get? hv hd) h'
+
+/-- **clone は原本とは別の node である。** -/
+theorem cloneNode_ne {s s' : DOMState} {n c : NodeId} {deep : Bool}
+    (hv : AdmissibleDOMState s) (h : cloneNode s n deep = .ok (c, s')) : c ≠ n := by
+  obtain ⟨d, hd, h'⟩ := cloneNode_cases h
+  exact cloneNodeIn_ne hv (isDocument_of_get? hv hd) h'
+
+/-- **clone の id は木にまだ無い。** -/
+theorem cloneNode_fresh {s s' : DOMState} {n c : NodeId} {deep : Bool}
+    (hv : AdmissibleDOMState s) (h : cloneNode s n deep = .ok (c, s')) :
+    s.tree.get? c = none := by
+  obtain ⟨d, hd, h'⟩ := cloneNode_cases h
+  exact cloneNodeIn_fresh hv (isDocument_of_get? hv hd) h'
+
+/-- **clone は木にあった node を動かさない。** -/
 theorem cloneNode_keep {s s' : DOMState} {n c : NodeId} {deep : Bool}
     (hv : AdmissibleDOMState s) (h : cloneNode s n deep = .ok (c, s'))
     {m : NodeId} {md : NodeData} (hm : s.tree.get? m = some md) :
     s'.tree.get? m = some md := by
-  cases deep with
-  | false =>
-    obtain ⟨d₀, cd, -, -, -, -, -, hadd⟩ := cloneNode_shallow_spec h
-    rw [hadd.others m (hadd.ne_of_mem hm)]
-    exact hm
-  | true =>
-    obtain ⟨-, -, hk, -, -, -⟩ := cloneNode_deep_spec hv h
-    exact hk m md hm
+  obtain ⟨d, hd, h'⟩ := cloneNode_cases h
+  exact cloneNodeIn_keep hv (isDocument_of_get? hv hd) h' hm
 
-
-/-- **clone は live range を動かさない。** copy の中を指す range はまだ無いからである。 -/
+/-- **clone は live range を動かさない。** -/
 theorem cloneNode_ranges {s s' : DOMState} {n c : NodeId} {deep : Bool}
     (hv : AdmissibleDOMState s) (h : cloneNode s n deep = .ok (c, s')) :
     s'.ranges = s.ranges := by
-  cases deep with
-  | false =>
-    simp only [cloneNode] at h
-    split at h
-    · simp at h
-    · next d hd =>
-      rw [if_neg (by simp : ¬(false = true))] at h
-      have hs : (cloneSingle s d d.ownerDocument).2 = s' := congrArg Prod.snd (Except.ok.inj h)
-      rw [← hs]
-      rfl
-  | true =>
-    obtain ⟨-, -, -, -, -, hr⟩ := cloneNode_deep_spec hv h
-    exact hr
+  obtain ⟨d, hd, h'⟩ := cloneNode_cases h
+  exact cloneNodeIn_ranges hv (isDocument_of_get? hv hd) h'
 
 end Dom

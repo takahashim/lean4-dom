@@ -311,7 +311,9 @@ Scenario 欄が空なのはそのためである。
 | createElementNS | validate and extract（context は "element"）してから element を作る | `createElementNS`, `validateAndExtractElement` | effect `createElementNS_creates` | — | — | 済 |
 | createTextNode / createComment / createDocumentFragment | node を一つ作り node document を this にする | `createTextNode`, `createComment`, `createDocumentFragment` | effect `createTextNode_creates` ほか | — | — | 済 |
 | clone a single node | 2 element は create an element で / 3 それ以外は同じ interface で / 3.1 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNode_shallow_spec` | — | — | 済（shadow root と custom element は対象外） |
-| clone a node | 2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone（document は引数のまま） | `cloneNode`, `cloneMany`, `cloneAppend` | `cloneNode_cloneOf`（同じ形）、`cloneNode_ne`（別の id）、preservation `admissible_cloneNode`、frame `cloneNode_keep` と `cloneNode_ranges` | — | — | 済（step 6 の shadow root は対象外。失敗しないことは未証明） |
+| clone a node | 2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone（document は引数のまま） | `cloneNode`, `cloneNodeIn`, `cloneMany`, `cloneAppend` | `cloneNode_cloneOf`（同じ形）、`cloneNode_ne`（別の id）、preservation `admissible_cloneNode`、frame `cloneNode_keep` と `cloneNode_ranges` | — | — | 済（step 6 の shadow root は対象外。失敗しないことは未証明） |
+| importNode | 1 Document なら NotSupportedError / 最終 step で clone a node を document = this、subtree = options で呼ぶ | `importNode` | `importNode_ne`（別の id）、`importNode_cloneOf`（同じ形）、`importNode_ownerDocument`、preservation `admissible_importNode`、frame `importNode_keep` と `importNode_ranges` | — | — | 済（options の dictionary 形と custom element registry は対象外） |
+| adoptNode | 1 Document なら NotSupportedError / 3 adopt する / 4 node を返す | `adoptNode` | `adoptNode_id`（同じ id）、`adoptNode_ownerDocument`、`adoptNode_detached`、`adoptNode_shape`、preservation `admissible_adoptNode` | — | — | 済（step 2 の shadow root は対象外） |
 
 step 4 の append は §4.2.3 の `append` をそのまま呼ぶ。だから妥当性の保存も
 live range の調整も mutation record も、そちらの証明が効く。step 5 が children に渡す
@@ -329,7 +331,7 @@ node document が copy になるのは `append` の中の adopt による。
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | roadmap §13.1。長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |
-| node 生成と可変長引数の変換 | 部分対応 | roadmap §13.2。§4.5 の factory と §4.4 の `cloneNode` は model にあるが、差分テストの scenario にはまだ出していない。scenario の node は初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
+| node 生成と可変長引数の変換 | 部分対応 | roadmap §13.2。§4.5 の factory と §4.4 の `cloneNode`、§4.5 の `importNode` / `adoptNode` は model にあるが、差分テストの scenario にはまだ出していない。scenario の node は初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | method の戻り値 | 済 | `returnValueOf`（`Dom/Exec/Eval.lean`）。`Node?` / boolean / record 列を kind つきで観測する。`undefined` と `null` は区別する |
 | wrapper の object identity | 対象外 | roadmap §13.3。model は node を生成しないので wrapper を作る API の同一性は観測できない。node を返す method の戻り値は `NodeId` で比べるので「返ってきたのは渡した node そのものか」は観測できる |
 | `normalize()` の record の並び | engine に合わせた | 仕様を字義どおり読むと run ごとに characterData が一つだが、Blink・WebCore・Gecko は兄弟ごとに積む。WPT が固定しているのは childList の側だけである。木と live range の最終状態はどちらの読みでも同じ |

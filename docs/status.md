@@ -3321,6 +3321,55 @@ Document の制約もそのまま満たす）が、その証明はまだ無い�
 
 `importNode` / `adoptNode`（roadmap §8.5）。
 
+## import と adopt を入れた（roadmap §8.5）
+
+§4.5 の `importNode(node, options)` と `adoptNode(node)`。
+どちらも「別の document にある node をこの document で使えるようにする」ものだが、
+**identity の扱いが正反対**である。そこをそのまま定理にした。
+
+| | 返る id | 原本 | node document |
+| --- | --- | --- | --- |
+| `importNode` | 新しい（`importNode_ne`） | 動かない（`importNode_keep`） | `doc`（`importNode_ownerDocument`） |
+| `adoptNode` | 渡したもの（`adoptNode_id`） | それ自身が移る（`adoptNode_detached`） | `doc`（`adoptNode_ownerDocument`） |
+
+`importNode(node, true)` の copy が原本と同じ形であることは `importNode_cloneOf`、
+`adoptNode` が node の kind も attribute も名前も変えないことは `adoptNode_shape` が言う。
+妥当性の保存は両方ある。
+
+### 既にあるものの組み合わせで済んだ
+
+`importNode` は step 1 で Document を弾いてから "clone a node" を
+document = this、parent = null で呼ぶだけである。そのために
+`cloneNode` を `cloneNodeIn`（document を引数に取る形）に分け、
+`cloneNode` はそれを this の node document で呼ぶ形にした。定理も
+`cloneNodeIn_*` の側に移して、`cloneNode_*` は薄い包みにしてある。
+
+`adoptNode` は §4.5 の "adopt" を呼ぶだけである。`adopt` の妥当性保存は
+これまで `insert` の中からしか使っていなかったので、`admissible_adopt` として
+単独の形にした。成分はすべて既にあり、組み立てるだけで済んだ。
+
+### copy の node document をどう言うか
+
+`importNode_ownerDocument` を出すために、`CloneManySpec` に一つ field を足した。
+「parent が null なら、copy の node document は引数の document である
+（Document の clone だけは copy 自身になるので除く）」である。
+
+parent が非 null のときにこれが言えないのは、その場合 copy は `append` されて
+その中の adopt が node document を親のものに付け替えるからである。
+`importNode` は parent = null で呼ぶので、そこだけで足りる。
+
+### まだ無いもの
+
+`importNode` の `options` が dictionary の形（`selfOnly` と
+`customElementRegistry`）。custom element registry は model の対象外である。
+shadow root を弾く step も、shadow tree が対象外なので無い。
+
+### 次
+
+roadmap §8.6 の `Attr` identity。ただしこれは `NamedNodeMap` /
+`setAttributeNode` / `InUseAttributeError` まで一気に広がるので、
+その前に差分テストへ node 生成を出すほうが先かもしれない。
+
 ## 生成 scenario の最小化を広げた
 
 不一致が出た生成 scenario を小さくする shrinker は前からあったが、落とせるのは

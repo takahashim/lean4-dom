@@ -443,6 +443,23 @@ theorem admissible_insert {s s' : DOMState} {node parent : NodeId}
     hit.iterators, preservesRegs_insert hi h.observerRegistrations,
     AttributesValid.map (shapePreserving_insert hi) h.attributes⟩
 
+/--
+`adopt` は admissibility を保つ。
+
+`insert` の中からだけでなく `adoptNode` からも呼ばれるので、単独の形にしておく。
+Document を adopt すると node document の不変条件が壊れるので、呼び出し側が除く。
+-/
+theorem admissible_adopt {s s' : DOMState} {node doc : NodeId}
+    (h : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
+    (hnk : ∀ nd, s.tree.get? node = some nd → nd.kind ≠ NodeKind.document)
+    (ha : adopt s node doc = .ok s') : AdmissibleDOMState s' := by
+  have hit := iterCtx_adopt h.iterCtx hdoc hnk ha
+  exact ⟨hit.structural, hit.nodeDocuments,
+    documentTreesValid_adopt h.wellFormed h.documentTrees ha,
+    adopt_preserves_endpoints h.structural h.rangeEndpoints ha,
+    hit.iterators, preservesRegs_adopt ha h.observerRegistrations,
+    AttributesValid.map (shapePreserving_adopt ha) h.attributes⟩
+
 /-- `replace` は admissibility を保つ。 -/
 theorem admissible_replace {s s' : DOMState} {child node parent : NodeId}
     (h : AdmissibleDOMState s) (hr : replace s child node parent = .ok s') :

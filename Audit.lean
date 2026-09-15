@@ -125,7 +125,20 @@ open Dom.Audit
   Dom.cloneNode_fresh
   Dom.cloneNode_keep
   Dom.cloneNode_ranges
-  Dom.cloneNode_shallow_spec
+  Dom.cloneNodeIn_shallow_spec
+  Dom.cloneNodeIn_ownerDocument
+  Dom.admissible_adopt
+  Dom.admissible_importNode
+  Dom.importNode_ne
+  Dom.importNode_cloneOf
+  Dom.importNode_ownerDocument
+  Dom.importNode_keep
+  Dom.importNode_ranges
+  Dom.admissible_adoptNode
+  Dom.adoptNode_id
+  Dom.adoptNode_ownerDocument
+  Dom.adoptNode_detached
+  Dom.adoptNode_shape
   Dom.Spec.remove_sound
   Dom.Spec.remove_sound_range
   Dom.Spec.remove_sound_iterator

@@ -111,22 +111,40 @@ def cloneMany : Nat → DOMState → List NodeId → NodeId → Option NodeId �
           | .ok (siblings, s₄) => .ok (copy :: siblings, s₄)
 
 /--
+§4.4 "clone a node" を、document を指定して parent = null で呼ぶ形。
+
+`cloneNode` は node 自身の node document を、`importNode` は受け手の document を渡す。
+parent が null なので、返る copy は detach されている。
+-/
+def cloneNodeIn (s : DOMState) (n : NodeId) (doc : NodeId) (subtree : Bool) :
+    Except DOMException (NodeId × DOMState) :=
+  match s.tree.get? n with
+  | none => .error .notFoundError
+  | some d =>
+    if subtree then
+      match cloneMany (s.tree.size + 1) s [n] doc none with
+      | .error e => .error e
+      | .ok (c :: _, s') => .ok (c, s')
+      -- 空の列は返らない。
+      | .ok ([], _) => .error .outsideModel
+    else .ok (cloneSingle s d doc)
+
+/--
 DOM Standard §4.4 `cloneNode(deep)`。
 
-"clone a node" を this と document = this の node document、subtree = deep、
-parent = null で呼ぶ。parent が null なので、返る copy は detach されている。
+"clone a node" を this、document = this の node document、subtree = deep、
+parent = null で呼ぶ。
 -/
 def cloneNode (s : DOMState) (n : NodeId) (deep : Bool) :
     Except DOMException (NodeId × DOMState) :=
   match s.tree.get? n with
   | none => .error .notFoundError
-  | some d =>
-    if deep then
-      match cloneMany (s.tree.size + 1) s [n] d.ownerDocument none with
-      | .error e => .error e
-      | .ok (c :: _, s') => .ok (c, s')
-      -- 空の列は返らない。
-      | .ok ([], _) => .error .outsideModel
-    else .ok (cloneSingle s d d.ownerDocument)
+  | some d => cloneNodeIn s n d.ownerDocument deep
+
+theorem cloneNode_eq {s : DOMState} {n : NodeId} {d : NodeData} {deep : Bool}
+    (hd : s.tree.get? n = some d) :
+    cloneNode s n deep = cloneNodeIn s n d.ownerDocument deep := by
+  unfold cloneNode
+  rw [hd]
 
 end Dom
