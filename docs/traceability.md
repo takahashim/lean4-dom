@@ -352,6 +352,23 @@ node document が copy になるのは `append` の中の adopt による。
 | `NodeFilter` の callback | 対象外 | roadmap §13.4。callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
 | WebIDL の TypeError | 近似 | `observe` の step 3-6、attribute の method の receiver が Element でない場合、`moveBefore` の receiver が ParentNode でない場合（`move-receiver-must-be-parentnode`）を `DOMException.typeError` で表す。名前は一致するが実際には `DOMException` ではない |
 
+## §1.3 Selectors / §4.2.6 `ParentNode` / §4.8 `Element`
+
+selector は CSS の仕様なので、参照する版は `docs/selectors-spec-version.md` に
+別に固定してある。形式化の範囲もそこに書いた。木も live object も変えないので、
+差分テストでは戻り値だけを比べる。
+
+| Algorithm | 仕様 | Evaluator | Contracts | Scenario | Status |
+| --- | --- | --- | --- | --- | --- |
+| tokenization | CSS Syntax §4 | `tokenize`（`Selectors/Token.lean`） | `tokenAt_le`, `nextToken_lt`（停止性） | — | 済（url-token / unicode-range-token は対象外） |
+| consume a list of component values | CSS Syntax §5.4.6 | `toComponents`（`Selectors/Component.lean`） | `splitBlock_size` | `unclosed-block-is-closed-at-eof` | 済 |
+| `parse a selector` | Selectors §19.1 | `parseSelector`（`Selectors/Parser.lean`） | `dropToComma_size`, `splitAtOf_size`（停止性） | `universal-selector-takes-subclasses`, `id-selector-needs-an-identifier` | 部分（namespace prefix と pseudo-element は対象外） |
+| `<a-n-plus-b>` | CSS Syntax §9.2 | `parseAnB` | — | `structural-pseudo-classes-count-elements` | 済 |
+| match a selector against an element | Selectors §17.1 | `matchSelList`（`Dom/Selector/Match.lean`） | `sSize_lt_cpSize`, `cxSize_lt_lSize`（停止性） | `structural-pseudo-classes-count-elements`, `attribute-selectors-compare-values` | 部分（状態の pseudo-class は対象外） |
+| match a selector against a tree / scope-match a selectors string | Selectors §17.3 / DOM §1.3 | `scopeMatch`（`Dom/Selector/Api.lean`） | — | `query-selector-finds-in-tree-order`, `scope-pseudo-is-the-scoping-root` | 済 |
+| `querySelector(selectors)` / `querySelectorAll(selectors)` | DOM §4.2.6 | `querySelector`, `querySelectorAll` | `admissible_mapConst` | `query-selector-finds-in-tree-order` | 済 |
+| `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | 同上 | `matches-and-closest-walk-up` | 済 |
+
 ## 仕様改訂時の手順
 
 1. `docs/spec-version.md` の commit から新しい commit までの `dom.bs` の差分を取る。
