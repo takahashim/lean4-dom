@@ -253,9 +253,9 @@ module Generate
   # 生成器が作る木に当たるものを選んでいる。type は `element_identity` の local name、
   # attribute は `ATTR_NAMES` と `ATTR_VALUES` から取る。
   #
-  # `:empty`・`:scope`・`#1` は入れない。どれも実装側との既知の食い違い
-  # （`docs/status.md` の findings 19・20・21）に必ず当たるので、
-  # 生成器が新しいものを見つける邪魔になる。
+  # `:empty`・`:scope`・`#1`・`.--foo` は入れない。どれも実装側との既知の食い違い
+  # （`docs/status.md` の findings 19・20・21・26）に必ず当たるので、
+  # 生成器が新しいものを見つける邪魔になる。comment も findings 30 があるので入れない。
   # 大文字を混ぜるのは、type selector の大文字小文字が namespace で分かれるからである。
   # HTML namespace の element が HTML document にあるときだけ、selector 側を lowercase する。
   SELECTOR_TYPES = ["div", "span", "p", "rect", "*", "DIV", "RECT", "Span"].freeze
@@ -263,7 +263,7 @@ module Generate
     ".vv", ".u", ".v", "#vv",
     # escape。`\76` は `v` なので `.\76 v` は `.vv` と同じものを指す。
     # 生成器はこれ以外に逆斜線を作らないので、tokenizer の escape はここでだけ撫でられる。
-    ".\\76 v", "#\\76 v", "[\\61]", ".--foo",
+    ".\\76 v", "#\\76 v", "[\\61]",
     "[a]", "[b]", "[data-x]", "[a='1']", "[a='']", "[class~=u]", "[data-x^=v]",
     "[data-x$=v]", "[data-x*=v]", "[a='1' i]", "[A=VV i]", "[class|=u]",
     "[class~='u v']", "[class~='']", "[class^='']", "[class$=v]", "[class*=' ']",

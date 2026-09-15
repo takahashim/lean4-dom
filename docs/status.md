@@ -3733,6 +3733,22 @@ Selectors の形式化のあいだに出た findings。どれも固定 scenario 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
 
+三つめの実装（happy-dom）も当ててみた。全体としては最も仕様から離れているので
+証拠としては弱いが、次の三つは裏付けになる。
+
+* **findings 20**（virtual scoping root）は happy-dom も同じく空を返す。
+  三つの独立な実装が揃って仕様の例（`df.querySelectorAll(":scope > .foo")`）を
+  満たさない、ということになる。
+* **findings 30**（comment）は happy-dom も Dommy と同じく通さない。
+  selector の中に comment を書けるのは jsdom だけである。
+* **findings 34**（scoped query）は happy-dom のほうがさらに狭く、compound 二つ
+  （`div.querySelectorAll("html p")`）で既に当たらない。正しいのは Dommy だけである。
+* **findings 28**（U+10000 以上）は happy-dom では起きない。jsdom に固有である。
+
+happy-dom はこのほかにも `[*|a]`・大文字の `I` flag・escape の照合で落ちるが、
+どれも `docs/threats-to-validity.md` §5 の意味での「実装の穴」であって、
+model の読みを揺らす材料にはならない。
+
 model 側の誤りも四つ出た。どれも直してある。
 
 | 見つけ方 | 内容 | scenario |
