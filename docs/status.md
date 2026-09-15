@@ -2877,6 +2877,49 @@ model が仕様の翻訳として正しいかは関係意味論と soundness、
 `docs/traceability.md` の step 対応で担保するものであって、
 実装の同意で決めるものではない。`docs/threats-to-validity.md` の §5 にそう書いた。
 
+## JS の実装も同じ scenario で測れるようにした
+
+`test/js_runner.mjs` を足した。jsdom と happy-dom を `--impl` で選ぶ。
+名前でも module の path でも渡せるので、checkout した working tree をそのまま測れる。
+
+比べられないものが二つある。
+
+* **`notify`（MutationObserver の配送）。** 配送順は notify set の並びで決まるが、
+  仕様には record queue を覗く口が無い（`takeRecords()` は空にしてしまう）。
+  queue 自体は step ごとに `takeRecords()` で引き取って積み直しているので比べられる。
+  配送だけが復元できない。
+* **lone surrogate。** JS の String は持てるが、JSON にすると Ruby 側の parser が
+  受け取れない。Ruby runner が UTF-8 の都合で断っているのと同じ場所である。
+
+### jsdom の結果
+
+checkout（30.0.1 + 数 commit）に対して固定 scenario 100 本が
+**75 ok / 16 skip / 8 mismatch** だった。skip は `moveBefore` 未実装と
+`notify` と lone surrogate である。
+
+**候補として見つかったもの。**
+
+* `Node.normalize()` が**受け手自身を含む**。`treeToArray(this)` を回しているので、
+  Text node に対して呼ぶと自分と兄弟を畳んでしまう。仕様は
+  「descendant exclusive Text node」なので Text への呼び出しは no-op である。
+  固定 scenario は `normalize-on-text-is-noop`。
+* **transient registered observer（§4.3.3 / remove step 20）が無い。**
+  `lib/` に `transient` の語が一つも無い。外した部分木の中の変更が、
+  配送まで observer に届かない。`observer-transient-follows-existing-registration`、
+  `transient-observer-chains-through-removals`、`observer-delivery` の三本がこれである。
+
+**既知の食い違いがそのまま出たもの。** normalize の record の形である。
+仕様を字義どおり読むと characterData record は一つだが、browser engine は
+兄弟ごとに積む（Dommy issue #24）。model は engine に合わせてあり、
+jsdom は字義どおりなので、四本が mismatch になる。これは実装の誤りとは限らない。
+
+**release と checkout で違ったもの。** npm の 30.0.1 では
+`lookupNamespaceURI("xml")` が null を返し、insert step 5 の live range 調整が
+step 7 の removal より後に走っていた。checkout では両方直っている
+（`6d323653` ほか）。pin を切るなら release ではなく commit を指す必要がある。
+
+happy-dom は monorepo を compile しないと動かせないので、まだ測れていない。
+
 ### 次
 
 completeness の実現性（関係が満たせるなら実行関数は失敗しない）を

@@ -21,7 +21,24 @@
 
 実装は runner を差し替えて選ぶ。`IMPL_CMD` がその command、
 `IMPL_NAME` が表示に使う名前である（判定には効かない)。
-いまある runner は `dommy_runner.rb`（Dommy）だけである。
+
+| runner | 対象 |
+| --- | --- |
+| `dommy_runner.rb` | Dommy（Ruby） |
+| `js_runner.mjs` | jsdom / happy-dom（`--impl` で選ぶ） |
+
+`js_runner.mjs` の `--impl` は名前でも module の path でもよい。
+path を渡せば checkout した working tree をそのまま測れる。
+
+```sh
+export IMPL_CMD="node $PWD/test/js_runner.mjs --impl /path/to/jsdom/lib/api.js"
+export IMPL_NAME=jsdom
+```
+
+JS 側で比べられないものが二つある。**`notify`（MutationObserver の配送）**は
+配送順が notify set の並びで決まり、仕様には queue を覗く口が無いので復元できない
+（record queue 自体は `takeRecords()` で引き取って積み直しているので比べられる）。
+**lone surrogate** を含む文字列は JSON で Ruby 側へ渡せないので、その step で止める。
 
 ## 実行
 
