@@ -752,3 +752,11 @@ open Dom.Audit
   Selectors.skipComments_le
   Selectors.tokenAt_le
   Selectors.nextToken_lt
+
+-- selector の parser の停止性を支える補題
+#audit_axioms
+  Selectors.splitBlock_size
+  Selectors.splitBlock_inside_lt
+  Selectors.splitBlock_after_lt
+  Selectors.dropToComma_size
+  Selectors.splitAtOf_size

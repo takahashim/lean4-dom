@@ -59,6 +59,11 @@ def CH_STAR : Char := Char.ofNat 0x2A
 def CH_SLASH : Char := Char.ofNat 0x2F
 def CH_UPPER_E : Char := Char.ofNat 0x45
 def CH_LOWER_E : Char := Char.ofNat 0x65
+def CH_TILDE : Char := Char.ofNat 0x7E
+def CH_PIPE : Char := Char.ofNat 0x7C
+def CH_CARET : Char := Char.ofNat 0x5E
+def CH_DOLLAR : Char := Char.ofNat 0x24
+def CH_EQUALS : Char := Char.ofNat 0x3D
 
 /-! ## code point の分類（§4.2） -/
 
