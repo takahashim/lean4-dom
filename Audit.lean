@@ -1,6 +1,7 @@
 import Lean
 import Dom
 import Url
+import Selectors
 import Dom.Exec.Invariant
 
 /-!
@@ -740,3 +741,14 @@ open Dom.Audit
   Dom.checkRangeEndpointsValid_iff
   Dom.checkIteratorsValid_iff
   Dom.checkAttributesValid_iff
+
+-- CSS Syntax Level 3 §4 tokenizer の停止性を支える補題
+#audit_axioms
+  Selectors.consumeEscape_le
+  Selectors.consumeIdentSeq_le
+  Selectors.consumeIdentSeq_le_of_start
+  Selectors.consumeNumber_le
+  Selectors.consumeNumber_le_of_start
+  Selectors.skipComments_le
+  Selectors.tokenAt_le
+  Selectors.nextToken_lt
