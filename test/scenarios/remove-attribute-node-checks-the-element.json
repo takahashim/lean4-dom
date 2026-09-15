@@ -1,0 +1,21 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-element-removeattributenode",
+    "algorithm": ["removeAttributeNode(attr)"],
+    "steps": "1「this の attribute list に attr が無ければ NotFoundError」/ 2 remove する / 3 attr を返す",
+    "note": "別の element に付いている Attr を渡しても、何も起きずに返るのではなく NotFoundError になる。渡した element に付いているときだけ外れる。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div",
+      "attributes": [{ "localName": "a", "value": "1" }] },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "p",
+      "attributes": [{ "localName": "b", "value": "2" }] }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "removeAttributeNode", "element": 2, "attr": 2 },
+    { "op": "removeAttributeNode", "element": 2, "attr": 1 }
+  ]
+}

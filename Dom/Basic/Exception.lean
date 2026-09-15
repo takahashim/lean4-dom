@@ -23,6 +23,8 @@ inductive DOMException where
   | invalidCharacterError
   /-- §4.9 の namespace 検査（"validate and extract" の step 7-10）。 -/
   | namespaceError
+  /-- §4.9 "set an attribute" step 2。別の element に付いている `Attr` を渡した場合。 -/
+  | inUseAttributeError
   /--
   WebIDL の `TypeError`。`DOMException` ではないが、
   仕様が例外として投げ分けるので同じ型で扱う。
@@ -57,6 +59,7 @@ def name : DOMException → String
   | notSupportedError => "NotSupportedError"
   | invalidCharacterError => "InvalidCharacterError"
   | namespaceError => "NamespaceError"
+  | inUseAttributeError => "InUseAttributeError"
   | typeError => "TypeError"
   | outsideModel => "__outsideModel__"
 

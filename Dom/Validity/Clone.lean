@@ -28,7 +28,7 @@ theorem admissible_cloneAppend {s s' : DOMState} {copy : NodeId} {parent : Optio
 theorem freshNodeData_cloneData {s : DOMState} {n doc : NodeId} {d : NodeData}
     (hv : AdmissibleDOMState s) (hd : s.tree.get? n = some d) (hdoc : IsDocument s.tree doc) :
     FreshNodeData s.tree (freshId s.tree)
-      (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1)) := by
+      (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (stateMaxAttrId s + 1)) := by
   refine ⟨rfl, rfl, ?_, ?_, ?_, ?_⟩
   · intro hk
     have hnil := hv.attributes.onlyElements n d hd (by simpa using hk)

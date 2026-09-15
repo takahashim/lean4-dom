@@ -389,7 +389,7 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                   rw [Option.some.inj hs]
               -- step 2
               have hA : AddsNode s.tree (cloneSingle s d doc).2.tree (cloneSingle s d doc).1
-                  (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1)) :=
+                  (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (stateMaxAttrId s + 1)) :=
                 withFresh_addsNode s _
               have hcopyFresh : s.tree.get? (cloneSingle s d doc).1 = none := hA.fresh
               have hv₁ : AdmissibleDOMState (cloneSingle s d doc).2 :=
@@ -422,13 +422,13 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                     rw [← he, hA.others m (hA.ne_of_mem hm)]
                     exact hm
                   · exact ⟨cloneData d (cloneDocumentOf d doc (freshId s.tree))
-                      (maxAttrId s.tree + 1), by rw [← he]; exact hA.created,
+                      (stateMaxAttrId s + 1), by rw [← he]; exact hA.created,
                       cloneData_shapeAnon .., rfl, rfl⟩
                   · intro p pd hp _; simp at hp
                 | some p =>
                   rw [hpar] at happ
                   simp only [cloneAppend] at happ
-                  have hkf : (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1)).kind
+                  have hkf : (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (stateMaxAttrId s + 1)).kind
                       ≠ NodeKind.documentFragment := by
                     simpa using hpre.notFragment p hpar n (List.mem_cons_self ..) d ht0n
                   obtain ⟨hfr, hnode, hpp, hrg⟩ :=
@@ -575,7 +575,7 @@ theorem cloneNodeIn_shallow_spec {s s' : DOMState} {n doc c : NodeId}
     have he := Except.ok.inj h
     have hc : (cloneSingle s d doc).1 = c := congrArg Prod.fst he
     have hs : (cloneSingle s d doc).2 = s' := congrArg Prod.snd he
-    refine ⟨d, cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1),
+    refine ⟨d, cloneData d (cloneDocumentOf d doc (freshId s.tree)) (stateMaxAttrId s + 1),
       hd, cloneData_shapeAnon .., rfl, rfl, rfl, by rw [← hc]; rfl, ?_⟩
     rw [← hc, ← hs]
     exact withFresh_addsNode s _

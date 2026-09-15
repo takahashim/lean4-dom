@@ -3582,6 +3582,71 @@ jsdom と happy-dom は両方持っている。
 
 `Attr` を node として渡す API を model に入れる。
 
+## `Attr` を node として渡す API を入れた（roadmap §8.6 完了）
+
+`createAttribute` / `createAttributeNS` / `getAttributeNode` / `getAttributeNodeNS` /
+`setAttributeNode` / `removeAttributeNode` / `NamedNodeMap.removeNamedItem`、
+それに `InUseAttributeError`。これで roadmap（`notes/` の Phase 6）は全部終わった。
+
+### 状態に足したのは一つだけ
+
+`DOMState.detachedAttrs` — どの element にも付いていない `Attr` である。
+`createAttribute` が作ったもの、`removeAttributeNode` が外したもの、
+`setAttributeNode` が押し出したものが入る。
+
+**名前で消した attribute（`removeAttribute`）は入らない。** 仕様では element を null に
+するだけで `Attr` object は残るが、それを指す参照がどこにも無いので観測できない。
+実装側でも GC されるので、持つと差分が出てしまう。
+
+`AdmissibleDOMState` の成分は増えていない。detach された list は既存の七成分の
+どれにも現れないので、そこを触っても `AttrOpResult`（attribute の algorithm が
+妥当性を保つことの共通の形）がそのまま通る。
+
+### 新しい証明は "replace an attribute" だけ
+
+`setAttributeNode` は既にある同じ鍵の attribute を置き換える。**同じ鍵でしか
+置き換えない**ので attribute list の鍵の列は変わらず、`keysNodup` はそのまま残る
+（`attributesValid_replace`）。そのために `updateFirst` の像の補題を、
+「述語を満たす要素についてだけ `f` が値を変えない」形に広げた。
+
+`Attr` の正規化（`Attr.normalized`）も入れた。空文字列の namespace を null にし、
+namespace の無い prefix を落とす。仕様の algorithm でこの形にならない `Attr` が
+作られる経路は無いので挙動は変わらないが、これがあると
+「押し出す側と同じ鍵である」と「prefix があるなら namespace もある」が
+不変条件を足さずに構成から出る。
+
+### finding 17：Dommy の `removeAttributeNode` が element を見ない
+
+`removeAttributeNode(attr)` の step 1 は「this の attribute list に attr が無ければ
+NotFoundError」だが、Dommy は別の element に付いている `Attr` を渡しても成功する。
+jsdom は仕様どおりである。`remove-attribute-node-checks-the-element` がこれである。
+
+### finding 18：Dommy が segfault する
+
+生成 scenario（seed 2026）が `Range.insertNode` で ProcessingInstruction を入れたあと
+`textContent` を読むと、Dommy（makiri）が `element.rb:1401` の `@__node__.text` で
+segfault する。**process ごと落ちる**ので、batch の残り全部の出力が無くなっていた。
+
+再現 scenario は `test/crashers/` に置いた。固定 scenario には入れていない
+（毎回 batch が途中で死んで走行が遅くなる）。代わりに `difftest.rb` が
+**batch のあとで足りない出力だけを一本ずつ回し直す**ようにした。
+これで落ちた一本だけが ERROR になる。
+
+### `setAttributeNodeNS`
+
+Dommy は `setAttributeNodeNS` を持っていない。仕様では `setAttributeNode` と
+step が同一なので、model も別に置いていない。差分テストでも見分けられない。
+
+### まだ無いもの
+
+`Attr` の node としての性質（parent、node document、tree order に現れること）。
+model の attribute は element の状態のままである。
+
+### 次
+
+roadmap は終わったので、次は Selectors（`querySelector` / `querySelectorAll` /
+`matches` / `closest`）の形式化に移る。
+
 ## 生成 scenario の最小化を広げた
 
 不一致が出た生成 scenario を小さくする shrinker は前からあったが、落とせるのは

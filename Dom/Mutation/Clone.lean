@@ -115,7 +115,7 @@ def cloneDocumentOf (d : NodeData) (doc copy : NodeId) : NodeId :=
 
 /-- §4.4 "clone a single node"。children も parent も持たない copy を一つ作る。 -/
 def cloneSingle (s : DOMState) (d : NodeData) (doc : NodeId) : NodeId × DOMState :=
-  withFresh s (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1))
+  withFresh s (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (stateMaxAttrId s + 1))
 
 /-- "clone a node" の step 4。parent が null でなければ copy をそこに append する。 -/
 def cloneAppend (s : DOMState) (copy : NodeId) (parent : Option NodeId) :

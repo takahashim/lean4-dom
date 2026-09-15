@@ -1,0 +1,99 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-element-attributes-set",
+    "algorithm": [
+      "set an attribute",
+      "createAttribute",
+      "getAttributeNode",
+      "setAttributeNode",
+      "removeAttributeNode",
+      "NamedNodeMap.removeNamedItem"
+    ],
+    "steps": "set an attribute 2 InUseAttributeError / 3 同じ鍵の attribute を引く / 4 同じものなら何もしない / 7 replace / 8 append。removeAttributeNode 1 は attribute list に無ければ NotFoundError",
+    "note": "getAttributeNode は同じ Attr を返す。createAttribute が作った Attr はどの element にも付いておらず、setAttributeNode で付けると copy ではなく同じものが動く。removeAttributeNode で外したものを別の element に付け直しても同じ Attr のままである。別の element に付いている Attr を渡すと InUseAttributeError。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div",
+      "attributes": [
+        {
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getAttributeNode",
+      "element": 1,
+      "name": "a"
+    },
+    {
+      "op": "createAttribute",
+      "document": 0,
+      "name": "b"
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 1,
+      "attr": 2
+    },
+    {
+      "op": "removeAttributeNode",
+      "element": 1,
+      "attr": 1
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 2,
+      "attr": 1
+    },
+    {
+      "op": "createAttributeNS",
+      "document": 0,
+      "namespace": "http://www.w3.org/XML/1998/namespace",
+      "name": "xml:c"
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 2,
+      "attr": 3
+    },
+    {
+      "op": "getAttributeNodeNS",
+      "element": 2,
+      "namespace": "http://www.w3.org/XML/1998/namespace",
+      "name": "c"
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 1,
+      "attr": 2
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 1,
+      "attr": 3
+    }
+  ]
+}

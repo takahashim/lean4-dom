@@ -69,7 +69,8 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         -- attribute を持てるのは Element だけである（`AttributesValid`）。
         attributes :=
           if s.kind == .element then
-            s.attributes.zipIdx.map fun (a, i) => { a with id := ⟨attrOffset specs s.id + i + 1⟩ }
+            s.attributes.zipIdx.map fun (a, i) =>
+              Attr.normalized { a with id := ⟨attrOffset specs s.id + i + 1⟩ }
           else []
         -- namespace / prefix / local name を持つのは Element だけである。
         -- 省略時は Dommy の `createElement("div")` に合わせる。
@@ -168,6 +169,44 @@ def createdNode (r : Except DOMException (NodeId × DOMState)) : ReturnValue :=
   | .error _ => .unit
   | .ok (n, _) => .node (some n)
 
+/-- `Attr` と状態を返す操作の戻り値。 -/
+def createdAttr (r : Except DOMException (AttrId × DOMState)) : ReturnValue :=
+  match r with
+  | .error _ => .unit
+  | .ok (a, _) => .attr (some a)
+
+/-- `Attr?` と状態を返す操作の戻り値。 -/
+def createdAttr? (r : Except DOMException (Option AttrId × DOMState)) : ReturnValue :=
+  match r with
+  | .error _ => .unit
+  | .ok (a, _) => .attr a
+
+/-- `Attr` と状態を返す操作を、状態だけを返す形にする。 -/
+def dropAttr (r : Except DOMException (AttrId × DOMState)) : Except DOMException DOMState :=
+  match r with
+  | .error e => .error e
+  | .ok (_, s) => .ok s
+
+theorem dropAttr_ok {r : Except DOMException (AttrId × DOMState)} {s' : DOMState}
+    (h : dropAttr r = .ok s') : ∃ a, r = .ok (a, s') := by
+  unfold dropAttr at h
+  split at h
+  · simp at h
+  · next a s₀ => exact ⟨a, by rw [← Except.ok.inj h]⟩
+
+/-- `Attr?` と状態を返す操作を、状態だけを返す形にする。 -/
+def dropAttr? (r : Except DOMException (Option AttrId × DOMState)) : Except DOMException DOMState :=
+  match r with
+  | .error e => .error e
+  | .ok (_, s) => .ok s
+
+theorem dropAttr?_ok {r : Except DOMException (Option AttrId × DOMState)} {s' : DOMState}
+    (h : dropAttr? r = .ok s') : ∃ a, r = .ok (a, s') := by
+  unfold dropAttr? at h
+  split at h
+  · simp at h
+  · next a s₀ => exact ⟨a, by rw [← Except.ok.inj h]⟩
+
 /-- node と状態を返す操作を、状態だけを返す形にする。 -/
 def dropNode (r : Except DOMException (NodeId × DOMState)) : Except DOMException DOMState :=
   match r with
@@ -217,6 +256,19 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .cloneNode n deep => createdNode (cloneNode s ⟨n⟩ deep)
   | .importNode doc n deep => createdNode (importNode s ⟨doc⟩ ⟨n⟩ deep)
   | .adoptNode doc n => createdNode (adoptNode s ⟨doc⟩ ⟨n⟩)
+  | .createAttribute doc ln => createdAttr (createAttribute s ⟨doc⟩ ln)
+  | .createAttributeNS doc ns qn => createdAttr (createAttributeNS s ⟨doc⟩ ns qn)
+  | .getAttributeNode e qn =>
+    match getAttributeNode s.tree ⟨e⟩ qn with
+    | .error _ => .unit
+    | .ok a => .attr a
+  | .getAttributeNodeNS e ns ln =>
+    match getAttributeNodeNS s.tree ⟨e⟩ ns ln with
+    | .error _ => .unit
+    | .ok a => .attr a
+  | .setAttributeNode e a => createdAttr? (setAttributeNode s ⟨e⟩ ⟨a⟩)
+  | .removeAttributeNode e a => createdAttr (removeAttributeNode s ⟨e⟩ ⟨a⟩)
+  | .removeNamedItem e qn => createdAttr (removeNamedItem s ⟨e⟩ qn)
   -- 以下はすべて仕様上 `undefined` を返す。
   -- **catch-all にしない。** そうすると戻り値を持つ操作を足したときに
   -- ここを直し忘れても通ってしまう。網羅性検査に見張らせる。
@@ -423,6 +475,13 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .cloneNode n deep => dropNode (cloneNode s ⟨n⟩ deep)
   | .importNode doc n deep => dropNode (importNode s ⟨doc⟩ ⟨n⟩ deep)
   | .adoptNode doc n => dropNode (adoptNode s ⟨doc⟩ ⟨n⟩)
+  | .createAttribute doc ln => dropAttr (createAttribute s ⟨doc⟩ ln)
+  | .createAttributeNS doc ns qn => dropAttr (createAttributeNS s ⟨doc⟩ ns qn)
+  | .getAttributeNode e qn => (getAttributeNode s.tree ⟨e⟩ qn).map fun _ => s
+  | .getAttributeNodeNS e ns ln => (getAttributeNodeNS s.tree ⟨e⟩ ns ln).map fun _ => s
+  | .setAttributeNode e a => dropAttr? (setAttributeNode s ⟨e⟩ ⟨a⟩)
+  | .removeAttributeNode e a => dropAttr (removeAttributeNode s ⟨e⟩ ⟨a⟩)
+  | .removeNamedItem e qn => dropAttr (removeNamedItem s ⟨e⟩ qn)
   | .notify => .ok (notifyMutationObservers s).1
 
 /--

@@ -1,0 +1,120 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "p",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span",
+      "attributes": []
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "namespace": "http://www.w3.org/2000/svg",
+      "localName": "rect",
+      "attributes": []
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 4,
+      "data": "😀t5"
+    },
+    {
+      "id": 6,
+      "kind": "processingInstruction",
+      "parent": 3,
+      "data": "t6"
+    },
+    {
+      "id": 7,
+      "kind": "processingInstruction",
+      "parent": 3,
+      "data": "t7"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 0,
+        "offset": 0
+      },
+      "end": {
+        "node": 7,
+        "offset": 1
+      }
+    },
+    {
+      "start": {
+        "node": 5,
+        "offset": 2
+      },
+      "end": {
+        "node": 5,
+        "offset": 4
+      }
+    }
+  ],
+  "iterators": [
+    {
+      "root": 7,
+      "reference": 7,
+      "pointerBeforeReference": true,
+      "whatToShow": 128
+    }
+  ],
+  "walkers": [
+    {
+      "root": 2,
+      "whatToShow": 4294967295
+    }
+  ],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "normalize",
+      "target": 1
+    },
+    {
+      "op": "rangeInsertNode",
+      "range": 0,
+      "node": 7
+    },
+    {
+      "op": "createAttribute",
+      "document": 0,
+      "name": "data-x"
+    },
+    {
+      "op": "setData",
+      "node": 7,
+      "data": ""
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 6,
+      "other": 3
+    },
+    {
+      "op": "getTextContent",
+      "node": 4
+    }
+  ]
+}

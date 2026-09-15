@@ -39,11 +39,30 @@ module Generate
            setAttribute setAttributeNS removeAttribute removeAttributeNS
            toggleAttribute
            createElement createElementNS createTextNode createComment
-           createDocumentFragment cloneNode importNode adoptNode].freeze
+           createDocumentFragment cloneNode importNode adoptNode
+           createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
+           setAttributeNode removeAttributeNode removeNamedItem].freeze
 
   # 受け手が Document である操作（§4.5）。
   DOCUMENT_OPS = %w[createElement createElementNS createTextNode createComment
-                    createDocumentFragment importNode adoptNode].freeze
+                    createDocumentFragment importNode adoptNode
+                    createAttribute createAttributeNS].freeze
+
+  # `Attr` を渡す / 返す操作。受け手は Element である。
+  ATTR_ELEMENT_OPS = %w[getAttributeNode getAttributeNodeNS setAttributeNode
+                        removeAttributeNode removeNamedItem].freeze
+
+  # `Attr` を作る操作。作る数が読めるので、生成器は id を追える。
+  ATTR_CREATE_OPS = %w[createAttribute createAttributeNS].freeze
+
+  # `Attr` の id を **読めなくする**操作。
+  #
+  # attribute を作るか消すかが引数と現在の状態で決まるので、生成器には
+  # 次の id が予測できない。これを出したあとは `Attr` を id で指す操作を出さない。
+  # `setAttributeNode` と `removeAttributeNode` は attribute を作りも消しもしない
+  # （detach された側へ移すだけ）ので、ここには入らない。
+  ATTR_UNSAFE_OPS = %w[setAttribute setAttributeNS toggleAttribute removeAttribute
+                       removeAttributeNS cloneNode importNode].freeze
 
   # node を作る操作。生成器は「作った node にどの id が付くか」を追う必要がある。
   #
@@ -105,7 +124,7 @@ module Generate
   SPEC_OPS = {
     "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS,
     "documentFragment" => NODE_OPS + PARENT_NODE_OPS,
-    "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS,
+    "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS,
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -220,8 +239,12 @@ module Generate
   end
 
   def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0, range_count = 0,
-                       walker_count = 0, listener_count = 0, kinds: {}, can_create: false)
+                       walker_count = 0, listener_count = 0, kinds: {}, can_create: false,
+                       attr_ids: [], attr_ok: false)
     op = ops.sample(random: rng)
+    if ATTR_CREATE_OPS.include?(op) || ATTR_ELEMENT_OPS.include?(op)
+      return attr_node_operation(rng, ids, op, kinds, attr_ids, attr_ok)
+    end
     if DOCUMENT_OPS.include?(op) || op == "cloneNode"
       return node_creating_operation(rng, ids, op, kinds, can_create)
     end
@@ -408,6 +431,52 @@ module Generate
     end
   end
 
+  # §4.9 の `Attr` を渡す / 返す操作。
+  #
+  # `Attr` を id で指す操作は、その id が読めるときだけ作る（`ATTR_UNSAFE_OPS` を参照）。
+  def attr_node_operation(rng, ids, op, kinds, attr_ids, attr_ok)
+    return nil unless attr_ok
+
+    case op
+    when "createAttribute"
+      docs = ids.select { |i| kinds[i] == "document" }
+      return nil if docs.empty?
+
+      { "op" => op, "document" => docs.sample(random: rng),
+        "name" => ATTR_OP_NAMES.sample(random: rng) }
+    when "createAttributeNS"
+      docs = ids.select { |i| kinds[i] == "document" }
+      return nil if docs.empty?
+
+      # prefix 付きは namespace が要る。"validate and extract" が通る組だけを作る。
+      if rng.rand < 0.5
+        { "op" => op, "document" => docs.sample(random: rng), "namespace" => nil,
+          "name" => ATTR_NAMES.sample(random: rng) }
+      else
+        { "op" => op, "document" => docs.sample(random: rng), "namespace" => XML_NS,
+          "name" => "xml:#{ATTR_NAMES.sample(random: rng)}" }
+      end
+    when "getAttributeNode", "removeNamedItem"
+      els = ids.select { |i| kinds[i] == "element" }
+      return nil if els.empty?
+
+      { "op" => op, "element" => els.sample(random: rng),
+        "name" => ATTR_OP_NAMES.sample(random: rng) }
+    when "getAttributeNodeNS"
+      els = ids.select { |i| kinds[i] == "element" }
+      return nil if els.empty?
+
+      { "op" => op, "element" => els.sample(random: rng),
+        "namespace" => ATTR_NAMESPACES.sample(random: rng),
+        "name" => ATTR_NAMES.sample(random: rng) }
+    else
+      els = ids.select { |i| kinds[i] == "element" }
+      return nil if els.empty? || attr_ids.empty?
+
+      { "op" => op, "element" => els.sample(random: rng), "attr" => attr_ids.sample(random: rng) }
+    end
+  end
+
   # 作った node の kind。`scenario` が id を追うのに使う。
   def created_kind(op, kinds)
     case op["op"]
@@ -424,6 +493,7 @@ module Generate
                          lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 
   def receiver_id(op)
+    return op["element"] if ATTR_ELEMENT_OPS.include?(op["op"])
     return op["document"] if DOCUMENT_OPS.include?(op["op"])
     return op["node"] if op["op"] == "cloneNode"
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
@@ -680,12 +750,22 @@ module Generate
     # 作った node に付く id を追う。model の `freshId` と同じ規則である。
     next_id = ids.max + 1
     can_create = true
+    # attribute の id。model と同じく node の id 昇順・node の中では list 順に 1 から。
+    attr_ids = []
+    nodes.sort_by { |n| n["id"] }.each do |n|
+      next unless n["kind"] == "element"
+
+      (n["attributes"] || []).each { attr_ids << attr_ids.size + 1 }
+    end
+    attr_next = attr_ids.size + 1
+    attr_ok = true
     operations = []
     attempts = 0
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
       op = random_operation(rng, ids, ops, iterator_count, observer_count, range_count,
-                            walker_count, listener_count, kinds: kinds, can_create: can_create)
+                            walker_count, listener_count, kinds: kinds, can_create: can_create,
+                            attr_ids: attr_ids, attr_ok: attr_ok)
       next if op.nil?
       if EVENT_OPS.include?(op["op"])
         # 受け手は EventTarget なので kind の絞り込みは要らない。
@@ -717,6 +797,13 @@ module Generate
       next if allow && !allow.call(op, kind)
 
       operations << op
+      if ATTR_UNSAFE_OPS.include?(op["op"])
+        # 以降は attribute の id が読めない。
+        attr_ok = false
+      elsif ATTR_CREATE_OPS.include?(op["op"])
+        attr_ids << attr_next
+        attr_next += 1
+      end
       next unless CREATE_OPS.include?(op["op"])
 
       if op["deep"]

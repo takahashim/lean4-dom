@@ -5,6 +5,7 @@ import Dom.Validity.RangeApi
 import Dom.Validity.Walkers
 import Dom.Validity.Events
 import Dom.Validity.Clone
+import Dom.Validity.AttrNode
 import Dom.Properties.Import
 
 /-!
@@ -111,6 +112,31 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | adoptNode doc n =>
     obtain ⟨c, hr⟩ := dropNode_ok hop
     exact admissible_adoptNode h hr
+  | createAttribute doc ln =>
+    obtain ⟨a, hr⟩ := dropAttr_ok hop
+    exact admissible_createAttribute h hr
+  | createAttributeNS doc ns qn =>
+    obtain ⟨a, hr⟩ := dropAttr_ok hop
+    exact admissible_createAttributeNS h hr
+  | getAttributeNode e qn =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · rw [← Except.ok.inj hop]; exact h
+  | getAttributeNodeNS e ns ln =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · rw [← Except.ok.inj hop]; exact h
+  | setAttributeNode e a =>
+    obtain ⟨r, hr⟩ := dropAttr?_ok hop
+    exact admissible_setAttributeNode h hr
+  | removeAttributeNode e a =>
+    obtain ⟨r, hr⟩ := dropAttr_ok hop
+    exact admissible_removeAttributeNode h hr
+  | removeNamedItem e qn =>
+    obtain ⟨r, hr⟩ := dropAttr_ok hop
+    exact admissible_removeNamedItem h hr
   | rangeSetStart i n o =>
     cases n with
     | none => simp [applyOperation, withNode] at hop

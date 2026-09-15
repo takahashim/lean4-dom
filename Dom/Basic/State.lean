@@ -1,5 +1,6 @@
 import Dom.Basic.Exception
 import Dom.Basic.WellFormed
+import Dom.Basic.Fresh
 
 /-!
 # DOM の状態
@@ -218,7 +219,52 @@ structure DOMState where
   microtaskQueued : Bool := false
   /-- 仕様の agent の "pending mutation observers"。observer の index で持つ。 -/
   pendingObservers : List Nat := []
+  /--
+  どの element にも付いていない `Attr`（仕様の「element が null の attribute」）。
+
+  `createAttribute` が作ったもの、`removeAttributeNode` が返したもの、
+  `setAttributeNode` が押し出したものが入る。**名前で消した attribute は入らない。**
+  仕様では element を null にするだけで object は残るが、それを指す参照がどこにも
+  無いので観測できない（`docs/threats-to-validity.md` を参照）。
+  -/
+  detachedAttrs : List Attr := []
 deriving Repr, Inhabited
+
+/-! ## attribute の id -/
+
+/-- detach された attribute の id の最大。 -/
+def maxDetachedAttrId (l : List Attr) : Nat := l.foldl (fun m a => max m a.id.id) 0
+
+/--
+状態全体での attribute の id の最大。木の中と detach されたものの両方を見る。
+
+`createAttribute` が作った attribute は木の外にいるので、木だけを見ると
+その id をまた使ってしまう。
+-/
+def stateMaxAttrId (s : DOMState) : Nat := max (maxAttrId s.tree) (maxDetachedAttrId s.detachedAttrs)
+
+/-- 新しい attribute に割り当てる id。 -/
+def freshStateAttrId (s : DOMState) : AttrId := ⟨stateMaxAttrId s + 1⟩
+
+theorem ne_freshStateAttrId_tree {s : DOMState} {n : NodeId} {d : NodeData} {a : Attr}
+    (hd : s.tree.get? n = some d) (ha : a ∈ d.attributes) : a.id ≠ freshStateAttrId s := by
+  intro he
+  have hle := attrId_le_maxAttrId hd ha
+  rw [he] at hle
+  simp only [freshStateAttrId, stateMaxAttrId] at hle
+  omega
+
+theorem attrId_le_maxDetachedAttrId : ∀ (l : List Attr) (init : Nat) {a : Attr}, a ∈ l →
+    a.id.id ≤ l.foldl (fun m a => max m a.id.id) init :=
+  attrId_le_foldl_attrMax
+
+theorem ne_freshStateAttrId_detached {s : DOMState} {a : Attr} (ha : a ∈ s.detachedAttrs) :
+    a.id ≠ freshStateAttrId s := by
+  intro he
+  have hle := attrId_le_maxDetachedAttrId s.detachedAttrs 0 ha
+  rw [he] at hle
+  simp only [freshStateAttrId, stateMaxAttrId, maxDetachedAttrId] at hle
+  omega
 
 namespace DOMState
 

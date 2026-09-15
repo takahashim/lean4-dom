@@ -18,6 +18,8 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
 * node document
 * CharacterData の data
 * Element の attribute list（順序と、`AttrId` による同一性も含む）
+* どの element にも付いていない `Attr`（`createAttribute` が作ったもの、
+  `removeAttributeNode` が返したもの、`setAttributeNode` が押し出したもの）
 * Element の namespace / namespace prefix / local name / `tagName`
 * live Range の両端
 * NodeIterator の root / reference / pointer-before-reference flag
@@ -91,6 +93,8 @@ inductive ReturnValue where
   | str (s : Option String)
   /-- `getAttributeNames()` の `sequence<DOMString>`。 -/
   | strs (l : List String)
+  /-- `getAttributeNode` などが返す `Attr`。 -/
+  | attr (a : Option AttrId)
 deriving DecidableEq, Repr, Inhabited
 
 /-- 一 step の観測。 -/
@@ -106,6 +110,8 @@ structure Observation where
   delivered : List (Nat × List MutationRecord) := []
   /-- その step で呼ばれた event listener の列（§2.9）。 -/
   invocations : List Invocation := []
+  /-- どの element にも付いていない `Attr`（`createAttribute` が作ったものなど）。 -/
+  detachedAttrs : List Attr := []
   /-- 操作の戻り値。 -/
   returned : ReturnValue := .unit
   result : OperationResult
@@ -166,6 +172,7 @@ def observe (s : DOMState) (result : OperationResult)
   iterators := s.iterators
   walkers := s.walkers
   records := s.observers.map (·.records)
+  detachedAttrs := s.detachedAttrs
   delivered := delivered
   invocations := invocations
   returned := returned

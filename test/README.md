@@ -127,6 +127,13 @@ export DOMMY_CMD="env LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.8 \
                   ASAN_OPTIONS=detect_leaks=0 bundle exec ruby $PWD/test/dommy_runner.rb"
 ```
 
+### batch の途中で実装が落ちたとき
+
+実装の process ごと落ちる（segfault する）と、それ以降の scenario の出力が
+まるごと無くなる。`difftest.rb` は batch のあとで**足りない出力だけを一本ずつ
+回し直す**ので、落ちた scenario だけが ERROR になる。
+既知のものは `test/crashers/` にある。
+
 `difftest.rb` 自身は Dommy を読み込まない。
 ASan 付きの process から fork できないため、Lean の oracle の起動は
 Dommy を読み込んでいない process の仕事にしてある。
@@ -226,6 +233,12 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `cloneNode` | `node`, `deep` |
 | `importNode` | `document`, `node`, `deep` |
 | `adoptNode` | `document`, `node` |
+| `createAttribute` | `document`, `name` |
+| `createAttributeNS` | `document`, `namespace`（null 可）, `name` |
+| `getAttributeNode` | `element`, `name` |
+| `getAttributeNodeNS` | `element`, `namespace`（null 可）, `name` |
+| `setAttributeNode` / `removeAttributeNode` | `element`, `attr`（attribute の id） |
+| `removeNamedItem` | `element`, `name` |
 
 ### 作った attribute の id
 
@@ -248,6 +261,12 @@ tree order（preorder）でそれを順に使う。runner も同じ規則で振�
 
 `adoptNode` は node を作らないので、返るのは渡した id のままである。
 実装が別の wrapper を返していれば id が引けず `"?"` になって不一致に出る。
+
+`Attr` を指す引数は attribute の id である。`createAttribute` が作った `Attr` や
+`removeAttributeNode` が外した `Attr` は、どの element にも付いていない状態で
+出力の `detachedAttrs` に並ぶ。**名前で消した attribute（`removeAttribute`）は
+そこに入らない** — 仕様では element を null にするだけで object は残るが、
+それを指す参照がどこにも無いので観測できないからである。
 
 生成器（`generate.rb`）は **必ず成功する形だけ**を作る。失敗すると作った node の
 id の予測が実際とずれ、以降の操作が別の node を指してしまうからである。

@@ -142,6 +142,11 @@ open Dom.Audit
   Dom.cloneNode_isOk
   Dom.cloneNodeIn_isOk
   Dom.importNode_isOk
+  Dom.admissible_createAttribute
+  Dom.admissible_createAttributeNS
+  Dom.admissible_setAttributeNode
+  Dom.admissible_removeAttributeNode
+  Dom.admissible_removeNamedItem
   Dom.Spec.remove_sound
   Dom.Spec.remove_sound_range
   Dom.Spec.remove_sound_iterator

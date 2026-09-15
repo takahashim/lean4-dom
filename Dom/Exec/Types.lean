@@ -1,5 +1,6 @@
 import Dom.Mutation.Api
 import Dom.Mutation.Import
+import Dom.Attribute.Node
 import Dom.Attribute.Algorithms
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
@@ -156,6 +157,20 @@ inductive Operation where
   | importNode (document node : Nat) (deep : Bool)
   /-- §4.5 `adoptNode(node)`。 -/
   | adoptNode (document node : Nat)
+  /--
+  §4.9 の `Attr` を node として渡す API。`Attr` は `AttrId` で指す。
+
+  id は runner が model の `freshStateAttrId` と同じ規則で振る。
+  `setAttributeNodeNS` は仕様上 `setAttributeNode` と step が同一なので別に置かない。
+  -/
+  | createAttribute (document : Nat) (localName : String)
+  | createAttributeNS (document : Nat) («namespace» : Option String) (qualifiedName : String)
+  | getAttributeNode (element : Nat) (qualifiedName : String)
+  | getAttributeNodeNS (element : Nat) («namespace» : Option String) (localName : String)
+  | setAttributeNode (element : Nat) (attr : Nat)
+  | removeAttributeNode (element : Nat) (attr : Nat)
+  /-- `NamedNodeMap.removeNamedItem(qualifiedName)`。無ければ `NotFoundError`。 -/
+  | removeNamedItem (element : Nat) (qualifiedName : String)
   /-- microtask checkpoint。"notify mutation observers" を走らせる。 -/
   | notify
 deriving Repr

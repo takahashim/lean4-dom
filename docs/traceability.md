@@ -244,6 +244,12 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | `setAttributeNS(namespace, qualifiedName, value)` | 1, 3（step 2 は Trusted Types なので非対象） | `setAttributeNS` | `admissible_setAttributeNS` | （生成 scenario） | `test_wpt_attr.rb` | 済 |
 | `removeAttribute` / `removeAttributeNS` | 全 | `removeAttribute`, `removeAttributeNS` | `admissible_removeAttribute`, `admissible_removeAttributeNS` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | `toggleAttribute(qualifiedName, force)` | 1-6 | `toggleAttribute`, `attrNameFor` | `admissible_toggleAttribute` | 同上 | 同上 | 済 |
+| create an attribute / `createAttribute` / `createAttributeNS` | createAttribute 1-3 / createAttributeNS 1-2 | `createAttributeIn`, `createAttribute`, `createAttributeNS` | preservation `admissible_createAttribute`, `admissible_createAttributeNS` | `attr-node-identity-moves` | — | 済 |
+| `getAttributeNode` / `getAttributeNodeNS` | 全 | `getAttributeNode`, `getAttributeNodeNS` | — | 同上 | — | 済 |
+| set an attribute / `setAttributeNode` | 2 InUseAttributeError / 3-4 同じ鍵を引く / 7 replace / 8 append（step 1 と 6 は Trusted Types なので非対象） | `setAttributeNode`, `replaceAttributeWith` | preservation `admissible_setAttributeNode`、`attributesValid_replace` | 同上 | — | 済（`setAttributeNodeNS` は step が同一なので別に置かない） |
+| replace an attribute | 1-6（step 4 の node document は model に無い） | `replaceAttributeWith` | `attributesValid_replace` | 同上 | — | 済 |
+| `removeAttributeNode` | 1 NotFoundError / 2-3 | `removeAttributeNode`, `detachAttribute` | preservation `admissible_removeAttributeNode` | `remove-attribute-node-checks-the-element` | — | 済 |
+| `NamedNodeMap.removeNamedItem` | 1-2 | `removeNamedItem` | preservation `admissible_removeNamedItem` | `attr-node-identity-moves` | — | 済（`item` / `length` は attribute list の観測で足りる） |
 
 ## normative branch の網羅（roadmap §11.3）
 
@@ -334,7 +340,7 @@ node document が copy になるのは `append` の中の adopt による。
 | --- | --- | --- |
 | Shadow DOM（shadow-including root / slot） | 未対応 | roadmap の対象外。`move` step 1 は shadow-including root ではなく root で近似している |
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
-| `Attr` を node として渡す API（`createAttribute`、`setAttributeNode`、`attributes` の `NamedNodeMap`、"set an attribute" と "replace an attribute"） | 未対応 | model の attribute は element の状態で node tree に入らないが、**同一性は `AttrId` で持つ**。差分テストも attribute の id を比べている。API のほうは roadmap §8.6 で入れる |
+| `Attr` の node としての性質 | 部分対応 | model の attribute は element の状態で node tree に入らない（parent も node document も持たない）。`createAttribute` / `getAttributeNode` / `setAttributeNode` / `removeAttributeNode` / `removeNamedItem` と同一性（`AttrId`）は扱う |
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | roadmap §13.1。長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |

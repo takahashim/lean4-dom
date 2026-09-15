@@ -35,11 +35,11 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | 項目 | 理由 |
 | --- | --- |
 | wrapper の object identity | 作った node の同一性は id で比べられるようになったが、JS/Ruby の wrapper そのものの同一性は観測していない。実装が同じ node に別の wrapper を返すと id が引けず不一致に出る、という形で間接的にしか見えない |
-| `Attr` を node として渡す API | `createAttribute` / `setAttributeNode` / `NamedNodeMap` は model に無い。attribute の **同一性**は `AttrId` で比べている（`setAttribute` が attribute を作り直したかどうかは観測できる） |
+| `Attr` の node としての性質（parent・node document・`Attr` を tree order に置くこと） | model の attribute は element の状態で node tree に入らない。`createAttribute` / `getAttributeNode` / `setAttributeNode` / `removeAttributeNode` / `removeNamedItem` と同一性（`AttrId`）は扱う |
 | lone surrogate | offset と長さは UTF-16 の code unit で数えるが、surrogate pair を割った切り出しは Lean の `Char` で表せない。その操作は `__outsideModel__` を返し、比較から外れる。Dommy も同じところで断るが、それは仕様適合の証拠にならない |
 | MutationObserver の callback 本体 | callback は model の外。どの observer にどの record が配送されるかまでは比べる |
 | `NodeFilter` の callback | 同じく callback なので filter は常に null。`whatToShow` は純粋なので扱う |
-| `Attr` の node としての側面 | model の attribute は element の状態で、node tree に入らない。parent も node document も持たない |
+| 名前で消した attribute | 仕様の "remove an attribute" は element を null にするだけで `Attr` object は残るが、`removeAttribute` で消したものは誰も参照できないので model は持たない。`removeAttributeNode` など呼び出し側に返るものだけを `detachedAttrs` に持つ |
 | Shadow tree | 対象外 |
 | custom element / insertion steps / removing steps | hook の位置だけを保っている |
 

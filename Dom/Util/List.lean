@@ -752,6 +752,19 @@ theorem map_updateFirst {α β : Type _} {p : α → Bool} {f : α → α} {g : 
     · simp [h, hf]
     · simp [h, map_updateFirst hf xs]
 
+/--
+`p` を満たす要素についてだけ `f` が `g` の値を変えないなら、
+`updateFirst` は `g` の像を変えない。
+-/
+theorem map_updateFirst_of_pred {α β : Type _} {p : α → Bool} {f : α → α} {g : α → β}
+    (hf : ∀ x, p x = true → g (f x) = g x) : ∀ l : List α, (updateFirst p f l).map g = l.map g
+  | [] => rfl
+  | x :: xs => by
+    show (if p x then f x :: xs else x :: updateFirst p f xs).map g = (x :: xs).map g
+    by_cases h : p x
+    · simp [h, hf x h]
+    · simp [h, map_updateFirst_of_pred hf xs]
+
 /-- `updateFirst` は長さを変えない。 -/
 theorem length_updateFirst {α : Type _} {p : α → Bool} {f : α → α} :
     ∀ l : List α, (updateFirst p f l).length = l.length

@@ -26,6 +26,37 @@ namespace Dom
 
 open Dom.ListUtil
 
+/--
+model が持てる形に整えた `Attr`。
+
+* 空文字列の namespace は null にする（"validate and extract" step 1 と
+  "get an attribute by namespace and local name" step 1 がそうする）。
+* namespace の無い prefix は落とす（`AttributesValid.prefixHasNamespace`）。
+
+仕様の algorithm でこの形にならない `Attr` が作られる経路は無いので、
+これは model 側の正規化であって挙動を変えるものではない。
+-/
+def Attr.normalized (a : Attr) : Attr :=
+  let ns := normalizeNamespace a.namespace
+  { a with «namespace» := ns, «prefix» := if ns.isSome then a.prefix else none }
+
+@[simp] theorem Attr.normalized_localName (a : Attr) : a.normalized.localName = a.localName := rfl
+
+@[simp] theorem Attr.normalized_id (a : Attr) : a.normalized.id = a.id := rfl
+
+@[simp] theorem Attr.normalized_value (a : Attr) : a.normalized.value = a.value := rfl
+
+@[simp] theorem Attr.normalized_namespace (a : Attr) :
+    a.normalized.namespace = normalizeNamespace a.namespace := rfl
+
+@[simp] theorem Attr.normalized_key (a : Attr) :
+    a.normalized.key = (normalizeNamespace a.namespace, a.localName) := rfl
+
+theorem Attr.normalized_prefixHasNamespace (a : Attr) :
+    a.normalized.prefix.isSome → a.normalized.namespace.isSome := by
+  unfold Attr.normalized
+  by_cases h : (normalizeNamespace a.namespace).isSome <;> simp [h]
+
 /-! ## attribute list の探索 -/
 
 /--
@@ -220,7 +251,7 @@ def setAttributeValue (s : DOMState) (element : NodeId) (localName value : Strin
       match getAttributeByKey d «namespace» localName with
       | none =>
         .ok (appendAttribute s element d
-          { id := freshAttrId s.tree, «namespace» := normalizeNamespace «namespace»,
+          { id := freshStateAttrId s, «namespace» := normalizeNamespace «namespace»,
             «prefix» := «prefix», localName := localName, value := value })
       | some a => .ok (changeAttribute s element d a value)
 
@@ -248,7 +279,7 @@ def setAttribute (s : DOMState) (element : NodeId) (qualifiedName value : String
         -- step 6-7
         | none =>
           .ok (appendAttribute s element d
-            { id := freshAttrId s.tree, localName := attrNameFor s.tree d qualifiedName,
+            { id := freshStateAttrId s, localName := attrNameFor s.tree d qualifiedName,
               value := value })
 
 /-- DOM Standard §4.9 `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/
@@ -307,7 +338,7 @@ def toggleAttribute (s : DOMState) (element : NodeId) (qualifiedName : String)
           if force == some false then .ok (s, false)
           else
             .ok (appendAttribute s element d
-              { id := freshAttrId s.tree,
+              { id := freshStateAttrId s,
                 localName := attrNameFor s.tree d qualifiedName }, true)
         -- step 5-6
         | some a =>

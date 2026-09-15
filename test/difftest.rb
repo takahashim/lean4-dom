@@ -99,20 +99,44 @@ module Difftest
 
   # DIR の scenario を両方の実装で評価して比較する。
   def evaluate(dir)
-    run_batch(lean_command, dir, "Lean")
-    run_batch(impl_command, dir, impl_label)
+    run_batch(lean_command, dir, "Lean", "lean")
+    run_batch(impl_command, dir, impl_label, "impl")
     Compare.compare_dir(dir)
   end
 
   # `--batch` は scenario 一つの失敗では止まらない。終了コードが 0 でないのは
   # 「まるごと評価できなかった scenario がある」という意味なので、黙って進めない。
   # どの scenario かは `Compare.compare_dir` が ERROR として並べる。
-  def run_batch(cmd, dir, label)
+  def run_batch(cmd, dir, label, suffix)
     _, err, status = Open3.capture3(*cmd, "--batch", dir)
+    missing = retry_missing(cmd, dir, suffix)
     return if status.success?
 
     warn "警告: #{label} の --batch が exit #{status.exitstatus} を返した"
     warn err.lines.first(5).join unless err.to_s.empty?
+    warn "  一本ずつ回し直して #{missing} 本を復旧できなかった" if missing.positive?
+  end
+
+  # batch の途中で process が落ちる（実装が segfault するなど）と、それ以降の出力が
+  # まるごと無くなる。足りないものだけを一本ずつ回し直して、落ちた scenario だけを
+  # ERROR に閉じ込める。復旧できなかった本数を返す。
+  def retry_missing(cmd, dir, suffix)
+    failed = 0
+    Dir[File.join(dir, "*.json")].sort.each do |path|
+      base = File.basename(path, ".json")
+      next if base.end_with?(".lean") || base.end_with?(".impl")
+
+      out = File.join(dir, "#{base}.#{suffix}.json")
+      next if File.exist?(out)
+
+      stdout, _, status = Open3.capture3(*cmd, path)
+      if status.success? && !stdout.empty?
+        File.write(out, stdout)
+      else
+        failed += 1
+      end
+    end
+    failed
   end
 
   # 候補の scenario をまとめて評価し、不一致になるものの index を返す。

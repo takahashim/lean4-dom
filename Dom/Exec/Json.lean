@@ -217,6 +217,22 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .importNode (← natField j "document") (← natField j "node")
       ((← boolField? j "deep").getD false)
   | "adoptNode" => return .adoptNode (← natField j "document") (← natField j "node")
+  | "createAttribute" =>
+    return .createAttribute (← natField j "document") (← strField j "name" "")
+  | "createAttributeNS" =>
+    return .createAttributeNS (← natField j "document") (← strField? j "namespace")
+      (← strField j "name" "")
+  | "getAttributeNode" =>
+    return .getAttributeNode (← natField j "element") (← strField j "name" "")
+  | "getAttributeNodeNS" =>
+    return .getAttributeNodeNS (← natField j "element") (← strField? j "namespace")
+      (← strField j "name" "")
+  | "setAttributeNode" =>
+    return .setAttributeNode (← natField j "element") (← natField j "attr")
+  | "removeAttributeNode" =>
+    return .removeAttributeNode (← natField j "element") (← natField j "attr")
+  | "removeNamedItem" =>
+    return .removeNamedItem (← natField j "element") (← strField j "name" "")
   | "rangeSetStart" =>
     return .rangeSetStart (← natField j "range") (← nodeField j "node") (← natField j "offset")
   | "rangeSetEnd" =>
@@ -520,6 +536,9 @@ def returnValueJson : ReturnValue → Json
   | .strs l =>
     Json.mkObj [("kind", Json.str "strings"),
                 ("value", Json.arr (l.map Json.str).toArray)]
+  | .attr a =>
+    Json.mkObj [("kind", Json.str "attr"),
+                ("attr", match a with | none => Json.null | some x => natJson x.id)]
 
 /--
 `Observation` の外部表現。
@@ -546,6 +565,7 @@ def observationFields (o : Observation) : List (String × Json) :=
     , ("observers", Json.arr
         (o.records.map fun rs => Json.arr (rs.map recordJson).toArray).toArray)
     , ("invocations", Json.arr (o.invocations.map invocationJson).toArray)
+    , ("detachedAttrs", Json.arr (o.detachedAttrs.map attrJson).toArray)
     , ("delivered", Json.arr (o.delivered.map fun p =>
         Json.mkObj [("observer", natJson p.1),
                     ("records", Json.arr (p.2.map recordJson).toArray)]).toArray) ]

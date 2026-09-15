@@ -54,8 +54,16 @@ const OP_METHOD = {
   createElement: "createElement", createElementNS: "createElementNS",
   createTextNode: "createTextNode", createComment: "createComment",
   createDocumentFragment: "createDocumentFragment", cloneNode: "cloneNode",
-  importNode: "importNode", adoptNode: "adoptNode"
+  importNode: "importNode", adoptNode: "adoptNode",
+  createAttribute: "createAttribute", createAttributeNS: "createAttributeNS",
+  getAttributeNode: "getAttributeNode", getAttributeNodeNS: "getAttributeNodeNS",
+  setAttributeNode: "setAttributeNode", removeAttributeNode: "removeAttributeNode",
+  removeNamedItem: "attributes"
 };
+
+// `Attr` を渡す / 返す操作。
+const ATTR_NODE_OPS = ["createAttribute", "createAttributeNS", "getAttributeNode",
+  "getAttributeNodeNS", "setAttributeNode", "removeAttributeNode", "removeNamedItem"];
 
 // node を作る操作。受け手は Document である（cloneNode を除く）。
 const CREATE_OPS = ["createElement", "createElementNS", "createTextNode", "createComment",
@@ -96,6 +104,7 @@ const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
   "iteratorNext", "iteratorPrevious", "getRootNode", ...WALKER_OPS, ...CREATE_OPS, "cloneNode"];
+const ATTR_RETURNING_OPS = ATTR_NODE_OPS;
 
 /* ------------------------------------------------------------------ 初期状態 */
 
@@ -252,6 +261,7 @@ function refreshAttrIds(ctx) {
   for (const nid of [...ctx.objects.keys()].sort((a, b) => a - b)) {
     for (const a of attributeNodes(ctx.objects.get(nid))) ordered.push(a);
   }
+  for (const a of ctx.detached) ordered.push(a);
   const fresh = new Map();
   let max = 0;
   for (const a of ordered) {
@@ -268,14 +278,24 @@ function refreshAttrIds(ctx) {
   ctx.attrIds = fresh;
 }
 
-function attributesOf(ctx, node) {
-  return attributeNodes(node).map((a) => ({
+function attrSnapshot(ctx, a) {
+  return {
     id: ctx.attrIds.get(a),
     namespace: a.namespaceURI ?? null,
     prefix: a.prefix ?? null,
     localName: a.localName,
     value: String(a.value ?? "")
-  }));
+  };
+}
+
+function attributesOf(ctx, node) {
+  return attributeNodes(node).map((a) => attrSnapshot(ctx, a));
+}
+
+/** id で `Attr` object を引く。 */
+function attrById(ctx, aid) {
+  for (const [a, id] of ctx.attrIds) if (id === aid) return a;
+  return null;
 }
 
 function dataOf(node) {
@@ -316,16 +336,20 @@ function snapshot(ctx) {
       root: idOf(w.root), current: idOf(w.currentNode), whatToShow: w.whatToShow
     }))
   };
+  out.detachedAttrs = ctx.detached.map((a) => attrSnapshot(ctx, a));
   if (ctx.observerCount > 0) out.observers = ctx.observerQueues();
   return out;
 }
 
 /* ------------------------------------------------------------------ 戻り値 */
 
-function returnValueSnapshot(idOf, op, returned) {
+function returnValueSnapshot(idOf, attrOf, op, returned) {
   const name = op.op;
   if (NODE_RETURNING_OPS.includes(name)) {
     return { kind: "node", node: returned === null || returned === undefined ? null : idOf(returned) };
+  }
+  if (ATTR_RETURNING_OPS.includes(name)) {
+    return { kind: "attr", attr: returned === null || returned === undefined ? null : attrOf(returned) };
   }
   switch (name) {
     case "toggleAttribute": case "rangeIsPointInRange": case "rangeIntersectsNode":
@@ -456,6 +480,63 @@ function applyQueryOp(ctx, op) {
   }
 }
 
+/**
+ * `Attr` を渡す / 返す操作。detach された `Attr` の list も model と同じ規則で保つ。
+ *
+ *   createAttribute*      作ったものを足す
+ *   removeAttributeNode   外して返ったものを足す
+ *   removeNamedItem       同上
+ *   setAttributeNode      渡したものを外し、押し出されたものを足す
+ *
+ * 名前で消した attribute（`removeAttribute`）は誰も参照できないので入らない。
+ */
+function applyAttrNode(ctx, op) {
+  const receiver = need(ctx.objects.get("document" in op ? op.document : op.element), "missing node");
+  const has = (name) => typeof receiver[name] === "function";
+  switch (op.op) {
+    case "createAttribute": case "createAttributeNS": {
+      if (!has(OP_METHOD[op.op])) throw new Unsupported(op.op);
+      const a = op.op === "createAttribute"
+        ? receiver.createAttribute(String(op.name ?? ""))
+        : receiver.createAttributeNS(op.namespace ?? null, String(op.name ?? ""));
+      ctx.detached.push(a);
+      return a;
+    }
+    case "getAttributeNode":
+      if (!has("getAttributeNode")) throw new Unsupported(op.op);
+      return receiver.getAttributeNode(String(op.name ?? ""));
+    case "getAttributeNodeNS":
+      if (!has("getAttributeNodeNS")) throw new Unsupported(op.op);
+      return receiver.getAttributeNodeNS(op.namespace ?? null, String(op.name ?? ""));
+    case "setAttributeNode": {
+      if (!has("setAttributeNode")) throw new Unsupported(op.op);
+      const a = attrById(ctx, op.attr);
+      if (a === null) throw new Unsupported("missing attr");
+      const old = receiver.setAttributeNode(a);
+      ctx.detached = ctx.detached.filter((x) => x !== a);
+      if (old && old !== a) ctx.detached.push(old);
+      return old ?? null;
+    }
+    case "removeAttributeNode": {
+      if (!has("removeAttributeNode")) throw new Unsupported(op.op);
+      const a = attrById(ctx, op.attr);
+      if (a === null) throw new Unsupported("missing attr");
+      const removed = receiver.removeAttributeNode(a);
+      if (removed) ctx.detached.push(removed);
+      return removed ?? null;
+    }
+    default: {
+      const map = receiver.attributes;
+      if (!map || typeof map.removeNamedItem !== "function") throw new Unsupported(op.op);
+      const removed = map.removeNamedItem(String(op.name ?? ""));
+      // 仕様では無ければ NotFoundError。null を返す実装はそこを実装していない。
+      if (removed === null || removed === undefined) throw new Unsupported("removeNamedItem null");
+      ctx.detached.push(removed);
+      return removed;
+    }
+  }
+}
+
 function apply(ctx, op) {
   const { objects, idOf } = ctx;
   switch (op.op) {
@@ -506,6 +587,10 @@ function apply(ctx, op) {
       if (op.op !== "adoptNode") registerSubtree(ctx, made);
       return made;
     }
+    case "createAttribute": case "createAttributeNS": case "getAttributeNode":
+    case "getAttributeNodeNS": case "setAttributeNode": case "removeAttributeNode":
+    case "removeNamedItem":
+      return applyAttrNode(ctx, op);
     case "cloneNode": {
       const src = need(objects.get(op.node), "missing node");
       if (typeof src.cloneNode !== "function") throw new Unsupported("cloneNode");
@@ -809,7 +894,8 @@ function run(win, scenario) {
   const callbacks = buildListeners(objects, idOf, scenario.listeners, invocationLog);
 
   const ctx = { win, objects, kinds, idOf, ranges, walkers, iterators, callbacks,
-    iteratorSnapshot, observerCount, observerQueues, observerSet };
+    iteratorSnapshot, observerCount, observerQueues, observerSet,
+    attrIds: new Map(), detached: [] };
 
   const initial = { ...snapshot(ctx), delivered: [] };
   if (anyLoneSurrogate(initial)) {
@@ -833,7 +919,7 @@ function run(win, scenario) {
       if (observerSet) observerSet.drain();
       step = { ...snapshot(ctx), ok: true, delivered: [],
         invocations: [...invocationLog],
-        returned: returnValueSnapshot(idOf, op, returned) };
+        returned: returnValueSnapshot(idOf, (a) => ctx.attrIds.get(a) ?? null, op, returned) };
     } catch (e) {
       if (e instanceof Unsupported) {
         steps.push({ ok: false, exception: UNSUPPORTED, reason: `Unsupported: ${e.message}` });

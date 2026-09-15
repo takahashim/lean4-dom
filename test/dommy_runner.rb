@@ -57,8 +57,19 @@ module DommyRunner
     "createDocumentFragment" => :create_document_fragment,
     "cloneNode" => :clone_node,
     "importNode" => :import_node,
-    "adoptNode" => :adopt_node
+    "adoptNode" => :adopt_node,
+    "createAttribute" => :create_attribute,
+    "createAttributeNS" => :create_attribute_ns,
+    "getAttributeNode" => :get_attribute_node,
+    "getAttributeNodeNS" => :get_attribute_node_ns,
+    "setAttributeNode" => :set_attribute_node,
+    "removeAttributeNode" => :remove_attribute_node,
+    "removeNamedItem" => :attributes
   }.freeze
+
+  # `Attr` を渡す / 返す操作。受け手は Document か Element である。
+  ATTR_NODE_OPS = %w[createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
+                     setAttributeNode removeAttributeNode removeNamedItem].freeze
 
   # node を作る操作。受け手は Document である（cloneNode を除く）。
   CREATE_OPS = %w[createElement createElementNS createTextNode createComment
@@ -249,10 +260,17 @@ module DommyRunner
                           createElement createElementNS createTextNode createComment
                           createDocumentFragment cloneNode importNode adoptNode].freeze
 
-  def return_value_snapshot(objects, op, returned)
+  # `Attr` を返す操作。
+  ATTR_RETURNING_OPS = %w[createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
+                          setAttributeNode removeAttributeNode removeNamedItem].freeze
+
+  def return_value_snapshot(ctx, op, returned)
+    objects = ctx[:objects]
     case op["op"]
     when *NODE_RETURNING_OPS
       { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
+    when *ATTR_RETURNING_OPS
+      { "kind" => "attr", "attr" => returned.nil? ? nil : ctx[:attr_ids][returned] }
     when "toggleAttribute", "rangeIsPointInRange", "rangeIntersectsNode"
       { "kind" => "boolean", "value" => !!returned }
     when "rangeCompareBoundaryPoints", "rangeComparePoint", "compareDocumentPosition"
@@ -602,6 +620,7 @@ module DommyRunner
   def refresh_attr_ids(ctx)
     old = ctx[:attr_ids] || {}.compare_by_identity
     ordered = ctx[:objects].keys.sort.flat_map { |nid| attribute_nodes(ctx[:objects][nid]) }
+    ordered += (ctx[:detached] || [])
     fresh = {}.compare_by_identity
     max = 0
     ordered.each do |a|
@@ -620,11 +639,13 @@ module DommyRunner
     ctx[:attr_ids] = fresh
   end
 
+  def attr_snapshot(ctx, a)
+    { "id" => ctx[:attr_ids][a], "namespace" => a.namespace_uri, "prefix" => a.prefix,
+      "localName" => a.local_name, "value" => a.value.to_s }
+  end
+
   def attributes_of(ctx, node)
-    attribute_nodes(node).map do |a|
-      { "id" => ctx[:attr_ids][a], "namespace" => a.namespace_uri, "prefix" => a.prefix,
-        "localName" => a.local_name, "value" => a.value.to_s }
-    end
+    attribute_nodes(node).map { |a| attr_snapshot(ctx, a) }
   end
 
   # microtask checkpoint。配送はここで走る。
@@ -701,7 +722,8 @@ module DommyRunner
     end
     out = { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),
             "iterators" => iterator_snapshot(objects, iterators),
-            "walkers" => walker_snapshot(objects, walkers) }
+            "walkers" => walker_snapshot(objects, walkers),
+            "detachedAttrs" => (ctx[:detached] || []).map { |a| attr_snapshot(ctx, a) } }
     out["observers"] = observers if observers
     out
   end
@@ -713,6 +735,76 @@ module DommyRunner
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
 
     op.key?("target") ? op["target"] : op["parent"]
+  end
+
+  # `Attr` を渡す / 返す操作。detach された `Attr` の list も model と同じ規則で保つ。
+  #
+  #   createAttribute*      作ったものを足す
+  #   removeAttributeNode   外して返ったものを足す
+  #   removeNamedItem       同上
+  #   setAttributeNode      渡したものを外し、押し出されたものを足す
+  #
+  # 名前で消した attribute（`removeAttribute`）は誰も参照できないので入らない。
+  def apply_attr_node(ctx, op)
+    objects = ctx[:objects]
+    detached = ctx[:detached]
+    receiver = objects[op.key?("document") ? op["document"] : op["element"]]
+    raise NotImplementedError, "missing node" if receiver.nil?
+
+    case op["op"]
+    when "createAttribute", "createAttributeNS"
+      method = OP_METHOD.fetch(op["op"])
+      raise NotImplementedError, op["op"] unless receiver.respond_to?(method)
+
+      a = op["op"] == "createAttribute" ? receiver.create_attribute(op["name"].to_s)
+                                        : receiver.create_attribute_ns(op["namespace"],
+                                                                       op["name"].to_s)
+      detached << a
+      a
+    when "getAttributeNode"
+      raise NotImplementedError, op["op"] unless receiver.respond_to?(:get_attribute_node)
+
+      receiver.get_attribute_node(op["name"].to_s)
+    when "getAttributeNodeNS"
+      raise NotImplementedError, op["op"] unless receiver.respond_to?(:get_attribute_node_ns)
+
+      receiver.get_attribute_node_ns(op["namespace"], op["name"].to_s)
+    when "setAttributeNode"
+      raise NotImplementedError, op["op"] unless receiver.respond_to?(:set_attribute_node)
+
+      a = find_attr(ctx, op["attr"])
+      raise NotImplementedError, "missing attr" if a.nil?
+
+      old = receiver.set_attribute_node(a)
+      detached.reject! { |x| x.equal?(a) }
+      detached << old if old && !old.equal?(a)
+      old
+    when "removeAttributeNode"
+      raise NotImplementedError, op["op"] unless receiver.respond_to?(:remove_attribute_node)
+
+      a = find_attr(ctx, op["attr"])
+      raise NotImplementedError, "missing attr" if a.nil?
+
+      removed = receiver.remove_attribute_node(a)
+      detached << removed if removed
+      removed
+    else
+      map = receiver.respond_to?(:attributes) ? receiver.attributes : nil
+      raise NotImplementedError, op["op"] if map.nil? || !map.respond_to?(:remove_named_item)
+
+      removed = map.remove_named_item(op["name"].to_s)
+      # 仕様では無ければ NotFoundError。nil を返す実装はそこを実装していない。
+      raise NotImplementedError, "removeNamedItem returned nil" if removed.nil?
+
+      detached << removed
+      removed
+    end
+  end
+
+  # id で `Attr` object を引く。
+  def find_attr(ctx, aid)
+    ctx[:attr_ids].each { |a, id| return a if id == aid }
+    nil
   end
 
   def apply(objects, op, iterators = [], ctx = {})
@@ -763,6 +855,8 @@ module DommyRunner
       # adoptNode は node を作らない。渡した node がそのまま返るので id は既にある。
       register_subtree(ctx, node) unless op["op"] == "adoptNode"
       return node
+    when *ATTR_NODE_OPS
+      return apply_attr_node(ctx, op)
     when "cloneNode"
       src = objects[op["node"]]
       raise NotImplementedError, "missing node" if src.nil?
@@ -970,7 +1064,7 @@ module DommyRunner
     observers, delivery_log = build_observers(objects, builder.documents, scenario["observers"])
     ctx = { objects: objects, kinds: kinds, ranges: ranges, iterators: iterators,
             walkers: walkers, observers: observers, documents: builder.documents,
-            callbacks: callbacks, attr_ids: {}.compare_by_identity }
+            callbacks: callbacks, attr_ids: {}.compare_by_identity, detached: [] }
     initial = snapshot(ctx, ranges, iterators,
                        observers.empty? ? nil : queued_records(objects, observers), walkers)
                 .merge("delivered" => [])
@@ -1000,7 +1094,7 @@ module DommyRunner
       steps << snapshot(ctx, ranges, iterators, recs, walkers)
                .merge("ok" => true, "delivered" => delivered_snapshot(delivery_log),
                       "invocations" => invocation_log.dup,
-                      "returned" => return_value_snapshot(objects, op, returned))
+                      "returned" => return_value_snapshot(ctx, op, returned))
     end
     { "initial" => initial, "steps" => steps }
   end
