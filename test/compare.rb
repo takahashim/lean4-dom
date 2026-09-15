@@ -181,17 +181,29 @@ module Compare
     [unsupported ? :unsupported : :match, messages]
   end
 
-  # DIR の中の `<base>.lean.json` と `<base>.dommy.json` を突き合わせる。
+  # DIR の scenario を両方の出力と突き合わせる。
   # 戻り値は base をキーにした [status, messages] の Hash。
+  #
+  # **基準は scenario（`<base>.json`）の側である。** 出力（`<base>.lean.json`）を
+  # 基準にすると、評価できなかった scenario が報告から静かに消えて
+  # 「全部 ok」に見えてしまう。古い binary が新しい操作を知らないときがそれで、
+  # 実際に findings 8 の scenario がまるごと消えたまま緑になったことがある。
   def compare_dir(dir)
-    Dir[File.join(dir, "*.lean.json")].sort.to_h do |lean_path|
-      base = File.basename(lean_path, ".lean.json")
+    inputs = Dir[File.join(dir, "*.json")].reject { |p| p.end_with?(".lean.json", ".dommy.json") }
+    inputs.sort.to_h do |input_path|
+      base = File.basename(input_path, ".json")
+      lean_path = File.join(dir, "#{base}.lean.json")
       dommy_path = File.join(dir, "#{base}.dommy.json")
+      missing = []
+      missing << "#{base}.lean.json が無い（Lean 側がこの scenario を評価できなかった）" \
+        unless File.exist?(lean_path)
+      missing << "#{base}.dommy.json が無い（Dommy 側がこの scenario を評価できなかった）" \
+        unless File.exist?(dommy_path)
       result =
-        if File.exist?(dommy_path)
+        if missing.empty?
           compare_outputs(JSON.parse(File.read(lean_path)), JSON.parse(File.read(dommy_path)))
         else
-          [:error, ["#{base}.dommy.json が無い"]]
+          [:error, missing]
         end
       [base, result]
     end

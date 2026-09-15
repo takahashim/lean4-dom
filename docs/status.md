@@ -1156,9 +1156,24 @@ harness が「存在しない id を指した引数」を意図的に飛ばし�
 ## 残っている Dommy の不一致
 
 * **finding 4**（上記）。Makiri 側の `XML::DocumentFragment#add_child`。
+* **finding 9**。`TreeWalker.parentNode` に `reachable_from_root?` の番人があり、
+  仕様には無い。固定 scenario は `walker-parent-node-leaves-root`。
+* **finding 11**。target が CharacterData のとき event path が壊れる。
+  固定 scenario は `event-dispatch-at-character-data-target`。
+
+直ったもの。
+
 * ~~**finding 6**。`Range` の `selectNode` / `setStartBefore` ほかに
   「parent が null なら `InvalidNodeTypeError`」の検査が無い。~~
-  Dommy `f9618d1` で修正。固定 scenario `range-boundary-needs-parent` は緑になった。
+  Dommy PR 41（`7eb57a8`）で修正、main にマージ済み。
+* ~~**findings 7 / 8**。`deleteContents` の nodes to remove と `insertNode` の step 1 / 6 / 9。~~
+  Dommy PR 43（`d304172`）で修正。
+* ~~`Range` の `Node` 引数の WebIDL 変換。~~ Dommy PR 42（`e018027`）で修正、main にマージ済み。
+
+### 比べられないもの（Dommy の実装漏れ）
+
+* `Document` と `CharacterData` の `normalize`。固定 scenario
+  `normalize-on-document` と `normalize-on-text-is-noop` は skip になる。
 
 ## Phase 8：MutationObserver の record（一巡した）
 
@@ -2068,7 +2083,8 @@ parent の無い node は boundary point を決められないので、仕様は
 
 **Dommy `f9618d1` で修正した。** `selectNode` と四つの sibling setter に step 1-2 を、
 `selectNodeContents` に step 1 の doctype 検査を入れた
-（WPT `dom/ranges/Range-selectNode.html` を写した test も付けた）。
+（WPT `dom/ranges/Range-selectNode.html` の判定を手で抜き出した test も付けた。
+写したものではない）。
 
 ### 差分テスト
 
@@ -2728,6 +2744,46 @@ length を超える値を混ぜるようにした。seed 11 で 120 件回して
 不一致は finding 7 の一件だけだった。
 
 pin は PR 42 の head（`e018027`）に上げた。
+
+## ハーネスが偽の緑を出していた
+
+Dommy 側から指摘を受けて直した。二つ重なると、**不一致があるのに「全部 ok」に見える**。
+
+1. `difftest.rb` は `.lake/build/bin/dom-model` があれば、古いかどうかを確かめずに使う。
+   古い binary は新しい操作を知らないので、その scenario の評価ごと失敗する。
+2. `Compare.compare_dir` は `*.lean.json` のある scenario しか見ない。
+   つまり **評価できなかった scenario は報告から静かに消える**。
+
+実際に findings 8 の固定 scenario がまるごと消えたまま緑になっていた。
+
+直し方は二つとも「消えないようにする」である。
+
+* oracle は使う前に必ず `lake build dom-model` し直す（`DOM_MODEL` を明示したときは除く）。
+* 突き合わせの基準を **scenario（`<base>.json`）の側**に移し、
+  出力が無いものは ERROR にする。
+* `--batch` の終了コードが 0 でなければ警告する。どの scenario かは ERROR の側に出る。
+
+`lake build <Module>` は executable を作り直さないので、
+proof を触った後に差分テストを回すとこれを踏みやすい。
+
+## Dommy 側の修正が一巡した
+
+`docs/status.md` の findings のうち、Range 周りは全部直った。
+
+| finding | Dommy | 状態 |
+| --- | --- | --- |
+| 6（parent の無い node） | PR 41 `7eb57a8` | main |
+| 7 / 8（`deleteContents` / `insertNode`） | PR 43 `d304172` | branch |
+| `Node` 引数の WebIDL 変換 | PR 42 `e018027` | main |
+
+pin は PR 43 の head に上げた。この状態で
+
+* 固定 scenario の不一致は findings 9（`TreeWalker.parentNode`）と
+  11（CharacterData target の event path）の二本だけ
+* 生成 scenario は seed 3 で 120 件すべて一致（以前は `insertNode` が 2 件）、
+  walker と listener を入れた seed 21 の 100 件でも finding 11 の一件だけ
+
+になった。
 
 ### 次
 

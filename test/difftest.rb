@@ -40,11 +40,28 @@ module Difftest
 
   module_function
 
+  # Lean の oracle を呼ぶ command。
+  #
+  # `.lake/build/bin/dom-model` があってもそのまま使ってはいけない。**古い binary は
+  # 新しい操作を知らず、その scenario の評価ごと失敗する**。出力が出ないだけなので、
+  # 以前は比較から静かに消えて「全部 ok」に見えていた。使う前に必ず build し直す。
   def lean_command
     return ENV["DOM_MODEL"].split if ENV["DOM_MODEL"]
 
+    @lean_command ||= built_oracle
+  end
+
+  def built_oracle
     built = File.join(ROOT, ".lake/build/bin/dom-model")
-    File.executable?(built) ? [built] : ["lake", "exe", "dom-model"]
+    begin
+      _, err, status = Open3.capture3("lake", "build", "dom-model", chdir: ROOT)
+    rescue Errno::ENOENT
+      warn "警告: lake が無いので `#{built}` を古いかもしれないまま使う"
+      return File.executable?(built) ? [built] : ["lake", "exe", "dom-model"]
+    end
+    abort "oracle の build に失敗した:\n#{err}" unless status.success?
+
+    [built]
   end
 
   def dommy_command
@@ -71,9 +88,20 @@ module Difftest
 
   # DIR の scenario を両方の実装で評価して比較する。
   def evaluate(dir)
-    run!(lean_command + ["--batch", dir], allow_failure: true)
-    run!(dommy_command + ["--batch", dir], allow_failure: true)
+    run_batch(lean_command, dir, "Lean")
+    run_batch(dommy_command, dir, "Dommy")
     Compare.compare_dir(dir)
+  end
+
+  # `--batch` は scenario 一つの失敗では止まらない。終了コードが 0 でないのは
+  # 「まるごと評価できなかった scenario がある」という意味なので、黙って進めない。
+  # どの scenario かは `Compare.compare_dir` が ERROR として並べる。
+  def run_batch(cmd, dir, label)
+    _, err, status = Open3.capture3(*cmd, "--batch", dir)
+    return if status.success?
+
+    warn "警告: #{label} の --batch が exit #{status.exitstatus} を返した"
+    warn err.lines.first(5).join unless err.to_s.empty?
   end
 
   # 候補の scenario をまとめて評価し、不一致になるものの index を返す。
