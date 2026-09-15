@@ -18,7 +18,8 @@ theorem treeRecordQueued_of_suppress (s : DOMState) (target : NodeId)
     TreeRecordQueued s s target added removed prev next true := by
   unfold TreeRecordQueued
   rw [if_pos rfl]
-  exact ⟨rfl, fun mo o o' ho ho' => by rw [ho] at ho'; cases ho'; rfl, rfl, rfl⟩
+  exact ⟨rfl, fun mo o o' ho ho' => by rw [ho] at ho'; cases ho'; rfl,
+    fun _ => Iff.rfl, rfl⟩
 
 /-- 一つの observer が受け取る record は、interested なら一つ、そうでなければ無い。 -/
 theorem records_after_tree_queue {s : DOMState} {rec : MutationRecord} {mo : Nat}

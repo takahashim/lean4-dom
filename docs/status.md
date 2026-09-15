@@ -2533,12 +2533,53 @@ observer を初出順に集めつつ、同じ observer が二度出たら oldVal
 `CharacterDataOldValueWanted` がその条件で、畳み込みがそれを計算していることを
 `mem_pair_interestedObservers` で示した。
 
+### 観測が等しい状態どうしの congruence
+
+`insert` のように関係を繋いだものの一意性には、`remove` 単体の一意性では足りない。
+途中の状態は **観測としてしか**一致しないので、
+「入力の観測が等しければ出力の観測も等しい」（congruence）が要る。
+
+まず観測の等しさを定義した（`Dom/Spec/ObsEq.lean`）。
+木は表現ではなく `get?` の一致（`TreeObsEq`）、状態はそれに
+range・iterator・registered observer の所属・observer ごとの record queue・
+pending・microtask を足したもの（`ObsEq`）である。
+
+`parentOf` / `childrenOf` / `index` / `previousSibling` のような観測は
+`get?` から素直に決まるが、`root` と `precedes` は `t.size` を fuel に使うので
+そうはいかない。前者は `root_unique`、後者は
+「tree order の前後は木の構造だけで決まる」（`precedesIn_preorder_iff_struct`）を
+経由して、well-formed を仮定して示した。`WellFormed` 自体は `get?` だけで
+書かれているので観測に沿って移る。
+
+congruence の証明は二段である（`Dom/Spec/RemoveCongr.lean`）。
+
+1. **transport**：`RemoveSpec` の各 component は観測の語彙だけで書かれているので、
+   入力を観測の等しい状態に差し替えても成り立つ。
+2. 差し替えてしまえば同じ入力から出た二つの結果になるので、
+   `removeSpec_deterministic` がそのまま使える。
+
+### transport できない書き方が一つ見つかった
+
+`TreeRecordQueued` の `suppressObservers` が true の枝は
+`s'.pendingObservers = s.pendingObservers` と **list の等式**で書いてあった。
+pending observer の並びは観測に出ない（`removeSpec_deterministic` の結論も所属である）のに
+関係の側だけが表現を縛っていたので、transport できない。所属の一致に弱めた。
+
+関係を緩めても soundness は保たれ、一意性の結論も変わらない。
+関係意味論の側に「観測に出ないものを縛らない」という制約が要る、という一例である。
+
+### 連鎖のために、関係だけから well-formed を言う
+
+`removeEach` のように繋ぐには、途中の木も well-formed である必要がある。
+実行関数の不変量（`Dom/Validity/`）は関係の層からは使えないので、
+`TreeRemoved` から直接示した（`treeRemoved_wellFormed`）。
+`node` は parent を失うので、外した木の ancestor 鎖はそこで切れる。
+つまり `Ancestor u a n → Ancestor t a n` で、acyclicity はそのまま移る。
+
 ### 次
 
-completeness（関係を満たす状態が必ず作れること）と、composition の一意性である。
-`insert` のように関係を繋いだものの一意性を言うには、
-**観測が等しい状態どうしの congruence**（入力の観測が等しければ出力の観測も等しい）が要る。
-`remove` 単体の一意性はその形を取らずに済んだが、繋いだ先ではそうはいかない。
+`adopt` と `insert` の congruence、それから completeness
+（関係を満たす状態が必ず作れること）である。
 
 ## 生成 scenario の最小化を広げた
 

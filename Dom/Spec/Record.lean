@@ -38,7 +38,8 @@ def TreeRecordQueued (s s' : DOMState) (target : NodeId) (added removed : List N
     s'.observers.length = s.observers.length ∧
     (∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
       s'.observers[mo]? = some o' → o'.records = o.records) ∧
-    s'.pendingObservers = s.pendingObservers ∧ s'.microtaskQueued = s.microtaskQueued
+    (∀ mo : Nat, mo ∈ s'.pendingObservers ↔ mo ∈ s.pendingObservers) ∧
+    s'.microtaskQueued = s.microtaskQueued
   else
     let rec' : MutationRecord :=
       { type := .childList, target := target, addedNodes := added, removedNodes := removed,

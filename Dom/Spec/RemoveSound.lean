@@ -330,8 +330,9 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
       refine ⟨hlen₂, ?_, ?_, ?_⟩
       · intro mo o o' ho ho'
         exact records_addTransientObservers s₁ n p mo o o' (by rw [hobs₁]; exact ho) ho'
-      · show (addTransientObservers s₁ n p).pendingObservers = _
-        exact hpend₁
+      · intro mo
+        have hp' : (addTransientObservers s₁ n p).pendingObservers = s.pendingObservers := hpend₁
+        rw [hp']
       · show (addTransientObservers s₁ n p).microtaskQueued = _
         exact hmt₁
     · next hb =>

@@ -119,6 +119,8 @@ open Dom.Audit
   Dom.Spec.remove_sound_transient
   Dom.Spec.remove_sound_record
   Dom.Spec.removeSpec_deterministic
+  Dom.Spec.removeSpec_transport
+  Dom.Spec.removeSpec_congr
   Dom.Spec.adopt_sound
   Dom.Spec.insert_sound
   Dom.Spec.insertEach_sound

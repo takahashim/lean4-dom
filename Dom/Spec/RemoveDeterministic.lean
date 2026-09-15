@@ -305,7 +305,7 @@ theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
     obtain ⟨hl₂, hr₂, hp₂, hm₂⟩ := h₂
     refine ⟨common s₁ s₂ hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_, ?_⟩
     · rw [hr₁ mo o oa ho hoa, hr₂ mo o ob ho hob]
-    · rw [hp₁, hp₂]; exact fun mo => Iff.rfl
+    · exact fun mo => (hp₁ mo).trans (hp₂ mo).symm
     · rw [hm₁, hm₂]
   · next hsup =>
     rw [if_neg hsup] at h₂
