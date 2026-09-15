@@ -58,6 +58,7 @@ import Dom.Validity.Clone
 import Dom.Properties.Clone
 import Dom.Mutation.Import
 import Dom.Properties.Import
+import Dom.Properties.CloneOk
 import Dom.Spec.Remove
 import Dom.Spec.RemoveSound
 import Dom.Spec.RemoveDeterministic

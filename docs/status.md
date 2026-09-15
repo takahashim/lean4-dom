@@ -3469,6 +3469,60 @@ DocumentType にしかなく、Text・Comment・ProcessingInstruction・Document
 
 ### 次
 
+`cloneNode` が失敗しないことの証明。
+
+## `cloneNode` が失敗しないことを示した
+
+model の `cloneNode` は §4.2.3 の `append` を呼ぶので、原理的には pre-insert validity の
+検査に落ちて `HierarchyRequestError` を返しうる。oracle が仕様の投げない例外を投げるのは
+それ自体が誤りなので、妥当な木ではそうならないことを示した（`cloneNode_isOk`）。
+`importNode` も同じ（`importNode_isOk`）。
+
+落ちうる場所は三つあった。
+
+| 場所 | 片付け方 |
+| --- | --- |
+| fuel が尽きる | `forestSize` を measure にする |
+| pre-insert validity | `AppendableInto` を不変条件にする |
+| `append` の中の `adopt` と `insertAt` | `append_fresh_isOk` |
+
+### fuel の measure は `preorderFuel` をそのまま使う
+
+`cloneMany` は children にも兄弟にも同じ fuel を渡すので、要る fuel は
+clone する node の数で抑えられる。その「数」を `preorderFuel` の長さで測る。
+
+`preorder`（fuel を `Tree.size` に固定したもの）ではなく **fuel 付きのまま**使うのが要点である。
+`preorderFuel t (f+1) n = n :: children.flatMap (preorderFuel t f)` は定義から出るので、
+「一段降りると fuel も一つ減る」という形がそのまま measure になる。fuel を揃えた `preorder`
+だと、children の側の fuel の差を埋める補題（fuel を増やしても列が変わらないこと）が要る。
+
+上限は `preorderFuel` が重複を持たず木の node しか並べないことから出る
+（`length_preorderFuel_le_size`）。`cloneNode` が渡す `Tree.size + 1` で足りる。
+
+### validity の不変条件は「繋いだ kind 列」
+
+pre-insert validity で本当に効くのは step 9 と step 11、つまり **Document の children の
+制約**だけである。Document は誰の子にもなれないので、Document が append 先になるのは
+clone の根が Document のとき一度きりだが、その一段では children を一つずつ入れていくので、
+入れるたびに「element の子は高々一つ」「doctype は element より前」を確かめる必要がある。
+
+そこで `AppendableInto` の `docKinds` を、**append 先に既に入れた children の kind 列と、
+これから入れる残りの kind 列を繋いだもの**が制約を満たす、という形にした。一つ append
+すると前半が一つ伸びて後半が一つ縮むだけなので、繋いだ列は変わらない。
+つまりこの条件は自分で自分を保つ。最初に成り立つのは、繋いだ列が原本の children の
+kind 列そのものだからである。
+
+そのために `DocumentChildrenOk`（children を数える形）から `DocKindsOk`（kind 列の形）への
+翻訳を書いた。四つ目の「doctype は element より前」だけは列の分割を扱うので、
+`splitAt?` が左側の要素で切ったとき右側が丸ごと後半に残る、という list の補題を要した。
+
+### まだ無いもの
+
+`adoptNode` が失敗しないことは示していない。`adopt` の中の `remove` が成功することを
+言う必要があり、そちらは別の連鎖である。
+
+### 次
+
 roadmap §8.6 の `Attr` identity。
 
 ## 生成 scenario の最小化を広げた

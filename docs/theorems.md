@@ -303,6 +303,28 @@ evaluator は各 step の後で `AdmissibleDOMState` の七成分を実行時に
 admissible な初期状態から始めれば、この検査は決して発火しない。
 `invariantViolation` が出たら harness 側の誤りである。
 
+## 15. `cloneNode` は妥当な木の上では失敗しない
+
+| 定理 | module |
+| --- | --- |
+| `Dom.cloneNode_isOk` / `Dom.cloneNodeIn_isOk` / `Dom.importNode_isOk` | `Dom/Properties/CloneOk.lean` |
+
+```lean
+theorem cloneNode_isOk {s : DOMState} {n : NodeId} {deep : Bool} {d : NodeData}
+    (hv : AdmissibleDOMState s) (hd : s.tree.get? n = some d) :
+    ∃ c s', cloneNode s n deep = .ok (c, s')
+```
+
+model の `cloneNode` は §4.2.3 の `append` を呼ぶので、原理的には pre-insert validity の
+検査に落ちて `HierarchyRequestError` を返しうる。落ちうる場所は三つ（fuel の枯渇、
+pre-insert validity、`append` の中の `adopt` と `insertAt`）で、妥当な木ではどれも起きない。
+
+要は `AppendableInto` の `docKinds` である。**append 先に既に入れた children の kind 列と、
+これから入れる残りの kind 列を繋いだもの**が Document の制約を満たす、という形にしてある。
+一つ append すると前半が一つ伸びて後半が一つ縮むだけなので繋いだ列は変わらず、
+条件が自分で自分を保つ。最初にそれが成り立つのは、繋いだ列が原本の children の
+kind 列そのものだからである。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

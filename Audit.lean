@@ -139,6 +139,9 @@ open Dom.Audit
   Dom.adoptNode_ownerDocument
   Dom.adoptNode_detached
   Dom.adoptNode_shape
+  Dom.cloneNode_isOk
+  Dom.cloneNodeIn_isOk
+  Dom.importNode_isOk
   Dom.Spec.remove_sound
   Dom.Spec.remove_sound_range
   Dom.Spec.remove_sound_iterator
