@@ -1,0 +1,114 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#scoping",
+    "algorithm": [
+      "scoped selector",
+      "match a selector against a tree"
+    ],
+    "steps": "scoped な selector は、element が scoping root の descendant のときだけ当たる。「残りの部分は制限なく当たってよい。scope の中に居なければならないのは最後に選ばれる element だけである」",
+    "note": "だから element に対して呼んでも、combinator は受け手より上を見てよい。候補だけが受け手の descendant に絞られる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "body"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 3,
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "html p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "body p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "html body p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "html > body p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "body > div p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "body > div > p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "html > body > div > p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": ":scope p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "div"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "body > div"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 2,
+      "selectors": "div p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 4,
+      "selectors": "html p"
+    }
+  ]
+}

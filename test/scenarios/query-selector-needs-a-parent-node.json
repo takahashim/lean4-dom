@@ -1,0 +1,78 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-parentnode-queryselector",
+    "algorithm": [
+      "querySelector(selectors)",
+      "querySelectorAll(selectors)"
+    ],
+    "steps": "どちらも ParentNode（Document / DocumentFragment / Element）の method である",
+    "note": "IDL が持たない受け手に対しては、method 本体に入る前に WebIDL の TypeError になる。parse a selector より前である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "x"
+    },
+    {
+      "id": 4,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 4,
+      "localName": "span"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": "p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 4,
+      "selectors": "span"
+    },
+    {
+      "op": "querySelector",
+      "node": 2,
+      "selectors": "*"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "p"
+    }
+  ]
+}

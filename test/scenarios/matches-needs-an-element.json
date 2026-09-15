@@ -1,0 +1,57 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-element-matches",
+    "algorithm": [
+      "matches(selectors)",
+      "closest(selectors)"
+    ],
+    "steps": "どちらも Element の method である",
+    "note": "Document に対して呼べば WebIDL の TypeError になる。読めない selector より先に効く。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "matches",
+      "element": 2,
+      "selectors": "p"
+    },
+    {
+      "op": "closest",
+      "element": 2,
+      "selectors": "html"
+    },
+    {
+      "op": "matches",
+      "element": 2,
+      "selectors": "%%%"
+    },
+    {
+      "op": "matches",
+      "element": 0,
+      "selectors": "p"
+    }
+  ]
+}

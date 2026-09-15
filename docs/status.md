@@ -4029,6 +4029,36 @@ jsdom は通す。Dommy は comment 自体を受け付けないので、結果�
 生成器に comment を足すのは findings 30 が直るまで見送る。いま足すと
 Dommy に対して雑音にしかならない。
 
+### 七度目：DOM 側の接続部分
+
+`querySelector()` まわりを七通りに壊して測った。
+
+| 壊し方 | 固定 scenario |
+| --- | --- |
+| 受け手そのものを候補に入れる | 捕まえる |
+| `closest()` を root 側から探す | 捕まえる |
+| `matches()` の scoping root を空にする | 捕まえる |
+| `querySelector()` が最後を返す | 捕まえる |
+| `querySelectorAll()` の並びを逆にする | 捕まえる |
+| **`ParentNode` の検査を落とす** | **捕まえない** |
+| **`Element` の検査を落とす** | **捕まえない** |
+
+受け手の種別検査だけが未検査だった。Text node に `querySelectorAll()` を呼ぶ、
+Document に `matches()` を呼ぶ、といった scenario が無かったからである。
+`query-selector-needs-a-parent-node.json` と `matches-needs-an-element.json` を足した。
+
+あわせて、仕様の「scope の中に居なければならないのは最後に選ばれる element だけで、
+**残りの部分は制限なく当たってよい**」（§4.4）と、受け手が木から外れている場合・
+`DocumentFragment` の場合も scenario にした。前者で jsdom との差が出た。
+
+### findings 34：element に対する scoped query が三つ以上の compound で当たらない（jsdom）
+
+`div.querySelectorAll("html p")` は当たるのに `div.querySelectorAll("html body p")` は
+当たらない。combinator の種類には依らず、compound が三つ以上になると当たらなくなる。
+仕様は「残りの部分は制限なく当たってよい」と明記しており、候補が受け手の descendant に
+絞られるだけである。Dommy は model と一致する。
+`test/scenarios/only-the-subject-must-be-in-scope.json`。
+
 ### findings 25：forgiving な list が空の項目で例外になる（jsdom）
 
 `:is()` と `:where()` は `<forgiving-selector-list>` を取り、読めなかった項目を捨てる。

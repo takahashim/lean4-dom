@@ -1,0 +1,97 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#scope-match-a-selectors-string",
+    "algorithm": [
+      "scope-match a selectors string"
+    ],
+    "steps": "node の root に対して、scoping root を node として照合する",
+    "note": "受け手が木から外れていても、その木の中で照合する。DocumentFragment でも同じである。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 3,
+      "localName": "p"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "localName": "section"
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 5,
+      "localName": "span"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 2,
+      "selectors": "p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 2,
+      "selectors": "div p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": "p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 5,
+      "selectors": "*"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 5,
+      "selectors": "section span"
+    },
+    {
+      "op": "matches",
+      "element": 6,
+      "selectors": "section > span"
+    },
+    {
+      "op": "closest",
+      "element": 6,
+      "selectors": "section"
+    },
+    {
+      "op": "matches",
+      "element": 5,
+      "selectors": ":root"
+    }
+  ]
+}
