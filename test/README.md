@@ -1,20 +1,27 @@
 # differential testing
 
-`PLAN.md` §7。同じ scenario を Lean の model と Dommy の両方で評価し、
+`PLAN.md` §7。同じ scenario を Lean の model と検査対象の DOM 実装の両方で評価し、
 各 step の観測可能な状態を突き合わせる。
+
+**oracle は Lean の model だけである。** 実装側は準拠度を測られる相手であって、
+食い違いは実装の findings として扱う（多数決はしない)。
 
 ```text
              scenario (JSON)
                    │
         ┌──────────┴──────────┐
         ▼                     ▼
-  dom-model --batch    dommy_runner.rb --batch
+  dom-model --batch      実装の runner --batch
         │                     │
-   *.lean.json           *.dommy.json
+   *.lean.json            *.impl.json
         └──────────┬──────────┘
                    ▼
               compare.rb
 ```
+
+実装は runner を差し替えて選ぶ。`IMPL_CMD` がその command、
+`IMPL_NAME` が表示に使う名前である（判定には効かない)。
+いまある runner は `dommy_runner.rb`（Dommy）だけである。
 
 ## 実行
 
@@ -24,7 +31,8 @@ lake build
 
 # Dommy を bundle で解決できる状態にしておく（makiri が要る）
 export BUNDLE_GEMFILE=/path/to/Gemfile
-export DOMMY_CMD="bundle exec ruby $PWD/test/dommy_runner.rb"
+export IMPL_CMD="bundle exec ruby $PWD/test/dommy_runner.rb"
+export IMPL_NAME=dommy
 
 # makiri は RubyGems の公開版を使う。
 # ローカル checkout から build したものだと

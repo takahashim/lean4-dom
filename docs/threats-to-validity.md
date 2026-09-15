@@ -55,14 +55,18 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | WebIDL の TypeError を `DOMException` と同じ型で扱う | `moveBefore` と attribute の method の receiver、`observe` の options、`Range` の `Node` 引数がこれに当たる。名前は "TypeError" で一致するが、実際には `DOMException` ではない |
 | `NodeStore` は association list | 性能ではなく証明の都合。`keys` に重複が無いことは構造では保証していない（`observe` は id で正規化して吸収する） |
 
-## 5. 「Dommy の不一致」の判定
+## 5. 「実装の不一致」の判定
 
 差分テストで不一致が出たとき、どちらが仕様と違うかは自動では決まらない。
 これまでの判定はすべて `dom.bs` の該当 step を手で追って行っており、
 WPT やブラウザでの確認は付けていない。
 
+**oracle は Lean の model だけである。** 実装を複数並べても多数決はしない。
+model が仕様の翻訳として正しいかは別に担保するもの（関係意味論と soundness、
+`docs/traceability.md` の step 対応）であって、実装の同意で決めるものではない。
+
 **残る危険。** 仕様の読み違いがあれば、正しい実装を「不一致」として直してしまう。
-Dommy 側の修正には spec の URL と step を commit message に残してあるので、後から検証できる。
+実装側の修正には spec の URL と step を commit message に残してあるので、後から検証できる。
 
 ## 6. 証明の検査
 

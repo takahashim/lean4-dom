@@ -1,14 +1,19 @@
 # frozen_string_literal: true
 
-# Lean の oracle と Dommy の出力を突き合わせる。
+# Lean の oracle と、検査対象の実装の出力を突き合わせる。
 #
 #   ruby test/compare.rb DIR
 #
-# `DIR/<base>.lean.json` と `DIR/<base>.dommy.json` の組を比較する。
+# `DIR/<base>.lean.json` と `DIR/<base>.impl.json` の組を比較する。
 # 出力の生成は次のとおり。
 #
 #   dom-model --batch DIR
-#   bundle exec ruby test/dommy_runner.rb --batch DIR
+#   <実装の runner> --batch DIR
+#
+# **oracle は Lean の model だけである。** もう一方は準拠度を測られる側であって、
+# 食い違いは実装側の findings として扱う（多数決はしない。
+# `docs/threats-to-validity.md` の「Dommy の不一致」の判定を参照）。
+# 実装の名前は `IMPL_NAME` で差し替える。出力の表示に出るだけで、判定は変わらない。
 #
 # 比較対象は Lean 側の `Observation`（`Dom/Observation.lean`）である。
 # node の kind / parent / 順序付き children / node document / data、
@@ -28,6 +33,11 @@ module Compare
   OUTSIDE_MODEL = "__outsideModel__"
 
   module_function
+
+  # 表示に使う実装の名前。判定には効かない。
+  def impl_label
+    ENV.fetch("IMPL_NAME", "impl")
+  end
 
   # children から tree order（preorder）を導く。root は parent が nil の node。
   def tree_order(nodes)
@@ -90,50 +100,50 @@ module Compare
       ids.each do |id|
         x = na["nodes"].find { |n| n["id"] == id }
         y = nb["nodes"].find { |n| n["id"] == id }
-        details << "  node #{id}: lean=#{x.inspect} dommy=#{y.inspect}" if x != y
+        details << "  node #{id}: lean=#{x.inspect} #{impl_label}=#{y.inspect}" if x != y
       end
     end
     if na["treeOrder"] != nb["treeOrder"]
-      details << "  treeOrder: lean=#{na['treeOrder']} dommy=#{nb['treeOrder']}"
+      details << "  treeOrder: lean=#{na['treeOrder']} #{impl_label}=#{nb['treeOrder']}"
     end
     if na["walkers"] != nb["walkers"]
       na["walkers"].zip(nb["walkers"]).each_with_index do |(x, y), i|
-        details << "  walker #{i}: lean=#{x.inspect} dommy=#{y.inspect}" if x != y
+        details << "  walker #{i}: lean=#{x.inspect} #{impl_label}=#{y.inspect}" if x != y
       end
     end
     if na["observers"] != nb["observers"]
       na["observers"].zip(nb["observers"]).each_with_index do |(x, y), i|
-        details << "  observer #{i}: lean=#{x.inspect} dommy=#{y.inspect}" if x != y
+        details << "  observer #{i}: lean=#{x.inspect} #{impl_label}=#{y.inspect}" if x != y
       end
     end
     if na["invocations"] != nb["invocations"]
-      details << "  invocations: lean=#{na['invocations'].inspect} dommy=#{nb['invocations'].inspect}"
+      details << "  invocations: lean=#{na['invocations'].inspect} #{impl_label}=#{nb['invocations'].inspect}"
     end
     if na["delivered"] != nb["delivered"]
-      details << "  delivered: lean=#{na['delivered'].inspect} dommy=#{nb['delivered'].inspect}"
+      details << "  delivered: lean=#{na['delivered'].inspect} #{impl_label}=#{nb['delivered'].inspect}"
     end
     if na["returned"] != nb["returned"]
-      details << "  returned: lean=#{na['returned'].inspect} dommy=#{nb['returned'].inspect}"
+      details << "  returned: lean=#{na['returned'].inspect} #{impl_label}=#{nb['returned'].inspect}"
     end
     details.join("\n")
   end
 
   # 戻り値は [status, messages]。status は :match / :mismatch / :unsupported / :error。
-  def compare_outputs(lean, dommy)
+  def compare_outputs(lean, impl)
     messages = []
-    return [:error, ["Dommy 側でエラー: #{dommy['error']}"]] if dommy["error"]
+    return [:error, ["#{impl_label} 側でエラー: #{impl['error']}"]] if impl["error"]
 
     if (i = lean["invariantViolation"])
       messages << "step #{i} で model の invariant が破れている（model 側の不具合）"
     end
 
-    if (d = diff_state(lean["initial"], dommy["initial"]))
+    if (d = diff_state(lean["initial"], impl["initial"]))
       messages << "initial 状態が一致しない:\n#{d}"
       return [:mismatch, messages]
     end
 
     ls = lean["steps"]
-    ds = dommy["steps"]
+    ds = impl["steps"]
     unsupported = false
     [ls.size, ds.size].max.times do |i|
       l = ls[i]
@@ -141,28 +151,28 @@ module Compare
       if l && l["ok"] == false && l["exception"] == OUTSIDE_MODEL
         unsupported = true
         messages << "step #{i}: model の対象外なので比べられない" \
-                    "（dommy=#{d && (d['ok'] ? 'ok' : d['exception'])}）"
+                    "（#{impl_label}=#{d && (d['ok'] ? 'ok' : d['exception'])}）"
         break
       end
       if d && d["ok"] == false && d["exception"] == UNSUPPORTED
         unsupported = true
         messages << "step #{i}: この harness では比べられない" \
                     "（lean=#{l && (l['ok'] ? 'ok' : l['exception'])}" \
-                    "#{d['reason'] ? ", dommy=#{d['reason']}" : ''}）"
+                    "#{d['reason'] ? ", #{impl_label}=#{d['reason']}" : ''}）"
         break
       end
       if l.nil? || d.nil?
-        messages << "step #{i}: step 数が違う（lean=#{ls.size} dommy=#{ds.size}）"
+        messages << "step #{i}: step 数が違う（lean=#{ls.size} #{impl_label}=#{ds.size}）"
         return [:mismatch, messages]
       end
       if l["ok"] != d["ok"]
         messages << "step #{i}: 成否が違う（lean=#{l['ok'] ? 'ok' : l['exception']} " \
-                    "dommy=#{d['ok'] ? 'ok' : d['exception']}）"
+                    "#{impl_label}=#{d['ok'] ? 'ok' : d['exception']}）"
         return [:mismatch, messages]
       end
       unless l["ok"]
         if l["exception"] != d["exception"]
-          messages << "step #{i}: 例外が違う（lean=#{l['exception']} dommy=#{d['exception']}）"
+          messages << "step #{i}: 例外が違う（lean=#{l['exception']} #{impl_label}=#{d['exception']}）"
           return [:mismatch, messages]
         end
         # 失敗した操作は状態を変えてはならない。
@@ -189,19 +199,19 @@ module Compare
   # 「全部 ok」に見えてしまう。古い binary が新しい操作を知らないときがそれで、
   # 実際に findings 8 の scenario がまるごと消えたまま緑になったことがある。
   def compare_dir(dir)
-    inputs = Dir[File.join(dir, "*.json")].reject { |p| p.end_with?(".lean.json", ".dommy.json") }
+    inputs = Dir[File.join(dir, "*.json")].reject { |p| p.end_with?(".lean.json", ".impl.json") }
     inputs.sort.to_h do |input_path|
       base = File.basename(input_path, ".json")
       lean_path = File.join(dir, "#{base}.lean.json")
-      dommy_path = File.join(dir, "#{base}.dommy.json")
+      impl_path = File.join(dir, "#{base}.impl.json")
       missing = []
       missing << "#{base}.lean.json が無い（Lean 側がこの scenario を評価できなかった）" \
         unless File.exist?(lean_path)
-      missing << "#{base}.dommy.json が無い（Dommy 側がこの scenario を評価できなかった）" \
-        unless File.exist?(dommy_path)
+      missing << "#{base}.impl.json が無い（#{impl_label} 側がこの scenario を評価できなかった）" \
+        unless File.exist?(impl_path)
       result =
         if missing.empty?
-          compare_outputs(JSON.parse(File.read(lean_path)), JSON.parse(File.read(dommy_path)))
+          compare_outputs(JSON.parse(File.read(lean_path)), JSON.parse(File.read(impl_path)))
         else
           [:error, missing]
         end

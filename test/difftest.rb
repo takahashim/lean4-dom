@@ -1,25 +1,30 @@
 # frozen_string_literal: true
 
-# Lean の model と Dommy の differential testing の driver（PLAN §7）。
+# Lean の model と、検査対象の DOM 実装の differential testing の driver（PLAN §7）。
+#
+# **oracle は Lean の model だけである。** 実装側は準拠度を測られる相手であって、
+# 食い違いは実装の findings として扱う。実装は runner を差し替えて選ぶ。
 #
 #   ruby test/difftest.rb [--count N] [--seed N] [--nodes N] [--ops N]
 #                         [--move] [--all-ops] [--fixed-only]
 #   ruby test/difftest.rb --shrink FILE   # 既にある scenario を最小化する
 #
-# この script 自身は Dommy を読み込まない。Dommy 側の評価は別 process に投げる。
-# makiri を AddressSanitizer 付きで build している環境では、
+# この script 自身は実装を読み込まない。実装側の評価は別 process に投げる。
+# Dommy の makiri を AddressSanitizer 付きで build している環境では、
 # Dommy を読み込んだ process から fork できないためである。
 #
 # 環境変数
 #   DOM_MODEL  Lean の oracle を呼ぶ command
 #              （既定は .lake/build/bin/dom-model があればそれ、無ければ "lake exe dom-model"）
-#   DOMMY_CMD  Dommy の runner を呼ぶ command
-#              （既定 "bundle exec ruby test/dommy_runner.rb"）
+#   IMPL_CMD   検査対象の実装の runner を呼ぶ command
+#              （既定 "bundle exec ruby test/dommy_runner.rb"。
+#              古い名前 DOMMY_CMD も読む）
 #              ASan 付きの makiri を使う環境では次のように指定する。
-#                DOMMY_CMD="env LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.8 \
-#                           ASAN_OPTIONS=detect_leaks=0 bundle exec ruby test/dommy_runner.rb"
+#                IMPL_CMD="env LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.8 \
+#                          ASAN_OPTIONS=detect_leaks=0 bundle exec ruby test/dommy_runner.rb"
+#   IMPL_NAME  表示に使う実装の名前（既定 "impl"）。判定には効かない。
 #
-# 既定では、Dommy が実装している (kind, 操作) の組だけを生成する。
+# 既定では、実装が持っている (kind, 操作) の組だけを生成する。
 # `--all-ops` を付けると仕様上の全 API を生成するので、未実装の箇所が可視化される。
 # 不一致が見つかった scenario は最小化して `test/scenarios/` に保存する（PLAN §7.3）。
 # 最小化は「操作 → 生きている object → node → 文字列」の順に一つずつ落とし、
@@ -64,8 +69,13 @@ module Difftest
     [built]
   end
 
-  def dommy_command
-    (ENV["DOMMY_CMD"] || "bundle exec ruby #{File.join(__dir__, 'dommy_runner.rb')}").split
+  def impl_command
+    (ENV["IMPL_CMD"] || ENV["DOMMY_CMD"] ||
+      "bundle exec ruby #{File.join(__dir__, 'dommy_runner.rb')}").split
+  end
+
+  def impl_label
+    Compare.impl_label
   end
 
   def run!(cmd, allow_failure: false)
@@ -78,7 +88,7 @@ module Difftest
   end
 
   def capabilities
-    @capabilities ||= JSON.parse(run!(dommy_command + ["--capabilities"]).first)
+    @capabilities ||= JSON.parse(run!(impl_command + ["--capabilities"]).first)
   end
 
   def allow_lambda
@@ -89,7 +99,7 @@ module Difftest
   # DIR の scenario を両方の実装で評価して比較する。
   def evaluate(dir)
     run_batch(lean_command, dir, "Lean")
-    run_batch(dommy_command, dir, "Dommy")
+    run_batch(impl_command, dir, impl_label)
     Compare.compare_dir(dir)
   end
 
@@ -241,7 +251,7 @@ module Difftest
   #
   # node を落とすと children の index が動くので、range の両端の順序が
   # 入れ替わることがある。文字列を縮めると offset が length を超える。
-  # どちらも **Dommy では作れない初期状態**である（Dommy は `setStart` /
+  # どちらも **実装では作れない初期状態**である（実装は `setStart` /
   # `setEnd` を通すので、逆順の端点はその場で畳まれる）。
   # そのまま候補にすると、最小化が元の不一致を離れて
   # 「初期状態の作り方が違う」という別の不一致へ逃げてしまう。
@@ -317,14 +327,14 @@ module Difftest
     current
   end
 
-  # 仕様がその kind に定めている操作のうち、Dommy に無いもの。
+  # 仕様がその kind に定めている操作のうち、実装に無いもの。
   # 仕様上そもそも無い操作（Document の ChildNode method など）は挙げない。
   def missing_operations
     capabilities.to_h { |kind, ops| [kind, Generate::SPEC_OPS.fetch(kind, []) - ops] }
   end
 
   def report_capabilities
-    puts "仕様がその kind に定めている操作のうち、Dommy に無いもの:"
+    puts "仕様がその kind に定めている操作のうち、#{impl_label} に無いもの:"
     missing_operations.each do |kind, missing|
       puts format("  %-22s %s", kind, missing.empty? ? "(なし)" : missing.join(", "))
     end
@@ -372,10 +382,10 @@ if $PROGRAM_NAME == __FILE__
 
   scenarios_dir = File.join(__dir__, "scenarios")
   all_fixed = Dir[File.join(scenarios_dir, "*.json")].reject do |p|
-    p.end_with?(".lean.json", ".dommy.json")
+    p.end_with?(".lean.json", ".impl.json")
   end.sort
   # `_basis.comparable` が false の scenario は model 固有の近似を固定するためのもので、
-  # Dommy と突き合わせる対象ではない（`docs/traceability.md` の「対象外」を参照）。
+  # 実装と突き合わせる対象ではない（`docs/traceability.md` の「対象外」を参照）。
   model_only, fixed = all_fixed.partition do |p|
     JSON.parse(File.read(p)).dig("_basis", "comparable") == false
   rescue StandardError

@@ -3,7 +3,8 @@
 # Dommy 側の scenario runner。
 #
 # lean4-dom の `lake exe dom-model SCENARIO.json` と同じ形式の JSON を標準出力に書く。
-# 比較は test/compare.rb が行う。
+# `--batch DIR` では `DIR/<base>.impl.json` に書く。比較は test/compare.rb が行う。
+# 実装ごとに runner を用意して差し替える形なので、この file は Dommy 専用である。
 #
 #   bundle exec ruby test/dommy_runner.rb SCENARIO.json
 #
@@ -904,10 +905,10 @@ module DommyRunner
 
   # 出力 file は入力として扱わない。
   def scenario_file?(path)
-    path.end_with?(".json") && !path.end_with?(".lean.json") && !path.end_with?(".dommy.json")
+    path.end_with?(".json") && !path.end_with?(".lean.json") && !path.end_with?(".impl.json")
   end
 
-  # `DIR/*.json` をまとめて評価し、それぞれ `DIR/<base>.dommy.json` に書く。
+  # `DIR/*.json` をまとめて評価し、それぞれ `DIR/<base>.impl.json` に書く。
   #
   # makiri を ASan 付きで build している環境では、この process から fork できない。
   # Lean の oracle を別 process として起動するのは driver 側の仕事にして、
@@ -925,7 +926,7 @@ module DommyRunner
           failed = 1
           { "error" => "#{e.class}: #{e.message}" }
         end
-      File.write(File.join(dir, "#{base}.dommy.json"), JSON.generate(out))
+      File.write(File.join(dir, "#{base}.impl.json"), JSON.generate(out))
     end
     failed
   end

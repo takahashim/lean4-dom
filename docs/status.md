@@ -2863,6 +2863,20 @@ fragment 自身が誰かの子になることは無い。
 生成器は fragment を子にしないので（`CHILD_KINDS` に入っていない）、
 差分テストへの影響は無かった。固定 scenario も生成 scenario も結果は変わらない。
 
+## 差分テストの名前を実装から切り離した
+
+jsdom や happy-dom のような別の実装も同じ scenario で測れるように、
+harness の名前を汎用にした。
+
+* `<base>.dommy.json` → `<base>.impl.json`
+* `DOMMY_CMD` → `IMPL_CMD`（古い名前も読む）
+* 表示に使う名前は `IMPL_NAME`（既定 `impl`）。判定には効かない
+
+**oracle は Lean の model だけである。** 実装を並べても多数決はしない。
+model が仕様の翻訳として正しいかは関係意味論と soundness、
+`docs/traceability.md` の step 対応で担保するものであって、
+実装の同意で決めるものではない。`docs/threats-to-validity.md` の §5 にそう書いた。
+
 ### 次
 
 completeness の実現性（関係が満たせるなら実行関数は失敗しない）を
