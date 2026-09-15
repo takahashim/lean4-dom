@@ -40,7 +40,7 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | MutationObserver の callback 本体 | callback は model の外。どの observer にどの record が配送されるかまでは比べる |
 | `NodeFilter` の callback | 同じく callback なので filter は常に null。`whatToShow` は純粋なので扱う |
 | `Attr` を node として扱う API | model の attribute は element の状態で、node tree に入らない |
-| node の生成 | `createElement` などは扱わない。element の namespace と local name は scenario が与える |
+| node の生成 | model は §4.5 の factory と §4.4 の `cloneNode` を持つが、harness の比較対象には入れていない。scenario の element の namespace と local name は初期状態が与える |
 | Shadow tree | 対象外 |
 | custom element / insertion steps / removing steps | hook の位置だけを保っている |
 

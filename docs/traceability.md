@@ -300,6 +300,23 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 `comparable` が false の scenario は model 固有の近似を固定するためのもので、
 差分比較の対象ではない。`_basis` にその旨を書く。
 
+## §4.5 Document の factory / §4.4 `cloneNode`
+
+差分テストにはまだ出していない（下の「未対応と対象外」の「node 生成」を参照）。
+Scenario 欄が空なのはそのためである。
+
+| Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| createElement | 1 valid element local name / 2 HTML document なら ASCII lowercase / 4 HTML document なら HTML namespace | `createElement`, `requireDocument`, `withFresh` | effect `createElement_creates`、preservation `admissible_createsNode` | — | — | 済（custom element の step 3 と 5 は対象外） |
+| createElementNS | validate and extract（context は "element"）してから element を作る | `createElementNS`, `validateAndExtractElement` | effect `createElementNS_creates` | — | — | 済 |
+| createTextNode / createComment / createDocumentFragment | node を一つ作り node document を this にする | `createTextNode`, `createComment`, `createDocumentFragment` | effect `createTextNode_creates` ほか | — | — | 済 |
+| clone a single node | 2 element は create an element で / 3 それ以外は同じ interface で / 3.1 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNode_shallow_spec` | — | — | 済（shadow root の step 1 と custom element は対象外） |
+| clone a node | 1-2 copy を作る / 3 deep なら children を tree order で clone して copy に append | `cloneNode`, `cloneMany` | `cloneNode_cloneOf`（同じ形）、`cloneNode_ne`（別の id）、`cloneNode_treeOnly` と `cloneNode_keep`（frame） | — | — | 済（妥当性の保存は未） |
+
+model は children の copy が揃ってから copy を木に入れる。仕様の順（copy を入れてから
+append）とは違うが、作っている最中の copy はどこからも参照されていないので
+観測できる違いは無い。`docs/status.md` の「clone を入れた」を参照。
+
 ## 未対応と対象外
 
 | 項目 | 扱い | 根拠 |
@@ -310,7 +327,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | roadmap §13.1。長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |
-| node 生成と可変長引数の変換 | 対象外 | roadmap §13.2。node は scenario が初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
+| node 生成と可変長引数の変換 | 部分対応 | roadmap §13.2。§4.5 の factory と §4.4 の `cloneNode` は model にあるが、差分テストの scenario にはまだ出していない。scenario の node は初期状態として与える（element の namespace と local name も含めて）。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | method の戻り値 | 済 | `returnValueOf`（`Dom/Exec/Eval.lean`）。`Node?` / boolean / record 列を kind つきで観測する。`undefined` と `null` は区別する |
 | wrapper の object identity | 対象外 | roadmap §13.3。model は node を生成しないので wrapper を作る API の同一性は観測できない。node を返す method の戻り値は `NodeId` で比べるので「返ってきたのは渡した node そのものか」は観測できる |
 | `normalize()` の record の並び | engine に合わせた | 仕様を字義どおり読むと run ごとに characterData が一つだが、Blink・WebCore・Gecko は兄弟ごとに積む。WPT が固定しているのは childList の側だけである。木と live range の最終状態はどちらの読みでも同じ |

@@ -53,6 +53,8 @@ import Dom.Properties.Contract
 import Dom.Mutation.Create
 import Dom.Properties.Create
 import Dom.Validity.Create
+import Dom.Mutation.Clone
+import Dom.Properties.Clone
 import Dom.Spec.Remove
 import Dom.Spec.RemoveSound
 import Dom.Spec.RemoveDeterministic

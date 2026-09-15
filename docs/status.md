@@ -3249,12 +3249,58 @@ children に限った版（`documentChildrenOk_congr_of_children`）を別に置
 
 `createProcessingInstruction` と `createCDATASection`。前者の target は仕様が
 Name production を参照しており、model はその production を持たない。
-`cloneNode` / `importNode` / `adoptNode`（roadmap §8.4-8.5）はこの次である。
+
+## clone を入れた（roadmap §8.4）
+
+§4.4 の `cloneNode(deep)` と、その土台の "clone a single node"。
+roadmap が求めた二つ、**identity は違う**と**観測できる形は同じ**を分けて証明した。
+
+| roadmap §8.4 | theorem |
+| --- | --- |
+| clone ≠ original | `cloneNode_ne`（`cloneNode_fresh` 経由） |
+| observable subtree contents are equivalent | `cloneNode_cloneOf` |
+
+`CloneOf t n c` が「同じ形」を述べる。見るのは `NodeData.shape`（parent・children・
+node document を落とした残り）と data、そして children の並びである。`NodeId` は見ない。
+だから `CloneOf t n n` も成り立つ。identity が違うことは別の定理が言う。
+実装では「同じ object か」と「同じ内容か」が同じ `==` の裏に隠れやすいので、
+この二つを分けて書けること自体が、node を id で表した model の効き目である。
+
+### children が揃ってから木に入れる
+
+仕様の "clone a node" は copy を作ってから parent に append し、deep なら
+children を clone してその copy に append する。model は逆で、**children の copy が
+揃ってから copy を木に入れる**。一度入れた node を後から書き換えないので、
+「新しく足すだけ」という frame がそのまま使える。
+
+観測できる違いは無い。作っている最中の copy はどこからも参照されていない
+（live range も `NodeIterator` も registered observer も原本の側を指す）ので、
+途中経過を読む手段が無い。
+
+その代わり、新しい id は `freshId`（木から導く）では足りない。まだ木に入っていない
+copy の id も使用済みとして数える必要があるからである。`cloneMany` は
+**counter を引数で持ち回る**。`cloneNode` が渡す最初の値は `(freshId s.tree).id` で、
+取れる id はどれも木にある id より大きい。この「新しさ」は `CloneManySpec` の
+`newIds` と `kidsFresh` が述べ、入れ子の呼び出しが外側の copy の id を踏まないことを
+そこから出す。
+
+### Document の clone
+
+仕様の step 3.1 により、Document を clone した copy の node document は copy 自身であり、
+その subtree の copy もそちらに属する（`cloneDocumentOf`）。
+
+### まだ無いもの
+
+**妥当性の保存。** deep clone は parent-child の辺を持つ subtree を丸ごと足すので、
+`AddsNode` / `FreshNodeData`（node 一つ・辺なし・attribute なし・Document でない）は
+そのままでは使えない。`checkAdmissibleDOMState` は手元の例では通るが、証明はこの次である。
+
+差分テストにも出していない。`docs/threats-to-validity.md` §3 の「node の生成」が
+`createElement` などと同じくまだ比較対象の外にある。
 
 ### 次
 
-`cloneNode` を入れて、identity と structural equivalence の違いを形式化する。
-そのあと `importNode` / `adoptNode`。
+deep clone の妥当性保存。そのあと `importNode` / `adoptNode`（roadmap §8.5）。
 
 ## 生成 scenario の最小化を広げた
 
