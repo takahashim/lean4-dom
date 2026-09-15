@@ -230,6 +230,69 @@ theorem cxSize_lt_lSize : ∀ (l : List Complex) (c : Complex), c ∈ l -> cxSiz
       have := cxSize_pos x
       omega
 
+/-! ## `:scope` を含まない selector
+
+`matchSimple` が `ctx.scope` を読むのは `Simple.scope` の枝だけである。
+だから `:scope` を含まない selector は scoping root に依らない。
+`Dom/Selector/Spec.lean` の `matchSelList_scope_irrelevant` がそれを言う。
+-/
+
+/-- `:scope` そのものか。featureless な node に当たるのはこれだけである。 -/
+def isScopeSelector : Simple -> Bool
+  | .scope => true
+  | _ => false
+
+mutual
+
+def scopeFreeS : Simple -> Bool
+  | .scope => false
+  | .nth _ _ o => scopeFreeO o
+  | .isSel l => scopeFreeL l
+  | .whereSel l => scopeFreeL l
+  | .notSel l => scopeFreeL l
+  | .has l => scopeFreeL l
+  | _ => true
+
+def scopeFreeO : Option (List Complex) -> Bool
+  | none => true
+  | some l => scopeFreeL l
+
+def scopeFreeCp : List Simple -> Bool
+  | [] => true
+  | s :: rest => scopeFreeS s && scopeFreeCp rest
+
+def scopeFreeCx : Complex -> Bool
+  | .one p => scopeFreeCp p
+  | .seq p _ l => scopeFreeCp p && scopeFreeCx l
+
+def scopeFreeL : List Complex -> Bool
+  | [] => true
+  | c :: rest => scopeFreeCx c && scopeFreeL rest
+
+end
+
+theorem isScopeSelector_eq_false {s : Simple} (h : scopeFreeS s = true) :
+    isScopeSelector s = false := by
+  cases s <;> simp [isScopeSelector] <;> simp [scopeFreeS] at h
+
+theorem scopeFreeS_of_mem : ∀ (l : List Simple) (s : Simple),
+    s ∈ l -> scopeFreeCp l = true -> scopeFreeS s = true
+  | [], _, h, _ => absurd h (by simp)
+  | x :: rest, s, h, hf => by
+    rw [scopeFreeCp, Bool.and_eq_true] at hf
+    rcases List.mem_cons.mp h with rfl | hrest
+    · exact hf.1
+    · exact scopeFreeS_of_mem rest s hrest hf.2
+
+theorem scopeFreeCx_of_mem : ∀ (l : List Complex) (c : Complex),
+    c ∈ l -> scopeFreeL l = true -> scopeFreeCx c = true
+  | [], _, h, _ => absurd h (by simp)
+  | x :: rest, c, h, hf => by
+    rw [scopeFreeL, Bool.and_eq_true] at hf
+    rcases List.mem_cons.mp h with rfl | hrest
+    · exact hf.1
+    · exact scopeFreeCx_of_mem rest c hrest hf.2
+
 /-! ## 照合
 
 `List.attach` を使うのは、selector list の要素が元の list に属することを
@@ -274,10 +337,7 @@ def matchSimple (ctx : MatchCtx) (s : Simple) (n : NodeId) : Bool :=
   | none => false
   | some d =>
     -- element でない node は featureless である。`:scope` だけが当たる。
-    if d.kind != NodeKind.element then
-      match s with
-      | .scope => ctx.scope == some n
-      | _ => false
+    if d.kind != NodeKind.element then isScopeSelector s && ctx.scope == some n
     else
       match s with
       | .typeSel name => typeHolds ctx.tree d name

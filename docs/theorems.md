@@ -325,6 +325,57 @@ pre-insert validity、`append` の中の `adopt` と `insertAt`）で、妥当�
 条件が自分で自分を保つ。最初にそれが成り立つのは、繋いだ列が原本の children の
 kind 列そのものだからである。
 
+## 16. selector の API が満たすこと
+
+| 定理 | module |
+| --- | --- |
+| `Dom.querySelector_eq_head` ほか | `Dom/Selector/Spec.lean` |
+
+```lean
+theorem querySelector_eq_head (t : Tree) (selectors : String) (node : NodeId) :
+    querySelector t selectors node = (querySelectorAll t selectors node).map List.head?
+
+theorem matchTree_sublist (t : Tree) (sel : SelectorList) (node : NodeId) :
+    (matchTree t sel node).Sublist (preorder t node)
+
+theorem mem_matchTree_iff (hwf : WellFormed t) {node : NodeId} {d : NodeData}
+    (hn : t.get? node = some d) (sel : SelectorList) (e : NodeId) :
+    e ∈ matchTree t sel node ↔
+      Descendant t e node ∧ isElementNode t e = true ∧
+        matchSelList { tree := t, scope := some node } sel e = true
+```
+
+`querySelectorAll()` の結果は候補列（`preorder`）の部分列なので **tree order に並ぶ**。
+`preorder_nodup` と合わせて **重複が無い**（`matchTree_nodup`）。
+入るのはちょうど「scoping root の descendant である element で selector に当たるもの」である。
+
+`closest()` については、返るのが inclusive ancestor である element で selector に当たること
+（`closest_spec`）、**それより近いものは当たらないこと**（`closest_first`）、
+当たるものが無いときだけ null を返すこと（`closest_eq_none_iff`）を示してある。
+
+## 17. scoping root が見えるのは `:scope` からだけ
+
+| 定理 | module |
+| --- | --- |
+| `Dom.scope_irrelevant` / `Dom.mem_matchTree_iff_matches` | `Dom/Selector/Spec.lean` |
+
+```lean
+theorem matchSelList_scope_irrelevant {t : Tree} {s₁ s₂ a : Option NodeId}
+    {l : List Complex} {n : NodeId} (hf : scopeFreeL l = true) :
+    matchSelList ⟨t, s₁, a⟩ l n = matchSelList ⟨t, s₂, a⟩ l n
+```
+
+`matchSimple` が `ctx.scope` を読むのは `Simple.scope` の枝だけなので、
+そこを塞げば scoping root は観測できない。
+
+これが要るのは `matches()` と `querySelectorAll()` を繋ぐためである。前者の scoping root は
+element 自身、後者は受け手なので、`:scope` を含む selector では両者が食い違う。
+含まなければ一致する（`mem_matchTree_iff_matches`）。
+
+照合は四つの相互再帰なので functional induction が作れない
+（`:nth-child(... of S)` の `filter` に再帰呼び出しが入るため）。代わりに
+selector の大きさについての強い帰納法で、四つの命題を同時に示している。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

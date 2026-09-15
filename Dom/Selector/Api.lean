@@ -14,19 +14,25 @@ namespace Dom
 open Selectors
 
 /--
-DOM Standard §1.3 "scope-match a selectors string"。
+Selectors Level 4 §17.3 "match a selector against a tree"。
 
-候補は `node` の root の inclusive descendant のうち element であるもので、
-scoping root `node` の descendant に絞る。つまり `node` 自身は入らない。
+step 1 の候補は root element とその descendant すべてを tree order に並べたもので、
+ここでは `node` の root からではなく `node` から下だけを見れば足りる。
+scoping root は `node` なので、step 2 でそれ以外は落ちるからである。
+step 2 は `e != node` と `isElementNode` の二つで表す。`node` 自身は
+descendant ではないので候補に入らない。
 -/
+def matchTree (t : Tree) (sel : SelectorList) (node : NodeId) : List NodeId :=
+  let ctx : MatchCtx := { tree := t, scope := some node }
+  ((preorder t node).filter (fun e => e != node && isElementNode t e)).filter
+    (fun e => matchSelList ctx sel e)
+
+/-- DOM Standard §1.3 "scope-match a selectors string"。 -/
 def scopeMatch (t : Tree) (selectors : String) (node : NodeId) :
     Except DOMException (List NodeId) :=
   match parseSelector selectors with
   | none => .error .syntaxError
-  | some sel =>
-    let ctx : MatchCtx := { tree := t, scope := some node }
-    let cands := (preorder t node).tail.filter (isElementNode t)
-    .ok (cands.filter (fun e => matchSelList ctx sel e))
+  | some sel => .ok (matchTree t sel node)
 
 /--
 receiver が `ParentNode`（Document / DocumentFragment / Element）か検査する。
@@ -48,23 +54,38 @@ def requireElementNode (t : Tree) (node : NodeId) : Except DOMException Unit :=
 
 /-- §4.2.6 `ParentNode.querySelector()`。 -/
 def querySelector (t : Tree) (selectors : String) (node : NodeId) :
-    Except DOMException (Option NodeId) := do
-  let _ <- requireParentNode t node
-  return (<- scopeMatch t selectors node).head?
+    Except DOMException (Option NodeId) :=
+  match requireParentNode t node with
+  | .error e => .error e
+  | .ok _ =>
+    match scopeMatch t selectors node with
+    | .error e => .error e
+    | .ok l => .ok l.head?
 
 /-- §4.2.6 `ParentNode.querySelectorAll()`。 -/
 def querySelectorAll (t : Tree) (selectors : String) (node : NodeId) :
-    Except DOMException (List NodeId) := do
-  let _ <- requireParentNode t node
-  scopeMatch t selectors node
+    Except DOMException (List NodeId) :=
+  match requireParentNode t node with
+  | .error e => .error e
+  | .ok _ => scopeMatch t selectors node
 
 /-- §4.8 `Element.matches()`。scoping root は element 自身である。 -/
 def matchesSelector (t : Tree) (selectors : String) (element : NodeId) :
-    Except DOMException Bool := do
-  let _ <- requireElementNode t element
-  match parseSelector selectors with
-  | none => .error .syntaxError
-  | some sel => .ok (matchSelList { tree := t, scope := some element } sel element)
+    Except DOMException Bool :=
+  match requireElementNode t element with
+  | .error e => .error e
+  | .ok _ =>
+    match parseSelector selectors with
+    | none => .error .syntaxError
+    | some sel => .ok (matchSelList { tree := t, scope := some element } sel element)
+
+/--
+`closest()` が見る列。自分から root へ向かう inclusive ancestor のうち element。
+
+tree order の逆に並ぶので、先頭にあるものほど `element` に近い。
+-/
+def inclusiveAncestorElements (t : Tree) (n : NodeId) : List NodeId :=
+  (n :: ancestors t n).filter (isElementNode t)
 
 /--
 §4.8 `Element.closest()`。
@@ -72,13 +93,14 @@ def matchesSelector (t : Tree) (selectors : String) (element : NodeId) :
 inclusive ancestor を tree order の逆、つまり自分から root へ向かって見る。
 -/
 def closest (t : Tree) (selectors : String) (element : NodeId) :
-    Except DOMException (Option NodeId) := do
-  let _ <- requireElementNode t element
+    Except DOMException (Option NodeId) :=
+  match requireElementNode t element with
+  | .error e => .error e
+  | .ok _ =>
   match parseSelector selectors with
   | none => .error .syntaxError
   | some sel =>
     let ctx : MatchCtx := { tree := t, scope := some element }
-    let chain := (element :: ancestors t element).filter (isElementNode t)
-    .ok (chain.find? (fun e => matchSelList ctx sel e))
+    .ok ((inclusiveAncestorElements t element).find? (fun e => matchSelList ctx sel e))
 
 end Dom

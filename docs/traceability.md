@@ -365,9 +365,10 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | `parse a selector` | Selectors §19.1 | `parseSelector`（`Selectors/Parser.lean`） | `dropToComma_size`, `splitAtOf_size`（停止性） | `universal-selector-takes-subclasses`, `id-selector-needs-an-identifier` | 部分（namespace prefix と pseudo-element は対象外） |
 | `<a-n-plus-b>` | CSS Syntax §9.2 | `parseAnB` | — | `structural-pseudo-classes-count-elements` | 済 |
 | match a selector against an element | Selectors §17.1 | `matchSelList`（`Dom/Selector/Match.lean`） | `sSize_lt_cpSize`, `cxSize_lt_lSize`（停止性） | `structural-pseudo-classes-count-elements`, `attribute-selectors-compare-values` | 部分（状態の pseudo-class は対象外） |
-| match a selector against a tree / scope-match a selectors string | Selectors §17.3 / DOM §1.3 | `scopeMatch`（`Dom/Selector/Api.lean`） | — | `query-selector-finds-in-tree-order`, `scope-pseudo-is-the-scoping-root` | 済 |
-| `querySelector(selectors)` / `querySelectorAll(selectors)` | DOM §4.2.6 | `querySelector`, `querySelectorAll` | `admissible_mapConst` | `query-selector-finds-in-tree-order` | 済 |
-| `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | 同上 | `matches-and-closest-walk-up` | 済 |
+| match a selector against a tree / scope-match a selectors string | Selectors §17.3 / DOM §1.3 | `matchTree`, `scopeMatch`（`Dom/Selector/Api.lean`） | `matchTree_sublist`, `matchTree_nodup`, `mem_matchTree_iff` | `query-selector-finds-in-tree-order`, `scope-pseudo-is-the-scoping-root` | 済 |
+| `querySelector(selectors)` / `querySelectorAll(selectors)` | DOM §4.2.6 | `querySelector`, `querySelectorAll` | `admissible_mapConst`, `querySelector_eq_head`, `querySelectorAll_eq_matchTree` | `query-selector-finds-in-tree-order` | 済 |
+| `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | `matchesSelector_eq`, `closest_spec`, `closest_first`, `closest_eq_none_iff`, `closest_self`, `mem_matchTree_iff_matches` | `matches-and-closest-walk-up` | 済 |
+| `:scope` が scoping root を表すこと | Selectors §8.2 | `Simple.scope` | `scope_irrelevant`, `matchSelList_scope_irrelevant` | `scope-pseudo-is-the-scoping-root` | 済 |
 
 ## 仕様改訂時の手順
 

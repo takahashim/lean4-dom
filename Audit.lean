@@ -765,3 +765,21 @@ open Dom.Audit
 #audit_axioms
   Dom.sSize_lt_cpSize
   Dom.cxSize_lt_lSize
+
+-- selector の API が満たすこと
+#audit_axioms
+  Dom.querySelector_eq_head
+  Dom.querySelectorAll_eq_matchTree
+  Dom.matchTree_sublist
+  Dom.matchTree_nodup
+  Dom.mem_matchTree_iff
+  Dom.isElement_of_mem_matchTree
+  Dom.mem_inclusiveAncestorElements_iff
+  Dom.closest_spec
+  Dom.closest_first
+  Dom.closest_eq_none_iff
+  Dom.closest_self
+  Dom.scope_irrelevant
+  Dom.matchSelList_scope_irrelevant
+  Dom.matchesSelector_eq
+  Dom.mem_matchTree_iff_matches

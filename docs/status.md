@@ -3754,6 +3754,19 @@ parent としてふるまう」ものとして扱い、`df.querySelectorAll(":sc
 失敗しなければならない。jsdom は `SyntaxError` を投げる。Dommy は通す。
 `test/scenarios/id-selector-needs-an-identifier.json`。
 
+### 契約
+
+停止性だけでなく、API が満たすことも定理にしてある（`Dom/Selector/Spec.lean`、
+`docs/theorems.md` の 16・17）。`querySelectorAll()` の結果が tree order の部分列で
+重複を持たないこと、そこに入るのがちょうど「scoping root の descendant である
+element で selector に当たるもの」であること、`closest()` が返すものより近い
+inclusive ancestor は当たらないこと、そして **scoping root が観測できるのは
+`:scope` を通してだけ**であること。
+
+最後のものが要るのは `matches()` と `querySelectorAll()` を繋ぐためである。
+前者の scoping root は element 自身、後者は受け手なので、`:scope` を含む selector では
+両者が食い違う。含まなければ一致する。
+
 ### 差分テストの現状
 
 固定 scenario 108 本のうち、Dommy に対しては findings 12-17 と 19-21、
