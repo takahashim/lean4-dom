@@ -3907,6 +3907,30 @@ findings として赤くしてある不一致は、model 側を間違えると�
 **この誤りは定理が見つけたのではなく、関係を書くために仕様を読み直して見つかった。**
 `test/scenarios/has-cannot-be-nested.json`。
 
+### 五度目：規範的な記述を節ごとに読み直す
+
+四度目で「仕様の読み直しが効く」と分かったので、範囲内の節から
+「must」「not valid」「cannot」の類を拾って model と突き合わせた。
+`:is()` `:where()` `:not()` `:has()` の節でもう一つ **model 側の誤り**が出た。
+
+`<relative-selector-list>` は `<relative-selector>#` で空を許さず、
+`<relative-selector>` は `<combinator>? <complex-selector>` なので combinator だけでも
+通らない。model は `:has()` と `:has(>)` を通していた。原因は、relative selector の
+anchor を **走査の始めに置いていた**ことである。compound が一つも無くてもその anchor
+だけで complex selector が出来上がってしまう。最初の compound を閉じるときに置くよう直した。
+`test/scenarios/has-argument-cannot-be-empty.json` と
+`has-argument-needs-a-compound.json`。
+
+### findings 25：forgiving な list が空の項目で例外になる（jsdom）
+
+`:is()` と `:where()` は `<forgiving-selector-list>` を取り、読めなかった項目を捨てる。
+`:is(,)` や `:is(p,)` の空の項目も読めない項目なので捨てるだけで、selector 全体は通る
+（`:is()` は「valid but matches nothing」と仕様が明記している）。jsdom は `SyntaxError` を投げる。
+逆に `:has(>)` は combinator だけで complex selector が無いのに通してしまう。
+Dommy はどちらも model と一致する。
+`test/scenarios/forgiving-selector-list-drops-bad-items.json` と
+`has-argument-needs-a-compound.json`。
+
 ### findings 24：`[att]` が namespace 付きの attribute に当たる（Dommy / jsdom）
 
 Selectors §6.2 は「namespace 成分の無い attribute selector は **namespace を持たない

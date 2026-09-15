@@ -1,0 +1,21 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#grammar",
+    "algorithm": [":has()"],
+    "steps": "<relative-selector> = <combinator>? <complex-selector>。combinator は省略できるが complex selector は要る",
+    "note": "`:has(>)` は combinator だけなので通らない。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "div" },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "p" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:has(> p)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:has(~ p)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:has(>)" }
+  ]
+}

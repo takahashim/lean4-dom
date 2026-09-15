@@ -292,20 +292,27 @@ structure ScanSt where
   /-- いま作っている compound。逆順。 -/
   parts : List Simple
 
-def initSt (cfg : ScanCfg) (done : List Complex) : ScanSt :=
-  { done := done
-    cur := if cfg.relative then some (.one [.anchor]) else none
-    pend := none
-    parts := [] }
+def initSt (_cfg : ScanCfg) (done : List Complex) : ScanSt :=
+  { done := done, cur := none, pend := none, parts := [] }
 
-/-- 組み立て中の compound を閉じる。まだ何も読んでいなければ何もしない。 -/
-def flush (st : ScanSt) : Option ScanSt :=
+/--
+組み立て中の compound を閉じる。まだ何も読んでいなければ何もしない。
+
+relative selector（`:has()` の引数）では、**最初の compound を閉じるときに**
+anchor を左に置く。初めから置いてしまうと `:has()` や `:has(>)` のように
+compound が一つも無いものまで通ってしまう。仕様の `<relative-selector-list>` は
+`<relative-selector>#` で、空は許さない。
+-/
+def flush (cfg : ScanCfg) (st : ScanSt) : Option ScanSt :=
   match st.parts with
   | [] => some st
   | _ =>
     match st.cur with
     | none =>
-      if st.pend.isSome then none
+      if cfg.relative then
+        let left := Complex.seq st.parts.reverse (st.pend.getD .descendant) (.one [.anchor])
+        some { st with cur := some left, parts := [], pend := none }
+      else if st.pend.isSome then none
       else some { st with cur := some (.one st.parts.reverse), parts := [] }
     | some c =>
       let left := Complex.seq st.parts.reverse (st.pend.getD .descendant) c
@@ -313,7 +320,7 @@ def flush (st : ScanSt) : Option ScanSt :=
 
 /-- 一つの complex selector を閉じて `done` に積む。 -/
 def finishComplex (cfg : ScanCfg) (st : ScanSt) : Option ScanSt :=
-  match flush st with
+  match flush cfg st with
   | none => none
   | some st' =>
     if st'.pend.isSome then none
@@ -334,7 +341,7 @@ def scan (cfg : ScanCfg) (st : ScanSt) : List Component -> Option SelectorList
     | some st' => some st'.done.reverse
     | none => if cfg.forgiving then some st.done.reverse else none
   | .tok .whitespace :: rest =>
-    match flush st with
+    match flush cfg st with
     | some st' => scan cfg st' rest
     | none => if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
   | .tok .comma :: rest =>
@@ -345,7 +352,7 @@ def scan (cfg : ScanCfg) (st : ScanSt) : List Component -> Option SelectorList
     if d == CH_GT || d == CH_PLUS || d == CH_TILDE then
       let k : Combinator :=
         if d == CH_GT then .child else if d == CH_PLUS then .nextSibling else .subsequentSibling
-      match flush st with
+      match flush cfg st with
       | some st' =>
         if st'.pend.isSome then
           if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none

@@ -1,0 +1,26 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#matches",
+    "algorithm": [":is()", ":where()", "parse as a forgiving selector list"],
+    "steps": "読めなかった項目を捨てる。残りが空でも「valid but matches nothing」である。:not() は forgiving ではない",
+    "note": "空の項目（`,` だけ、末尾の `,`）も読めない項目として捨てる。`:not()` は <complex-real-selector-list> なので空は許さない。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "p" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "div" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": ":is()" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":where()" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":is(,)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":is(p,)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":is(p, %%%)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":where(%%%, div)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":is(p):is(div)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":not()" }
+  ]
+}
