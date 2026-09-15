@@ -263,10 +263,10 @@ theorem transientAdded_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
   exact fun r => ⟨key s₁ s₂ h₁ h₂ r, key s₂ s₁ h₂ h₁ r⟩
 
 /-- record queue・pending・microtask も一つに決まる。 -/
-theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
-    {oldPrev oldNext : Option NodeId} {suppress : Bool}
-    (h₁ : RecordQueued s s₁ node parent oldPrev oldNext suppress)
-    (h₂ : RecordQueued s s₂ node parent oldPrev oldNext suppress) :
+theorem treeRecordQueued_unique {s s₁ s₂ : DOMState} {target : NodeId}
+    {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
+    (h₁ : TreeRecordQueued s s₁ target added removed oldPrev oldNext suppress)
+    (h₂ : TreeRecordQueued s s₂ target added removed oldPrev oldNext suppress) :
     (∀ mo : Nat, (s₁.observers[mo]?).map (·.records) = (s₂.observers[mo]?).map (·.records)) ∧
       (∀ mo : Nat, mo ∈ s₁.pendingObservers ↔ mo ∈ s₂.pendingObservers) ∧
       s₁.microtaskQueued = s₂.microtaskQueued := by
@@ -297,7 +297,7 @@ theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
       rw [hoa, hob]
       simp only [Option.map_some, Option.some.injEq]
       exact hrec mo o oa ho hoa ob hob
-  unfold RecordQueued TreeRecordQueued at h₁ h₂
+  unfold TreeRecordQueued at h₁ h₂
   split at h₁
   · next hsup =>
     rw [if_pos hsup] at h₂
@@ -312,7 +312,7 @@ theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
     obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁⟩ := h₁
     obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂⟩ := h₂
     refine ⟨common s₁ s₂ hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_, ?_⟩
-    · by_cases hint : InterestedInChildList s mo parent
+    · by_cases hint : InterestedInChildList s mo target
       · rw [(hr₁ mo o oa ho hoa).1 hint, (hr₂ mo o ob ho hob).1 hint]
       · rw [(hr₁ mo o oa ho hoa).2 hint, (hr₂ mo o ob ho hob).2 hint]
     · intro mo
@@ -326,6 +326,16 @@ theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
         · exact hkeep₁ mo hold
         · exact hin₁ mo hint
     · rw [hm₁, hm₂]
+
+/-- `remove` の step 21 についての言い換え。 -/
+theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
+    {oldPrev oldNext : Option NodeId} {suppress : Bool}
+    (h₁ : RecordQueued s s₁ node parent oldPrev oldNext suppress)
+    (h₂ : RecordQueued s s₂ node parent oldPrev oldNext suppress) :
+    (∀ mo : Nat, (s₁.observers[mo]?).map (·.records) = (s₂.observers[mo]?).map (·.records)) ∧
+      (∀ mo : Nat, mo ∈ s₁.pendingObservers ↔ mo ∈ s₂.pendingObservers) ∧
+      s₁.microtaskQueued = s₂.microtaskQueued :=
+  treeRecordQueued_unique h₁ h₂
 
 /-! ## まとめ -/
 

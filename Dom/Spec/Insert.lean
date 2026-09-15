@@ -27,12 +27,6 @@ def NodesToInsert (t : Tree) (node : NodeId) (nodes : List NodeId) : Prop :=
 
 /-! ## step 4：DocumentFragment を空にする -/
 
-/-- 列を順に remove する。 -/
-inductive RemoveEachSpec : DOMState → List NodeId → Bool → DOMState → Prop where
-  | nil {s : DOMState} {b : Bool} : RemoveEachSpec s [] b s
-  | cons {s s₁ s₂ : DOMState} {n : NodeId} {ns : List NodeId} {b : Bool} :
-      RemoveSpec s n b s₁ → RemoveEachSpec s₁ ns b s₂ → RemoveEachSpec s (n :: ns) b s₂
-
 /--
 仕様の step 4。
 
@@ -44,7 +38,7 @@ def FragmentPrepared (s s₁ : DOMState) (node : NodeId) (nodes : List NodeId) :
   ∃ d, s.tree.get? node = some d ∧
     (if d.kind = NodeKind.documentFragment then
       ∃ sr, RemoveEachSpec s nodes true sr ∧
-        TreeRecordQueued sr s₁ node [] nodes none none false
+        TreeRecordQueued sr s₁ node [] nodes none none false ∧ ObserverOnly sr s₁
     else s₁ = s)
 
 /-! ## step 5：live range の調整 -/
@@ -135,6 +129,7 @@ def InsertSpec (s : DOMState) (node parent : NodeId) (child : Option NodeId)
         RangeInsertAdjusted s₁ s₂ parent child idx nodes.length ∧
         s₁.tree.get? parent = some pd ∧
         InsertedEach parent child pd.ownerDocument s₂ nodes s₃ ∧
-        TreeRecordQueued s₃ s' parent nodes [] prev child suppress))
+        TreeRecordQueued s₃ s' parent nodes [] prev child suppress ∧
+        ObserverOnly s₃ s'))
 
 end Dom.Spec

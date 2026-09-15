@@ -63,6 +63,7 @@ import Dom.Spec.ReplaceData
 import Dom.Spec.ReplaceDataSound
 import Dom.Spec.ObsEq
 import Dom.Spec.RemoveCongr
+import Dom.Spec.AdoptCongr
 import Dom.Properties.Counterexample
 import Dom.Observation
 

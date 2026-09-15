@@ -198,7 +198,7 @@ theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option 
       RangeInsertAdjusted s s₂ parent child idx nodes.length ∧
       s.tree.get? parent = some pd ∧
       InsertedEach parent child pd.ownerDocument s₂ nodes s₃ ∧
-      TreeRecordQueued s₃ s' parent nodes [] prev child b := by
+      TreeRecordQueued s₃ s' parent nodes [] prev child b ∧ ObserverOnly s₃ s' := by
   unfold insertNodesAt at h
   dsimp only at h
   split at h
@@ -242,7 +242,7 @@ theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option 
       · split at h
         · next hb =>
           rw [hb, ← Except.ok.inj h]
-          exact treeRecordQueued_of_suppress ..
+          exact ⟨treeRecordQueued_of_suppress .., ⟨rfl, rfl, rfl, rfl⟩⟩
         · next hb =>
           have hbf : b = false := by simpa using hb
           rw [hbf, ← Except.ok.inj h]
@@ -250,6 +250,7 @@ theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option 
             cases nodes with
             | nil => exact absurd rfl hne
             | cons n ns => simp
+          refine ⟨?_, ⟨by simp, by simp, by simp, by simp⟩⟩
           cases child with
           | none => exact treeRecordQueued_of_queue s₃ hwf₃ parent nodes [] _ none hnodes
           | some c => exact treeRecordQueued_of_queue s₃ hwf₃ parent nodes [] _ (some c) hnodes
@@ -287,23 +288,24 @@ theorem insert_sound {s s' : DOMState} {node parent : NodeId} {child : Option No
               = sr.tree := queueTreeMutationRecord_tree ..
           have hwf₁ : WellFormed (queueTreeMutationRecord sr node [] nd.children none none).tree := by
             rw [htree]; exact hwfr
-          obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec⟩ :=
+          obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩ :=
             insertNodesAt_sound hwf₁ hne h
           refine ⟨nd.children, ⟨nd, hnd, Or.inl ⟨hk, rfl⟩⟩, Or.inr ⟨hne, ?_⟩⟩
           refine ⟨queueTreeMutationRecord sr node [] nd.children none none, s₂, s₃, idx, prev, pd,
-            ⟨nd, hnd, ?_⟩, hidx, hprev, hrange, hpd, hins, hrec⟩
+            ⟨nd, hnd, ?_⟩, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩
           rw [if_pos hk]
           exact ⟨sr, removeEach_sound _ hwf hre,
             treeRecordQueued_of_queue sr hwfr node [] nd.children none none (by
               cases hc : nd.children with
               | nil => exact absurd hc hne
-              | cons x xs => simp)⟩
+              | cons x xs => simp),
+            ⟨by simp, by simp, by simp, by simp⟩⟩
     · next hkind =>
       have hk : nd.kind ≠ NodeKind.documentFragment := by simpa using hkind
-      obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec⟩ :=
+      obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩ :=
         insertNodesAt_sound hwf (by simp) h
       exact ⟨[node], ⟨nd, hnd, Or.inr ⟨hk, rfl⟩⟩,
         Or.inr ⟨by simp, s, s₂, s₃, idx, prev, pd, ⟨nd, hnd, by rw [if_neg hk]⟩,
-          hidx, hprev, hrange, hpd, hins, hrec⟩⟩
+          hidx, hprev, hrange, hpd, hins, hrec, hframe⟩⟩
 
 end Dom.Spec

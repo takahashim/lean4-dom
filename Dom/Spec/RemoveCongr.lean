@@ -306,4 +306,59 @@ theorem removeSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s s')
   exact ⟨fun m => (htree m).symm, hrng.symm, hit.symm, fun r => (hreg r).symm,
     fun mo => (hrec mo).symm, fun mo => (hpend mo).symm, hmt.symm⟩
 
+
+/--
+**列に対する `remove` の congruence。**
+
+途中の状態は観測としてしか一致しないので、各段で `removeSpec_congr` を使い、
+次の段の前提として `removeSpec_wellFormed` を渡す。
+-/
+theorem removeEachSpec_congr {ns : List NodeId} {b : Bool} :
+    ∀ {s s' s₁ s₂ : DOMState}, WellFormed s.tree → ObsEq s s' →
+      RemoveEachSpec s ns b s₁ → RemoveEachSpec s' ns b s₂ → ObsEq s₁ s₂ := by
+  induction ns with
+  | nil =>
+    intro s s' s₁ s₂ _ h h₁ h₂
+    cases h₁; cases h₂; exact h
+  | cons n ns ih =>
+    intro s s' s₁ s₂ hwf h h₁ h₂
+    cases h₁ with
+    | cons hr₁ hrest₁ =>
+      cases h₂ with
+      | cons hr₂ hrest₂ =>
+        exact ih (removeSpec_wellFormed hwf hr₁) (removeSpec_congr hwf h hr₁ hr₂) hrest₁ hrest₂
+
+/-- 列に対する `remove` の結果も well-formed である。 -/
+theorem removeEachSpec_wellFormed {ns : List NodeId} {b : Bool} :
+    ∀ {s out : DOMState}, WellFormed s.tree → RemoveEachSpec s ns b out → WellFormed out.tree := by
+  induction ns with
+  | nil => intro s out hwf h; cases h; exact hwf
+  | cons n ns ih =>
+    intro s out hwf h
+    cases h with
+    | cons hr hrest => exact ih (removeSpec_wellFormed hwf hr) hrest
+
+
+/--
+**record を積む段の congruence。**
+
+`TreeRecordQueued` は observer についてしか言わないので、
+木や range が動かないことは `ObserverOnly` から取る。
+-/
+theorem treeRecordQueued_congr (h : ObsEq s s') {o₁ o₂ : DOMState} {target : NodeId}
+    {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
+    (h₁ : TreeRecordQueued s o₁ target added removed oldPrev oldNext suppress)
+    (h₂ : TreeRecordQueued s' o₂ target added removed oldPrev oldNext suppress)
+    (f₁ : ObserverOnly s o₁) (f₂ : ObserverOnly s' o₂) : ObsEq o₁ o₂ := by
+  obtain ⟨hrec, hpend, hmt⟩ := treeRecordQueued_unique h₁ (treeRecordQueued_transport h h₂)
+  exact
+    { tree := fun m => by rw [f₂.tree, f₁.tree]; exact h.tree m
+      ranges := by rw [f₂.ranges, h.ranges, f₁.ranges]
+      iterators := by rw [f₂.iterators, h.iterators, f₁.iterators]
+      registrations := fun r => by
+        rw [f₂.registrations, f₁.registrations]; exact h.registrations r
+      records := fun mo => (hrec mo).symm
+      pendingObservers := fun mo => (hpend mo).symm
+      microtaskQueued := hmt.symm }
+
 end Dom.Spec

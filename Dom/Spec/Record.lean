@@ -53,6 +53,23 @@ def TreeRecordQueued (s s' : DOMState) (target : NodeId) (added removed : List N
     (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
     (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInChildList s mo target) ∧
     s'.microtaskQueued = true
+/--
+record を積む step の frame。
+
+"queue a mutation record" は observer の queue と pending 集合しか触らない。
+`TreeRecordQueued` 自身は observer についてしか言わないので、
+それ以外が動かないことはこちらで言う。
+
+`RemoveSpec` のように、同じ `(s, s')` の組に木の変化を述べる関係を
+並べて連言にする場合には使えない（矛盾する）。
+使うのは `insert` の step 4.2 / 9 のように、record を積むだけの段である。
+-/
+structure ObserverOnly (s s' : DOMState) : Prop where
+  tree : s'.tree = s.tree
+  ranges : s'.ranges = s.ranges
+  iterators : s'.iterators = s.iterators
+  registrations : s'.registrations = s.registrations
+
 /-! ## characterData の record -/
 
 /--

@@ -2576,10 +2576,35 @@ pending observer の並びは観測に出ない（`removeSpec_deterministic` の
 `node` は parent を失うので、外した木の ancestor 鎖はそこで切れる。
 つまり `Ancestor u a n → Ancestor t a n` で、acyclicity はそのまま移る。
 
+### `adopt` は transport では済まない
+
+`AdoptSpec` の step 2 は「parent が無ければ状態はそのまま」（`s₁ = s`）と書いてある。
+これは **その derivation の入力そのもの**を指すので、観測の等しい別の状態に差し替えられない。
+`adopt` の congruence は、二つの derivation を並べたまま段ごとに観測を持ち上げて示した
+（`Dom/Spec/AdoptCongr.lean`）。
+
+step 3 の node document 付け替え（`DocumentAssigned`）は parent も children も
+触らないので、木の well-formed も保つ。ただし `ownerDocument_is_document` を保つには
+`doc` が document である必要がある。それは `adopt` 自身ではなく §4.2.1 の pre-insert が
+保証するので、仮定として持ち回っている。
+
+### record を積む段に frame が無かった
+
+`insert` の step 4.2 と step 9 は `TreeRecordQueued` だけで書いてあった。
+この関係は observer の queue についてしか言わないので、
+**木や live range がどうなるかを何も縛っていない**。つまり結果は一つに決まらない。
+
+`remove` では同じ `(s, s')` の組に `TreeRemoved` などが並んでいたので気付かなかった。
+record を積むだけの段には frame が要る。`ObserverOnly`（木・range・iterator・
+registration が動かない）を足した。`replace data` の関係には最初から書いてあったので、
+`insert` だけが抜けていたことになる。
+
 ### 次
 
-`adopt` と `insert` の congruence、それから completeness
-（関係を満たす状態が必ず作れること）である。
+`insert` の congruence である。`TreeInserted` が well-formed を保つには
+「入れる node が親の inclusive ancestor でない」が要る——それは §4.2.1 の
+pre-insertion validity が保証するもので、`insert` 自身は仮定する。
+その先に completeness（関係を満たす状態が必ず作れること）が来る。
 
 ## 生成 scenario の最小化を広げた
 

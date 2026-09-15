@@ -231,4 +231,17 @@ def RemoveSpec (s : DOMState) (node : NodeId) (suppress : Bool) (s' : DOMState) 
     TransientAdded s s' node parent ∧
     RecordQueued s s' node parent (previousSibling s.tree node) (nextSibling s.tree node) suppress
 
+/-! ## 列に対する remove -/
+
+/--
+列を順に remove する。
+
+`insert` の step 4（DocumentFragment を空にする）が使う。
+`remove` そのものの一部ではないが、`RemoveSpec` だけで書けるのでここに置く。
+-/
+inductive RemoveEachSpec : DOMState → List NodeId → Bool → DOMState → Prop where
+  | nil {s : DOMState} {b : Bool} : RemoveEachSpec s [] b s
+  | cons {s s₁ s₂ : DOMState} {n : NodeId} {ns : List NodeId} {b : Bool} :
+      RemoveSpec s n b s₁ → RemoveEachSpec s₁ ns b s₂ → RemoveEachSpec s (n :: ns) b s₂
+
 end Dom.Spec
