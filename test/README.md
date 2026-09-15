@@ -227,6 +227,19 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `importNode` | `document`, `node`, `deep` |
 | `adoptNode` | `document`, `node` |
 
+### 作った attribute の id
+
+attribute にも同一性がある（仕様の `Attr` は node である）。model は `AttrId` で表し、
+runner も同じ規則で振る（`refresh_attr_ids` / `refreshAttrIds`）。
+
+* 初期状態は **node の id の昇順・node の中では list 順に 1 から**。
+* 新しい attribute は **いま木にある id の最大より一つ大きいもの**（model の `freshAttrId`）。
+* いま木に無い attribute の id は覚えない。model 側の最大も現在の木だけで決まる。
+
+`Attr` object の同一性で引くので、`setAttribute` が既にある attribute を書き換えたのか
+作り直したのかが観測できる。clone した element の attribute は原本とは別のものなので、
+id も違う。
+
 ### 作った node の id
 
 model の `freshId` は **木にある id の最大より一つ大きいもの**で、deep な clone は

@@ -229,9 +229,48 @@ function elementField(node, name) {
   return v === null || v === undefined ? null : String(v);
 }
 
-function attributesOf(node) {
+function attributeNodes(node) {
   if (node?.nodeType !== 1 || !node.attributes) return [];
-  return [...node.attributes].map((a) => ({
+  return [...node.attributes];
+}
+
+/**
+ * attribute に model と同じ規則で id を振る。
+ *
+ *   初期状態   node の id の昇順・node の中では list 順に 1 から
+ *   新しいもの いま木にある id の最大より一つ大きいもの
+ *
+ * 1 から始めるのは、model の `maxAttrId` が attribute の無い木で 0 を返すからである。
+ *
+ * model の `freshAttrId` がそうしている。`Attr` object の同一性で引くので、
+ * `setAttribute` が既にある attribute を書き換えたのか作り直したのかが観測できる。
+ * いま無い attribute の id は覚えない（model 側の最大も現在の木だけで決まる）。
+ */
+function refreshAttrIds(ctx) {
+  const old = ctx.attrIds ?? new Map();
+  const ordered = [];
+  for (const nid of [...ctx.objects.keys()].sort((a, b) => a - b)) {
+    for (const a of attributeNodes(ctx.objects.get(nid))) ordered.push(a);
+  }
+  const fresh = new Map();
+  let max = 0;
+  for (const a of ordered) {
+    const id = old.get(a);
+    if (id === undefined) continue;
+    fresh.set(a, id);
+    if (id > max) max = id;
+  }
+  for (const a of ordered) {
+    if (fresh.has(a)) continue;
+    max += 1;
+    fresh.set(a, max);
+  }
+  ctx.attrIds = fresh;
+}
+
+function attributesOf(ctx, node) {
+  return attributeNodes(node).map((a) => ({
+    id: ctx.attrIds.get(a),
     namespace: a.namespaceURI ?? null,
     prefix: a.prefix ?? null,
     localName: a.localName,
@@ -249,6 +288,7 @@ function dataOf(node) {
 
 function snapshot(ctx) {
   const { objects, kinds, idOf } = ctx;
+  refreshAttrIds(ctx);
   const nodes = [...objects.keys()].sort((a, b) => a - b).map((id) => {
     const node = objects.get(id);
     return {
@@ -258,7 +298,7 @@ function snapshot(ctx) {
       children: [...(node.childNodes ?? [])].map(idOf),
       nodeDocument: kinds.get(id) === "document" ? id : idOf(node.ownerDocument ?? null),
       data: dataOf(node),
-      attributes: attributesOf(node),
+      attributes: attributesOf(ctx, node),
       namespace: elementField(node, "namespaceURI"),
       prefix: elementField(node, "prefix"),
       localName: elementField(node, "localName") ?? "",

@@ -95,22 +95,41 @@ def canHaveChildren : NodeKind → Bool
 end NodeKind
 
 /--
+Attr の識別子。`NodeId` とは別の空間である。
+
+仕様の `Attr` は `Node` だが、本 model の node tree は element や text だけを載せる
+（`NodeKind` に attribute が無い）。attribute は element の状態として持ったまま、
+**同一性だけ**を id で表す。`getAttributeNode` が同じ attribute に同じものを返すこと、
+`setAttributeNode` が copy を作らないことが、これで観測できるようになる。
+-/
+structure AttrId where
+  id : Nat
+deriving DecidableEq, Hashable, Inhabited
+
+/-- oracle の出力を読みやすくするため、`AttrId` は識別子の数値だけを表示する。 -/
+instance : Repr AttrId := ⟨fun n _ => repr n.id⟩
+
+instance : ToString AttrId := ⟨fun n => toString n.id⟩
+
+/--
 DOM Standard §4.9 の attribute。
 
 attribute は仕様上 node（`Attr`）だが、本 model では element の状態として持つ。
 node tree に入らない（parent を持てず tree order にも現れない）ので、
 `NodeId` を振っても `Tree` の不変条件に絡まないためである。
-`Attr` node を直接触る API（`setAttributeNode`, `attributes` の `NamedNodeMap`）は
-その帰結として扱えない（`docs/traceability.md` の対象外の表を参照）。
+同一性だけは `AttrId` で表す。
 
+* `id` — 同一性。仕様の `Attr` node にあたる。
 * `namespace?` — 仕様の namespace。null は `none`。
 * `prefix?` — 仕様の namespace prefix。qualified name の計算にだけ使う。
 * `localName` — 仕様の local name。mutation record の `attributeName` はこれである。
 * `value` — 仕様の value。
 
-仕様の node document は持たない。model の attribute は node ではないので観測できない。
+仕様の node document は持たない。model の attribute は node tree に入らないので、
+その node document は観測できない。
 -/
 structure Attr where
+  id : AttrId
   «namespace» : Option String := none
   «prefix» : Option String := none
   localName : String
@@ -127,6 +146,17 @@ def qualifiedName (a : Attr) : String :=
 
 /-- 仕様が attribute を同定する鍵、すなわち namespace と local name の組。 -/
 def key (a : Attr) : Option String × String := (a.namespace, a.localName)
+
+/--
+同一性を落とした attribute。
+
+clone は attribute を写すが、copy の `Attr` は原本とは別のものである（仕様の
+"clone a single node" step 2.1 が attribute ごとに clone を作る）。
+「id 以外は同じ」を言うのにこれを使う。
+-/
+def anon (a : Attr) : Attr := { a with id := ⟨0⟩ }
+
+@[simp] theorem anon_key (a : Attr) : a.anon.key = a.key := rfl
 
 end Attr
 
@@ -178,6 +208,17 @@ def shape (d : NodeData) : NodeData :=
 @[simp] theorem shape_kind (d : NodeData) : d.shape.kind = d.kind := rfl
 
 @[simp] theorem shape_attributes (d : NodeData) : d.shape.attributes = d.attributes := rfl
+
+/-- `shape` から attribute の同一性も落としたもの。clone の「同じ形」はこれで見る。 -/
+def shapeAnon (d : NodeData) : NodeData :=
+  { d.shape with attributes := d.shape.attributes.map Attr.anon }
+
+@[simp] theorem shapeAnon_kind (d : NodeData) : d.shapeAnon.kind = d.kind := rfl
+
+/-- `shape` が等しければ `shapeAnon` も等しい。`shapeAnon` は `shape` だけで決まる。 -/
+theorem shapeAnon_congr {d e : NodeData} (h : d.shape = e.shape) : d.shapeAnon = e.shapeAnon := by
+  unfold shapeAnon
+  rw [h]
 
 /--
 DOM Standard §1.4 の qualified name。prefix があれば `prefix:localName`。

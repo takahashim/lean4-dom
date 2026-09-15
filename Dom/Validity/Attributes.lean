@@ -561,7 +561,7 @@ theorem attrOpResult_toggleAttribute {s s' : DOMState} {element : NodeId} {qn : 
           · have : s' = s := congrArg Prod.fst (Except.ok.inj hr).symm
             rw [this]; exact AttrOpResult.refl _
           · have : s' = appendAttribute s element d
-                { localName := attrNameFor s.tree d qn } :=
+                { id := freshAttrId s.tree, localName := attrNameFor s.tree d qn } :=
               congrArg Prod.fst (Except.ok.inj hr).symm
             rw [this]
             refine attrOpResult_append hd hk' ?_ (by simp)

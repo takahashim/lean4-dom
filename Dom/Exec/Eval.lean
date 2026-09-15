@@ -25,6 +25,19 @@ namespace Dom.Exec
 /-! ## 初期状態の構築 -/
 
 /--
+初期状態の attribute に id を振るときの、その node の先頭の番号。
+
+**node の id の昇順に、node の中では list 順に、1 から順に**振る。
+0 から始めないのは、`maxAttrId` が attribute の無い木で 0 を返すからで、
+そこから `freshAttrId` が返す最初の id が 1 になる。
+差分テストの相手の runner も同じ規則で振るので、attribute の同一性を id で比べられる。
+`NodeSpec` は id を持たない（scenario の JSON にも書かない）。
+-/
+def attrOffset (specs : List NodeSpec) (id : Nat) : Nat :=
+  specs.foldl
+    (fun m t => if t.id < id && t.kind == .element then m + t.attributes.length else m) 0
+
+/--
 scenario の `nodes` から木を組み立てる。
 
 children の順序は配列の並び順で決まる。
@@ -54,7 +67,10 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         ownerDocument := ⟨owner⟩
         data := if s.kind.isCharacterData then s.data else ""
         -- attribute を持てるのは Element だけである（`AttributesValid`）。
-        attributes := if s.kind == .element then s.attributes else []
+        attributes :=
+          if s.kind == .element then
+            s.attributes.zipIdx.map fun (a, i) => { a with id := ⟨attrOffset specs s.id + i + 1⟩ }
+          else []
         -- namespace / prefix / local name を持つのは Element だけである。
         -- 省略時は Dommy の `createElement("div")` に合わせる。
         «namespace» := if s.kind == .element then s.namespace.orElse (fun _ => some htmlNamespace)

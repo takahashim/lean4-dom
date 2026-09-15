@@ -1,4 +1,5 @@
 import Dom.Attribute.Name
+import Dom.Basic.Fresh
 import Dom.Observer.Record
 import Dom.Util.List
 
@@ -10,12 +11,11 @@ element の namespace と local name に依る部分（`tagName`、attribute 名
 ここに置く。
 
 仕様の attribute は `Attr` node だが、本 model では element の状態として持つ
-（`Dom/Basic/NodeId.lean` の `Attr` を参照）。したがって
+（`Dom/Basic/NodeId.lean` の `Attr` を参照）。ただし **同一性は `AttrId` で表す**ので、
+「attribute を作り直したか、同じものを動かしたか」は観測できる。
+新しい attribute の id は `freshAttrId`（木にある id の最大より一つ大きいもの）である。
 
-* `Attr` node を直接渡す API（`setAttributeNode`, `attributes` の `NamedNodeMap`）
-* それに伴う "set an attribute" と "replace an attribute"、`InUseAttributeError`
-
-は扱わない。attribute の node document も持たないので、adopt の step 3.2 は空になる。
+attribute の node document は持たないので、adopt の step 3.2 は空になる。
 
 receiver が Element でない場合は WebIDL の TypeError を返す。仕様の algorithm 自体には
 その検査が無い（`Element` interface の method からしか呼ばれないため）が、
@@ -220,8 +220,8 @@ def setAttributeValue (s : DOMState) (element : NodeId) (localName value : Strin
       match getAttributeByKey d «namespace» localName with
       | none =>
         .ok (appendAttribute s element d
-          { «namespace» := normalizeNamespace «namespace», «prefix» := «prefix»,
-            localName := localName, value := value })
+          { id := freshAttrId s.tree, «namespace» := normalizeNamespace «namespace»,
+            «prefix» := «prefix», localName := localName, value := value })
       | some a => .ok (changeAttribute s element d a value)
 
 /-! ## `Element` の method -/
@@ -248,7 +248,8 @@ def setAttribute (s : DOMState) (element : NodeId) (qualifiedName value : String
         -- step 6-7
         | none =>
           .ok (appendAttribute s element d
-            { localName := attrNameFor s.tree d qualifiedName, value := value })
+            { id := freshAttrId s.tree, localName := attrNameFor s.tree d qualifiedName,
+              value := value })
 
 /-- DOM Standard §4.9 `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/
 def setAttributeNS (s : DOMState) (element : NodeId) («namespace» : Option String)
@@ -306,7 +307,8 @@ def toggleAttribute (s : DOMState) (element : NodeId) (qualifiedName : String)
           if force == some false then .ok (s, false)
           else
             .ok (appendAttribute s element d
-              { localName := attrNameFor s.tree d qualifiedName }, true)
+              { id := freshAttrId s.tree,
+                localName := attrNameFor s.tree d qualifiedName }, true)
         -- step 5-6
         | some a =>
           if force == some true then .ok (s, true)

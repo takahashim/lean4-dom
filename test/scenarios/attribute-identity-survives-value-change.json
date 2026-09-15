@@ -1,0 +1,22 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-element-attributes-set-value",
+    "algorithm": ["set an attribute value", "setAttribute(qualifiedName, value)", "clone a single node"],
+    "steps": "set an attribute value 2「attribute が無ければ作って append」 / 3「あれば change」。setAttribute 5 は既にある attribute の value を変えるだけである。clone a single node 2.1 は attribute ごとに clone を作る",
+    "note": "既にある attribute への setAttribute は Attr を作り直さない。一度 removeAttribute してから付け直すと別の Attr になる。clone した element の attribute も別の Attr である。attribute の id はその同一性で、runner が model の freshAttrId と同じ規則で振る（test/README.md の「作った attribute の id」）。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div",
+      "attributes": [{ "localName": "a", "value": "1" }, { "localName": "b", "value": "2" }] }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "setAttribute", "element": 1, "name": "a", "value": "9" },
+    { "op": "setAttribute", "element": 1, "name": "z", "value": "0" },
+    { "op": "removeAttribute", "element": 1, "name": "a" },
+    { "op": "setAttribute", "element": 1, "name": "a", "value": "8" },
+    { "op": "cloneNode", "node": 1, "deep": false }
+  ]
+}

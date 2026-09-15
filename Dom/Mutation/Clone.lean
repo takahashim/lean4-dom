@@ -37,30 +37,72 @@ model の対象外である。
 
 namespace Dom
 
-/-- copy の node data。parent・children・node document 以外はそのまま写す。 -/
-def cloneData (d : NodeData) (doc : NodeId) : NodeData :=
-  { d with parent := none, children := [], ownerDocument := doc }
+/--
+copy の node data。parent・children・node document 以外はそのまま写す。
 
-@[simp] theorem cloneData_shape (d : NodeData) (doc : NodeId) :
-    (cloneData d doc).shape = d.shape := rfl
+**attribute には新しい id を振る。** 仕様の "clone a single node" step 2.1 は
+attribute ごとに clone を作るので、copy の `Attr` は原本とは別のものである。
+`base` から list 順に振る。呼び出し側は `maxAttrId + 1` を渡す。
+-/
+def cloneData (d : NodeData) (doc : NodeId) (base : Nat) : NodeData :=
+  { d with parent := none, children := [], ownerDocument := doc,
+           attributes := d.attributes.zipIdx.map fun (a, i) => { a with id := ⟨base + i⟩ } }
 
-@[simp] theorem cloneData_data (d : NodeData) (doc : NodeId) :
-    (cloneData d doc).data = d.data := rfl
+@[simp] theorem cloneData_data (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).data = d.data := rfl
 
-@[simp] theorem cloneData_kind (d : NodeData) (doc : NodeId) :
-    (cloneData d doc).kind = d.kind := rfl
+@[simp] theorem cloneData_kind (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).kind = d.kind := rfl
 
-@[simp] theorem cloneData_attributes (d : NodeData) (doc : NodeId) :
-    (cloneData d doc).attributes = d.attributes := rfl
+@[simp] theorem cloneData_children (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).children = [] := rfl
 
-@[simp] theorem cloneData_children (d : NodeData) (doc : NodeId) :
-    (cloneData d doc).children = [] := rfl
+@[simp] theorem cloneData_parent (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).parent = none := rfl
 
-@[simp] theorem cloneData_parent (d : NodeData) (doc : NodeId) :
-    (cloneData d doc).parent = none := rfl
+@[simp] theorem cloneData_ownerDocument (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).ownerDocument = doc := rfl
 
-@[simp] theorem cloneData_ownerDocument (d : NodeData) (doc : NodeId) :
-    (cloneData d doc).ownerDocument = doc := rfl
+@[simp] theorem cloneData_attributes (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).attributes =
+      d.attributes.zipIdx.map (fun p => { p.1 with id := ⟨base + p.2⟩ }) := rfl
+
+/-- id を落とせば attribute list は写したままである。 -/
+@[simp] theorem cloneData_anonAttributes (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).attributes.map Attr.anon = d.attributes.map Attr.anon := by
+  simp only [cloneData_attributes, List.map_map]
+  have : d.attributes.zipIdx.map (fun p => (Attr.anon { p.1 with id := ⟨base + p.2⟩ })) =
+      d.attributes.zipIdx.map (fun p => Attr.anon p.1) := by
+    refine List.map_congr_left fun p _ => rfl
+  rw [Function.comp_def, this]
+  rw [show (fun p : Attr × Nat => Attr.anon p.1) = Attr.anon ∘ Prod.fst from rfl,
+    ← List.map_map, List.zipIdx_map_fst]
+
+@[simp] theorem cloneData_attributes_length (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).attributes.length = d.attributes.length := by
+  simp [cloneData]
+
+@[simp] theorem cloneData_attributes_keys (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).attributes.map Attr.key = d.attributes.map Attr.key := by
+  have h : ∀ l : List Attr, l.map Attr.key = (l.map Attr.anon).map Attr.key := by
+    intro l; rw [List.map_map]; rfl
+  rw [h, cloneData_anonAttributes, ← h]
+
+/-- copy の attribute は、id を除けば原本のどれかと同じである。 -/
+theorem cloneData_mem_anon {d : NodeData} {doc : NodeId} {base : Nat} {a : Attr}
+    (h : a ∈ (cloneData d doc base).attributes) : ∃ b ∈ d.attributes, b.anon = a.anon := by
+  have hm : a.anon ∈ d.attributes.map Attr.anon := by
+    rw [← cloneData_anonAttributes d doc base]
+    exact List.mem_map_of_mem h
+  obtain ⟨b, hb, hba⟩ := List.mem_map.mp hm
+  exact ⟨b, hb, hba⟩
+
+/-- **copy は id 以外は原本と同じ形である。** -/
+@[simp] theorem cloneData_shapeAnon (d : NodeData) (doc : NodeId) (base : Nat) :
+    (cloneData d doc base).shapeAnon = d.shapeAnon := by
+  unfold NodeData.shapeAnon
+  simp only [NodeData.shape_attributes, cloneData_anonAttributes]
+  rfl
 
 /--
 copy の node document。
@@ -73,7 +115,7 @@ def cloneDocumentOf (d : NodeData) (doc copy : NodeId) : NodeId :=
 
 /-- §4.4 "clone a single node"。children も parent も持たない copy を一つ作る。 -/
 def cloneSingle (s : DOMState) (d : NodeData) (doc : NodeId) : NodeId × DOMState :=
-  withFresh s (cloneData d (cloneDocumentOf d doc (freshId s.tree)))
+  withFresh s (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1))
 
 /-- "clone a node" の step 4。parent が null でなければ copy をそこに append する。 -/
 def cloneAppend (s : DOMState) (copy : NodeId) (parent : Option NodeId) :

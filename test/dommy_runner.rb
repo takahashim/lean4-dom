@@ -582,12 +582,47 @@ module DommyRunner
     v.nil? ? nil : v.to_s
   end
 
-  def attributes_of(node)
-    return [] unless node.respond_to?(:__js_get__) && node.__js_get__("nodeType") == 1
+  def attribute_nodes(node)
+    return [] unless node_type_of(node) == 1
     return [] unless node.respond_to?(:attributes)
 
-    node.attributes.to_a.map do |a|
-      { "namespace" => a.namespace_uri, "prefix" => a.prefix,
+    node.attributes.to_a
+  end
+
+  # attribute に model と同じ規則で id を振る。
+  #
+  #   初期状態  node の id の昇順・node の中では list 順に 1 から
+  #   新しいもの いま木にある id の最大より一つ大きいもの
+  #
+  # 1 から始めるのは、model の `maxAttrId` が attribute の無い木で 0 を返すからである。
+  #
+  # model の `freshAttrId` がそうしている。`Attr` object の同一性で引くので、
+  # `setAttribute` が既にある attribute を書き換えたのか作り直したのかが観測できる。
+  # いま無い attribute の id は覚えない（model 側の最大も現在の木だけで決まる）。
+  def refresh_attr_ids(ctx)
+    old = ctx[:attr_ids] || {}.compare_by_identity
+    ordered = ctx[:objects].keys.sort.flat_map { |nid| attribute_nodes(ctx[:objects][nid]) }
+    fresh = {}.compare_by_identity
+    max = 0
+    ordered.each do |a|
+      id = old[a]
+      next if id.nil?
+
+      fresh[a] = id
+      max = id if id > max
+    end
+    ordered.each do |a|
+      next if fresh.key?(a)
+
+      max += 1
+      fresh[a] = max
+    end
+    ctx[:attr_ids] = fresh
+  end
+
+  def attributes_of(ctx, node)
+    attribute_nodes(node).map do |a|
+      { "id" => ctx[:attr_ids][a], "namespace" => a.namespace_uri, "prefix" => a.prefix,
         "localName" => a.local_name, "value" => a.value.to_s }
     end
   end
@@ -644,7 +679,10 @@ module DommyRunner
     node_id(objects, node.owner_document)
   end
 
-  def snapshot(objects, kinds, ranges = [], iterators = [], observers = nil, walkers = [])
+  def snapshot(ctx, ranges = [], iterators = [], observers = nil, walkers = [])
+    objects = ctx[:objects]
+    kinds = ctx[:kinds]
+    refresh_attr_ids(ctx)
     nodes = objects.keys.sort.map do |id|
       node = objects[id]
       {
@@ -654,7 +692,7 @@ module DommyRunner
         "children" => children_of(node).map { |c| node_id(objects, c) },
         "nodeDocument" => node_document_id(objects, id, node, kinds),
         "data" => data_of(node),
-        "attributes" => attributes_of(node),
+        "attributes" => attributes_of(ctx, node),
         "namespace" => element_field(node, "namespaceURI"),
         "prefix" => element_field(node, "prefix"),
         "localName" => element_field(node, "localName") || "",
@@ -932,8 +970,8 @@ module DommyRunner
     observers, delivery_log = build_observers(objects, builder.documents, scenario["observers"])
     ctx = { objects: objects, kinds: kinds, ranges: ranges, iterators: iterators,
             walkers: walkers, observers: observers, documents: builder.documents,
-            callbacks: callbacks }
-    initial = snapshot(objects, kinds, ranges, iterators,
+            callbacks: callbacks, attr_ids: {}.compare_by_identity }
+    initial = snapshot(ctx, ranges, iterators,
                        observers.empty? ? nil : queued_records(objects, observers), walkers)
                 .merge("delivered" => [])
     steps = []
@@ -952,14 +990,14 @@ module DommyRunner
         # 失敗した操作は状態を変えてはならない（roadmap §9）。
         # 変えていないことを比べられるように、失敗した step でも観測を出す。
         recs = observers.empty? ? nil : queued_records(objects, observers)
-        steps << snapshot(objects, kinds, ranges, iterators, recs, walkers)
+        steps << snapshot(ctx, ranges, iterators, recs, walkers)
                  .merge("ok" => false, "exception" => exception_name(e),
                         "delivered" => delivered_snapshot(delivery_log),
                         "invocations" => invocation_log.dup)
         break
       end
       recs = observers.empty? ? nil : queued_records(objects, observers)
-      steps << snapshot(objects, kinds, ranges, iterators, recs, walkers)
+      steps << snapshot(ctx, ranges, iterators, recs, walkers)
                .merge("ok" => true, "delivered" => delivered_snapshot(delivery_log),
                       "invocations" => invocation_log.dup,
                       "returned" => return_value_snapshot(objects, op, returned))

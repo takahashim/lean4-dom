@@ -21,12 +21,14 @@ namespace Dom
 /--
 一段ぶんの観測の一致。`R` は children どうしを結ぶ関係である。
 
-見るのは `NodeData.shape`（parent・children・node document を落とした残り）と
-`data`、そして children の並びである。`NodeId` は見ない。
+見るのは `NodeData.shapeAnon`（parent・children・node document を落とし、
+attribute の id も落とした残り）と `data`、そして children の並びである。
+`NodeId` も `AttrId` も見ない。copy の `Attr` は原本とは別のものなので、
+attribute の id は違ってよい（違わなければならない）。
 -/
 def CloneStep (t : Tree) (R : NodeId → NodeId → Prop) (c n : NodeId) : Prop :=
   ∃ cd d, t.get? c = some cd ∧ t.get? n = some d ∧
-    cd.shape = d.shape ∧ cd.data = d.data ∧
+    cd.shapeAnon = d.shapeAnon ∧ cd.data = d.data ∧
     cd.children.length = d.children.length ∧
     ∀ (i : Nat) (a b : NodeId), cd.children[i]? = some a → d.children[i]? = some b → R a b
 
@@ -152,7 +154,7 @@ structure CloneCorr (t₀ : Tree) (s s' : DOMState) (C : NodeId → NodeId → P
   new : ∀ a b, C a b → s.tree.get? a = none
   /-- 一段ぶんの観測が一致し、children どうしもまた対応する。 -/
   step : ∀ a b, C a b → ∃ ad bd, s'.tree.get? a = some ad ∧ t₀.get? b = some bd ∧
-    ad.shape = bd.shape ∧ ad.data = bd.data ∧
+    ad.shapeAnon = bd.shapeAnon ∧ ad.data = bd.data ∧
     ad.children.length = bd.children.length ∧
     ∀ (i : Nat) (x y : NodeId), ad.children[i]? = some x → bd.children[i]? = some y → C x y
 
@@ -216,8 +218,8 @@ theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy d
     (hpn : ∀ p, parent = some p → s.tree.get? p ≠ none)
     (hkeep₂ : ∀ m md, s.tree.get? m = some md → (∀ p, parent = some p → m ≠ p) →
       s₂.tree.get? m = some md)
-    (hcopy₂ : ∃ cd', s₂.tree.get? copy = some cd' ∧ cd'.shape = d.shape ∧ cd'.data = d.data ∧
-      cd'.children = [])
+    (hcopy₂ : ∃ cd', s₂.tree.get? copy = some cd' ∧ cd'.shapeAnon = d.shapeAnon ∧
+      cd'.data = d.data ∧ cd'.children = [])
     (hparent₂ : ∀ p pd, parent = some p → s.tree.get? p = some pd →
       ∃ pd', s₂.tree.get? p = some pd' ∧ pd'.children = pd.children ++ [copy] ∧
         pd'.shape = pd.shape ∧ pd'.data = pd.data ∧ pd'.ownerDocument = pd.ownerDocument)
@@ -324,7 +326,7 @@ theorem cloneManySpec_cons {t₀ : Tree} {s s₂ s₃ s₄ : DOMState} {n copy d
       · subst hac
         subst hbn
         refine ⟨cd'', d, h₂.keep _ cd'' hcd''₃ hcopyNe, ht0n,
-          by rw [hsh'', hsh'], by rw [hda'', hda'], ?_, ?_⟩
+          (NodeData.shapeAnon_congr hsh'').trans hsh', by rw [hda'', hda'], ?_, ?_⟩
         · rw [hch'', hch']; simpa using h₁.len
         · intro i x y hx hy
           rw [hch'', hch'] at hx
@@ -387,7 +389,7 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                   rw [Option.some.inj hs]
               -- step 2
               have hA : AddsNode s.tree (cloneSingle s d doc).2.tree (cloneSingle s d doc).1
-                  (cloneData d (cloneDocumentOf d doc (freshId s.tree))) :=
+                  (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1)) :=
                 withFresh_addsNode s _
               have hcopyFresh : s.tree.get? (cloneSingle s d doc).1 = none := hA.fresh
               have hv₁ : AdmissibleDOMState (cloneSingle s d doc).2 :=
@@ -403,7 +405,7 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                   (∀ m md, s.tree.get? m = some md → (∀ p, parent = some p → m ≠ p) →
                     s₂.tree.get? m = some md) ∧
                   (∃ cd', s₂.tree.get? (cloneSingle s d doc).1 = some cd' ∧
-                    cd'.shape = d.shape ∧ cd'.data = d.data ∧ cd'.children = []) ∧
+                    cd'.shapeAnon = d.shapeAnon ∧ cd'.data = d.data ∧ cd'.children = []) ∧
                   (∀ p pd, parent = some p → s.tree.get? p = some pd →
                     ∃ pd', s₂.tree.get? p = some pd' ∧
                       pd'.children = pd.children ++ [(cloneSingle s d doc).1] ∧
@@ -419,13 +421,14 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                   · intro m md hm _
                     rw [← he, hA.others m (hA.ne_of_mem hm)]
                     exact hm
-                  · exact ⟨cloneData d (cloneDocumentOf d doc (freshId s.tree)),
-                      by rw [← he]; exact hA.created, rfl, rfl, rfl⟩
+                  · exact ⟨cloneData d (cloneDocumentOf d doc (freshId s.tree))
+                      (maxAttrId s.tree + 1), by rw [← he]; exact hA.created,
+                      cloneData_shapeAnon .., rfl, rfl⟩
                   · intro p pd hp _; simp at hp
                 | some p =>
                   rw [hpar] at happ
                   simp only [cloneAppend] at happ
-                  have hkf : (cloneData d (cloneDocumentOf d doc (freshId s.tree))).kind
+                  have hkf : (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1)).kind
                       ≠ NodeKind.documentFragment := by
                     simpa using hpre.notFragment p hpar n (List.mem_cons_self ..) d ht0n
                   obtain ⟨hfr, hnode, hpp, hrg⟩ :=
@@ -436,7 +439,8 @@ theorem cloneMany_spec (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
                     refine hfr m md ?_ hmc (hmp p rfl)
                     rw [hA.others m hmc]; exact hm
                   · obtain ⟨nd', hnd', hsh, hda, hch⟩ := hnode
-                    exact ⟨nd', hnd', by simpa using hsh, by simpa using hda, hch⟩
+                    exact ⟨nd', hnd', (NodeData.shapeAnon_congr hsh).trans (cloneData_shapeAnon ..),
+                      by simpa using hda, hch⟩
                   · intro q pd hq hpd
                     cases Option.some.inj hq
                     refine hpp pd ?_
@@ -560,7 +564,7 @@ children を持たない detach された copy が一つ増える。
 -/
 theorem cloneNodeIn_shallow_spec {s s' : DOMState} {n doc c : NodeId}
     (h : cloneNodeIn s n doc false = .ok (c, s')) :
-    ∃ d cd, s.tree.get? n = some d ∧ cd.shape = d.shape ∧ cd.data = d.data ∧
+    ∃ d cd, s.tree.get? n = some d ∧ cd.shapeAnon = d.shapeAnon ∧ cd.data = d.data ∧
       cd.children = [] ∧ cd.parent = none ∧
       cd.ownerDocument = cloneDocumentOf d doc c ∧ AddsNode s.tree s'.tree c cd := by
   simp only [cloneNodeIn] at h
@@ -571,8 +575,8 @@ theorem cloneNodeIn_shallow_spec {s s' : DOMState} {n doc c : NodeId}
     have he := Except.ok.inj h
     have hc : (cloneSingle s d doc).1 = c := congrArg Prod.fst he
     have hs : (cloneSingle s d doc).2 = s' := congrArg Prod.snd he
-    refine ⟨d, cloneData d (cloneDocumentOf d doc (freshId s.tree)),
-      hd, rfl, rfl, rfl, rfl, by rw [← hc]; rfl, ?_⟩
+    refine ⟨d, cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1),
+      hd, cloneData_shapeAnon .., rfl, rfl, rfl, by rw [← hc]; rfl, ?_⟩
     rw [← hc, ← hs]
     exact withFresh_addsNode s _
 

@@ -221,6 +221,11 @@ scenario が最初から walker を与える形にしてある。
 
 ## §4.9 Attr / §1.3 名前の検査
 
+attribute は element の状態として持つが、**同一性は `AttrId` で持つ**。
+新しい attribute の id は `freshAttrId`（木にある id の最大より一つ大きいもの）で、
+runner も同じ規則で振るので差分テストの比較対象に入っている
+（`test/README.md` の「作った attribute の id」）。
+
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | valid namespace prefix / valid attribute local name | §1.3 | `isValidNamespacePrefix`, `isValidAttributeLocalName` | — | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
@@ -232,9 +237,10 @@ scenario が最初から walker を与える形にしてある。
 | handle attribute changes | 1（2-3 は hook の位置のみ） | `handleAttributeChanges` | preservation `admissible_setAttribute` ほか | `observer-attribute-filter-does-not-shadow` | `test_wpt_mutation_observer_attribute_options.rb` | 済 |
 | change an attribute | 1-3 | `changeAttribute` | `attributesValid_change` | 同上 | 同上 | 済 |
 | append an attribute | 1-4 | `appendAttribute` | `attributesValid_append` | 同上 | 同上 | 済 |
+| create an attribute（"set an attribute value" step 2 と `setAttribute` step 6 の中） | 新しい `Attr` を作る | `freshAttrId` | `ne_freshAttrId` | `attribute-identity-survives-value-change` | — | 済（`Attr` を返す口は未） |
 | remove an attribute | 1-4 | `removeAttributeFrom` | `attributesValid_erase`, `removeAttribute_erases` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | set an attribute value | 1-3 | `setAttributeValue` | `attrOpResult_setAttributeValue` | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
-| `setAttribute(qualifiedName, value)` | 1-2, 4-7（step 3 は Trusted Types なので非対象） | `setAttribute`, `attrNameFor` | `admissible_setAttribute`, `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| `setAttribute(qualifiedName, value)` | 1-2, 4-7（step 3 は Trusted Types なので非対象） | `setAttribute`, `attrNameFor` | `admissible_setAttribute`, `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace`, `attribute-identity-survives-value-change` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | `setAttributeNS(namespace, qualifiedName, value)` | 1, 3（step 2 は Trusted Types なので非対象） | `setAttributeNS` | `admissible_setAttributeNS` | （生成 scenario） | `test_wpt_attr.rb` | 済 |
 | `removeAttribute` / `removeAttributeNS` | 全 | `removeAttribute`, `removeAttributeNS` | `admissible_removeAttribute`, `admissible_removeAttributeNS` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | `toggleAttribute(qualifiedName, force)` | 1-6 | `toggleAttribute`, `attrNameFor` | `admissible_toggleAttribute` | 同上 | 同上 | 済 |
@@ -311,7 +317,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | createElement | 1 valid element local name / 2 HTML document なら ASCII lowercase / 4 HTML document なら HTML namespace | `createElement`, `requireDocument`, `withFresh` | effect `createElement_creates`、preservation `admissible_createsNode` | `create-element-lowercases-in-html-document` | — | 済（custom element の step 3 と 5 は対象外。XML document の側は harness が作れない） |
 | createElementNS | validate and extract（context は "element"）してから element を作る | `createElementNS`, `validateAndExtractElement` | effect `createElementNS_creates` | `create-element-lowercases-in-html-document` | — | 済 |
 | createTextNode / createComment / createDocumentFragment | node を一つ作り node document を this にする | `createTextNode`, `createComment`, `createDocumentFragment` | effect `createTextNode_creates` ほか | `create-node-is-detached-and-owned` | — | 済 |
-| clone a single node | 2 element は create an element で / 3 それ以外は同じ interface で / 3.1 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNodeIn_shallow_spec` | `clone-node-copies-shape-not-identity` | — | 済（shadow root と custom element は対象外） |
+| clone a single node | 2 element は create an element で / 2.1 attribute ごとに clone を作る / 3 それ以外は同じ interface で / 3.1 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNodeIn_shallow_spec`、`cloneData_shapeAnon`（id 以外は同じ） | `clone-node-copies-shape-not-identity`, `import-node-keeps-attribute-namespace` | — | 済（shadow root と custom element は対象外） |
 | clone a node | 2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone（document は引数のまま） | `cloneNode`, `cloneNodeIn`, `cloneMany`, `cloneAppend` | `cloneNode_cloneOf`（同じ形）、`cloneNode_ne`（別の id）、preservation `admissible_cloneNode`、totality `cloneNode_isOk`、frame `cloneNode_keep` と `cloneNode_ranges` | `clone-node-copies-shape-not-identity` | — | 済（step 6 の shadow root は対象外） |
 | importNode | 1 Document なら NotSupportedError / 最終 step で clone a node を document = this、subtree = options で呼ぶ | `importNode` | `importNode_ne`（別の id）、`importNode_cloneOf`（同じ形）、`importNode_ownerDocument`、preservation `admissible_importNode`、totality `importNode_isOk`、frame `importNode_keep` と `importNode_ranges` | `import-node-copies-into-the-receiver` | — | 済（options の dictionary 形と custom element registry は対象外） |
 | adoptNode | 1 Document なら NotSupportedError / 3 adopt する / 4 node を返す | `adoptNode` | `adoptNode_id`（同じ id）、`adoptNode_ownerDocument`、`adoptNode_detached`、`adoptNode_shape`、preservation `admissible_adoptNode` | `adopt-node-moves-the-same-node` | — | 済（step 2 の shadow root は対象外） |
@@ -328,7 +334,7 @@ node document が copy になるのは `append` の中の adopt による。
 | --- | --- | --- |
 | Shadow DOM（shadow-including root / slot） | 未対応 | roadmap の対象外。`move` step 1 は shadow-including root ではなく root で近似している |
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
-| `Attr` を node として扱う API（`setAttributeNode`、`attributes` の `NamedNodeMap`、"set an attribute" と "replace an attribute"） | 対象外 | model の attribute は element の状態で、node tree に入らない |
+| `Attr` を node として渡す API（`createAttribute`、`setAttributeNode`、`attributes` の `NamedNodeMap`、"set an attribute" と "replace an attribute"） | 未対応 | model の attribute は element の状態で node tree に入らないが、**同一性は `AttrId` で持つ**。差分テストも attribute の id を比べている。API のほうは roadmap §8.6 で入れる |
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | roadmap §13.1。長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |

@@ -503,7 +503,7 @@ theorem cloneMany_isOk (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
       have hd : s.tree.get? n = some d := hpre.sub n d ht0n
       -- step 2
       have hA : AddsNode s.tree (cloneSingle s d doc).2.tree (cloneSingle s d doc).1
-          (cloneData d (cloneDocumentOf d doc (freshId s.tree))) := withFresh_addsNode s _
+          (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1)) := withFresh_addsNode s _
       have hv₁ : AdmissibleDOMState (cloneSingle s d doc).2 :=
         admissible_createsNode hpre.admissible
           (createsNode_withFresh (freshNodeData_cloneData hpre.admissible hd hpre.isDoc))

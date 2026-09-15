@@ -88,6 +88,10 @@ theorem find?_cons_self (k : NodeId) (v : NodeData) (l : List (NodeId × NodeDat
     find? ((k, v) :: l) k = some v := by
   simp [find?]
 
+theorem find?_cons_self' {a k : NodeId} (h : a = k) (v : NodeData)
+    (l : List (NodeId × NodeData)) : find? ((a, v) :: l) k = some v := by
+  simp [find?, h]
+
 theorem find?_cons_ne {k k' : NodeId} (h : k ≠ k') (v : NodeData)
     (l : List (NodeId × NodeData)) :
     find? ((k, v) :: l) k' = find? l k' := by
@@ -157,6 +161,19 @@ theorem mem_keys_of_find?_eq_some :
     · rw [find?_cons_ne ha] at h
       exact List.mem_cons_of_mem _ (mem_keys_of_find?_eq_some rest h)
 
+/-- 検索が成功する key と値の組は、entry の列に現れる。 -/
+theorem mem_entries_of_find?_eq_some :
+    ∀ (l : List (NodeId × NodeData)) {k : NodeId} {d : NodeData},
+      find? l k = some d → (k, d) ∈ l
+  | [], _, _, h => by simp [find?] at h
+  | (a, v) :: rest, k, d, h => by
+    by_cases ha : a = k
+    · rw [find?_cons_self' ha] at h
+      rw [← Option.some.inj h, ha]
+      exact List.mem_cons_self ..
+    · rw [find?_cons_ne ha] at h
+      exact List.mem_cons_of_mem _ (mem_entries_of_find?_eq_some rest h)
+
 end Store
 
 namespace NodeStore
@@ -195,6 +212,10 @@ theorem get?_erase (s : NodeStore) (k k' : NodeId) :
 theorem mem_keys_of_get?_eq_some {s : NodeStore} {k : NodeId} {d : NodeData}
     (h : s.get? k = some d) : k ∈ s.keys :=
   Store.mem_keys_of_find?_eq_some s.entries h
+
+theorem mem_entries_of_get?_eq_some {s : NodeStore} {k : NodeId} {d : NodeData}
+    (h : s.get? k = some d) : (k, d) ∈ s.entries :=
+  Store.mem_entries_of_find?_eq_some s.entries h
 
 theorem length_keys (s : NodeStore) : s.keys.length = s.size := by
   simp [keys, size]

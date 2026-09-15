@@ -3525,6 +3525,63 @@ kind 列そのものだからである。
 
 roadmap §8.6 の `Attr` identity。
 
+## attribute に同一性を与えた（roadmap §8.6 の一歩目）
+
+仕様の `Attr` は node で、`getAttributeNode` が同じ attribute に同じ object を返す。
+model の attribute は element の状態（`NodeData.attributes : List Attr`）なので、
+これまで同一性が無く、比較対象からも外していた。
+
+**`Attr` に `AttrId` を持たせた。** node tree の構造は一切変えない。attribute は
+element の状態のままで、id だけが増える。これで
+
+* `setAttribute` が既にある attribute を書き換えたのか作り直したのか
+* clone した element の attribute が原本と別のものか
+
+が観測できるようになった。
+
+### id の振り方
+
+`freshAttrId t = maxAttrId t + 1`。`freshId`（node の側）と同じ形だが、**node の store と
+違って attribute list は縮む**。`removeAttribute` で消えた id は後でまた使われうる。
+それでも「同じ id の attribute が二つ無い」は保たれる。`freshAttrId` はその時点の木に
+無い id を返すからである。
+
+初期状態は **node の id の昇順・node の中では list 順に 1 から**振る。0 から始めないのは、
+`maxAttrId` が attribute の無い木で 0 を返すからで、そこから最初の id が 1 になる。
+runner も同じ規則で振る（`test/README.md` の「作った attribute の id」）。
+
+### clone は attribute の id を振り直す
+
+仕様の "clone a single node" step 2.1 は attribute ごとに clone を作るので、
+copy の `Attr` は原本とは別のものである。`cloneData` が `maxAttrId + 1` から
+list 順に振り直す。
+
+そのため `CloneOf` の「同じ形」は `NodeData.shape` ではなく **`shapeAnon`**
+（attribute の id も落としたもの）で見るようにした。copy の attribute の id は
+違わなければならないからである。
+
+### finding 16：Dommy の `importNode` が attribute の namespace を落とす
+
+生成 scenario（seed 777）が出した。`xml:b`（XML namespace、prefix `xml`）を持つ element を
+`importNode` すると、copy の attribute が namespace も prefix も無い `xml:b` という
+local name の attribute になる。qualified name 一つに潰れている。jsdom は仕様どおりである。
+`import-node-keeps-attribute-namespace` がこれである。
+
+### まだ無いもの
+
+`Attr` を node として渡す API — `createAttribute` / `createAttributeNS` /
+`getAttributeNode` / `setAttributeNode` / `removeAttributeNode` / `NamedNodeMap` /
+`InUseAttributeError`。これが roadmap §8.6 の本体で、次に入れる。
+
+Dommy はこれらを identity 付きで実装している（`NamedNodeMap` が `[namespace, localName]` を
+鍵に `Attr` object を cache する）。欠けているのは `setAttributeNodeNS` だけで、
+仕様では `setAttributeNode` と step が同一なので alias 一行の話である。
+jsdom と happy-dom は両方持っている。
+
+### 次
+
+`Attr` を node として渡す API を model に入れる。
+
 ## 生成 scenario の最小化を広げた
 
 不一致が出た生成 scenario を小さくする shrinker は前からあったが、落とせるのは

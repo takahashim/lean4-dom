@@ -28,13 +28,21 @@ theorem admissible_cloneAppend {s s' : DOMState} {copy : NodeId} {parent : Optio
 theorem freshNodeData_cloneData {s : DOMState} {n doc : NodeId} {d : NodeData}
     (hv : AdmissibleDOMState s) (hd : s.tree.get? n = some d) (hdoc : IsDocument s.tree doc) :
     FreshNodeData s.tree (freshId s.tree)
-      (cloneData d (cloneDocumentOf d doc (freshId s.tree))) := by
+      (cloneData d (cloneDocumentOf d doc (freshId s.tree)) (maxAttrId s.tree + 1)) := by
   refine ⟨rfl, rfl, ?_, ?_, ?_, ?_⟩
   · intro hk
-    simp only [cloneData_attributes]
-    exact hv.attributes.onlyElements n d hd (by simpa using hk)
-  · simpa using hv.attributes.keysNodup n d hd
-  · simpa using hv.attributes.prefixHasNamespace n d hd
+    have hnil := hv.attributes.onlyElements n d hd (by simpa using hk)
+    refine List.eq_nil_of_length_eq_zero ?_
+    rw [cloneData_attributes_length, hnil]
+    rfl
+  · rw [cloneData_attributes_keys]
+    exact hv.attributes.keysNodup n d hd
+  · intro a ha
+    obtain ⟨b, hb, hba⟩ := cloneData_mem_anon ha
+    have hp : a.prefix = b.prefix := (congrArg Attr.prefix hba).symm
+    have hns : a.namespace = b.namespace := (congrArg Attr.namespace hba).symm
+    rw [hp, hns]
+    exact hv.attributes.prefixHasNamespace n d hd b hb
   · by_cases hkd : d.kind = .document
     · exact Or.inl ⟨by simpa using hkd, by simp [cloneDocumentOf, hkd]⟩
     · refine Or.inr ⟨by simpa using hkd, ?_⟩

@@ -128,8 +128,15 @@ private def strListField? (j : Json) (k : String) : Except String (Option (List 
     let arr ← v.getArr?
     return some (← arr.toList.mapM (·.getStr?))
 
+/--
+初期状態の attribute を読む。
+
+`id` は scenario には書かない。`buildTree` が **node の id の昇順・node の中では
+list 順**に振り直す（`numberAttributes`）ので、ここでは仮に 0 を置く。
+-/
 def attrOfJson (j : Json) : Except String Attr := do
-  return { «namespace» := ← strField? j "namespace"
+  return { id := ⟨0⟩
+           «namespace» := ← strField? j "namespace"
            «prefix» := ← strField? j "prefix"
            localName := ← strField j "localName" ""
            value := ← strField j "value" "" }
@@ -431,7 +438,8 @@ def optStrJson : Option String → Json
 
 def attrJson (a : Attr) : Json :=
   Json.mkObj
-    [ ("namespace", optStrJson a.namespace)
+    [ ("id", natJson a.id.id)
+    , ("namespace", optStrJson a.namespace)
     , ("prefix", optStrJson a.prefix)
     , ("localName", Json.str a.localName)
     , ("value", Json.str a.value) ]
