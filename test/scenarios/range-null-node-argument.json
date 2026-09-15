@@ -1,0 +1,30 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://webidl.spec.whatwg.org/#es-overloads",
+    "algorithm": [
+      "ECMAScript argument conversion",
+      "set the start"
+    ],
+    "steps": "WebIDL の引数変換は method の step より先に走る / set the start 1-2",
+    "note": "Range の Node 引数はどれも non-nullable なので、null は手順が一つも走らないうちに TypeError になる。offset を node の length より大きくしても IndexSizeError にならないことで、変換が先だと分かる。失敗した呼び出しは range を動かさない。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div" },
+    { "id": 2, "kind": "text", "parent": 1, "data": "abcd" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "p" }
+  ],
+  "ranges": [
+    { "start": { "node": 2, "offset": 1 }, "end": { "node": 2, "offset": 3 } }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    { "op": "rangeSetStart", "range": 0, "node": 2, "offset": 0 },
+    { "op": "rangeSelectNode", "range": 0, "node": 3 },
+    { "op": "rangeSetStart", "range": 0, "node": null, "offset": 99 }
+  ]
+}

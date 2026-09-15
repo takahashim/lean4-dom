@@ -192,21 +192,30 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .rangeSelectNode _ _ => .unit
   | .rangeSelectNodeContents _ _ => .unit
   | .rangeIsPointInRange i n o =>
-    match rangeIsPointInRange s i ⟨⟨n⟩, o⟩ with
-    | .error _ => .unit
-    | .ok b => .bool b
+    match n with
+    | none => .unit
+    | some n =>
+      match rangeIsPointInRange s i ⟨⟨n⟩, o⟩ with
+      | .error _ => .unit
+      | .ok b => .bool b
   | .rangeIntersectsNode i n =>
-    match rangeIntersectsNode s i ⟨n⟩ with
-    | .error _ => .unit
-    | .ok b => .bool b
+    match n with
+    | none => .unit
+    | some n =>
+      match rangeIntersectsNode s i ⟨n⟩ with
+      | .error _ => .unit
+      | .ok b => .bool b
   | .rangeCompareBoundaryPoints i how j =>
     match rangeCompareBoundaryPoints s i how j with
     | .error _ => .unit
     | .ok v => .int v
   | .rangeComparePoint i n o =>
-    match rangeComparePoint s i ⟨⟨n⟩, o⟩ with
-    | .error _ => .unit
-    | .ok v => .int v
+    match n with
+    | none => .unit
+    | some n =>
+      match rangeComparePoint s i ⟨⟨n⟩, o⟩ with
+      | .error _ => .unit
+      | .ok v => .int v
   | .rangeDeleteContents _ => .unit
   | .rangeInsertNode _ _ => .unit
   | .walkerMove i m =>
@@ -287,6 +296,20 @@ def invokedBy (s : DOMState) : Operation → List Invocation
 def requireNodes (s : DOMState) (ns : List NodeId) : Except DOMException DOMState :=
   if ns.all fun n => (s.tree.get? n).isSome then .ok s else .error .notFoundError
 
+/--
+WebIDL の non-nullable な `Node` 引数を受け取る。
+
+引数の変換は method の step に入る前に走るので、null は
+**手順を一つも実行しないうちに** `TypeError` になる。
+`Range.setStart(null, 木より大きい offset)` が `IndexSizeError` ではなく
+`TypeError` になるのはこのためである。
+-/
+def withNode {α : Type} (n : Option Nat) (f : NodeId → Except DOMException α) :
+    Except DOMException α :=
+  match n with
+  | none => .error .typeError
+  | some n => f ⟨n⟩
+
 /-- 一つの操作を public API に割り当てる。 -/
 def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .appendChild p n => appendChild s ⟨p⟩ ⟨n⟩
@@ -307,19 +330,21 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .deleteData n o c => deleteData s ⟨n⟩ o c
   | .setData n d => setData s ⟨n⟩ d
   | .normalize tgt => normalize s ⟨tgt⟩
-  | .rangeSetStart i n o => rangeSetStart s i ⟨⟨n⟩, o⟩
-  | .rangeSetEnd i n o => rangeSetEnd s i ⟨⟨n⟩, o⟩
-  | .rangeSetStartSibling i n a => rangeSetStartSibling s i ⟨n⟩ a
-  | .rangeSetEndSibling i n a => rangeSetEndSibling s i ⟨n⟩ a
+  | .rangeSetStart i n o => withNode n fun n => rangeSetStart s i ⟨n, o⟩
+  | .rangeSetEnd i n o => withNode n fun n => rangeSetEnd s i ⟨n, o⟩
+  | .rangeSetStartSibling i n a => withNode n fun n => rangeSetStartSibling s i n a
+  | .rangeSetEndSibling i n a => withNode n fun n => rangeSetEndSibling s i n a
   | .rangeCollapse i t => rangeCollapse s i t
-  | .rangeSelectNode i n => rangeSelectNode s i ⟨n⟩
-  | .rangeSelectNodeContents i n => rangeSelectNodeContents s i ⟨n⟩
-  | .rangeIsPointInRange i n o => (rangeIsPointInRange s i ⟨⟨n⟩, o⟩).map (fun _ => s)
-  | .rangeIntersectsNode i n => (rangeIntersectsNode s i ⟨n⟩).map (fun _ => s)
+  | .rangeSelectNode i n => withNode n fun n => rangeSelectNode s i n
+  | .rangeSelectNodeContents i n => withNode n fun n => rangeSelectNodeContents s i n
+  | .rangeIsPointInRange i n o =>
+    withNode n fun n => (rangeIsPointInRange s i ⟨n, o⟩).map (fun _ => s)
+  | .rangeIntersectsNode i n => withNode n fun n => (rangeIntersectsNode s i n).map (fun _ => s)
   | .rangeCompareBoundaryPoints i how j => (rangeCompareBoundaryPoints s i how j).map (fun _ => s)
-  | .rangeComparePoint i n o => (rangeComparePoint s i ⟨⟨n⟩, o⟩).map (fun _ => s)
+  | .rangeComparePoint i n o =>
+    withNode n fun n => (rangeComparePoint s i ⟨n, o⟩).map (fun _ => s)
   | .rangeDeleteContents i => rangeDeleteContents s i
-  | .rangeInsertNode i n => rangeInsertNode s i ⟨n⟩
+  | .rangeInsertNode i n => withNode n fun n => rangeInsertNode s i n
   | .walkerMove i m => (walkerStep s i m).map (·.2)
   | .rangeToString i => (rangeToString s i).map (fun _ => s)
   | .compareDocumentPosition n o => requireNodes s [⟨n⟩, ⟨o⟩]

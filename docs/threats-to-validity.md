@@ -52,7 +52,7 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | --- | --- |
 | `move` step 1 は shadow-including root ではなく root で判定する | shadow tree を含む木では仕様と違う。対象外なので実害は無い |
 | `convert nodes into a node` は呼び出し側で済ませた形で受け取る | `x.replaceWith(x)` のような「変換が node を動かす」場合を model 側で再現できない |
-| WebIDL の TypeError を `DOMException` と同じ型で扱う | `moveBefore` と attribute の method の receiver、`observe` の options がこれに当たる。名前は "TypeError" で一致するが、実際には `DOMException` ではない |
+| WebIDL の TypeError を `DOMException` と同じ型で扱う | `moveBefore` と attribute の method の receiver、`observe` の options、`Range` の `Node` 引数がこれに当たる。名前は "TypeError" で一致するが、実際には `DOMException` ではない |
 | `NodeStore` は association list | 性能ではなく証明の都合。`keys` に重複が無いことは構造では保証していない（`observe` は id で正規化して吸収する） |
 
 ## 5. 「Dommy の不一致」の判定

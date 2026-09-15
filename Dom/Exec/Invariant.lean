@@ -85,35 +85,65 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | deleteData n o c => exact admissible_deleteData h hop
   | setData n d => exact admissible_setData h hop
   | normalize tgt => exact admissible_normalize h hop
-  | rangeSetStart i n o => exact admissible_rangeSetStart h hop
-  | rangeSetEnd i n o => exact admissible_rangeSetEnd h hop
-  | rangeSetStartSibling i n a => exact admissible_rangeSetStartSibling h hop
-  | rangeSetEndSibling i n a => exact admissible_rangeSetEndSibling h hop
+  | rangeSetStart i n o =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact admissible_rangeSetStart h hop
+  | rangeSetEnd i n o =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact admissible_rangeSetEnd h hop
+  | rangeSetStartSibling i n a =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact admissible_rangeSetStartSibling h hop
+  | rangeSetEndSibling i n a =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact admissible_rangeSetEndSibling h hop
   | rangeCollapse i t => exact admissible_rangeCollapse h hop
-  | rangeSelectNode i n => exact admissible_rangeSelectNode h hop
-  | rangeSelectNodeContents i n => exact admissible_rangeSelectNodeContents h hop
+  | rangeSelectNode i n =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact admissible_rangeSelectNode h hop
+  | rangeSelectNodeContents i n =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact admissible_rangeSelectNodeContents h hop
   | rangeIsPointInRange i n o =>
-    simp only [applyOperation, Except.map] at hop
-    split at hop
-    · simp at hop
-    · rw [← Except.ok.inj hop]; exact h
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n =>
+      simp only [applyOperation, withNode, Except.map] at hop
+      split at hop
+      · simp at hop
+      · rw [← Except.ok.inj hop]; exact h
   | rangeIntersectsNode i n =>
-    simp only [applyOperation, Except.map] at hop
-    split at hop
-    · simp at hop
-    · rw [← Except.ok.inj hop]; exact h
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n =>
+      simp only [applyOperation, withNode, Except.map] at hop
+      split at hop
+      · simp at hop
+      · rw [← Except.ok.inj hop]; exact h
   | rangeCompareBoundaryPoints i how j =>
     simp only [applyOperation, Except.map] at hop
     split at hop
     · simp at hop
     · rw [← Except.ok.inj hop]; exact h
   | rangeComparePoint i n o =>
-    simp only [applyOperation, Except.map] at hop
-    split at hop
-    · simp at hop
-    · rw [← Except.ok.inj hop]; exact h
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n =>
+      simp only [applyOperation, withNode, Except.map] at hop
+      split at hop
+      · simp at hop
+      · rw [← Except.ok.inj hop]; exact h
   | rangeDeleteContents i => exact admissible_rangeDeleteContents h hop
-  | rangeInsertNode i n => exact admissible_rangeInsertNode h hop
+  | rangeInsertNode i n =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact admissible_rangeInsertNode h hop
   | walkerMove i m =>
     -- `applyOperation` は返した node を捨てるので、`Except.map` を剥がす。
     simp only [applyOperation, Except.map] at hop

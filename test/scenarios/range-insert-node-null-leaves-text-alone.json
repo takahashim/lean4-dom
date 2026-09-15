@@ -1,0 +1,27 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://webidl.spec.whatwg.org/#es-overloads",
+    "algorithm": [
+      "ECMAScript argument conversion",
+      "insertNode"
+    ],
+    "steps": "WebIDL の引数変換は method の step より先に走る / insertNode 6",
+    "note": "insertNode の step 6 は start node が Text なら splitText で割る。null 引数の TypeError はその前に出るので、木は変わらない。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div" },
+    { "id": 2, "kind": "text", "parent": 1, "data": "abcd" }
+  ],
+  "ranges": [
+    { "start": { "node": 2, "offset": 2 }, "end": { "node": 2, "offset": 2 } }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    { "op": "rangeInsertNode", "range": 0, "node": null }
+  ]
+}

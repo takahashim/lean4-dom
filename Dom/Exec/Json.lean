@@ -95,6 +95,17 @@ private def natField? (j : Json) (k : String) : Except String (Option Nat) :=
   | none => .ok none
   | some v => (v.getNat?).map some
 
+/--
+WebIDL の non-nullable な `Node` 引数。
+
+JSON の `null` は「Node でないもの」を表し、`none` になる。field そのものが無いのは
+scenario の書き誤りなので error にする（省略できる引数とは別物である）。
+-/
+private def nodeField (j : Json) (k : String) : Except String (Option Nat) :=
+  match j.getObjVal? k with
+  | .error _ => .error s!"必須の field `{k}` がない"
+  | .ok v => if v.isNull then .ok none else (v.getNat?).map some
+
 private def strField (j : Json) (k : String) (dflt : String) : Except String String :=
   match field? j k with
   | none => .ok dflt
@@ -184,35 +195,35 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "setData" => return .setData (← natField j "node") (← strField j "data" "")
   | "normalize" => return .normalize (← natField j "target")
   | "rangeSetStart" =>
-    return .rangeSetStart (← natField j "range") (← natField j "node") (← natField j "offset")
+    return .rangeSetStart (← natField j "range") (← nodeField j "node") (← natField j "offset")
   | "rangeSetEnd" =>
-    return .rangeSetEnd (← natField j "range") (← natField j "node") (← natField j "offset")
+    return .rangeSetEnd (← natField j "range") (← nodeField j "node") (← natField j "offset")
   | "rangeSetStartBefore" =>
-    return .rangeSetStartSibling (← natField j "range") (← natField j "node") false
+    return .rangeSetStartSibling (← natField j "range") (← nodeField j "node") false
   | "rangeSetStartAfter" =>
-    return .rangeSetStartSibling (← natField j "range") (← natField j "node") true
+    return .rangeSetStartSibling (← natField j "range") (← nodeField j "node") true
   | "rangeSetEndBefore" =>
-    return .rangeSetEndSibling (← natField j "range") (← natField j "node") false
+    return .rangeSetEndSibling (← natField j "range") (← nodeField j "node") false
   | "rangeSetEndAfter" =>
-    return .rangeSetEndSibling (← natField j "range") (← natField j "node") true
+    return .rangeSetEndSibling (← natField j "range") (← nodeField j "node") true
   | "rangeCollapse" =>
     return .rangeCollapse (← natField j "range") ((← boolField? j "toStart").getD false)
-  | "rangeSelectNode" => return .rangeSelectNode (← natField j "range") (← natField j "node")
+  | "rangeSelectNode" => return .rangeSelectNode (← natField j "range") (← nodeField j "node")
   | "rangeSelectNodeContents" =>
-    return .rangeSelectNodeContents (← natField j "range") (← natField j "node")
+    return .rangeSelectNodeContents (← natField j "range") (← nodeField j "node")
   | "rangeIsPointInRange" =>
-    return .rangeIsPointInRange (← natField j "range") (← natField j "node")
+    return .rangeIsPointInRange (← natField j "range") (← nodeField j "node")
       (← natField j "offset")
   | "rangeIntersectsNode" =>
-    return .rangeIntersectsNode (← natField j "range") (← natField j "node")
+    return .rangeIntersectsNode (← natField j "range") (← nodeField j "node")
   | "rangeCompareBoundaryPoints" =>
     return .rangeCompareBoundaryPoints (← natField j "range") (← natField j "how")
       (← natField j "source")
   | "rangeComparePoint" =>
-    return .rangeComparePoint (← natField j "range") (← natField j "node")
+    return .rangeComparePoint (← natField j "range") (← nodeField j "node")
       (← natField j "offset")
   | "rangeDeleteContents" => return .rangeDeleteContents (← natField j "range")
-  | "rangeInsertNode" => return .rangeInsertNode (← natField j "range") (← natField j "node")
+  | "rangeInsertNode" => return .rangeInsertNode (← natField j "range") (← nodeField j "node")
   | "walkerParentNode" => return .walkerMove (← natField j "walker") .parentNode
   | "walkerFirstChild" => return .walkerMove (← natField j "walker") .firstChild
   | "walkerLastChild" => return .walkerMove (← natField j "walker") .lastChild

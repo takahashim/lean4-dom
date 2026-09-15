@@ -121,6 +121,7 @@ soundness も component 単位で証明してある
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | set the start / set the end | 1 doctype / 2 offset / 3-5 反対の端の正規化 | `rangeSetStart`, `rangeSetEnd`, `setStartBP`, `setEndBP`, `rangeBoundaryError` | preservation `admissible_rangeSetStart` `admissible_rangeSetEnd` | `range-setstart-past-end-collapses`, `range-setstart-other-root-carries-range`, `range-setstart-errors` | `test_wpt_range_mutations.rb` | 済 |
+| `Node` 引数の変換（WebIDL） | 引数変換は method の step より先 / `Range` の `Node` は non-nullable | `Operation` の `Option Nat`、`Dom.Exec.withNode` | — | `range-null-node-argument` | `test_range_node_arguments.rb` | 済 |
 | `setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter` | 1 parent / 2 null なら InvalidNodeTypeError / 3 set the start(end) | `rangeSetStartSibling`, `rangeSetEndSibling`, `siblingBP` | preservation `admissible_rangeSetStartSibling` ほか | `range-sibling-setters-and-collapse`, `range-boundary-needs-parent` | 同上 | 済 |
 | `collapse(toStart)` | 1-2 | `rangeCollapse` | preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
 | `selectNode(node)` | 1 parent / 2 null なら InvalidNodeTypeError / 3-5 両端 | `rangeSelectNode` | preservation `admissible_rangeSelectNode` | `range-select-node-and-contents`, `range-boundary-needs-parent` | 同上 | 済 |
@@ -135,7 +136,7 @@ soundness も component 単位で証明してある
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `deleteContents()` | 1 collapsed / 3 同じ CharacterData / 4 nodes to remove / 5-6 新しい端点 / 7-9 削除と切り詰め / 10 両端 | `rangeDeleteContents`, `nodesToRemove`, `containedInRange`, `deleteContentsNewBP` | preservation `admissible_rangeDeleteContents`（step 10 の端点は実行時検査） | `range-delete-contents-within-text`, `-across-nodes`, `-ancestor-start`, `-collapsed-is-noop`, `range-delete-contents-partially-contained-end`, `-start` | `test_wpt_range_contents.rb` | 済 |
-| `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode` | preservation `admissible_rangeInsertNode`, `validBoundaryPoint_of_siblingBP` | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start` | 同上 | 済（step 7 の split text は対象外） |
+| `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode` | preservation `admissible_rangeInsertNode`, `validBoundaryPoint_of_siblingBP` | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start`, `range-insert-node-null-leaves-text-alone` | 同上 | 済（step 7 の split text は対象外） |
 
 `extractContents` / `cloneContents` / `surroundContents` / `cloneRange` は node を生むので
 roadmap §13.2 の対象外である。`insertNode` の step 7（start node が Text なら split する）も

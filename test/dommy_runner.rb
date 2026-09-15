@@ -709,8 +709,16 @@ module DommyRunner
       range = (ctx[:ranges] || [])[op["range"]]
       raise NotImplementedError, "range index" if range.nil?
 
-      node = op.key?("node") ? objects[op["node"]] : nil
-      raise NotImplementedError, "missing node" if op.key?("node") && node.nil?
+      # `"node": null` は「Node でない引数」である。WebIDL は step に入る前に
+      # 引数を変換するので、そのまま渡して TypeError を見る。
+      # 存在しない id はこちらでは作りようが無いので、従来どおり比較から外す。
+      node =
+        if !op.key?("node") || op["node"].nil?
+          nil
+        else
+          objects[op["node"]] ||
+            raise(NotImplementedError, "missing node")
+        end
 
       return case op["op"]
              when "rangeSetStart" then range.set_start(node, op["offset"])

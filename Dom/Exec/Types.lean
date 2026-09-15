@@ -67,27 +67,35 @@ inductive Operation where
   | setData (node : Nat) (data : String)
   /-- `Node.normalize()`。 -/
   | normalize (target : Nat)
-  /-- `Range.setStart(node, offset)` / `setEnd`。 -/
-  | rangeSetStart (range node offset : Nat)
-  | rangeSetEnd (range node offset : Nat)
+  /--
+  `Range.setStart(node, offset)` / `setEnd`。
+
+  `Range` の `Node` 引数はどれも `Option Nat` である。WebIDL は method の step に
+  入る前に引数を変換し、これらは non-nullable なので、null は step が一つも
+  走らないうちに `TypeError` になる。`none` がその null を表す。
+  順序は観測に出る（`setStart(null, 木より大きい offset)` は `IndexSizeError` ではなく
+  `TypeError`）ので、model でも引数の側に置いてある。
+  -/
+  | rangeSetStart (range : Nat) (node : Option Nat) (offset : Nat)
+  | rangeSetEnd (range : Nat) (node : Option Nat) (offset : Nat)
   /-- `Range.setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter`。 -/
-  | rangeSetStartSibling (range node : Nat) (after : Bool)
-  | rangeSetEndSibling (range node : Nat) (after : Bool)
+  | rangeSetStartSibling (range : Nat) (node : Option Nat) (after : Bool)
+  | rangeSetEndSibling (range : Nat) (node : Option Nat) (after : Bool)
   /-- `Range.collapse(toStart)`。 -/
   | rangeCollapse (range : Nat) (toStart : Bool)
   /-- `Range.selectNode(node)` / `selectNodeContents(node)`。 -/
-  | rangeSelectNode (range node : Nat)
-  | rangeSelectNodeContents (range node : Nat)
+  | rangeSelectNode (range : Nat) (node : Option Nat)
+  | rangeSelectNodeContents (range : Nat) (node : Option Nat)
   /-- `Range.isPointInRange(node, offset)` / `intersectsNode(node)`。 -/
-  | rangeIsPointInRange (range node offset : Nat)
-  | rangeIntersectsNode (range node : Nat)
+  | rangeIsPointInRange (range : Nat) (node : Option Nat) (offset : Nat)
+  | rangeIntersectsNode (range : Nat) (node : Option Nat)
   /-- `Range.compareBoundaryPoints(how, sourceRange)` / `comparePoint(node, offset)`。 -/
   | rangeCompareBoundaryPoints (range how source : Nat)
-  | rangeComparePoint (range node offset : Nat)
+  | rangeComparePoint (range : Nat) (node : Option Nat) (offset : Nat)
   /-- `Range.deleteContents()`。 -/
   | rangeDeleteContents (range : Nat)
   /-- `Range.insertNode(node)`。 -/
-  | rangeInsertNode (range node : Nat)
+  | rangeInsertNode (range : Nat) (node : Option Nat)
   /-- `TreeWalker` の走査 method（§6.2）。 -/
   | walkerMove (walker : Nat) (method : WalkerMethod)
   /-- `Range` の stringifier（§5.5）。 -/

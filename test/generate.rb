@@ -229,14 +229,19 @@ module Generate
       return nil if range_count.zero?
 
       r = rng.rand(range_count)
-      node = ids.sample(random: rng)
+      # `Range` の `Node` 引数は WebIDL で non-nullable である。null は step に入る前の
+      # 引数変換で TypeError になるので、順序（`setStart(null, 大きい offset)` が
+      # IndexSizeError にならないこと）を撫でるために、たまに null を混ぜる。
+      node = rng.rand < 0.06 ? nil : ids.sample(random: rng)
+      # 大きい offset も混ぜる。null と合わせると変換が先だと分かる。
+      offset = -> { rng.rand < 0.1 ? 99 : rng.rand(4) }
       return case op
              when "rangeSetStart", "rangeSetEnd", "rangeIsPointInRange"
-               { "op" => op, "range" => r, "node" => node, "offset" => rng.rand(4) }
+               { "op" => op, "range" => r, "node" => node, "offset" => offset.call }
              when "rangeCollapse" then { "op" => op, "range" => r, "toStart" => rng.rand < 0.5 }
              when "rangeDeleteContents", "rangeToString" then { "op" => op, "range" => r }
              when "rangeComparePoint"
-               { "op" => op, "range" => r, "node" => node, "offset" => rng.rand(4) }
+               { "op" => op, "range" => r, "node" => node, "offset" => offset.call }
              when "rangeCompareBoundaryPoints"
                # `how` は 0-3 のほかに範囲外も混ぜて NotSupportedError を撫でる。
                { "op" => op, "range" => r, "how" => rng.rand(5), "source" => rng.rand(range_count) }

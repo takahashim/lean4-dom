@@ -2696,6 +2696,39 @@ step 1 の validity を関係に含めていないので、そこが保証する
 `adopt` も `remove` も ancestor を増やさないので、そのまま移せる。
 `node` の kind と children も両方を跨いで残るので、step 8 の `nodes` も対応が付く。
 
+## null 引数を比べられるようにした
+
+差分テストは長らく「存在しない id を指す引数」を `unsupported` として飛ばしていた。
+model が `notFoundError` を返すからだが、それは **model 側の都合**であって
+仕様にある結果ではない。Dommy 側には「存在しない node」を渡しようが無いので、
+比べる相手がいなかった。
+
+代わりに **null** を渡せるようにした。WebIDL は method の step に入る前に引数を変換し、
+`Range` の `Node` 引数はどれも non-nullable なので、null は
+**手順が一つも走らないうちに** `TypeError` になる。これは仕様にある結果で、
+Dommy にもそのまま渡せる。
+
+`Operation` の `Range` の node 引数を `Option Nat` にして、`none` なら
+`Dom.Exec.withNode` が step より先に `.typeError` を返す。
+scenario の JSON では `"node": null` と書く。
+
+### 順序が観測に出る
+
+`setStart(null, 木より大きい offset)` は `IndexSizeError` ではなく `TypeError` になる。
+変換が step 2 より先だからである。`insertNode(null)` も同じで、
+step 6 の「start node が Text なら割る」より先に落ちるので木は変わらない。
+
+固定 scenario を二本足した（`range-null-node-argument`,
+`range-insert-node-null-leaves-text-alone`）。どちらも Dommy の
+PR 42 前だと赤くなる——前者は `IndexSizeError`、後者は
+**Text を "abcd" から "ab" に割ってから**例外を投げていた。PR 42 後は両方緑である。
+
+生成器も `Range` の node 引数に 6% で null を混ぜ、offset にも 10% で
+length を超える値を混ぜるようにした。seed 11 で 120 件回して、
+不一致は finding 7 の一件だけだった。
+
+pin は PR 42 の head（`e018027`）に上げた。
+
 ### 次
 
 `move` の関係である。
