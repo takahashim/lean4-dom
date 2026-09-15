@@ -776,6 +776,12 @@ open Dom.Audit
   Dom.Spec.mem_combCandidates_child
   Dom.Spec.mem_combCandidates_subsequentSibling
   Dom.Spec.mem_combCandidates_nextSibling
+  Dom.Spec.hasPrefixL_iff
+  Dom.Spec.hasSuffixL_iff
+  Dom.Spec.hasInfixL_iff
+  Dom.Spec.attrTestHolds_iff
+  Dom.Spec.includes_empty_never
+  Dom.Spec.includes_whitespace_never
 
 -- selector の API が満たすこと
 #audit_axioms

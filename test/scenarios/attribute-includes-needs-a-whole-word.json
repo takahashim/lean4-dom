@@ -1,0 +1,33 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#attribute-representation",
+    "algorithm": ["[att~=val]", "[att^=val]", "[att$=val]", "[att*=val]"],
+    "steps": "~= は「空白で区切った語のどれかがちょうど val」。val が空白を含むか空なら何にも当たらない。^= $= *= も val が空なら何にも当たらない",
+    "note": "語の途中に一致しても当たらないこと、前後を取り違えていないことを見る。Dom/Spec/Selector.lean の attrTestHolds_iff が ~= 以外を定理にしてあり、~= の但し書き二つも定理にしてある。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "a",
+      "attributes": [
+        { "namespace": null, "prefix": null, "localName": "class", "value": "one two three" },
+        { "namespace": null, "prefix": null, "localName": "href", "value": "/a/b.html" }
+      ] }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "[class~=one]" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[class~=two]" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[class~=three]" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[class~=on]" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[class~=hree]" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[class~='one two']" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[class~='']" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[href^='/a']" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[href^='html']" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[href$='html']" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[href$='/a']" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[href*='/b.']" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "[href*='']" }
+  ]
+}

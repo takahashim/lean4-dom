@@ -363,8 +363,11 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | tokenization | CSS Syntax §4 | `tokenize`（`Selectors/Token.lean`） | `tokenAt_le`, `nextToken_lt`（停止性） | — | 済（url-token / unicode-range-token は対象外） |
 | consume a list of component values | CSS Syntax §5.4.6 | `toComponents`（`Selectors/Component.lean`） | `splitBlock_size` | `unclosed-block-is-closed-at-eof` | 済 |
 | `parse a selector` | Selectors §19.1 | `parseSelector`（`Selectors/Parser.lean`） | `dropToComma_size`, `splitAtOf_size`（停止性） | `universal-selector-takes-subclasses`, `id-selector-needs-an-identifier` | 部分（namespace prefix と pseudo-element は対象外） |
-| `<a-n-plus-b>` | CSS Syntax §9.2 | `parseAnB` | — | `structural-pseudo-classes-count-elements` | 済 |
-| match a selector against an element | Selectors §17.1 | `matchSelList`（`Dom/Selector/Match.lean`） | `sSize_lt_cpSize`, `cxSize_lt_lSize`（停止性） | `structural-pseudo-classes-count-elements`, `attribute-selectors-compare-values` | 部分（状態の pseudo-class は対象外） |
+| `<a-n-plus-b>` の構文 | CSS Syntax §9.2 | `parseAnB` | — | `structural-pseudo-classes-count-elements` | 済 |
+| `<a-n-plus-b>` が表す index | CSS Syntax §9.1 | `anbMatches` | `anbMatches_iff`（関係意味論） | `nth-child-with-negative-coefficient` | 済 |
+| match a selector against an element | Selectors §17.1 | `matchSelList`（`Dom/Selector/Match.lean`） | `sSize_lt_cpSize`, `cxSize_lt_lSize`（停止性） | `structural-pseudo-classes-count-elements` | 部分（状態の pseudo-class は対象外） |
+| combinator が結ぶ element | Selectors §16 | `combCandidates` | `mem_combCandidates_descendant` 〜 `_nextSibling`（関係意味論） | `sibling-combinators-pick-the-right-neighbour` | 済 |
+| attribute selector の値の照合 | Selectors §6.3 | `attrTestHolds` | `attrTestHolds_iff`, `includes_empty_never`, `includes_whitespace_never` | `attribute-selectors-compare-values`, `attribute-includes-needs-a-whole-word` | 済（`~=` の語境界は定理にしていない） |
 | match a selector against a tree / scope-match a selectors string | Selectors §17.3 / DOM §1.3 | `matchTree`, `scopeMatch`（`Dom/Selector/Api.lean`） | `matchTree_sublist`, `matchTree_nodup`, `mem_matchTree_iff` | `query-selector-finds-in-tree-order`, `scope-pseudo-is-the-scoping-root` | 済 |
 | `querySelector(selectors)` / `querySelectorAll(selectors)` | DOM §4.2.6 | `querySelector`, `querySelectorAll` | `admissible_mapConst`, `querySelector_eq_head`, `querySelectorAll_eq_matchTree` | `query-selector-finds-in-tree-order` | 済 |
 | `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | `matchesSelector_eq`, `closest_spec`, `closest_first`, `closest_eq_none_iff`, `closest_self`, `mem_matchTree_iff_matches` | `matches-and-closest-walk-up` | 済 |

@@ -408,6 +408,28 @@ combinator のほうは、`~` が「前のどれか」・`+` が「すぐ前」�
 固定 scenario 110 本と生成 scenario 200 本はどちらも気付かない
 （`docs/status.md` の「定理に歯があるか確かめた」）。
 
+### attribute selector の値の照合（§6.3）
+
+```lean
+def AttrOpHolds : AttrOp -> List Char -> List Char -> Prop
+  | .exact, v, w => v = w
+  | .includes, _, w => w ≠ [] ∧ NoWhitespace w
+  | .dashMatch, v, w => v = w ∨ ∃ rest, v = w ++ Char.ofNat 0x2D :: rest
+  | .prefixMatch, v, w => w ≠ [] ∧ ∃ rest, v = w ++ rest
+  | .suffixMatch, v, w => w ≠ [] ∧ ∃ pre, v = pre ++ w
+  | .substring, v, w => w ≠ [] ∧ ∃ pre post, v = pre ++ w ++ post
+
+theorem attrTestHolds_iff (test : AttrTest) (value : String) (h : test.op ≠ .includes) :
+    attrTestHolds test value = true ↔
+      AttrOpHolds test.op (caseFold test.case value.toList)
+        (caseFold test.case test.value.toList)
+```
+
+`~=` の「空白で区切った語のどれか」だけは、語の切り出しの帰納法が重いので定理にしていない。
+仕様が明記する二つの但し書き（値が空、値が空白を含む）は
+`includes_empty_never` / `includes_whitespace_never` にしてあり、
+語境界そのものは固定 scenario が見ている。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

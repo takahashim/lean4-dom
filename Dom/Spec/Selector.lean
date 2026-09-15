@@ -241,4 +241,124 @@ theorem mem_combCandidates_nextSibling {t : Tree} (hwf : WellFormed t) {n p : No
       takeWhile_eq_of_split hwf hsp
     exact ⟨a, by rw [← hpre, this]⟩
 
+/-! ## attribute selector の値の照合（Selectors Level 4 §6.3）
+
+仕様は六つの演算子を「値 `v` と selector の値 `w` の関係」として定める。
+実行側は `hasPrefixL` / `hasSuffixL` / `hasInfixL` と空白での分割で書いており、
+**前後を取り違える・空文字列の除外を落とす**のが誤りやすいところである。
+
+`~=` の「空白で区切った語のどれか」だけは、語の切り出しの帰納法が重いので
+定理にしていない。仕様が明記する二つの但し書き（値が空、値が空白を含む）は
+定理にしてあり、語境界そのものは固定 scenario
+`attribute-includes-needs-a-whole-word` が見ている。
+-/
+
+def NoWhitespace (w : List Char) : Prop := ∀ c ∈ w, isAsciiWhitespace c = false
+
+/-- 六つの演算子が表す、値どうしの関係。 -/
+def AttrOpHolds : AttrOp -> List Char -> List Char -> Prop
+  | .exact, v, w => v = w
+  | .includes, _, w => w ≠ [] ∧ NoWhitespace w
+  | .dashMatch, v, w => v = w ∨ ∃ rest, v = w ++ Char.ofNat 0x2D :: rest
+  | .prefixMatch, v, w => w ≠ [] ∧ ∃ rest, v = w ++ rest
+  | .suffixMatch, v, w => w ≠ [] ∧ ∃ pre, v = pre ++ w
+  | .substring, v, w => w ≠ [] ∧ ∃ pre post, v = pre ++ w ++ post
+
+theorem hasPrefixL_iff : ∀ (p l : List Char), hasPrefixL p l = true ↔ ∃ rest, l = p ++ rest
+  | [], l => by simp [hasPrefixL]
+  | _ :: _, [] => by simp [hasPrefixL]
+  | a :: as, b :: bs => by
+    rw [hasPrefixL, Bool.and_eq_true, beq_iff_eq, hasPrefixL_iff as bs]
+    constructor
+    · rintro ⟨rfl, rest, rfl⟩
+      exact ⟨rest, rfl⟩
+    · rintro ⟨rest, h⟩
+      rw [List.cons_append, List.cons.injEq] at h
+      exact ⟨h.1.symm, rest, h.2⟩
+
+theorem hasSuffixL_iff (p l : List Char) : hasSuffixL p l = true ↔ ∃ pre, l = pre ++ p := by
+  rw [hasSuffixL, hasPrefixL_iff]
+  constructor
+  · rintro ⟨rest, h⟩
+    refine ⟨rest.reverse, ?_⟩
+    have := congrArg List.reverse h
+    simpa using this
+  · rintro ⟨pre, rfl⟩
+    exact ⟨pre.reverse, by simp⟩
+
+theorem hasInfixL_iff (p : List Char) : ∀ (l : List Char),
+    hasInfixL p l = true ↔ ∃ pre post, l = pre ++ p ++ post
+  | [] => by
+    rw [hasInfixL, hasPrefixL_iff]
+    constructor
+    · rintro ⟨rest, h⟩
+      exact ⟨[], rest, by simpa using h⟩
+    · rintro ⟨pre, post, h⟩
+      refine ⟨[], ?_⟩
+      have hp : p = [] := by
+        have h' := h.symm
+        simp only [List.append_eq_nil_iff] at h'
+        exact h'.1.2
+      simp [hp]
+  | c :: t => by
+    rw [hasInfixL, Bool.or_eq_true, hasPrefixL_iff, hasInfixL_iff p t]
+    constructor
+    · rintro (⟨rest, h⟩ | ⟨pre, post, h⟩)
+      · exact ⟨[], rest, by simpa using h⟩
+      · exact ⟨c :: pre, post, by simp [h]⟩
+    · rintro ⟨pre, post, h⟩
+      cases pre with
+      | nil => exact Or.inl ⟨post, by simpa using h⟩
+      | cons a as =>
+        refine Or.inr ⟨as, post, ?_⟩
+        rw [List.cons_append, List.cons_append, List.cons.injEq] at h
+        exact h.2
+
+/-- **六つの演算子は仕様の関係をちょうど表す（`~=` は但し書きだけ）。** -/
+theorem attrTestHolds_iff (test : AttrTest) (value : String) (h : test.op ≠ .includes) :
+    attrTestHolds test value = true ↔
+      AttrOpHolds test.op (caseFold test.case value.toList)
+        (caseFold test.case test.value.toList) := by
+  unfold attrTestHolds
+  cases hop : test.op with
+  | exact => simp [AttrOpHolds]
+  | includes => exact absurd hop h
+  | dashMatch =>
+    simp only [AttrOpHolds, Bool.or_eq_true, beq_iff_eq, hasPrefixL_iff]
+    constructor
+    · rintro (h1 | ⟨rest, h1⟩)
+      · exact Or.inl h1
+      · exact Or.inr ⟨rest, by simpa using h1⟩
+    · rintro (h1 | ⟨rest, h1⟩)
+      · exact Or.inl h1
+      · exact Or.inr ⟨rest, by simpa using h1⟩
+  | prefixMatch =>
+    simp only [AttrOpHolds, Bool.and_eq_true, hasPrefixL_iff, Bool.not_eq_true',
+      List.isEmpty_eq_false_iff]
+  | suffixMatch =>
+    simp only [AttrOpHolds, Bool.and_eq_true, hasSuffixL_iff, Bool.not_eq_true',
+      List.isEmpty_eq_false_iff]
+  | substring =>
+    simp only [AttrOpHolds, Bool.and_eq_true, hasInfixL_iff, Bool.not_eq_true',
+      List.isEmpty_eq_false_iff]
+
+/-- **`[att~=""]` は何にも当たらない。** 仕様が明記する但し書きの一つ。 -/
+theorem includes_empty_never (c : AttrCase) (value : String) :
+    attrTestHolds ⟨.includes, "", c⟩ value = false := by
+  cases c <;> simp [attrTestHolds, caseFold]
+
+/-- **値が空白を含む `~=` は何にも当たらない。** もう一つの但し書き。 -/
+theorem includes_whitespace_never (test : AttrTest) (value : String)
+    (hop : test.op = .includes) (hc : test.case ≠ .insensitive)
+    (hw : ∃ c ∈ test.value.toList, isAsciiWhitespace c = true) :
+    attrTestHolds test value = false := by
+  obtain ⟨c, hcmem, hcws⟩ := hw
+  unfold attrTestHolds
+  have hfold : caseFold test.case test.value.toList = test.value.toList := by
+    cases hcase : test.case with
+    | insensitive => exact absurd hcase hc
+    | _ => rfl
+  simp only [hop, hfold, Bool.and_eq_false_iff]
+  exact Or.inl (Or.inr (by simp; exact ⟨c, hcmem, hcws⟩))
+
 end Dom.Spec

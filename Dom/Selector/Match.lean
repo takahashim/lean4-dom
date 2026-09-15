@@ -124,14 +124,15 @@ def selectorAttr (t : Tree) (d : NodeData) (anyNs : Bool) (name : String) : Opti
 def plainAttr (d : NodeData) (name : String) : Option String :=
   (d.attributes.find? (fun a => a.localName == name && a.namespace.isNone)).map Attr.value
 
+/-- §6.3.3 の flag による大文字小文字の畳み込み。`i` のときだけ ASCII lowercase する。 -/
+def caseFold : AttrCase -> List Char -> List Char
+  | .insensitive, l => l.map asciiLowerChar
+  | _, l => l
+
 /-- §6.3 の値の照合。 -/
 def attrTestHolds (test : AttrTest) (value : String) : Bool :=
-  let fold : List Char -> List Char :=
-    match test.case with
-    | .insensitive => fun l => l.map asciiLowerChar
-    | _ => fun l => l
-  let v := fold value.toList
-  let w := fold test.value.toList
+  let v := caseFold test.case value.toList
+  let w := caseFold test.case test.value.toList
   match test.op with
   | .exact => v == w
   | .includes => !w.isEmpty && !(w.any isAsciiWhitespace) && (splitWsAux [] v).any (fun x => x == w)

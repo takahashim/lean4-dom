@@ -3782,6 +3782,9 @@ inclusive ancestor は当たらないこと、そして **scoping root が観測
   「先頭から N 個」は差分テストの外にあった。生成器と固定 scenario にも足した。
 * **combinator が結ぶ element**（Selectors §16）。`~` は「前のどれか」、
   `+` は「すぐ前」と書き写し、実行側の `takeWhile` / `getLast?` がそれと一致することを示した。
+* **attribute selector の値の照合**（Selectors §6.3）。六つの演算子を値どうしの関係として
+  書き写した。`~=` の「空白で区切った語のどれか」だけは語の切り出しの帰納法が重いので
+  定理にしていないが、仕様が明記する二つの但し書き（値が空、値が空白を含む）は定理にしてある。
 
 ### 定理に歯があるか確かめた
 
@@ -3798,6 +3801,20 @@ inclusive ancestor は当たらないこと、そして **scoping root が観測
 多いので、「前の最初」と「すぐ前」が一致してしまう。
 これを捕まえる固定 scenario（`sibling-combinators-pick-the-right-neighbour`）を
 足したので、いまは両方が塞いでいる。
+
+attribute のほうは逆だった。`$=` を `^=` に取り違えると、**固定 scenario は
+その場で捕まえる**（`attribute-selectors-compare-values` と
+`attribute-includes-needs-a-whole-word` の両方が赤くなる）。
+つまりここでは定理は回帰の壁であって、新しい範囲を覆ってはいない。
+
+| 壊し方 | 定理 | 固定 scenario | 生成 scenario |
+| --- | --- | --- | --- |
+| `+` の `getLast?` → `head?` | 捕まえる | 捕まえない | 捕まえない |
+| `$=` の `hasSuffixL` → `hasPrefixL` | 捕まえる | 捕まえる | — |
+
+**どこに定理を書くと効くかは、この差で決まる。** 木の形に条件が要るもの
+（`+` は左側の候補が二つ以上要る）は生成器が撫でにくく、
+値だけで決まるもの（attribute の演算子）は撫でやすい。
 
 ### 差分テストの現状
 

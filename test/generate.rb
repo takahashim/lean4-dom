@@ -261,6 +261,7 @@ module Generate
     ".vv", ".u", ".v", "#vv",
     "[a]", "[b]", "[data-x]", "[a=1]", "[a='']", "[class~=u]", "[data-x^=v]",
     "[data-x$=v]", "[data-x*=v]", "[a=1 i]", "[A=VV i]", "[class|=u]",
+    "[class~='u v']", "[class~='']", "[class^='']", "[class$=v]", "[class*=' ']",
     ":first-child", ":last-child", ":only-child", ":root",
     ":first-of-type", ":last-of-type", ":only-of-type",
     ":nth-child(2n+1)", ":nth-child(odd)", ":nth-child(even)",
