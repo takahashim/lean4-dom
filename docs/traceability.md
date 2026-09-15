@@ -35,10 +35,13 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | insert | `Dom.Spec.InsertSpec` | `Dom.Spec.insert_sound` | 未 |
 | replace | 未 | 未 | 未 |
 | move | 未 | 未 | 未 |
-| replace data | 未 | 未 | 未 |
+| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `Dom.Spec.replaceData_sound` | 未 |
 
-childList の record を積む step（`remove` の step 21 と `insert` の step 4.2 / 9）は
-`Dom.Spec.TreeRecordQueued` に切り出してあり、両方が共有する。
+record を積む step は種類ごとに切り出してある。childList（`remove` の step 21 と
+`insert` の step 4.2 / 9）は `Dom.Spec.TreeRecordQueued`、characterData
+（`replace data` の step 4）は `Dom.Spec.CharacterDataRecordQueued` である。
+後者は oldValue が載る条件（interested な registration のどれかが
+`characterDataOldValue` を持つこと）まで書いてある。
 
 `RemoveSpec` は仕様の副作用ごとに六つの component に分かれていて、
 soundness も component 単位で証明してある

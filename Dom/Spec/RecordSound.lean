@@ -108,4 +108,137 @@ theorem treeRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tree) (targ
     · exact Or.inr ((hbridge mo).mp hm)
   · exact microtaskQueued_queueMutationRecord ..
 
+/-! ## characterData の record -/
+
+/-- interested な observer の集まりは、関係の側の条件と一致する（characterData）。 -/
+theorem mem_interested_iff_characterData {s : DOMState} (hwf : WellFormed s.tree)
+    {rec : MutationRecord} (hty : rec.type = RecordType.characterData) (ov : Option String)
+    (mo : Nat) :
+    mo ∈ ((interestedObservers s rec ov).map (·.1)) ↔
+      InterestedInCharacterData s mo rec.target := by
+  rw [mem_interestedObservers]
+  have hcond : ∀ r : Registration,
+      Registration.interestedIn r rec.target rec.type rec.attributeName rec.attributeNamespace
+        = ((r.node == rec.target || r.subtree) && r.characterData) := by
+    intro r
+    rw [hty]
+    rfl
+  constructor
+  · rintro ⟨r, hrmem, hnode, hc, rfl⟩
+    rw [hcond] at hc
+    simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hc
+    refine ⟨r, hrmem, rfl, hc.2, ?_, hc.1⟩
+    rcases List.mem_cons.mp hnode with he | hm
+    · exact Or.inl he
+    · exact Or.inr ((mem_ancestors_iff hwf rec.target r.node).mp hm)
+  · rintro ⟨r, hrmem, rfl, hcd, hanc, hsub⟩
+    refine ⟨r, hrmem, ?_, ?_, rfl⟩
+    · rcases hanc with he | ha
+      · exact List.mem_cons.mpr (Or.inl he)
+      · exact List.mem_cons_of_mem _ ((mem_ancestors_iff hwf rec.target r.node).mpr ha)
+    · rw [hcond]
+      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq]
+      exact ⟨hsub, hcd⟩
+
+/-- oldValue が載る observer も、関係の側の条件と一致する。 -/
+theorem mem_pair_iff_characterDataOldValue {s : DOMState} (hwf : WellFormed s.tree)
+    {rec : MutationRecord} (hty : rec.type = RecordType.characterData) (old : String) (mo : Nat) :
+    ((mo, some old) ∈ interestedObservers s rec (some old)) ↔
+      CharacterDataOldValueWanted s mo rec.target := by
+  rw [mem_pair_interestedObservers s rec (some old) (by simp) mo]
+  have hcond : ∀ r : Registration,
+      Registration.interestedIn r rec.target rec.type rec.attributeName rec.attributeNamespace
+        = ((r.node == rec.target || r.subtree) && r.characterData) := by
+    intro r
+    rw [hty]
+    rfl
+  have hflag : ∀ r : Registration,
+      (((rec.type == RecordType.characterData && r.characterDataOldValue)
+        || (rec.type == RecordType.attributes && r.attributeOldValue)) = true) ↔
+        r.characterDataOldValue = true := by
+    intro r
+    rw [hty]
+    simp
+  constructor
+  · rintro ⟨r, hrmem, hnode, hc, hf, rfl⟩
+    rw [hcond] at hc
+    simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hc
+    refine ⟨r, hrmem, rfl, hc.2, (hflag r).mp hf, ?_, hc.1⟩
+    rcases List.mem_cons.mp hnode with he | hm
+    · exact Or.inl he
+    · exact Or.inr ((mem_ancestors_iff hwf rec.target r.node).mp hm)
+  · rintro ⟨r, hrmem, rfl, hcd, hov, hanc, hsub⟩
+    refine ⟨r, hrmem, ?_, ?_, (hflag r).mpr hov, rfl⟩
+    · rcases hanc with he | ha
+      · exact List.mem_cons.mpr (Or.inl he)
+      · exact List.mem_cons_of_mem _ ((mem_ancestors_iff hwf rec.target r.node).mpr ha)
+    · rw [hcond]
+      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq]
+      exact ⟨hsub, hcd⟩
+
+/-- **`queueCharacterDataRecord` は `CharacterDataRecordQueued` を満たす。** -/
+theorem characterDataRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tree)
+    (target : NodeId) (old : String) :
+    CharacterDataRecordQueued s (queueCharacterDataRecord s target old) target old := by
+  have hmem := fun mo => mem_interested_iff_characterData (s := s) hwf
+    (rec := ({ type := .characterData, target := target } : MutationRecord)) rfl (some old) mo
+  have hpair := fun mo => mem_pair_iff_characterDataOldValue (s := s) hwf
+    (rec := ({ type := .characterData, target := target } : MutationRecord)) rfl old mo
+  unfold queueCharacterDataRecord
+  refine ⟨queueMutationRecord_observers_length .., ?_, ?_, ?_, ?_,
+    microtaskQueued_queueMutationRecord ..⟩
+  · intro mo o o' ho ho'
+    rw [observers_queueMutationRecord] at ho'
+    have hfold := records_foldl_enqueue
+      ({ type := .characterData, target := target } : MutationRecord) _ s.observers mo o o' ho ho'
+    refine ⟨?_, ?_, ?_⟩
+    · intro hint hwant
+      have hq : (mo, some old) ∈ interestedObservers s
+          ({ type := .characterData, target := target } : MutationRecord) (some old) :=
+        (hpair mo).mpr hwant
+      rw [hfold, filterMap_eq_single
+        (fun r : Nat × Option String =>
+          ({ type := .characterData, target := target, oldValue := r.2 } : MutationRecord))
+        mo (some old) _ (nodup_interestedObservers ..) hq]
+    · intro hint hwant
+      -- interested だが flag が無いなら、値は `none` である。
+      obtain ⟨q, hqmem, hq1⟩ := List.mem_map.mp ((hmem mo).mpr hint)
+      have hval : q.2 = some old ∨ q.2 = none :=
+        value_mem_interestedObservers s _ (some old) q hqmem
+      have hqnone : q.2 = none := by
+        rcases hval with hv | hv
+        · exfalso
+          refine hwant ((hpair mo).mp ?_)
+          have : q = (mo, some old) := by
+            cases q with
+            | mk a bb => simp only at hq1 hv; rw [hq1, hv]
+          rw [← this]
+          exact hqmem
+        · exact hv
+      have hq : (mo, none) ∈ interestedObservers s
+          ({ type := .characterData, target := target } : MutationRecord) (some old) := by
+        have : q = (mo, none) := by
+          cases q with
+          | mk a bb => simp only at hq1 hqnone; rw [hq1, hqnone]
+        rw [← this]
+        exact hqmem
+      rw [hfold, filterMap_eq_single
+        (fun r : Nat × Option String =>
+          ({ type := .characterData, target := target, oldValue := r.2 } : MutationRecord))
+        mo none _ (nodup_interestedObservers ..) hq]
+    · intro hint
+      rw [hfold, filterMap_eq_nil_of_not_mem
+        (fun r : Nat × Option String =>
+          ({ type := .characterData, target := target, oldValue := r.2 } : MutationRecord))
+        mo _ (fun hm => hint ((hmem mo).mp hm))]
+      simp
+  · intro mo hint
+    exact (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inr ((hmem mo).mpr hint))
+  · intro mo hmo
+    exact (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inl hmo)
+  · intro mo hmo
+    rcases (mem_pendingObservers_queueMutationRecord _ _ _ mo).mp hmo with hm | hm
+    · exact Or.inl hm
+    · exact Or.inr ((hmem mo).mp hm)
+
 end Dom.Spec

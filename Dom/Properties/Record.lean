@@ -99,6 +99,90 @@ theorem nodup_addInterested (acc : List (Nat × Option String)) (mo : Nat) (ov :
     obtain ⟨p, hp, he⟩ := List.mem_map.mp hx
     exact hfresh p hp (by rw [he, hxy, hy'])
 
+/-! ## oldValue が載る observer -/
+
+/-- 一 step が「その対を一つ足すか、何もしない」なら、畳み込みの結果も和になる。 -/
+theorem mem_pair_foldl_of_step {α : Type} {ov : Option String}
+    (step : List (Nat × Option String) → α → List (Nat × Option String))
+    (Q : α → Nat → Prop)
+    (hstep : ∀ acc a mo, ((mo, ov) ∈ step acc a) ↔ ((mo, ov) ∈ acc ∨ Q a mo)) :
+    ∀ (l : List α) (acc : List (Nat × Option String)) (mo : Nat),
+      ((mo, ov) ∈ l.foldl step acc) ↔ ((mo, ov) ∈ acc ∨ ∃ a ∈ l, Q a mo) := by
+  intro l
+  induction l with
+  | nil => intro acc mo; simp
+  | cons a rest ih =>
+    intro acc mo
+    rw [List.foldl_cons, ih (step acc a) mo, hstep acc a mo]
+    constructor
+    · rintro ((h | h) | ⟨b, hb, hQ⟩)
+      · exact Or.inl h
+      · exact Or.inr ⟨a, List.mem_cons_self, h⟩
+      · exact Or.inr ⟨b, List.mem_cons_of_mem _ hb, hQ⟩
+    · rintro (h | ⟨b, hb, hQ⟩)
+      · exact Or.inl (Or.inl h)
+      · rcases List.mem_cons.mp hb with rfl | hb'
+        · exact Or.inl (Or.inr hQ)
+        · exact Or.inr ⟨b, hb', hQ⟩
+
+/--
+`addInterested` が `(mo, ov)` を持つかどうか。
+
+`ov` は非 `none` で、足す値は `ov` か `none` のどちらかという前提を置く
+（`interestedObservers` の畳み込みはその形である）。
+-/
+theorem mem_pair_addInterested (acc : List (Nat × Option String)) (mo' mo : Nat)
+    (ov v : Option String) (hov : ov.isSome) (hv : v = ov ∨ v = none) :
+    ((mo, ov) ∈ addInterested acc mo' v) ↔ ((mo, ov) ∈ acc ∨ (mo = mo' ∧ v = ov)) := by
+  obtain ⟨ov₀, rfl⟩ : ∃ ov₀, ov = some ov₀ := Option.isSome_iff_exists.mp hov
+  unfold addInterested
+  by_cases hany : (acc.any fun p => p.1 == mo') = true
+  · rw [if_pos hany]
+    rcases hv with rfl | rfl
+    · -- 値を `ov` で上書きする枝
+      simp only
+      constructor
+      · intro h
+        obtain ⟨q, hq, he⟩ := List.mem_map.mp h
+        by_cases hq' : q.1 = mo'
+        · rw [if_pos (by simp [hq'])] at he
+          have hfst : q.1 = mo := congrArg Prod.fst he
+          refine Or.inr ⟨?_, by simp⟩
+          rw [← hfst, hq']
+        · rw [if_neg (by simp [hq'])] at he
+          exact Or.inl (he ▸ hq)
+      · rintro (h | ⟨rfl, -⟩)
+        · by_cases hq' : mo = mo'
+          · obtain ⟨q, hqm, hqe⟩ : ∃ q ∈ acc, q.1 = mo' := by
+              simp only [List.any_eq_true, beq_iff_eq] at hany
+              exact hany
+            refine List.mem_map.mpr ⟨q, hqm, ?_⟩
+            rw [if_pos (by simp [hqe]), hqe, hq']
+          · refine List.mem_map.mpr ⟨(mo, some ov₀), h, ?_⟩
+            rw [if_neg (by simp [hq'])]
+        · obtain ⟨q, hqm, hqe⟩ : ∃ q ∈ acc, q.1 = mo := by
+            simp only [List.any_eq_true, beq_iff_eq] at hany
+            exact hany
+          refine List.mem_map.mpr ⟨q, hqm, ?_⟩
+          rw [if_pos (by simp [hqe]), hqe]
+    · -- 値が `none` なら何も変わらない
+      simp only
+      constructor
+      · exact Or.inl
+      · rintro (h | ⟨-, he⟩)
+        · exact h
+        · simp at he
+  · rw [if_neg hany]
+    constructor
+    · intro h
+      rcases List.mem_append.mp h with h' | h'
+      · exact Or.inl h'
+      · have he : (mo, some ov₀) = (mo', v) := by simpa using h'
+        exact Or.inr ⟨congrArg Prod.fst he, (congrArg Prod.snd he).symm⟩
+    · rintro (h | ⟨rfl, he⟩)
+      · exact List.mem_append_left _ h
+      · exact List.mem_append_right _ (by rw [he]; simp)
+
 /-! ## `interestedObservers` -/
 
 /-- 内側の畳み込み（一つの node の registered observer list）。 -/
@@ -166,6 +250,124 @@ theorem nodup_interestedObservers (s : DOMState) (rec : MutationRecord) (ov : Op
   refine nodup_foldl_of_step _ (fun acc' r hacc' => ?_) _ acc hacc
   split
   · exact nodup_addInterested _ _ _ hacc'
+  · exact hacc'
+
+/-! ## oldValue が載る observer（characterData / attributes） -/
+
+theorem allValue_foldl_of_step {α : Type} {P : Option String → Prop}
+    (step : List (Nat × Option String) → α → List (Nat × Option String))
+    (hstep : ∀ acc a, (∀ p ∈ acc, P p.2) → ∀ p ∈ step acc a, P p.2) :
+    ∀ (l : List α) (acc : List (Nat × Option String)),
+      (∀ p ∈ acc, P p.2) → ∀ p ∈ l.foldl step acc, P p.2 := by
+  intro l
+  induction l with
+  | nil => intro acc h; exact h
+  | cons a rest ih => intro acc h; exact ih (step acc a) (hstep acc a h)
+
+
+/-- 内側の畳み込み。`(mo, ov)` が入るのは、flag の立った registration があるときだけである。 -/
+theorem mem_pair_interestedObservers_inner (s : DOMState) (rec : MutationRecord)
+    (ov : Option String) (hov : ov.isSome) (acc : List (Nat × Option String)) (m : NodeId)
+    (mo : Nat) :
+    ((mo, ov) ∈ ((s.registrations.filter fun r => r.node == m).foldl (fun acc r =>
+        if r.interestedIn rec.target rec.type rec.attributeName rec.attributeNamespace then
+          addInterested acc r.observer
+            (if (rec.type == .characterData && r.characterDataOldValue)
+                || (rec.type == .attributes && r.attributeOldValue) then ov else none)
+        else acc) acc)) ↔
+      ((mo, ov) ∈ acc ∨
+        ∃ r ∈ s.registrations.filter fun r => r.node == m,
+          Registration.interestedIn r rec.target rec.type rec.attributeName rec.attributeNamespace
+              = true ∧
+            ((rec.type == RecordType.characterData && r.characterDataOldValue)
+              || (rec.type == RecordType.attributes && r.attributeOldValue)) = true ∧
+            r.observer = mo) := by
+  refine mem_pair_foldl_of_step _ (fun (r : Registration) (mo : Nat) =>
+    Registration.interestedIn r rec.target rec.type rec.attributeName rec.attributeNamespace
+        = true ∧
+      ((rec.type == RecordType.characterData && r.characterDataOldValue)
+        || (rec.type == RecordType.attributes && r.attributeOldValue)) = true ∧
+      r.observer = mo) ?_ _ acc mo
+  intro acc' r mo'
+  split
+  · next hc =>
+    rw [mem_pair_addInterested _ _ _ _ _ hov (by split <;> simp)]
+    constructor
+    · rintro (h | ⟨rfl, hval⟩)
+      · exact Or.inl h
+      · refine Or.inr ⟨hc, ?_, rfl⟩
+        revert hval
+        split
+        · next hf => intro _; exact hf
+        · intro hval; rw [← hval] at hov; simp at hov
+    · rintro (h | ⟨-, hf, rfl⟩)
+      · exact Or.inl h
+      · exact Or.inr ⟨rfl, by rw [if_pos hf]⟩
+  · next hc =>
+    constructor
+    · exact Or.inl
+    · rintro (h | ⟨hc', -, -⟩)
+      · exact h
+      · exact absurd hc' hc
+
+/-- **oldValue が載るのは、flag の立った registration を持つ observer だけである。** -/
+theorem mem_pair_interestedObservers (s : DOMState) (rec : MutationRecord) (ov : Option String)
+    (hov : ov.isSome) (mo : Nat) :
+    ((mo, ov) ∈ interestedObservers s rec ov) ↔
+      ∃ r ∈ s.registrations, r.node ∈ (rec.target :: ancestors s.tree rec.target) ∧
+        Registration.interestedIn r rec.target rec.type rec.attributeName rec.attributeNamespace
+            = true ∧
+          ((rec.type == RecordType.characterData && r.characterDataOldValue)
+            || (rec.type == RecordType.attributes && r.attributeOldValue)) = true ∧
+          r.observer = mo := by
+  unfold interestedObservers
+  rw [mem_pair_foldl_of_step _ (fun (m : NodeId) (mo : Nat) =>
+    ∃ r ∈ s.registrations.filter fun r => r.node == m,
+      Registration.interestedIn r rec.target rec.type rec.attributeName rec.attributeNamespace
+          = true ∧
+        ((rec.type == RecordType.characterData && r.characterDataOldValue)
+          || (rec.type == RecordType.attributes && r.attributeOldValue)) = true ∧
+        r.observer = mo)
+    (fun acc m mo => mem_pair_interestedObservers_inner s rec ov hov acc m mo)]
+  simp only [List.not_mem_nil, false_or]
+  constructor
+  · rintro ⟨m, hm, r, hr, hc, hf, rfl⟩
+    obtain ⟨hrmem, hrnode⟩ := List.mem_filter.mp hr
+    refine ⟨r, hrmem, ?_, hc, hf, rfl⟩
+    simp only [beq_iff_eq] at hrnode
+    rw [hrnode]
+    exact hm
+  · rintro ⟨r, hrmem, hnode, hc, hf, rfl⟩
+    exact ⟨r.node, hnode, r, List.mem_filter.mpr ⟨hrmem, by simp⟩, hc, hf, rfl⟩
+
+/-- 畳み込みに現れる値は `ov` か `none` しかない。 -/
+theorem value_mem_interestedObservers (s : DOMState) (rec : MutationRecord) (ov : Option String) :
+    ∀ p ∈ interestedObservers s rec ov, p.2 = ov ∨ p.2 = none := by
+  have hstep : ∀ (acc : List (Nat × Option String)) (mo : Nat) (v : Option String),
+      (∀ p ∈ acc, p.2 = ov ∨ p.2 = none) → (v = ov ∨ v = none) →
+      ∀ p ∈ addInterested acc mo v, p.2 = ov ∨ p.2 = none := by
+    intro acc mo v hacc hv
+    unfold addInterested
+    split
+    · split
+      · exact hacc
+      · intro p hp
+        obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hp
+        split
+        · exact hv
+        · exact hacc q hq
+    · intro p hp
+      rcases List.mem_append.mp hp with hp' | hp'
+      · exact hacc p hp'
+      · have : p = (mo, v) := by simpa using hp'
+        rw [this]; exact hv
+  unfold interestedObservers
+  refine allValue_foldl_of_step (P := fun v => v = ov ∨ v = none) _ (fun acc m hacc => ?_) _ []
+    (by simp)
+  refine allValue_foldl_of_step (P := fun v => v = ov ∨ v = none) _ (fun acc' r hacc' => ?_) _
+    acc hacc
+  split
+  · exact hstep acc' r.observer _ hacc' (by split <;> simp)
   · exact hacc'
 
 /-! ## childList の record には oldValue が付かない -/

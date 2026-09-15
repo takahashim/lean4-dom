@@ -52,4 +52,41 @@ def TreeRecordQueued (s s' : DOMState) (target : NodeId) (added removed : List N
     (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
     (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInChildList s mo target) ∧
     s'.microtaskQueued = true
+/-! ## characterData の record -/
+
+/--
+§4.3.4 "queue a mutation record" の step 2.3 のうち、characterData record に効く部分。
+-/
+def InterestedInCharacterData (s : DOMState) (mo : Nat) (target : NodeId) : Prop :=
+  ∃ r ∈ s.registrations, r.observer = mo ∧ r.characterData = true ∧
+    InclusiveAncestor s.tree r.node target ∧ (r.node = target ∨ r.subtree = true)
+
+/--
+step 2.3.3。oldValue が載るのは、`characterDataOldValue` を持つ registration が
+その observer にあるときだけである。
+
+同じ observer が二度出たときに oldValue を上書きするのは、この形に効く
+（一つでも flag があれば載る）。
+-/
+def CharacterDataOldValueWanted (s : DOMState) (mo : Nat) (target : NodeId) : Prop :=
+  ∃ r ∈ s.registrations, r.observer = mo ∧ r.characterData = true ∧
+    r.characterDataOldValue = true ∧
+    InclusiveAncestor s.tree r.node target ∧ (r.node = target ∨ r.subtree = true)
+
+/-- §4.10 replace data の step 4。characterData の record を一つ積む。 -/
+def CharacterDataRecordQueued (s s' : DOMState) (target : NodeId) (oldValue : String) : Prop :=
+  s'.observers.length = s.observers.length ∧
+  (∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
+    s'.observers[mo]? = some o' →
+    (InterestedInCharacterData s mo target → CharacterDataOldValueWanted s mo target →
+      o'.records = o.records ++
+        [{ type := .characterData, target := target, oldValue := some oldValue }]) ∧
+    (InterestedInCharacterData s mo target → ¬ CharacterDataOldValueWanted s mo target →
+      o'.records = o.records ++ [{ type := .characterData, target := target }]) ∧
+    (¬ InterestedInCharacterData s mo target → o'.records = o.records)) ∧
+  (∀ mo, InterestedInCharacterData s mo target → mo ∈ s'.pendingObservers) ∧
+  (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
+  (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInCharacterData s mo target) ∧
+  s'.microtaskQueued = true
+
 end Dom.Spec

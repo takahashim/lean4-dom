@@ -220,6 +220,7 @@ scenario が宣言した副作用（`ListenerAction`）は listener list しか�
 | `Dom.Spec.remove_sound` | `Dom/Spec/RemoveSound.lean` |
 | `Dom.Spec.adopt_sound` | `Dom/Spec/AdoptSound.lean` |
 | `Dom.Spec.insert_sound` | `Dom/Spec/InsertSound.lean` |
+| `Dom.Spec.replaceData_sound` | `Dom/Spec/ReplaceDataSound.lean` |
 
 ```lean
 theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}

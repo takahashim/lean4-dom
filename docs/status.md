@@ -2520,9 +2520,25 @@ childList の record を積む step は `remove` の step 21 と同じなので�
 遡って index の存在を導いた（`adopt` が外すのは入れる node だけなので、
 step 5 の時点でも child は parent の子である）。
 
+### `replace data` と、oldValue が載る条件
+
+§4.10 の `replace data` も入れた。木の形は変えず、一つの node の data と
+live range の offset、それに characterData の record を動かす step である。
+
+ここで record の関係を広げた。childList の record は oldValue を持たないので
+「interested な observer の queue に一つ積む」で済んだが、characterData は
+**oldValue が載る条件**がある。仕様の "queue a mutation record" は
+observer を初出順に集めつつ、同じ observer が二度出たら oldValue を上書きする。
+つまり載るのは「その observer の registration のどれかが `characterDataOldValue` を持つとき」である。
+`CharacterDataOldValueWanted` がその条件で、畳み込みがそれを計算していることを
+`mem_pair_interestedObservers` で示した。
+
 ### 次
 
-completeness（関係を満たす状態が必ず作れること）と、`insert` の一意性が次である。
+completeness（関係を満たす状態が必ず作れること）と、composition の一意性である。
+`insert` のように関係を繋いだものの一意性を言うには、
+**観測が等しい状態どうしの congruence**（入力の観測が等しければ出力の観測も等しい）が要る。
+`remove` 単体の一意性はその形を取らずに済んだが、繋いだ先ではそうはいかない。
 
 ## 生成 scenario の最小化を広げた
 
