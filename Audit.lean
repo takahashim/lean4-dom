@@ -123,6 +123,9 @@ open Dom.Audit
   Dom.Spec.removeSpec_congr
   Dom.Spec.removeEachSpec_congr
   Dom.Spec.adoptSpec_congr
+  Dom.Spec.adoptSpec_deterministic
+  Dom.Spec.insertSpec_congr
+  Dom.Spec.insertSpec_deterministic
   Dom.Spec.adopt_sound
   Dom.Spec.insert_sound
   Dom.Spec.insertEach_sound

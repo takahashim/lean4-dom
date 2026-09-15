@@ -361,4 +361,23 @@ theorem treeRecordQueued_congr (h : ObsEq s s') {o₁ o₂ : DOMState} {target :
       pendingObservers := fun mo => (hpend mo).symm
       microtaskQueued := hmt.symm }
 
+
+/-- `remove` は ancestor を増やさない。 -/
+theorem removeSpec_ancestor {out : DOMState} {node : NodeId} {suppress : Bool}
+    (hq : RemoveSpec s node suppress out) {a m : NodeId} (h : Ancestor out.tree a m) :
+    Ancestor s.tree a m := by
+  obtain ⟨parent, -, -, -, -, -, htr, -, -⟩ := hq
+  exact treeRemoved_ancestor htr h
+
+/-- 列に対する `remove` も ancestor を増やさない。 -/
+theorem removeEachSpec_ancestor {ns : List NodeId} {b : Bool} :
+    ∀ {s out : DOMState}, RemoveEachSpec s ns b out →
+      ∀ {a m : NodeId}, Ancestor out.tree a m → Ancestor s.tree a m := by
+  induction ns with
+  | nil => intro s out h a m ha; cases h; exact ha
+  | cons n ns ih =>
+    intro s out h a m ha
+    cases h with
+    | cons hr hrest => exact removeSpec_ancestor hr (ih hrest ha)
+
 end Dom.Spec

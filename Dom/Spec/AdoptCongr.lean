@@ -157,18 +157,76 @@ theorem treeRemoved_isDocument {n p : NodeId} (hr : TreeRemoved t u n p)
   obtain ⟨hk', -⟩ := hr.sameData _ dd dd' hdd hdd'
   exact ⟨dd', hdd', by rw [hk', hk]⟩
 
-/-- `AdoptSpec` の step 2 が作る中間状態についてまとめて言う。 -/
-theorem adoptSpec_step2 (hwf : WellFormed s.tree) (h : ObsEq s sb) {nd : NodeData}
-    (hnd : s.tree.get? node = some nd) {s₁ s₂ : DOMState}
+/-- step 2 が一つの derivation について保証すること。 -/
+theorem adoptStep2_facts {nd : NodeData} (hnd : s.tree.get? node = some nd) {s₁ : DOMState}
+    (h : (parentOf s.tree node = none ∧ s₁ = s) ∨
+      ((∃ p, parentOf s.tree node = some p) ∧ RemoveSpec s node false s₁)) :
+    (∃ nd₁, s₁.tree.get? node = some nd₁) ∧ parentOf s₁.tree node = none ∧
+      (∀ a b, Ancestor s₁.tree a b → Ancestor s.tree a b) ∧
+      (∀ d, IsDocument s.tree d → IsDocument s₁.tree d) := by
+  rcases h with ⟨hp, rfl⟩ | ⟨-, hr⟩
+  · exact ⟨⟨nd, hnd⟩, hp, fun _ _ ha => ha, fun _ hd => hd⟩
+  · obtain ⟨parent, -, -, -, -, -, htr, -, -⟩ := hr
+    exact ⟨treeRemoved_exists htr hnd, htr.detached,
+      fun _ _ ha => treeRemoved_ancestor htr ha, fun _ hd => treeRemoved_isDocument htr hd⟩
+
+/-- step 3 が一つの derivation について保証すること。 -/
+theorem adoptStep3_facts {s₁ out : DOMState} {od : NodeId} {nd₁ : NodeData}
+    (hnd₁ : s₁.tree.get? node = some nd₁)
+    (h : if doc = od then out = s₁
+      else DocumentAssigned s₁.tree out.tree node doc ∧ LiveObjectsUnchangedExceptTree s₁ out) :
+    (∀ m, parentOf out.tree m = parentOf s₁.tree m) ∧
+      (∀ d, IsDocument s₁.tree d → IsDocument out.tree d) := by
+  by_cases hdd : doc = od
+  · rw [if_pos hdd] at h
+    subst h
+    exact ⟨fun _ => rfl, fun _ hd => hd⟩
+  · rw [if_neg hdd] at h
+    obtain ⟨hda, -⟩ := h
+    refine ⟨documentAssigned_parentOf hnd₁ hda, fun d hd => ?_⟩
+    obtain ⟨dd, hdd', hk⟩ := hd
+    obtain ⟨dd', hdd'', hk', -⟩ := documentAssigned_data hnd₁ hda hdd'
+    exact ⟨dd', hdd'', by rw [hk', hk]⟩
+
+/-- **`adopt` の後、node は parent を持たない**（step 2）。 -/
+theorem adoptSpec_detached {out : DOMState} (hq : AdoptSpec s node doc out) :
+    parentOf out.tree node = none := by
+  obtain ⟨od, hod, s₁, hst2, hst3⟩ := hq
+  obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
+  obtain ⟨⟨nd₁, hnd₁⟩, hdet, -, -⟩ := adoptStep2_facts hnd hst2
+  rw [(adoptStep3_facts hnd₁ hst3).1 node]
+  exact hdet
+
+/-- `adopt` は ancestor を増やさない。 -/
+theorem adoptSpec_ancestor {out : DOMState} (hq : AdoptSpec s node doc out)
+    {a b : NodeId} (h : Ancestor out.tree a b) : Ancestor s.tree a b := by
+  obtain ⟨od, hod, s₁, hst2, hst3⟩ := hq
+  obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
+  obtain ⟨⟨nd₁, hnd₁⟩, -, hanc, -⟩ := adoptStep2_facts hnd hst2
+  have hpar := (adoptStep3_facts hnd₁ hst3).1
+  refine hanc a b ?_
+  induction h with
+  | step hp => exact Ancestor.step (by rw [← hpar]; exact hp)
+  | trans hp _ ih => exact Ancestor.trans (by rw [← hpar]; exact hp) ih
+
+/-- `adopt` は kind を変えないので、document は document のままである。 -/
+theorem adoptSpec_isDocument {out : DOMState} (hq : AdoptSpec s node doc out) {d : NodeId}
+    (hd : IsDocument s.tree d) : IsDocument out.tree d := by
+  obtain ⟨od, hod, s₁, hst2, hst3⟩ := hq
+  obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
+  obtain ⟨⟨nd₁, hnd₁⟩, -, -, hkeep⟩ := adoptStep2_facts hnd hst2
+  exact (adoptStep3_facts hnd₁ hst3).2 d (hkeep d hd)
+
+/-- `AdoptSpec` の step 2 が二つの derivation を揃えることを言う。 -/
+theorem adoptSpec_step2 (hwf : WellFormed s.tree) (h : ObsEq s sb) {s₁ s₂ : DOMState}
     (h₁ : (parentOf s.tree node = none ∧ s₁ = s) ∨
       ((∃ p, parentOf s.tree node = some p) ∧ RemoveSpec s node false s₁))
     (h₂ : (parentOf sb.tree node = none ∧ s₂ = sb) ∨
       ((∃ p, parentOf sb.tree node = some p) ∧ RemoveSpec sb node false s₂)) :
-    ObsEq s₁ s₂ ∧ WellFormed s₁.tree ∧ (∃ nd₁, s₁.tree.get? node = some nd₁) ∧
-      ∀ d, IsDocument s.tree d → IsDocument s₁.tree d := by
+    ObsEq s₁ s₂ ∧ WellFormed s₁.tree := by
   rcases h₁ with ⟨hp₁, rfl⟩ | ⟨-, hr₁⟩
   · rcases h₂ with ⟨-, rfl⟩ | ⟨⟨p₂, hp₂⟩, -⟩
-    · exact ⟨h, hwf, ⟨nd, hnd⟩, fun _ hd => hd⟩
+    · exact ⟨h, hwf⟩
     · exfalso
       rw [h.tree.parentOf, hp₁] at hp₂
       simp at hp₂
@@ -177,10 +235,7 @@ theorem adoptSpec_step2 (hwf : WellFormed s.tree) (h : ObsEq s sb) {nd : NodeDat
       obtain ⟨parent, -, hpre, -⟩ := hr₁
       rw [h.tree.parentOf, hpre] at hp₂
       simp at hp₂
-    · have hr₁' := hr₁
-      obtain ⟨parent, -, -, -, -, -, htr, -, -⟩ := hr₁'
-      exact ⟨removeSpec_congr hwf h hr₁ hr₂, removeSpec_wellFormed hwf hr₁,
-        treeRemoved_exists htr hnd, fun _ hd => treeRemoved_isDocument htr hd⟩
+    · exact ⟨removeSpec_congr hwf h hr₁ hr₂, removeSpec_wellFormed hwf hr₁⟩
 
 /--
 **`AdoptSpec` の congruence。**
@@ -199,7 +254,8 @@ theorem adoptSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s sb) {o₁ o₂ : 
     exact Option.some.inj hw
   subst hodeq
   obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod₁
-  obtain ⟨hobs, hwf₁, ⟨nd₁, hnd₁⟩, -⟩ := adoptSpec_step2 hwf h hnd hst2₁ hst2₂
+  obtain ⟨hobs, hwf₁⟩ := adoptSpec_step2 hwf h hst2₁ hst2₂
+  obtain ⟨⟨nd₁, hnd₁⟩, -, -, -⟩ := adoptStep2_facts hnd hst2₁
   by_cases hdd : doc = od₂
   · rw [if_pos hdd] at hst3₁ hst3₂
     subst hst3₁; subst hst3₂
@@ -229,8 +285,8 @@ theorem adoptSpec_wellFormed (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree
     {out : DOMState} (hq : AdoptSpec s node doc out) : WellFormed out.tree := by
   obtain ⟨od, hod, s₁, hst2, hst3⟩ := hq
   obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
-  obtain ⟨-, hwf₁, ⟨nd₁, hnd₁⟩, hkeep⟩ :=
-    adoptSpec_step2 hwf (ObsEq.refl s) hnd hst2 hst2
+  obtain ⟨-, hwf₁⟩ := adoptSpec_step2 hwf (ObsEq.refl s) hst2 hst2
+  obtain ⟨⟨nd₁, hnd₁⟩, -, -, hkeep⟩ := adoptStep2_facts hnd hst2
   by_cases hdd : doc = od
   · rw [if_pos hdd] at hst3
     subst hst3
@@ -238,5 +294,10 @@ theorem adoptSpec_wellFormed (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree
   · rw [if_neg hdd] at hst3
     obtain ⟨hda, hl⟩ := hst3
     exact documentAssigned_wellFormed hwf₁ hnd₁ (hkeep doc hdoc) hda
+
+/-- **`AdoptSpec` は観測を一つに決める。** -/
+theorem adoptSpec_deterministic (hwf : WellFormed s.tree) {o₁ o₂ : DOMState}
+    (h₁ : AdoptSpec s node doc o₁) (h₂ : AdoptSpec s node doc o₂) : ObsEq o₁ o₂ :=
+  adoptSpec_congr hwf (ObsEq.refl s) h₁ h₂
 
 end Dom.Spec

@@ -2599,12 +2599,27 @@ record を積むだけの段には frame が要る。`ObserverOnly`（木・rang
 registration が動かない）を足した。`replace data` の関係には最初から書いてあったので、
 `insert` だけが抜けていたことになる。
 
+### `insert` の一意性まで届いた
+
+`insert` は step 4 で `remove` を、step 7.1 で `adopt` を呼ぶので、
+congruence もその二つを composition する（`Dom/Spec/InsertCongr.lean`）。
+段ごとに観測を持ち上げ、最後に `insertSpec_deterministic` になる。
+
+途中で要ったのは、**関係だけから木の well-formed を言うこと**である。
+`remove` は無条件だが、`insert` はそうはいかない。
+`TreeInserted` が循環を作らないためには「入れる node が `parent` の
+inclusive ancestor でない」が要る。これは §4.2.1 の pre-insertion validity が
+保証するもので、`insert` 本体は前提として受け取る（仕様の構造がそうなっている）。
+
+その条件は列の途中で壊れないことも要る。`adopt` は node を親から外し
+ancestor を増やさないので、adopt を跨いでも残る。挿入が増やす辺は
+「その node → `parent`」の一本だけなので（`ancestor_of_parentOf_insert`）、
+残りの node についての同じ条件も残る。
+
 ### 次
 
-`insert` の congruence である。`TreeInserted` が well-formed を保つには
-「入れる node が親の inclusive ancestor でない」が要る——それは §4.2.1 の
-pre-insertion validity が保証するもので、`insert` 自身は仮定する。
-その先に completeness（関係を満たす状態が必ず作れること）が来る。
+completeness（関係を満たす状態が必ず作れること）である。
+`replace` と `move` の関係もまだ無い。
 
 ## 生成 scenario の最小化を広げた
 

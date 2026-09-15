@@ -204,6 +204,27 @@ theorem nodup_insertBefore {α : Type _} [DecidableEq α] {l : List α} {a : α}
     exact hnot hx
   | some c => exact nodup_insertBeforeFirst c l hnd hnot
 
+/--
+長さが同じで、同じ位置の要素がいつも等しいなら、list は等しい。
+
+関係意味論の一意性は「`i` 番目が両方にあれば等しい」という形で書いてあるので、
+そこから list そのものの等式を作るのに使う。
+-/
+theorem ext_of_pointwise {α : Type _} : ∀ {l₁ l₂ : List α}, l₁.length = l₂.length →
+    (∀ (i : Nat) (a b : α), l₁[i]? = some a → l₂[i]? = some b → a = b) → l₁ = l₂ := by
+  intro l₁ l₂ hlen h
+  refine List.ext_getElem? fun i => ?_
+  rcases ha : l₁[i]? with _ | a
+  · refine Eq.symm ?_
+    rw [List.getElem?_eq_none_iff] at ha ⊢
+    rw [← hlen]; exact ha
+  · obtain ⟨b, hb⟩ : ∃ b, l₂[i]? = some b := by
+      rcases hq : l₂[i]? with _ | b
+      · rw [List.getElem?_eq_none_iff, ← hlen, ← List.getElem?_eq_none_iff] at hq
+        rw [hq] at ha; simp at ha
+      · exact ⟨b, rfl⟩
+    rw [hb, h i a b ha hb]
+
 /-- `c` が `l` に現れるなら、`a` はちょうど `c` の直前に入る。 -/
 theorem insertBeforeFirst_eq_of_mem {α : Type _} [DecidableEq α] {c : α} (a : α) :
     ∀ {l : List α}, c ∈ l →

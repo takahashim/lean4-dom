@@ -260,6 +260,33 @@ theorem removeSpec_deterministic {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool
 所属の一致になる。soundness と合わせると「`remove` の結果は、関係が許す唯一の観測である」
 と言える。completeness（関係を満たす状態が必ず作れること）はまだ無い。
 
+### 観測が等しい状態どうしの congruence
+
+`insert` のように関係を繋いだものの一意性には、上の形では足りない。
+途中の状態は観測としてしか一致しないので、
+「入力の観測が等しければ出力の観測も等しい」が要る。
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.ObsEq` | `Dom/Spec/ObsEq.lean` |
+| `Dom.Spec.removeSpec_congr` | `Dom/Spec/RemoveCongr.lean` |
+| `Dom.Spec.adoptSpec_congr` | `Dom/Spec/AdoptCongr.lean` |
+| `Dom.Spec.insertSpec_congr` | `Dom/Spec/InsertCongr.lean` |
+| `Dom.Spec.insertSpec_deterministic` | `Dom/Spec/InsertCongr.lean` |
+
+```lean
+theorem insertSpec_deterministic {s o₁ o₂ : DOMState} {suppress : Bool}
+    (hwf : WellFormed s.tree)
+    (hacyc : ∀ ns, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (h₁ : InsertSpec s node parent child suppress o₁)
+    (h₂ : InsertSpec s node parent child suppress o₂) : ObsEq o₁ o₂
+```
+
+`hacyc`（入れる node が `parent` の inclusive ancestor でない）は §4.2.1 の
+pre-insertion validity が保証するもので、`insert` 本体は前提として受け取る。
+これが無いと木が循環し、`TreeInserted` の結果が well-formed でなくなる。
+
 ## 14. oracle は自分の invariant を破らない
 
 | 定理 | module |
