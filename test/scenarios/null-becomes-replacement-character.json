@@ -1,0 +1,73 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#input-preprocessing",
+    "algorithm": [
+      "filter code points"
+    ],
+    "steps": "U+0000 NULL と surrogate は U+FFFD REPLACEMENT CHARACTER に置き換える",
+    "note": "U+FFFD は U+FDF0-FFFD の範囲にあるので ident code point である。だから `.a<NUL>b` は class `a\\uFFFDb` を指す selector として読める。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a�b"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "ab"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".a�b"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".a\u0000b"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".ab"
+    }
+  ]
+}

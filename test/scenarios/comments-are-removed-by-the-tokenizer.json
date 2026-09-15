@@ -1,0 +1,69 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-comment",
+    "algorithm": [
+      "consume comments"
+    ],
+    "steps": "`/*` から `*/` までを読み飛ばす。token は出さない",
+    "note": "だから selector の中にも書ける。ただし token を出さないので空白の代わりにはならない。§18 は「combinator を省くなら二つの complex-selector-unit の間に空白が要る」と定めるので、`div/* c */p` は通らない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "p",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "/* c */ div"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "div /* c */ p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "div /*x*/ /*y*/ p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "/* a */div/* b */ p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "div/* c */p"
+    }
+  ]
+}

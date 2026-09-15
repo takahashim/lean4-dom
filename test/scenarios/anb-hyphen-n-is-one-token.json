@@ -1,0 +1,71 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#the-anb-type",
+    "algorithm": [
+      "<a-n-plus-b>"
+    ],
+    "steps": "`-n` は production に literal として現れる。tokenizer は `-n` を一つの ident-token にする",
+    "note": "`- n` は delim-token と ident-token の二つなので production に当たらない。`+` の前後だけは † の但し書きがあるが、それは `+` と ident の間に空白を置けないという方向の制限である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(-n+2)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(-n)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(+2n+1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(- n)"
+    }
+  ]
+}

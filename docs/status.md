@@ -3988,6 +3988,47 @@ U+2603 SNOWMAN は U+218F と U+2C00 の間なので入らないので、`.☃` 
 （`.\2603 ` と escape すれば書ける）。両実装とも `.☃` を通す。
 `test/scenarios/non-ascii-ident-code-points-are-a-list.json`。
 
+### 六度目の続き：string・comment・An+B の境界・前処理
+
+生成器が触れていない残りの領域も同じやり方で測った。25 本の selector を
+model・Dommy・jsdom の三つに通して並べたところ、四箇所で割れた。
+
+一致したもの（＝三つとも同じ）には次が含まれる。閉じない string が通ること
+（§4.3.5 は EOF を parse error としつつ token を返す）、string の中の改行は
+bad-string になること、逆斜線＋改行は行継続になること、`:nth-child(2.5n)` と
+`:nth-child(2e1n)` が通らないこと（type flag が "number" になる）、
+`<!--` と `-->` が selector に書けないこと、TAB / LF / CR / FF / CRLF が
+どれも descendant combinator になること。
+
+### findings 30：selector の中に comment を書けない（Dommy）
+
+§4.3.2 の comment は tokenizer が読み飛ばすので、selector の中にも書ける。
+Dommy は `/* c */ div` を `SyntaxError` にする。jsdom は model と一致する。
+
+### findings 31：`:nth-child(- n)` が通る（Dommy）
+
+`<a-n-plus-b>` の `-n` は production に literal として現れ、tokenizer は `-n` を
+一つの ident-token にする。`- n` は delim-token と ident-token の二つなので当たらない。
+jsdom は model と一致する。
+
+### findings 32：NULL を含む selector が読めない（Dommy）
+
+§3.3 の前処理は U+0000 を U+FFFD に置き換える。U+FFFD は U+FDF0-FFFD の範囲にあるので
+ident code point であり、`.a<NUL>b` は class `a\uFFFDb` を指す selector になる。
+Dommy は `SyntaxError` にする。jsdom は model と一致する。
+
+### findings 33：`div/* c */p` が通る（jsdom）
+
+comment は token を出さないので空白の代わりにならない。§18 は「combinator を省くなら
+二つの `<complex-selector-unit>` の間に空白が要る」と定めるので、これは通らない。
+jsdom は通す。Dommy は comment 自体を受け付けないので、結果としては一致する。
+
+以上三つと findings 30・33 は `test/scenarios/comments-are-removed-by-the-tokenizer.json`、
+`anb-hyphen-n-is-one-token.json`、`null-becomes-replacement-character.json` に固定した。
+
+生成器に comment を足すのは findings 30 が直るまで見送る。いま足すと
+Dommy に対して雑音にしかならない。
+
 ### findings 25：forgiving な list が空の項目で例外になる（jsdom）
 
 `:is()` と `:where()` は `<forgiving-selector-list>` を取り、読めなかった項目を捨てる。
