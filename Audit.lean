@@ -789,6 +789,10 @@ open Dom.Audit
   Dom.Spec.indexOfNode_eq_none
   Dom.Spec.nth_index_iff
   Dom.Spec.matchSimple_nth_iff
+  Dom.Spec.typeHolds_iff
+  Dom.Spec.matchSimple_root_iff
+  Dom.Spec.emptyOk_iff
+  Dom.Spec.matchSimple_empty_iff
 
 -- selector の API が満たすこと
 #audit_axioms

@@ -2,23 +2,80 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/css-syntax-3/#consume-simple-block",
-    "algorithm": ["consume a simple block", "consume a list of component values"],
+    "algorithm": [
+      "consume a simple block",
+      "consume a list of component values"
+    ],
     "steps": "EOF に当たったら parse error だが、block はそこで閉じる",
     "note": "だから `a[href` は `a[href]` として読めてしまう。`:is(` も空の forgiving list として通る。`:not(` は forgiving でないので空の引数が無効になり、こちらは SyntaxError。"
   },
   "nodes": [
-    { "id": 0, "kind": "document" },
-    { "id": 1, "kind": "element", "parent": 0, "localName": "a",
-      "attributes": [{ "namespace": null, "prefix": null, "localName": "href", "value": "x" }] },
-    { "id": 2, "kind": "element", "parent": 0, "localName": "p" }
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "a",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "href",
+          "value": "x"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    }
   ],
-  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
   "operations": [
-    { "op": "querySelectorAll", "node": 0, "selectors": "a[href" },
-    { "op": "querySelectorAll", "node": 0, "selectors": "a[href='x'" },
-    { "op": "querySelectorAll", "node": 0, "selectors": ":is(" },
-    { "op": "querySelectorAll", "node": 0, "selectors": ":is(p" },
-    { "op": "querySelectorAll", "node": 0, "selectors": "p:not(" },
-    { "op": "querySelectorAll", "node": 0, "selectors": "div{" }
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "a[href"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "a[href='x'"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is("
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "p:not("
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "div{"
+    }
   ]
 }

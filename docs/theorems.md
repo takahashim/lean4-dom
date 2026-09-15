@@ -449,6 +449,25 @@ theorem matchSimple_nth_iff (hd : ctx.tree.get? n = some d) (hel : d.kind = Node
 数える列が inclusive sibling であること（parent を持たない element なら自分だけ）、
 index が 1 始まりであること、`:nth-last-*()` が末尾から数えることを押さえる。
 
+### type selector の大文字小文字・`:root`・`:empty`（§6.1・§14.1・§14.2）
+
+```lean
+def TypeSelectorMatches (t : Tree) (d : NodeData) (name : String) : Prop :=
+  (HtmlElementInHtmlDocument t d ∧ asciiLowercase name = d.localName) ∨
+    (¬ HtmlElementInHtmlDocument t d ∧ name = d.localName)
+
+theorem typeHolds_iff (t) (d) (name) : typeHolds t d name = true ↔ TypeSelectorMatches t d name
+```
+
+名前の照合は既定で "identical to"。HTML が HTML namespace の element について定める規則は
+**selector の側を ASCII lowercase して local name と比べる**もので、対称な
+case-insensitive **ではない**。仕様自身が「ほぼ同じ」と註記しており、script で作った
+大文字の local name は selector で当たらない。ここを取り違えても、
+生成器の名前が全部小文字だったので差分テストは気付かなかった。
+
+`:root` は「parent が Document である element」、`:empty` は
+「どの子も emptiness を壊さない」を関係として書いてある。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

@@ -1,0 +1,52 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 2,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "namespace": "http://www.w3.org/2000/svg",
+      "localName": "rect",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "data-x",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "removeAttributeNode",
+      "element": 4,
+      "attr": 1
+    }
+  ]
+}

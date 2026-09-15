@@ -172,7 +172,9 @@ class Builder {
   createElement(doc, spec) {
     const ns = spec.namespace ?? HTML_NS;
     const qn = spec.prefix ? `${spec.prefix}:${spec.localName}` : (spec.localName ?? "div");
-    if (ns === HTML_NS && !spec.prefix) return doc.createElement(qn);
+    // `createElement` は HTML document で名前を lowercase するので、
+    // 大文字を含む local name を作りたいときは `createElementNS` を通す。
+    if (ns === HTML_NS && !spec.prefix && qn === qn.toLowerCase()) return doc.createElement(qn);
     return doc.createElementNS(ns, qn);
   }
 }

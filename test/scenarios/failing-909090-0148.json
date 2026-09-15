@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "u v"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "data-x",
+          "value": "vv"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "removeAttributeNode",
+      "element": 3,
+      "attr": 2
+    }
+  ]
+}

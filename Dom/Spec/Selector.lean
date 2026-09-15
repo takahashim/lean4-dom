@@ -550,4 +550,89 @@ theorem matchSimple_nth_iff {ctx : MatchCtx} {n : NodeId} {d : NodeData}
   | ofType => exact nth_index_iff hnd false
   | lastOfType => exact nth_index_iff hnd true
 
+/-! ## type selector・`:root`・`:empty`
+
+Selectors §6.1 は、名前の照合を既定で "identical to"（大文字小文字を区別する）とし、
+host language が別に定めたときだけ違う、とする。HTML は HTML namespace の element に
+ついて別に定めるが、それは **selector の側を ASCII lowercase して local name と比べる**
+規則であって、対称な case-insensitive ではない。仕様自身が「ほぼ同じ」と註記しており、
+script で作った大文字の local name は selector で当たらない。
+
+§6.1 の white space は SPACE / TAB / LF / CR / FF で、`Infra.isAsciiWhitespace` と同じである。
+-/
+
+/-- HTML の規則が効く条件。HTML namespace の element が HTML document にあること。 -/
+def HtmlElementInHtmlDocument (t : Tree) (d : NodeData) : Prop :=
+  d.namespace = some htmlNamespace ∧
+    ∃ doc, t.get? d.ownerDocument = some doc ∧ doc.isHTMLDocument = true
+
+/-- §6.1 の type selector。 -/
+def TypeSelectorMatches (t : Tree) (d : NodeData) (name : String) : Prop :=
+  (HtmlElementInHtmlDocument t d ∧ asciiLowercase name = d.localName) ∨
+    (¬ HtmlElementInHtmlDocument t d ∧ name = d.localName)
+
+/-- **type selector は仕様どおり、HTML の element だけ selector 側を lowercase して比べる。** -/
+theorem typeHolds_iff (t : Tree) (d : NodeData) (name : String) :
+    typeHolds t d name = true ↔ TypeSelectorMatches t d name := by
+  unfold typeHolds TypeSelectorMatches HtmlElementInHtmlDocument isHTMLDocumentOf
+  by_cases hns : d.namespace = some htmlNamespace
+  · cases hdoc : t.get? d.ownerDocument with
+    | none => simp [hns]
+    | some doc =>
+      by_cases hh : doc.isHTMLDocument = true
+      · simp [hns, hh]
+      · simp [hns, hh]
+  · simp [hns]
+
+/-- §14.1 の `:root`。document の root、すなわち parent が Document である element。 -/
+def IsDocumentRoot (t : Tree) (n : NodeId) : Prop :=
+  ∃ p, parentOf t n = some p ∧ kindOf t p = some NodeKind.document
+
+/-- **`:root` は parent が Document である element にちょうど当たる。** -/
+theorem matchSimple_root_iff {ctx : MatchCtx} {n : NodeId} {d : NodeData}
+    (hd : ctx.tree.get? n = some d) (hel : d.kind = NodeKind.element) :
+    matchSimple ctx .root n = true ↔ IsDocumentRoot ctx.tree n := by
+  have hne : (d.kind != NodeKind.element) = false := by simp [hel]
+  rw [matchSimple, hd]
+  simp only [hne, Bool.false_eq_true, if_false]
+  unfold IsDocumentRoot
+  cases hp : parentOf ctx.tree n with
+  | none => simp
+  | some p => simp
+
+/--
+§14.2 の `:empty` を壊さない子。
+
+> an element that has no children except, optionally, document white space characters
+
+同じ節の後段は「data の長さが 0 でない content node は emptiness に影響する」と書いており、
+前段の「空白だけなら影響しない」と食い違う。model は**前段**に従う。
+実装はどちらも後段に留まっている（`docs/status.md` の findings 19）。
+-/
+def EmptyIgnorable (t : Tree) (c : NodeId) : Prop :=
+  ∀ d, t.get? c = some d →
+    d.kind = NodeKind.comment ∨ d.kind = NodeKind.processingInstruction ∨
+      ((d.kind = NodeKind.text ∨ d.kind = NodeKind.cdataSection) ∧
+        ∀ ch ∈ d.data.toList, isAsciiWhitespace ch = true)
+
+theorem emptyOk_iff (t : Tree) (c : NodeId) : emptyOk t c = true ↔ EmptyIgnorable t c := by
+  unfold emptyOk EmptyIgnorable
+  cases hc : t.get? c with
+  | none => simp
+  | some d => cases hk : d.kind <;> simp [hk]
+
+/-- **`:empty` は、どの子も emptiness を壊さないことにちょうど当たる。** -/
+theorem matchSimple_empty_iff {ctx : MatchCtx} {n : NodeId} {d : NodeData}
+    (hd : ctx.tree.get? n = some d) (hel : d.kind = NodeKind.element) :
+    matchSimple ctx .empty n = true ↔
+      ∀ c ∈ childrenOf ctx.tree n, EmptyIgnorable ctx.tree c := by
+  have hne : (d.kind != NodeKind.element) = false := by simp [hel]
+  rw [matchSimple, hd]
+  simp only [hne, Bool.false_eq_true, if_false, List.all_eq_true]
+  constructor
+  · intro h c hc
+    exact (emptyOk_iff ctx.tree c).mp (h c hc)
+  · intro h c hc
+    exact (emptyOk_iff ctx.tree c).mpr (h c hc)
+
 end Dom.Spec

@@ -256,7 +256,9 @@ module Generate
   # `:empty`・`:scope`・`#1` は入れない。どれも実装側との既知の食い違い
   # （`docs/status.md` の findings 19・20・21）に必ず当たるので、
   # 生成器が新しいものを見つける邪魔になる。
-  SELECTOR_TYPES = ["div", "span", "p", "rect", "*"].freeze
+  # 大文字を混ぜるのは、type selector の大文字小文字が namespace で分かれるからである。
+  # HTML namespace の element が HTML document にあるときだけ、selector 側を lowercase する。
+  SELECTOR_TYPES = ["div", "span", "p", "rect", "*", "DIV", "RECT", "Span"].freeze
   SELECTOR_SUBCLASS = [
     ".vv", ".u", ".v", "#vv",
     "[a]", "[b]", "[data-x]", "[a=1]", "[a='']", "[class~=u]", "[data-x^=v]",

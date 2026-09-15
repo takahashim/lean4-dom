@@ -1,0 +1,28 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#case-sensitive",
+    "algorithm": ["<type-selector>"],
+    "steps": "既定は identical to（大文字小文字を区別する）。host language が別に定めた場合だけ違う",
+    "note": "HTML は HTML namespace の element について ASCII case-insensitive と定めるが、仕様自身が「ほぼ」と註記している。script で作った大文字の local name は selector 側を lowercase した結果と一致しないので当たらない。SVG namespace は既定どおり区別する。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "div" },
+    { "id": 3, "kind": "element", "parent": 1,
+      "namespace": "http://www.w3.org/1999/xhtml", "localName": "DIV" },
+    { "id": 4, "kind": "element", "parent": 1,
+      "namespace": "http://www.w3.org/2000/svg", "localName": "rect" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "div" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "DIV" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "Div" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "rect" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "RECT" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "html" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "HTML" }
+  ]
+}

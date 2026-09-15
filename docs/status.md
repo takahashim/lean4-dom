@@ -3788,6 +3788,9 @@ inclusive ancestor は当たらないこと、そして **scoping root が観測
 * **`:nth-*()` が数える列**（Selectors §14.3-14.7）。数える列が inclusive sibling
   （`-of-type` では同じ type のもの）であること、index が 1 始まりであること、
   `:nth-last-*()` が末尾から数えることを書き写した。
+* **type selector の大文字小文字・`:root`・`:empty`**（Selectors §6.1・§14.1・§14.2）。
+  名前の照合が既定で「区別する」であり、HTML の規則は **selector の側を lowercase して
+  local name と比べる**非対称な規則であることを書き写した。
 
 ### 定理に歯があるか確かめた
 
@@ -3834,6 +3837,45 @@ attribute のほうは逆だった。`$=` を `^=` に取り違えると、**固
 「parent を持たない element」という **木の形の条件**が要る。
 固定 scenario（`nth-of-type-counts-only-its-own-type` と
 `detached-element-is-its-own-only-sibling`）を足したので、いまは両方が塞いでいる。
+
+続けて `:empty` / `:root` / type selector も同じやり方で測った。
+
+| 壊し方 | 定理 | 固定 scenario | 生成 scenario |
+| --- | --- | --- | --- |
+| `:empty` が element の子を数えない | 捕まえる | 捕まえる | — |
+| `:root` を「parent が無い」にする | 捕まえる | 捕まえる | — |
+| type selector を常に大文字小文字無視にする | 捕まえる | **捕まえない** | **捕まえない** |
+
+type selector が捕まらなかったのは、生成器の element 名も selector の型名も
+**すべて小文字**だったからである。大文字を混ぜて初めて分かれる。
+生成器に `DIV` `RECT` `Span` を足し、固定 scenario も足した。
+
+`:empty` の壊し方（空白だけの text も数える）は別の意味で危うかった。
+model をそう壊すと実装と一致してしまい、不一致の数は 9 本から **8 本に減る**。
+findings として赤くしてある不一致は、model 側を間違えると緑になる。数だけ見ていては気付けない。
+
+### findings 22：`div` が大文字の local name に当たる（Dommy）
+
+`createElementNS(HTML namespace, "DIV")` で作った element は local name が `DIV` になる。
+HTML の規則は selector の側を lowercase して local name と比べるので、
+`div` も `DIV` も当たらない（Selectors §6.1 の註記が、script で作った大文字の名前は
+「selector で当たらない」と明言している）。Dommy は `div` で当てる。jsdom は model と一致する。
+`test/scenarios/type-selector-case-follows-namespace.json`。
+
+### findings 23：`a[href` が Ruby の TypeError になる（Dommy）
+
+CSS Syntax §5.4.7 は閉じ括弧が無いまま入力が尽きたら block をその場で閉じるので、
+`a[href` は `a[href]` として読める。Dommy は
+`TypeError: no implicit conversion of nil into String` で落ちる。
+`a[href="x"` は通るので、値の無い形だけである。jsdom は model と一致する。
+`test/scenarios/unclosed-block-is-closed-at-eof.json`。
+
+### 固定 scenario が黙って壊れていた
+
+`unclosed-block-is-closed-at-eof` は初期状態の Document に element を二つ置いていて、
+model が評価を断っていた。difftest はこれを `ERROR` として報告するが、
+こちらは `MISMATCH` だけを数えていたので見落としていた。木を直したところ、
+上の findings 23 が出た。**`ERROR` も数える。**
 
 ### 差分テストの現状
 

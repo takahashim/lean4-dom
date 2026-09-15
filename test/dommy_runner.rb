@@ -233,7 +233,9 @@ module DommyRunner
     def create_element(doc, spec)
       ns = spec["namespace"] || HTML_NS
       qn = spec["prefix"] ? "#{spec['prefix']}:#{spec['localName']}" : (spec["localName"] || "div")
-      return doc.create_element(qn) if ns == HTML_NS && spec["prefix"].nil?
+      # `createElement` は HTML document で名前を lowercase するので、
+      # 大文字を含む local name を作りたいときは `createElementNS` を通す。
+      return doc.create_element(qn) if ns == HTML_NS && spec["prefix"].nil? && qn == qn.downcase
 
       doc.create_element_ns(ns, qn)
     end

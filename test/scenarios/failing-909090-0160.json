@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "span",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "u v"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "kind": "processingInstruction",
+      "parent": 1,
+      "data": ""
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "importNode",
+      "document": 0,
+      "node": 1,
+      "deep": true
+    }
+  ]
+}
