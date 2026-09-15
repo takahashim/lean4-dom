@@ -310,12 +310,14 @@ Scenario 欄が空なのはそのためである。
 | createElement | 1 valid element local name / 2 HTML document なら ASCII lowercase / 4 HTML document なら HTML namespace | `createElement`, `requireDocument`, `withFresh` | effect `createElement_creates`、preservation `admissible_createsNode` | — | — | 済（custom element の step 3 と 5 は対象外） |
 | createElementNS | validate and extract（context は "element"）してから element を作る | `createElementNS`, `validateAndExtractElement` | effect `createElementNS_creates` | — | — | 済 |
 | createTextNode / createComment / createDocumentFragment | node を一つ作り node document を this にする | `createTextNode`, `createComment`, `createDocumentFragment` | effect `createTextNode_creates` ほか | — | — | 済 |
-| clone a single node | 2 element は create an element で / 3 それ以外は同じ interface で / 3.1 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNode_shallow_spec` | — | — | 済（shadow root の step 1 と custom element は対象外） |
-| clone a node | 1-2 copy を作る / 3 deep なら children を tree order で clone して copy に append | `cloneNode`, `cloneMany` | `cloneNode_cloneOf`（同じ形）、`cloneNode_ne`（別の id）、`cloneNode_treeOnly` と `cloneNode_keep`（frame） | — | — | 済（妥当性の保存は未） |
+| clone a single node | 2 element は create an element で / 3 それ以外は同じ interface で / 3.1 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNode_shallow_spec` | — | — | 済（shadow root と custom element は対象外） |
+| clone a node | 2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone（document は引数のまま） | `cloneNode`, `cloneMany`, `cloneAppend` | `cloneNode_cloneOf`（同じ形）、`cloneNode_ne`（別の id）、preservation `admissible_cloneNode`、frame `cloneNode_keep` と `cloneNode_ranges` | — | — | 済（step 6 の shadow root は対象外。失敗しないことは未証明） |
 
-model は children の copy が揃ってから copy を木に入れる。仕様の順（copy を入れてから
-append）とは違うが、作っている最中の copy はどこからも参照されていないので
-観測できる違いは無い。`docs/status.md` の「clone を入れた」を参照。
+step 4 の append は §4.2.3 の `append` をそのまま呼ぶ。だから妥当性の保存も
+live range の調整も mutation record も、そちらの証明が効く。step 5 が children に渡す
+`document` は copy ではなく引数のままで、Document を clone したときに children の
+node document が copy になるのは `append` の中の adopt による。
+`docs/status.md` の「clone を入れた」を参照。
 
 ## 未対応と対象外
 

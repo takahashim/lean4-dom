@@ -392,6 +392,18 @@ theorem append_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
     (hwf : WellFormed s.tree) (h : append s node parent = .ok s') : WellFormed s'.tree :=
   preInsert_preserves_wellformed hwf h
 
+theorem shapePreserving_preInsert {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} (h : preInsert s node parent child = .ok s') :
+    ShapePreserving s.tree s'.tree := by
+  unfold preInsert at h
+  split at h
+  · simp at h
+  · exact shapePreserving_insert h
+
+theorem shapePreserving_append {s s' : DOMState} {node parent : NodeId}
+    (h : append s node parent = .ok s') : ShapePreserving s.tree s'.tree :=
+  shapePreserving_preInsert h
+
 theorem preRemove_preserves_wellformed {s s' : DOMState} {child parent : NodeId}
     (hwf : WellFormed s.tree) (h : preRemove s child parent = .ok s') : WellFormed s'.tree := by
   unfold preRemove at h

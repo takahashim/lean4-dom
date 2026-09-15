@@ -119,11 +119,12 @@ open Dom.Audit
   Dom.createTextNode_creates
   Dom.createComment_creates
   Dom.createDocumentFragment_creates
+  Dom.admissible_cloneNode
   Dom.cloneNode_cloneOf
   Dom.cloneNode_ne
   Dom.cloneNode_fresh
-  Dom.cloneNode_treeOnly
   Dom.cloneNode_keep
+  Dom.cloneNode_ranges
   Dom.cloneNode_shallow_spec
   Dom.Spec.remove_sound
   Dom.Spec.remove_sound_range

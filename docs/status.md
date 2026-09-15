@@ -3260,47 +3260,66 @@ roadmap が求めた二つ、**identity は違う**と**観測できる形は同
 | clone ≠ original | `cloneNode_ne`（`cloneNode_fresh` 経由） |
 | observable subtree contents are equivalent | `cloneNode_cloneOf` |
 
-`CloneOf t n c` が「同じ形」を述べる。見るのは `NodeData.shape`（parent・children・
-node document を落とした残り）と data、そして children の並びである。`NodeId` は見ない。
-だから `CloneOf t n n` も成り立つ。identity が違うことは別の定理が言う。
-実装では「同じ object か」と「同じ内容か」が同じ `==` の裏に隠れやすいので、
-この二つを分けて書けること自体が、node を id で表した model の効き目である。
+ほかに、妥当性の保存（`admissible_cloneNode`）、原本が動かないこと（`cloneNode_keep`）、
+live range が動かないこと（`cloneNode_ranges`）。
 
-### children が揃ってから木に入れる
+### 仕様の手順をそのまま呼ぶ
 
-仕様の "clone a node" は copy を作ってから parent に append し、deep なら
-children を clone してその copy に append する。model は逆で、**children の copy が
-揃ってから copy を木に入れる**。一度入れた node を後から書き換えないので、
-「新しく足すだけ」という frame がそのまま使える。
+"clone a node" の step 4 は「parent が null でなければ copy を parent に **append**
+する」で、step 5 の children の clone はそのあとである。だから model も自前で木を
+触らず、§4.2.3 の `append` を呼ぶ。妥当性の保存も live range の調整も mutation record も、
+そちらで既に証明したものがそのまま効く。`admissible_cloneNode` は
+`admissible_createsNode` と `admissible_append` の合成でしかない。
 
-観測できる違いは無い。作っている最中の copy はどこからも参照されていない
-（live range も `NodeIterator` も registered observer も原本の側を指す）ので、
-途中経過を読む手段が無い。
+step 5 が children に渡す `document` は **copy ではなく引数の document のまま**である。
+Document を clone したときに children の copy の node document が copy になるのは、
+`append` の中の adopt が付け替えるからで、model もその経路を通る。
+copy 自身の node document だけは "clone a single node" が決めるので、
+Document の copy が自分自身を指すところは `cloneDocumentOf` が見る。
 
-その代わり、新しい id は `freshId`（木から導く）では足りない。まだ木に入っていない
-copy の id も使用済みとして数える必要があるからである。`cloneMany` は
-**counter を引数で持ち回る**。`cloneNode` が渡す最初の値は `(freshId s.tree).id` で、
-取れる id はどれも木にある id より大きい。この「新しさ」は `CloneManySpec` の
-`newIds` と `kidsFresh` が述べ、入れ子の呼び出しが外側の copy の id を踏まないことを
-そこから出す。
+### `FreshNodeData` を広げた
 
-### Document の clone
+§4.5 の factory が作るのは attribute を持たない非 Document の node だったので、
+`FreshNodeData` は `d.attributes = []` と `d.kind ≠ .document` を要求していた。
+clone は element の attribute をそのまま写し、Document の clone もある。
 
-仕様の step 3.1 により、Document を clone した copy の node document は copy 自身であり、
-その subtree の copy もそちらに属する（`cloneDocumentOf`）。
+attribute の条件は `AttributesValid` の三条件（Element 以外は持たない・鍵が重複しない・
+prefix があるなら namespace もある）に置き換えた。原本が満たしているので写しても満たす。
+node document は「Document なら copy 自身・そうでなければ木にある Document」の
+二択にした。前者があるので、この条件は作る id を見なければ書けない。
+
+### 「同じ形」は bisimulation で述べる
+
+`CloneOf t c n` は関係 `R` を一つ挙げる形で定義してある。`R` で結ばれた組は
+一段ぶんの観測（`NodeData.shape` と `data` と children の個数）が一致し、
+children どうしもまた `R` で結ばれている、と言えばよい。有限の木では最大不動点と
+最小不動点は一致するので、これは「対応する位置の node の内容がすべて等しい」と同じである。
+
+この形にしたのは証明の都合でもある。帰納法の途中で得た対応を後の状態へ持ち上げるとき、
+inductive な定義だと derivation に現れる node すべてについて「その node は動いていない」
+を言う必要がある。bisimulation なら `R` を自分で選べるので、
+**pointwise な対応**（`CloneCorr`）を帰納法で作り、最後にそれを `R` として渡せばよい。
+
+その `CloneCorr` は原本の側を **`t₀`**（`cloneNode` 入口の木）で見る。clone は木を
+伸ばしていくので、途中の状態で原本を見ると外側の copy が children を足される分だけ
+動いてしまう。`t₀` は動かないので、持ち上げに原本側の持ち上げが要らない。
 
 ### まだ無いもの
 
-**妥当性の保存。** deep clone は parent-child の辺を持つ subtree を丸ごと足すので、
-`AddsNode` / `FreshNodeData`（node 一つ・辺なし・attribute なし・Document でない）は
-そのままでは使えない。`checkAdmissibleDOMState` は手元の例では通るが、証明はこの次である。
+**`cloneNode` が失敗しないこと。** `append` は pre-insertion validity を毎回検査するので、
+model の `cloneNode` は原理的には `HierarchyRequestError` を返しうる。妥当な木では
+返らない（copy の children は原本の children を順に写したものなので、
+Document の制約もそのまま満たす）が、その証明はまだ無い。
 
 差分テストにも出していない。`docs/threats-to-validity.md` §3 の「node の生成」が
 `createElement` などと同じくまだ比較対象の外にある。
 
+`NodeIterator` が動かないことも述べていない。`insert` は iterator を触らないが、
+その形の補題が無い。
+
 ### 次
 
-deep clone の妥当性保存。そのあと `importNode` / `adoptNode`（roadmap §8.5）。
+`importNode` / `adoptNode`（roadmap §8.5）。
 
 ## 生成 scenario の最小化を広げた
 

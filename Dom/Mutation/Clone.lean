@@ -1,4 +1,5 @@
 import Dom.Mutation.Create
+import Dom.Mutation.Algorithms
 
 /-!
 # node を複製する（§4.4 `cloneNode`）
@@ -9,102 +10,111 @@ import Dom.Mutation.Create
 **identity と structural equivalence の違い**がここで形になる。copy は
 原本と同じ kind・data・attribute・名前を持つが、`NodeId` は別である。
 「同じ形である」は `Dom/Properties/Clone.lean` の `CloneOf` が述べ、
-「別のものである」は copy の id が木にある id より大きいことから出る。
+「別のものである」は copy が `freshId` であることから出る。
 
-## 仕様との対応
+## 仕様の手順をそのまま呼ぶ
 
-仕様の "clone a node" は copy を作ってから、parent があれば copy をそこに append し、
-deep なら children を順に clone してその copy に append する。
+"clone a node" の step 4 は「parent が null でなければ copy を parent に
+**append** する」で、step 5 の children の clone はそのあとである。
+だから model も自前で木を触らず、§4.2.3 の `append` を呼ぶ。
+妥当性の保存も live range の調整も mutation record も、
+そちらで既に証明したものがそのまま効く。
 
-model は **children の copy が揃ってから copy を木に入れる**。つまり copy は
-最初から完成した形で店に並び、一度入れた node を後から書き換えることが無い。
-こうするのは証明のためで、「新しく足すだけ」という frame がそのまま使えるからである。
-観測できる違いは無い。作っている最中の copy はどこからも参照されていない
-（live range も `NodeIterator` も registered observer も原本の側を指す）ので、
-途中経過を読む手段が無い。
+step 5 が children に渡す `document` は **copy ではなく引数の document のまま**である。
+Document を clone したときに children の copy の node document が copy になるのは、
+`append` の中の adopt が付け替えるからである。ここでもその経路をそのまま使う。
 
-そのため、新しい id は `freshId`（木から導く）ではなく **引数の counter** から取る。
-まだ木に入っていない copy の id も使用済みとして数える必要があるからである。
-`cloneNode` は `(freshId s.tree).id` を最初の値として渡すので、
-取れる id はどれも木にある id より大きい。
+`cloneSingle`（"clone a single node"）だけは copy 自身の node document を決める。
+Document の copy は自分自身を node document とするので、そこは `cloneDocumentOf` が見る。
 
-fuel が尽きた場合は `none` を返す。`cloneNode` は `Tree.size + 1` を渡す。
-children と兄弟のどちらにも同じ fuel を渡すので、必要な fuel は
-clone する node の数を超えず、木の node 数で足りる。
+fuel が尽きた場合は `outsideModel` を返す。`cloneNode` は `Tree.size + 1` を渡す。
+children と兄弟のどちらにも同じ fuel を渡すので、必要な fuel は clone する node の数を
+超えず、木の node 数で足りる。
+
+shadow root（step 6）と custom element（"clone a single node" の step 2.1-2.3）は
+model の対象外である。
 -/
 
 namespace Dom
 
 /-- copy の node data。parent・children・node document 以外はそのまま写す。 -/
-def cloneData (d : NodeData) (doc : NodeId) (parent : Option NodeId)
-    (children : List NodeId) : NodeData :=
-  { d with parent := parent, children := children, ownerDocument := doc }
+def cloneData (d : NodeData) (doc : NodeId) : NodeData :=
+  { d with parent := none, children := [], ownerDocument := doc }
 
-@[simp] theorem cloneData_shape (d : NodeData) (doc : NodeId) (parent : Option NodeId)
-    (children : List NodeId) : (cloneData d doc parent children).shape = d.shape := rfl
+@[simp] theorem cloneData_shape (d : NodeData) (doc : NodeId) :
+    (cloneData d doc).shape = d.shape := rfl
 
-@[simp] theorem cloneData_data (d : NodeData) (doc : NodeId) (parent : Option NodeId)
-    (children : List NodeId) : (cloneData d doc parent children).data = d.data := rfl
+@[simp] theorem cloneData_data (d : NodeData) (doc : NodeId) :
+    (cloneData d doc).data = d.data := rfl
 
-@[simp] theorem cloneData_children (d : NodeData) (doc : NodeId) (parent : Option NodeId)
-    (children : List NodeId) : (cloneData d doc parent children).children = children := rfl
+@[simp] theorem cloneData_kind (d : NodeData) (doc : NodeId) :
+    (cloneData d doc).kind = d.kind := rfl
 
-@[simp] theorem cloneData_parent (d : NodeData) (doc : NodeId) (parent : Option NodeId)
-    (children : List NodeId) : (cloneData d doc parent children).parent = parent := rfl
+@[simp] theorem cloneData_attributes (d : NodeData) (doc : NodeId) :
+    (cloneData d doc).attributes = d.attributes := rfl
 
-@[simp] theorem cloneData_ownerDocument (d : NodeData) (doc : NodeId) (parent : Option NodeId)
-    (children : List NodeId) : (cloneData d doc parent children).ownerDocument = doc := rfl
+@[simp] theorem cloneData_children (d : NodeData) (doc : NodeId) :
+    (cloneData d doc).children = [] := rfl
+
+@[simp] theorem cloneData_parent (d : NodeData) (doc : NodeId) :
+    (cloneData d doc).parent = none := rfl
+
+@[simp] theorem cloneData_ownerDocument (d : NodeData) (doc : NodeId) :
+    (cloneData d doc).ownerDocument = doc := rfl
 
 /--
 copy の node document。
 
-仕様の step 3.1 では、Document を clone した copy の node document は copy 自身であり、
-その subtree の copy もそちらに属する。それ以外の node の copy は引数の document に属する。
+Document の copy は自分自身を node document とする。それ以外の copy は
+引数の document に属する。
 -/
 def cloneDocumentOf (d : NodeData) (doc copy : NodeId) : NodeId :=
   if d.kind == .document then copy else doc
 
+/-- §4.4 "clone a single node"。children も parent も持たない copy を一つ作る。 -/
+def cloneSingle (s : DOMState) (d : NodeData) (doc : NodeId) : NodeId × DOMState :=
+  withFresh s (cloneData d (cloneDocumentOf d doc (freshId s.tree)))
+
+/-- "clone a node" の step 4。parent が null でなければ copy をそこに append する。 -/
+def cloneAppend (s : DOMState) (copy : NodeId) (parent : Option NodeId) :
+    Except DOMException DOMState :=
+  match parent with
+  | none => .ok s
+  | some p => append s copy p
+
 /--
-§4.4 "clone a single node"。children を持たない copy を一つ作る。
+"clone a node" を node の列に対して順に行う。
 
-shadow root は model の対象外なので step 1 は無い。custom element も同様である。
-`cloneNode(false)` はこれだけを行う。
+`cloneNode` は `[n]` と parent = null で呼ぶ。step 5 の再帰は
+その node の children と parent = copy で呼ぶ。
 -/
-def cloneSingle (s : DOMState) (d : NodeData) (doc : NodeId) (parent : Option NodeId) :
-    NodeId × DOMState :=
-  withFresh s (cloneData d (cloneDocumentOf d doc (freshId s.tree)) parent [])
-
-/--
-node の列を順に clone し、`parent` の children になる id の列を返す。
-
-`next` はまだ使っていない id の最小値である。返り値の二つめは、
-この呼び出しが使い終えた後の値である。
--/
-def cloneMany : Nat → DOMState → Nat → List NodeId → NodeId → Option NodeId →
-    Option (List NodeId × Nat × DOMState)
-  | _, s, next, [], _, _ => some ([], next, s)
-  | 0, _, _, _ :: _, _, _ => none
-  | fuel + 1, s, next, n :: rest, doc, parent =>
+def cloneMany : Nat → DOMState → List NodeId → NodeId → Option NodeId →
+    Except DOMException (List NodeId × DOMState)
+  | _, s, [], _, _ => .ok ([], s)
+  | 0, _, _ :: _, _, _ => .error .outsideModel
+  | fuel + 1, s, n :: rest, doc, parent =>
     match s.tree.get? n with
-    | none => none
+    | none => .error .notFoundError
     | some d =>
-      let copy : NodeId := ⟨next⟩
-      let doc' := cloneDocumentOf d doc copy
-      -- step 3。children を tree order で clone する。copy の id は既に取ってある。
-      match cloneMany fuel s (next + 1) d.children doc' (some copy) with
-      | none => none
-      | some (kids, next₁, s₂) =>
-        -- children が揃ったので copy を木に入れる。
-        let s₃ := s₂.withTree (s₂.tree.insertNode copy (cloneData d doc' parent kids))
-        match cloneMany fuel s₃ next₁ rest doc parent with
-        | none => none
-        | some (siblings, next₂, s₄) => some (copy :: siblings, next₂, s₄)
+      -- step 2
+      let (copy, s₁) := cloneSingle s d doc
+      -- step 4
+      match cloneAppend s₁ copy parent with
+      | .error e => .error e
+      | .ok s₂ =>
+        -- step 5
+        match cloneMany fuel s₂ d.children doc (some copy) with
+        | .error e => .error e
+        | .ok (_, s₃) =>
+          match cloneMany fuel s₃ rest doc parent with
+          | .error e => .error e
+          | .ok (siblings, s₄) => .ok (copy :: siblings, s₄)
 
 /--
 DOM Standard §4.4 `cloneNode(deep)`。
 
-返る copy は detach されている。仕様が copy を parent に append するのは
-"clone a node" を再帰で呼ぶときだけで、`cloneNode` の入口では parent は null である。
+"clone a node" を this と document = this の node document、subtree = deep、
+parent = null で呼ぶ。parent が null なので、返る copy は detach されている。
 -/
 def cloneNode (s : DOMState) (n : NodeId) (deep : Bool) :
     Except DOMException (NodeId × DOMState) :=
@@ -112,10 +122,11 @@ def cloneNode (s : DOMState) (n : NodeId) (deep : Bool) :
   | none => .error .notFoundError
   | some d =>
     if deep then
-      match cloneMany (s.tree.size + 1) s (freshId s.tree).id [n] d.ownerDocument none with
-      | some (c :: _, _, s') => .ok (c, s')
-      -- fuel は足りているので、ここには来ない。
-      | _ => .error .outsideModel
-    else .ok (cloneSingle s d d.ownerDocument none)
+      match cloneMany (s.tree.size + 1) s [n] d.ownerDocument none with
+      | .error e => .error e
+      | .ok (c :: _, s') => .ok (c, s')
+      -- 空の列は返らない。
+      | .ok ([], _) => .error .outsideModel
+    else .ok (cloneSingle s d d.ownerDocument)
 
 end Dom

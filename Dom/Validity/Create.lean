@@ -14,15 +14,32 @@ namespace Dom
 /--
 新しく作る node の data が満たすこと。
 
-parent も children も持たず、attribute も持たず、Document ではなく、
-node document は Document である。§4.5 の factory はどれもこの形の node を作る。
+parent も children も持たないこと、attribute list が `AttributesValid` の三条件を
+満たすこと、node document が Document であることの三つである。
+
+node document には二つの形がある。Document を作るときは copy 自身が
+自分の node document であり（`Document` の node document は自分自身と定まっている）、
+それ以外のときは木にある Document を指す。前者があるので、この条件は
+作る id `n` を見なければ書けない。
+
+§4.5 の factory はどれも attribute を持たない非 Document の node を作るので、
+`d.attributes = []` と右の disjunct で済む。§4.4 の clone は element の
+attribute をそのまま写し、Document の clone もあるので両方を使う。
 -/
-structure FreshNodeData (t : Tree) (d : NodeData) : Prop where
+structure FreshNodeData (t : Tree) (n : NodeId) (d : NodeData) : Prop where
   parent : d.parent = none
   children : d.children = []
-  attributes : d.attributes = []
-  notDocument : d.kind ≠ .document
-  ownerIsDocument : IsDocument t d.ownerDocument
+  onlyElements : d.kind ≠ .element → d.attributes = []
+  keysNodup : (d.attributes.map Attr.key).Nodup
+  prefixHasNamespace : ∀ a ∈ d.attributes, a.prefix.isSome → a.namespace.isSome
+  ownerDocument : (d.kind = .document ∧ d.ownerDocument = n) ∨
+    (d.kind ≠ .document ∧ IsDocument t d.ownerDocument)
+
+/-- children を持たない node の `DocumentChildrenOk` は自明である。 -/
+theorem documentChildrenOk_of_children_nil {t : Tree} {doc : NodeId}
+    (h : childrenOf t doc = []) : DocumentChildrenOk t doc := by
+  refine ⟨?_, ?_, ?_, ?_⟩ <;>
+    simp [elementChildren, doctypeChildren, textChildren, h]
 
 /-- list の `any` は、要素ごとに述語が一致すれば同じ値である。 -/
 theorem any_congr {α : Type _} : ∀ (l : List α) {p q : α → Bool},
@@ -82,7 +99,7 @@ theorem get?_cases (h : AddsNode s.tree s'.tree n d) {m : NodeId} {md : NodeData
   · rw [h.others m hmn] at hm
     exact Or.inr hm
 
-theorem structurallyValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree d)
+theorem structurallyValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree n d)
     (hv : StructurallyValid s.tree) : StructurallyValid s'.tree := by
   have hwf := hv.wellFormed
   have hpn : ∀ p pd, s'.tree.get? p = some pd → p ≠ n → s.tree.get? p = some pd := by
@@ -113,14 +130,15 @@ theorem structurallyValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData 
   · -- ownerDocument_is_document
     intro m md hmd
     rcases h.get?_cases hmd with ⟨rfl, rfl⟩ | hmd'
-    · obtain ⟨dd, hdd, hk⟩ := hd.ownerIsDocument
-      exact ⟨dd, h.get?_of hdd, hk⟩
+    · rcases hd.ownerDocument with ⟨hkd, hself⟩ | ⟨-, dd, hdd, hk⟩
+      · exact ⟨_, by rw [hself]; exact h.created, hkd⟩
+      · exact ⟨dd, h.get?_of hdd, hk⟩
     · obtain ⟨dd, hdd, hk⟩ := hwf.ownerDocument_is_document m md hmd'
       exact ⟨dd, h.get?_of hdd, hk⟩
   · -- documentHasNoParent
     intro m md hmd hk
     rcases h.get?_cases hmd with ⟨rfl, rfl⟩ | hmd'
-    · exact absurd hk hd.notDocument
+    · exact hd.parent
     · exact hv.documentHasNoParent m md hmd' hk
   · -- fragmentHasNoParent
     intro m md hmd hk
@@ -142,13 +160,15 @@ theorem structurallyValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData 
         rw [h.fresh] at hpd₀; simp at hpd₀
       · exact hv.doctypeParentIsDocument m md hmd' hk p hp pd hpd'
 
-theorem nodeDocumentsValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree d)
+theorem nodeDocumentsValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree n d)
     (hwf : WellFormed s.tree) (hv : NodeDocumentsValid s.tree) :
     NodeDocumentsValid s'.tree := by
   refine ⟨?_, ?_⟩
   · intro m md hmd hk
     rcases h.get?_cases hmd with ⟨rfl, rfl⟩ | hmd'
-    · exact absurd hk hd.notDocument
+    · rcases hd.ownerDocument with ⟨-, hself⟩ | ⟨hne, -⟩
+      · exact hself
+      · exact absurd hk hne
     · exact hv.documentIsOwnNodeDocument m md hmd' hk
   · intro c p hp
     have hcn : c ≠ n := by
@@ -159,13 +179,14 @@ theorem nodeDocumentsValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData
     rw [h.ownerDocumentOf_other hcn, h.ownerDocumentOf_other (h.ne_of_mem hpd)]
     exact hv.treeEdgePreservesNodeDocument c p hp
 
-theorem documentTreesValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree d)
+theorem documentTreesValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree n d)
     (hwf : WellFormed s.tree) (hv : DocumentTreesValid s.tree) :
     DocumentTreesValid s'.tree := by
   refine ⟨?_⟩
   intro doc dd hdd hk
   rcases h.get?_cases hdd with ⟨rfl, rfl⟩ | hdd'
-  · exact absurd hk hd.notDocument
+  · -- 作ったばかりの node に children は無い。
+    exact documentChildrenOk_of_children_nil (h.childrenOf_self hd.children)
   · -- Document の children も、その kind も変わらない。
     have hne : doc ≠ n := h.ne_of_mem hdd'
     have hch : childrenOf s'.tree doc = childrenOf s.tree doc := h.childrenOf_other hne
@@ -203,24 +224,24 @@ theorem observerRegistrationsValid (h : AddsNode s.tree s'.tree n d)
   rw [h.get?_of hnd]
   rfl
 
-theorem attributesValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree d)
+theorem attributesValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree n d)
     (hv : AttributesValid s.tree) : AttributesValid s'.tree := by
   refine ⟨?_, ?_, ?_⟩
   · intro m md hmd hk
     rcases h.get?_cases hmd with ⟨rfl, rfl⟩ | hmd'
-    · exact hd.attributes
+    · exact hd.onlyElements hk
     · exact hv.onlyElements m md hmd' hk
   · intro m md hmd
     rcases h.get?_cases hmd with ⟨rfl, rfl⟩ | hmd'
-    · rw [hd.attributes]; simp
+    · exact hd.keysNodup
     · exact hv.keysNodup m md hmd'
   · intro m md hmd a ha
     rcases h.get?_cases hmd with ⟨rfl, rfl⟩ | hmd'
-    · rw [hd.attributes] at ha; simp at ha
+    · exact hd.prefixHasNamespace a ha
     · exact hv.prefixHasNamespace m md hmd' a ha
 
 /-- **node を一つ足しても妥当性は保たれる。** -/
-theorem admissible (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree d)
+theorem admissible (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData s.tree n d)
     (hr : s'.ranges = s.ranges) (hit : s'.iterators = s.iterators)
     (hreg : s'.registrations = s.registrations) (hobs : s'.observers = s.observers)
     (hv : AdmissibleDOMState s) : AdmissibleDOMState s' where
@@ -255,11 +276,12 @@ theorem requireDocument_ok {t : Tree} {doc : NodeId} {dd : NodeData}
 `withFresh` が返す組はこの形になる。ここから妥当性の保存が出る。
 -/
 def CreatesNode (s : DOMState) (n : NodeId) (s' : DOMState) (d : NodeData) : Prop :=
-  AddsNode s.tree s'.tree n d ∧ FreshNodeData s.tree d ∧
+  AddsNode s.tree s'.tree n d ∧ FreshNodeData s.tree n d ∧
     s'.ranges = s.ranges ∧ s'.iterators = s.iterators ∧
     s'.registrations = s.registrations ∧ s'.observers = s.observers
 
-theorem createsNode_withFresh {s : DOMState} {d : NodeData} (hd : FreshNodeData s.tree d) :
+theorem createsNode_withFresh {s : DOMState} {d : NodeData}
+    (hd : FreshNodeData s.tree (withFresh s d).1 d) :
     CreatesNode s (withFresh s d).1 (withFresh s d).2 d :=
   ⟨withFresh_addsNode s d, hd, rfl, rfl, rfl, rfl⟩
 
@@ -270,10 +292,11 @@ theorem admissible_createsNode {s s' : DOMState} {n : NodeId} {d : NodeData}
 
 /-- `withFresh` が返した組を、名前で受けた `n` と `s'` へ移す。 -/
 theorem creates_of_withFresh {s s' : DOMState} {n : NodeId} {d : NodeData}
-    (hd : FreshNodeData s.tree d) (h : withFresh s d = (n, s')) : CreatesNode s n s' d := by
+    (hd : FreshNodeData s.tree n d) (h : withFresh s d = (n, s')) : CreatesNode s n s' d := by
   have h1 : (withFresh s d).1 = n := by rw [h]
   have h2 : (withFresh s d).2 = s' := by rw [h]
-  rw [← h1, ← h2]
+  rw [← h1] at hd ⊢
+  rw [← h2]
   exact createsNode_withFresh hd
 
 theorem createTextNode_creates {s s' : DOMState} {doc n : NodeId} {data : String}
@@ -284,7 +307,8 @@ theorem createTextNode_creates {s s' : DOMState} {doc n : NodeId} {data : String
   · simp at h
   · next dd hreq =>
     obtain ⟨hdd, hk⟩ := requireDocument_ok hreq
-    exact creates_of_withFresh ⟨rfl, rfl, rfl, by simp, ⟨dd, hdd, hk⟩⟩ (Except.ok.inj h)
+    exact creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
+      Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)
 
 theorem createComment_creates {s s' : DOMState} {doc n : NodeId} {data : String}
     (h : createComment s doc data = .ok (n, s')) :
@@ -294,7 +318,8 @@ theorem createComment_creates {s s' : DOMState} {doc n : NodeId} {data : String}
   · simp at h
   · next dd hreq =>
     obtain ⟨hdd, hk⟩ := requireDocument_ok hreq
-    exact creates_of_withFresh ⟨rfl, rfl, rfl, by simp, ⟨dd, hdd, hk⟩⟩ (Except.ok.inj h)
+    exact creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
+      Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)
 
 theorem createDocumentFragment_creates {s s' : DOMState} {doc n : NodeId}
     (h : createDocumentFragment s doc = .ok (n, s')) :
@@ -304,7 +329,8 @@ theorem createDocumentFragment_creates {s s' : DOMState} {doc n : NodeId}
   · simp at h
   · next dd hreq =>
     obtain ⟨hdd, hk⟩ := requireDocument_ok hreq
-    exact creates_of_withFresh ⟨rfl, rfl, rfl, by simp, ⟨dd, hdd, hk⟩⟩ (Except.ok.inj h)
+    exact creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
+      Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)
 
 theorem createElement_creates {s s' : DOMState} {doc n : NodeId} {localName : String}
     (h : createElement s doc localName = .ok (n, s')) :
@@ -321,7 +347,8 @@ theorem createElement_creates {s s' : DOMState} {doc n : NodeId} {localName : St
     split at h
     · simp at h
     · exact ⟨dd, hdd, hk,
-        creates_of_withFresh ⟨rfl, rfl, rfl, by simp, ⟨dd, hdd, hk⟩⟩ (Except.ok.inj h)⟩
+        creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
+          Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)⟩
 
 theorem createElementNS_creates {s s' : DOMState} {doc n : NodeId}
     {«namespace» : Option String} {qualifiedName : String}
@@ -342,6 +369,7 @@ theorem createElementNS_creates {s s' : DOMState} {doc n : NodeId}
       obtain ⟨ns₀, pfx₀, ln⟩ := r
       rw [hval] at h
       exact ⟨ns₀, pfx₀, ln, rfl,
-        creates_of_withFresh ⟨rfl, rfl, rfl, by simp, ⟨dd, hdd, hk⟩⟩ (Except.ok.inj h)⟩
+        creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
+          Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)⟩
 
 end Dom
