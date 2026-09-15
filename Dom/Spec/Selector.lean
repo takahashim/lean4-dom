@@ -361,4 +361,193 @@ theorem includes_whitespace_never (test : AttrTest) (value : String)
   simp only [hop, hfold, Bool.and_eq_false_iff]
   exact Or.inl (Or.inr (by simp; exact ⟨c, hcmem, hcws⟩))
 
+/-! ## `:nth-*()` が数える列（Selectors Level 4 §14.3-14.7）
+
+仕様は
+
+> elements that are among `An+B`-th elements from the list composed of their
+> **inclusive siblings** that match the selector list `S`
+
+と言う。効くのは三つである。
+
+* 数える列は **inclusive sibling**（`:nth-of-type()` では同じ type のもの）だけ
+* index は **1 始まり**
+* `:nth-last-*()` は **末尾から**数える
+
+実行側は `elementSiblings` / `filter` / `reverse` / `indexOfNode` で書いてあり、
+数え始めと向きを取り違えうるのはそこである。
+-/
+
+/-- §3.1 の inclusive sibling のうち element。parent が無ければ自分だけである。 -/
+def InclusiveElementSibling (t : Tree) (m n : NodeId) : Prop :=
+  isElementNode t m = true ∧ (m = n ∨ ∃ p, parentOf t n = some p ∧ parentOf t m = some p)
+
+/-- §14.5 の「同じ type」。namespace と local name が一致すること。 -/
+def SameType (t : Tree) (d : NodeData) (m : NodeId) : Prop :=
+  ∃ e, t.get? m = some e ∧ e.namespace = d.namespace ∧ e.localName = d.localName
+
+/-- **`elementSiblings` はちょうど inclusive element sibling を並べる。** -/
+theorem mem_elementSiblings_iff {t : Tree} (hwf : WellFormed t) {n : NodeId}
+    (hn : isElementNode t n = true) (m : NodeId) :
+    m ∈ elementSiblings t n ↔ InclusiveElementSibling t m n := by
+  unfold elementSiblings InclusiveElementSibling
+  cases hp : parentOf t n with
+  | none =>
+    constructor
+    · intro h
+      have : m = n := by simpa using h
+      exact ⟨this ▸ hn, Or.inl this⟩
+    · rintro ⟨_, hm | ⟨p, hpp, _⟩⟩
+      · simp [hm]
+      · exact absurd hpp (by simp)
+  | some p =>
+    simp only [elementChildrenOf, List.mem_filter]
+    constructor
+    · rintro ⟨hmem, hel⟩
+      exact ⟨hel, Or.inr ⟨p, rfl, (mem_childrenOf_iff hwf m p).mpr hmem⟩⟩
+    · rintro ⟨hel, hm | ⟨q, hq, hmq⟩⟩
+      · subst hm
+        exact ⟨(mem_childrenOf_iff hwf m p).mp hp, hel⟩
+      · rw [← Option.some.inj hq] at hmq
+        exact ⟨(mem_childrenOf_iff hwf m p).mp hmq, hel⟩
+
+/-- **`sameTypeAs` はちょうど「同じ type」である。** -/
+theorem sameTypeAs_iff (t : Tree) (d : NodeData) (m : NodeId) :
+    sameTypeAs t d m = true ↔ SameType t d m := by
+  unfold sameTypeAs SameType
+  cases hm : t.get? m with
+  | none => simp
+  | some e => simp
+
+/-! ### index の数え方 -/
+
+theorem indexOfNode_of_split : ∀ (pre post : List NodeId) (n : NodeId), n ∉ pre →
+    indexOfNode (pre ++ n :: post) n = some pre.length
+  | [], _, _, _ => by simp [indexOfNode, List.findIdx?_cons]
+  | c :: rest, post, n, h => by
+    have hc : ¬ c = n := fun heq => h (by simp [heq])
+    simp only [indexOfNode, List.cons_append, List.findIdx?_cons, beq_iff_eq, hc, if_false,
+      List.length_cons]
+    rw [show List.findIdx? (fun m => m == n) (rest ++ n :: post) = some rest.length from
+      indexOfNode_of_split rest post n (fun hm => h (List.mem_cons_of_mem c hm))]
+    simp
+
+theorem indexOfNode_eq_some : ∀ (l : List NodeId) (n : NodeId) (i : Nat),
+    indexOfNode l n = some i → ∃ pre post, l = pre ++ n :: post ∧ pre.length = i
+  | [], _, _, h => by simp [indexOfNode] at h
+  | c :: rest, n, i, h => by
+    simp only [indexOfNode, List.findIdx?_cons, beq_iff_eq] at h
+    by_cases hc : c = n
+    · rw [if_pos hc] at h
+      exact ⟨[], rest, by simp [hc], by simpa using Option.some.inj h⟩
+    · rw [if_neg hc] at h
+      cases hj : List.findIdx? (fun m => m == n) rest with
+      | none => rw [hj] at h; simp at h
+      | some j =>
+        rw [hj] at h
+        obtain ⟨pre, post, hs, hl⟩ := indexOfNode_eq_some rest n j hj
+        refine ⟨c :: pre, post, by simp [hs], ?_⟩
+        simp only [List.length_cons, hl]
+        simpa using Option.some.inj h
+
+theorem indexOfNode_eq_none {l : List NodeId} {n : NodeId} (h : indexOfNode l n = none) :
+    n ∉ l := by
+  intro hm
+  rw [indexOfNode, List.findIdx?_eq_none_iff] at h
+  simpa using h n hm
+
+/-! ### `:nth-*()` の照合 -/
+
+/-- `:nth-*()` が数える列。 -/
+def nthPoolOf (ctx : MatchCtx) (d : NodeData) (kind : NthKind)
+    (ofSel : Option (List Complex)) (n : NodeId) : List NodeId :=
+  match kind with
+  | .child | .lastChild =>
+    match ofSel with
+    | none => elementSiblings ctx.tree n
+    | some l => (elementSiblings ctx.tree n).filter (fun m => matchSelList ctx l m)
+  | .ofType | .lastOfType => (elementSiblings ctx.tree n).filter (sameTypeAs ctx.tree d)
+
+/-- `:nth-last-child()` と `:nth-last-of-type()` は末尾から数える。 -/
+def countsFromEnd : NthKind -> Bool
+  | .lastChild | .lastOfType => true
+  | _ => false
+
+/-- 数える列と向きを与えたときの、位置の条件。これが `:nth-*()` の中身である。 -/
+theorem nth_index_iff {pool : List NodeId} {n : NodeId} {ab : AnB} (hnd : pool.Nodup)
+    (fromEnd : Bool) :
+    (match indexOfNode (if fromEnd then pool.reverse else pool) n with
+      | none => false
+      | some i => anbMatches ab (i + 1)) = true ↔
+      ∃ pre post, pool = pre ++ n :: post ∧
+        AnBIndex ab (if fromEnd then post.length + 1 else pre.length + 1) := by
+  cases fromEnd with
+  | false =>
+    simp only [if_false, Bool.false_eq_true]
+    cases hi : indexOfNode pool n with
+    | none =>
+      simp only [Bool.false_eq_true, false_iff]
+      rintro ⟨pre, post, hs, _⟩
+      exact absurd (hs ▸ List.mem_append_right pre List.mem_cons_self) (indexOfNode_eq_none hi)
+    | some i =>
+      rw [anbMatches_iff]
+      constructor
+      · intro hab
+        obtain ⟨pre, post, hs, hlen⟩ := indexOfNode_eq_some pool n i hi
+        exact ⟨pre, post, hs, by simpa [hlen] using hab⟩
+      · rintro ⟨pre, post, hs, hab⟩
+        have hnp : n ∉ pre := by
+          rw [hs, List.nodup_append] at hnd
+          exact fun hm => hnd.2.2 n hm n List.mem_cons_self rfl
+        rw [hs, indexOfNode_of_split pre post n hnp] at hi
+        simpa [← Option.some.inj hi] using hab
+  | true =>
+    simp only [if_true]
+    cases hi : indexOfNode pool.reverse n with
+    | none =>
+      simp only [Bool.false_eq_true, false_iff]
+      rintro ⟨pre, post, hs, _⟩
+      refine absurd ?_ (indexOfNode_eq_none hi)
+      rw [hs]
+      simp
+    | some i =>
+      rw [anbMatches_iff]
+      constructor
+      · intro hab
+        obtain ⟨pre, post, hs, hlen⟩ := indexOfNode_eq_some pool.reverse n i hi
+        refine ⟨post.reverse, pre.reverse, ?_, ?_⟩
+        · have := congrArg List.reverse hs
+          simpa using this
+        · simpa [hlen] using hab
+      · rintro ⟨pre, post, hs, hab⟩
+        have hrev : pool.reverse = post.reverse ++ n :: pre.reverse := by rw [hs]; simp
+        have hnp : n ∉ post.reverse := by
+          rw [hs, List.nodup_append] at hnd
+          have hd2 := hnd.2.1
+          rw [List.nodup_cons] at hd2
+          simpa using hd2.1
+        rw [hrev, indexOfNode_of_split post.reverse pre.reverse n hnp] at hi
+        simpa [← Option.some.inj hi] using hab
+
+/--
+**`:nth-*()` は、数える列の中での 1 始まりの位置が `An+B` に当たることと同値である。**
+
+`:nth-last-*()` では末尾からの位置になる。
+-/
+theorem matchSimple_nth_iff {ctx : MatchCtx} {n : NodeId} {d : NodeData}
+    {kind : NthKind} {ab : AnB} {ofSel : Option (List Complex)}
+    (hd : ctx.tree.get? n = some d) (hel : d.kind = NodeKind.element)
+    (hnd : (nthPoolOf ctx d kind ofSel n).Nodup) :
+    matchSimple ctx (.nth kind ab ofSel) n = true ↔
+      ∃ pre post, nthPoolOf ctx d kind ofSel n = pre ++ n :: post ∧
+        AnBIndex ab (if countsFromEnd kind then post.length + 1 else pre.length + 1) := by
+  have hne : (d.kind != NodeKind.element) = false := by simp [hel]
+  rw [matchSimple, hd]
+  simp only [hne, Bool.false_eq_true, if_false]
+  cases kind with
+  | child => exact nth_index_iff hnd false
+  | lastChild => exact nth_index_iff hnd true
+  | ofType => exact nth_index_iff hnd false
+  | lastOfType => exact nth_index_iff hnd true
+
 end Dom.Spec

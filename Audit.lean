@@ -782,6 +782,13 @@ open Dom.Audit
   Dom.Spec.attrTestHolds_iff
   Dom.Spec.includes_empty_never
   Dom.Spec.includes_whitespace_never
+  Dom.Spec.mem_elementSiblings_iff
+  Dom.Spec.sameTypeAs_iff
+  Dom.Spec.indexOfNode_of_split
+  Dom.Spec.indexOfNode_eq_some
+  Dom.Spec.indexOfNode_eq_none
+  Dom.Spec.nth_index_iff
+  Dom.Spec.matchSimple_nth_iff
 
 -- selector の API が満たすこと
 #audit_axioms

@@ -1,0 +1,25 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#child-index",
+    "algorithm": [":first-child", ":last-child", ":only-child", ":nth-child()"],
+    "steps": "index は inclusive sibling の中での位置である。Selectors 3 の「parent の child list での位置」から言い換えられている",
+    "note": "仕様は「parent を持たない element や、element でない parent を持つ element を除く理由が無い」ので言い換えた、と註記している。よって parent の無い element は自分だけの列の中で 1 番目である。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "localName": "div" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "matches", "element": 1, "selectors": ":first-child" },
+    { "op": "matches", "element": 1, "selectors": ":last-child" },
+    { "op": "matches", "element": 1, "selectors": ":only-child" },
+    { "op": "matches", "element": 1, "selectors": ":nth-child(1)" },
+    { "op": "matches", "element": 1, "selectors": ":nth-child(2)" },
+    { "op": "matches", "element": 1, "selectors": ":nth-last-child(1)" },
+    { "op": "matches", "element": 1, "selectors": ":only-of-type" },
+    { "op": "matches", "element": 1, "selectors": ":first-of-type" },
+    { "op": "matches", "element": 1, "selectors": ":root" }
+  ]
+}

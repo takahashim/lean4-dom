@@ -430,6 +430,25 @@ theorem attrTestHolds_iff (test : AttrTest) (value : String) (h : test.op ≠ .i
 `includes_empty_never` / `includes_whitespace_never` にしてあり、
 語境界そのものは固定 scenario が見ている。
 
+### `:nth-*()` が数える列（§14.3-14.7）
+
+```lean
+def InclusiveElementSibling (t : Tree) (m n : NodeId) : Prop :=
+  isElementNode t m = true ∧ (m = n ∨ ∃ p, parentOf t n = some p ∧ parentOf t m = some p)
+
+theorem mem_elementSiblings_iff (hwf : WellFormed t) (hn : isElementNode t n = true) (m) :
+    m ∈ elementSiblings t n ↔ InclusiveElementSibling t m n
+
+theorem matchSimple_nth_iff (hd : ctx.tree.get? n = some d) (hel : d.kind = NodeKind.element)
+    (hnd : (nthPoolOf ctx d kind ofSel n).Nodup) :
+    matchSimple ctx (.nth kind ab ofSel) n = true ↔
+      ∃ pre post, nthPoolOf ctx d kind ofSel n = pre ++ n :: post ∧
+        AnBIndex ab (if countsFromEnd kind then post.length + 1 else pre.length + 1)
+```
+
+数える列が inclusive sibling であること（parent を持たない element なら自分だけ）、
+index が 1 始まりであること、`:nth-last-*()` が末尾から数えることを押さえる。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

@@ -1,0 +1,32 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#typed-child-index",
+    "algorithm": [":nth-of-type()", ":nth-last-of-type()", ":first-of-type", ":last-of-type", ":only-of-type"],
+    "steps": "同じ type（namespace と local name）の兄弟だけを並べて数える",
+    "note": "type の位置と element の位置がずれる木でないと、絞り込みを落としても気付けない。span を先頭と途中に混ぜてある。Dom/Spec/Selector.lean の matchSimple_nth_iff がこれを定理にしてある。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "ul" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "span" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "li" },
+    { "id": 4, "kind": "element", "parent": 1, "localName": "li" },
+    { "id": 5, "kind": "element", "parent": 1, "localName": "span" },
+    { "id": 6, "kind": "element", "parent": 1, "localName": "li" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:nth-of-type(1)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:nth-of-type(2)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:nth-of-type(3)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:nth-last-of-type(1)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:nth-last-of-type(2)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "span:nth-of-type(2)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":first-of-type" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":last-of-type" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:nth-child(2)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":nth-child(2n of li)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":nth-last-child(1 of li)" }
+  ]
+}
