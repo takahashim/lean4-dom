@@ -2918,7 +2918,49 @@ jsdom は字義どおりなので、四本が mismatch になる。これは実�
 step 7 の removal より後に走っていた。checkout では両方直っている
 （`6d323653` ほか）。pin を切るなら release ではなく commit を指す必要がある。
 
-happy-dom は monorepo を compile しないと動かせないので、まだ測れていない。
+### happy-dom の結果
+
+checkout（`0d4cdbe7`）を compile して測った。固定 scenario 100 本が
+**37 ok / 19 skip / 43 mismatch**。内訳は次のとおりである。
+
+| 件数 | 中身 |
+| --- | --- |
+| 12 | §4.2.1 pre-insertion validity を通してしまう（`validity-step*`） |
+| 6 | 例外が素の `Error` / 名前の無い `DOMException` |
+| 1 | 失敗した操作が状態を変える（`range-insert-node-null-leaves-text-alone`） |
+| 24 | 状態の差（live range の調整・normalize の record・observer・event） |
+
+**確かめた候補。**
+
+* **pre-insertion validity の Document 制約が無い。** doctype を Element の子にできる。
+  Document に二つ目の document element を足せる。Text を Document の子にできる。
+  仕様はどれも `HierarchyRequestError` である。
+* **例外が `DOMException` ではない。** 素の `Error` を投げるので `name` が
+  "HierarchyRequestError" にならない。差分テストは例外の名前で比べるので、
+  そこで落ちる。
+* **`createTextNode` / `createComment` / `createDocumentFragment` が node document を
+  取り違える。** `implementation.createHTMLDocument()` で作った document に対して
+  呼ぶと、node document が **window の document** になる。
+  `createElement` / `createElementNS` / `createProcessingInstruction` は正しい。
+  `NodeFactory.createNode` が「class の prototype に window symbol が無いときだけ」
+  owner document を積む作りで、per-window の class にはそれが付いているため
+  積まれず、constructor が window の document へ落ちる。
+* **`DocumentType` に ChildNode mixin が無い。** `remove` / `before` / `after` /
+  `replaceWith` を持たない。
+* **`NodeIterator` が仕様の形をしていない。** `referenceNode` /
+  `pointerBeforeReferenceNode` が無く、removal 後の調整（§6.1）も走らない。
+  `TreeWalker` への委譲で作ってある。
+* **`createProcessingInstruction` の target 検査が狭い。**
+  `/^[a-z][a-z0-9-]+$/` は Name production より狭く、一文字・大文字・`_` `.` `:`・
+  非 ASCII を弾く。
+
+### runner 側で要った工夫
+
+* document は **window の document を先に配る**。`createHTMLDocument` で作った
+  document は上の node document の件で使えないので、scenario の大半（document 一つ）が
+  測れるようにした。二つ目からは `createHTMLDocument` である。
+* document を空にするのに `n.remove()` ではなく `removeChild` を使う。
+  `DocumentType` に ChildNode mixin が無い実装で落ちるためである。
 
 ### 次
 

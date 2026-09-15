@@ -47,11 +47,25 @@ async function openImplementation(name) {
   throw new Error(`未知の実装 ${name}`);
 }
 
-/** scenario の document 一つ分の、空の Document。 */
-function newEmptyDocument(win) {
-  const doc = win.document.implementation.createHTMLDocument("");
-  for (const n of [...doc.childNodes]) n.remove();
-  return doc;
+/**
+ * scenario の document 一つ分の、空の Document を配る。
+ *
+ * 最初の一つは window の document をそのまま使う。二つ目からは
+ * `createHTMLDocument` で足す。window の document を使うのは、実装が
+ * 「window の document でしか正しく動かない口」を持っていることがあるからで
+ * （happy-dom の `createTextNode` は node document を window の document に
+ * してしまう）、scenario の大半は document 一つなので、それで測れる幅が広がる。
+ */
+function makeDocumentFactory(win) {
+  let first = true;
+  return () => {
+    const doc = first ? win.document : win.document.implementation.createHTMLDocument("");
+    first = false;
+    // `n.remove()` ではなく `removeChild` を使う。ChildNode mixin を
+    // DocumentType に付けていない実装があるので、そこで落ちないようにする。
+    for (const n of [...doc.childNodes]) doc.removeChild(n);
+    return doc;
+  };
 }
 
 /* ------------------------------------------------------------------ 操作の表 */
@@ -104,6 +118,7 @@ const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "remo
 class Builder {
   constructor(win, specs) {
     this.win = win;
+    this.newDocument = makeDocumentFactory(win);
     this.specs = specs;
     this.objects = new Map();
     this.documents = new Map();
@@ -134,7 +149,7 @@ class Builder {
   create(spec, defaultDocId) {
     const data = String(spec.data ?? "");
     if (spec.kind === "document") {
-      const doc = newEmptyDocument(this.win);
+      const doc = this.newDocument();
       this.documents.set(spec.id, doc);
       this.objects.set(spec.id, doc);
       return;
@@ -756,7 +771,7 @@ function run(win, scenario) {
 /* ------------------------------------------------------------------ capabilities */
 
 function capabilities(win) {
-  const doc = newEmptyDocument(win);
+  const doc = makeDocumentFactory(win)();
   const builders = {
     document: () => doc,
     element: () => doc.createElement("div"),
