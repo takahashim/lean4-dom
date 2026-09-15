@@ -272,6 +272,14 @@ structure ScanCfg where
   forgiving : Bool
   /-- relative selector。先頭に anchor を置く（`:has()` の引数）。 -/
   relative : Bool
+  /--
+  いま `:has()` の引数の中か。
+
+  §14.10 は「`:has()` は入れ子にできない。`:has()` の中に `:has()` は書けない」と定める。
+  `:is()` や `:not()` を挟んでも中は中なので、そこへも伝える。
+  forgiving な list の中なら、その項目が落ちるだけで済む。
+  -/
+  inHas : Bool := false
 
 /-- 走査の途中の状態。 -/
 structure ScanSt where
@@ -385,22 +393,26 @@ def scan (cfg : ScanCfg) (st : ScanSt) : List Component -> Option SelectorList
   | .tok .colon :: .func name args :: rest =>
     let nm := asciiLowercase name
     if nm == "is" || nm == "where" then
-      match scan { forgiving := true, relative := false }
-          (initSt { forgiving := true, relative := false } []) args with
+      let inner : ScanCfg := { forgiving := true, relative := false, inHas := cfg.inHas }
+      match scan inner (initSt inner []) args with
       | some l =>
         let s : Simple := if nm == "is" then .isSel l else .whereSel l
         scan cfg { st with parts := s :: st.parts } rest
       | none => if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
     else if nm == "not" then
-      match scan { forgiving := false, relative := false }
-          (initSt { forgiving := false, relative := false } []) args with
+      let inner : ScanCfg := { forgiving := false, relative := false, inHas := cfg.inHas }
+      match scan inner (initSt inner []) args with
       | some l => scan cfg { st with parts := .notSel l :: st.parts } rest
       | none => if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
     else if nm == "has" then
-      match scan { forgiving := false, relative := true }
-          (initSt { forgiving := false, relative := true } []) args with
-      | some l => scan cfg { st with parts := .has l :: st.parts } rest
-      | none => if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
+      -- §14.10。`:has()` の中に `:has()` は書けない。
+      if cfg.inHas then
+        if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
+      else
+        let inner : ScanCfg := { forgiving := false, relative := true, inHas := true }
+        match scan inner (initSt inner []) args with
+        | some l => scan cfg { st with parts := .has l :: st.parts } rest
+        | none => if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
     else
       match nthKindOf nm with
       | none => if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
@@ -418,8 +430,8 @@ def scan (cfg : ScanCfg) (st : ScanSt) : List Component -> Option SelectorList
             | none =>
               if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
             | some ab =>
-              match scan { forgiving := false, relative := false }
-                  (initSt { forgiving := false, relative := false } []) sPart with
+              let inner : ScanCfg := { forgiving := false, relative := false, inHas := cfg.inHas }
+              match scan inner (initSt inner []) sPart with
               | some l => scan cfg { st with parts := .nth kind ab (some l) :: st.parts } rest
               | none =>
                 if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none

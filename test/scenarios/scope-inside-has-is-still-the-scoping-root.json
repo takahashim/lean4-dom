@@ -1,0 +1,23 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#relational",
+    "algorithm": [":has()", ":scope"],
+    "steps": ":has() は anchor に対して relative selector を評価する。:scope はそれとは別に scoping root を表す",
+    "note": "anchor と scoping root は別物である。`closest(\":has(:scope)\")` は「scoping root を子孫に持つ inclusive ancestor」を探すので、自分ではなく親が返る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "div" },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "p" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "closest", "element": 3, "selectors": ":has(:scope)" },
+    { "op": "closest", "element": 2, "selectors": ":has(:scope)" },
+    { "op": "matches", "element": 2, "selectors": ":has(:scope)" },
+    { "op": "querySelectorAll", "node": 2, "selectors": ":has(:scope)" },
+    { "op": "closest", "element": 3, "selectors": ":has(> :scope)" }
+  ]
+}

@@ -3877,6 +3877,36 @@ findings として赤くしてある不一致は、model 側を間違えると�
 生成器の `[a=1]` `[a=1 i]` を引用符付きに直した。それまで、この二つを含む
 生成 scenario はその step で打ち切られていた。
 
+### 四度目の測定：照合の骨格
+
+| 壊し方 | 定理 | 固定 scenario |
+| --- | --- | --- |
+| selector list を「すべて当たる」にする | 捕まえる | 捕まえる |
+| compound を「どれか当たる」にする | 捕まえる | 捕まえる |
+| `:not()` の否定を落とす | — | 捕まえる |
+| `:scope` と anchor を入れ替える | 捕まえる | 捕まえる |
+| `:has()` の中で `:scope` も anchor に向ける | 捕まえる | **捕まえない** |
+
+骨格の粗い誤りは差分テストがその場で捕まえる。残ったのは
+「`:has()` の anchor と scoping root は別物である」という一点だけで、
+これは `closest(":has(:scope)")` のような形でしか観測できない。
+固定 scenario（`scope-inside-has-is-still-the-scoping-root`）を足した。
+
+### 見つかったこと：`:has()` は入れ子にできない（model 側の誤り）
+
+§14.10 を読み直したところ、
+
+> The '':has()'' pseudo-class cannot be nested;
+> '':has()'' is not valid within '':has()''.
+
+とあった。model の parser は `div:has(:has(p))` を通していた。Dommy も jsdom も
+`SyntaxError` を投げる。parser の設定に「いま `:has()` の中か」を持たせて直した。
+`:is()` を挟むと forgiving なのでその項目が落ちるだけで selector 全体は通り、
+`:not()` を挟むと通らない。実装二つともそうなっている。
+
+**この誤りは定理が見つけたのではなく、関係を書くために仕様を読み直して見つかった。**
+`test/scenarios/has-cannot-be-nested.json`。
+
 ### findings 24：`[att]` が namespace 付きの attribute に当たる（Dommy / jsdom）
 
 Selectors §6.2 は「namespace 成分の無い attribute selector は **namespace を持たない

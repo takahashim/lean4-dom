@@ -25,6 +25,7 @@ selector は CSS 全体の一部なので、どこまでを model に入れる�
   `:first-of-type` `:last-of-type` `:only-of-type`
   `:nth-child()` `:nth-last-child()` `:nth-of-type()` `:nth-last-of-type()`（`of S` を含む）
 * 論理 pseudo-class：`:is()` `:where()` `:not()` `:has()`
+  （§14.10 のとおり `:has()` は入れ子にできない。`:is()` を挟めば forgiving に落ちる）
 * `:scope`
 
 ### 入れないもの

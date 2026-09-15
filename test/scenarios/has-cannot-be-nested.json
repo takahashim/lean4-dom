@@ -1,0 +1,23 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#relational",
+    "algorithm": [":has()"],
+    "steps": "The :has() pseudo-class cannot be nested; :has() is not valid within :has()",
+    "note": "`:is()` を挟むと forgiving なのでその項目が落ちるだけで、selector 全体は通る。`:not()` は forgiving でないので通らない。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "div" },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "p" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:has(p)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:not(:has(p))" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:has(:not(p))" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:has(:is(:has(p)))" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:has(:has(p))" }
+  ]
+}
