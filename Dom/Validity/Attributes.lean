@@ -151,11 +151,15 @@ theorem wellFormed_of_attributesOnly {t t' : Tree} (h : AttributesOnly t t')
 
 theorem structurallyValid_of_attributesOnly {t t' : Tree} (h : AttributesOnly t t')
     (hs : StructurallyValid t) : StructurallyValid t' := by
-  refine ⟨wellFormed_of_attributesOnly h hs.wellFormed, ?_, ?_, ?_⟩
+  refine ⟨wellFormed_of_attributesOnly h hs.wellFormed, ?_, ?_, ?_, ?_⟩
   · intro n d hd hk
     obtain ⟨d₀, hd₀, hkk, hp, _⟩ := h.exists_get? hd
     rw [← hp]
     exact hs.documentHasNoParent n d₀ hd₀ (by rw [hkk]; exact hk)
+  · intro n d hd hk
+    obtain ⟨d₀, hd₀, hkk, hp, _⟩ := h.exists_get? hd
+    rw [← hp]
+    exact hs.fragmentHasNoParent n d₀ hd₀ (by rw [hkk]; exact hk)
   · intro n d hd hc
     obtain ⟨d₀, hd₀, hkk, _, hch, _⟩ := h.exists_get? hd
     rw [← hkk]

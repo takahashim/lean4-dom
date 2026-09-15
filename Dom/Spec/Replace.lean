@@ -54,24 +54,6 @@ def ChildRemoved (s s' : DOMState) (child : NodeId) (removed : List NodeId) : Pr
   (parentOf s.tree child = none ∧ removed = [] ∧ s' = s) ∨
   ((∃ p, parentOf s.tree child = some p) ∧ removed = [child] ∧ RemoveSpec s child true s')
 
-/-! ## 仕様の assertion が要る前提 -/
-
-/--
-DocumentFragment は誰の子にもならない。
-
-仕様の `insert` は step 1 で fragment を children に展開するので、
-fragment が誰かの子になっている状態は algorithm からは作れない。
-ところが `StructurallyValid`（`Dom/Validity/Structural.lean`）はこれを言っていない。
-`documentHasNoParent` の fragment 版が無い、ということである。
-
-`replace` の step 10 の assertion（addedNodes と removedNodes のどちらかは空でない）は
-これに依存する。`node` が `child` と同じ空の DocumentFragment だと、
-adopt が `child` を親から外してしまい、どちらの列も空になるからである。
-その状態は本物の DOM には無いので、必要なところで仮定する。
--/
-def FragmentsAreRoots (t : Tree) : Prop :=
-  ∀ n d, t.get? n = some d → d.kind = .documentFragment → d.parent = none
-
 /-! ## 全体 -/
 
 /--
@@ -101,6 +83,8 @@ def ReplaceSpec (s : DOMState) (child node parent : NodeId) (s' : DOMState) : Pr
     -- step 9
     InsertSpec s₂ node parent ref true s₃ ∧
     -- step 10。"queue a tree mutation record" の step 1 は、どちらかが空でないこと。
+    -- これが破れるのは「`node` が `child` と同じ空の DocumentFragment」のときだけで、
+    -- `StructurallyValid` の `fragmentHasNoParent` がその状態を禁じている。
     (nodes ≠ [] ∨ removed ≠ []) ∧
     TreeRecordQueued s₃ s' parent nodes removed prev ref false ∧
     ObserverOnly s₃ s'

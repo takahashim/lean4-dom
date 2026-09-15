@@ -19,7 +19,7 @@ namespace Dom
 theorem structurallyValid_detach {t t' : Tree} {n : NodeId}
     (h : StructurallyValid t) (hd : detach t n = .ok t') : StructurallyValid t' := by
   have hkind : ∀ m, kindOf t' m = kindOf t m := (shapePreserving_detach hd).kind
-  refine ⟨detach_preserves_wellformed h.wellFormed hd, ?_, ?_, ?_⟩
+  refine ⟨detach_preserves_wellformed h.wellFormed hd, ?_, ?_, ?_, ?_⟩
   · intro m d hm hk
     rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
     · exact h.documentHasNoParent m d hm hk
@@ -35,6 +35,19 @@ theorem structurallyValid_detach {t t' : Tree} {n : NodeId}
           cases hm
           exact h.documentHasNoParent _ pd hpd hk
         · exact h.documentHasNoParent m d hm hk
+  · intro m d hm hk
+    rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
+    · exact h.fragmentHasNoParent m d hm hk
+    · rw [get?_detachFrom] at hm
+      split at hm
+      · next he =>
+        cases hm; rfl
+      · split at hm
+        · next hne he =>
+          subst he
+          cases hm
+          exact h.fragmentHasNoParent _ pd hpd hk
+        · exact h.fragmentHasNoParent m d hm hk
   · intro m d hm hc
     rcases detach_ok_cases hd with ⟨nd, hnd, hnp, rfl⟩ | ⟨nd, p, pd, hnd, hnp, hpd, rfl⟩
     · exact h.childrenOnlyUnderContainers m d hm hc
@@ -114,6 +127,8 @@ theorem nodeDocumentsValid_detach {t t' : Tree} {n : NodeId}
 
 * parent は children を持てる kind である（§4.2.3 ensure pre-insertion validity step 1）。
 * node は Document でない（Document は parent を持てない。同 step 4）。
+* node は DocumentFragment でない（fragment も parent を持てない。
+  `insert` は step 1 で fragment を children に展開するので、ここへは来ない）。
 
 §4.2.3 の algorithm 側はどちらも validity 検査で確立するので、
 そこで discharge される。
@@ -122,12 +137,13 @@ theorem structurallyValid_insertAt {t t' : Tree} {parent node : NodeId} {child :
     (h : StructurallyValid t)
     (hpk : ∀ pd, t.get? parent = some pd → pd.kind.canHaveChildren = true)
     (hnk : ∀ nd, t.get? node = some nd → nd.kind ≠ .document)
+    (hnf : ∀ nd, t.get? node = some nd → nd.kind ≠ .documentFragment)
     (hdt : ∀ nd, t.get? node = some nd → nd.kind = .documentType →
       ∀ pd, t.get? parent = some pd → pd.kind = .document)
     (hi : insertAt t parent node child = .ok t') : StructurallyValid t' := by
   have hwf' := insertAt_preserves_wellformed h.wellFormed hi
   obtain ⟨pd, nd, hpd, hnd, hnone, hanc, hchild, rfl⟩ := insertAt_ok_cases hi
-  refine ⟨hwf', ?_, ?_, ?_⟩
+  refine ⟨hwf', ?_, ?_, ?_, ?_⟩
   · intro m d hm hk
     rw [get?_insertAtIn] at hm
     split at hm
@@ -141,6 +157,19 @@ theorem structurallyValid_insertAt {t t' : Tree} {parent node : NodeId} {child :
         cases hm
         exact h.documentHasNoParent _ pd hpd hk
       · exact h.documentHasNoParent m d hm hk
+  · intro m d hm hk
+    rw [get?_insertAtIn] at hm
+    split at hm
+    · next he =>
+      subst he
+      cases hm
+      exact absurd hk (by simpa using hnf nd hnd)
+    · split at hm
+      · next hne he =>
+        subst he
+        cases hm
+        exact h.fragmentHasNoParent _ pd hpd hk
+      · exact h.fragmentHasNoParent m d hm hk
   · intro m d hm hc
     rw [get?_insertAtIn] at hm
     split at hm
@@ -256,11 +285,15 @@ theorem structurallyValid_setOwnerDocument {t : Tree} {n doc : NodeId}
       simp only [Option.map_some, Option.some.injEq] at hm
       subst hm
       refine ⟨d', rfl, ?_, ?_, ?_⟩ <;> (split <;> rfl)
-  refine ⟨setOwnerDocument_preserves_wellformed hwf hdd hk, ?_, ?_, ?_⟩
+  refine ⟨setOwnerDocument_preserves_wellformed hwf hdd hk, ?_, ?_, ?_, ?_⟩
   · intro m d hm hkm
     obtain ⟨d', hm', hkk, hpp, _⟩ := hget m d hm
     rw [hpp]
     exact h.documentHasNoParent m d' hm' (by rw [← hkk]; exact hkm)
+  · intro m d hm hkm
+    obtain ⟨d', hm', hkk, hpp, _⟩ := hget m d hm
+    rw [hpp]
+    exact h.fragmentHasNoParent m d' hm' (by rw [← hkk]; exact hkm)
   · intro m d hm hc
     obtain ⟨d', hm', hkk, _, hcc⟩ := hget m d hm
     rw [hkk]

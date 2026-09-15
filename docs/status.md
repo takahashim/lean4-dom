@@ -2692,8 +2692,7 @@ fragment が誰かの子になることは無いからである。ところが m
 `StructurallyValid`（`Dom/Validity/Structural.lean`）はこれを言っていない。
 `documentHasNoParent` はあるのに、その fragment 版が無い。
 
-いまは `FragmentsAreRoots` として `replace_sound` の仮定に置いてある。
-`StructurallyValid` に足すと preservation の証明が全部動くので、それは別途である。
+`StructurallyValid` に `fragmentHasNoParent` として足した（下記）。
 
 ### congruence は四つ目も同じ形で通った
 
@@ -2831,10 +2830,43 @@ match child with
 これで §4.2.3 と §4.2.4 の mutation は `remove` / `adopt` / `insert` / `replace` /
 `move` の五つとも、関係・soundness・一意性が揃った。
 
+## `StructurallyValid` に DocumentFragment の規則を足した
+
+`documentHasNoParent` はあるのに fragment 版が無い、という穴を埋めた。
+
+```lean
+fragmentHasNoParent :
+  ∀ n d, t.get? n = some d → d.kind = .documentFragment → d.parent = none
+```
+
+仕様は「fragment は tree の root である」と直接は書いていない。
+そう保つのは §4.2.3 の `insert` で、step 1 が fragment を children に展開するので
+fragment 自身が誰かの子になることは無い。
+`replace` の step 10 の assertion がこれに依存していたので、
+仮定（`FragmentsAreRoots`）に置いていたものを invariant に格上げした。
+
+### 足すと preservation がどこで詰まるか
+
+`insertAt` が「node は Document でない」を要求していたのと同じ場所に
+「node は DocumentFragment でない」が要る。そこから上へ、
+`insertEach` → `insertNodesAt` → `insert` の三段に仮説を通した。
+`StructurallyValid` だけでなく `NodeDocumentsValid` と `IterCtx` の chain も
+同じ `insertAt` を通るので、同じ三段が二度ずつ出てくる。
+
+仮説を落とすのは `insert` の中である。fragment を展開する枝では
+「fragment の children は fragment でない」（`child_not_fragment`、
+新しい invariant からすぐ出る）、単独の node の枝では分岐の条件そのものである。
+
+`move` は step 4 が Element と CharacterData しか動かさないので、そこで落ちる。
+`replace` と `replaceAll` は `insert` を通るので何も要らない。
+
+生成器は fragment を子にしないので（`CHILD_KINDS` に入っていない）、
+差分テストへの影響は無かった。固定 scenario も生成 scenario も結果は変わらない。
+
 ### 次
 
 completeness の実現性（関係が満たせるなら実行関数は失敗しない）を
-`insert` 以降にも広げるか、`StructurallyValid` に DocumentFragment の規則を足すかである。
+`insert` 以降にも広げることである。
 
 ## 生成 scenario の最小化を広げた
 

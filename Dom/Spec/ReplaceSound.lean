@@ -1,4 +1,5 @@
 import Dom.Spec.Replace
+import Dom.Validity.Structural
 import Dom.Spec.AdoptSound
 import Dom.Spec.InsertSound
 import Dom.Spec.RemoveCongr
@@ -56,11 +57,15 @@ theorem replace_child_not_child_of_node {t : Tree} (hwf : WellFormed t)
 /--
 **`replace` は `ReplaceSpec` を満たす。**
 
-`FragmentsAreRoots` は step 10 の assertion のために要る（`Dom/Spec/Replace.lean`）。
+`StructurallyValid` まで要るのは step 10 の assertion（addedNodes と removedNodes の
+どちらかは空でない）のためである。それが破れるのは
+「`node` が `child` と同じ空の DocumentFragment」のときだけで、
+`fragmentHasNoParent` がその状態を禁じている。
 -/
 theorem replace_sound {s s' : DOMState} {child node parent : NodeId}
-    (hwf : WellFormed s.tree) (hfr : FragmentsAreRoots s.tree)
+    (hsv : StructurallyValid s.tree)
     (h : replace s child node parent = .ok s') : ReplaceSpec s child node parent s' := by
+  have hwf : WellFormed s.tree := hsv.wellFormed
   unfold replace at h
   split at h
   · simp at h
@@ -156,7 +161,7 @@ theorem replace_sound {s s' : DOMState} {child node parent : NodeId}
                     simp at hsome
                 by_cases hk : nd.kind = NodeKind.documentFragment
                 · exfalso
-                  have hnp : nd.parent = none := hfr node nd hnd hk
+                  have hnp : nd.parent = none := hsv.fragmentHasNoParent node nd hnd hk
                   rw [hcn, parentOf, hnd] at hcp
                   simp [hnp] at hcp
                 · rw [if_neg (by simp [hk])]

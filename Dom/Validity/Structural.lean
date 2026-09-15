@@ -17,6 +17,11 @@ namespace Dom
 kind から決まる構造制約。
 
 * Document は parent を持たない（tree order の root であるため）。
+* DocumentFragment も parent を持たない。`insert` は step 1 で fragment を
+  children に展開するので、fragment 自身が誰かの子になることは無い。
+  仕様は「fragment は tree の root である」と直接は書いていないが、
+  §4.2.3 の insert がそう保つ。`replace` の step 10 の assertion
+  （addedNodes と removedNodes のどちらかは空でない）はこれに依存する。
 * children を持てるのは Document / DocumentFragment / Element だけである
   （§4.2.3 "ensure pre-insertion validity" step 1 が parent に許す種別）。
   したがって CharacterData と DocumentType の children は常に空である。
@@ -31,6 +36,8 @@ kind から決まる構造制約。
 structure StructurallyValid (t : Tree) : Prop where
   wellFormed : WellFormed t
   documentHasNoParent : ∀ n d, t.get? n = some d → d.kind = .document → d.parent = none
+  fragmentHasNoParent :
+    ∀ n d, t.get? n = some d → d.kind = .documentFragment → d.parent = none
   childrenOnlyUnderContainers :
     ∀ n d, t.get? n = some d → d.children ≠ [] → d.kind.canHaveChildren = true
   doctypeParentIsDocument :
@@ -72,6 +79,7 @@ def checkStructurallyValid (t : Tree) : Bool :=
   t.checkWellFormed &&
     t.nodes.checkAll fun _ d =>
       (!(d.kind == .document) || d.parent.isNone) &&
+        (!(d.kind == .documentFragment) || d.parent.isNone) &&
         (d.children.isEmpty || d.kind.canHaveChildren) &&
         (!(d.kind == .documentType) ||
           (match d.parent with
@@ -84,11 +92,15 @@ theorem checkStructurallyValid_iff (t : Tree) :
     NodeStore.checkAll_iff]
   constructor
   · rintro ⟨hwf, hall⟩
-    refine ⟨hwf, ?_, ?_, ?_⟩
+    refine ⟨hwf, ?_, ?_, ?_, ?_⟩
     · intro n d hn hk
       have := hall n d hn
       simp only [hk] at this
-      simpa using this.1.1
+      simpa using this.1.1.1
+    · intro n d hn hk
+      have := hall n d hn
+      simp only [hk] at this
+      simpa using this.1.1.2
     · intro n d hn hc
       have := hall n d hn
       simp only [Bool.or_eq_true] at this
@@ -105,9 +117,12 @@ theorem checkStructurallyValid_iff (t : Tree) :
     refine ⟨h.wellFormed, ?_⟩
     intro n d hn
     simp only [Bool.or_eq_true, Bool.not_eq_true', beq_eq_false_iff_ne]
-    refine ⟨⟨?_, ?_⟩, ?_⟩
+    refine ⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩
     · by_cases hk : d.kind = NodeKind.document
       · exact Or.inr (by simp [h.documentHasNoParent n d hn hk])
+      · exact Or.inl (by simpa using hk)
+    · by_cases hk : d.kind = NodeKind.documentFragment
+      · exact Or.inr (by simp [h.fragmentHasNoParent n d hn hk])
       · exact Or.inl (by simpa using hk)
     · by_cases hc : d.children = []
       · exact Or.inl (by simp [hc])

@@ -118,12 +118,13 @@ theorem iterCtx_insertEach :
       (∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true) →
       ownerDocumentOf s.tree parent = some doc →
       (∀ n ∈ ns, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document) →
+      (∀ n ∈ ns, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.documentFragment) →
       (∀ n ∈ ns, ∀ nd, s.tree.get? n = some nd → nd.kind = NodeKind.documentType →
         ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document) →
       insertEach s parent child doc ns = .ok s' → IterCtx s'
-  | [], s, s', parent, child, doc, h, _, _, _, _, _, hi => by
+  | [], s, s', parent, child, doc, h, _, _, _, _, _, _, hi => by
     rw [insertEach] at hi; rw [← Except.ok.inj hi]; exact h
-  | n :: ns, s, s', parent, child, doc, h, hdoc, hpk, hpar, hnk, hdt, hi => by
+  | n :: ns, s, s', parent, child, doc, h, hdoc, hpk, hpar, hnk, hnf, hdt, hi => by
     rw [insertEach] at hi
     split at hi
     · simp at hi
@@ -145,6 +146,8 @@ theorem iterCtx_insertEach :
         have h₂ : IterCtx s₂ := by
           refine ⟨structurallyValid_insertAt h₁.structural hpk₁
               (kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp₁ hnkn)
+              (kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentFragment) hkp₁
+                (hnf n (List.mem_cons_self ..)))
               (doctypeFact_of_kindPreserving hkp₁ (hdt n (List.mem_cons_self ..))) hi',
             nodeDocumentsValid_insertAt h₁.nodeDocuments (by rw [hself, hpar₁]) hi', ?_⟩
           have hs₂ := (DOMState.mapTree_eq_ok hins).2
@@ -152,12 +155,15 @@ theorem iterCtx_insertEach :
           rw [hs₂] at hit ⊢
           simp only [DOMState.withTree_iterators] at hit
           exact validIterator_insertAt hi' (h₁.iterators it hit)
-        refine iterCtx_insertEach ns h₂ (hdoc.map (hkp₁.trans hkp₂)) ?_ ?_ ?_ ?_ hi
+        refine iterCtx_insertEach ns h₂ (hdoc.map (hkp₁.trans hkp₂)) ?_ ?_ ?_ ?_ ?_ hi
         · exact kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp₂ hpk₁
         · rw [ownerDocumentOf_insertAt hi']; exact hpar₁
         · intro m hm
           exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document)
             (hkp₁.trans hkp₂) (hnk m (List.mem_cons_of_mem _ hm))
+        · intro m hm
+          exact kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentFragment)
+            (hkp₁.trans hkp₂) (hnf m (List.mem_cons_of_mem _ hm))
         · intro m hm
           exact doctypeFact_of_kindPreserving (hkp₁.trans hkp₂)
             (hdt m (List.mem_cons_of_mem _ hm))
@@ -174,6 +180,7 @@ theorem iterCtx_insertNodesAt {s s' : DOMState} {parent : NodeId}
     {child : Option NodeId} {nodes : List NodeId} {b : Bool} (h : IterCtx s)
     (hpk : ∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = true)
     (hnk : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.document)
+    (hnf : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind ≠ NodeKind.documentFragment)
     (hdt : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind = NodeKind.documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
     (hi : insertNodesAt s parent child nodes b = .ok s') : IterCtx s' := by
@@ -194,7 +201,7 @@ theorem iterCtx_insertNodesAt {s s' : DOMState} {parent : NodeId}
         have hpd' : s.tree.get? parent = some pd := by simpa using hpd
         refine iterCtx_insertEach nodes
           (IterCtx.congr (by simp) (by simp) h) ?_ (by simpa using hpk) ?_
-          (by simpa using hnk) (by simpa using hdt) hx
+          (by simpa using hnk) (by simpa using hnf) (by simpa using hdt) hx
         · exact ⟨_, by simpa using
             (isDocument_ownerDocument h.wellFormed hpd').choose_spec.1,
             (isDocument_ownerDocument h.wellFormed hpd').choose_spec.2⟩
@@ -228,21 +235,32 @@ theorem iterCtx_insert {s s' : DOMState} {node parent : NodeId}
             rename_i hfrag _ _
             intro hc; rw [hc] at hfrag; simp at hfrag
           refine iterCtx_insertNodesAt (s := queueTreeMutationRecord s₁ node []
-            nd.children none none) (IterCtx.congr (by simp) (by simp) h₁) ?_ ?_ ?_ hi
+            nd.children none none) (IterCtx.congr (by simp) (by simp) h₁) ?_ ?_ ?_ ?_ hi
           · simpa using
               kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
           · intro m hm
             simpa using kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
               (child_not_document h.structural hnd hm)
+          · intro m hm
+            simpa using
+              kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentFragment) hkp
+                (child_not_fragment h.structural hnd hm)
           · intro m hm md hmd hkm _ _
             refine absurd hkm ?_
             have hx := kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentType) hkp
               (child_not_doctype h.structural hnd hfragkind hm)
             exact hx md (by simpa using hmd)
-    · refine iterCtx_insertNodesAt h hpk ?_ ?_ hi
+    · rename_i hnotfrag
+      refine iterCtx_insertNodesAt h hpk ?_ ?_ ?_ hi
       · intro m hm
         rcases List.mem_singleton.mp hm with rfl
         exact hnk
+      · intro m hm
+        rcases List.mem_singleton.mp hm with rfl
+        intro md hmd
+        rw [hnd] at hmd
+        cases hmd
+        simpa using hnotfrag
       · intro m hm
         rcases List.mem_singleton.mp hm with rfl
         exact hdtf
