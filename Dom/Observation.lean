@@ -95,6 +95,8 @@ inductive ReturnValue where
   | strs (l : List String)
   /-- `getAttributeNode` などが返す `Attr`。 -/
   | attr (a : Option AttrId)
+  /-- `querySelectorAll()` が返す `NodeList`。tree order に並ぶ。 -/
+  | nodes (l : List NodeId)
 deriving DecidableEq, Repr, Inhabited
 
 /-- 一 step の観測。 -/

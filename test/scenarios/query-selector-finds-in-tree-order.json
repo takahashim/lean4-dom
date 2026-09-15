@@ -1,0 +1,34 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall",
+    "algorithm": ["querySelector(selectors)", "querySelectorAll(selectors)"],
+    "steps": "どちらも scope-match a selectors string を走らせ、前者はその最初の結果を返す",
+    "note": "候補は scoping root の descendant だけで、受け手そのものは入らない。並びは tree order である。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "body" },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "p",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "a b" }] },
+    { "id": 4, "kind": "element", "parent": 2, "localName": "span",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "id", "value": "x" }] },
+    { "id": 5, "kind": "text", "parent": 3, "data": "hello" },
+    { "id": 6, "kind": "element", "parent": 2, "localName": "p" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "p" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "P" },
+    { "op": "querySelector", "node": 0, "selectors": "p" },
+    { "op": "querySelectorAll", "node": 2, "selectors": "p" },
+    { "op": "querySelectorAll", "node": 3, "selectors": "p" },
+    { "op": "querySelector", "node": 0, "selectors": ".a" },
+    { "op": "querySelector", "node": 0, "selectors": "#x" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "body > p" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "p + span" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "span ~ p" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "%%%" }
+  ]
+}

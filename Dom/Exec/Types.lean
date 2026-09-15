@@ -171,6 +171,16 @@ inductive Operation where
   | removeAttributeNode (element : Nat) (attr : Nat)
   /-- `NamedNodeMap.removeNamedItem(qualifiedName)`。無ければ `NotFoundError`。 -/
   | removeNamedItem (element : Nat) (qualifiedName : String)
+  /--
+  §4.2.6 `ParentNode` と §4.8 `Element` の、selector を取る method。
+
+  receiver が `ParentNode`（あるいは `Element`）でなければ WebIDL の `TypeError`、
+  selector を読めなければ `SyntaxError` になる。
+  -/
+  | querySelector (node : Nat) (selectors : String)
+  | querySelectorAll (node : Nat) (selectors : String)
+  | matchesSelector (element : Nat) (selectors : String)
+  | closest (element : Nat) (selectors : String)
   /-- microtask checkpoint。"notify mutation observers" を走らせる。 -/
   | notify
 deriving Repr

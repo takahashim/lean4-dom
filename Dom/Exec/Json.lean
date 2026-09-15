@@ -283,6 +283,11 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "getAttribute" => return .getAttribute (← natField j "element") (← strField j "name" "")
   | "hasAttribute" => return .hasAttribute (← natField j "element") (← strField j "name" "")
   | "getAttributeNames" => return .getAttributeNames (← natField j "element")
+  | "querySelector" => return .querySelector (← natField j "node") (← strField j "selectors" "")
+  | "querySelectorAll" =>
+    return .querySelectorAll (← natField j "node") (← strField j "selectors" "")
+  | "matches" => return .matchesSelector (← natField j "element") (← strField j "selectors" "")
+  | "closest" => return .closest (← natField j "element") (← strField j "selectors" "")
   | "lookupNamespaceURI" =>
     return .lookupNamespaceURI (← natField j "node") (← strField? j "prefix")
   | "lookupPrefix" => return .lookupPrefix (← natField j "node") (← strField? j "namespace")
@@ -539,6 +544,9 @@ def returnValueJson : ReturnValue → Json
   | .attr a =>
     Json.mkObj [("kind", Json.str "attr"),
                 ("attr", match a with | none => Json.null | some x => natJson x.id)]
+  | .nodes l =>
+    Json.mkObj [("kind", Json.str "nodes"),
+                ("nodes", Json.arr (l.map (fun n => natJson n.id)).toArray)]
 
 /--
 `Observation` の外部表現。

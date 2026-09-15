@@ -3699,6 +3699,68 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
+## Selectors（CSS Selectors Level 4）
+
+selector を読んで node tree に当てる部分を入れた。版は
+`docs/selectors-spec-version.md` に固定し、形式化の範囲もそこに書いてある。
+
+### 構成
+
+| file | 内容 |
+| --- | --- |
+| `Selectors/Token.lean` | CSS Syntax Level 3 §4 の tokenizer |
+| `Selectors/Component.lean` | §5 の component value（括弧の対応を先に取る） |
+| `Selectors/Ast.lean` | selector の構文木 |
+| `Selectors/Parser.lean` | §18 の文法、`parse a selector` |
+| `Dom/Selector/Match.lean` | Selectors §17 の照合 |
+| `Dom/Selector/Api.lean` | `querySelector()` `querySelectorAll()` `matches()` `closest()` |
+
+停止性はどの段でも証明してある。tokenizer は入力の長さ、parser は component 木の
+大きさ、照合は **selector の大きさ**で減る。照合で木をたどるのは combinator と
+`:has()` のときだけで、そのときは必ず selector が小さくなっている。
+
+### 見つかったこと：model 側の parser の誤り
+
+生成器が `*.v + :not(p)` を出して落ちた。`*` の次を「namespace の `|`
+かどうか」だけ先読みすべきところで、二 token をまとめて読んでいたので
+`*.v`（universal selector に class selector が続く形）が読めなくなっていた。
+`test/scenarios/universal-selector-takes-subclasses.json` に固定してある。
+
+同じ生成器が `:is(` と `a[href` も出した。こちらは model の側が
+「閉じ括弧が無ければ失敗」と決めていたのが誤りで、CSS Syntax §5.4.7 は
+EOF で block をその場で閉じる。jsdom の振る舞いも仕様どおりだった。
+`test/scenarios/unclosed-block-is-closed-at-eof.json` に固定した。
+
+### findings 19：`:empty` が空白だけの text を許さない（Dommy / jsdom）
+
+Selectors Level 4 の `:empty` は「子が無いか、あっても document white space
+だけ」である。Dommy も jsdom も Selectors 3 の読み（空白も数える）に留まっている。
+`test/scenarios/empty-pseudo-allows-white-space.json`。
+
+### findings 20：virtual scoping root が combinator の左に来ない（Dommy / jsdom）
+
+`:scope` は scoping root を表し、それは真の element とは限らない。仕様は
+`DocumentFragment` のような virtual scoping root を「その木の root element の
+parent としてふるまう」ものとして扱い、`df.querySelectorAll(":scope > .foo")`
+を例に挙げている。Dommy はこれを空に、jsdom も空にする。
+`document` に対しては両方とも `:scope` を document element に読み替える。
+`test/scenarios/scope-pseudo-is-the-scoping-root.json`。
+
+### findings 21：`#1` が id selector として通る（Dommy）
+
+`<id-selector> = <hash-token>` だが、仕様は「In `<id-selector>`, the
+`<hash-token>`'s value must be an identifier」と but 書きを付けている。
+`#1` の hash-token は type flag が "unrestricted" なので、`parse a selector` は
+失敗しなければならない。jsdom は `SyntaxError` を投げる。Dommy は通す。
+`test/scenarios/id-selector-needs-an-identifier.json`。
+
+### 差分テストの現状
+
+固定 scenario 108 本のうち、Dommy に対しては findings 12-17 と 19-21、
+jsdom に対しては normalize / observer の既知の不一致と findings 19-20 だけが赤い。
+生成 scenario は seed を変えて 1100 本ほど回したが、
+selector まわりで新しい不一致は出ていない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

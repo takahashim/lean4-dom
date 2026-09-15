@@ -1,0 +1,26 @@
+{
+  "_basis": {
+    "kind": "regression",
+    "spec": "https://drafts.csswg.org/selectors-4/#type-nmsp",
+    "algorithm": ["<type-selector>", "<compound-selector>"],
+    "steps": "<type-selector> = <wq-name> | <ns-prefix>? '*'、<compound-selector> = [ <type-selector>? <subclass-selector>* ]!",
+    "note": "差分テストが見つけた model 側の parser の誤り。`*` の次を namespace の `|` かどうかだけ先読みすべきところで、二 token をまとめて読んでいたので `*.v` が失敗していた。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "v" }] },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "p" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "span" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "*.v" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "*.v > *" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "*[class]" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "*|*" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "*>p" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "p + *" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "ns|E" }
+  ]
+}

@@ -351,13 +351,19 @@ def scan (cfg : ScanCfg) (st : ScanSt) : List Component -> Option SelectorList
       if !st.parts.isEmpty then
         if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
       else
+        -- `*|E` と `*|*` だけ先読みする。それ以外の `*` は universal selector で、
+        -- 後ろには subclass selector や combinator が続きうる。
         match rest with
         | .tok (.delim p) :: .tok (.ident n) :: rest2 =>
           if p == CH_PIPE then scan cfg { st with parts := [.typeSel n] } rest2
-          else if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest2) else none
+          else
+            scan cfg { st with parts := [.univ] }
+              (.tok (.delim p) :: .tok (.ident n) :: rest2)
         | .tok (.delim p) :: .tok (.delim q) :: rest2 =>
           if p == CH_PIPE && q == CH_STAR then scan cfg { st with parts := [.univ] } rest2
-          else if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest2) else none
+          else
+            scan cfg { st with parts := [.univ] }
+              (.tok (.delim p) :: .tok (.delim q) :: rest2)
         | r => scan cfg { st with parts := [.univ] } r
     else if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
   | .tok (.ident n) :: rest =>

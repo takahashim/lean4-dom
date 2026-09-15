@@ -82,8 +82,13 @@ const QUERY_JS_NAME = {
   getNodeValue: "nodeValue", substringData: "substringData", getAttribute: "getAttribute",
   hasAttribute: "hasAttribute", getAttributeNames: "getAttributeNames",
   lookupNamespaceURI: "lookupNamespaceURI", lookupPrefix: "lookupPrefix",
-  isDefaultNamespace: "isDefaultNamespace"
+  isDefaultNamespace: "isDefaultNamespace",
+  querySelector: "querySelector", querySelectorAll: "querySelectorAll",
+  matches: "matches", closest: "closest"
 };
+// selector を取る method。receiver の種別が合わなければ TypeError になる。
+const SELECTOR_OPS = ["querySelector", "querySelectorAll", "matches", "closest"];
+const SELECTOR_ELEMENT_OPS = ["matches", "closest"];
 const QUERY_OPS = Object.keys(QUERY_JS_NAME);
 const QUERY_GETTERS = ["getTextContent", "getNodeValue"];
 
@@ -103,7 +108,8 @@ const CHARACTER_DATA_OPS = ["replaceData", "appendData", "insertData", "deleteDa
 const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
-  "iteratorNext", "iteratorPrevious", "getRootNode", ...WALKER_OPS, ...CREATE_OPS, "cloneNode"];
+  "iteratorNext", "iteratorPrevious", "getRootNode", ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
+  "querySelector", "closest"];
 const ATTR_RETURNING_OPS = ATTR_NODE_OPS;
 
 /* ------------------------------------------------------------------ 初期状態 */
@@ -354,8 +360,10 @@ function returnValueSnapshot(idOf, attrOf, op, returned) {
   switch (name) {
     case "toggleAttribute": case "rangeIsPointInRange": case "rangeIntersectsNode":
     case "dispatchEvent": case "nodeContains": case "isEqualNode": case "hasAttribute":
-    case "isDefaultNamespace":
+    case "isDefaultNamespace": case "matches":
       return { kind: "boolean", value: !!returned };
+    case "querySelectorAll":
+      return { kind: "nodes", nodes: [...(returned ?? [])].map(idOf) };
     case "rangeCompareBoundaryPoints": case "rangeComparePoint": case "compareDocumentPosition":
       return { kind: "number", value: Number(returned) | 0 };
     case "getTextContent": case "getNodeValue": case "substringData": case "getAttribute":
@@ -467,6 +475,17 @@ function applyQueryOp(ctx, op) {
   if (QUERY_GETTERS.includes(op.op)) {
     if (!(name in receiver)) throw new Unsupported(name);
     return receiver[name];
+  }
+  if (SELECTOR_OPS.includes(op.op)) {
+    // receiver の種別が合わないときは、実装と同じく TypeError になってほしい。
+    // 種別が合っているのに method が無い場合だけ「未対応」として飛ばす。
+    const kinds = SELECTOR_ELEMENT_OPS.includes(op.op) ? [1] : [1, 9, 11];
+    if (!kinds.includes(receiver.nodeType)) {
+      const e = new TypeError(`${name} is not a function`);
+      throw e;
+    }
+    if (typeof receiver[name] !== "function") throw new Unsupported(name);
+    return receiver[name](op.selectors);
   }
   if (typeof receiver[name] !== "function") throw new Unsupported(name);
   switch (op.op) {

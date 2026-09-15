@@ -10,10 +10,9 @@ token 列をそのまま文法に当てると、`:is(a, b)` の `,` が外側の
 木にしておくと、`:is()` の中身は元の列の真の部分列になる。おかげで
 selector の parser は入れ子の再帰を構造的に書ける。
 
-## 仕様との差
-
-* **閉じ括弧が無いまま入力が尽きたら失敗にする。** 仕様は parse error として
-  その場で block を閉じるが、`querySelector("a[href")` は実装では例外になる。
+§5.4.7 "consume a simple block" は、閉じ括弧が無いまま入力が尽きたら
+parse error としてその場で block を閉じる。ここでも同じにする。
+`querySelector("a[href")` は `a[href]` として通る。
 -/
 
 namespace Selectors
@@ -39,11 +38,12 @@ def closerOf : Token -> Option Token
 /--
 対応する閉じ括弧までを切り出す。`stack` は閉じ待ちの括弧（内側が先頭）。
 
-対応しない閉じ括弧はただの token として通す（§5.4.7 と同じ扱い）。
+対応しない閉じ括弧はただの token として通す。閉じないまま入力が尽きたら、
+そこまでを中身として block を閉じる（§5.4.7）。
 -/
 def splitBlock (stack : List Token) (acc : List Token) : List Token ->
     Option (List Token × List Token)
-  | [] => none
+  | [] => some (acc.reverse, [])
   | t :: rest =>
     match closerOf t with
     | some cl => splitBlock (cl :: stack) (t :: acc) rest
@@ -53,11 +53,14 @@ def splitBlock (stack : List Token) (acc : List Token) : List Token ->
         else splitBlock stack.tail (t :: acc) rest
       else splitBlock stack (t :: acc) rest
 
-/-- 切り出した中身と残りを合わせても、閉じ括弧のぶんだけ短い。 -/
+/-- 切り出した中身と残りを合わせても、はじめに持っていたぶんより増えない。 -/
 theorem splitBlock_size : ∀ (stack acc l inside after : List Token),
     splitBlock stack acc l = some (inside, after) ->
-    inside.length + after.length < acc.length + l.length
-  | _, _, [], _, _, h => by simp [splitBlock] at h
+    inside.length + after.length <= acc.length + l.length
+  | _, acc, [], inside, after, h => by
+    simp only [splitBlock, Option.some.injEq, Prod.mk.injEq] at h
+    rw [← h.1, ← h.2]
+    simp
   | stack, acc, t :: rest, inside, after, h => by
     rw [splitBlock] at h
     split at h
@@ -74,13 +77,13 @@ theorem splitBlock_size : ∀ (stack acc l inside after : List Token),
       · have := splitBlock_size stack (t :: acc) rest inside after h
         simp only [List.length_cons] at *; omega
 
-theorem splitBlock_inside_lt {stack l inside after : List Token}
-    (h : splitBlock stack [] l = some (inside, after)) : inside.length < l.length := by
+theorem splitBlock_inside_le {stack l inside after : List Token}
+    (h : splitBlock stack [] l = some (inside, after)) : inside.length <= l.length := by
   have := splitBlock_size stack [] l inside after h
   simp only [List.length_nil] at this; omega
 
-theorem splitBlock_after_lt {stack l inside after : List Token}
-    (h : splitBlock stack [] l = some (inside, after)) : after.length < l.length := by
+theorem splitBlock_after_le {stack l inside after : List Token}
+    (h : splitBlock stack [] l = some (inside, after)) : after.length <= l.length := by
   have := splitBlock_size stack [] l inside after h
   simp only [List.length_nil] at this; omega
 
@@ -105,8 +108,8 @@ def toComponents : List Token -> Option (List Component)
       | none => none
 termination_by l => l.length
 decreasing_by
-  · exact Nat.lt_trans (splitBlock_inside_lt _hs) (Nat.lt_succ_self _)
-  · exact Nat.lt_trans (splitBlock_after_lt _hs) (Nat.lt_succ_self _)
+  · exact Nat.lt_succ_of_le (splitBlock_inside_le _hs)
+  · exact Nat.lt_succ_of_le (splitBlock_after_le _hs)
   · simp_wf
 
 /-- 文字列を component value の列にする。 -/

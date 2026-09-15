@@ -2,6 +2,7 @@ import Dom.Exec.Types
 import Dom.Validity.State
 import Dom.CharacterData.Normalize
 import Dom.Range.Api
+import Dom.Selector.Api
 
 /-!
 # 操作列の評価
@@ -335,6 +336,22 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .getAttribute e q => .str (getAttribute s.tree ⟨e⟩ q)
   | .hasAttribute e q => .bool (hasAttribute s.tree ⟨e⟩ q)
   | .getAttributeNames e => .strs (getAttributeNames s.tree ⟨e⟩)
+  | .querySelector n sel =>
+    match querySelector s.tree sel ⟨n⟩ with
+    | .error _ => .unit
+    | .ok r => .node r
+  | .querySelectorAll n sel =>
+    match querySelectorAll s.tree sel ⟨n⟩ with
+    | .error _ => .unit
+    | .ok l => .nodes l
+  | .matchesSelector e sel =>
+    match matchesSelector s.tree sel ⟨e⟩ with
+    | .error _ => .unit
+    | .ok b => .bool b
+  | .closest e sel =>
+    match closest s.tree sel ⟨e⟩ with
+    | .error _ => .unit
+    | .ok r => .node r
   | .lookupNamespaceURI n p => .str (lookupNamespaceURI s.tree ⟨n⟩ p)
   | .lookupPrefix n ns => .str (lookupPrefix s.tree ⟨n⟩ ns)
   | .isDefaultNamespace n ns => .bool (isDefaultNamespace s.tree ⟨n⟩ ns)
@@ -453,6 +470,10 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .getAttribute e _ => requireNodes s [⟨e⟩]
   | .hasAttribute e _ => requireNodes s [⟨e⟩]
   | .getAttributeNames e => requireNodes s [⟨e⟩]
+  | .querySelector n sel => (querySelector s.tree sel ⟨n⟩).map fun _ => s
+  | .querySelectorAll n sel => (querySelectorAll s.tree sel ⟨n⟩).map fun _ => s
+  | .matchesSelector e sel => (matchesSelector s.tree sel ⟨e⟩).map fun _ => s
+  | .closest e sel => (closest s.tree sel ⟨e⟩).map fun _ => s
   | .lookupNamespaceURI n _ => requireNodes s [⟨n⟩]
   | .lookupPrefix n _ => requireNodes s [⟨n⟩]
   | .isDefaultNamespace n _ => requireNodes s [⟨n⟩]

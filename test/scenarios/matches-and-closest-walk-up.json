@@ -1,0 +1,30 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-element-closest",
+    "algorithm": ["matches(selectors)", "closest(selectors)"],
+    "steps": "closest は inclusive ancestor を tree order の逆に見て最初に当たったものを返す",
+    "note": "どちらも scoping root は this である。読めない selector は SyntaxError。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "body" },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "div",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "box" }] },
+    { "id": 4, "kind": "element", "parent": 3, "localName": "p" },
+    { "id": 5, "kind": "text", "parent": 4, "data": "hi" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "matches", "element": 4, "selectors": "p" },
+    { "op": "matches", "element": 4, "selectors": ".box p" },
+    { "op": "matches", "element": 4, "selectors": ":scope" },
+    { "op": "matches", "element": 4, "selectors": "div" },
+    { "op": "closest", "element": 4, "selectors": ".box" },
+    { "op": "closest", "element": 4, "selectors": "p" },
+    { "op": "closest", "element": 4, "selectors": "html" },
+    { "op": "closest", "element": 4, "selectors": "table" },
+    { "op": "matches", "element": 4, "selectors": "(" }
+  ]
+}

@@ -95,7 +95,13 @@ module DommyRunner
   QUERY_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
                  getTextContent getNodeValue substringData
                  getAttribute hasAttribute getAttributeNames
-                 lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
+                 lookupNamespaceURI lookupPrefix isDefaultNamespace
+                 querySelector querySelectorAll matches closest].freeze
+
+  # selector を取る method（§4.2.6 / §4.8）。受け手の種別が合わなければ TypeError。
+  SELECTOR_OPS = %w[querySelector querySelectorAll matches closest].freeze
+  # `matches` と `closest` は Element の method である。
+  SELECTOR_ELEMENT_OPS = %w[matches closest].freeze
 
   # 上の操作が呼ぶ JS 側の名前。`nodeContains` と `getTextContent` ほかは
   # model 側の操作名と IDL 名が違う。
@@ -112,7 +118,11 @@ module DommyRunner
     "getAttributeNames" => "getAttributeNames",
     "lookupNamespaceURI" => "lookupNamespaceURI",
     "lookupPrefix" => "lookupPrefix",
-    "isDefaultNamespace" => "isDefaultNamespace"
+    "isDefaultNamespace" => "isDefaultNamespace",
+    "querySelector" => "querySelector",
+    "querySelectorAll" => "querySelectorAll",
+    "matches" => "matches",
+    "closest" => "closest"
   }.freeze
 
   # attribute の getter として読むもの（method ではなく IDL attribute）。
@@ -258,7 +268,8 @@ module DommyRunner
                           walkerPreviousSibling walkerNextSibling
                           walkerPreviousNode walkerNextNode
                           createElement createElementNS createTextNode createComment
-                          createDocumentFragment cloneNode importNode adoptNode].freeze
+                          createDocumentFragment cloneNode importNode adoptNode
+                          querySelector closest].freeze
 
   # `Attr` を返す操作。
   ATTR_RETURNING_OPS = %w[createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
@@ -277,8 +288,10 @@ module DommyRunner
       { "kind" => "number", "value" => returned.to_i }
     when "dispatchEvent"
       { "kind" => "boolean", "value" => !!returned }
-    when "nodeContains", "isEqualNode", "hasAttribute", "isDefaultNamespace"
+    when "nodeContains", "isEqualNode", "hasAttribute", "isDefaultNamespace", "matches"
       { "kind" => "boolean", "value" => !!returned }
+    when "querySelectorAll"
+      { "kind" => "nodes", "nodes" => (returned || []).to_a.map { |n| node_id(objects, n) } }
     when "getTextContent", "getNodeValue", "substringData", "getAttribute", "rangeToString",
          "lookupNamespaceURI", "lookupPrefix"
       { "kind" => "string", "value" => returned.nil? ? nil : returned.to_s }
@@ -900,6 +913,14 @@ module DommyRunner
 
       name = QUERY_JS_NAME.fetch(op["op"])
       return js_get(receiver, name) if QUERY_GETTERS.include?(op["op"])
+
+      if SELECTOR_OPS.include?(op["op"])
+        kinds = SELECTOR_ELEMENT_OPS.include?(op["op"]) ? [1] : [1, 9, 11]
+        # 種別が合わないなら実装と同じく TypeError。合っているのに method が無いなら実装漏れ。
+        raise TypeError, "#{name} is not a function" unless kinds.include?(node_type_of(receiver))
+
+        return js_call(receiver, name, [op["selectors"]])
+      end
 
       return case op["op"]
              when "compareDocumentPosition", "nodeContains", "isEqualNode"

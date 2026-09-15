@@ -1,0 +1,19 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#grammar",
+    "algorithm": ["<id-selector>"],
+    "steps": "<id-selector> = <hash-token>、ただし「In <id-selector>, the <hash-token>'s value must be an identifier.」",
+    "note": "`#1` の hash-token は type flag が \"unrestricted\" で識別子ではない。よって parse に失敗し、SyntaxError になる。`#vv` は通る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "id", "value": "vv" }] }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "#vv" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "#1" }
+  ]
+}

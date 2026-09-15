@@ -1,0 +1,138 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#child-index",
+    "algorithm": [
+      ":nth-child()",
+      ":first-child",
+      ":only-of-type",
+      ":empty",
+      ":root"
+    ],
+    "steps": "index は inclusive sibling のうち element だけを 1 始まりで数える",
+    "note": "text と comment は数に入らない。:empty は空白だけの text と comment を許す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "ul"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "\n  "
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2,
+      "localName": "li"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 2,
+      "localName": "li"
+    },
+    {
+      "id": 6,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c"
+    },
+    {
+      "id": 7,
+      "kind": "element",
+      "parent": 2,
+      "localName": "li"
+    },
+    {
+      "id": 8,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span"
+    },
+    {
+      "id": 9,
+      "kind": "text",
+      "parent": 7,
+      "data": " "
+    },
+    {
+      "id": 10,
+      "kind": "text",
+      "parent": 8,
+      "data": "x"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "li:nth-child(2n)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "li:nth-last-child(1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "li:first-child"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":only-of-type"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "li:nth-of-type(odd)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":root"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(2n+1 of li)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(span, ul):not(:empty)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "ul:has(> span)"
+    }
+  ]
+}

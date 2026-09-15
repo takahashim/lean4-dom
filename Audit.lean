@@ -756,8 +756,8 @@ open Dom.Audit
 -- selector の parser の停止性を支える補題
 #audit_axioms
   Selectors.splitBlock_size
-  Selectors.splitBlock_inside_lt
-  Selectors.splitBlock_after_lt
+  Selectors.splitBlock_inside_le
+  Selectors.splitBlock_after_le
   Selectors.dropToComma_size
   Selectors.splitAtOf_size
 

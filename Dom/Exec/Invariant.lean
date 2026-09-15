@@ -58,6 +58,15 @@ theorem admissible_requireNodes {s s' : DOMState} {ns : List NodeId}
   · rw [← Except.ok.inj hr]; exact h
   · simp at hr
 
+/-- 検査だけして状態をそのまま返す操作も、状態を変えない。 -/
+theorem admissible_mapConst {α : Type} {s s' : DOMState} {r : Except DOMException α}
+    (h : AdmissibleDOMState s) (hr : r.map (fun _ => s) = .ok s') : AdmissibleDOMState s' := by
+  cases r with
+  | error e => simp [Except.map] at hr
+  | ok a =>
+    simp only [Except.map, Except.ok.injEq] at hr
+    rw [← hr]; exact h
+
 /-- 一つの操作は admissibility を保つ。 -/
 theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
     (h : AdmissibleDOMState s) (hop : applyOperation s op = .ok s') : AdmissibleDOMState s' := by
@@ -232,6 +241,10 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | getAttribute e q => exact admissible_requireNodes h hop
   | hasAttribute e q => exact admissible_requireNodes h hop
   | getAttributeNames e => exact admissible_requireNodes h hop
+  | querySelector n sel => exact admissible_mapConst h hop
+  | querySelectorAll n sel => exact admissible_mapConst h hop
+  | matchesSelector e sel => exact admissible_mapConst h hop
+  | closest e sel => exact admissible_mapConst h hop
   | lookupNamespaceURI n p => exact admissible_requireNodes h hop
   | lookupPrefix n ns => exact admissible_requireNodes h hop
   | isDefaultNamespace n ns => exact admissible_requireNodes h hop

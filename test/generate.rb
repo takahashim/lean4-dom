@@ -41,7 +41,13 @@ module Generate
            createElement createElementNS createTextNode createComment
            createDocumentFragment cloneNode importNode adoptNode
            createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
-           setAttributeNode removeAttributeNode removeNamedItem].freeze
+           setAttributeNode removeAttributeNode removeNamedItem
+           querySelector querySelectorAll matches closest].freeze
+
+  # selector を取る操作（§4.2.6 / §4.8）。
+  SELECTOR_PARENT_OPS = %w[querySelector querySelectorAll].freeze
+  SELECTOR_ELEMENT_OPS = %w[matches closest].freeze
+  SELECTOR_OPS = (SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS).freeze
 
   # 受け手が Document である操作（§4.5）。
   DOCUMENT_OPS = %w[createElement createElementNS createTextNode createComment
@@ -96,11 +102,14 @@ module Generate
 
   # attribute の local name は少ない候補から選ぶ。
   # そうしないと `attributeFilter` も「同じ鍵への二度目の書き込み」も当たらない。
-  ATTR_NAMES = %w[a b data-x].freeze
+  # `class` と `id` を入れてあるのは、class selector と id selector が
+  # 生成された木に当たるようにするためである。
+  ATTR_NAMES = %w[a b data-x class id].freeze
   # 操作が渡す名前には大文字を混ぜる。HTML namespace の element が HTML document に
   # あるときだけ ASCII lowercase されるので、そこで挙動が分かれる。
   ATTR_OP_NAMES = (ATTR_NAMES + %w[A data-X]).freeze
-  ATTR_VALUES = ["", "1", "vv"].freeze
+  # 空白を含む値を混ぜるのは `[attr~=value]` と複数 class を撫でるためである。
+  ATTR_VALUES = ["", "1", "vv", "u v"].freeze
 
   # element の local name。SVG namespace のものも混ぜて、
   # 「HTML namespace の element だけが attribute 名を lowercase する」分岐を撫でる。
@@ -122,9 +131,10 @@ module Generate
   ATTR_NAMESPACES = [nil, "http://example.com/ns", XML_NS, XMLNS_NS].freeze
 
   SPEC_OPS = {
-    "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS,
-    "documentFragment" => NODE_OPS + PARENT_NODE_OPS,
-    "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS,
+    "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS + SELECTOR_PARENT_OPS,
+    "documentFragment" => NODE_OPS + PARENT_NODE_OPS + SELECTOR_PARENT_OPS,
+    "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS +
+                 SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS,
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -238,12 +248,66 @@ module Generate
     b.nodes
   end
 
+  # 生成する selector の部品。
+  #
+  # 生成器が作る木に当たるものを選んでいる。type は `element_identity` の local name、
+  # attribute は `ATTR_NAMES` と `ATTR_VALUES` から取る。
+  #
+  # `:empty`・`:scope`・`#1` は入れない。どれも実装側との既知の食い違い
+  # （`docs/status.md` の findings 19・20・21）に必ず当たるので、
+  # 生成器が新しいものを見つける邪魔になる。
+  SELECTOR_TYPES = ["div", "span", "p", "rect", "*"].freeze
+  SELECTOR_SUBCLASS = [
+    ".vv", ".u", ".v", "#vv",
+    "[a]", "[b]", "[data-x]", "[a=1]", "[a='']", "[class~=u]", "[data-x^=v]",
+    "[data-x$=v]", "[data-x*=v]", "[a=1 i]", "[A=VV i]", "[class|=u]",
+    ":first-child", ":last-child", ":only-child", ":root",
+    ":first-of-type", ":last-of-type", ":only-of-type",
+    ":nth-child(2n+1)", ":nth-child(odd)", ":nth-last-child(1)", ":nth-of-type(2)",
+    ":nth-child(2n of .vv)",
+    ":is(div, span)", ":where(p)", ":not(p)", ":not(.vv, #vv)", ":has(span)", ":has(> p)"
+  ].freeze
+  SELECTOR_COMBINATORS = [" ", " > ", " + ", " ~ "].freeze
+  # 読めない selector。`SyntaxError` を撫でる。
+  #
+  # `::before` のような pseudo-element は入れない。仕様では構文として正しく、
+  # `querySelector()` が当てないだけなのだが、model は形式化の範囲から外して
+  # parse に失敗させている（`docs/selectors-spec-version.md`）。
+  SELECTOR_INVALID = ["", "(", "div >", "p!", ":unknown-thing", "ns|E",
+                      ":nth-child()", "[a=]"].freeze
+
+  # compound selector 一つ。
+  def random_compound(rng)
+    out = +""
+    out << SELECTOR_TYPES.sample(random: rng) if rng.rand < 0.6
+    count = rng.rand(3)
+    count += 1 if out.empty?
+    count.times { out << SELECTOR_SUBCLASS.sample(random: rng) }
+    out
+  end
+
+  # 一つの selector 文字列。たまに読めないものを混ぜる。
+  def random_selector(rng)
+    return SELECTOR_INVALID.sample(random: rng) if rng.rand < 0.12
+
+    list = 1 + (rng.rand < 0.2 ? 1 : 0)
+    Array.new(list) do
+      parts = [random_compound(rng)]
+      (rng.rand(3)).times { parts << SELECTOR_COMBINATORS.sample(random: rng) << random_compound(rng) }
+      parts.join
+    end.join(", ")
+  end
+
   def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0, range_count = 0,
                        walker_count = 0, listener_count = 0, kinds: {}, can_create: false,
                        attr_ids: [], attr_ok: false)
     op = ops.sample(random: rng)
     if ATTR_CREATE_OPS.include?(op) || ATTR_ELEMENT_OPS.include?(op)
       return attr_node_operation(rng, ids, op, kinds, attr_ids, attr_ok)
+    end
+    if SELECTOR_OPS.include?(op)
+      key = SELECTOR_ELEMENT_OPS.include?(op) ? "element" : "node"
+      return { "op" => op, key => ids.sample(random: rng), "selectors" => random_selector(rng) }
     end
     if DOCUMENT_OPS.include?(op) || op == "cloneNode"
       return node_creating_operation(rng, ids, op, kinds, can_create)
@@ -493,6 +557,8 @@ module Generate
                          lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 
   def receiver_id(op)
+    return op["node"] if SELECTOR_PARENT_OPS.include?(op["op"])
+    return op["element"] if SELECTOR_ELEMENT_OPS.include?(op["op"])
     return op["element"] if ATTR_ELEMENT_OPS.include?(op["op"])
     return op["document"] if DOCUMENT_OPS.include?(op["op"])
     return op["node"] if op["op"] == "cloneNode"

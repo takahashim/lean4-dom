@@ -1,0 +1,24 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#the-empty-pseudo",
+    "algorithm": [":empty"],
+    "steps": "an element that has no children except, optionally, document white space characters",
+    "note": "空白だけの text と comment は :empty を壊さない。Selectors 3 は空白も数えていたので、実装はそちらに残っていることがある。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "p" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "span" },
+    { "id": 4, "kind": "comment", "parent": 3, "data": "c" },
+    { "id": 5, "kind": "element", "parent": 1, "localName": "b" },
+    { "id": 6, "kind": "text", "parent": 5, "data": " " },
+    { "id": 7, "kind": "element", "parent": 1, "localName": "i" },
+    { "id": 8, "kind": "text", "parent": 7, "data": "x" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": ":empty" }
+  ]
+}
