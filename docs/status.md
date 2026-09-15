@@ -2953,6 +2953,39 @@ checkout（`0d4cdbe7`）を compile して測った。固定 scenario 100 本が
 * **`createProcessingInstruction` の target 検査が狭い。**
   `/^[a-z][a-z0-9-]+$/` は Name production より狭く、一文字・大文字・`_` `.` `:`・
   非 ASCII を弾く。
+* **CharacterData の offset 検査が無い。** `substringData(9, 1)` は `""` を返し、
+  `insertData(9, "x")` は末尾に足す。仕様はどちらも `IndexSizeError` である
+  （§4.10 の各 method の step 1）。`deleteData` / `replaceData` も同じ。
+* **live Range の調整が半分だけある。** 前の兄弟を外したときの offset の繰り下げ
+  （§5.5 pre-remove steps 6-7）は動く。動かないのは二つで、
+  **外す部分木の中を指していた端点を外へ出す**（同 steps 4-5）のと、
+  **挿入したぶん offset を繰り上げる**（§4.2.3 insert step 5）である。
+
+  ```text
+  p の子が [a, b]、端点が (b, 0) のとき
+    p.removeChild(b)          仕様 (p, 1)   happy-dom (b, 0)
+  p の子が [a, q]、端点が (p, 2) のとき
+    p.removeChild(a)          仕様 (p, 1)   happy-dom (p, 1)   ← 動く
+    p.insertBefore(i, a)      仕様 (p, 3)   happy-dom (p, 2)
+  ```
+
+### 43 件は 43 個の誤りではない
+
+固定 scenario の不一致 43 件は、たどると **八つほどの原因**に落ちる。
+
+| おおよその件数 | 原因 |
+| --- | --- |
+| 12 | pre-insertion validity の Document 制約 |
+| 6 | 例外が `DOMException` でない |
+| 8 | live Range の調整（上の二つ） |
+| 4 | CharacterData の offset 検査 |
+| 4 | normalize の record の形（jsdom と同じ。model 側が疑わしい） |
+| 3 | transient registered observer |
+| 3 | event 周り |
+| 3 | その他 |
+
+この scenario 集合は**仕様の step の境目と過去の findings から組んである**ので、
+普段使う経路より隅のほうに重みが寄っている。日常的な使い方の出来を測るものではない。
 
 ### runner 側で要った工夫
 
