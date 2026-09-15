@@ -106,6 +106,16 @@ module Compare
     if na["treeOrder"] != nb["treeOrder"]
       details << "  treeOrder: lean=#{na['treeOrder']} #{impl_label}=#{nb['treeOrder']}"
     end
+    if na["ranges"] != nb["ranges"]
+      na["ranges"].zip(nb["ranges"]).each_with_index do |(x, y), i|
+        details << "  range #{i}: lean=#{x.inspect} #{impl_label}=#{y.inspect}" if x != y
+      end
+    end
+    if na["iterators"] != nb["iterators"]
+      na["iterators"].zip(nb["iterators"]).each_with_index do |(x, y), i|
+        details << "  iterator #{i}: lean=#{x.inspect} #{impl_label}=#{y.inspect}" if x != y
+      end
+    end
     if na["walkers"] != nb["walkers"]
       na["walkers"].zip(nb["walkers"]).each_with_index do |(x, y), i|
         details << "  walker #{i}: lean=#{x.inspect} #{impl_label}=#{y.inspect}" if x != y
@@ -225,7 +235,7 @@ if $PROGRAM_NAME == __FILE__
   failed = 0
   Compare.compare_dir(dir).each do |base, (status, messages)|
     label = { match: "ok      ", unsupported: "skip    ", mismatch: "MISMATCH",
-              error: "ERROR   " }.fetch(status)
+              known: "known   ", error: "ERROR   " }.fetch(status)
     puts "#{label} #{base}"
     messages.each { |m| puts "  #{m}" } unless status == :match
     failed += 1 if %i[mismatch error].include?(status)

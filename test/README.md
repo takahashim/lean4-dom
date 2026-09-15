@@ -50,6 +50,19 @@ scenario は全実装で同じものを使う（実装ごとの capabilities で
 値する場所だという印である。差分テストで直した実装は model の写しに
 なっているので、その一致を独立した証拠として数えてはいけない。
 
+## 記録済みの divergence
+
+実装が仕様本文から離れていて、こちらの findings ではないものは
+`test/known-divergences.yml` に書く。当たった不一致は `known` として報告し、
+失敗に数えない。
+
+**入れてよいのは「実装が仕様本文から離れていて、model が本文に従っている」場合だけ**
+である。model のほうが怪しいなら、記録ではなく調査が要る
+（`docs/threats-to-validity.md` §5）。
+
+各 entry は記録したときの不一致の**形**を digest で固定する。黙って形が変わったら
+当たらなくなり、ふつうの不一致として出る。消えた divergence も報告する。
+
 browser を動かすには Playwright が要る（`PLAYWRIGHT_PATH` か node_modules か
 global install から探す）。**browser は oracle ではない。** 並べる意味は、
 実装が揃って model と違うときに「実装側の穴」と「model の読み違い」を

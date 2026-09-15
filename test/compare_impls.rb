@@ -28,6 +28,7 @@ require "tmpdir"
 require "fileutils"
 require_relative "generate"
 require_relative "compare"
+require_relative "known_divergences"
 
 module CompareImpls
   ROOT = File.expand_path("..", __dir__)
@@ -80,7 +81,8 @@ module CompareImpls
         run(lean_command + ["--batch", dir], "Lean")
         run(command.split + ["--batch", dir], name)
         ENV["IMPL_NAME"] = name
-        [name, Compare.compare_dir(dir)]
+        [name, Compare.compare_dir(dir).transform_values { |(st, msg)| [st, msg] }
+                      .to_h { |base, (st, msg)| [base, KnownDivergences.apply(name, base, st, msg)] }]
       end
     end
   end
@@ -93,20 +95,21 @@ module CompareImpls
     warn err.lines.first(3).join unless err.to_s.empty?
   end
 
-  SYMBOL = { match: "o", unsupported: "s", mismatch: "X", error: "E" }.freeze
+  SYMBOL = { match: "o", unsupported: "s", mismatch: "X", known: "k", error: "E" }.freeze
 
   def report(results)
     names = results.values.first.keys.sort
     impls = results.keys
     puts "== 集計（#{names.size} scenario）"
-    printf("%-14s %6s %6s %9s %6s\n", "", "ok", "skip", "mismatch", "error")
+    printf("%-14s %6s %6s %6s %9s %6s\n", "", "ok", "skip", "known", "mismatch", "error")
     impls.each do |impl|
       c = Hash.new(0)
       names.each { |n| c[results[impl][n][0]] += 1 }
-      printf("%-14s %6d %6d %9d %6d\n", impl, c[:match], c[:unsupported], c[:mismatch], c[:error])
+      printf("%-14s %6d %6d %6d %9d %6d\n", impl, c[:match], c[:unsupported], c[:known],
+             c[:mismatch], c[:error])
     end
     puts
-    puts "== 一致しない scenario（o=一致 s=比較不可 X=不一致 E=評価できず）"
+    puts "== 一致しない scenario（o=一致 s=比較不可 k=記録済み X=不一致 E=評価できず）"
     width = impls.map { |i| [i.size, 9].max }
     printf("%-52s %s\n", "scenario", impls.each_with_index.map { |i, k| i.rjust(width[k]) }.join(" "))
     outnumbered = []

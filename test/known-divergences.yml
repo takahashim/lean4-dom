@@ -1,0 +1,77 @@
+# 実装が仕様本文から離れていて、こちらの findings ではないもの。
+#
+# ここに入れてよいのは **「実装が仕様本文から離れていて、model が本文に従っている」**
+# 場合だけである。model のほうが怪しいなら、記録ではなく調査が要る。
+# 判断の拠り所は `docs/threats-to-validity.md` §5 にある。
+# **oracle は Lean の model だけで、実装の同意で仕様の読みを決めることはしない。**
+#
+# 各 entry は記録したときの不一致の **形** を digest で固定する。黙って形が
+# 変わったら当たらなくなり、ふつうの不一致として出る。消えた divergence も報告する。
+#
+#   impl:      実装の名前（`IMPL_NAME`）
+#   scenario:  固定 scenario の base 名
+#   reason:    仕様の根拠と、なぜこちらの findings でないか
+#   digest:    `KnownDivergences.digest` が出す 16 桁
+
+- impl: chromium
+  scenario: range-adjust-order-on-before
+  digest: 96a0c9a73c5e01b3
+  reason: &insert_order |
+    §4.2.3 insert の step 5（live range の offset 繰り上げ）と step 7（adopt →
+    remove → §5.5 pre-remove steps）の順序。仕様の番号は step 5 が先である
+    （`pre-insert` に removal は無く、removal は step 7.1 の adopt の中にある）。
+    Chromium は removal の調整を先に走らせたかのように振る舞う。
+
+    二つが違う答えになるのは **同じ parent の中で node の index が変わるとき**だけで、
+    そこは WPT が試していない。`dom/ranges/Range-mutations.js` の期待値モデルは
+    `modifyForRemove` を `insertBefore` の前に当てる（つまり Chromium 寄り）が、
+    `insertBeforeTests` の同じ parent の群は「もとの位置へ動かす」だけなので
+    old index も new index も 0 で、入れる側の調整が当たらない。残りは別の parent へ
+    動かす群なのでやはり割れない。だから Chromium は WPT を通る。
+
+    jsdom は 94301581 "Align node insertion with the DOM Standard"（Domenic
+    Denicola、2026-08-01）で仕様の番号どおりに揃えた。30.0.1 以前は Chromium 寄り
+    だった。model は仕様の字義と、その jsdom に一致している。
+
+    WPT に「同じ parent の中で index が変わる移動」の case を足せば、どの engine が
+    仕様どおりかが初めて固定される。
+    https://dom.spec.whatwg.org/#concept-node-insert
+
+- impl: chromium
+  scenario: range-adjust-order-on-move
+  digest: 96a0c9a73c5e01b3
+  reason: *insert_order
+
+- impl: chromium
+  scenario: range-order-broken-by-insert
+  digest: 2208af7863b3fb4a
+  reason: *insert_order
+
+- impl: chromium
+  scenario: range-delete-contents-across-nodes
+  digest: ff6562a05551dd35
+  reason: |
+    §5.5 deleteContents が record を積む順序。仕様は step 6（original start node が
+    CharacterData なら replace data）→ step 7（nodes to remove を外す）→ step 8
+    （original end node の replace data）の順で、characterData・childList・childList・
+    characterData と積まれる。Chromium は characterData を二つ先に積み、そのあとで
+    childList を二つ積む。木の形も live range の端点も一致するので、違うのは
+    record の並びだけである。
+    https://dom.spec.whatwg.org/#dom-range-deletecontents
+
+- impl: chromium
+  scenario: replacechildren-bypasses-validity
+  digest: 4ee0c51911eef1aa
+  reason: |
+    `frag.replaceChildren(frag)` を Chromium が黙って通す。仕様の
+    `replaceChildren` は step 2 で "ensure pre-insertion validity of node into
+    this before null" を走らせ、その step 2 が「node が parent の
+    host-including inclusive ancestor なら HierarchyRequestError」と言う。
+    引数が一つの Node なら "convert nodes into a node" はその node をそのまま
+    返すので、node と parent は同じ object であり、投げるのが正しい。
+
+    Element なら Chromium も投げる（`div.replaceChildren(div)` は
+    HierarchyRequestError）。`frag.appendChild(frag)` も投げる。
+    DocumentFragment を自分自身で置き換えたときだけ素通りし、children も
+    そのまま残る（no-op になる）。
+    https://dom.spec.whatwg.org/#dom-parentnode-replacechildren

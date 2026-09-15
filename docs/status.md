@@ -3146,12 +3146,53 @@ jsdom は `Range-mutations-insertBefore.html` を expected-failure にしてい�
 読んだ実装（jsdom）と一致している。WPT の helper の書き方は engine 寄りだが、
 そこを試す case が無いので固定されていない。
 
-よってここは **model を変えない**。やることは二つである。
+よってここは **model を変えない**。
+
+### 記録する仕組みを入れた
+
+`test/known-divergences.yml` と `test/known_divergences.rb` を足した。
+`dommy-conformance` の `expectations/known-divergences.yml` と同じ考え方である。
+
+**入れてよいのは「実装が仕様本文から離れていて、model が本文に従っている」場合だけ**
+である。model のほうが怪しいなら記録ではなく調査が要る。
+各 entry は記録したときの不一致の**形**を digest で固定するので、
+黙って形が変わったら当たらなくなり、ふつうの不一致として出る。
+消えた divergence も報告する（記録を外す合図である）。
+
+Chromium の五つを記録した。insert の順序が三つ、あとの二つは調べる途中で出たものである。
+
+* **§5.5 `deleteContents` の record の順序。** 仕様は step 6（start 側の replace
+  data）→ step 7（nodes to remove を外す）→ step 8（end 側の replace data）で、
+  characterData・childList・childList・characterData と積まれる。Chromium は
+  characterData を二つ先に積む。木も live range も一致し、record の並びだけが違う。
+* **`frag.replaceChildren(frag)` を Chromium が黙って通す。** 仕様の
+  `replaceChildren` は step 2 で pre-insertion validity を走らせ、その step 2 が
+  「node が parent の inclusive ancestor なら `HierarchyRequestError`」と言う。
+  引数が一つの Node なら "convert nodes into a node" はそれをそのまま返すので、
+  node と parent は同じ object である。Element なら Chromium も投げる
+  （`div.replaceChildren(div)`）。`frag.appendChild(frag)` も投げる。
+  **DocumentFragment を自分自身で置き換えたときだけ**素通りし、children も残る。
+
+これで四実装の並びはこうなった（固定 99 本＋生成 40 本）。
+
+| | ok | skip | known | mismatch |
+| --- | --- | --- | --- | --- |
+| Dommy | 131 | 6 | 0 | 2 |
+| jsdom | 109 | 22 | 0 | 8 |
+| happy-dom | 37 | 57 | 0 | 45 |
+| **Chromium** | 112 | 22 | **5** | **0** |
+
+### 残っていること
 
 * **WPT に case を足す。** 同じ parent の中で index が変わる移動。
-  これがあれば engine のどれが仕様どおりかが固定される。
-* **Chromium の振る舞いを known divergence として記録する。**
-  `dommy-conformance` の `expectations/known-divergences.yml` と同じ形が要る。
+  これがあれば engine のどれが仕様どおりかが初めて固定される。
+* 上の Chromium の二件は、報告する値打ちがある。
+
+### 途中で harness も一つ直した
+
+`Compare.diff_state` が live range と NodeIterator の差を表示していなかった。
+「状態が一致しない」とだけ出て中身が分からず、record した divergence の digest も
+値を固定できていなかった。どちらも出すようにした。
 
 normalize とは形が違う。あちらは engine が揃っていて仕様の字義のほうが
 書き足りなかった。こちらは仕様に曖昧さが無く、engine の側が試されていないだけである。

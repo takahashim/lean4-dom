@@ -39,6 +39,7 @@ require "fileutils"
 require "set"
 require_relative "generate"
 require_relative "compare"
+require_relative "known_divergences"
 
 module Difftest
   ROOT = File.expand_path("..", __dir__)
@@ -404,8 +405,9 @@ if $PROGRAM_NAME == __FILE__
     Dir.mktmpdir do |dir|
       fixed.each { |p| FileUtils.cp(p, dir) }
       Difftest.evaluate(dir).each do |base, (status, messages)|
+        status, messages = KnownDivergences.apply(Compare.impl_label, base, status, messages)
         label = { match: "ok      ", unsupported: "skip    ", mismatch: "MISMATCH",
-                  error: "ERROR   " }.fetch(status)
+                  known: "known   ", error: "ERROR   " }.fetch(status)
         puts "  #{label} #{base}"
         messages.each { |m| puts "    #{m}" } unless status == :match
         failures += 1 if %i[mismatch error].include?(status)
