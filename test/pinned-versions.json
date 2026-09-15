@@ -7,10 +7,10 @@
   },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
-    "commit": "d304172f4e6452e89259e92608ce79507942898e",
+    "commit": "875d653b005d6faf970b95ccd4423325e4eed9df",
     "path": "gems/dommy",
-    "ref": "fix/range-insert-delete-steps",
-    "_note": "差分テストで見つけた不一致の修正を含む commit。finding 6（PR #41）と Range の Node 引数の WebIDL 変換（PR #42）は main に入っている。findings 7 / 8 の修正はまだ branch 上にある（PR takahashim/dommy#43）。"
+    "ref": "main",
+    "_note": "差分テストで見つけた不一致の修正（findings 1-26、Range の Node 引数の WebIDL 変換、findings 9 / 11、normalize）がすべて main に入った commit。固定 scenario の不一致は無い。"
   },
   "makiri": {
     "source": "rubygems",

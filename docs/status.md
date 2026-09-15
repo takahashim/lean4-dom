@@ -1153,27 +1153,29 @@ harness が「存在しない id を指した引数」を意図的に飛ばし�
 そのままでは意味のある比較にならない）。
 その旨を `test/dommy_runner.rb` と `test/compare.rb` の表示に書いた。
 
-## 残っている Dommy の不一致
+## Dommy の不一致は無くなった
 
-* **finding 4**（上記）。Makiri 側の `XML::DocumentFragment#add_child`。
-* **finding 9**。`TreeWalker.parentNode` に `reachable_from_root?` の番人があり、
-  仕様には無い。固定 scenario は `walker-parent-node-leaves-root`。
-* **finding 11**。target が CharacterData のとき event path が壊れる。
-  固定 scenario は `event-dispatch-at-character-data-target`。
+pin は main（`875d653`）。固定 scenario 99 本＋生成 40 本で
+**136 ok / 3 skip / 0 mismatch** である。skip の三つは
+`characterdata-utf16-split-is-outside-model` と
+`range-insert-node-into-text-is-outside-model`（どちらも model 側の対象外）と
+生成 scenario 一本である。
 
-直ったもの。
+差分テストが出した findings は全部 Dommy 側に入った。
 
-* ~~**finding 6**。`Range` の `selectNode` / `setStartBefore` ほかに
-  「parent が null なら `InvalidNodeTypeError`」の検査が無い。~~
-  Dommy PR 41（`7eb57a8`）で修正、main にマージ済み。
-* ~~**findings 7 / 8**。`deleteContents` の nodes to remove と `insertNode` の step 1 / 6 / 9。~~
-  Dommy PR 43（`d304172`）で修正。
-* ~~`Range` の `Node` 引数の WebIDL 変換。~~ Dommy PR 42（`e018027`）で修正、main にマージ済み。
+| finding | Dommy |
+| --- | --- |
+| 1-26 | 既存 |
+| 6（parent の無い node） | PR 41 `7eb57a8` |
+| `Node` 引数の WebIDL 変換 | PR 42 `e018027` |
+| 7 / 8（`deleteContents` / `insertNode`） | PR 43 `940adb4` |
+| 9（`TreeWalker.parentNode`）/ 11（CharacterData target の event path）/ `normalize` | PR 44 `9522489` |
 
-### 比べられないもの（Dommy の実装漏れ）
+`normalize` が `Document` と `CharacterData` にも付いたので、
+前は skip だった `normalize-on-document` と `normalize-on-text-is-noop` も
+比べられるようになり、どちらも一致している。
 
-* `Document` と `CharacterData` の `normalize`。固定 scenario
-  `normalize-on-document` と `normalize-on-text-is-noop` は skip になる。
+**finding 4**（Makiri 側の `XML::DocumentFragment#add_child`）だけは Dommy の外である。
 
 ## Phase 8：MutationObserver の record（一巡した）
 
@@ -3173,14 +3175,18 @@ Chromium の五つを記録した。insert の順序が三つ、あとの二つ�
   （`div.replaceChildren(div)`）。`frag.appendChild(frag)` も投げる。
   **DocumentFragment を自分自身で置き換えたときだけ**素通りし、children も残る。
 
-これで四実装の並びはこうなった（固定 99 本＋生成 40 本）。
+これで四実装の並びはこうなった（固定 99 本＋生成 40 本、Dommy は main `875d653`）。
 
 | | ok | skip | known | mismatch |
 | --- | --- | --- | --- | --- |
-| Dommy | 131 | 6 | 0 | 2 |
+| **Dommy** | 136 | 3 | 0 | **0** |
 | jsdom | 109 | 22 | 0 | 8 |
 | happy-dom | 37 | 57 | 0 | 45 |
 | **Chromium** | 112 | 22 | **5** | **0** |
+
+Dommy と Chromium が赤ゼロで並んだ。Dommy はこの差分テストで直してきたので
+model の写しになっている部分があり、その一致は独立した証拠にならない。
+Chromium のほうは、離れている五箇所を記録した上でのゼロである。
 
 ### 残っていること
 
