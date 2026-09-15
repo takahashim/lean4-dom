@@ -7,10 +7,10 @@
   },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
-    "commit": "61ebaaa7b1794a1d4945febaf608ffb05315798e",
+    "commit": "f9618d1d75e43e4a69933d300e0d80e3da98a179",
     "path": "gems/dommy",
     "ref": "fix/child-node-pre-insertion-validity",
-    "_note": "差分テストで見つけた不一致の修正（docs/status.md の finding 1-26）を含む commit。main に入るまでは branch 上にある（PR takahashim/dommy#35）。"
+    "_note": "差分テストで見つけた不一致の修正（docs/status.md の finding 1-26 と finding 6）を含む commit。main に入るまでは branch 上にある（PR takahashim/dommy#35）。"
   },
   "makiri": {
     "source": "rubygems",
