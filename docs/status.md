@@ -2962,6 +2962,50 @@ checkout（`0d4cdbe7`）を compile して測った。固定 scenario 100 本が
 * document を空にするのに `n.remove()` ではなく `removeChild` を使う。
   `DocumentType` に ChildNode mixin が無い実装で落ちるためである。
 
+## 三実装を横に並べた
+
+`test/compare_impls.rb` を足した。同じ scenario 集合（固定 99 本＋生成 80 本）を
+Dommy・jsdom・happy-dom で評価して並べる。scenario は全実装で同じものを使う。
+実装ごとの capabilities で生成を絞ると集合が変わって横に並べられないので、
+ここでは絞らない。持っていない操作はその step で skip になる。
+
+| | ok | skip | mismatch |
+| --- | --- | --- | --- |
+| Dommy（PR 43） | 170 | 7 | 2 |
+| jsdom（checkout） | 148 | 23 | 8 |
+| happy-dom（checkout） | 37 | 91 | 51 |
+
+Dommy の 2 は findings 9（`TreeWalker.parentNode`）と 11（CharacterData target の
+event path）である。happy-dom の skip が多いのは `lookupNamespaceURI` 系と
+NodeIterator を持たないためで、生成 scenario がそこで止まる。
+
+### 並べる意味は多数決ではない
+
+**oracle は Lean の model だけである。** 実装の同意で仕様の読みを決めることはしない。
+並べる意味は別のところにある。**二つ以上の実装が model と違う行**が見えることである。
+そこは仕様の読み直しに値する場所で、`docs/threats-to-validity.md` §5 が言う
+「仕様の読み違いがあれば、正しい実装を不一致として直してしまう」危険が
+実際に出るとしたらそこである。
+
+**差分テストで直した実装の一致は、独立した証拠にならない。** Dommy はこの
+差分テストで 26 件直してあるので、model の写しになっている部分がある。
+
+今回そう出たのは六つである。
+
+* `normalize-descends-into-subtree` / `-empty-sibling-keeps-boundary` /
+  `-merges-adjacent-text` — normalize が積む record の形。model は
+  「engine は兄弟ごとに積む」（Dommy issue #24）として仕様の字義から離れており、
+  jsdom と happy-dom は字義どおりである。**ここは browser か WPT で確かめる値打ちがある。**
+  字義のほうが正しければ、model と Dommy の両方を直すことになる。
+* `observer-delivery` / `observer-transient-follows-existing-registration` /
+  `transient-observer-chains-through-removals` — transient registered observer
+  （§4.3.3 / remove step 20）。jsdom も happy-dom も実装していない
+  （どちらの source にも `transient` の語が無い）。仕様の step は明示的なので、
+  ここは model が正しく、二つの実装が揃って持っていないだけだと読める。
+
+後者が「二つ以上が違っても model が正しいことはある」という例になっている。
+だから多数決にしない。
+
 ### 次
 
 completeness の実現性（関係が満たせるなら実行関数は失敗しない）を

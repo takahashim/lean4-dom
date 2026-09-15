@@ -35,6 +35,20 @@ export IMPL_CMD="node $PWD/test/js_runner.mjs --impl /path/to/jsdom/lib/api.js"
 export IMPL_NAME=jsdom
 ```
 
+複数の実装を横に並べるには `compare_impls.rb` を使う。
+
+```sh
+ruby test/compare_impls.rb --count 80 --seed 7 \
+  --impl "dommy=bundle exec ruby $PWD/test/dommy_runner.rb" \
+  --impl "jsdom=node $PWD/test/js_runner.mjs --impl /path/to/jsdom/lib/api.js"
+```
+
+scenario は全実装で同じものを使う（実装ごとの capabilities で絞ると集合が
+変わって横に並べられない）。**多数決はしない。** 並べる意味は
+「二つ以上の実装が model と違う行」が見えることで、そこは仕様の読み直しに
+値する場所だという印である。差分テストで直した実装は model の写しに
+なっているので、その一致を独立した証拠として数えてはいけない。
+
 JS 側で比べられないものが二つある。**`notify`（MutationObserver の配送）**は
 配送順が notify set の並びで決まり、仕様には queue を覗く口が無いので復元できない
 （record queue 自体は `takeRecords()` で引き取って積み直しているので比べられる）。
