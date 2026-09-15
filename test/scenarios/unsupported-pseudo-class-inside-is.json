@@ -1,0 +1,23 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#invalid",
+    "algorithm": ["invalid selectors", ":is()", ":where()"],
+    "steps": "UA は「使える水準で対応していない pseudo-class・pseudo-element・combinator」を invalid として扱わなければならない。forgiving な list はそれを捨てるだけである",
+    "note": "model は :hover や ::before を対象外にしているので invalid になる。実装はそれらに対応しているが querySelector は当てない。どちらでも :is() の中なら観測結果は同じになる。外に置くと分かれる（docs/selectors-spec-version.md）。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "p" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "div" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": ":is(p, :hover)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":is(:hover)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":where(p, ::before)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":where(::before)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "div:is(:focus, :nth-child(2))" }
+  ]
+}

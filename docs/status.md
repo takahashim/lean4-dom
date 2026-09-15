@@ -3921,6 +3921,34 @@ anchor を **走査の始めに置いていた**ことである。compound が�
 `test/scenarios/has-argument-cannot-be-empty.json` と
 `has-argument-needs-a-compound.json`。
 
+### 五度目の続き：§14 の pseudo-class を数え上げる
+
+構造 pseudo-class は §14.1 `:root`・§14.2 `:empty`・§14.3-14.7 の child-index 十個で、
+model はその 12 個をすべて持っている。取りこぼしは無かった。
+
+`:nth-of-type()` の定義は「`S` が **その element に合う type selector と namespace
+prefix** であるときの `:nth-child(An+B of S)` と同じ」で、namespace と local name の
+両方が一致することを要求する。model の `sameTypeAs` はそのとおりである。
+
+`.class` は「document language が定める class。HTML・SVG・MathML では
+`[class~=identifier]` と同値」と定義されている。model の実装もそれと同じで、
+`~=` の但し書き（値が空・空白を含む）は識別子なので自動的に満たされる。
+
+### 範囲外のものを invalid にするのは、仕様が指示している扱いだった
+
+§17.2 が
+
+> UAs **must** treat as invalid any pseudo-classes, pseudo-elements, combinators,
+> or other syntactic constructs for which they have no usable level of support.
+
+と定めている。`:hover` や `::before` を parse に失敗させるのは、
+model という UA の対応水準がそこまでだということであって、仕様からの逸脱ではない。
+`docs/selectors-spec-version.md` の書き方を直した。
+
+観測できる違いが出るのは forgiving でない位置に置いたときだけで、
+`:is(p, :hover)` と `:is(:hover)` は model も実装も同じ結果になる
+（`test/scenarios/unsupported-pseudo-class-inside-is.json`）。
+
 ### findings 25：forgiving な list が空の項目で例外になる（jsdom）
 
 `:is()` と `:where()` は `<forgiving-selector-list>` を取り、読めなかった項目を捨てる。

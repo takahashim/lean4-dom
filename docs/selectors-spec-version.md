@@ -33,11 +33,29 @@ selector は CSS 全体の一部なので、どこまでを model に入れる�
 * **利用者側の状態に依る pseudo-class**（`:hover` `:focus` `:checked` `:visited` ほか）。
   node tree だけからは決まらない。
 * **pseudo-element**（`::before` ほか）。`querySelector()` は元から一致させない。
-  ただし仕様では **構文としては正しい**ので、実装は例外を投げずに空を返す。
-  model は parse に失敗させるので、そこは観測できる違いになる。
-  `:hover` のような状態の pseudo-class も同じである。
-  受け付けて「決して当たらない」に直すには、仕様が定める名前の一覧が要る。
-  その一覧は CSS と HTML にまたがって動くので、いまは範囲の外に置いてある。
+
+### 範囲外のものを model がどう扱うか
+
+§17.2 "Invalid Selectors and Error Handling" は、
+
+> UAs **must** treat as invalid any pseudo-classes, pseudo-elements, combinators,
+> or other syntactic constructs for which they have no usable level of support.
+
+と定める。だから範囲外の構文を parse に失敗させるのは、**仕様が指示している扱い**である
+（model という UA の対応水準がそこまでだ、ということ）。
+
+観測できる違いが出るのは、それを forgiving でない位置に置いたときだけである。
+
+| selector | model | 実装 |
+| --- | --- | --- |
+| `:is(p, :hover)` | `p` に当たる | `p` に当たる |
+| `:is(:hover)` | 何にも当たらない | 何にも当たらない |
+| `p:hover` | `SyntaxError` | 何にも当たらない |
+| `:not(p, :hover)` | `SyntaxError` | `p` 以外に当たる |
+
+前の二つが一致するのは、forgiving な list が読めない項目を捨てるからで、
+実装の側も「対応しているが当たらない」ので同じ結果になる。
+`test/scenarios/unsupported-pseudo-class-inside-is.json` がそこを見ている。
 * **namespace prefix `ns|E`**。DOM Standard は `ParentNode` の API に namespace を
   「加えない」と明言しており、prefix を宣言する手段が無い。よって常に parse に失敗する。
 * **quirks mode**。model の document は quirks mode を持たない。
