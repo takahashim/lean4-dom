@@ -26,6 +26,7 @@
 | --- | --- |
 | `dommy_runner.rb` | Dommy（Ruby） |
 | `js_runner.mjs` | jsdom / happy-dom（`--impl` で選ぶ） |
+| `browser_runner.mjs` | Playwright の Chromium |
 
 `js_runner.mjs` の `--impl` は名前でも module の path でもよい。
 path を渡せば checkout した working tree をそのまま測れる。
@@ -48,6 +49,15 @@ scenario は全実装で同じものを使う（実装ごとの capabilities で
 「二つ以上の実装が model と違う行」が見えることで、そこは仕様の読み直しに
 値する場所だという印である。差分テストで直した実装は model の写しに
 なっているので、その一致を独立した証拠として数えてはいけない。
+
+browser を動かすには Playwright が要る（`PLAYWRIGHT_PATH` か node_modules か
+global install から探す）。**browser は oracle ではない。** 並べる意味は、
+実装が揃って model と違うときに「実装側の穴」と「model の読み違い」を
+分けられることにある。
+
+scenario を評価する本体は `test/js/scenario.js` にあり、Node からも page の中からも
+同じものを走らせる。DOM しか触らないので import も export も持たない素の script で、
+読み込むと `globalThis.__domScenario` が生える。
 
 JS 側で比べられないものが二つある。**`notify`（MutationObserver の配送）**は
 配送順が notify set の並びで決まり、仕様には queue を覗く口が無いので復元できない

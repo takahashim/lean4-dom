@@ -3039,10 +3039,59 @@ NodeIterator を持たないためで、生成 scenario がそこで止まる。
 後者が「二つ以上が違っても model が正しいことはある」という例になっている。
 だから多数決にしない。
 
+## browser を四列目に足した
+
+`test/browser_runner.mjs` を足した。Playwright の Chromium
+（Headless Shell 153.0.8010.12）を page として使い、`test/js/scenario.js` を
+その中で走らせる。jsdom / happy-dom を動かす `js_runner.mjs` と**同じ本体**である。
+DOM しか触らないので、素の script に切り出して両方から読めるようにした。
+
+固定 scenario 99 本に対して **78 ok / 16 skip / 5 mismatch**。
+
+### normalize の record の形は決着した
+
+前に「二つ以上の実装が model と違う」として挙げた四本のうち、normalize の分は
+**model が正しい**と分かった。`normalize-merges-adjacent-text` の step 0
+（normalize そのもの）が Chromium と一致した。
+
+`dommy-conformance` の記録（`e632f1a`）とも合う。そこには
+**Chromium 141・WebKitGTK 2.52.6・Firefox がどれも run を兄弟ごとに畳む**
+（append の characterData と removal の childList を一組ずつ積む）と書いてある。
+字義どおりに読むと record は一つだが、engine はそう振る舞わない。
+つまり jsdom と happy-dom の四本は、あちら側の食い違いである。
+
+### 新しく開いた問いが一つある
+
+**insert step 5 と step 7 の順序。** 同じ parent の中で node を動かし、
+reference child が非 null のとき、model と Chromium が割れる。
+
+```text
+p の子が [c, n]、端点が n の中。p.insertBefore(n, c) で n を c の前へ動かす。
+  model     (p, 1)   step 5（offset の繰り上げ）が step 7 の removal より先に走る。
+                     端点はまだ n の中なので step 5 は当たらず、removal で (p,1) へ出る。
+  Chromium  (p, 2)   removal が先に走ったかのように、(p,1) へ出たあと繰り上がる。
+```
+
+仕様の番号を素直に読むと step 5 が先である（`pre-insert` に removal は無く、
+removal は insert step 7.1 の adopt の中にある）。model はそう読んでいる。
+
+* jsdom の checkout は model と一致する。npm の 30.0.1 は Chromium と一致した。
+* `dommy-conformance` の `cases/range/move-boundary.js` はこれを踏んでいない。
+  あちらは **別の parent へ** append する形なので、`child` が null で step 5 が走らない。
+  同じ parent の中を、reference child を指して動かす形が抜けている。
+
+固定 scenario は `range-order-broken-by-insert`、`range-adjust-order-on-before`、
+`range-adjust-order-on-move`、`range-delete-contents-across-nodes` の四本。
+**どちらが正しいかはまだ決めていない。** 字義と engine のどちらを採るかは、
+normalize でそうしたように engine 側へ寄せる選択もありうる。
+
+もう一つ、`replacechildren-bypasses-validity` で Chromium が通してしまう
+（model は `HierarchyRequestError`）。これも未調査である。
+
 ### 次
 
-completeness の実現性（関係が満たせるなら実行関数は失敗しない）を
-`insert` 以降にも広げることである。
+上の二つを詰めること。それから completeness の実現性
+（関係が満たせるなら実行関数は失敗しない）を `insert` 以降にも広げることである。
 
 ## 生成 scenario の最小化を広げた
 
