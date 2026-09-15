@@ -3082,8 +3082,54 @@ removal は insert step 7.1 の adopt の中にある）。model はそう読ん
 
 固定 scenario は `range-order-broken-by-insert`、`range-adjust-order-on-before`、
 `range-adjust-order-on-move`、`range-delete-contents-across-nodes` の四本。
-**どちらが正しいかはまだ決めていない。** 字義と engine のどちらを採るかは、
-normalize でそうしたように engine 側へ寄せる選択もありうる。
+
+### WPT の期待値モデルが答えを持っていた
+
+`dom/ranges/Range-mutations.js` は、期待値を**自分で計算して**比べる形になっている。
+その計算がこうである。
+
+```js
+expectedStart = modifyForRemove(affectedNode, expectedStart);  // 外す側の調整が先
+newParent.insertBefore(affectedNode, refNode);
+expectedStart = modifyForInsert(affectedNode, expectedStart);  // 入れる側の調整が後
+```
+
+`modifyForRemove` は §5.5 の pre-remove steps そのもの（部分木の中の端点を
+`(old parent, old index)` へ、old parent の offset を繰り下げ）である。
+それを `insertBefore` の **前** に当て、入れる側の調整を **後** に当てている。
+しかも入れる側は `indexOf(insertedNode)`、つまり**入れた後の new index** で判定する。
+仕様の step 5 は `child` の index、それも入れる前の値である。
+
+つまり **WPT は「外す調整 → 入れる調整」を期待値として持っている。**
+Chromium はそのとおりに振る舞い、model は仕様の番号どおりに書いてあるので割れる。
+`insertBeforeTests` の先頭の群（"Moving a node to its current position"）が
+まさに同じ parent の中での移動で、reference child も非 null である。
+
+### 決めることが残っている
+
+証拠はこう並ぶ。
+
+| | 順序 |
+| --- | --- |
+| 仕様の番号（pinned commit） | step 5（入れる調整）→ step 7（adopt → remove） |
+| WPT の期待値モデル | 外す調整 → 入れる調整 |
+| Chromium | 外す調整 → 入れる調整 |
+| jsdom checkout | 仕様の番号どおり |
+| jsdom 30.0.1 / happy-dom | 外す調整 → 入れる調整 |
+| model・Dommy | 仕様の番号どおり |
+
+normalize のときと同じ形（字義より engine）だが、今度は **WPT 自身が engine 側を
+期待値として書いている**ぶん証拠が強い。model を engine に寄せるなら、影響は小さくない。
+
+* 実行側の `liveRangeInsertAdjust` と `insert` の段の順序
+* 関係側の `RangeInsertAdjusted` と `InsertSpec`、その soundness と congruence
+* **公開している負の定理 `exists_insert_breaking_boundaryLE` の witness が死ぬ。**
+  あの例（range `(2,0)-(3,2)` に `insertBefore(1, 3, 2)`）は engine の順序だと
+  `(2,0)-(1,2)` になり、node 2 は index 1 なので start < end で order は壊れない。
+  別の witness があるかは別途調べることになる。
+* Dommy も同じ変更が要る（いま model と一致している）。
+
+仕様の字義と、WPT を含む実装すべてが割れているので、**whatwg/dom へ報告する値打ちもある。**
 
 もう一つ、`replacechildren-bypasses-validity` で Chromium が通してしまう
 （model は `HierarchyRequestError`）。これも未調査である。
