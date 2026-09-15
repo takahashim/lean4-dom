@@ -95,10 +95,11 @@ DOM Standard §1.3 "validate and extract" の step 6 と step 8-11。
 prefix の検査（step 4.3）を終えた後の検査をまとめる。
 切り出してあるのは、失敗の条件を単体で述べられるようにするためである。
 -/
-def validateAndExtractError («namespace» «prefix» : Option String)
+def validateAndExtractError (validLocalName : String → Bool)
+    («namespace» «prefix» : Option String)
     (localName qualifiedName : String) : Option DOMException :=
-  -- step 6
-  if !isValidAttributeLocalName localName then some .invalidCharacterError
+  -- step 6。context が "attribute" か "element" かで local name の条件が違う。
+  if !validLocalName localName then some .invalidCharacterError
   -- step 8
   else if «prefix».isSome && «namespace».isNone then some .namespaceError
   -- step 9
@@ -112,9 +113,10 @@ def validateAndExtractError («namespace» «prefix» : Option String)
   else none
 
 /-- step 8。検査を通ったなら、prefix があるところには namespace もある。 -/
-theorem validateAndExtractError_prefix {«namespace» «prefix» : Option String}
+theorem validateAndExtractError_prefix {valid : String → Bool}
+    {«namespace» «prefix» : Option String}
     {localName qualifiedName : String}
-    (h : validateAndExtractError «namespace» «prefix» localName qualifiedName = none)
+    (h : validateAndExtractError valid «namespace» «prefix» localName qualifiedName = none)
     (hs : «prefix».isSome = true) : «namespace».isSome = true := by
   cases hns : «namespace» with
   | some _ => rfl
@@ -144,9 +146,28 @@ def validateAndExtractAttribute («namespace» : Option String) (qualifiedName :
   if pfx.any (fun p => !isValidNamespacePrefix p) then .error .invalidCharacterError
   else
     -- step 1 の正規化はここで一度だけ行う。
-    match validateAndExtractError (normalizeNamespace «namespace») pfx localName qualifiedName with
+    match validateAndExtractError isValidAttributeLocalName
+        (normalizeNamespace «namespace») pfx localName qualifiedName with
     | some e => .error e
     -- step 12
+    | none => .ok (normalizeNamespace «namespace», pfx, localName)
+
+/--
+DOM Standard §1.3 "validate and extract"、context は "element"。
+
+attribute 版との違いは step 6 の local name の条件だけである。
+-/
+def validateAndExtractElement («namespace» : Option String) (qualifiedName : String) :
+    Except DOMException (Option String × Option String × String) :=
+  let (pfx, localName) :=
+    match splitAtFirstColon qualifiedName with
+    | none => ((none : Option String), qualifiedName)
+    | some (p, l) => (some p, l)
+  if pfx.any (fun p => !isValidNamespacePrefix p) then .error .invalidCharacterError
+  else
+    match validateAndExtractError isValidElementLocalName
+        (normalizeNamespace «namespace») pfx localName qualifiedName with
+    | some e => .error e
     | none => .ok (normalizeNamespace «namespace», pfx, localName)
 
 /--

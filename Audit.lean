@@ -112,6 +112,13 @@ open Dom.Audit
 
 -- 関係意味論（§4.2.3 remove）
 #audit_axioms
+  Dom.freshId_get?_eq_none
+  Dom.admissible_createsNode
+  Dom.createElement_creates
+  Dom.createElementNS_creates
+  Dom.createTextNode_creates
+  Dom.createComment_creates
+  Dom.createDocumentFragment_creates
   Dom.Spec.remove_sound
   Dom.Spec.remove_sound_range
   Dom.Spec.remove_sound_iterator

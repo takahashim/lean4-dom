@@ -50,6 +50,9 @@ import Dom.Validity.RangeApi
 import Dom.Validity.Walkers
 import Dom.Properties.Record
 import Dom.Properties.Contract
+import Dom.Mutation.Create
+import Dom.Properties.Create
+import Dom.Validity.Create
 import Dom.Spec.Remove
 import Dom.Spec.RemoveSound
 import Dom.Spec.RemoveDeterministic

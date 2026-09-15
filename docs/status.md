@@ -3206,10 +3206,55 @@ normalize とは形が違う。あちらは engine が揃っていて仕様の�
 もう一つ、`replacechildren-bypasses-validity` で Chromium が通してしまう
 （model は `HierarchyRequestError`）。これも未調査である。
 
+## node を作れるようにした（roadmap Phase 6）
+
+model はこれまで node を作らず、初期状態として与えられた木を動かすだけだった。
+§4.5 の factory を六つ入れた。
+
+`createElement` / `createElementNS` / `createTextNode` / `createComment` /
+`createDocumentFragment` と、その土台の `requireDocument`。
+
+### 新しい id は状態ではなく木から導く
+
+roadmap は `DOMState` に allocator（`nextNodeId`）を足す案だったが、
+**store にある id の最大より一つ大きいもの**を使う形にした。
+こうすると「新しい」ことが `AdmissibleDOMState` の不変条件ではなく
+store についての定理（`freshId_get?_eq_none`）になり、成分を増やさずに済む。
+
+これが成り立つのは **model が store から node を消さない**からである。
+`detach` は parent を切るだけで entry は残る。だから最大値は下がらず、
+一度使った id が後でまた新しいものとして出てくることはない。
+
+### 効果も妥当性も一つの形にまとめた
+
+作る algorithm はどれも「detach された node を一つ足す」だけなので、
+効果は `AddsNode`（作る前に無い・作った後にある・ほかは変わらない）、
+data の条件は `FreshNodeData`（parent も children も attribute も無い・
+Document でない・node document は Document）に集約した。
+
+そこから roadmap §8.3 が求めるものが出る。
+
+* freshness と new node exists — `AddsNode` の二つの field
+* new node is detached — `parentOf_self` と `not_child`
+* ownerDocument / kind / namespace / localName — 各 method の `*_creates`
+* all existing nodes are unchanged — `others`
+
+妥当性の保存（`admissible_createsNode`）は七成分ぜんぶを通した。
+`documentTrees` だけは少し手が要る。`DocumentChildrenOk` は Document の children と
+その kind から決まるので、**kind が全 node で一致する**という既存の congr 補題
+（`documentChildrenOk_congr`）は使えない。作った node の kind は変わるからである。
+children に限った版（`documentChildrenOk_congr_of_children`）を別に置いた。
+
+### まだ無いもの
+
+`createProcessingInstruction` と `createCDATASection`。前者の target は仕様が
+Name production を参照しており、model はその production を持たない。
+`cloneNode` / `importNode` / `adoptNode`（roadmap §8.4-8.5）はこの次である。
+
 ### 次
 
-上の二つを詰めること。それから completeness の実現性
-（関係が満たせるなら実行関数は失敗しない）を `insert` 以降にも広げることである。
+`cloneNode` を入れて、identity と structural equivalence の違いを形式化する。
+そのあと `importNode` / `adoptNode`。
 
 ## 生成 scenario の最小化を広げた
 
