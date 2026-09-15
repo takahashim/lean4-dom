@@ -468,6 +468,25 @@ case-insensitive **ではない**。仕様自身が「ほぼ同じ」と註記�
 `:root` は「parent が Document である element」、`:empty` は
 「どの子も emptiness を壊さない」を関係として書いてある。
 
+### `:has()` の候補と attribute の namespace（§14.10・§6.2）
+
+```lean
+theorem matchSimple_has_iff (hwf : WellFormed ctx.tree) (hd : ctx.tree.get? n = some d)
+    (hel : d.kind = NodeKind.element) (l : List Complex) :
+    matchSimple ctx (.has l) n = true ↔
+      ∃ c, InclusiveDescendant ctx.tree c (root ctx.tree n) ∧
+        matchSelList { ctx with anchor := some n } l c = true
+
+def SelectorAttrMatches (t) (d) (anyNs : Bool) (name) (a : Attr) : Prop :=
+  AttrNameMatches t d name a ∧ (anyNs = true ∨ a.namespace = none)
+```
+
+`:has()` の引数は relative selector なので、`+` や `~` も書ける。
+だから候補は anchor の部分木に限らず、**同じ木のどの element でもよい**。
+
+`[att]` は namespace を持たない attribute だけに当たる（`[*|att]` は問わない）。
+class と id も同じである。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

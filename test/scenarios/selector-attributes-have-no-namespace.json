@@ -1,0 +1,125 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#attribute-selectors",
+    "algorithm": [
+      "[att]",
+      "[*|att]",
+      ".class",
+      "#id"
+    ],
+    "steps": "[att] は namespace を持たない attribute だけに当たる。[*|att] は問わない",
+    "note": "class と id も namespace を持たない attribute である。XML namespace に同じ local name の attribute を置いて分ける。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": "http://www.w3.org/XML/1998/namespace",
+          "prefix": "xml",
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": "http://www.w3.org/XML/1998/namespace",
+          "prefix": "xml",
+          "localName": "class",
+          "value": "vv"
+        },
+        {
+          "namespace": "http://www.w3.org/XML/1998/namespace",
+          "prefix": "xml",
+          "localName": "id",
+          "value": "zz"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "vv"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "zz"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[*|a]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='1']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[*|a='1']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".vv"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "#zz"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[class]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[*|class]"
+    }
+  ]
+}

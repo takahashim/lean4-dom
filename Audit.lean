@@ -793,6 +793,13 @@ open Dom.Audit
   Dom.Spec.matchSimple_root_iff
   Dom.Spec.emptyOk_iff
   Dom.Spec.matchSimple_empty_iff
+  Dom.Spec.get?_root
+  Dom.Spec.matchSimple_has_iff
+  Dom.Spec.attrNameInSelector_spec
+  Dom.Spec.selectorAttr_some
+  Dom.Spec.selectorAttr_none
+  Dom.Spec.plainAttr_some
+  Dom.Spec.plainAttr_none
 
 -- selector の API が満たすこと
 #audit_axioms

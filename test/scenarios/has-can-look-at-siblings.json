@@ -1,0 +1,28 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#relational",
+    "algorithm": [":has()"],
+    "steps": "引数は relative selector で、anchor は :has() を付けた element である。combinator は > だけでなく + や ~ も書ける",
+    "note": "だから候補は anchor の部分木に限らない。Dom/Spec/Selector.lean の matchSimple_has_iff がそれを定理にしてある。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "ul" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "li" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "li" },
+    { "id": 4, "kind": "element", "parent": 1, "localName": "p" },
+    { "id": 5, "kind": "element", "parent": 1, "localName": "li" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:has(+ p)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:has(~ p)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "p:has(+ li)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "p:has(~ li)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "ul:has(> p)" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li:has(p)" },
+    { "op": "matches", "element": 3, "selectors": ":has(+ p)" },
+    { "op": "matches", "element": 2, "selectors": ":has(+ p)" }
+  ]
+}

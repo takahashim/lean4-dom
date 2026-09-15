@@ -1,6 +1,7 @@
 import Dom.Selector.Match
 import Dom.Properties.Tree
 import Dom.Properties.Mutation
+import Dom.Properties.TreeOrder
 
 /-!
 # selector の照合の関係意味論（部分）
@@ -634,5 +635,104 @@ theorem matchSimple_empty_iff {ctx : MatchCtx} {n : NodeId} {d : NodeData}
     exact (emptyOk_iff ctx.tree c).mp (h c hc)
   · intro h c hc
     exact (emptyOk_iff ctx.tree c).mpr (h c hc)
+
+/-! ## `:has()` の候補と attribute の namespace
+
+`:has()` の引数は relative selector で、anchor は `:has()` を付けた element である。
+combinator は `>` だけでなく `+` や `~` も書けるので、**候補は anchor の部分木に
+限らない**。同じ木のどの element でもよい。
+
+attribute の namespace は §6.3 が定める。`[att]` は namespace を持たない attribute
+だけに当たり、`[*|att]` は問わない。class と id も namespace を持たない attribute である
+（§6.5・§6.6）。名前の大文字小文字は type selector と同じ非対称の規則に従う。
+-/
+
+theorem get?_root {t : Tree} (hwf : WellFormed t) {n : NodeId} {d : NodeData}
+    (hd : t.get? n = some d) : ∃ r, t.get? (root t n) = some r := by
+  rcases root_inclusive_ancestor t n with h | h
+  · exact ⟨d, by rw [h]; exact hd⟩
+  · exact exists_data_of_ancestor' hwf h
+
+/-- **`:has()` の候補は同じ木の element すべてである。部分木には限らない。** -/
+theorem matchSimple_has_iff {ctx : MatchCtx} (hwf : WellFormed ctx.tree) {n : NodeId}
+    {d : NodeData} (hd : ctx.tree.get? n = some d) (hel : d.kind = NodeKind.element)
+    (l : List Complex) :
+    matchSimple ctx (.has l) n = true ↔
+      ∃ c, InclusiveDescendant ctx.tree c (root ctx.tree n) ∧
+        matchSelList { ctx with anchor := some n } l c = true := by
+  have hne : (d.kind != NodeKind.element) = false := by simp [hel]
+  rw [matchSimple, hd]
+  simp only [hne, Bool.false_eq_true, if_false, List.any_eq_true]
+  obtain ⟨r, hr⟩ := get?_root hwf hd
+  constructor
+  · rintro ⟨c, hc, hm⟩
+    exact ⟨c, (mem_preorder_iff hwf hr c).mp hc, hm⟩
+  · rintro ⟨c, hc, hm⟩
+    exact ⟨c, (mem_preorder_iff hwf hr c).mpr hc, hm⟩
+
+/-- §6.3 の attribute 名の照合。type selector と同じ非対称の規則である。 -/
+def AttrNameMatches (t : Tree) (d : NodeData) (name : String) (a : Attr) : Prop :=
+  (HtmlElementInHtmlDocument t d ∧ a.localName = asciiLowercase name) ∨
+    (¬ HtmlElementInHtmlDocument t d ∧ a.localName = name)
+
+/-- `[att]` は namespace を持たない attribute だけ、`[*|att]` は問わない。 -/
+def SelectorAttrMatches (t : Tree) (d : NodeData) (anyNs : Bool) (name : String) (a : Attr) :
+    Prop :=
+  AttrNameMatches t d name a ∧ (anyNs = true ∨ a.namespace = none)
+
+theorem attrNameInSelector_spec (t : Tree) (d : NodeData) (name : String) (a : Attr) :
+    (a.localName == attrNameInSelector t d name) = true ↔ AttrNameMatches t d name a := by
+  unfold attrNameInSelector AttrNameMatches HtmlElementInHtmlDocument isHTMLDocumentOf
+  by_cases hns : d.namespace = some htmlNamespace
+  · cases hdoc : t.get? d.ownerDocument with
+    | none => simp [hns]
+    | some doc =>
+      by_cases hh : doc.isHTMLDocument = true
+      · simp [hns, hh]
+      · simp [hns, hh]
+  · simp [hns]
+
+/-- **`[att]` が返すのは、仕様の条件を満たす attribute である。** -/
+theorem selectorAttr_some {t : Tree} {d : NodeData} {anyNs : Bool} {name : String} {a : Attr}
+    (h : selectorAttr t d anyNs name = some a) :
+    a ∈ d.attributes ∧ SelectorAttrMatches t d anyNs name a := by
+  unfold selectorAttr at h
+  obtain ⟨hp, _⟩ := List.find?_eq_some_iff_append.mp h
+  simp only [Bool.and_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none] at hp
+  exact ⟨List.mem_of_find?_eq_some h,
+    (attrNameInSelector_spec t d name a).mp hp.1, hp.2⟩
+
+/-- **`[att]` が何も返さないなら、条件を満たす attribute は無い。** -/
+theorem selectorAttr_none {t : Tree} {d : NodeData} {anyNs : Bool} {name : String}
+    (h : selectorAttr t d anyNs name = none) :
+    ∀ a ∈ d.attributes, ¬ SelectorAttrMatches t d anyNs name a := by
+  unfold selectorAttr at h
+  intro a ha hmatch
+  have := List.find?_eq_none.mp h a ha
+  simp only [Bool.and_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none, not_and] at this
+  exact this ((attrNameInSelector_spec t d name a).mpr hmatch.1) hmatch.2
+
+/-- **class と id は namespace を持たない attribute を見る。** -/
+theorem plainAttr_some {d : NodeData} {name v : String} (h : plainAttr d name = some v) :
+    ∃ a ∈ d.attributes, a.localName = name ∧ a.namespace = none ∧ a.value = v := by
+  unfold plainAttr at h
+  cases hf : d.attributes.find? (fun a => a.localName == name && a.namespace.isNone) with
+  | none => rw [hf] at h; simp at h
+  | some a =>
+    rw [hf] at h
+    obtain ⟨hp, _⟩ := List.find?_eq_some_iff_append.mp hf
+    simp only [Bool.and_eq_true, beq_iff_eq, Option.isNone_iff_eq_none] at hp
+    exact ⟨a, List.mem_of_find?_eq_some hf, hp.1, hp.2, by simpa using h⟩
+
+theorem plainAttr_none {d : NodeData} {name : String} (h : plainAttr d name = none) :
+    ∀ a ∈ d.attributes, ¬ (a.localName = name ∧ a.namespace = none) := by
+  unfold plainAttr at h
+  cases hf : d.attributes.find? (fun a => a.localName == name && a.namespace.isNone) with
+  | some a => rw [hf] at h; simp at h
+  | none =>
+    intro a ha hm
+    have := List.find?_eq_none.mp hf a ha
+    simp only [Bool.and_eq_true, not_and, beq_iff_eq, Option.isNone_iff_eq_none] at this
+    exact this hm.1 hm.2
 
 end Dom.Spec

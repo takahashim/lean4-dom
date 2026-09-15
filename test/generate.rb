@@ -261,8 +261,8 @@ module Generate
   SELECTOR_TYPES = ["div", "span", "p", "rect", "*", "DIV", "RECT", "Span"].freeze
   SELECTOR_SUBCLASS = [
     ".vv", ".u", ".v", "#vv",
-    "[a]", "[b]", "[data-x]", "[a=1]", "[a='']", "[class~=u]", "[data-x^=v]",
-    "[data-x$=v]", "[data-x*=v]", "[a=1 i]", "[A=VV i]", "[class|=u]",
+    "[a]", "[b]", "[data-x]", "[a='1']", "[a='']", "[class~=u]", "[data-x^=v]",
+    "[data-x$=v]", "[data-x*=v]", "[a='1' i]", "[A=VV i]", "[class|=u]",
     "[class~='u v']", "[class~='']", "[class^='']", "[class$=v]", "[class*=' ']",
     ":first-child", ":last-child", ":only-child", ":root",
     ":first-of-type", ":last-of-type", ":only-of-type",
@@ -271,7 +271,8 @@ module Generate
     # A が負の形。`n` が非負に限るので「先頭から幾つ」を表す。
     ":nth-child(-n+2)", ":nth-last-child(-n+2)", ":nth-of-type(-n+1)",
     ":nth-child(-2n+4)", ":nth-child(3n-1)",
-    ":is(div, span)", ":where(p)", ":not(p)", ":not(.vv, #vv)", ":has(span)", ":has(> p)"
+    ":is(div, span)", ":where(p)", ":not(p)", ":not(.vv, #vv)",
+    ":has(span)", ":has(> p)", ":has(+ p)", ":has(~ span)", "[*|a]", "[*|class]"
   ].freeze
   SELECTOR_COMBINATORS = [" ", " > ", " + ", " ~ "].freeze
   # 読めない selector。`SyntaxError` を撫でる。

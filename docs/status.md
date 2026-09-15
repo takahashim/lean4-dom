@@ -3791,6 +3791,9 @@ inclusive ancestor は当たらないこと、そして **scoping root が観測
 * **type selector の大文字小文字・`:root`・`:empty`**（Selectors §6.1・§14.1・§14.2）。
   名前の照合が既定で「区別する」であり、HTML の規則は **selector の側を lowercase して
   local name と比べる**非対称な規則であることを書き写した。
+* **`:has()` の候補と attribute の namespace**（Selectors §14.10・§6.2）。
+  `:has()` の引数は relative selector なので候補は anchor の部分木に限らないこと、
+  `[att]` が namespace を持たない attribute だけに当たることを書き写した。
 
 ### 定理に歯があるか確かめた
 
@@ -3853,6 +3856,34 @@ type selector が捕まらなかったのは、生成器の element 名も selec
 `:empty` の壊し方（空白だけの text も数える）は別の意味で危うかった。
 model をそう壊すと実装と一致してしまい、不一致の数は 9 本から **8 本に減る**。
 findings として赤くしてある不一致は、model 側を間違えると緑になる。数だけ見ていては気付けない。
+
+### 三度目の測定：`:has()` と namespace
+
+| 壊し方 | 定理 | 固定 scenario | 生成 scenario 150 本 |
+| --- | --- | --- | --- |
+| `:has()` の候補を自分の部分木だけにする | 捕まえる | **捕まえない** | **捕まえない** |
+| `[att]` が namespace 付きにも当たる | 捕まえる | **捕まえない** | **捕まえない** |
+| `.class` と `#id` が namespace 付きも見る | 捕まえる | **捕まえない** | **捕まえない** |
+
+一つめは、生成器の `:has()` が `:has(span)` と `:has(> p)` しか作らないからである。
+どちらも候補は部分木の中にあるので分かれない。`:has(+ p)` と `:has(~ span)` を足した。
+二つめと三つめは、生成器が namespace 付きの attribute を作りはするものの、
+同じ local name の null namespace 版と並べる形にならないからである。
+固定 scenario（`has-can-look-at-siblings` と
+`selector-attributes-have-no-namespace`）を足した。
+
+そのとき `[a=1]` が **両側とも SyntaxError で止まっていた**ことにも気付いた。
+文法は値を `<string-token> | <ident-token>` に限るので `1`（number-token）は通らない。
+生成器の `[a=1]` `[a=1 i]` を引用符付きに直した。それまで、この二つを含む
+生成 scenario はその step で打ち切られていた。
+
+### findings 24：`[att]` が namespace 付きの attribute に当たる（Dommy / jsdom）
+
+Selectors §6.2 は「namespace 成分の無い attribute selector は **namespace を持たない
+attribute にだけ**当たる（`|attr` と同じ）」と書き、例でも `[att]` と `[|att]` が
+同値であることを示している。Dommy も jsdom も `xml:a` を `[a]` で当てる。
+`.class` と `#id` のほうは両実装とも正しく null namespace だけを見る。
+`test/scenarios/selector-attributes-have-no-namespace.json`。
 
 ### findings 22：`div` が大文字の local name に当たる（Dommy）
 
