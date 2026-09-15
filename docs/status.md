@@ -2618,10 +2618,32 @@ ancestor を増やさないので、adopt を跨いでも残る。挿入が増�
 「その node → `parent`」の一本だけなので（`ancestor_of_parentOf_insert`）、
 残りの node についての同じ条件も残る。
 
+### completeness を二つに分けた
+
+soundness の逆は一つではない。
+
+* **余計な model が無いこと** — 関係を満たす状態は、実行関数が作る状態と観測が等しい。
+  これは soundness と一意性から出る。
+* **実現できること** — 関係が満たせるなら、実行関数は失敗しない。
+  これは契約（`Dom/Properties/Contract.lean`）から出る。
+
+`remove` と `adopt` は両方示した（`Dom/Spec/Complete.lean`）。
+`remove` は関係の step 1-2（parent が非 null）がそのまま契約の成功条件なので、
+`remove_succeeds_iff` にそのまま渡せる。`adopt` は step 2 の `remove` を
+parent がある node にしか呼ばないので、成功条件は step 1 だけである。
+
+`insert` は前者だけである。`insertAt` の step 4（`child` が `parent` の子であること）を
+関係が述べていないので、後者が言えない。仕様でもその検査は `insert` 本体ではなく
+呼び出し側（pre-insert）にある。関係にその前提を足すか、
+`preInsert` の側で言うかは別途決める。
+
+これで roadmap の Phase 1 完了条件（関係が実行関数に依存しない・soundness・
+一意性または completeness・`docs/traceability.md` の列）は `remove` と `insert` について揃った。
+
 ### 次
 
-completeness（関係を満たす状態が必ず作れること）である。
-`replace` と `move` の関係もまだ無い。
+`replace` と `move` の関係である。どちらも `remove` と `insert` の composition なので、
+今ある congruence がそのまま使える見込みがある。
 
 ## 生成 scenario の最小化を広げた
 

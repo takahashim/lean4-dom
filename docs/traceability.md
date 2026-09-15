@@ -19,23 +19,39 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | WPT | Dommy 側の WPT 由来 test（`gems/dommy/test/wpt/`） |
 | Status | 済 / 部分 / 未 |
 
-**関係意味論（spec relation）は `remove` だけにある。** 本 model は長く
+**関係意味論（spec relation）は §4.2.3 の中核と §4.5 / §4.10 にある。** 本 model は長く
 実行関数 `Except DOMException DOMState` そのものを意味論としてきた。
 それだと仕様の翻訳を誤っても、その誤った関数についての定理は証明できてしまう。
 そこで仕様本文から独立に書き写した関係を `Dom/Spec/` に置き、
-実行関数がそれを満たすこと（soundness）を別に証明する層を作り始めた。
-現状は下の表のとおり `remove` のみで、残りは実行関数が意味論のままである。
+実行関数がそれを満たすこと（soundness）を別に証明する層を作った。
+下の表に無い algorithm は、まだ実行関数が意味論のままである。
 
 ## §4.2.3 の関係意味論（`Dom/Spec/`）
 
-| Algorithm | 関係 | soundness | completeness / determinism |
-| --- | --- | --- | --- |
-| remove | `Dom.Spec.RemoveSpec` | `Dom.Spec.remove_sound` | `Dom.Spec.removeSpec_deterministic`（観測の一意性） |
-| adopt（§4.5） | `Dom.Spec.AdoptSpec` | `Dom.Spec.adopt_sound` | 未 |
-| insert | `Dom.Spec.InsertSpec` | `Dom.Spec.insert_sound` | 未 |
-| replace | 未 | 未 | 未 |
-| move | 未 | 未 | 未 |
-| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `Dom.Spec.replaceData_sound` | 未 |
+| Algorithm | 関係 | soundness | 一意性 | completeness |
+| --- | --- | --- | --- | --- |
+| remove | `Dom.Spec.RemoveSpec` | `remove_sound` | `removeSpec_deterministic` / `removeSpec_congr` | `remove_complete` |
+| adopt（§4.5） | `Dom.Spec.AdoptSpec` | `adopt_sound` | `adoptSpec_deterministic` / `adoptSpec_congr` | `adopt_complete` |
+| insert | `Dom.Spec.InsertSpec` | `insert_sound` | `insertSpec_deterministic` / `insertSpec_congr` | `insert_no_extra_models`（実現性は未） |
+| replace | 未 | 未 | 未 | 未 |
+| move | 未 | 未 | 未 | 未 |
+| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | 未 | 未 |
+
+定理はすべて `Dom.Spec` 名前空間にある。
+
+**一意性は観測の上で述べる。** 木の store は association list なので、
+同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`
+（木は `get?`、registered observer は所属、observer は record queue）の一致である。
+
+`insert` のように関係を繋いだものの一意性には、`_deterministic` だけでは足りない。
+途中の状態は観測としてしか一致しないので、
+「入力の観測が等しければ出力の観測も等しい」（`_congr`）を段ごとに使う。
+
+**completeness は二つに分かれる。** 「関係を満たす状態は実行関数の結果と観測が等しい」
+（余計な model が無い）と、「関係が満たせるなら実行関数は失敗しない」（実現できる）である。
+前者は soundness と一意性から出る。後者は契約（`Dom/Properties/Contract.lean`）から出る。
+`insert` は後者がまだ無い。`insertAt` の step 4（`child` が `parent` の子であること）を
+関係が述べていないためで、仕様でもその検査は呼び出し側（pre-insert）にある。
 
 record を積む step は種類ごとに切り出してある。childList（`remove` の step 21 と
 `insert` の step 4.2 / 9）は `Dom.Spec.TreeRecordQueued`、characterData
