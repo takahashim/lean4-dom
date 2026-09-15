@@ -300,4 +300,33 @@ theorem adoptSpec_deterministic (hwf : WellFormed s.tree) {o₁ o₂ : DOMState}
     (h₁ : AdoptSpec s node doc o₁) (h₂ : AdoptSpec s node doc o₂) : ObsEq o₁ o₂ :=
   adoptSpec_congr hwf (ObsEq.refl s) h₁ h₂
 
+
+/--
+`adopt` は、対象の node 自身の kind と children を変えない。
+
+step 2 の `remove` は node を親から外すだけで node の children には触れず、
+step 3 は node document しか書き換えないからである。
+-/
+theorem adoptSpec_selfData (hwf : WellFormed s.tree) {out : DOMState}
+    (hq : AdoptSpec s node doc out) {nd : NodeData} (hnd : s.tree.get? node = some nd) :
+    ∃ nd', out.tree.get? node = some nd' ∧ nd'.kind = nd.kind ∧ nd'.children = nd.children := by
+  obtain ⟨od, hod, s₁, hst2, hst3⟩ := hq
+  -- step 2
+  obtain ⟨nd₁, hnd₁, hk₁, hch₁⟩ :
+      ∃ nd₁, s₁.tree.get? node = some nd₁ ∧ nd₁.kind = nd.kind ∧ nd₁.children = nd.children := by
+    rcases hst2 with ⟨-, rfl⟩ | ⟨-, hr⟩
+    · exact ⟨nd, hnd, rfl, rfl⟩
+    · refine removeSpec_data hr hnd fun p hp he => ?_
+      subst he
+      exact hwf.acyclic _ (Ancestor.step hp)
+  -- step 3
+  by_cases hdd : doc = od
+  · rw [if_pos hdd] at hst3
+    subst hst3
+    exact ⟨nd₁, hnd₁, hk₁, hch₁⟩
+  · rw [if_neg hdd] at hst3
+    obtain ⟨hda, -⟩ := hst3
+    obtain ⟨nd', hnd', hk', -, hch'⟩ := documentAssigned_data hnd₁ hda hnd₁
+    exact ⟨nd', hnd', by rw [hk', hk₁], by rw [hch', hch₁]⟩
+
 end Dom.Spec

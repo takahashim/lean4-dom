@@ -133,6 +133,7 @@ open Dom.Audit
   Dom.Spec.insert_sound
   Dom.Spec.insertEach_sound
   Dom.Spec.removeEach_sound
+  Dom.Spec.replace_sound
   Dom.Spec.replaceData_sound
   Dom.Spec.characterDataRecordQueued_of_queue
   Dom.Spec.treeRecordQueued_of_queue

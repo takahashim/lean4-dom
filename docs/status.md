@@ -2640,10 +2640,48 @@ parent がある node にしか呼ばないので、成功条件は step 1 だ�
 これで roadmap の Phase 1 完了条件（関係が実行関数に依存しない・soundness・
 一意性または completeness・`docs/traceability.md` の列）は `remove` と `insert` について揃った。
 
+## `replace` の関係と、仕様の assertion が要求する不変量
+
+`replace` は step 6 で `adopt`、step 7 で `remove`、step 9 で `insert` を呼ぶので、
+関係もその三つを composition する（`Dom/Spec/Replace.lean`）。
+step 1（ensure pre-insertion validity）は別の algorithm なので含めない。
+`InsertSpec` が pre-insert を含まないのと同じ扱いである。
+
+### 位置は木を変える前に決まる
+
+step 2-3 の reference child と step 4 の previous sibling は、adopt も removal も走る前の
+木で決まる。record に載るのはその値である。step 8 の `nodes` だけは removal の後に読むが、
+`child` は `node` の子ではありえないので（step 1 の validity が「`node` は `parent` の
+inclusive ancestor でない」を保証し、`child` の parent は `parent` である）、
+どこで読んでも同じ列になる。実行関数は step 1 の直後に読んでいるので、
+その一致は soundness の側で示した。
+
+### `node` と `child` が同じことはありうる
+
+最初「validity から `node ≠ child` が出る」と思って書いたが、証明が通らなかった。
+`child` の parent が `parent` でも、それは `parent` が `child` の ancestor という話であって、
+`node` が `parent` の ancestor という話ではない。子を自分自身で置き換える呼び出しは正当で、
+仕様の step 3（reference child が `node` ならその次の兄弟にずらす）はそのためにある。
+
+### 見つかったこと：DocumentFragment が子になる状態を invariant が禁じていない
+
+step 10 の "queue a tree mutation record" は
+「addedNodes と removedNodes のどちらかは空でない」を **assert** している。
+これが破れるのは一通りだけである。`node` が `child` と同じ**空の DocumentFragment**のとき、
+step 6 の adopt が `child` を親から外してしまうので removedNodes が空になり、
+fragment の children も空なので addedNodes も空になる。
+
+本物の DOM にこの状態は無い。`insert` は step 1 で fragment を children に展開するので、
+fragment が誰かの子になることは無いからである。ところが model の
+`StructurallyValid`（`Dom/Validity/Structural.lean`）はこれを言っていない。
+`documentHasNoParent` はあるのに、その fragment 版が無い。
+
+いまは `FragmentsAreRoots` として `replace_sound` の仮定に置いてある。
+`StructurallyValid` に足すと preservation の証明が全部動くので、それは別途である。
+
 ### 次
 
-`replace` と `move` の関係である。どちらも `remove` と `insert` の composition なので、
-今ある congruence がそのまま使える見込みがある。
+`replace` の congruence と、`move` の関係である。
 
 ## 生成 scenario の最小化を広げた
 

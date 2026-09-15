@@ -65,6 +65,8 @@ import Dom.Spec.ObsEq
 import Dom.Spec.RemoveCongr
 import Dom.Spec.AdoptCongr
 import Dom.Spec.InsertCongr
+import Dom.Spec.Replace
+import Dom.Spec.ReplaceSound
 import Dom.Spec.Complete
 import Dom.Properties.Counterexample
 import Dom.Observation

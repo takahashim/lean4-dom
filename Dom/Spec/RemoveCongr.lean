@@ -380,4 +380,22 @@ theorem removeEachSpec_ancestor {ns : List NodeId} {b : Bool} :
     cases h with
     | cons hr hrest => exact removeSpec_ancestor hr (ih hrest ha)
 
+
+/--
+`remove` は、外した node の parent 以外の kind と children を変えない。
+
+`replace` のように `remove` を挟んで同じ node を読み直す関係が使う。
+-/
+theorem removeSpec_data {out : DOMState} {c : NodeId} {b : Bool}
+    (hq : RemoveSpec s c b out) {m : NodeId} {d : NodeData} (hd : s.tree.get? m = some d)
+    (hm : ∀ p, parentOf s.tree c = some p → m ≠ p) :
+    ∃ d', out.tree.get? m = some d' ∧ d'.kind = d.kind ∧ d'.children = d.children := by
+  obtain ⟨parent, -, hpre, -, -, -, htr, -, -⟩ := hq
+  obtain ⟨d', hd'⟩ := treeRemoved_exists htr hd
+  obtain ⟨hk, -⟩ := htr.sameData m d d' hd hd'
+  refine ⟨d', hd', hk, ?_⟩
+  have hch : childrenOf out.tree m = childrenOf s.tree m := htr.otherChildren m (hm parent hpre)
+  rw [childrenOf_eq hd', childrenOf_eq hd] at hch
+  exact hch
+
 end Dom.Spec
