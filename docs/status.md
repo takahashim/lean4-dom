@@ -3421,14 +3421,55 @@ happy-dom も同じところを通してしまう。ほかに happy-dom では
 作った node の node document が一つめになる、`createElement("")` の例外名が
 `InvalidCharacterError` でない、という三つが出た。
 
+### 次
+
+生成 scenario にも出す。
+
+## 生成 scenario にも node 生成を出した
+
+`test/generate.rb` が八つの操作を作るようにした。作った node の id は
+後続の操作でも使えるので、`createElement` して `appendChild` する、
+`importNode` した copy を木に入れる、といった列が出る。
+
+### 生成器は「必ず成功する形」しか作らない
+
+作った node の id は「木にある id の最大より一つ大きいもの」なので、
+**失敗すると生成器の予測が実際とずれる**。以降の操作が別の node を指してしまうので、
+名前の検査に落ちる `createElement("")` のような形は生成しない
+（そちらは固定 scenario で見る）。`importNode` に Document を渡さないのも同じ理由である。
+
+`adoptNode` は node を作らないので、Document を渡して NotSupportedError を撫でてよい。
+
+`deep` な clone / import は作る node の数が木の形で決まり、生成器には予測できない。
+一本の中でそれを出したあとは、新しい node を作る操作をもう出さないことにした。
+
+### 出てきた findings
+
+150 本（seed 4242）で七本が不一致になり、原因は三つだった。どれも jsdom は
+model と一致するので、model の読みの裏は取れている。固定 scenario にして残した。
+
+| finding | 症状 | 固定 scenario |
+| --- | --- | --- |
+| 12 | `importNode(document)` が NotSupportedError にならない（step 1 が無い） | `import-node-copies-into-the-receiver` |
+| 13 | `importNode` した ProcessingInstruction が Comment（data は `"?pi …"`）になる | `import-node-keeps-the-interface` |
+| 14 | `importNode` した SVG element が HTML namespace になり、tagName も大文字になる | `import-node-keeps-the-namespace` |
+| 15 | `document.cloneNode(deep)` の copy に `html` / `head` / `body` が生えている | `clone-document-copies-only-its-children` |
+
+13 / 14 / 15 はどれも "clone a single node" の step 2-3（copy は原本と同じ
+interface・同じ namespace を持ち、document の copy は空である）に当たる。
+
+`--capabilities` にも差が出た。Dommy の `cloneNode` は Document / Element /
+DocumentType にしかなく、Text・Comment・ProcessingInstruction・DocumentFragment は
+持っていない。`cloneNode` は `Node` の method なのでどの node にもあるはずである。
+
 ### まだ無いもの
 
-生成 scenario（`test/generate.rb`）はまだこれらの操作を作らない。
-作った id を後続の操作で使う必要があるので、生成器の側に id の追跡が要る。
+非 HTML document は相変わらず作れない。`importNode` の options が dictionary の形も
+対象外のままである。
 
 ### 次
 
-生成 scenario にも出す。そのあと roadmap §8.6 の `Attr` identity。
+roadmap §8.6 の `Attr` identity。
 
 ## 生成 scenario の最小化を広げた
 

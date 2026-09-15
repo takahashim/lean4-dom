@@ -1,0 +1,18 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-clone",
+    "algorithm": ["clone a single node", "importNode(node, options)"],
+    "steps": "clone a single node の step 2「create an element を document・node の local name・node の namespace・node の namespace prefix で呼ぶ」",
+    "note": "copy の namespace は原本のものである。受け手が HTML document でも、SVG namespace の element の copy は SVG のままで、tagName も大文字にならない。attribute も写る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "namespace": "http://www.w3.org/2000/svg", "localName": "rect",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "data-x", "value": "1" }] }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "importNode", "document": 0, "node": 1, "deep": false }
+  ]
+}

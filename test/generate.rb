@@ -37,7 +37,20 @@ module Generate
            walkerPreviousSibling walkerNextSibling walkerPreviousNode walkerNextNode
            replaceData appendData insertData deleteData setData
            setAttribute setAttributeNS removeAttribute removeAttributeNS
-           toggleAttribute].freeze
+           toggleAttribute
+           createElement createElementNS createTextNode createComment
+           createDocumentFragment cloneNode importNode adoptNode].freeze
+
+  # 受け手が Document である操作（§4.5）。
+  DOCUMENT_OPS = %w[createElement createElementNS createTextNode createComment
+                    createDocumentFragment importNode adoptNode].freeze
+
+  # node を作る操作。生成器は「作った node にどの id が付くか」を追う必要がある。
+  #
+  # `adoptNode` は node を作らないので入らない。`cloneNode` は受け手が Document とは
+  # 限らないので `DOCUMENT_OPS` には入らない。
+  CREATE_OPS = %w[createElement createElementNS createTextNode createComment
+                  createDocumentFragment cloneNode importNode].freeze
 
   # 仕様上どの interface がどの操作を持つか。
   #   Node        すべての node
@@ -49,7 +62,7 @@ module Generate
   # 生成する event の type。少なくしておくと listener と当たりやすい。
   EVENT_TYPES = %w[a b].freeze
 
-  NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize
+  NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize cloneNode
                 compareDocumentPosition nodeContains getRootNode isEqualNode
                 getTextContent getNodeValue
                 dispatchEvent addEventListener removeEventListener
@@ -90,7 +103,7 @@ module Generate
   ATTR_NAMESPACES = [nil, "http://example.com/ns", XML_NS, XMLNS_NS].freeze
 
   SPEC_OPS = {
-    "document" => NODE_OPS + PARENT_NODE_OPS,
+    "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS,
     "documentFragment" => NODE_OPS + PARENT_NODE_OPS,
     "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS,
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -207,8 +220,11 @@ module Generate
   end
 
   def random_operation(rng, ids, ops, iterator_count = 0, observer_count = 0, range_count = 0,
-                       walker_count = 0, listener_count = 0)
+                       walker_count = 0, listener_count = 0, kinds: {}, can_create: false)
     op = ops.sample(random: rng)
+    if DOCUMENT_OPS.include?(op) || op == "cloneNode"
+      return node_creating_operation(rng, ids, op, kinds, can_create)
+    end
     if ITERATOR_OPS.include?(op)
       return nil if iterator_count.zero?
 
@@ -352,11 +368,64 @@ module Generate
   end
 
   # 受け手（method を呼ぶ相手）の id。§4.4 の query は `node` を受け手に取る。
+  # §4.5 の factory と §4.4 `cloneNode` / §4.5 `importNode` / `adoptNode`。
+  #
+  # **必ず成功する形だけを作る。** 作った node の id は「木にある id の最大より
+  # 一つ大きいもの」なので、失敗すると生成器の予測が実際とずれ、以降の操作が
+  # 別の node を指してしまう。名前の検査に落ちる場合は固定 scenario で見る。
+  #
+  # `deep` な clone / import は作る node の数が木の形で決まり、生成器には予測できない。
+  # そちらを出したあとは、`scenario` 側が新しい node を作る操作をもう出さない。
+  def node_creating_operation(rng, ids, op, kinds, can_create)
+    return nil if CREATE_OPS.include?(op) && !can_create
+
+    docs = ids.select { |i| kinds[i] == "document" }
+    return nil if op != "cloneNode" && docs.empty?
+
+    doc = docs.sample(random: rng)
+    case op
+    when "createElement"
+      { "op" => op, "document" => doc, "localName" => ELEMENT_NAMES.sample(random: rng) }
+    when "createElementNS"
+      ident = element_identity(rng)
+      qn = ident["prefix"] ? "#{ident['prefix']}:#{ident['localName']}" : ident["localName"]
+      { "op" => op, "document" => doc, "namespace" => ident["namespace"], "name" => qn }
+    when "createTextNode", "createComment"
+      { "op" => op, "document" => doc, "data" => ["x", "yz", ASTRAL][rng.rand(3)] }
+    when "createDocumentFragment"
+      { "op" => op, "document" => doc }
+    when "importNode"
+      # Document を渡すと NotSupportedError になり node が作られないので、避ける。
+      src = ids.reject { |i| kinds[i] == "document" }.sample(random: rng)
+      return nil if src.nil?
+
+      { "op" => op, "document" => doc, "node" => src, "deep" => rng.rand < 0.4 }
+    when "adoptNode"
+      # こちらは node を作らないので、Document を渡して NotSupportedError も撫でる。
+      { "op" => op, "document" => doc, "node" => ids.sample(random: rng) }
+    else
+      { "op" => op, "node" => ids.sample(random: rng), "deep" => rng.rand < 0.4 }
+    end
+  end
+
+  # 作った node の kind。`scenario` が id を追うのに使う。
+  def created_kind(op, kinds)
+    case op["op"]
+    when "createElement", "createElementNS" then "element"
+    when "createTextNode" then "text"
+    when "createComment" then "comment"
+    when "createDocumentFragment" then "documentFragment"
+    else kinds[op["node"]]
+    end
+  end
+
   NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
                          getTextContent getNodeValue
                          lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 
   def receiver_id(op)
+    return op["document"] if DOCUMENT_OPS.include?(op["op"])
+    return op["node"] if op["op"] == "cloneNode"
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
     return op["node"] if NODE_RECEIVER_OPS.include?(op["op"])
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
@@ -608,12 +677,15 @@ module Generate
     nodes = build_tree(rng, node_count, doctype_prob: doctype_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
+    # 作った node に付く id を追う。model の `freshId` と同じ規則である。
+    next_id = ids.max + 1
+    can_create = true
     operations = []
     attempts = 0
     while operations.size < op_count && attempts < op_count * 100
       attempts += 1
       op = random_operation(rng, ids, ops, iterator_count, observer_count, range_count,
-                            walker_count, listener_count)
+                            walker_count, listener_count, kinds: kinds, can_create: can_create)
       next if op.nil?
       if EVENT_OPS.include?(op["op"])
         # 受け手は EventTarget なので kind の絞り込みは要らない。
@@ -645,6 +717,16 @@ module Generate
       next if allow && !allow.call(op, kind)
 
       operations << op
+      next unless CREATE_OPS.include?(op["op"])
+
+      if op["deep"]
+        # 何個の node ができるかは木の形で決まる。以降は新しい node を作らない。
+        can_create = false
+      else
+        ids << next_id
+        kinds[next_id] = created_kind(op, kinds)
+        next_id += 1
+      end
     end
     { "nodes" => nodes, "ranges" => random_ranges(rng, nodes, range_count),
       "iterators" => random_iterators(rng, nodes, iterator_count),

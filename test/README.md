@@ -236,6 +236,11 @@ tree order（preorder）でそれを順に使う。runner も同じ規則で振�
 `adoptNode` は node を作らないので、返るのは渡した id のままである。
 実装が別の wrapper を返していれば id が引けず `"?"` になって不一致に出る。
 
+生成器（`generate.rb`）は **必ず成功する形だけ**を作る。失敗すると作った node の
+id の予測が実際とずれ、以降の操作が別の node を指してしまうからである。
+名前の検査に落ちる形（`createElement("")` など）と、`deep` な clone / import の
+あとの生成は出さない。
+
 `observe` の options は、省略と `false` を区別する。
 `attributes` と `characterData` は IDL に既定値が無く、`observe` の step 1-2 が
 「存在しないなら true にする」ので、書かないことに意味がある。

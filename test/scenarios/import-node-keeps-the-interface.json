@@ -1,0 +1,20 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-clone",
+    "algorithm": ["clone a single node", "importNode(node, options)"],
+    "steps": "clone a single node の step 3「それ以外は node と同じ interface を実装する node を作る」",
+    "note": "copy は原本と同じ interface でなければならない。ProcessingInstruction を import したら ProcessingInstruction が返る。Comment と並べてあるのは、片方だけ通る実装を切り分けるためである。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div" },
+    { "id": 2, "kind": "processingInstruction", "parent": 1, "data": "d" },
+    { "id": 3, "kind": "comment", "parent": 1, "data": "c" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "importNode", "document": 0, "node": 3, "deep": false },
+    { "op": "importNode", "document": 0, "node": 2, "deep": false }
+  ]
+}

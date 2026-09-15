@@ -1,0 +1,19 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-clone",
+    "algorithm": ["clone a node", "clone a single node"],
+    "steps": "clone a single node の step 3「node が document なら、node と同じ interface を実装する document を作る」 / clone a node の step 5「subtree なら children を tree order で clone する」",
+    "note": "Document の copy に children が自然に生えることは無い。copy が持つのは、原本の children を clone したものだけである。children が無い document を deep に clone したら、copy も children を持たない。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div" },
+    { "id": 2, "kind": "text", "parent": 1, "data": "hi" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "cloneNode", "node": 0, "deep": false },
+    { "op": "cloneNode", "node": 0, "deep": true }
+  ]
+}

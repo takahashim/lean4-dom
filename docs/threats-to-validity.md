@@ -50,10 +50,14 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 （木にある id の最大より一つ大きいもの、deep な clone は tree order）で
 作った node に id を振ることで比べている。
 
-**残る危険。** 生成 scenario はまだこれらの操作を作らないので、比べているのは
-固定 scenario の範囲だけである。また、runner は HTML document しか作れないので、
-`createElement` の step 2（ASCII lowercase）と step 4（HTML namespace）が
-効かない側（XML document）は比べていない。
+生成 scenario もこれらを作る。ただし **必ず成功する形だけ**である。
+作った node の id は「木にある id の最大より一つ大きいもの」なので、
+失敗すると生成器の予測が実際とずれ、以降の操作が別の node を指してしまう。
+名前の検査に落ちる形と、`deep` な clone / import のあとの生成は出さない。
+
+**残る危険。** runner は HTML document しか作れないので、`createElement` の
+step 2（ASCII lowercase）と step 4（HTML namespace）が効かない側（XML document）は
+比べていない。名前の検査に落ちる形も固定 scenario の範囲だけである。
 
 ## 4. model 側の既知の近似
 
