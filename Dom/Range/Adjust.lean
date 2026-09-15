@@ -139,6 +139,14 @@ theorem liveRangeInsertAdjust_nodes (s : DOMState) (parent : NodeId) (child : Op
     (liveRangePreRemove s n).observers = s.observers := by
   unfold liveRangePreRemove; split <;> rfl
 
+@[simp] theorem liveRangePreRemove_pendingObservers (s : DOMState) (n : NodeId) :
+    (liveRangePreRemove s n).pendingObservers = s.pendingObservers := by
+  unfold liveRangePreRemove; split <;> rfl
+
+@[simp] theorem liveRangePreRemove_microtaskQueued (s : DOMState) (n : NodeId) :
+    (liveRangePreRemove s n).microtaskQueued = s.microtaskQueued := by
+  unfold liveRangePreRemove; split <;> rfl
+
 @[simp] theorem liveRangeInsertAdjust_registrations (s : DOMState) (p : NodeId)
     (c : Option NodeId) (k : Nat) :
     (liveRangeInsertAdjust s p c k).registrations = s.registrations := by

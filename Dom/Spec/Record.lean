@@ -70,6 +70,19 @@ structure ObserverOnly (s s' : DOMState) : Prop where
   iterators : s'.iterators = s.iterators
   registrations : s'.registrations = s.registrations
 
+/--
+observer の側が何も変わらないこと。`ObserverOnly` の裏である。
+
+`move` の step 10-18 のように、木と live object だけを動かして record を
+最後にまとめて積む algorithm が使う。`remove` と違って transient registered
+observer も足さないので、registration まで含めて動かない。
+-/
+structure ObserversUntouched (s s' : DOMState) : Prop where
+  registrations : s'.registrations = s.registrations
+  observers : s'.observers = s.observers
+  pendingObservers : s'.pendingObservers = s.pendingObservers
+  microtaskQueued : s'.microtaskQueued = s.microtaskQueued
+
 /-! ## characterData の record -/
 
 /--

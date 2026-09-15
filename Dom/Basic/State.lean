@@ -238,6 +238,12 @@ def withTree (s : DOMState) (t : Tree) : DOMState := { s with tree := t }
 @[simp] theorem withTree_registrations (s : DOMState) (t : Tree) :
     (s.withTree t).registrations = s.registrations := rfl
 
+@[simp] theorem withTree_pendingObservers (s : DOMState) (t : Tree) :
+    (s.withTree t).pendingObservers = s.pendingObservers := rfl
+
+@[simp] theorem withTree_microtaskQueued (s : DOMState) (t : Tree) :
+    (s.withTree t).microtaskQueued = s.microtaskQueued := rfl
+
 /-- 木だけを変える操作を状態に持ち上げる。 -/
 def mapTree (s : DOMState) (f : Tree → Except DOMException Tree) : Except DOMException DOMState :=
   match f s.tree with

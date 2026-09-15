@@ -2785,9 +2785,56 @@ pin は PR 43 の head に上げた。この状態で
 
 になった。
 
+## `move` の関係意味論
+
+`move` は `remove` も `insert` も呼ばない。仕様が「pre-remove steps を走らせて
+木から外し、offset を調整して入れる」と段を並べて書いているので、
+関係もその段をそのまま並べた（`Dom/Spec/Move.lean`）。
+
+`remove` との差は二つある。
+
+* **transient registered observer を足さない**（`remove` の step 20 は `move` に無い）
+* **record は最後に二つまとめて積む**（旧 parent に removal、新 parent に addition）
+
+前者を言うために `ObserversUntouched`（`ObserverOnly` の裏）を足した。
+registration まで含めて動かない、が `move` の外し方である。
+
+### `detachWithLiveAdjust` は「observer を抑えた remove」の前半である
+
+木から外す段の soundness は `remove` のものを借りた。`move` が呼ぶのは
+`detachWithLiveAdjust` で、`remove` はその後ろに transient registered observer と
+record を足しただけである。足す側は木も live range も NodeIterator も触らないので、
+`suppressObservers` を立てた `remove` に読み替えれば
+`remove_sound_range` / `_iterator` / `_tree` がそのまま効く。
+
+### `match` は証明の中で書くと別物になる
+
+step 17 の「挿入前の兄弟」は `move` の定義では
+
+```lean
+match child with
+| some c => previousSibling s₁.tree c
+| none => (childrenOf s₁.tree newParent).getLast?
+```
+
+と書いてある。同じ式を証明の中に書くと、周りの仮説を巻き込んだ**別の補助関数**に
+なってしまい、定義の側の項と噛み合わない。`child` で場合分けして `match` を
+潰してから進めた。`Option.elim` に書き換えるのも同じ理由で駄目である。
+
+### congruence は道具が揃っていた
+
+`move` の congruence（`Dom/Spec/MoveCongr.lean`）は、`remove` の三つの一意性と
+`insert` の `rangeInsertAdjusted_congr` / `treeInserted_congr`、それに
+`treeRecordQueued_congr` を繋ぐだけで済んだ。`insert` と違って `adopt` を
+挟まないので、well-formed も document であることも要らない。
+
+これで §4.2.3 と §4.2.4 の mutation は `remove` / `adopt` / `insert` / `replace` /
+`move` の五つとも、関係・soundness・一意性が揃った。
+
 ### 次
 
-`move` の関係である。
+completeness の実現性（関係が満たせるなら実行関数は失敗しない）を
+`insert` 以降にも広げるか、`StructurallyValid` に DocumentFragment の規則を足すかである。
 
 ## 生成 scenario の最小化を広げた
 

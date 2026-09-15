@@ -102,6 +102,12 @@ def iteratorPreRemove (s : DOMState) (node : NodeId) : DOMState :=
 @[simp] theorem iteratorPreRemove_observers (s : DOMState) (n : NodeId) :
     (iteratorPreRemove s n).observers = s.observers := rfl
 
+@[simp] theorem iteratorPreRemove_pendingObservers (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).pendingObservers = s.pendingObservers := rfl
+
+@[simp] theorem iteratorPreRemove_microtaskQueued (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).microtaskQueued = s.microtaskQueued := rfl
+
 
 @[simp] theorem iteratorPreRemove_ranges (s : DOMState) (n : NodeId) :
     (iteratorPreRemove s n).ranges = s.ranges := rfl
