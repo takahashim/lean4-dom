@@ -24,16 +24,18 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
 * MutationObserver に積まれた record の列
 * microtask checkpoint で各 observer の callback に配送された record
 * 操作の **戻り値**（返す node、boolean、record の列）
+* 生成した node（§4.5 の factory、`cloneNode`、`importNode`）。runner が
+  model の `freshId` と同じ規則で id を振るので、作った node も id で比べられる
 * 操作の成否と例外
 * 例外が起きた場合に状態が変わらないこと（`observe` に前の状態を渡すことで表す）
 
 ## 比較しない
 
 * store の表現（entry の並び、id の割り当て方）。`observe` は id の昇順に正規化する。
-* object identity のうち wrapper そのもの。model は node を生成しないので
-  wrapper を作る API の同一性は観測できない（roadmap §13.3）。
-  node を返す method の戻り値は `NodeId` で比べるので、
-  「返ってきたのは渡した node そのものか」は観測できる。
+* object identity のうち wrapper そのもの（roadmap §13.3）。node を返す method の
+  戻り値は `NodeId` で比べるので、「返ってきたのは渡した node そのものか」
+  （`adoptNode` が copy を作らないことなど）は観測できる。
+  実装が同じ node に別の wrapper を返すと id が引けず、不一致として出る。
 * `Attr` の identity。`setAttributeNode` と `NamedNodeMap` はそれを要求するので扱わない。
 * 文字列の内部表現。`data` は Lean の `String` として比べる。UTF-16 の code unit 境界は
   扱わない（roadmap §13.1）。

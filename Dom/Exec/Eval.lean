@@ -146,6 +146,25 @@ def buildState (sc : Scenario) : Except String DOMState := do
     throw "初期状態の attribute list が妥当でない（Element 以外が持つ、鍵が重複、prefix に namespace が無い）"
   return s
 
+/-- node と状態を返す操作の戻り値。失敗した step の戻り値は観測に出ない。 -/
+def createdNode (r : Except DOMException (NodeId × DOMState)) : ReturnValue :=
+  match r with
+  | .error _ => .unit
+  | .ok (n, _) => .node (some n)
+
+/-- node と状態を返す操作を、状態だけを返す形にする。 -/
+def dropNode (r : Except DOMException (NodeId × DOMState)) : Except DOMException DOMState :=
+  match r with
+  | .error e => .error e
+  | .ok (_, s) => .ok s
+
+theorem dropNode_ok {r : Except DOMException (NodeId × DOMState)} {s' : DOMState}
+    (h : dropNode r = .ok s') : ∃ n, r = .ok (n, s') := by
+  unfold dropNode at h
+  split at h
+  · simp at h
+  · next n s₀ => exact ⟨n, by rw [← Except.ok.inj h]⟩
+
 /--
 操作の戻り値。
 
@@ -173,6 +192,15 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     | .error _ => .unit
     | .ok (_, b) => .bool b
   | .takeRecords mo => .records (MutationObserver.takeRecords s mo).2
+  -- 作る操作は、作った node を返す。id は `freshId`（操作前の木から決まる）である。
+  | .createElement doc ln => createdNode (createElement s ⟨doc⟩ ln)
+  | .createElementNS doc ns qn => createdNode (createElementNS s ⟨doc⟩ ns qn)
+  | .createTextNode doc d => createdNode (createTextNode s ⟨doc⟩ d)
+  | .createComment doc d => createdNode (createComment s ⟨doc⟩ d)
+  | .createDocumentFragment doc => createdNode (createDocumentFragment s ⟨doc⟩)
+  | .cloneNode n deep => createdNode (cloneNode s ⟨n⟩ deep)
+  | .importNode doc n deep => createdNode (importNode s ⟨doc⟩ ⟨n⟩ deep)
+  | .adoptNode doc n => createdNode (adoptNode s ⟨doc⟩ ⟨n⟩)
   -- 以下はすべて仕様上 `undefined` を返す。
   -- **catch-all にしない。** そうすると戻り値を持つ操作を足したときに
   -- ここを直し忘れても通ってしまう。網羅性検査に見張らせる。
@@ -371,6 +399,14 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .observe mo target opts => MutationObserver.observe s mo ⟨target⟩ opts
   | .disconnect mo => .ok (MutationObserver.disconnect s mo)
   | .takeRecords mo => .ok (MutationObserver.takeRecords s mo).1
+  | .createElement doc ln => dropNode (createElement s ⟨doc⟩ ln)
+  | .createElementNS doc ns qn => dropNode (createElementNS s ⟨doc⟩ ns qn)
+  | .createTextNode doc d => dropNode (createTextNode s ⟨doc⟩ d)
+  | .createComment doc d => dropNode (createComment s ⟨doc⟩ d)
+  | .createDocumentFragment doc => dropNode (createDocumentFragment s ⟨doc⟩)
+  | .cloneNode n deep => dropNode (cloneNode s ⟨n⟩ deep)
+  | .importNode doc n deep => dropNode (importNode s ⟨doc⟩ ⟨n⟩ deep)
+  | .adoptNode doc n => dropNode (adoptNode s ⟨doc⟩ ⟨n⟩)
   | .notify => .ok (notifyMutationObservers s).1
 
 /--

@@ -1,0 +1,21 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-document-importnode",
+    "algorithm": ["importNode(node, options)"],
+    "steps": "1 Document なら NotSupportedError / 最後に clone a node を document = this、subtree = options で呼ぶ",
+    "note": "copy は新しい node で、node document は受け手である。原本は元の document に残る。Document を渡すと NotSupportedError。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div" },
+    { "id": 2, "kind": "text", "parent": 1, "data": "hi" },
+    { "id": 3, "kind": "document" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "importNode", "document": 3, "node": 1, "deep": true },
+    { "op": "appendChild", "parent": 3, "node": 4 },
+    { "op": "importNode", "document": 3, "node": 0, "deep": false }
+  ]
+}

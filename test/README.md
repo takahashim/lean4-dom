@@ -219,6 +219,22 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `observe` | `observer`（`observers` の index）, `target`, および `MutationObserverInit` の各 key |
 | `disconnect` / `takeRecords` | `observer` |
 | `notify` | 無し（microtask checkpoint。"notify mutation observers" を走らせる） |
+| `createElement` | `document`, `localName` |
+| `createElementNS` | `document`, `namespace`（null 可）, `name` |
+| `createTextNode` / `createComment` | `document`, `data` |
+| `createDocumentFragment` | `document` |
+| `cloneNode` | `node`, `deep` |
+| `importNode` | `document`, `node`, `deep` |
+| `adoptNode` | `document`, `node` |
+
+### 作った node の id
+
+model の `freshId` は **木にある id の最大より一つ大きいもの**で、deep な clone は
+tree order（preorder）でそれを順に使う。runner も同じ規則で振る
+（`register_subtree` / `registerSubtree`）。これで、生成した node も id で比べられる。
+
+`adoptNode` は node を作らないので、返るのは渡した id のままである。
+実装が別の wrapper を返していれば id が引けず `"?"` になって不一致に出る。
 
 `observe` の options は、省略と `false` を区別する。
 `attributes` と `characterData` は IDL に既定値が無く、`observe` の step 1-2 が
@@ -227,7 +243,12 @@ Dommy を読み込んでいない process の仕事にしてある。
 
 仕様の `before()` / `after()` / `replaceWith()` / `replaceChildren()` は
 可変長引数を "converting nodes into a node" で一つの node にまとめるが、
-本 model は node を生成しないので、まとめた結果の node を引数に取る。
+その変換は呼び出し側で済ませた形（まとめた結果の node）を引数に取る。
+
+document は必ず HTML document になる（runner は `Window` の document と
+`createHTMLDocument` しか使えない）。`isHTMLDocument: false` を指定した scenario は
+Dommy 側の runner が断る。黙って HTML document を返すと、`createElement` の
+step 2（ASCII lowercase）と step 4（HTML namespace）が偽の不一致になるからである。
 
 初期状態は `WellFormed` を満たす必要があり、Lean 側は読み込み時に
 `checkWellFormed` で拒否する。加えて DOM の node tree 制約も満たす必要がある

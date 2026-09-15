@@ -194,6 +194,22 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .deleteData (← natField j "node") (← natField j "offset") (← natField j "count")
   | "setData" => return .setData (← natField j "node") (← strField j "data" "")
   | "normalize" => return .normalize (← natField j "target")
+  | "createElement" =>
+    return .createElement (← natField j "document") (← strField j "localName" "")
+  | "createElementNS" =>
+    return .createElementNS (← natField j "document") (← strField? j "namespace")
+      (← strField j "name" "")
+  | "createTextNode" =>
+    return .createTextNode (← natField j "document") (← strField j "data" "")
+  | "createComment" =>
+    return .createComment (← natField j "document") (← strField j "data" "")
+  | "createDocumentFragment" => return .createDocumentFragment (← natField j "document")
+  | "cloneNode" =>
+    return .cloneNode (← natField j "node") ((← boolField? j "deep").getD false)
+  | "importNode" =>
+    return .importNode (← natField j "document") (← natField j "node")
+      ((← boolField? j "deep").getD false)
+  | "adoptNode" => return .adoptNode (← natField j "document") (← natField j "node")
   | "rangeSetStart" =>
     return .rangeSetStart (← natField j "range") (← nodeField j "node") (← natField j "offset")
   | "rangeSetEnd" =>

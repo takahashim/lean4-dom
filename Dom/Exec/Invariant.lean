@@ -4,6 +4,8 @@ import Dom.Validity.Normalize
 import Dom.Validity.RangeApi
 import Dom.Validity.Walkers
 import Dom.Validity.Events
+import Dom.Validity.Clone
+import Dom.Properties.Import
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -85,6 +87,30 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | deleteData n o c => exact admissible_deleteData h hop
   | setData n d => exact admissible_setData h hop
   | normalize tgt => exact admissible_normalize h hop
+  | createElement doc ln =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop
+    exact admissible_createElement h hr
+  | createElementNS doc ns qn =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop
+    exact admissible_createElementNS h hr
+  | createTextNode doc d =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop
+    exact admissible_createTextNode h hr
+  | createComment doc d =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop
+    exact admissible_createComment h hr
+  | createDocumentFragment doc =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop
+    exact admissible_createDocumentFragment h hr
+  | cloneNode n deep =>
+    obtain ⟨c, hr⟩ := dropNode_ok hop
+    exact admissible_cloneNode h hr
+  | importNode doc n deep =>
+    obtain ⟨c, hr⟩ := dropNode_ok hop
+    exact admissible_importNode h hr
+  | adoptNode doc n =>
+    obtain ⟨c, hr⟩ := dropNode_ok hop
+    exact admissible_adoptNode h hr
   | rangeSetStart i n o =>
     cases n with
     | none => simp [applyOperation, withNode] at hop

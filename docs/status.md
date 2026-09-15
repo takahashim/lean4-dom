@@ -3366,9 +3366,69 @@ shadow root を弾く step も、shadow tree が対象外なので無い。
 
 ### 次
 
-roadmap §8.6 の `Attr` identity。ただしこれは `NamedNodeMap` /
-`setAttributeNode` / `InUseAttributeError` まで一気に広がるので、
-その前に差分テストへ node 生成を出すほうが先かもしれない。
+差分テストへ node 生成を出す。
+
+## node 生成を差分テストに出した
+
+三回ぶんの新しい model 表面（§4.5 の factory・`cloneNode`・`importNode` /
+`adoptNode`）を、固定 scenario で実装と突き合わせられるようにした。
+
+### 作った node の id をどう合わせるか
+
+これまで node 生成を比較対象から外していたのは、model が返すのが `NodeId` で、
+実装が返すのは object だからである。突き合わせる規則が無かった。
+
+規則は model 側に既にあった。`freshId` は **store にある id の最大より一つ大きいもの**で、
+deep な clone はそれを tree order（preorder）で順に使う。runner も同じ規則で
+作った node を登録すればよい（`register_subtree` / `registerSubtree`）。
+これで生成した node も id で比べられる。
+
+`adoptNode` は node を作らないので、返るのは渡した id のままである。
+実装が別の wrapper を返していれば id が引けず `"?"` になって不一致に出るので、
+**「copy を作らない」こと自体が観測対象になる**。
+
+### 入れたもの
+
+| 層 | 変更 |
+| --- | --- |
+| model | `Operation` に八つ足し、`applyOperation` / `returnValueOf` / `admissible_applyOperation` を伸ばした |
+| Dommy | `dommy_runner.rb` に生成 op と `register_subtree` |
+| jsdom / happy-dom / browser | `test/js/scenario.js` に同じもの |
+| 固定 scenario | 五本 |
+
+`admissible_applyOperation`（`Dom/Exec/Invariant.lean`）は操作ごとに妥当性保存を
+要求するので、ここで前三回の `admissible_createsNode` / `admissible_cloneNode` /
+`admissible_importNode` / `admissible_adoptNode` がそのまま効いた。
+
+### 非 HTML document は断ることにした
+
+`createElement` の step 2（ASCII lowercase）と step 4（HTML namespace）は
+「this が HTML document か」で分かれる。ところが runner は `Window` の document と
+`createHTMLDocument` しか使えないので、必ず HTML document になる。
+`isHTMLDocument: false` を黙って HTML document で代用すると偽の不一致が出るので、
+Dommy 側の builder が断るようにした。XML document の側は当面比べられない。
+
+### finding 12：Dommy の `importNode` が Document を弾かない
+
+`importNode(node, options)` の step 1 は「node が document か shadow root なら
+NotSupportedError」だが、Dommy の `Document#import_node` にその検査が無く、
+`importNode(otherDocument)` が成功してしまう。jsdom は仕様どおり
+NotSupportedError を投げる。`import-node-copies-into-the-receiver` の step 2 がこれで、
+固定 scenario は当面この一本だけ赤である。
+
+happy-dom も同じところを通してしまう。ほかに happy-dom では
+`adoptNode` が subtree の node document を付け替えない、二つめの document で
+作った node の node document が一つめになる、`createElement("")` の例外名が
+`InvalidCharacterError` でない、という三つが出た。
+
+### まだ無いもの
+
+生成 scenario（`test/generate.rb`）はまだこれらの操作を作らない。
+作った id を後続の操作で使う必要があるので、生成器の側に id の追跡が要る。
+
+### 次
+
+生成 scenario にも出す。そのあと roadmap §8.6 の `Attr` identity。
 
 ## 生成 scenario の最小化を広げた
 

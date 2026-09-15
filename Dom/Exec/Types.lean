@@ -1,4 +1,5 @@
 import Dom.Mutation.Api
+import Dom.Mutation.Import
 import Dom.Attribute.Algorithms
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
@@ -137,6 +138,24 @@ inductive Operation where
   | disconnect (observer : Nat)
   /-- `MutationObserver.takeRecords()`。 -/
   | takeRecords (observer : Nat)
+  /--
+  §4.5 の factory。受け手は Document である。
+
+  作った node には、runner が **木にある id の最大より一つ大きいもの**を
+  作った順に振る（model の `freshId` と同じ規則）。deep な clone は
+  tree order で振る。これで生成した node も id で比べられる。
+  -/
+  | createElement (document : Nat) (localName : String)
+  | createElementNS (document : Nat) («namespace» : Option String) (qualifiedName : String)
+  | createTextNode (document : Nat) (data : String)
+  | createComment (document : Nat) (data : String)
+  | createDocumentFragment (document : Nat)
+  /-- §4.4 `cloneNode(deep)`。 -/
+  | cloneNode (node : Nat) (deep : Bool)
+  /-- §4.5 `importNode(node, deep)`。 -/
+  | importNode (document node : Nat) (deep : Bool)
+  /-- §4.5 `adoptNode(node)`。 -/
+  | adoptNode (document node : Nat)
   /-- microtask checkpoint。"notify mutation observers" を走らせる。 -/
   | notify
 deriving Repr

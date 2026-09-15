@@ -49,7 +49,25 @@ module DommyRunner
     "dispatchEvent" => :dispatch_event,
     "addEventListener" => :add_event_listener,
     "removeEventListener" => :remove_event_listener,
-    "normalize" => :normalize
+    "normalize" => :normalize,
+    "createElement" => :create_element,
+    "createElementNS" => :create_element_ns,
+    "createTextNode" => :create_text_node,
+    "createComment" => :create_comment,
+    "createDocumentFragment" => :create_document_fragment,
+    "cloneNode" => :clone_node,
+    "importNode" => :import_node,
+    "adoptNode" => :adopt_node
+  }.freeze
+
+  # node を作る操作。受け手は Document である（cloneNode を除く）。
+  CREATE_OPS = %w[createElement createElementNS createTextNode createComment
+                  createDocumentFragment importNode adoptNode].freeze
+
+  # nodeType から scenario の kind 名へ。作った node に kind を付けるのに使う。
+  NODE_TYPE_KIND = {
+    1 => "element", 3 => "text", 4 => "cdataSection", 7 => "processingInstruction",
+    8 => "comment", 9 => "document", 10 => "documentType", 11 => "documentFragment"
   }.freeze
 
   # 受け手が range である操作（§5.5 の Range の method）。
@@ -158,6 +176,13 @@ module DommyRunner
       id = spec["id"]
       data = spec["data"].to_s
       if spec["kind"] == "document"
+        # この harness は `Window` の document しか作れないので、必ず HTML document になる。
+        # scenario が非 HTML document を求めたら黙って HTML document を返さず、断る。
+        # そうしないと `createElement` の step 2 / 4 が偽の不一致になる。
+        if spec["isHTMLDocument"] == false
+          raise "node #{id}: 非 HTML document はこの harness では作れない"
+        end
+
         doc = new_empty_document
         @documents[id] = doc
         @objects[id] = doc
@@ -220,7 +245,9 @@ module DommyRunner
                           iteratorNext iteratorPrevious getRootNode
                           walkerParentNode walkerFirstChild walkerLastChild
                           walkerPreviousSibling walkerNextSibling
-                          walkerPreviousNode walkerNextNode].freeze
+                          walkerPreviousNode walkerNextNode
+                          createElement createElementNS createTextNode createComment
+                          createDocumentFragment cloneNode importNode adoptNode].freeze
 
   def return_value_snapshot(objects, op, returned)
     case op["op"]
@@ -283,6 +310,40 @@ module DommyRunner
 
     objects.each { |id, obj| return id if obj.equal?(node) }
     UNKNOWN_NODE
+  end
+
+  # 作った node の kind。
+  #
+  # Dommy は class によって `node_type` を Ruby の method として持たないので、
+  # bridge 経由の `nodeType` も見る。
+  def node_type_of(node)
+    return node.node_type.to_i if node.respond_to?(:node_type)
+    return node.__js_get__("nodeType").to_i if node.respond_to?(:__js_get__)
+
+    nil
+  end
+
+  def kind_name(node)
+    t = node_type_of(node)
+    raise NotImplementedError, "nodeType" if t.nil?
+
+    NODE_TYPE_KIND.fetch(t) { raise NotImplementedError, "nodeType #{t}" }
+  end
+
+  # 作った node に scenario の id を振る。
+  #
+  # model の `freshId` は **store にある id の最大より一つ大きいもの**で、
+  # deep な clone は tree order（preorder）でそれを順に使う。こちらも同じ規則で振る。
+  # これで、生成した node も id で比べられるようになる。
+  def register_subtree(ctx, node)
+    return nil if node.nil?
+
+    objects = ctx[:objects]
+    id = objects.keys.max.to_i + 1
+    objects[id] = node
+    ctx[:kinds][id] = kind_name(node)
+    children_of(node).each { |c| register_subtree(ctx, c) }
+    id
   end
 
   # Dommy は class によって `parent_node` / `child_nodes` を持たないことがある。
@@ -641,6 +702,37 @@ module DommyRunner
       return obs.__js_call__("takeRecords", [])
     when "notify"
       return run_microtask_checkpoint(ctx[:documents] || {})
+    when *CREATE_OPS
+      doc = objects[op["document"]]
+      raise NotImplementedError, "missing node" if doc.nil?
+      raise NotImplementedError, op["op"] unless doc.respond_to?(OP_METHOD.fetch(op["op"]))
+
+      src = nil
+      if %w[importNode adoptNode].include?(op["op"])
+        src = objects[op["node"]]
+        raise NotImplementedError, "missing node" if src.nil?
+      end
+      node =
+        case op["op"]
+        when "createElement" then doc.create_element(op["localName"].to_s)
+        when "createElementNS" then doc.create_element_ns(op["namespace"], op["name"].to_s)
+        when "createTextNode" then doc.create_text_node(op["data"].to_s)
+        when "createComment" then doc.create_comment(op["data"].to_s)
+        when "createDocumentFragment" then doc.create_document_fragment
+        when "importNode" then doc.import_node(src, op["deep"] ? true : false)
+        when "adoptNode" then doc.adopt_node(src)
+        end
+      # adoptNode は node を作らない。渡した node がそのまま返るので id は既にある。
+      register_subtree(ctx, node) unless op["op"] == "adoptNode"
+      return node
+    when "cloneNode"
+      src = objects[op["node"]]
+      raise NotImplementedError, "missing node" if src.nil?
+      raise NotImplementedError, op["op"] unless src.respond_to?(:clone_node)
+
+      copy = src.clone_node(op["deep"] ? true : false)
+      register_subtree(ctx, copy)
+      return copy
     end
 
     case op["op"]

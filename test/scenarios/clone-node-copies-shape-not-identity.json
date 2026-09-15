@@ -1,0 +1,23 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-clone",
+    "algorithm": ["clone a node", "clone a single node"],
+    "steps": "2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone",
+    "note": "shallow な clone は attribute を写すが children を写さない。deep な clone は subtree ぜんぶを写す。どちらも copy は原本とは別の node なので、原本の隣に入れると両方が木に並ぶ。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div",
+      "attributes": [{ "localName": "id", "value": "a" }] },
+    { "id": 2, "kind": "text", "parent": 1, "data": "hi" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "p" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "cloneNode", "node": 1, "deep": false },
+    { "op": "cloneNode", "node": 1, "deep": true },
+    { "op": "appendChild", "parent": 1, "node": 4 },
+    { "op": "appendChild", "parent": 1, "node": 5 }
+  ]
+}

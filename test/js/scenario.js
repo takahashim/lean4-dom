@@ -50,7 +50,21 @@ const OP_METHOD = {
   setAttributeNS: "setAttributeNS", removeAttribute: "removeAttribute",
   removeAttributeNS: "removeAttributeNS", toggleAttribute: "toggleAttribute",
   dispatchEvent: "dispatchEvent", addEventListener: "addEventListener",
-  removeEventListener: "removeEventListener", normalize: "normalize"
+  removeEventListener: "removeEventListener", normalize: "normalize",
+  createElement: "createElement", createElementNS: "createElementNS",
+  createTextNode: "createTextNode", createComment: "createComment",
+  createDocumentFragment: "createDocumentFragment", cloneNode: "cloneNode",
+  importNode: "importNode", adoptNode: "adoptNode"
+};
+
+// node を作る操作。受け手は Document である（cloneNode を除く）。
+const CREATE_OPS = ["createElement", "createElementNS", "createTextNode", "createComment",
+  "createDocumentFragment", "importNode", "adoptNode"];
+
+// nodeType から scenario の kind 名へ。作った node に kind を付けるのに使う。
+const NODE_TYPE_KIND = {
+  1: "element", 3: "text", 4: "cdataSection", 7: "processingInstruction",
+  8: "comment", 9: "document", 10: "documentType", 11: "documentFragment"
 };
 
 // 値を返すだけの操作と、その IDL 名。
@@ -81,7 +95,7 @@ const CHARACTER_DATA_OPS = ["replaceData", "appendData", "insertData", "deleteDa
 const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
-  "iteratorNext", "iteratorPrevious", "getRootNode", ...WALKER_OPS];
+  "iteratorNext", "iteratorPrevious", "getRootNode", ...WALKER_OPS, ...CREATE_OPS, "cloneNode"];
 
 /* ------------------------------------------------------------------ 初期状態 */
 
@@ -166,14 +180,47 @@ function applyInitialAttributes(node, attrs) {
 
 function makeIdLookup(objects) {
   const byNode = new Map();
-  for (const [id, node] of objects) if (!byNode.has(node)) byNode.set(node, id);
+  const sync = () => {
+    for (const [id, node] of objects) if (!byNode.has(node)) byNode.set(node, id);
+  };
+  sync();
   // `Map` は SameValueZero なので、object の同一性で引ける。
   // 実装が wrapper を作り直していたら見つからず、`?` として不一致に出る。
+  // 途中で作った node は `objects` に足されるので、見つからなければ引き直す。
   return (node) => {
     if (node === null || node === undefined) return null;
-    const id = byNode.get(node);
+    let id = byNode.get(node);
+    if (id === undefined) {
+      sync();
+      id = byNode.get(node);
+    }
     return id === undefined ? UNKNOWN_NODE : id;
   };
+}
+
+/** 作った node の kind。 */
+function kindName(node) {
+  const k = NODE_TYPE_KIND[node?.nodeType];
+  if (!k) throw new Unsupported("nodeType");
+  return k;
+}
+
+/**
+ * 作った node に scenario の id を振る。
+ *
+ * model の `freshId` は **木にある id の最大より一つ大きいもの**で、deep な clone は
+ * tree order（preorder）でそれを順に使う。こちらも同じ規則で振る。
+ * これで、生成した node も id で比べられるようになる。
+ */
+function registerSubtree(ctx, node) {
+  if (node === null || node === undefined) return null;
+  let max = -1;
+  for (const id of ctx.objects.keys()) if (id > max) max = id;
+  const id = max + 1;
+  ctx.objects.set(id, node);
+  ctx.kinds.set(id, kindName(node));
+  for (const c of [...(node.childNodes ?? [])]) registerSubtree(ctx, c);
+  return id;
 }
 
 function elementField(node, name) {
@@ -396,6 +443,36 @@ function apply(ctx, op) {
     case "notify":
       // 配送順は notify set の並びで決まる。こちら側の queue からは復元できない。
       throw new Unsupported("MutationObserver の配送順");
+    case "createElement": case "createElementNS": case "createTextNode":
+    case "createComment": case "createDocumentFragment":
+    case "importNode": case "adoptNode": {
+      const doc = need(objects.get(op.document), "missing node");
+      if (typeof doc[OP_METHOD[op.op]] !== "function") throw new Unsupported(op.op);
+      const src = (op.op === "importNode" || op.op === "adoptNode")
+        ? need(objects.get(op.node), "missing node")
+        : null;
+      let made;
+      switch (op.op) {
+        case "createElement": made = doc.createElement(String(op.localName ?? "")); break;
+        case "createElementNS":
+          made = doc.createElementNS(op.namespace ?? null, String(op.name ?? "")); break;
+        case "createTextNode": made = doc.createTextNode(String(op.data ?? "")); break;
+        case "createComment": made = doc.createComment(String(op.data ?? "")); break;
+        case "createDocumentFragment": made = doc.createDocumentFragment(); break;
+        case "importNode": made = doc.importNode(src, !!op.deep); break;
+        default: made = doc.adoptNode(src); break;
+      }
+      // adoptNode は node を作らない。渡した node がそのまま返るので id は既にある。
+      if (op.op !== "adoptNode") registerSubtree(ctx, made);
+      return made;
+    }
+    case "cloneNode": {
+      const src = need(objects.get(op.node), "missing node");
+      if (typeof src.cloneNode !== "function") throw new Unsupported("cloneNode");
+      const copy = src.cloneNode(!!op.deep);
+      registerSubtree(ctx, copy);
+      return copy;
+    }
     case "dispatchEvent": {
       const target = need(objects.get(op.target), "missing node");
       const event = new ctx.win.Event(String(op.type),

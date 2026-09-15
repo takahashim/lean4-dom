@@ -1,0 +1,20 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-document-createtextnode",
+    "algorithm": ["createTextNode(data)", "createComment(data)", "createDocumentFragment()"],
+    "steps": "どれも「node document を this とする新しい node」を返すだけである",
+    "note": "作った node は parent を持たない。node document は受け手の document で、作った node どうしは繋がっていない。二つめの document で作ったものはそちらに属する。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "document" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "createTextNode", "document": 0, "data": "ab" },
+    { "op": "createComment", "document": 1, "data": "cd" },
+    { "op": "createDocumentFragment", "document": 0 },
+    { "op": "appendChild", "parent": 4, "node": 2 }
+  ]
+}

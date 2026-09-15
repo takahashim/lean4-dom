@@ -1,0 +1,21 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-document-adoptnode",
+    "algorithm": ["adoptNode(node)", "adopt"],
+    "steps": "1 Document なら NotSupportedError / 3 adopt する（parent があれば remove し、subtree の node document を付け替える） / 4 node を返す",
+    "note": "返るのは渡した node そのもので、copy は作られない。元の親からは外れ、subtree ぜんぶの node document が受け手になる。Document を渡すと NotSupportedError。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "div" },
+    { "id": 2, "kind": "text", "parent": 1, "data": "hi" },
+    { "id": 3, "kind": "document" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "adoptNode", "document": 3, "node": 1 },
+    { "op": "appendChild", "parent": 3, "node": 1 },
+    { "op": "adoptNode", "document": 3, "node": 0 }
+  ]
+}

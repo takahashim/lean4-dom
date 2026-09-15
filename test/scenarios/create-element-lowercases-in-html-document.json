@@ -1,0 +1,42 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-document-createelement",
+    "algorithm": [
+      "createElement(localName)",
+      "createElementNS(namespace, qualifiedName)"
+    ],
+    "steps": "createElement 1 valid element local name / 2 HTML document なら ASCII lowercase / 4 HTML document なら HTML namespace。createElementNS は validate and extract を通すだけで lowercase しない",
+    "note": "同じ \"P\" でも createElement は \"p\" になり、createElementNS は \"P\" のままである。step 2 の lowercase が createElement 側にしか無いことがこれで分かる。localName が空なら step 1 で InvalidCharacterError。XML document の側（step 2 と 4 が効かない場合）は、この harness が HTML document しか作れないので比べていない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document",
+      "isHTMLDocument": true
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": "P"
+    },
+    {
+      "op": "createElementNS",
+      "document": 0,
+      "namespace": null,
+      "name": "P"
+    },
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": ""
+    }
+  ]
+}

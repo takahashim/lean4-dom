@@ -372,4 +372,35 @@ theorem createElementNS_creates {s s' : DOMState} {doc n : NodeId}
         creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
           Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)⟩
 
+
+/-! ## 状態だけを見る形 -/
+
+theorem admissible_createElement {s s' : DOMState} {doc n : NodeId} {localName : String}
+    (hv : AdmissibleDOMState s) (h : createElement s doc localName = .ok (n, s')) :
+    AdmissibleDOMState s' := by
+  obtain ⟨dd, -, -, hc⟩ := createElement_creates h
+  exact admissible_createsNode hv hc
+
+theorem admissible_createElementNS {s s' : DOMState} {doc n : NodeId}
+    {«namespace» : Option String} {qualifiedName : String} (hv : AdmissibleDOMState s)
+    (h : createElementNS s doc «namespace» qualifiedName = .ok (n, s')) :
+    AdmissibleDOMState s' := by
+  obtain ⟨ns₀, pfx₀, ln, -, hc⟩ := createElementNS_creates h
+  exact admissible_createsNode hv hc
+
+theorem admissible_createTextNode {s s' : DOMState} {doc n : NodeId} {data : String}
+    (hv : AdmissibleDOMState s) (h : createTextNode s doc data = .ok (n, s')) :
+    AdmissibleDOMState s' :=
+  admissible_createsNode hv (createTextNode_creates h)
+
+theorem admissible_createComment {s s' : DOMState} {doc n : NodeId} {data : String}
+    (hv : AdmissibleDOMState s) (h : createComment s doc data = .ok (n, s')) :
+    AdmissibleDOMState s' :=
+  admissible_createsNode hv (createComment_creates h)
+
+theorem admissible_createDocumentFragment {s s' : DOMState} {doc n : NodeId}
+    (hv : AdmissibleDOMState s) (h : createDocumentFragment s doc = .ok (n, s')) :
+    AdmissibleDOMState s' :=
+  admissible_createsNode hv (createDocumentFragment_creates h)
+
 end Dom
