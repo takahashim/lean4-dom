@@ -1,0 +1,127 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-escaped-code-point",
+    "algorithm": [
+      "consume an escaped code point",
+      "consume an ident sequence"
+    ],
+    "steps": "逆斜線のあとが hex digit なら高々 6 桁を読み、続く空白を一つ食う",
+    "note": "生成器は escape を一つも作らないので、この機構は固定 scenario でしか見ていない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "123"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "a.b"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "☃"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "-foo"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".\\31 23"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "#a\\.b"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".\\2603 "
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[class=\\31 23]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "#\\61 \\.b"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".-foo"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "div.\\31 23"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "DIV.\\31 23"
+    }
+  ]
+}

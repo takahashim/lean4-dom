@@ -3949,6 +3949,45 @@ model という UA の対応水準がそこまでだということであって�
 `:is(p, :hover)` と `:is(:hover)` は model も実装も同じ結果になる
 （`test/scenarios/unsupported-pseudo-class-inside-is.json`）。
 
+### 六度目：CSS Syntax 側を読む
+
+Selectors 側を読み尽くしたので tokenizer に移った。**生成器は逆斜線を一つも作って
+いなかった**ので、escape の機構は経験的に未検査だった。固定 scenario を書いたところ、
+実装側に四つ出た。model 側の誤りは無かった。
+
+`escapes-in-selectors` は両実装とも一致する。生成器にも `.\76 v` のような形を足したので、
+今後はここも fuzz される。
+
+### findings 26：`--foo` が ident にならない（Dommy）
+
+§4.3.11 は「先頭が `-` なら、二つめが ident-start code point か **U+002D** なら true」
+と定める。`.--foo` は正しい class selector である。Dommy は `SyntaxError` を投げる。
+逆斜線で入力が尽きた `.a\` も同様で、§4.3.7 は EOF のとき U+FFFD を返すと定めている。
+jsdom は両方とも model と一致する。
+`test/scenarios/ident-can-start-with-two-hyphens.json`。
+
+### findings 27：pseudo-class の名前が大文字小文字を区別する（jsdom）
+
+§6.1 は「Selectors が定める構文はすべて ASCII case-insensitive。pseudo-class と
+pseudo-element の名前を含む」と明記している。jsdom は `:NTH-CHILD(1)` `:ROOT` `:Is(div)`
+のどれも `SyntaxError` にする。Dommy は model と一致する。
+`test/scenarios/pseudo-class-names-are-case-insensitive.json`。
+
+### findings 28：U+10000 以上を含む値が照合できない（jsdom）
+
+class の値が U+1F600 の element に `.😀` も `[class='😀']` も当たらない。
+値は UTF-16 の surrogate pair ではなく code point の列として比べるものである。
+Dommy は model と一致する。
+`test/scenarios/astral-code-points-in-selector-values.json`。
+
+### findings 29：ident code point の一覧が古い（Dommy / jsdom）
+
+css-syntax-3 は non-ASCII ident code point を「U+0080 以上すべて」から、
+HTML の valid custom element name に合わせた**一覧**に変えた（同仕様の changes に記載）。
+U+2603 SNOWMAN は U+218F と U+2C00 の間なので入らないので、`.☃` は読めない
+（`.\2603 ` と escape すれば書ける）。両実装とも `.☃` を通す。
+`test/scenarios/non-ascii-ident-code-points-are-a-list.json`。
+
 ### findings 25：forgiving な list が空の項目で例外になる（jsdom）
 
 `:is()` と `:where()` は `<forgiving-selector-list>` を取り、読めなかった項目を捨てる。

@@ -1,0 +1,98 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#case-sensitive",
+    "algorithm": [
+      "<pseudo-class-selector>"
+    ],
+    "steps": "All syntax defined by the Selectors spec is ASCII case-insensitive — this includes pseudo-class and pseudo-element names",
+    "note": "名前だけでなく `i` / `s` flag のような keyword も同じである。document 側の名前（element 名・class・id・attribute 名と値）は別の規則に従う。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "b"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":NTH-CHILD(1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":Nth-Child(1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":ROOT"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":Empty"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":Is(div)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":NOT(div)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[class=A I]"
+    }
+  ]
+}

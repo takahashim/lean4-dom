@@ -1,0 +1,92 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#ident-code-point",
+    "algorithm": [
+      "non-ASCII ident code point"
+    ],
+    "steps": "U+00B7 / U+00C0-D6 / U+00D8-F6 / U+00F8-037D / U+037F-1FFF / U+200C / U+200D / U+203F / U+2040 / U+2070-218F / U+2C00-2FEF / U+3001-D7FF / U+F900-FDCF / U+FDF0-FFFD / U+10000 以上",
+    "note": "「U+0080 以上はすべて」ではない。HTML の valid custom element name に合わせて絞られた（css-syntax-3 の changes）。U+2603 SNOWMAN は 218F と 2C00 の間なので入らない。escape なら書ける。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "é"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "あ"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "☃"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".é"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".あ"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".\\2603 "
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".☃"
+    }
+  ]
+}

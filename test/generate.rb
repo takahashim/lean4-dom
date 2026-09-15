@@ -261,6 +261,9 @@ module Generate
   SELECTOR_TYPES = ["div", "span", "p", "rect", "*", "DIV", "RECT", "Span"].freeze
   SELECTOR_SUBCLASS = [
     ".vv", ".u", ".v", "#vv",
+    # escape。`\76` は `v` なので `.\76 v` は `.vv` と同じものを指す。
+    # 生成器はこれ以外に逆斜線を作らないので、tokenizer の escape はここでだけ撫でられる。
+    ".\\76 v", "#\\76 v", "[\\61]", ".--foo",
     "[a]", "[b]", "[data-x]", "[a='1']", "[a='']", "[class~=u]", "[data-x^=v]",
     "[data-x$=v]", "[data-x*=v]", "[a='1' i]", "[A=VV i]", "[class|=u]",
     "[class~='u v']", "[class~='']", "[class^='']", "[class$=v]", "[class*=' ']",

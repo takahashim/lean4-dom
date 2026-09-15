@@ -1,0 +1,87 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#would-start-an-identifier",
+    "algorithm": [
+      "check if three code points would start an ident sequence"
+    ],
+    "steps": "先頭が `-` なら、二つめが ident-start code point か **U+002D** か、二つめと三つめが valid escape なら true",
+    "note": "`--foo` は二つめが `-` なので ident である。逆斜線で入力が尽きた場合は §4.3.7 により U+FFFD を返すので `.a\\\\` も ident になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "--foo"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "--x"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a�"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".--foo"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "#--x"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".a\\"
+    }
+  ]
+}
