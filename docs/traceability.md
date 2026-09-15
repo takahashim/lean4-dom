@@ -33,7 +33,7 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | remove | `Dom.Spec.RemoveSpec` | `remove_sound` | `removeSpec_deterministic` / `removeSpec_congr` | `remove_complete` |
 | adopt（§4.5） | `Dom.Spec.AdoptSpec` | `adopt_sound` | `adoptSpec_deterministic` / `adoptSpec_congr` | `adopt_complete` |
 | insert | `Dom.Spec.InsertSpec` | `insert_sound` | `insertSpec_deterministic` / `insertSpec_congr` | `insert_no_extra_models`（実現性は未） |
-| replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | 未 | 未 |
+| replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | `replaceSpec_deterministic` / `replaceSpec_congr` | 未 |
 | move | 未 | 未 | 未 | 未 |
 | replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | 未 | 未 |
 

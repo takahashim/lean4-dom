@@ -329,4 +329,17 @@ theorem adoptSpec_selfData (hwf : WellFormed s.tree) {out : DOMState}
     obtain ⟨nd', hnd', hk', -, hch'⟩ := documentAssigned_data hnd₁ hda hnd₁
     exact ⟨nd', hnd', by rw [hk', hk₁], by rw [hch', hch₁]⟩
 
+
+/-- `adopt` が親から外すのは対象の node だけである。 -/
+theorem adoptSpec_parentOf {out : DOMState} (hq : AdoptSpec s node doc out)
+    {m : NodeId} (hm : m ≠ node) : parentOf out.tree m = parentOf s.tree m := by
+  obtain ⟨od, hod, s₁, hst2, hst3⟩ := hq
+  obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
+  obtain ⟨⟨nd₁, hnd₁⟩, -, -, -⟩ := adoptStep2_facts hnd hst2
+  rw [(adoptStep3_facts hnd₁ hst3).1 m]
+  rcases hst2 with ⟨-, rfl⟩ | ⟨-, hr⟩
+  · rfl
+  · obtain ⟨parent, -, -, -, -, -, htr, -, -⟩ := hr
+    exact htr.otherParents m hm
+
 end Dom.Spec

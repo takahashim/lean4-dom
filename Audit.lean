@@ -134,6 +134,8 @@ open Dom.Audit
   Dom.Spec.insertEach_sound
   Dom.Spec.removeEach_sound
   Dom.Spec.replace_sound
+  Dom.Spec.replaceSpec_congr
+  Dom.Spec.replaceSpec_deterministic
   Dom.Spec.replaceData_sound
   Dom.Spec.characterDataRecordQueued_of_queue
   Dom.Spec.treeRecordQueued_of_queue

@@ -2679,9 +2679,26 @@ fragment が誰かの子になることは無いからである。ところが m
 いまは `FragmentsAreRoots` として `replace_sound` の仮定に置いてある。
 `StructurallyValid` に足すと preservation の証明が全部動くので、それは別途である。
 
+### congruence は四つ目も同じ形で通った
+
+`replace` の congruence（`Dom/Spec/ReplaceCongr.lean`）は
+`adopt` → `remove` → `insert` → record と段ごとに観測を持ち上げるだけで済んだ。
+`remove` / `adopt` / `insert` で作った道具がそのまま効いている。
+
+step 1 の validity を関係に含めていないので、そこが保証する三つを仮定として受け取る。
+
+* `node` は `parent` ではない
+* `child` の parent は `parent` である
+* 入れる node は `parent` の inclusive ancestor でない
+
+`insert` の congruence が pre-insertion validity を仮定するのと同じ扱いである。
+仮定は `s` について述べておいて、証明の中で `s₂`（adopt と removal の後）へ移す。
+`adopt` も `remove` も ancestor を増やさないので、そのまま移せる。
+`node` の kind と children も両方を跨いで残るので、step 8 の `nodes` も対応が付く。
+
 ### 次
 
-`replace` の congruence と、`move` の関係である。
+`move` の関係である。
 
 ## 生成 scenario の最小化を広げた
 
