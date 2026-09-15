@@ -85,6 +85,8 @@ import Dom.Spec.MoveCongr
 import Dom.Spec.Complete
 import Dom.Properties.Counterexample
 import Dom.Observation
+import Dom.Selector.Match
+import Dom.Selector.Api
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

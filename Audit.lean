@@ -760,3 +760,8 @@ open Dom.Audit
   Selectors.splitBlock_after_lt
   Selectors.dropToComma_size
   Selectors.splitAtOf_size
+
+-- selector の照合の停止性を支える補題
+#audit_axioms
+  Dom.sSize_lt_cpSize
+  Dom.cxSize_lt_lSize

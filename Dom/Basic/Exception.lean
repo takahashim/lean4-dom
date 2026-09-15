@@ -25,6 +25,8 @@ inductive DOMException where
   | namespaceError
   /-- §4.9 "set an attribute" step 2。別の element に付いている `Attr` を渡した場合。 -/
   | inUseAttributeError
+  /-- §1.3 "scope-match a selectors string" step 2。selector を読めなかった場合。 -/
+  | syntaxError
   /--
   WebIDL の `TypeError`。`DOMException` ではないが、
   仕様が例外として投げ分けるので同じ型で扱う。
@@ -60,6 +62,7 @@ def name : DOMException → String
   | invalidCharacterError => "InvalidCharacterError"
   | namespaceError => "NamespaceError"
   | inUseAttributeError => "InUseAttributeError"
+  | syntaxError => "SyntaxError"
   | typeError => "TypeError"
   | outsideModel => "__outsideModel__"
 
