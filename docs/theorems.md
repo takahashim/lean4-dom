@@ -376,6 +376,38 @@ element 自身、後者は受け手なので、`:scope` を含む selector で�
 （`:nth-child(... of S)` の `filter` に再帰呼び出しが入るため）。代わりに
 selector の大きさについての強い帰納法で、四つの命題を同時に示している。
 
+## 18. selector の照合は仕様の関係を満たす（部分）
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.anbMatches_iff` / `Dom.Spec.mem_combCandidates_*` | `Dom/Spec/Selector.lean` |
+
+```lean
+def AnBIndex (ab : AnB) (i : Nat) : Prop := ∃ n : Nat, ab.a * (n : Int) + ab.b = (i : Int)
+
+theorem anbMatches_iff (ab : AnB) (i : Nat) : anbMatches ab i = true ↔ AnBIndex ab i
+
+def ElementSiblingImmediatelyBefore (t : Tree) (e f : NodeId) : Prop :=
+  ∃ p pre post, elementChildrenOf t p = pre ++ e :: f :: post
+
+theorem mem_combCandidates_nextSibling (hwf : WellFormed t) {n p : NodeId}
+    (hp : parentOf t n = some p) (hn : isElementNode t n = true) (e : NodeId) :
+    e ∈ combCandidates t .nextSibling n ↔ ElementSiblingImmediatelyBefore t e n
+```
+
+16・17 は実行関数についての定理なので、仕様の翻訳を誤っていたら誤ったまま証明できる。
+`Dom/Spec/` と同じく、仕様本文から独立に書き写した関係を置いて照合がそれを満たすことを
+示す。照合全体は重いので、**翻訳を誤りやすく差分テストが薄いところ**に絞ってある。
+
+`<a-n-plus-b>` は `n` が **非負**に限るのが効く。`A` が負なら表す index は有限個になり、
+`:nth-child(-n+3)` が「先頭から三つ」を指す。生成器はこの形を作っていなかった。
+
+combinator のほうは、`~` が「前のどれか」・`+` が「すぐ前」であることを書き写した。
+実行側は `takeWhile` と `getLast?` で書いており、向きと一つずれが入りうるのはそこである。
+実際 `getLast?` を `head?` に変えると、この定理は通らなくなる一方、
+固定 scenario 110 本と生成 scenario 200 本はどちらも気付かない
+（`docs/status.md` の「定理に歯があるか確かめた」）。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

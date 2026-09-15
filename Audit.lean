@@ -766,6 +766,17 @@ open Dom.Audit
   Dom.sSize_lt_cpSize
   Dom.cxSize_lt_lSize
 
+-- selector の照合の関係意味論（部分）
+#audit_axioms
+  Dom.Spec.anbMatches_iff
+  Dom.Spec.anbMatches_neg_one
+  Dom.Spec.anbMatches_odd
+  Dom.Spec.anbMatches_even
+  Dom.Spec.mem_combCandidates_descendant
+  Dom.Spec.mem_combCandidates_child
+  Dom.Spec.mem_combCandidates_subsequentSibling
+  Dom.Spec.mem_combCandidates_nextSibling
+
 -- selector の API が満たすこと
 #audit_axioms
   Dom.querySelector_eq_head

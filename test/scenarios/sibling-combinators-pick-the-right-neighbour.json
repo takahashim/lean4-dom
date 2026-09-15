@@ -1,0 +1,33 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#sibling-combinators",
+    "algorithm": ["E + F", "E ~ F"],
+    "steps": "+ は「すぐ前」、~ は「前のどれか」。どちらも同じ parent の element の並びで見る",
+    "note": "element でない兄弟は数に入らない。`+` が「すぐ前」であって「前の最初」ではないことを見るには、左側に当たる兄弟が二つ以上要る。Dom/Spec/Selector.lean の mem_combCandidates_nextSibling がこれを定理にしてある。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "ul" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "li",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "x" }] },
+    { "id": 3, "kind": "text", "parent": 1, "data": "  " },
+    { "id": 4, "kind": "element", "parent": 1, "localName": "li",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "x" }] },
+    { "id": 5, "kind": "comment", "parent": 1, "data": "c" },
+    { "id": 6, "kind": "element", "parent": 1, "localName": "li",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "y" }] },
+    { "id": 7, "kind": "element", "parent": 1, "localName": "li",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "x" }] }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": ".x + li" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ".y + li" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ".x ~ li" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ".y ~ li" },
+    { "op": "querySelectorAll", "node": 0, "selectors": "li + li + li" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ".x + .y" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ".x + .x" }
+  ]
+}
