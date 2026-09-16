@@ -4331,6 +4331,49 @@ previous sibling を見る必要があるからである。どちらも生成器
 `replace-when-the-next-sibling-is-the-node`、`remove-child-checks-the-parent`、
 `replace-record-sibling-is-taken-before`。どれも両実装と一致する。
 
+## 実行関数に interface を与える（結合度の整理）
+
+証明が「定義の本体の形」に結合していないかを測った。指標は
+**「意味を変えない書き換えで何ファイルが壊れるか」**である。
+
+`insert` で実験した。本体の分岐順序を反転し、`isEmpty` を pattern match に変え、
+fragment の枝を別関数に括り出す（入出力は完全に同じ）。
+
+| | 壊れたファイル |
+| --- | --- |
+| 前 | 7 / 7 |
+| 後（特徴付け補題を経由） | 0 / 7 |
+
+前は 7 ファイルが `unfold insert` してから同じ 4 段の `split` を書き写していた。
+つまり `insert` の**分岐構造が 7 箇所に複製されていた**。
+
+同じ処置を、4 ファイル以上から本体を開かれていた 13 個の定義すべてに当てた。
+
+| 定義 | 前 | 後 | 与えた interface |
+| --- | --- | --- | --- |
+| `insert` | 7 | 1 | `insert_cases` / `insert_of_not_fragment` |
+| `replace` | 7 | 1 | `replace_cases` / `replace_of_validity_error`。step 2-3 と step 8 の値に `replaceReferenceChild` / `replaceNodes` と名前を付けた |
+| `insertNodesAt` | 7 | 1 | `insertNodesAt_cases` / `_isOk`。step 6 の値に `insertPrevSibling` と名前を付けた |
+| `insertEachAt` | 7 | 1 | `insertEachAt_cases` / `_of_get?` |
+| `parentOf` | 6 | 0 | `parentOf_eq` / `_of_get?` / `_congr`（射影なので値そのものが interface） |
+| `detachWithLiveAdjust` | 6 | 1 | `detachWithLiveAdjust_cases` / `_of_detach` |
+| `replaceAll` | 5 | 1 | `replaceAll_cases`。step 2 の値に `replaceAllNodes` と名前を付けた |
+| `ensurePreInsertionValidity` | 5 | 1 | 取り出す・作る・順序・congruence の四方向。`Dom/Properties/PreInsertValidity.lean` に集約 |
+| `adopt` | 5 | 1 | `adopt_cases` / `adopt_of_steps` |
+| `preRemove` | 4 | 1 | `preRemove_cases` / `_of_parent` / `_of_not_parent` |
+| `nodeRemove` | 4 | 1 | `nodeRemove_cases` / `_of_parent` / `_of_no_parent` |
+| `doctypeFollows` | 5 | 1 | `_of_splitAt?` / `_of_splitAt?_none` / `_congr` |
+| `opaqueHostParser` | 4 | 1 | `_cases` / `_of_no_forbidden` / `_of_forbidden` |
+
+これで **4 ファイル以上から本体を開かれている定義は無くなった**。
+`unfold` は全体で 783 → 686 箇所。残りはほぼすべて「定義の隣の Properties
+ファイルが 1 つだけ開く」形で、これは正常である（どんな関数も最初の定理は
+本体を開かざるを得ないので、下限は 0 ではなく「定義ごとに 1 箇所」）。
+
+定義の書き換えを伴ったもの（`replace` / `insertNodesAt` / `replaceAll`）は、
+`let` を top-level の def に持ち上げただけで意味を変えていない。
+固定 scenario 155 件で振る舞いが同じことを毎回確認した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
