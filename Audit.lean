@@ -230,6 +230,11 @@ open Dom.Audit
   Url.origin_eq_none_of_host_none
   Url.origin_of_special
   Url.startsWithWindowsDrive_of_isNormalized
+  Url.getAttr_protocol
+  Url.protocol_eq
+  Dom.walkerAccepts_eq
+  Dom.walkerAccepts_eq_false_of_get?_eq_none
+  Dom.walkerBase_of_inclusiveAncestor
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

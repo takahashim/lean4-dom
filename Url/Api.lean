@@ -223,6 +223,22 @@ def attrNames : List String :=
   ["href", "protocol", "username", "password", "host", "hostname", "port",
     "pathname", "search", "hash"]
 
+/-! ### getter の対応表 -/
+
+@[simp] theorem getAttr_href (u : Url) : u.getAttr "href" = some u.href := rfl
+@[simp] theorem getAttr_protocol (u : Url) : u.getAttr "protocol" = some u.protocol := rfl
+@[simp] theorem getAttr_username (u : Url) : u.getAttr "username" = some u.username := rfl
+@[simp] theorem getAttr_password (u : Url) : u.getAttr "password" = some u.password := rfl
+@[simp] theorem getAttr_host (u : Url) : u.getAttr "host" = some u.hostAttr := rfl
+@[simp] theorem getAttr_hostname (u : Url) : u.getAttr "hostname" = some u.hostname := rfl
+@[simp] theorem getAttr_port (u : Url) : u.getAttr "port" = some u.portAttr := rfl
+@[simp] theorem getAttr_pathname (u : Url) : u.getAttr "pathname" = some u.pathname := rfl
+@[simp] theorem getAttr_search (u : Url) : u.getAttr "search" = some u.search := rfl
+@[simp] theorem getAttr_hash (u : Url) : u.getAttr "hash" = some u.hash := rfl
+
+/-- **`protocol` getter は scheme に `:` を足したものである。** -/
+theorem protocol_eq (u : Url) : u.protocol = u.scheme ++ ":" := rfl
+
 theorem getAttr_isSome_iff (u : Url) (name : String) :
     (u.getAttr name).isSome = true ↔ name ∈ attrNames := by
   constructor

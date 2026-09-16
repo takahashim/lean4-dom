@@ -132,6 +132,47 @@ theorem exists_data_of_walkerMethod (hwf : WellFormed t) {m : WalkerMethod} {w :
   | previousNode => exact exists_data_of_walkerPreviousNode h
   | nextNode => exact exists_data_of_walkerNextNode h
 
+/-! ## `whatToShow` と走査の上限 -/
+
+/-- `walkerAccepts` は `whatToShow` の検査そのものである。 -/
+theorem walkerAccepts_eq (t : Tree) (w : WalkerState) (n : NodeId) :
+    walkerAccepts t w n = showsNode t w.whatToShow n := rfl
+
+/-- **木に無い node は `whatToShow` を通らない。** -/
+theorem walkerAccepts_eq_false_of_get?_eq_none {t : Tree} {w : WalkerState} {n : NodeId}
+    (h : t.get? n = none) : walkerAccepts t w n = false := by
+  rw [walkerAccepts_eq]
+  show (match kindOf t n with
+    | none => false
+    | some k => w.whatToShow.testBit (k.nodeType - 1)) = false
+  rw [kindOf_eq_none_of_get?_eq_none h]
+
+/-- **`whatToShow` が 0 なら何も通らない。** -/
+theorem walkerAccepts_zero (t : Tree) (w : WalkerState) (n : NodeId)
+    (h : w.whatToShow = 0) : walkerAccepts t w n = false := by
+  rw [walkerAccepts_eq]
+  show (match kindOf t n with
+    | none => false
+    | some k => w.whatToShow.testBit (k.nodeType - 1)) = false
+  rw [h]
+  cases kindOf t n <;> simp
+
+/--
+**走査の上限は、`current` が `root` の下にあるなら `root` である。**
+
+そうでなければ `current` 側の木の根になる（`root` が外された後の状態）。
+-/
+theorem walkerBase_of_inclusiveAncestor {t : Tree} {w : WalkerState}
+    (h : isInclusiveAncestorOf t w.root w.current = true) : walkerBase t w = w.root := by
+  unfold walkerBase
+  rw [if_pos h]
+
+theorem walkerBase_of_not_inclusiveAncestor {t : Tree} {w : WalkerState}
+    (h : isInclusiveAncestorOf t w.root w.current = false) :
+    walkerBase t w = root t w.current := by
+  unfold walkerBase
+  rw [if_neg (by rw [h]; simp)]
+
 /-! ## 実行時の検査の健全性・完全性 -/
 
 /--
