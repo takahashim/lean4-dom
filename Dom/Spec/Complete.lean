@@ -63,6 +63,152 @@ theorem adopt_complete {s s' : DOMState} {node doc : NodeId} (hwf : WellFormed s
 
 /-! ## `insert` -/
 
+/-- `adopt` の後、node は parent を持たない。 -/
+theorem adopt_parentOf_none {s sout : DOMState} {node doc : NodeId}
+    (h : adopt s node doc = .ok sout) : parentOf sout.tree node = none := by
+  obtain ⟨_, s₀, _, hstep, hfinal⟩ := adopt_cases h
+  have hnp₀ : parentOf s₀.tree node = none := by
+    rcases hstep with ⟨hn, rfl⟩ | ⟨-, hr⟩
+    · exact hn
+    · exact remove_parentOf hr
+  rcases hfinal with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · exact hnp₀
+  · rw [DOMState.withTree_tree, parentOf_setOwnerDocument]
+    exact hnp₀
+
+/--
+**step 7 の実現可能性。**
+
+関係 `InsertedEach` を満たす状態があるなら、`insertEach` は成功して観測の等しい
+結果を返す。各段で `adopt` の完全性と `insertAt` の四つの前提条件を使う。
+`child` が `parent` の子であることは `TreeInserted.childIsChild` が与える。
+-/
+theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : NodeId} :
+    ∀ (ns : List NodeId) {s sx out : DOMState},
+    WellFormed s.tree → IsDocument s.tree doc →
+    (∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent) →
+    (∃ pd, s.tree.get? parent = some pd) →
+    InsertedEach parent child doc s ns out → ObsEq s sx →
+    ∃ o, insertEach sx parent child doc ns = .ok o ∧ ObsEq out o := by
+  intro ns
+  induction ns with
+  | nil =>
+    intro s sx out _ _ _ _ h hobs
+    cases h
+    exact ⟨sx, by rw [insertEach], hobs⟩
+  | cons n ns ih =>
+    intro s sx out hwf hdoc hacyc hpe h hobs
+    cases h with
+    | @cons _ sa sb _ _ _ ha hi hlive hrest =>
+      obtain ⟨pd, hpd⟩ := hpe
+      obtain ⟨hwfa, hanca, hwfb, hdocb, hacycb⟩ := insertedEach_step hwf hdoc hacyc ha hi
+      -- step 7.1：adopt は成功する
+      obtain ⟨oldDoc, hod, -⟩ := id ha
+      have hodx : ownerDocumentOf sx.tree n = some oldDoc := by
+        rw [hobs.tree.ownerDocumentOf]; exact hod
+      obtain ⟨o₁, ho₁⟩ := adopt_succeeds_of_ownerDocument (doc := doc)
+        (hobs.tree.wellFormed hwf) hodx
+      have hobsa : ObsEq sa o₁ :=
+        adoptSpec_congr hwf hobs ha (adopt_sound (hobs.tree.wellFormed hwf) ho₁)
+      -- step 7.2：insertAt の四つの前提
+      have hkp : ShapePreserving sx.tree o₁.tree := shapePreserving_adopt ho₁
+      have hpdx : sx.tree.get? parent = some pd := by rw [hobs.tree]; exact hpd
+      obtain ⟨pd₁, hpd₁⟩ := exists_get?_of_kindPreserving hkp hpdx
+      obtain ⟨nd₁, hnd₁⟩ : ∃ nd₁, o₁.tree.get? n = some nd₁ := by
+        obtain ⟨nd, hnd⟩ : ∃ nd, sx.tree.get? n = some nd := by
+          cases hq : sx.tree.get? n with
+          | some x => exact ⟨x, rfl⟩
+          | none => rw [ownerDocumentOf_eq, hq] at hodx; simp at hodx
+        exact exists_get?_of_kindPreserving hkp hnd
+      have hnp : nd₁.parent = none := by
+        have := adopt_parentOf_none ho₁
+        rw [parentOf_of_get? hnd₁] at this
+        exact this
+      have hanc : isInclusiveAncestorOf o₁.tree n parent = false := by
+        cases hb : isInclusiveAncestorOf o₁.tree n parent with
+        | false => rfl
+        | true =>
+          exfalso
+          refine hanca ?_
+          refine (hobsa.tree.inclusiveAncestor_iff).mp ?_
+          exact (isInclusiveAncestorOf_iff (hobsa.tree.wellFormed hwfa) n parent).mp hb
+      have hchild : ∀ c, child = some c → c ∈ pd₁.children := by
+        intro c hc
+        have hcm := hi.childIsChild c hc
+        rw [← childrenOf_eq hpd₁]
+        rw [hobsa.tree.childrenOf]
+        exact hcm
+      have hins := insertAt_eq_ok hpd₁ hnd₁ hnp hanc hchild
+      have hmap : o₁.mapTree (fun t => insertAt t parent n child) =
+          .ok (o₁.withTree (insertAtIn o₁.tree parent n child pd₁ nd₁)) := by
+        show (match insertAt o₁.tree parent n child with
+          | Except.error e => Except.error e
+          | Except.ok t => Except.ok (o₁.withTree t)) = _
+        rw [hins]
+      -- step 7.3：結果は観測が等しい
+      obtain ⟨o₂, ho₂⟩ : ∃ o₂ : DOMState,
+          o₂ = o₁.withTree (insertAtIn o₁.tree parent n child pd₁ nd₁) := ⟨_, rfl⟩
+      have hins₂ : TreeInserted o₁.tree o₂.tree parent n child :=
+        treeInserted_insertAt (by rw [ho₂, DOMState.withTree_tree]; exact hins)
+      have htree : TreeObsEq sb.tree o₂.tree := treeInserted_congr hobsa.tree hi hins₂
+      have hobsb : ObsEq sb o₂ := by
+        refine ⟨htree, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · rw [ho₂, DOMState.withTree_ranges, hobsa.ranges, hlive.ranges]
+        · rw [ho₂, DOMState.withTree_iterators, hobsa.iterators, hlive.iterators]
+        · intro r
+          rw [ho₂]
+          show r ∈ o₁.registrations ↔ _
+          rw [hobsa.registrations r, hlive.registrations]
+        · intro mo
+          rw [ho₂]
+          show (o₁.observers[mo]?).map (·.records) = _
+          rw [hobsa.records mo, hlive.observers]
+        · intro mo
+          rw [ho₂]
+          show mo ∈ o₁.pendingObservers ↔ _
+          rw [hobsa.pendingObservers mo, hlive.pendingObservers]
+        · rw [ho₂, DOMState.withTree_microtaskQueued, hobsa.microtaskQueued,
+            hlive.microtaskQueued]
+      have hpdsa : sa.tree.get? parent = some pd₁ := by rw [← hobsa.tree parent]; exact hpd₁
+      have hpdsb : ∃ pdb, sb.tree.get? parent = some pdb := by
+        have hsn := hi.sameNodes parent
+        rw [hpdsa] at hsn
+        cases hq : sb.tree.get? parent with
+        | none => rw [hq] at hsn; simp at hsn
+        | some x => exact ⟨x, rfl⟩
+      obtain ⟨o, hoeq, hoobs⟩ := ih hwfb hdocb hacycb hpdsb hrest hobsb
+      refine ⟨o, ?_, hoobs⟩
+      rw [insertEach, ho₁]
+      show (match o₁.mapTree (fun t => insertAt t parent n child) with
+        | Except.error e => Except.error e
+        | Except.ok s₂ => insertEach s₂ parent child doc ns) = _
+      rw [hmap, ← ho₂]
+      exact hoeq
+
+/-- **step 4 の実現可能性。** -/
+theorem removeEach_complete : ∀ (ns : List NodeId) {s sx out : DOMState} {b : Bool},
+    WellFormed s.tree → RemoveEachSpec s ns b out → ObsEq s sx →
+    ∃ o, removeEach sx ns b = .ok o ∧ ObsEq out o := by
+  intro ns
+  induction ns with
+  | nil =>
+    intro s sx out b _ h hobs
+    cases h
+    exact ⟨sx, by rw [removeEach], hobs⟩
+  | cons n ns ih =>
+    intro s sx out b hwf h hobs
+    cases h with
+    | @cons _ s₁ _ _ _ _ hr hrest =>
+      have hwfx : WellFormed sx.tree := hobs.tree.wellFormed hwf
+      have hrx : RemoveSpec sx n b s₁ := removeSpec_transport hwfx (ObsEq.symm hobs) hr
+      obtain ⟨o₁, ho₁, hobs₁⟩ := remove_complete hwfx hrx
+      have hwf₁ : WellFormed s₁.tree := removeSpec_wellFormed hwf hr
+      obtain ⟨o, hoeq, hoobs⟩ := ih hwf₁ hrest hobs₁
+      refine ⟨o, ?_, hoobs⟩
+      rw [removeEach, ho₁]
+      exact hoeq
+
+
 /--
 **`InsertSpec` に余計な model は無い。**
 
@@ -96,9 +242,11 @@ theorem insert_complete_of_nil {s s' : DOMState} {node parent : NodeId}
   · exact absurd (hnil ▸ hsing) (by simp)
 
 /--
-残っているのは「入れる node の列が空でない」枝である。そこで `insert` が成功する
-ことを言うには、`removeEach` / `adopt` / `insertAt` がそれぞれ成功することを
-関係の witness から組み立てる必要がある（`insertEach_isOk` が要る）。
+`insert` の完全性に残っているのは組み立てだけである。
+
+step 4（`removeEach_complete`）と step 7（`insertEach_complete`）は揃ったので、
+残るのは step 5 の range 調整と step 9 の record を挟んで
+`insertNodesAt` / `insertEachAt` の層まで持ち上げるところである。
 -/
 theorem insert_no_extra_models {s s' out : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
