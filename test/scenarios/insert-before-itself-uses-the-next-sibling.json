@@ -1,0 +1,66 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-pre-insert",
+    "algorithm": [
+      "pre-insert"
+    ],
+    "steps": "step 2-3。child が node と同じなら、reference child を node の次の兄弟に取り直す",
+    "note": "この取り直しが無いと、node を外したあとで reference child が木から消えてしまい、末尾に付く。位置が変わらないことがこの step の意味である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "localName": "html",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "localName": "a",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "localName": "b",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "localName": "c",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "insertBefore",
+      "parent": 1,
+      "node": 3,
+      "child": 3
+    },
+    {
+      "op": "insertBefore",
+      "parent": 1,
+      "node": 2,
+      "child": 2
+    },
+    {
+      "op": "insertBefore",
+      "parent": 1,
+      "node": 4,
+      "child": 4
+    }
+  ]
+}

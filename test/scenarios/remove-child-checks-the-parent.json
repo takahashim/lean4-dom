@@ -1,0 +1,58 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-pre-remove",
+    "algorithm": [
+      "pre-remove"
+    ],
+    "steps": "step 1。child の parent が parent でなければ NotFoundError",
+    "note": "`remove` 自身は parent が無いときだけ落ちるので、この検査が無いと別の親から外せてしまう。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "localName": "html",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "localName": "a",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "localName": "b",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "localName": "c",
+      "parent": 3
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "removeChild",
+      "parent": 3,
+      "node": 4
+    },
+    {
+      "op": "removeChild",
+      "parent": 3,
+      "node": 2
+    }
+  ]
+}

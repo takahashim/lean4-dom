@@ -1,0 +1,70 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-replace",
+    "algorithm": [
+      "replace"
+    ],
+    "steps": "step 4 で previous sibling を控え、step 10 の record に載せる",
+    "note": "控えるのは木を変える前の値である。step 7 で child を外した後に取り直すと、child は親を持たないので null になってしまう。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "localName": "html",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "localName": "a",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "localName": "b",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "localName": "c",
+      "parent": 1
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "localName": "x"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {}
+  ],
+  "operations": [
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 1,
+      "childList": true
+    },
+    {
+      "op": "replaceChild",
+      "parent": 1,
+      "node": 5,
+      "child": 3
+    },
+    {
+      "op": "notify"
+    }
+  ]
+}

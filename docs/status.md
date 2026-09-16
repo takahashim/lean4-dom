@@ -4181,6 +4181,31 @@ step 1 の `ownerDocumentOf` は `get?` の像なので、node が木にあれ�
 固定 scenario `adopt-node-succeeds-for-every-kind` で、element・text・comment・
 DocumentFragment・doctype のどれでも成功することを見ている。両実装とも一致する。
 
+## 同じ測定を §4.2.3 の中心に当てる
+
+Selectors で使った「壊して、誰が捕まえるかを測る」を mutation algorithm にも当てた。
+結果は **Selectors のときとちょうど逆**だった。
+
+| 壊し方 | 定理 | 固定 scenario | 生成 150 本 |
+| --- | --- | --- | --- |
+| `pre-insert` の step 2-3（child が node 自身のとき reference child を取り直す） | 捕まえる | 捕まえない | 捕まえる |
+| `replace` の step 2-3（child の次が node のとき取り直す） | 捕まえる | 捕まえない | 捕まえない |
+| `pre-remove` の step 1（child の parent の検査） | 捕まえる | 捕まえない | 捕まえる |
+| `replace` の record の previous sibling を木を変えた後に取る | 捕まえる | 捕まえない | 捕まえない |
+
+**四つとも定理が捕まえ、固定 scenario はどれも捕まえなかった。** Selectors では
+定理が停止性しか言っていなかったので差分テストが主役だったが、こちらは
+`Dom/Spec/` の関係意味論と soundness があるので定理が先に落ちる。
+
+二つ目と四つ目は生成 scenario も捕まえない。前者は「child の次の兄弟がちょうど
+置き換える node」という形が要り、後者は observer を付けたうえで record の
+previous sibling を見る必要があるからである。どちらも生成器が作りにくい形で、
+**定理だけが守っていた**ことになる。
+
+四つとも固定 scenario を足した。`insert-before-itself-uses-the-next-sibling`、
+`replace-when-the-next-sibling-is-the-node`、`remove-child-checks-the-parent`、
+`replace-record-sibling-is-taken-before`。どれも両実装と一致する。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

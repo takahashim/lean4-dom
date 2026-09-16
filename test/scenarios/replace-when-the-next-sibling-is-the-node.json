@@ -1,0 +1,54 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-replace",
+    "algorithm": [
+      "replace"
+    ],
+    "steps": "step 2-3。child の次の兄弟が node なら、reference child を node の次の兄弟に取り直す",
+    "note": "step 6 の adopt が node を親から外すので、取り直しが無いと reference child が木から消えて末尾に付く。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "localName": "html",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "localName": "a",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "localName": "b",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "localName": "c",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "replaceChild",
+      "parent": 1,
+      "node": 3,
+      "child": 2
+    }
+  ]
+}
