@@ -17,6 +17,10 @@
 # import では守れない。触っているものが出たら、それが仕様の語彙として妥当か
 # （`elementChildrenOf` のような薄い補助か、それとも照合そのものか）を人が判断する。
 # 判断の結果は同 file の doc comment に書く。
+#
+# URL の関係（`Url/Spec/`）も同じ規約で、実行側は `Url/Parser.lean` の state machine、
+# 語彙は §1.3 の percent-encode（`Url/Percent.lean`）と §4.1 の record
+# （`Url/Record.lean`）、§3.2 の host（`Url/Host.lean`）、Infra である。
 
 ROOT = File.expand_path("..", __dir__)
 
@@ -37,19 +41,28 @@ IMPL = defs(["Dom/Mutation/*.lean", "Dom/Range/Api.lean", "Dom/Selector/Match.le
 VOCAB = defs(["Dom/Basic/*.lean", "Infra/*.lean", "Dom/Range/BoundaryPoint.lean"])
 ALGORITHMS = IMPL - VOCAB
 
+URL_IMPL = defs(["Url/Parser.lean", "Url/Api.lean", "Url/Urlencoded.lean",
+                 "Url/SearchParams.lean", "Url/Idna.lean"])
+URL_VOCAB = defs(["Url/Record.lean", "Url/Percent.lean", "Url/Host.lean",
+                  "Url/Ipv4.lean", "Url/Ipv6.lean", "Infra/*.lean"])
+URL_ALGORITHMS = URL_IMPL - URL_VOCAB
+
 require "set"
 
-rows = []
-Dir[File.join(ROOT, "Dom/Spec/*.lean")].sort.each do |path|
+def scan_defs(path, algorithms, rows)
   src = File.read(path)
   src.scan(/^def\s+([A-Za-z_][A-Za-z0-9_']*)\s*(.*?)$(.*?)(?=^(?:def|theorem|end|\/--|\/-!)|\z)/m) do
     name, sig, body = Regexp.last_match(1), Regexp.last_match(2), Regexp.last_match(3)
-    used = body.scan(/[A-Za-z_][A-Za-z0-9_'!?]*/).uniq.select { |w| ALGORITHMS.include?(w) }.sort
+    used = body.scan(/[A-Za-z_][A-Za-z0-9_'!?]*/).uniq.select { |w| algorithms.include?(w) }.sort
     next if used.empty?
 
     rows << [File.basename(path), name, sig.include?("Prop") ? "Prop" : "", used]
   end
 end
+
+rows = []
+Dir[File.join(ROOT, "Dom/Spec/*.lean")].sort.each { |p| scan_defs(p, ALGORITHMS, rows) }
+Dir[File.join(ROOT, "Url/Spec/*.lean")].sort.each { |p| scan_defs(p, URL_ALGORITHMS, rows) }
 
 if rows.empty?
   puts "関係の定義が実行側に触れている箇所は無い。"

@@ -67,6 +67,8 @@ step 2（ASCII lowercase）と step 4（HTML namespace）が効かない側（XM
 | `convert nodes into a node` は呼び出し側で済ませた形で受け取る | `x.replaceWith(x)` のような「変換が node を動かす」場合を model 側で再現できない |
 | WebIDL の TypeError を `DOMException` と同じ型で扱う | `moveBefore` と attribute の method の receiver、`observe` の options、`Range` の `Node` 引数、§4.5 の factory と `importNode` / `adoptNode` の receiver がこれに当たる。名前は "TypeError" で一致するが、実際には `DOMException` ではない |
 | `NodeStore` は association list | 性能ではなく証明の都合。`keys` に重複が無いことは構造では保証していない（`observe` は id で正規化して吸収する） |
+| IDNA / UTS #46 は**相対的な保証**である | 写像表の正しさは証明していない。`IdnaTable.Resolved` を仮定に置き、実行時に `checkResolved` で検査する。NFC・Bidi・Joiner の code point は誤って扱うのではなく `none` で弾く（`outOfModel`）。**安全側に限定した model であって、UTS #46 適合ではない** |
+| UTF-8 の復元規則は往復の外にある | `Infra/Utf8Roundtrip.lean` が言うのは**正しく符号化された入力の往復**だけである。不正な byte 列に Encoding Standard の規則どおり U+FFFD を置くことは証明していない |
 
 ## 5. 「実装の不一致」の判定
 

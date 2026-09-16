@@ -259,10 +259,6 @@ def fileSlashDrive (u : Url) (basePath : Path) (input : List Char) : Url :=
     else u
   | _ => u
 
-/-- 1 文字を percent-encode して文字列にする。 -/
-def encChar (set : Char → Bool) (c : Char) : String :=
-  String.ofList (utf8PercentEncode set [c])
-
 /-! ## state machine -/
 
 /-- port state が積んだ 10 進の数字列の値。 -/

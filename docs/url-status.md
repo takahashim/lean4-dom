@@ -49,6 +49,9 @@ roadmap §12 が言う「第三の根拠」が最初から手に入る。
 | UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
 | UTF-8 の往復 | `Infra.utf8Decode_encode` | `Infra/Utf8Roundtrip.lean` |
 | RFC 3492 Punycode | `Punycode.encode`, `Punycode.decode` | `Url/Punycode.lean` |
+| §4.4 失敗条件の関係仕様 | `HasScheme`, `decimalOf` | `Url/Spec/Failure.lean` |
+| §4.4 相対 URL 解決の関係仕様 | `Inherits`, `FragmentResolved`, `QueryResolved`, `EmptyResolved` | `Url/Spec/Relative.lean` |
+| §4.4 state 遷移の優先順 | （定理のみ） | `Url/Spec/Priority.lean` |
 
 ## state override をどう通したか
 
@@ -335,11 +338,62 @@ ASCII だけの domain は model 内で閉じる（UTS #46 の写像は ASCII �
 | `splitAmp_intercalate`, `splitFirstEq_append` | `&` と最初の `=` での分割は連結の逆である |
 | `percentDecode_encodeByte`, `percentDecode_encodeBytes` | percent-encode した byte は読み戻せる |
 | `decode_encodeChar` | serialize した一文字ぶんを読み戻すとその文字の UTF-8 になる |
+| `Spec.basicUrlParse_eq_none_of_not_hasScheme` | **scheme が無く base も無い入力は失敗する**。対偶が `Spec.hasScheme_of_basicUrlParse` |
+| `Spec.basicUrlParse_eq_none_of_opaque_base` | opaque path を持つ base では、`#` で始まらない相対参照は失敗する |
+| `Spec.decimalOf_eq_portValue` | 桁の重みで読んでも parser の左畳み込みと同じ値になる |
+| `Spec.run_port_overflow`, `Spec.setPort_of_overflow` | 16 bit に収まらない port は読み飛ばされない。setter では**何も書き換えない**で終わる |
+| `Spec.run_noScheme_fragment` | **`#f` は base の全成分を引き継ぐ**。no scheme state の三つの道が同じ結果に合流する |
+| `Spec.run_noScheme_query` | **`?q` は query を差し替え、fragment を落とす** |
+| `Spec.run_noScheme_empty` | 空入力は base から fragment だけを落とす |
+| `Spec.scheme_file_before_special` ほか 8 本 | **条件を見る順序**。`file` は special より先、bracket の中の `:` は区切りでない、ほか |
 
 `ipv4Parser_lt` を書いていて off-by-one を拾った。畳み込んだ値に掛けるのは
 `256^(4−size)` ではなく `256^(5−size)` である。仕様の counter が
 「最後の part を除いた後」に 0 から始まるためで、
 差分テストでは 4 part の場合しか通らないので気づきにくい。
+
+## 実装と独立した関係仕様（`Url/Spec/`）
+
+Roundtrip も `ValidUrl` も parser の構造に寄り添って書いてある。強い定理だが、
+**仕様文の同じ読み違いが parser と不変条件の両方に入りうる**という弱点がある。
+DOM 側の `Dom/Spec/` に当たる層を、限定的にだが置いた。
+
+約束は `Dom/Spec/` と同じである。
+
+* 関係は parser の関数を呼ばずに定義する（`HasScheme` は入力の形、
+  `decimalOf` は桁の重み、`Inherits` は「base と何を共有するか」）。
+* そのうえで実行可能な parser との対応を定理にする。
+
+置いたのは三つで、どれも指摘が挙げた場所である。
+
+| file | 内容 |
+| --- | --- |
+| `Url/Spec/Failure.lean` | 失敗条件。scheme の有無、opaque path の base、port の範囲 |
+| `Url/Spec/Relative.lean` | 相対 URL 解決。`#f` / `?q` / 空入力 |
+| `Url/Spec/Priority.lean` | 同じ文字に複数の条件が当たる場面で、どれが先か |
+
+### なぜこの三つか
+
+**失敗条件**は Roundtrip が届かないところである。Roundtrip は「serialize した
+ものを parse し直す」向きなので、成功する入力しか通らない。仕様の
+"return failure" を読み違えて guard を緩めても、往復も `ValidUrl` も気づかない。
+
+**相対解決**は base を使う道（no scheme state から relative / file state へ抜ける道）
+で、そこも Roundtrip が通らない。`parseUrl input (some base)` の意味はそこにしか無い。
+`#f` は三つの道に分かれるが同じ結果に合流し、`?q` との違いは fragment が落ちる
+一点だけである、という形で固定した。
+
+**優先順**は差分テストでも見つけにくい。条件の順を入れ替えても、どちらの順でも
+「もっともらしい」結果が返るからである。`file` が special より先に判定されること、
+bracket の中の `:` が port の区切りにならないこと、Windows drive letter が host より
+先に見られることは、いずれも逆順でも動く形の parser が書けてしまう。
+
+### 何を言っていないか
+
+`Url/Spec/` は §4.4 の全体を覆っていない。path の解決（`.` と `..` の畳み込み）、
+authority state の credentials 振り分け、file URL の drive letter 規則は
+関係の側に写していない。そこは `Url/Roundtrip.lean` と `Url/StepValid.lean` が
+実装寄りの形で押さえているだけである。
 
 ## 検証
 
@@ -823,6 +877,10 @@ def RunIH (base : Option Url) (r n : Nat) : Prop :=
   実行時の fixture から与える。`Resolved` は `checkResolved` が実行時に検査する。
   `outOfModel` の印が付いた code point（結合クラス ≠ 0、NFC_QC ≠ Yes、
   Bidi_Class ∈ {R, AL, AN}、Hangul、deviation）を含む domain は `none` を返す。
+* **不正な byte 列に対する復元規則。** `Infra/Utf8Roundtrip.lean` が言うのは
+  正しく符号化された入力の往復だけで、Encoding Standard が定める U+FFFD の
+  置き方（不完全な列、範囲外、surrogate、overlong）は証明の外にある。
+  実行時には `utf8Decode` がそれを行うが、定理は付いていない。
 * **encoding override。** HTML 由来の legacy 引数。UTF-8 に固定している。
   34 の索引に 91,504 項目あり、UTS #46 の表と同じ理由で入れていない。
   影響するのは query の符号化だけで、WPT の機械可読の表には `encoding` 欄が無い。

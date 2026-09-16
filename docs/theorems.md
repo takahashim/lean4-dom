@@ -588,6 +588,11 @@ Selectors の関係だけは照合の実装と同じ module を見るので、�
 代わりに `mem_nthPoolOf_iff` を置いて、**数える列の中身は仕様の語彙
 （inclusive element sibling と same type）で決まる**ようにしてある。
 
+URL の関係（`Url/Spec/`）も同じ script が見る。実行側は `Url/Parser.lean` の
+state machine、語彙は §1.3 の percent-encode と §4.1 の record、§3.2 の host、
+Infra である。いま触れているものは無い。`encChar` は §1.3 の操作なので
+`Url/Parser.lean` から `Url/Percent.lean` へ移した。
+
 ### 4'. 証明が定義の「形」に結合していないか
 
 3 までは「定理が何を言っているか」の検査だが、もう一つ別の結合がある。

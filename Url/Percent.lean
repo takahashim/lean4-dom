@@ -62,6 +62,10 @@ def utf8PercentEncode (set : Char → Bool) (input : List Char) : List Char :=
   input.flatMap fun c =>
     if set c then (utf8EncodeChar c).flatMap percentEncodeByte else [c]
 
+/-- 1 文字を percent-encode して文字列にする。 -/
+def encChar (set : Char → Bool) (c : Char) : String :=
+  String.ofList (utf8PercentEncode set [c])
+
 /-! ## decode -/
 
 /--

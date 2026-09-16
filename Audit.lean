@@ -860,6 +860,38 @@ open Dom.Audit
   Url.asciiDomainToASCII_ne_empty
   Url.utf8PercentEncode_id
 
+-- URL Standard §4.4 の関係意味論（失敗条件・相対解決・遷移の優先順）
+#audit_axioms
+  Url.Spec.run_scheme_startOver
+  Url.Spec.run_noScheme_none
+  Url.Spec.run_noScheme_opaque
+  Url.Spec.run_schemeStart_cases
+  Url.Spec.basicUrlParse_eq_none_of_not_hasScheme
+  Url.Spec.hasScheme_of_basicUrlParse
+  Url.Spec.basicUrlParse_eq_none_of_opaque_base
+  Url.Spec.decimalOf_eq_portValue
+  Url.Spec.run_port_overflow
+  Url.Spec.run_port_overflow_failure
+  Url.Spec.not_hasScheme_of_no_colon
+  Url.Spec.setPort_of_overflow
+  Url.Spec.run_fragment
+  Url.Spec.run_query
+  Url.Spec.credentials_empty
+  Url.Spec.run_noScheme_fragment
+  Url.Spec.run_noScheme_query
+  Url.Spec.run_noScheme_empty
+  Url.Spec.basicUrlParse_fragment
+  Url.Spec.basicUrlParse_query
+  Url.Spec.basicUrlParse_empty
+  Url.Spec.scheme_file_before_special
+  Url.Spec.host_colon_inside_brackets
+  Url.Spec.host_empty_special_fails
+  Url.Spec.port_rejects_other
+  Url.Spec.path_override_keeps_query_char
+  Url.Spec.fileHost_drive_before_host
+  Url.Spec.pathStart_backslash_special
+  Url.Spec.pathStart_backslash_not_special
+
 -- 定理が空虚でないことの証人
 #audit_axioms
   Dom.Witness.state_admissible

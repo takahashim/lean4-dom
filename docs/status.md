@@ -4578,6 +4578,82 @@ import を元の順序どおりに繋げば依存はそのまま通る。最大 
 超える。glue を「仕様適合の証拠」と数えるべきでないのはそのとおりだが、
 量としては全体の 0.7% で、主張の重みを歪める規模ではない。
 
+## Url 側への指摘に対応した
+
+指摘は四つあった。独立関係意味論層が無いこと、`Url/Roundtrip.lean` が大きいこと、
+IDNA が相対的な保証であること、`Infra/Ascii.lean` が薄いことである。
+
+### 総称 ASCII 補題を `Infra/Ascii.lean` へ上げた（4 本 → 14 本）
+
+`asciiLowercase_id` / `asciiLowerChar_idem` / `asciiLowerChar_ascii` は
+`Url/HostRoundtrip.lean` に、`map_self_of_mem` は `Url/Roundtrip.lean` にあった。
+どれも URL に固有の内容を持たない。Selectors の case-insensitive 照合も
+DOM の attribute 名も同じ関数を使うので、共有語彙の側に置くほうが正しい。
+併せて「非 ASCII は case folding で変わらない」（`asciiLowerChar_of_not_ascii`）と
+`digitValue` / `hexValue` の判定との対応（`digitValue_isSome`, `digitValue_eq_none`,
+`hexValue_isSome`）を足した。
+
+### `Url/Roundtrip.lean` を節ごとに割った（3,628 行 → 最大 625 行）
+
+137 定理を 13 module に分けた。定理は一つも消していない。
+`Url/Roundtrip.lean` には最終組み立て（9 定理）と分割表だけを残したので
+import 側は変更不要である。`RoundtripIpv6Host` は一段目で 1,000 行を超えたので
+`RoundtripIpv6Chars` / `RoundtripHostRun` / `RoundtripIpv6Host` に割り直した。
+
+### `Url/Spec/` を置いた（新設・31 定理）
+
+指摘の芯は「Roundtrip も `ValidUrl` も parser の構造に寄り添って書かれているので、
+仕様文の同じ読み違いが parser と不変条件の両方に入りうる」である。そのとおりで、
+DOM 側の `Dom/Spec/` に当たる層が URL には無かった。
+
+指摘が挙げた三つを、それぞれ限定的に置いた。
+
+* **失敗条件**（`Url/Spec/Failure.lean`）。`HasScheme` は「先頭が ASCII alpha で、
+  そこから `:` までが scheme 文字」という**入力の形**で、state machine を呼ばない。
+  そのうえで **scheme が無く base も無い入力は失敗する**（`basicUrlParse_eq_none_of_not_hasScheme`）
+  と、その対偶（`hasScheme_of_basicUrlParse`）を通した。opaque path を持つ base に
+  対する `#` 以外の相対参照も同じ形で落とした。port は `decimalOf` を桁の重みで
+  別に定義し、parser の左畳み込みと一致すること（`decimalOf_eq_portValue`）を
+  定理にしてから、範囲外の port が失敗すること（`run_port_overflow`）を言った。
+  `port` setter は state override 付きなので「何も書き換えない」で終わり、
+  そこは入口まで通る（`setPort_of_overflow`）。
+* **相対 URL 解決**（`Url/Spec/Relative.lean`）。`Inherits` / `FragmentResolved` /
+  `QueryResolved` / `EmptyResolved` は「結果の record が base と何を共有し、
+  何を差し替えるか」だけを述べる。`#f` は no scheme state から三つの道
+  （opaque path の base、relative state、file state）に分かれるが、**どれも同じ
+  結果に合流する**ことを一つの定理にした（`run_noScheme_fragment`）。
+  opaque path と `file` の枝では仕様は credentials も host も写さないので、
+  `ValidUrl` がそれらを空だと保証することが効く。`?q` が **fragment を落とす**のは
+  `#f` との唯一の違いで、`QueryResolved.fragment` がそれを固定する。
+* **遷移の優先順**（`Url/Spec/Priority.lean`）。同じ文字に複数の条件が当たる場面で、
+  どれが先かを名前の付いた定理にした。`file` が special より先（逆だと `file:` が
+  `file://` を要求する）、bracket の中の `:` は port の区切りにならない、
+  special な空 host は host parser を通る前に失敗する、port state は digit でも
+  terminator でもない文字を読み飛ばさない、`pathname` setter では `?` が
+  segment の文字になる、Windows drive letter は host より先に見る、
+  `\` が `/` と同じなのは special のときだけ、の 8 本である。
+  DOM 側の `ensurePreInsertionValidity_step1` / `_step2` / `_step3` と同じ役割で、
+  **順序の読み違いは差分テストで見つけにくい**（どちらの順でも「もっともらしい」
+  結果を返す）ことが動機である。
+
+各 file に証人を置いた。`"/a/b"` は base 無しで解決できない、`data:x` を base に
+した `"/a"` も解決できない、`setPort "65536"` は無視される、
+`http://a/b` に対する `#f` / `?q` / `""` はそれぞれの関係を満たす、である。
+
+### IDNA / UTS #46 の境界
+
+指摘のとおり相対的な保証である。`IdnaTable.Resolved` を仮定として置き、
+実行時に `checkResolved` で discharge している。表そのものの正しさは証明していない。
+NFC・Bidi・Joiner の code point は誤って扱うのではなく `none` を返して弾く
+（`outOfModel`）。つまり**安全側に限定した model であって、UTS #46 適合ではない**。
+`docs/url-status.md` の「IDNA の境界」と「未着手」に書いてあるが、
+`docs/threats-to-validity.md` にも同じ趣旨の項を足した。
+
+`Infra/Bytes.lean` に定理が無いのも同じ形で、正しさは `Utf8Roundtrip.lean` の
+往復定理にある。ただしそこが言うのは**正しく符号化された入力の往復**だけで、
+不正な byte 列に対する Encoding Standard の復元規則（U+FFFD の置き方）は
+証明の外にある。ここは残りとして記録した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
