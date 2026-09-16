@@ -1,0 +1,31 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-live-range-pre-remove-steps",
+    "algorithm": ["live range pre-remove steps", "insertNode(node)", "stringifier"],
+    "steps": "外す node の inclusive descendant を指していた端点は、(parent, index) へ移る",
+    "note": "始点と終点が同じ位置に潰れても range は生きている。何も選んでいない（toString が空）が、位置は指しているので、そこへ insertNode すると外した node が在った場所に入る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "p" },
+    { "id": 2, "kind": "text", "parent": 1, "data": "A" },
+    { "id": 3, "kind": "element", "parent": 1, "localName": "b" },
+    { "id": 4, "kind": "text", "parent": 1, "data": "C" },
+    { "id": 5, "kind": "text", "parent": 3, "data": "xyz" },
+    { "id": 6, "kind": "element", "localName": "i" }
+  ],
+  "ranges": [
+    { "start": { "node": 5, "offset": 1 }, "end": { "node": 5, "offset": 2 } }
+  ],
+  "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "rangeToString", "range": 0 },
+    { "op": "removeChild", "parent": 1, "node": 3 },
+    { "op": "rangeToString", "range": 0 },
+    { "op": "rangeIsPointInRange", "range": 0, "node": 1, "offset": 1 },
+    { "op": "rangeIsPointInRange", "range": 0, "node": 1, "offset": 0 },
+    { "op": "rangeInsertNode", "range": 0, "node": 6 },
+    { "op": "rangeToString", "range": 0 }
+  ]
+}

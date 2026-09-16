@@ -51,6 +51,24 @@ def liveRangePreRemoveBP (t : Tree) (node parent : NodeId) (index : Nat)
     (bp : BoundaryPoint) : BoundaryPoint :=
   rangeShiftAfterRemove parent index (rangeMoveOutOfSubtree t node parent index bp)
 
+/--
+**`liveRangePreRemoveBP` が何を返すかを、合成の形に依らずに言ったもの。**
+
+証明はこの補題だけを使えばよく、`unfold` で本体を開く必要が無い。
+つまりこれが `liveRangePreRemoveBP` の「interface」で、二つの step をどちらの順で
+合成したかは「実装の詳細」になる。本体の書き方を変えたとき、直すのは
+この補題の証明だけで済む（`docs/theorems.md` の「証明が定義の形に結合していないか」）。
+-/
+theorem liveRangePreRemoveBP_eq (t : Tree) (node parent : NodeId) (index : Nat)
+    (bp : BoundaryPoint) :
+    liveRangePreRemoveBP t node parent index bp =
+      if isInclusiveAncestorOf t node bp.node then { node := parent, offset := index }
+      else rangeShiftAfterRemove parent index bp := by
+  unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
+  cases hin : isInclusiveAncestorOf t node bp.node with
+  | true => simp [rangeShiftAfterRemove]
+  | false => simp
+
 def liveRangePreRemoveRange (t : Tree) (node parent : NodeId) (index : Nat)
     (r : RangeState) : RangeState :=
   { start := liveRangePreRemoveBP t node parent index r.start

@@ -146,6 +146,8 @@ open Dom.Audit
   Dom.adopt_isOk
   Dom.adoptNode_isOk
   Dom.liveRangePreRemoveBP_comm
+  Dom.liveRangePreRemoveBP_eq
+  Dom.rangeShiftAfterRemove_node
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS
