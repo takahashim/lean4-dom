@@ -87,6 +87,27 @@ def nodeRemove (s : DOMState) (this : NodeId) : Except DOMException DOMState :=
   | none => .ok s
   | some _ => remove s this
 
+/-- parent が無ければ `nodeRemove` は何もしない。 -/
+theorem nodeRemove_of_no_parent {s : DOMState} {this : NodeId}
+    (hp : parentOf s.tree this = none) : nodeRemove s this = .ok s := by
+  unfold nodeRemove
+  rw [hp]
+
+/-- parent があれば `nodeRemove` は `remove` そのものである。 -/
+theorem nodeRemove_of_parent {s : DOMState} {this p : NodeId}
+    (hp : parentOf s.tree this = some p) : nodeRemove s this = remove s this := by
+  unfold nodeRemove
+  rw [hp]
+
+/-- `nodeRemove` が成功したときの二つの場合。 -/
+theorem nodeRemove_cases {s s' : DOMState} {this : NodeId} (h : nodeRemove s this = .ok s') :
+    (parentOf s.tree this = none ∧ s' = s) ∨
+      ((∃ p, parentOf s.tree this = some p) ∧ remove s this = .ok s') := by
+  unfold nodeRemove at h
+  split at h
+  · next hp => exact Or.inl ⟨hp, (Except.ok.inj h).symm⟩
+  · next p hp => exact Or.inr ⟨⟨p, hp⟩, h⟩
+
 /-- DOM Standard §4.2.6 `ParentNode.moveBefore(node, child)`。 -/
 def moveBefore (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
     Except DOMException DOMState :=

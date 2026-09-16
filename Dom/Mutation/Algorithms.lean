@@ -511,6 +511,30 @@ def preRemove (s : DOMState) (child parent : NodeId) : Except DOMException DOMSt
   -- step 2
   else remove s child
 
+/-- step 1 が通れば `preRemove` は `remove` そのものである。 -/
+theorem preRemove_of_parent {s : DOMState} {child parent : NodeId}
+    (hp : parentOf s.tree child = some parent) :
+    preRemove s child parent = remove s child := by
+  unfold preRemove
+  rw [if_neg (by simpa using hp)]
+
+/-- `preRemove` が成功したなら step 1 が通っていて、効果は `remove` である。 -/
+theorem preRemove_cases {s s' : DOMState} {child parent : NodeId}
+    (h : preRemove s child parent = .ok s') :
+    parentOf s.tree child = some parent ∧ remove s child = .ok s' := by
+  unfold preRemove at h
+  split at h
+  · simp at h
+  · next hp =>
+    exact ⟨by simpa using hp, h⟩
+
+/-- step 1 で落ちるのは child の parent が違うときである。 -/
+theorem preRemove_of_not_parent {s : DOMState} {child parent : NodeId}
+    (hp : parentOf s.tree child ≠ some parent) :
+    preRemove s child parent = .error .notFoundError := by
+  unfold preRemove
+  rw [if_pos hp]
+
 /--
 DOM Standard §4.2.3 "replace" step 2-3 の reference child。
 
@@ -621,22 +645,29 @@ theorem replace_of_validity_error {s : DOMState} {child node parent : NodeId}
   rw [hv]
 
 /--
+DOM Standard §4.2.3 "replace all" step 2 の addedNodes。
+
+`node` が null なら空、そうでなければ `replace` の step 8 と同じ列である。
+-/
+def replaceAllNodes (t : Tree) (node : Option NodeId) : List NodeId :=
+  match node with
+  | none => []
+  | some n => replaceNodes t n
+
+@[simp] theorem replaceAllNodes_none (t : Tree) : replaceAllNodes t none = [] := rfl
+
+@[simp] theorem replaceAllNodes_some (t : Tree) (n : NodeId) :
+    replaceAllNodes t (some n) = replaceNodes t n := rfl
+
+/--
 DOM Standard §4.2.3 "replace all"。
 
 仕様どおり、この algorithm 自身は node tree の制約を検査しない。
 -/
 def replaceAll (s : DOMState) (node : Option NodeId) (parent : NodeId) :
     Except DOMException DOMState :=
-  -- step 1-3
-  let removedNodes := childrenOf s.tree parent
-  let addedNodes := match node with
-    | none => []
-    | some n =>
-      match s.tree.get? n with
-      | some nd => if nd.kind == .documentFragment then nd.children else [n]
-      | none => [n]
-  -- step 4
-  match removeEach s removedNodes true with
+  -- step 4。step 1-3 の removedNodes / addedNodes は木を変える前の値。
+  match removeEach s (childrenOf s.tree parent) true with
   | .error e => .error e
   | .ok s₁ =>
     -- step 5
@@ -646,7 +677,33 @@ def replaceAll (s : DOMState) (node : Option NodeId) (parent : NodeId) :
     | .error e => .error e
     | .ok s₂ =>
       -- step 6-7
-      .ok (queueTreeMutationRecord s₂ parent addedNodes removedNodes none none)
+      .ok (queueTreeMutationRecord s₂ parent (replaceAllNodes s.tree node)
+        (childrenOf s.tree parent) none none)
+
+/--
+`replace all` が成功したときに通った経路を、本体を開かずに取り出す。
+
+step 4 の removal は必ず走り、step 5 の insert は `node` が null でないときだけ走る。
+-/
+theorem replaceAll_cases {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
+    (h : replaceAll s node parent = .ok s') :
+    ∃ s₁ s₂, removeEach s (childrenOf s.tree parent) true = .ok s₁ ∧
+      ((node = none ∧ s₂ = s₁) ∨
+        (∃ n, node = some n ∧ insert s₁ n parent none true = .ok s₂)) ∧
+      s' = queueTreeMutationRecord s₂ parent (replaceAllNodes s.tree node)
+        (childrenOf s.tree parent) none none := by
+  unfold replaceAll at h
+  split at h
+  · simp at h
+  · next s₁ hr =>
+    split at h
+    · simp at h
+    · next s₂ hi =>
+      refine ⟨s₁, s₂, hr, ?_, (Except.ok.inj h).symm⟩
+      revert hi
+      cases hn : node with
+      | none => intro hi; exact Or.inl ⟨rfl, (Except.ok.inj hi).symm⟩
+      | some n => intro hi; exact Or.inr ⟨n, rfl, hi⟩
 
 /-! ## move -/
 

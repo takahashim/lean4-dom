@@ -2293,30 +2293,20 @@ theorem structurallyValid_replaceAll {s s' : DOMState} {node : Option NodeId} {p
       nd.kind = NodeKind.documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
     (hr : replaceAll s node parent = .ok s') : StructurallyValid s'.tree := by
-  unfold replaceAll at hr
-  simp only at hr
-  split at hr
-  · simp at hr
-  · next s₁ hre =>
-    have h₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
-    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
-    split at hr
-    · simp at hr
-    · next s₂ hins =>
-      have h₂ : StructurallyValid s₂.tree := by
-        revert hins
-        split
-        · intro hins; rw [← Except.ok.inj hins]; exact h₁
-        · next _ _ m =>
-          intro hins
-          refine structurallyValid_insert_of_facts h₁ ?_ ?_ ?_ (by simpa using hins)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
-              (hpk m rfl)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
-              (hnk m rfl)
-          · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
-      rw [← Except.ok.inj hr]
-      simpa using h₂
+  obtain ⟨s₁, s₂, hre, hstep, hsx⟩ := replaceAll_cases hr
+  have h₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
+  have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
+  have h₂ : StructurallyValid s₂.tree := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨m, hm, hins⟩
+    · exact h₁
+    · refine structurallyValid_insert_of_facts h₁ ?_ ?_ ?_ hins
+      · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+          (hpk m hm)
+      · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+          (hnk m hm)
+      · exact doctypeFact_of_kindPreserving hkp (hdtf m hm)
+  rw [hsx]
+  simpa using h₂
 
 theorem nodeDocumentsValid_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hs : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
@@ -2327,31 +2317,21 @@ theorem nodeDocumentsValid_replaceAll {s s' : DOMState} {node : Option NodeId} {
       nd.kind = NodeKind.documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
     (hr : replaceAll s node parent = .ok s') : NodeDocumentsValid s'.tree := by
-  unfold replaceAll at hr
-  simp only at hr
-  split at hr
-  · simp at hr
-  · next s₁ hre =>
-    have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ hs hre
-    have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_removeEach _ hs h hre
-    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
-    split at hr
-    · simp at hr
-    · next s₂ hins =>
-      have h₂ : NodeDocumentsValid s₂.tree := by
-        revert hins
-        split
-        · intro hins; rw [← Except.ok.inj hins]; exact h₁
-        · next _ _ m =>
-          intro hins
-          refine nodeDocumentsValid_insert_of_facts hs₁ h₁ ?_ ?_ ?_ (by simpa using hins)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
-              (hpk m rfl)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
-              (hnk m rfl)
-          · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
-      rw [← Except.ok.inj hr]
-      simpa using h₂
+  obtain ⟨s₁, s₂, hre, hstep, hsx⟩ := replaceAll_cases hr
+  have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ hs hre
+  have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_removeEach _ hs h hre
+  have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
+  have h₂ : NodeDocumentsValid s₂.tree := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨m, hm, hins⟩
+    · exact h₁
+    · refine nodeDocumentsValid_insert_of_facts hs₁ h₁ ?_ ?_ ?_ hins
+      · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+          (hpk m hm)
+      · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+          (hnk m hm)
+      · exact doctypeFact_of_kindPreserving hkp (hdtf m hm)
+  rw [hsx]
+  simpa using h₂
 
 /--
 `replace all` は parent の children を空にしてから入れるので、
@@ -2368,67 +2348,57 @@ theorem documentTreesValid_replaceAll {s s' : DOMState} {node : Option NodeId} {
         ((if nd.kind = NodeKind.documentFragment then nd.children else [n]).filter fun m =>
           kindOf s.tree m == some NodeKind.documentType).length ≤ 1))
     (hr : replaceAll s node parent = .ok s') : DocumentTreesValid s'.tree := by
-  unfold replaceAll at hr
-  simp only at hr
-  split at hr
-  · simp at hr
-  · next s₁ hre =>
-    have hwf₁ : WellFormed s₁.tree := removeEach_preserves_wellformed _ hwf hre
-    have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_removeEach _ hwf h hre
-    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
-    have hnil : childrenOf s₁.tree parent = [] := removeEach_childrenOf_nil hwf hre
-    have helemnil : elementChildren s₁.tree parent = [] := by
-      unfold elementChildren; rw [hnil]; rfl
-    have hdtnil : doctypeChildren s₁.tree parent = [] := by
-      unfold doctypeChildren; rw [hnil]; rfl
-    split at hr
-    · simp at hr
-    · next s₂ hins =>
-      have h₂ : DocumentTreesValid s₂.tree := by
-        revert hins
-        split
-        · intro hins; rw [← Except.ok.inj hins]; exact h₁
-        · next _ _ m =>
-          intro hins
-          refine documentTreesValid_insert_of_seqOk hwf₁ h₁ ?_ (by simpa using hins)
-          intro nd hnd
-          obtain ⟨nd₀, hnd₀, hkd⟩ := shapePreserving_get? hkp hnd
-          intro hdocparent
-          have hdoc0 : kindOf s.tree parent = some NodeKind.document := by
-            have hkk : kindOf s₁.tree parent = kindOf s.tree parent := hkp.kind parent
-            rw [← hkk]
-            exact hdocparent
-          obtain ⟨g1, g2⟩ := hok hdoc0 m rfl nd₀ hnd₀
-          have hkind : ∀ x, kindOf s₁.tree x = kindOf s.tree x := hkp.kind
-          -- 入れる node の列は `removeEach` で縮むだけである。
-          have hsl : ((if nd.kind = NodeKind.documentFragment then nd.children
-                else [m])).Sublist
-              (if nd₀.kind = NodeKind.documentFragment then nd₀.children else [m]) := by
-            by_cases hk : nd.kind = NodeKind.documentFragment
-            · rw [if_pos hk, if_pos (by rw [hkd]; exact hk)]
-              have hs := (removeEach_childrenOf_sub _ hwf hre m).1
-              rw [childrenOf_eq hnd, childrenOf_eq hnd₀] at hs
-              exact hs
-            · rw [if_neg hk, if_neg (by rw [hkd]; exact hk)]
-              exact List.Sublist.refl _
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
-          · intro x hx k hk
-            exact g1 x (hsl.subset hx) k (by rw [← hkind x]; exact hk)
-          · simp only [hkind]
-            exact Nat.le_trans (Nat.add_le_add (hsl.filter _).length_le
-              (hsl.filter _).length_le) g2
-          · rw [helemnil]
-            simp only [hkind, List.length_nil, Nat.zero_add]
-            exact Nat.le_trans (Nat.le_trans (hsl.filter _).length_le (Nat.le_add_right _ _)) g2
-          · rw [hdtnil]
-            simp only [hkind, List.length_nil, Nat.zero_add]
-            exact Nat.le_trans (Nat.le_trans (hsl.filter _).length_le (Nat.le_add_left _ _)) g2
-          · intro _ _ _ c hc
-            exact absurd hc (by simp)
-          · intro _ _ _
-            exact ⟨fun c hc => absurd hc (by simp), fun _ => helemnil⟩
-      rw [← Except.ok.inj hr]
-      simpa using h₂
+  obtain ⟨s₁, s₂, hre, hstep, hsx⟩ := replaceAll_cases hr
+  have hwf₁ : WellFormed s₁.tree := removeEach_preserves_wellformed _ hwf hre
+  have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_removeEach _ hwf h hre
+  have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
+  have hnil : childrenOf s₁.tree parent = [] := removeEach_childrenOf_nil hwf hre
+  have helemnil : elementChildren s₁.tree parent = [] := by
+    unfold elementChildren; rw [hnil]; rfl
+  have hdtnil : doctypeChildren s₁.tree parent = [] := by
+    unfold doctypeChildren; rw [hnil]; rfl
+  have h₂ : DocumentTreesValid s₂.tree := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨m, hm, hins⟩
+    · exact h₁
+    · refine documentTreesValid_insert_of_seqOk hwf₁ h₁ ?_ hins
+      intro nd hnd
+      obtain ⟨nd₀, hnd₀, hkd⟩ := shapePreserving_get? hkp hnd
+      intro hdocparent
+      have hdoc0 : kindOf s.tree parent = some NodeKind.document := by
+        have hkk : kindOf s₁.tree parent = kindOf s.tree parent := hkp.kind parent
+        rw [← hkk]
+        exact hdocparent
+      obtain ⟨g1, g2⟩ := hok hdoc0 m hm nd₀ hnd₀
+      have hkind : ∀ x, kindOf s₁.tree x = kindOf s.tree x := hkp.kind
+      -- 入れる node の列は `removeEach` で縮むだけである。
+      have hsl : ((if nd.kind = NodeKind.documentFragment then nd.children
+            else [m])).Sublist
+          (if nd₀.kind = NodeKind.documentFragment then nd₀.children else [m]) := by
+        by_cases hk : nd.kind = NodeKind.documentFragment
+        · rw [if_pos hk, if_pos (by rw [hkd]; exact hk)]
+          have hs := (removeEach_childrenOf_sub _ hwf hre m).1
+          rw [childrenOf_eq hnd, childrenOf_eq hnd₀] at hs
+          exact hs
+        · rw [if_neg hk, if_neg (by rw [hkd]; exact hk)]
+          exact List.Sublist.refl _
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+      · intro x hx k hk
+        exact g1 x (hsl.subset hx) k (by rw [← hkind x]; exact hk)
+      · simp only [hkind]
+        exact Nat.le_trans (Nat.add_le_add (hsl.filter _).length_le
+          (hsl.filter _).length_le) g2
+      · rw [helemnil]
+        simp only [hkind, List.length_nil, Nat.zero_add]
+        exact Nat.le_trans (Nat.le_trans (hsl.filter _).length_le (Nat.le_add_right _ _)) g2
+      · rw [hdtnil]
+        simp only [hkind, List.length_nil, Nat.zero_add]
+        exact Nat.le_trans (Nat.le_trans (hsl.filter _).length_le (Nat.le_add_left _ _)) g2
+      · intro _ _ _ c hc
+        exact absurd hc (by simp)
+      · intro _ _ _
+        exact ⟨fun c hc => absurd hc (by simp), fun _ => helemnil⟩
+  rw [hsx]
+  simpa using h₂
 
 /-! ## replaceData -/
 

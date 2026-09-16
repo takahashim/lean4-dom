@@ -255,30 +255,20 @@ theorem replaceAll_preserves_endpoints {s s' : DOMState} {node : Option NodeId} 
       pd.kind.canHaveChildren = true)
     (hv : RangeEndpointsValid s) (hr : replaceAll s node parent = .ok s') :
     RangeEndpointsValid s' := by
-  unfold replaceAll at hr
-  simp only at hr
-  split at hr
-  · simp at hr
-  · next s₁ hre =>
-    have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
-    have hv₁ : RangeEndpointsValid s₁ := removeEach_preserves_endpoints _ h hv hre
-    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
-    split at hr
-    · simp at hr
-    · next s₂ hins =>
-      have hv₂ : RangeEndpointsValid s₂ := by
-        revert hins
-        split
-        · intro hins; rw [← Except.ok.inj hins]; exact hv₁
-        · next _ _ m =>
-          intro hins
-          refine insert_preserves_endpoints hs₁.wellFormed ?_ ?_ hv₁ (by simpa using hins)
-          · exact childCountKind_of_canHaveChildren
-              (kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
-                (hpk m rfl))
-          · exact fun q hq => childCountKind_of_parentOf hs₁ hq
-      rw [← Except.ok.inj hr]
-      exact rangeEndpointsValid_congr (by simp) (by simp) hv₂
+  obtain ⟨s₁, s₂, hre, hstep, hsx⟩ := replaceAll_cases hr
+  have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
+  have hv₁ : RangeEndpointsValid s₁ := removeEach_preserves_endpoints _ h hv hre
+  have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
+  have hv₂ : RangeEndpointsValid s₂ := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨m, hm, hins⟩
+    · exact hv₁
+    · refine insert_preserves_endpoints hs₁.wellFormed ?_ ?_ hv₁ hins
+      · exact childCountKind_of_canHaveChildren
+          (kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+            (hpk m hm))
+      · exact fun q hq => childCountKind_of_parentOf hs₁ hq
+  rw [hsx]
+  exact rangeEndpointsValid_congr (by simp) (by simp) hv₂
 
 /-! ## replaceData -/
 
@@ -514,10 +504,7 @@ theorem admissible_append {s s' : DOMState} {node parent : NodeId}
 theorem admissible_preRemove {s s' : DOMState} {child parent : NodeId}
     (h : AdmissibleDOMState s) (hp : preRemove s child parent = .ok s') :
     AdmissibleDOMState s' := by
-  unfold preRemove at hp
-  split at hp
-  · simp at hp
-  · exact admissible_remove h hp
+  exact admissible_remove h (preRemove_cases hp).2
 
 theorem admissible_appendChild {s s' : DOMState} {parent node : NodeId}
     (h : AdmissibleDOMState s) (hp : appendChild s parent node = .ok s') :
@@ -565,10 +552,9 @@ theorem admissible_replaceWith {s s' : DOMState} {this node : NodeId}
 
 theorem admissible_nodeRemove {s s' : DOMState} {this : NodeId}
     (h : AdmissibleDOMState s) (hp : nodeRemove s this = .ok s') : AdmissibleDOMState s' := by
-  unfold nodeRemove at hp
-  split at hp
-  · rw [← Except.ok.inj hp]; exact h
-  · exact admissible_remove h hp
+  rcases nodeRemove_cases hp with ⟨-, rfl⟩ | ⟨-, hr⟩
+  · exact h
+  · exact admissible_remove h hr
 
 /--
 `replaceChildren` は step 2 の検査（既存の children を除外する）を通してから

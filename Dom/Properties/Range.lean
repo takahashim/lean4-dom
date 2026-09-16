@@ -347,11 +347,8 @@ theorem preRemove_preserves_endpoints {s s' : DOMState} {child parent : NodeId}
     (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
     (hv : RangeEndpointsValid s) (h : preRemove s child parent = .ok s') :
     RangeEndpointsValid s' := by
-  unfold preRemove at h
-  split at h
-  · simp at h
-  · next hp =>
-    exact remove_preserves_endpoints hwf (by simpa using hp) hlen hv h
+  obtain ⟨hp, h⟩ := preRemove_cases h
+  exact remove_preserves_endpoints hwf hp hlen hv h
 
 theorem removeChild_preserves_endpoints {s s' : DOMState} {parent child : NodeId}
     (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
@@ -364,10 +361,9 @@ theorem nodeRemove_preserves_endpoints {s s' : DOMState} {this : NodeId}
     (hlen : ∀ p, parentOf s.tree this = some p → ChildCountKind s.tree p)
     (hv : RangeEndpointsValid s) (h : nodeRemove s this = .ok s') :
     RangeEndpointsValid s' := by
-  unfold nodeRemove at h
-  split at h
-  · rw [← Except.ok.inj h]; exact hv
-  · next p hp => exact remove_preserves_endpoints hwf hp (hlen p hp) hv h
+  rcases nodeRemove_cases h with ⟨-, rfl⟩ | ⟨⟨p, hp⟩, hr⟩
+  · exact hv
+  · exact remove_preserves_endpoints hwf hp (hlen p hp) hv hr
 
 /--
 `move` も `remove` を経由するので、削除された部分木から range は追い出される。
@@ -1185,10 +1181,8 @@ theorem remove_preserves_rangesValid {s s' : DOMState} {n p : NodeId}
 theorem preRemove_preserves_rangesValid {s s' : DOMState} {child parent : NodeId}
     (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
     (hv : RangesValid s) (h : preRemove s child parent = .ok s') : RangesValid s' := by
-  unfold preRemove at h
-  split at h
-  · simp at h
-  · next hp => exact remove_preserves_rangesValid hwf (by simpa using hp) hlen hv h
+  obtain ⟨hp, h⟩ := preRemove_cases h
+  exact remove_preserves_rangesValid hwf hp hlen hv h
 
 theorem removeChild_preserves_rangesValid {s s' : DOMState} {parent child : NodeId}
     (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
@@ -1199,10 +1193,9 @@ theorem nodeRemove_preserves_rangesValid {s s' : DOMState} {this : NodeId}
     (hwf : WellFormed s.tree)
     (hlen : ∀ p, parentOf s.tree this = some p → ChildCountKind s.tree p)
     (hv : RangesValid s) (h : nodeRemove s this = .ok s') : RangesValid s' := by
-  unfold nodeRemove at h
-  split at h
-  · rw [← Except.ok.inj h]; exact hv
-  · next p hp => exact remove_preserves_rangesValid hwf hp (hlen p hp) hv h
+  rcases nodeRemove_cases h with ⟨-, rfl⟩ | ⟨⟨p, hp⟩, hr⟩
+  · exact hv
+  · exact remove_preserves_rangesValid hwf hp (hlen p hp) hv hr
 
 /-- `move` も `remove` と挿入側の調整を通るだけなので、同じ node の上の順序を保つ。 -/
 theorem move_preserves_sameNodeOrdered {s s' : DOMState} {node newParent : NodeId}
@@ -1261,10 +1254,8 @@ theorem preInsert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : Nod
 theorem preRemove_preserves_sameNodeOrdered {s s' : DOMState} {child parent : NodeId}
     (hv : RangesSameNodeOrdered s) (h : preRemove s child parent = .ok s') :
     RangesSameNodeOrdered s' := by
-  unfold preRemove at h
-  split at h
-  · simp at h
-  · next hp => exact remove_preserves_sameNodeOrdered (by simpa using hp) h hv
+  obtain ⟨hp, h⟩ := preRemove_cases h
+  exact remove_preserves_sameNodeOrdered hp h hv
 
 /-! ## pre-remove steps の二つの調整は可換である -/
 

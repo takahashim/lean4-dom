@@ -71,8 +71,7 @@ theorem remove_error_iff {s : DOMState} (hwf : WellFormed s.tree) {n : NodeId} {
 theorem preRemove_error_notFound {s : DOMState} {child parent : NodeId}
     (h : parentOf s.tree child ≠ some parent) :
     preRemove s child parent = .error .notFoundError := by
-  unfold preRemove
-  rw [if_pos h]
+  exact preRemove_of_not_parent h
 
 
 /--
@@ -179,14 +178,12 @@ theorem removeChild_refines_preRemove (s : DOMState) (parent child : NodeId) :
 /-- `remove()` は parent がある場合だけ `remove` に委譲し、無ければ何もしない。 -/
 theorem nodeRemove_refines_remove (s : DOMState) (this : NodeId)
     (h : (parentOf s.tree this).isSome) : nodeRemove s this = remove s this := by
-  unfold nodeRemove
   obtain ⟨p, hp⟩ := Option.isSome_iff_exists.mp h
-  rw [hp]
+  exact nodeRemove_of_parent hp
 
 theorem nodeRemove_noop (s : DOMState) (this : NodeId) (h : parentOf s.tree this = none) :
     nodeRemove s this = .ok s := by
-  unfold nodeRemove
-  rw [h]
+  exact nodeRemove_of_no_parent h
 
 /-- `replaceChildren(null)` は検査なしで `replace all` に委譲する。 -/
 theorem replaceChildren_none_refines_replaceAll (s : DOMState) (parent : NodeId) :

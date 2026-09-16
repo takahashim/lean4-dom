@@ -373,10 +373,7 @@ theorem shapePreserving_append {s s' : DOMState} {node parent : NodeId}
 
 theorem preRemove_preserves_wellformed {s s' : DOMState} {child parent : NodeId}
     (hwf : WellFormed s.tree) (h : preRemove s child parent = .ok s') : WellFormed s'.tree := by
-  unfold preRemove at h
-  split at h
-  · simp at h
-  · exact remove_preserves_wellformed hwf h
+  exact remove_preserves_wellformed hwf (preRemove_cases h).2
 
 theorem replace_preserves_wellformed {s s' : DOMState} {child node parent : NodeId}
     (hwf : WellFormed s.tree) (h : replace s child node parent = .ok s') :
@@ -393,21 +390,14 @@ theorem replace_preserves_wellformed {s s' : DOMState} {child node parent : Node
 theorem replaceAll_preserves_wellformed {s s' : DOMState} {node : Option NodeId}
     {parent : NodeId} (hwf : WellFormed s.tree) (h : replaceAll s node parent = .ok s') :
     WellFormed s'.tree := by
-  unfold replaceAll at h
-  simp only at h
-  split at h
-  · simp at h
-  · next s₁ hr =>
-    have hwf₁ := removeEach_preserves_wellformed _ hwf hr
-    split at h
-    · simp at h
-    · next s₂ hi =>
-      have hwf₂ : WellFormed s₂.tree := by
-        revert hi; split
-        · intro hi; rw [← Except.ok.inj hi]; exact hwf₁
-        · intro hi; exact insert_preserves_wellformed hwf₁ (by simpa using hi)
-      rw [← Except.ok.inj h]
-      simpa using hwf₂
+  obtain ⟨s₁, s₂, hr, hstep, hs⟩ := replaceAll_cases h
+  have hwf₁ := removeEach_preserves_wellformed _ hwf hr
+  have hwf₂ : WellFormed s₂.tree := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨_, -, hi⟩
+    · exact hwf₁
+    · exact insert_preserves_wellformed hwf₁ hi
+  rw [hs]
+  simpa using hwf₂
 
 /-! ## move -/
 
@@ -806,10 +796,9 @@ theorem replaceWith_preserves_wellformed {s s' : DOMState} {this node : NodeId}
 
 theorem nodeRemove_preserves_wellformed {s s' : DOMState} {this : NodeId}
     (hwf : WellFormed s.tree) (h : nodeRemove s this = .ok s') : WellFormed s'.tree := by
-  unfold nodeRemove at h
-  split at h
-  · rw [← Except.ok.inj h]; exact hwf
-  · exact remove_preserves_wellformed hwf h
+  rcases nodeRemove_cases h with ⟨-, rfl⟩ | ⟨-, hr⟩
+  · exact hwf
+  · exact remove_preserves_wellformed hwf hr
 
 /--
 `moveBefore` は receiver の kind を検査してから `move` を呼ぶ。
@@ -865,22 +854,14 @@ theorem shapePreserving_replace {s s' : DOMState} {child node parent : NodeId}
 
 theorem shapePreserving_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hr : replaceAll s node parent = .ok s') : ShapePreserving s.tree s'.tree := by
-  unfold replaceAll at hr
-  simp only at hr
-  split at hr
-  · simp at hr
-  · next s₁ hre =>
-    split at hr
-    · simp at hr
-    · next s₂ hins =>
-      have h₂ : ShapePreserving s₁.tree s₂.tree := by
-        revert hins
-        split
-        · intro hins; rw [← Except.ok.inj hins]; exact ShapePreserving.refl _
-        · intro hins; exact shapePreserving_insert (by simpa using hins)
-      rw [← Except.ok.inj hr]
-      refine ((shapePreserving_removeEach _ hre).trans h₂).trans ?_
-      exact shapePreserving_of_tree_eq (by simp)
+  obtain ⟨s₁, s₂, hre, hstep, hs⟩ := replaceAll_cases hr
+  have h₂ : ShapePreserving s₁.tree s₂.tree := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨_, -, hins⟩
+    · exact ShapePreserving.refl _
+    · exact shapePreserving_insert hins
+  rw [hs]
+  refine ((shapePreserving_removeEach _ hre).trans h₂).trans ?_
+  exact shapePreserving_of_tree_eq (by simp)
 
 /-- `moveBefore` も `remove` してから `insertAt` する形に分解できる。 -/
 theorem moveBefore_eq_remove_insertAt {s s' : DOMState} {parent node : NodeId}

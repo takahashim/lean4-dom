@@ -216,21 +216,13 @@ theorem preservesRegs_replace {s s' : DOMState} {child node parent : NodeId}
 
 theorem preservesRegs_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hr : replaceAll s node parent = .ok s') : PreservesRegs s s' := by
-  unfold replaceAll at hr
-  simp only at hr
-  split at hr
-  · simp at hr
-  · next s₁ hre =>
-    split at hr
-    · simp at hr
-    · next s₂ hins =>
-      have h₂ : PreservesRegs s₁ s₂ := by
-        revert hins
-        split
-        · intro hins; rw [← Except.ok.inj hins]; exact PreservesRegs.refl _
-        · intro hins; exact preservesRegs_insert (by simpa using hins)
-      rw [← Except.ok.inj hr]
-      refine ((preservesRegs_removeEach _ hre).trans h₂).trans ?_
-      exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
+  obtain ⟨s₁, s₂, hre, hstep, hs⟩ := replaceAll_cases hr
+  have h₂ : PreservesRegs s₁ s₂ := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨_, -, hins⟩
+    · exact PreservesRegs.refl _
+    · exact preservesRegs_insert hins
+  rw [hs]
+  refine ((preservesRegs_removeEach _ hre).trans h₂).trans ?_
+  exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
 
 end Dom

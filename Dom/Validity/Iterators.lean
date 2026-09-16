@@ -303,30 +303,20 @@ theorem iterCtx_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : No
       nd.kind = NodeKind.documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
     (hr : replaceAll s node parent = .ok s') : IterCtx s' := by
-  unfold replaceAll at hr
-  simp only at hr
-  split at hr
-  · simp at hr
-  · next s₁ hre =>
-    have h₁ : IterCtx s₁ := iterCtx_removeEach _ h hre
-    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
-    split at hr
-    · simp at hr
-    · next s₂ hins =>
-      have h₂ : IterCtx s₂ := by
-        revert hins
-        split
-        · intro hins; rw [← Except.ok.inj hins]; exact h₁
-        · next _ _ m =>
-          intro hins
-          refine iterCtx_insert h₁ ?_ ?_ ?_ (by simpa using hins)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
-              (hpk m rfl)
-          · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
-              (hnk m rfl)
-          · exact doctypeFact_of_kindPreserving hkp (hdtf m rfl)
-      rw [← Except.ok.inj hr]
-      exact IterCtx.congr (by simp) (by simp) h₂
+  obtain ⟨s₁, s₂, hre, hstep, hs⟩ := replaceAll_cases hr
+  have h₁ : IterCtx s₁ := iterCtx_removeEach _ h hre
+  have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
+  have h₂ : IterCtx s₂ := by
+    rcases hstep with ⟨-, rfl⟩ | ⟨m, hm, hins⟩
+    · exact h₁
+    · refine iterCtx_insert h₁ ?_ ?_ ?_ hins
+      · exact kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+          (hpk m hm)
+      · exact kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+          (hnk m hm)
+      · exact doctypeFact_of_kindPreserving hkp (hdtf m hm)
+  rw [hs]
+  exact IterCtx.congr (by simp) (by simp) h₂
 
 /-! ## NodeIterator の走査 -/
 
