@@ -4181,6 +4181,26 @@ step 1 の `ownerDocumentOf` は `get?` の像なので、node が木にあれ�
 固定 scenario `adopt-node-succeeds-for-every-kind` で、element・text・comment・
 DocumentFragment・doctype のどれでも成功することを見ている。両実装とも一致する。
 
+## 固定する version を揃えた（CI が bundle install で落ちていた）
+
+nightly の Differential が **差分テストに入る前**に落ちていた。原因は
+`test/pinned-versions.json` の中で二つの pin が食い違っていたことである。
+固定した Dommy の gemspec が `makiri >= 0.9.0` を要求するのに、
+makiri の pin が `0.8.0` のままだった。CI はこの二つから Gemfile を作るので、
+`bundle install` が解決できずに終わっていた。
+
+手元の差分テストは Dommy 自身の Gemfile を使っていたので気付けなかった。
+**CI だけが通る経路**があると、こうなる。
+
+makiri を `0.9.0` に、Dommy の commit を `4b7b1b2`（今セッションで測ってきたもの）に
+上げた。CI と同じ Gemfile を手元で作り直して、固定 scenario と
+生成 scenario（seed 1、100 本、range / iterator / observer / move 付き）の
+両方を通したうえで上げている。
+
+なお、この修正後も Differential は赤いままである。findings を expected に
+落とさない方針だからで、**落ちる場所が「bundle install」から「不一致の報告」に
+戻った**のが今回の意味である。
+
 ## 同じ測定を §4.2.3 の中心に当てる
 
 Selectors で使った「壊して、誰が捕まえるかを測る」を mutation algorithm にも当てた。

@@ -7,15 +7,15 @@
   },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
-    "commit": "875d653b005d6faf970b95ccd4423325e4eed9df",
+    "commit": "4b7b1b250de103d3889c81b07bfa36db91ef95f9",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "差分テストで見つけた不一致の修正（findings 1-26、Range の Node 引数の WebIDL 変換、findings 9 / 11、normalize）がすべて main に入った commit。固定 scenario の不一致は無い。"
+    "_note": "Selectors の差分テストをここで回した commit。`makiri >= 0.9.0` を要求する。固定 scenario の不一致は findings 12-17・19-24・26・29-32 の 17 本で、どれも記録済みである（`docs/status.md` の索引）。"
   },
   "makiri": {
     "source": "rubygems",
-    "version": "0.8.0",
-    "_note": "RubyGems の公開版を使う。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。"
+    "version": "0.9.0",
+    "_note": "RubyGems の公開版を使う。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。固定した Dommy の gemspec が `>= 0.9.0` を要求するので、ここを 0.8.0 のままにすると CI の bundle install が解決できない。"
   },
   "ruby": "3.4",
   "lean": "leanprover/lean4:v4.33.1"
