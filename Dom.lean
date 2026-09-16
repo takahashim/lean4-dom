@@ -35,6 +35,7 @@ import Dom.Properties.Mutation
 import Dom.Properties.PreInsertValidity
 import Dom.Properties.Algorithms
 import Dom.Properties.Path
+import Dom.Properties.NodeQuery
 import Dom.Properties.Range
 import Dom.Properties.Iterator
 import Dom.Properties.Walker

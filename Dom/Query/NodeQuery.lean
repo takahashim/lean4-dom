@@ -135,6 +135,8 @@ def nodeEqualsFuel (t : Tree) : Nat → NodeId → NodeId → Bool
 DOM Standard §4.4 `isEqualNode(otherNode)`。
 
 木にある node は深さが `t.size` 未満なので、`preorder` と同じ fuel で足りる。
+足りることは `Dom/Properties/NodeQuery.lean` の `nodeEqualsFuel_eq_nodeEquals` で示してある
+（fuel を増やしても答えは変わらない）。
 -/
 def nodeEquals (t : Tree) (a b : NodeId) : Bool :=
   nodeEqualsFuel t t.size a b

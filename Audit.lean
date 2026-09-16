@@ -177,6 +177,8 @@ open Dom.Audit
   Dom.doctypeFollows_congr
   Url.opaqueHostParser_cases
   Url.opaqueHostParser_of_no_forbidden
+  Dom.nodeEqualsFuel_eq_of_le
+  Dom.nodeEqualsFuel_eq_nodeEquals
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS
