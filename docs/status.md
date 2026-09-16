@@ -4490,6 +4490,32 @@ mask 定数（`DocumentPosition.preceding` など）、他の定理の仮定と�
 覆われている内部 helper（`takeDec` / `adaptLoop` / `validALabel`）、
 それに `Dom/Event`（別subsystem）である。
 
+## Selectors への指摘に対応した
+
+外部から四点の指摘があり、いずれも現物と一致していたので順に埋めた。
+
+**1. parser の意味論が停止性とサイズ減少だけだった。** `parseSelector` を具体的な
+文字列に当てて評価することは、整礎再帰なので kernel ではできない（`rfl` も `decide` も
+届かず、`native_decide` は使わない方針）。そこで `scan` の構造に対する定理として
+書いた：`:has()` の非入れ子と非空、`:nth-of-type()` が `of S` を取れないこと、
+`*` の後ろに subclass が続けること、forgiving list の項目 drop。
+差分テストの固定 scenario と対になっている。
+
+**2. `~=` の意味論だけが但し書きだけだった（関係層で唯一の穴）。** 仕様本文から
+独立に `WordIn v w`（`w` が `v` の中に空白で区切られた語として現れる）を書き、
+`splitWsAux` がそれをちょうど計算していることを示した（`mem_splitWs_iff`）。
+これで `attrTestHolds_iff` は六つの演算子すべてについて閉じた。
+
+**3. `includes_whitespace_never` の仮定が不要に狭かった。** ASCII lowercase は
+A-Z しか動かさないので whitespace には触れない。`isAsciiWhitespace_asciiLowerChar`
+を足して `test.case ≠ .insensitive` を外した。
+
+**4. attribute 検索に存在との同値が無かった。** `selectorAttr_isSome_iff` と
+`plainAttr_isSome_iff`。
+
+残しているのは「forgiving なら必ず読める」という全称の形である。`scan.induct` が
+使えるので書けるはずだが、自動化が収束しなかった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
