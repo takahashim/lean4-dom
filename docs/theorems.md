@@ -494,6 +494,26 @@ def SelectorAttrMatches (t) (d) (anyNs : Bool) (name) (a : Attr) : Prop :=
 `[att]` は namespace を持たない attribute だけに当たる（`[*|att]` は問わない）。
 class と id も同じである。
 
+## 19. pre-remove steps の二つの調整は可換である
+
+| 定理 | module |
+| --- | --- |
+| `Dom.liveRangePreRemoveBP_comm` | `Dom/Properties/Range.lean` |
+
+```lean
+theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat)
+    (bp : BoundaryPoint) :
+    rangeShiftAfterRemove parent index (rangeMoveOutOfSubtree t node parent index bp)
+      = rangeMoveOutOfSubtree t node parent index (rangeShiftAfterRemove parent index bp)
+```
+
+§5.5 は step 3-4（部分木の外へ移す）と step 5-6（offset をずらす）の順序を定めるが、
+二つは**無条件に可換**である。step 5-6 は `node` を変えないので step 3-4 の条件に
+影響せず、step 3-4 が移した先の offset はちょうど `index` なので step 5-6 の条件に
+当てはまらない。
+
+この定理は、差分テストで順序を入れ替えても不一致が出ないことの説明になっている。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

@@ -145,6 +145,7 @@ open Dom.Audit
   Dom.importNode_isOk
   Dom.adopt_isOk
   Dom.adoptNode_isOk
+  Dom.liveRangePreRemoveBP_comm
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS
   Dom.admissible_setAttributeNode

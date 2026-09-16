@@ -1294,4 +1294,29 @@ theorem preRemove_preserves_sameNodeOrdered {s s' : DOMState} {child parent : No
   · simp at h
   · next hp => exact remove_preserves_sameNodeOrdered (by simpa using hp) h hv
 
+/-! ## pre-remove steps の二つの調整は可換である -/
+
+/--
+**§5.5 の step 3-4 と step 5-6 は、順序を入れ替えても結果が変わらない。**
+
+step 5-6（offset をずらす）は boundary point の `node` を変えないので、
+step 3-4（部分木の外へ移す）の条件に影響しない。逆に step 3-4 が移した先の
+offset はちょうど `index` なので、step 5-6 の条件（`index` より大きい）に当てはまらない。
+
+仕様は順序を定めているが、この定理があるので実装はどちらの順でもよい。
+差分テストで順序を入れ替えても不一致が出ないのはこのためである
+（`docs/status.md` の「定理が落ちても観測できるとは限らない」）。
+-/
+theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat)
+    (bp : BoundaryPoint) :
+    rangeShiftAfterRemove parent index (rangeMoveOutOfSubtree t node parent index bp)
+      = rangeMoveOutOfSubtree t node parent index (rangeShiftAfterRemove parent index bp) := by
+  have hnode : (rangeShiftAfterRemove parent index bp).node = bp.node := by
+    unfold rangeShiftAfterRemove; split <;> rfl
+  unfold rangeMoveOutOfSubtree
+  rw [hnode]
+  cases hin : isInclusiveAncestorOf t node bp.node with
+  | true => simp [rangeShiftAfterRemove]
+  | false => simp
+
 end Dom
