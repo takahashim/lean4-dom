@@ -114,6 +114,7 @@ theorem treeInserted_wellFormed (hwf : WellFormed t) (hnp : parentOf t node = no
 theorem treeInserted_transport (h : TreeObsEq t tb)
     (hi : TreeInserted tb u parent node child) : TreeInserted t u parent node child where
   attached := hi.attached
+  childIsChild := fun c hc => by rw [← h.childrenOf]; exact hi.childIsChild c hc
   children := by rw [hi.children, h.childrenOf]
   otherParents := fun m hm => by rw [hi.otherParents m hm, h.parentOf]
   otherChildren := fun m hm => by rw [hi.otherChildren m hm, h.childrenOf]

@@ -84,6 +84,14 @@ def PreviousSiblingOf (t : Tree) (parent : NodeId) (child : Option NodeId)
 structure TreeInserted (t t' : Tree) (parent node : NodeId) (child : Option NodeId) : Prop where
   /-- node は parent を得る。 -/
   attached : parentOf t' node = some parent
+  /--
+  `child` が指定されていれば `parent` の子である（`insertAt` の step 4）。
+
+  これが無いと `insertBefore` は見つからない `child` を無視して末尾に足すので、
+  関係のほうが実行関数より弱くなる（`insert` が `notFoundError` を返す状態でも
+  関係は満たせてしまう）。
+  -/
+  childIsChild : ∀ c, child = some c → c ∈ childrenOf t parent
   /-- parent の children に、`child` の位置で入る。 -/
   children : childrenOf t' parent = Dom.ListUtil.insertBefore (childrenOf t parent) child node
   /-- ほかの node の parent は動かない。 -/
