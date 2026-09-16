@@ -118,6 +118,41 @@ theorem childrenOf_eq_nil_of_get?_eq_none {t : Tree} {n : NodeId} (h : t.get? n 
     childrenOf t n = [] := by
   simp [childrenOf, h]
 
+/-! ### `kindOf` / `ownerDocumentOf` / `childrenOf` の値 -/
+
+theorem kindOf_eq (t : Tree) (n : NodeId) : kindOf t n = (t.get? n).map (·.kind) := rfl
+
+theorem kindOf_of_get? {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d) :
+    kindOf t n = some d.kind := by
+  rw [kindOf_eq, h]
+  rfl
+
+theorem kindOf_eq_none_of_get?_eq_none {t : Tree} {n : NodeId} (h : t.get? n = none) :
+    kindOf t n = none := by
+  rw [kindOf_eq, h]
+  rfl
+
+theorem kindOf_congr {t t' : Tree} {m : NodeId} (h : t'.get? m = t.get? m) :
+    kindOf t' m = kindOf t m := by
+  rw [kindOf_eq, kindOf_eq, h]
+
+theorem ownerDocumentOf_eq (t : Tree) (n : NodeId) :
+    ownerDocumentOf t n = (t.get? n).map (·.ownerDocument) := rfl
+
+theorem ownerDocumentOf_of_get? {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d) :
+    ownerDocumentOf t n = some d.ownerDocument := by
+  rw [ownerDocumentOf_eq, h]
+  rfl
+
+theorem ownerDocumentOf_eq_none_of_get?_eq_none {t : Tree} {n : NodeId} (h : t.get? n = none) :
+    ownerDocumentOf t n = none := by
+  rw [ownerDocumentOf_eq, h]
+  rfl
+
+theorem ownerDocumentOf_congr {t t' : Tree} {m : NodeId} (h : t'.get? m = t.get? m) :
+    ownerDocumentOf t' m = ownerDocumentOf t m := by
+  rw [ownerDocumentOf_eq, ownerDocumentOf_eq, h]
+
 theorem parentOf_eq_some {t : Tree} {n p : NodeId} (h : parentOf t n = some p) :
     ∃ d, t.get? n = some d ∧ d.parent = some p := by
   cases hd : t.get? n with
@@ -127,6 +162,21 @@ theorem parentOf_eq_some {t : Tree} {n p : NodeId} (h : parentOf t n = some p) :
 theorem childrenOf_eq {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d) :
     childrenOf t n = d.children := by
   simp [childrenOf, h]
+
+/-- children が一致するなら `childrenOf` も一致する。 -/
+theorem childrenOf_congr_children {t t' : Tree} {m : NodeId} {d d' : NodeData}
+    (h : t.get? m = some d) (h' : t'.get? m = some d') (hc : d'.children = d.children) :
+    childrenOf t' m = childrenOf t m := by
+  rw [childrenOf_eq h, childrenOf_eq h', hc]
+
+/-- `get?` が一致する node では `childrenOf` も一致する。 -/
+theorem childrenOf_congr {t t' : Tree} {m : NodeId} (h : t'.get? m = t.get? m) :
+    childrenOf t' m = childrenOf t m := by
+  cases hd : t.get? m with
+  | none =>
+    rw [childrenOf_eq_nil_of_get?_eq_none (by rw [h, hd]),
+      childrenOf_eq_nil_of_get?_eq_none hd]
+  | some d => rw [childrenOf_eq (by rw [h, hd]), childrenOf_eq hd]
 
 /-- ancestor 関係の推移性。木の well-formedness を要しない。 -/
 theorem Ancestor.trans_ancestor {t : Tree} {a b c : NodeId}

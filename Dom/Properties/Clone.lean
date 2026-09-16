@@ -88,7 +88,7 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
   obtain ⟨pd, s₁, hpd, ha, hi, hr⟩ := insert_single hnd (by simpa using hk) h
   -- adopt は node の node document を変えるだけである。
   have hpn : parentOf (liveRangeInsertAdjust s parent none 1).tree node = none := by
-    simp [liveRangeInsertAdjust_tree, parentOf, hnd, hp]
+    simp [liveRangeInsertAdjust_tree, parentOf_eq, hnd, hp]
   obtain ⟨hr₁, hs₁⟩ := adopt_of_no_parent hpn ha
   have hother : ∀ m, m ≠ node → s₁.tree.get? m = s.tree.get? m := by
     intro m hm

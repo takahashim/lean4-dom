@@ -23,11 +23,6 @@ variable {t : Tree}
 
 /-! ## 共通の補助補題 -/
 
-/-- `get?` が一致する node では `childrenOf` も一致する。 -/
-theorem childrenOf_congr {t t' : Tree} {m : NodeId} (h : t'.get? m = t.get? m) :
-    childrenOf t' m = childrenOf t m := by
-  unfold childrenOf; rw [h]
-
 /--
 `WellFormed` の `parent_child` と `child_parent` は、
 「parent 関係と children 関係が一致する」という一つの同値に等しい。
@@ -51,7 +46,7 @@ theorem wellFormed_of {t : Tree}
     exact parentOf_eq_some ((hiff c p).mpr (by rw [childrenOf_eq hpd]; exact hc))
   child_parent := by
     intro c cd p hcd hcdp
-    exact exists_data_of_mem_childrenOf ((hiff c p).mp (by simp [parentOf, hcd, hcdp]))
+    exact exists_data_of_mem_childrenOf ((hiff c p).mp (by simp [parentOf_eq, hcd, hcdp]))
   children_nodup := hnodup
   acyclic := hacyc
   ownerDocument_is_document := hdoc
@@ -104,9 +99,9 @@ theorem get?_detachFrom_other {m : NodeId} (h1 : m ≠ n) (h2 : m ≠ p) :
 theorem parentOf_detachFrom (hpd : t.get? p = some pd) (m : NodeId) :
     parentOf (detachFrom t n p d pd) m = if m = n then none else parentOf t m := by
   by_cases h1 : m = n
-  · subst h1; simp [parentOf]
+  · subst h1; simp [parentOf_eq]
   · by_cases h2 : m = p
-    · subst h2; simp [parentOf, get?_detachFrom_parent h1, hpd, h1]
+    · subst h2; simp [parentOf_eq, get?_detachFrom_parent h1, hpd, h1]
     · rw [parentOf_congr (get?_detachFrom_other h1 h2), if_neg h1]
 
 theorem childrenOf_detachFrom (hd : t.get? n = some d) (hpd : t.get? p = some pd) (hpn : p ≠ n)
@@ -125,7 +120,7 @@ theorem childrenOf_detachFrom (hd : t.get? n = some d) (hpd : t.get? p = some pd
 theorem detachFrom_preserves_wellformed (hwf : WellFormed t)
     (hd : t.get? n = some d) (hp : d.parent = some p) (hpd : t.get? p = some pd) :
     WellFormed (detachFrom t n p d pd) := by
-  have hpar : parentOf t n = some p := by simp [parentOf, hd, hp]
+  have hpar : parentOf t n = some p := by simp [parentOf_eq, hd, hp]
   have hpn : p ≠ n := by
     intro he
     exact hwf.acyclic n (Ancestor.step (he ▸ hpar))
@@ -215,17 +210,17 @@ theorem detach_preserves_wellformed {t t' : Tree} {n : NodeId}
 theorem detach_parentOf {t t' : Tree} {n : NodeId} (h : detach t n = .ok t') :
     parentOf t' n = none := by
   rcases detach_ok_cases h with ⟨d, hd, hp, rfl⟩ | ⟨d, p, pd, hd, hp, hpd, rfl⟩
-  · simp [parentOf, hd, hp]
-  · simp [parentOf]
+  · simp [parentOf_eq, hd, hp]
+  · simp [parentOf_eq]
 
 /-- PLAN §5.2 effect。旧 parent の children から取り除かれる。 -/
 theorem detach_childrenOf {t t' : Tree} {n p : NodeId}
     (hwf : WellFormed t) (hpar : parentOf t n = some p) (h : detach t n = .ok t') :
     childrenOf t' p = removeAll (childrenOf t p) n := by
   rcases detach_ok_cases h with ⟨d, hd, hp, rfl⟩ | ⟨d, p', pd, hd, hp, hpd, rfl⟩
-  · rw [parentOf, hd] at hpar; simp [hp] at hpar
+  · rw [parentOf_eq, hd] at hpar; simp [hp] at hpar
   · have hpp : p' = p := by
-      rw [parentOf, hd] at hpar
+      rw [parentOf_eq, hd] at hpar
       exact Option.some.inj (hp ▸ hpar : some p' = some p)
     subst hpp
     have hpn : p' ≠ n := fun he => hwf.acyclic n (Ancestor.step (he ▸ hpar))
@@ -236,13 +231,13 @@ theorem detach_frame {t t' : Tree} {n : NodeId} (h : detach t n = .ok t') {m : N
     (hmn : m ≠ n) (hmp : ∀ p, parentOf t n = some p → m ≠ p) : t'.get? m = t.get? m := by
   rcases detach_ok_cases h with ⟨d, hd, hp, rfl⟩ | ⟨d, p, pd, hd, hp, hpd, rfl⟩
   · rfl
-  · exact get?_detachFrom_other hmn (hmp p (by simp [parentOf, hd, hp]))
+  · exact get?_detachFrom_other hmn (hmp p (by simp [parentOf_eq, hd, hp]))
 
 /-- parent を持たない node に対する `detach` は木を変えない。 -/
 theorem detach_of_no_parent {t : Tree} {n : NodeId} (h : parentOf t n = none)
     (hd : (t.get? n).isSome) : detach t n = .ok t := by
   obtain ⟨d, hd⟩ := Option.isSome_iff_exists.mp hd
-  exact detach_of_parent_eq_none hd (by rw [parentOf, hd] at h; simpa using h)
+  exact detach_of_parent_eq_none hd (by rw [parentOf_eq, hd] at h; simpa using h)
 
 /-! ## insertAt -/
 
@@ -283,10 +278,10 @@ theorem parentOf_insertAtIn (hpd : t.get? parent = some pd) (m : NodeId) :
     parentOf (insertAtIn t parent node child pd nd) m =
       if m = node then some parent else parentOf t m := by
   by_cases h1 : m = node
-  · subst h1; simp [parentOf]
+  · subst h1; simp [parentOf_eq]
   · by_cases h2 : m = parent
     · subst h2
-      simp [parentOf, get?_insertAtIn_parent (fun he => h1 he.symm), hpd, h1]
+      simp [parentOf_eq, get?_insertAtIn_parent (fun he => h1 he.symm), hpd, h1]
     · rw [parentOf_congr (get?_insertAtIn_other h1 h2), if_neg h1]
 
 theorem childrenOf_insertAtIn (hnd : t.get? node = some nd) (hpd : t.get? parent = some pd)
@@ -316,7 +311,7 @@ theorem insertAtIn_preserves_wellformed (hwf : WellFormed t)
     (hanc : ¬ InclusiveAncestor t node parent) :
     WellFormed (insertAtIn t parent node child pd nd) := by
   have hne : node ≠ parent := fun he => hanc (Or.inl he)
-  have hnpar : parentOf t node = none := by simp [parentOf, hnd, hnp]
+  have hnpar : parentOf t node = none := by simp [parentOf_eq, hnd, hnp]
   have hnodemem : node ∉ pd.children := by
     intro hmem
     have : parentOf t node = some parent :=
@@ -441,10 +436,9 @@ theorem insertAt_children_split {t t' : Tree} {parent node c : NodeId}
 /-- well-formed な木では children に重複が無い。 -/
 theorem childrenOf_nodup {t : Tree} (hwf : WellFormed t) (n : NodeId) :
     (childrenOf t n).Nodup := by
-  unfold childrenOf
-  split
-  · simp
-  · next d hd => exact hwf.children_nodup n d hd
+  cases hd : t.get? n with
+  | none => rw [childrenOf_eq_nil_of_get?_eq_none hd]; simp
+  | some d => rw [childrenOf_eq hd]; exact hwf.children_nodup n d hd
 
 /-- `insertAt` は parent 以外の children を変えない。 -/
 theorem insertAt_childrenOf_ne {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
@@ -483,7 +477,7 @@ theorem insertAt_node_not_mem {t t' : Tree} {parent node : NodeId} {child : Opti
   obtain ⟨pd, nd, hpd, hnd, hnp, hanc, hchild, rfl⟩ := insertAt_ok_cases h
   intro hmem
   have : parentOf t node = some parent := (mem_childrenOf_iff hwf node parent).mpr hmem
-  simp [parentOf, hnd, hnp] at this
+  simp [parentOf_eq, hnd, hnp] at this
 
 /-- PLAN §5.2 frame。insert した node と parent 以外は変わらない。 -/
 theorem insertAt_frame {t t' : Tree} {parent node : NodeId} {child : Option NodeId}
@@ -522,11 +516,15 @@ theorem parentOf_setOwnerDocument (t : Tree) (n doc m : NodeId) :
 
 theorem childrenOf_setOwnerDocument (t : Tree) (n doc m : NodeId) :
     childrenOf (setOwnerDocument t n doc) m = childrenOf t m := by
-  unfold childrenOf
-  rw [get?_setOwnerDocument]
-  cases t.get? m with
-  | none => rfl
-  | some d => by_cases hm : m ∈ preorder t n <;> simp [hm]
+  by_cases hm : m ∈ preorder t n
+  · cases hd : t.get? m with
+    | none =>
+      refine childrenOf_congr ?_
+      rw [get?_setOwnerDocument, hd]
+      rfl
+    | some d =>
+      exact childrenOf_congr_children hd (get?_setOwnerDocument_of_mem hm hd) rfl
+  · exact childrenOf_congr (get?_setOwnerDocument_of_not_mem hm)
 
 theorem ancestor_setOwnerDocument {a b : NodeId} :
     Ancestor (setOwnerDocument t n doc) a b ↔ Ancestor t a b := by
@@ -588,7 +586,7 @@ theorem ownerDocumentOf_setOwnerDocument (hwf : WellFormed t) {dn : NodeData}
     (hmd : (t.get? m).isSome) :
     ownerDocumentOf (setOwnerDocument t n doc) m = some doc := by
   obtain ⟨d, hd⟩ := Option.isSome_iff_exists.mp hmd
-  rw [ownerDocumentOf,
+  rw [ownerDocumentOf_eq,
     get?_setOwnerDocument_of_mem ((mem_preorder_iff hwf hn m).mpr hm) hd]
   rfl
 
@@ -600,7 +598,7 @@ theorem parentOf_detach {t t' : Tree} {n : NodeId} (hd : detach t n = .ok t') (m
     parentOf t' m = if m = n then none else parentOf t m := by
   rcases detach_ok_cases hd with ⟨d, hdd, hdp, rfl⟩ | ⟨d, p, pd, hdd, hdp, hpd, rfl⟩
   · by_cases hm : m = n
-    · rw [if_pos hm, hm]; simp [parentOf, hdd, hdp]
+    · rw [if_pos hm, hm]; simp [parentOf_eq, hdd, hdp]
     · rw [if_neg hm]
   · exact parentOf_detachFrom hpd m
 

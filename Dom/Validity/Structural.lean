@@ -69,7 +69,7 @@ theorem canHaveChildren_of_parentOf {t : Tree} (h : StructurallyValid t) {c p : 
 /-- Document は root である。 -/
 theorem parentOf_document {t : Tree} (h : StructurallyValid t) {n : NodeId} {d : NodeData}
     (hn : t.get? n = some d) (hk : d.kind = .document) : parentOf t n = none := by
-  simp [parentOf, hn, h.documentHasNoParent n d hn hk]
+  simp [parentOf_eq, hn, h.documentHasNoParent n d hn hk]
 
 end StructurallyValid
 
@@ -112,7 +112,7 @@ theorem checkStructurallyValid_iff (t : Tree) :
       simp only [hk] at this
       have h2 := this.2
       simp only [hp] at h2
-      simpa [kindOf, hpd] using h2
+      simpa [kindOf_eq, hpd] using h2
   · intro h
     refine ⟨h.wellFormed, ?_⟩
     intro n d hn
@@ -138,7 +138,7 @@ theorem checkStructurallyValid_iff (t : Tree) :
             obtain ⟨pd', hpd', _⟩ := h.wellFormed.child_parent n d p hn hp
             rw [hpd] at hpd'; simp at hpd'
           | some pd =>
-            simp [kindOf, hpd, h.doctypeParentIsDocument n d hn hk p hp pd hpd]
+            simp [kindOf_eq, hpd, h.doctypeParentIsDocument n d hn hk p hp pd hpd]
       · exact Or.inl (by simpa using hk)
 
 end Dom

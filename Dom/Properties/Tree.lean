@@ -99,7 +99,7 @@ theorem parentOf_of_mem_childrenOf (hwf : WellFormed t) {c p : NodeId}
     (h : c ∈ childrenOf t p) : parentOf t c = some p := by
   obtain ⟨pd, hpd, hmem⟩ := exists_data_of_mem_childrenOf h
   obtain ⟨cd, hcd, hcdp⟩ := hwf.parent_child p pd hpd c hmem
-  simp [parentOf, hcd, hcdp]
+  simp [parentOf_eq, hcd, hcdp]
 
 theorem exists_data_of_mem_childrenOf' (hwf : WellFormed t) {c p : NodeId}
     (h : c ∈ childrenOf t p) : ∃ cd, t.get? c = some cd := by

@@ -161,7 +161,7 @@ theorem ensurePreInsertionValidity_shift {t : Tree} {node parent : NodeId}
     · exact fun _ _ => checkElementInsertion_shift hwf hpar
     · intro nd hnd hkd
       refine checkDoctypeInsertion_shift hwf hpar ?_
-      simp [kindOf, hnd, hkd]
+      simp [kindOf_eq, hnd, hkd]
   · rw [if_neg hc]
     exact hv
 
@@ -584,10 +584,10 @@ theorem admissible_replaceChildren {s s' : DOMState} {parent : NodeId} {node : O
         obtain ⟨pd, hpd, hpk⟩ : ∃ pd, s.tree.get? parent = some pd ∧
             pd.kind = NodeKind.document := by
           cases hq : s.tree.get? parent with
-          | none => rw [kindOf, hq] at hdocparent; simp at hdocparent
+          | none => rw [kindOf_eq, hq] at hdocparent; simp at hdocparent
           | some q =>
             refine ⟨q, rfl, ?_⟩
-            rw [kindOf, hq] at hdocparent
+            rw [kindOf_eq, hq] at hdocparent
             simpa using hdocparent
         exact insertNodes_textAndCount h.structural hpd hnd hpk hv
 

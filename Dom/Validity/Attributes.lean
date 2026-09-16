@@ -79,18 +79,18 @@ theorem get?_eq_none {t t' : Tree} (h : AttributesOnly t t') {m : NodeId}
 @[simp] theorem kindOf {t t' : Tree} (h : AttributesOnly t t') (m : NodeId) :
     kindOf t' m = kindOf t m := by
   cases hd : t'.get? m with
-  | none => simp [Dom.kindOf, hd, h.get?_eq_none hd]
+  | none => simp [Dom.kindOf_eq, hd, h.get?_eq_none hd]
   | some d =>
     obtain ⟨d₀, hd₀, hk, _⟩ := h.exists_get? hd
-    simp [Dom.kindOf, hd, hd₀, hk]
+    simp [Dom.kindOf_eq, hd, hd₀, hk]
 
 @[simp] theorem parentOf {t t' : Tree} (h : AttributesOnly t t') (m : NodeId) :
     parentOf t' m = parentOf t m := by
   cases hd : t'.get? m with
-  | none => simp [Dom.parentOf, hd, h.get?_eq_none hd]
+  | none => simp [Dom.parentOf_eq, hd, h.get?_eq_none hd]
   | some d =>
     obtain ⟨d₀, hd₀, _, hp, _⟩ := h.exists_get? hd
-    simp [Dom.parentOf, hd, hd₀, hp]
+    simp [Dom.parentOf_eq, hd, hd₀, hp]
 
 @[simp] theorem childrenOf {t t' : Tree} (h : AttributesOnly t t') (m : NodeId) :
     childrenOf t' m = childrenOf t m := by
@@ -103,10 +103,10 @@ theorem get?_eq_none {t t' : Tree} (h : AttributesOnly t t') {m : NodeId}
 @[simp] theorem ownerDocumentOf {t t' : Tree} (h : AttributesOnly t t') (m : NodeId) :
     ownerDocumentOf t' m = ownerDocumentOf t m := by
   cases hd : t'.get? m with
-  | none => simp [Dom.ownerDocumentOf, hd, h.get?_eq_none hd]
+  | none => simp [Dom.ownerDocumentOf_eq, hd, h.get?_eq_none hd]
   | some d =>
     obtain ⟨d₀, hd₀, _, _, _, ho, _⟩ := h.exists_get? hd
-    simp [Dom.ownerDocumentOf, hd, hd₀, ho]
+    simp [Dom.ownerDocumentOf_eq, hd, hd₀, ho]
 
 @[simp] theorem lengthOf {t t' : Tree} (h : AttributesOnly t t') (m : NodeId) :
     lengthOf t' m = lengthOf t m := by

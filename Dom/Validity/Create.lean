@@ -194,7 +194,7 @@ theorem documentTreesValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData
     have hkind : ∀ c ∈ childrenOf s.tree doc, kindOf s'.tree c = kindOf s.tree c := by
       intro c hc
       obtain ⟨cd, hcd, -⟩ := parentOf_eq_some (parentOf_of_mem_childrenOf hwf hc)
-      simp [kindOf, h.others c (h.ne_of_mem hcd)]
+      simp [kindOf_eq, h.others c (h.ne_of_mem hcd)]
     exact documentChildrenOk_congr_of_children hch hkind (hv.documentChildren doc dd hdd' hk)
 
 theorem rangeEndpointsValid (h : AddsNode s.tree s'.tree n d) (hr : s'.ranges = s.ranges)

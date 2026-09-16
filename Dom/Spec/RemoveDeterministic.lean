@@ -155,7 +155,7 @@ theorem treeRemoved_unique {t t₁ t₂ : Tree} {node parent : NodeId}
         · rw [if_pos he, he]; exact h₂.detached
         · rw [if_neg he]; exact h₂.otherParents m he
       have : parentOf t₁ m = parentOf t₂ m := by rw [e₁, e₂]
-      rw [parentOf, parentOf, hd₁, hd₂] at this
+      rw [parentOf_eq, parentOf_eq, hd₁, hd₂] at this
       simpa using this
     have hch : d₁.children = d₂.children := by
       have e₁ : childrenOf t₁ m = if m = parent then
@@ -169,7 +169,7 @@ theorem treeRemoved_unique {t t₁ t₂ : Tree} {node parent : NodeId}
         · rw [if_pos he, he]; exact h₂.children
         · rw [if_neg he]; exact h₂.otherChildren m he
       have : childrenOf t₁ m = childrenOf t₂ m := by rw [e₁, e₂]
-      rw [childrenOf, childrenOf, hd₁, hd₂] at this
+      rw [childrenOf_eq hd₁, childrenOf_eq hd₂] at this
       simpa using this
     rw [hd₁, hd₂]
     have : d₁ = d₂ := by

@@ -36,23 +36,23 @@ theorem ne_of_mem (h : AddsNode t t' n d) {m : NodeId} {md : NodeData}
 
 theorem parentOf_self (h : AddsNode t t' n d) (hp : d.parent = none) :
     parentOf t' n = none := by
-  simp [parentOf, h.created, hp]
+  simp [parentOf_eq, h.created, hp]
 
 theorem childrenOf_self (h : AddsNode t t' n d) (hc : d.children = []) :
     childrenOf t' n = [] := by
-  simp [childrenOf, h.created, hc]
+  rw [childrenOf_eq h.created, hc]
 
 theorem parentOf_other (h : AddsNode t t' n d) {m : NodeId} (hm : m ≠ n) :
     parentOf t' m = parentOf t m := by
-  simp [parentOf, h.others m hm]
+  simp [parentOf_eq, h.others m hm]
 
 theorem childrenOf_other (h : AddsNode t t' n d) {m : NodeId} (hm : m ≠ n) :
     childrenOf t' m = childrenOf t m := by
-  simp [childrenOf, h.others m hm]
+  exact childrenOf_congr (h.others m hm)
 
 theorem ownerDocumentOf_other (h : AddsNode t t' n d) {m : NodeId} (hm : m ≠ n) :
     ownerDocumentOf t' m = ownerDocumentOf t m := by
-  simp [ownerDocumentOf, h.others m hm]
+  simp [ownerDocumentOf_eq, h.others m hm]
 
 /-- **作った node は誰の子でもない。** -/
 theorem not_child (h : AddsNode t t' n d) (hwf : WellFormed t) (hc : d.children = [])

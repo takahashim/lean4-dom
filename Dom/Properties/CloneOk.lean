@@ -30,7 +30,7 @@ theorem adopt_isOk_of_no_parent {s : DOMState} {node doc : NodeId} {nd : NodeDat
     ∃ s₁, adopt s node doc = .ok s₁ ∧
       (s₁ = s ∨ s₁ = s.withTree (setOwnerDocument s.tree node doc)) := by
   have hown : ownerDocumentOf s.tree node = some nd.ownerDocument := by
-    simp [ownerDocumentOf, hnd]
+    simp [ownerDocumentOf_eq, hnd]
   have hpn : parentOf s.tree node = none := by rw [parentOf_of_get? hnd, hp]
   refine ⟨_, adopt_of_steps hown (Or.inl ⟨hpn, rfl⟩), ?_⟩
   by_cases hd : doc = nd.ownerDocument
@@ -290,7 +290,7 @@ theorem AppendableInto.mono {t₀ t t' : Tree} {l : List NodeId} {p : NodeId}
     rw [hch, kindsOf, kindsOf]
     refine List.map_congr_left fun c hc => ?_
     obtain ⟨cd, hcd, -⟩ := hwf.parent_child p pd₀ hpd₀ c (by rwa [← childrenOf_eq hpd₀])
-    simp [kindOf, hcd, hk c cd hcd]
+    simp [kindOf_eq, hcd, hk c cd hcd]
   refine ⟨⟨pd₀, hpd₀'⟩, ?_, h.kinds, ?_, ?_⟩
   · intro n hn pd hpd
     rw [hsame pd hpd]
@@ -343,7 +343,7 @@ theorem cloneAppend_validity {t₀ t : Tree} {p n copy : NodeId} {rest : List No
       · exact hcnep he
       · exact not_ancestor_of_children_nil hwf hcd hcch p ha
   have hkl : kindsOf t₀ (n :: rest) = some d.kind :: kindsOf t₀ rest := by
-    simp [kindsOf, kindOf, ht0n]
+    simp [kindsOf, kindOf_eq, ht0n]
   refine ensurePreInsertionValidity_fresh hpd hcd
     (h.canHaveChildren n (List.mem_cons_self ..) pd hpd) hanc
     (by rw [hck]; exact hnk) (by rw [hck]; exact hnf) ?_ ?_ ?_ ?_
@@ -566,15 +566,15 @@ theorem cloneMany_isOk (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
         obtain ⟨cdd, hcdd, hcp⟩ := hpre.admissible.wellFormed.parent_child p pd hpd c hc
         have hcnep : c ≠ p := by
           intro he
-          have hpar : parentOf s.tree c = some p := by simp [parentOf, hcdd, hcp]
+          have hpar : parentOf s.tree c = some p := by simp [parentOf_eq, hcdd, hcp]
           rw [← he] at hpar
           exact hpre.admissible.wellFormed.acyclic c (Ancestor.step hpar)
         have hcnc : c ≠ (cloneSingle s d doc).1 := hA.ne_of_mem hcdd
         have h2 := hkeep₂ c cdd hcdd (by intro q hq; cases hq.symm ▸ hp; exact hcnep)
-        rw [kindOf, kindOf, hkeep₃ c cdd h2 hcnc, hcdd]
+        rw [kindOf_eq, kindOf_eq, hkeep₃ c cdd h2 hcnc, hcdd]
       have hcopyKind : kindOf s₃.tree (cloneSingle s d doc).1 = some d.kind := by
         obtain ⟨cd₃, hcd₃, -, hsh₃, -, -⟩ := hspec₁.parentGrows _ cd₂ rfl hcd₂
-        rw [kindOf, hcd₃]
+        rw [kindOf_eq, hcd₃]
         simp only [Option.map_some, Option.some.injEq]
         rw [← hck₂]
         simpa using congrArg NodeData.kind hsh₃
@@ -606,7 +606,7 @@ theorem cloneMany_isOk (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
               List.map_congr_left fun c hc => hchildKeep p hp pd hpd c hc
             simp only [kindsOf, List.map_append, List.map_cons, List.map_nil] at hmap ⊢
             rw [hmap, hcopyKind]
-            simp [kindOf, ht0n]
+            simp [kindOf_eq, ht0n]
           rw [hlist]
           exact hA'.docKinds pd hpd (by rw [← hkp]; exact hdocq)
       have hf₂ : forestSize t₀ fuel rest < fuel := by
@@ -687,7 +687,7 @@ step 1 の `ownerDocumentOf` は `get?` の像なので、node が木にあれ�
 theorem adopt_isOk {s : DOMState} (hwf : WellFormed s.tree) {node doc : NodeId} {nd : NodeData}
     (hnd : s.tree.get? node = some nd) : ∃ s₁, adopt s node doc = .ok s₁ := by
   have hown : ownerDocumentOf s.tree node = some nd.ownerDocument := by
-    simp [ownerDocumentOf, hnd]
+    simp [ownerDocumentOf_eq, hnd]
   cases hp : parentOf s.tree node with
   | none => exact ⟨_, adopt_of_steps hown (Or.inl ⟨hp, rfl⟩)⟩
   | some p =>

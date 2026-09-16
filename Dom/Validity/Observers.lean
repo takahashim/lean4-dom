@@ -68,7 +68,7 @@ theorem preservesRegs_remove {s s' : DOMState} {n : NodeId} {b : Bool}
   have hnode : (s₁.tree.get? n).isSome := by
     obtain ⟨nd, hnd⟩ : ∃ nd, s.tree.get? n = some nd := by
       cases hq : s.tree.get? n with
-      | none => rw [parentOf, hq] at hp; simp at hp
+      | none => rw [parentOf_eq, hq] at hp; simp at hp
       | some q => exact ⟨q, rfl⟩
     have hk := hkp n
     rw [hnd] at hk

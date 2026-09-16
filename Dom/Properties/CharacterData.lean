@@ -41,11 +41,12 @@ theorem parentOf_withData {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n 
 
 theorem childrenOf_withData {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
     (newData : String) (m : NodeId) : childrenOf (withData t n d newData) m = childrenOf t m := by
-  unfold childrenOf
-  rw [get?_withData hd]
   by_cases h : m = n
-  · subst h; simp [hd]
-  · rw [if_neg h]
+  · subst h
+    refine childrenOf_congr_children (d' := { d with data := newData }) hd ?_ rfl
+    rw [get?_withData hd]
+    simp
+  · exact childrenOf_congr (by rw [get?_withData hd, if_neg h])
 
 theorem shapePreserving_withData {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
     (newData : String) : ShapePreserving t (withData t n d newData) := by

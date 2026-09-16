@@ -186,6 +186,12 @@ open Dom.Audit
   Dom.preInsert_of_validity
   Dom.preInsert_of_validity_error
   Dom.preInsertReferenceChild_eq
+  Dom.kindOf_eq
+  Dom.kindOf_of_get?
+  Dom.ownerDocumentOf_eq
+  Dom.ownerDocumentOf_of_get?
+  Dom.childrenOf_congr
+  Dom.childrenOf_congr_children
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

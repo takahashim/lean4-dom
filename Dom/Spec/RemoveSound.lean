@@ -64,10 +64,10 @@ theorem remove_sound_tree {s s' : DOMState} {n p : NodeId} {b : Bool}
       ∃ d p' pd, s.tree.get? n = some d ∧ d.parent = some p' ∧ s.tree.get? p' = some pd ∧
         s'.tree = detachFrom s.tree n p' d pd := by
     rcases detach_ok_cases hd with ⟨d0, hd0, hnp, _⟩ | ⟨d0, p', pd, hd0, hnp, hpd, he⟩
-    · rw [parentOf, hd0] at hp; simp [hnp] at hp
+    · rw [parentOf_eq, hd0] at hp; simp [hnp] at hp
     · exact ⟨d0, p', pd, hd0, hnp, hpd, he⟩
   have hpp : p0 = p := by
-    rw [parentOf, hd0] at hp
+    rw [parentOf_eq, hd0] at hp
     exact Option.some.inj (hp0 ▸ hp : some p0 = some p)
   subst hpp
   have hpn : p0 ≠ n := fun he => hwf.acyclic n (Ancestor.step (he ▸ hp))

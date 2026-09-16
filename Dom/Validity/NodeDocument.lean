@@ -57,7 +57,7 @@ theorem ownerDocument_of_document_root {t : Tree} (h : NodeDocumentsValid t)
     {doc n : NodeId} {dd : NodeData} (hdd : t.get? doc = some dd) (hk : dd.kind = .document)
     (hanc : InclusiveAncestor t doc n) : ownerDocumentOf t n = some doc := by
   rw [h.ownerDocument_eq_of_inclusiveAncestor hanc]
-  simp [ownerDocumentOf, hdd, h.documentIsOwnNodeDocument doc dd hdd hk]
+  simp [ownerDocumentOf_eq, hdd, h.documentIsOwnNodeDocument doc dd hdd hk]
 
 end NodeDocumentsValid
 
@@ -85,7 +85,7 @@ theorem checkNodeDocumentsValid_iff (t : Tree) :
       have := hall c cd hcd
       simp only [Bool.and_eq_true, hcdp] at this
       have h2 : ownerDocumentOf t p = some cd.ownerDocument := by simpa using this.2
-      have hc : ownerDocumentOf t c = some cd.ownerDocument := by simp [ownerDocumentOf, hcd]
+      have hc : ownerDocumentOf t c = some cd.ownerDocument := by simp [ownerDocumentOf_eq, hcd]
       rw [hc, h2]
   · intro h n d hn
     simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', beq_eq_false_iff_ne,
@@ -98,10 +98,10 @@ theorem checkNodeDocumentsValid_iff (t : Tree) :
       | none => simp
       | some p =>
         have hn' : t.get? n = some d := hn
-        have hpar : parentOf t n = some p := by simp [parentOf, hn', hp]
+        have hpar : parentOf t n = some p := by simp [parentOf_eq, hn', hp]
         have hedge := h.treeEdgePreservesNodeDocument n p hpar
         have hself : ownerDocumentOf t n = some d.ownerDocument := by
-          simp [ownerDocumentOf, hn']
+          simp [ownerDocumentOf_eq, hn']
         rw [hself] at hedge
         simpa using hedge.symm
 

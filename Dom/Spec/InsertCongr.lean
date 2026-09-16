@@ -138,12 +138,12 @@ theorem treeInserted_unique (h₁ : TreeInserted t u parent node child)
     have hpar : d₁.parent = d₂.parent := by
       have hq : parentOf u m = parentOf ub m := by
         rw [treeInserted_parentOf h₁, treeInserted_parentOf h₂]
-      rw [parentOf, parentOf, hd₁, hd₂] at hq
+      rw [parentOf_eq, parentOf_eq, hd₁, hd₂] at hq
       simpa using hq
     have hch : d₁.children = d₂.children := by
       have hq : childrenOf u m = childrenOf ub m := by
         rw [treeInserted_childrenOf h₁, treeInserted_childrenOf h₂]
-      rw [childrenOf, childrenOf, hd₁, hd₂] at hq
+      rw [childrenOf_eq hd₁, childrenOf_eq hd₂] at hq
       simpa using hq
     rw [hd₁, hd₂]
     have : d₂ = d₁ := by cases d₁; cases d₂; simp_all

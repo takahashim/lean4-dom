@@ -44,7 +44,7 @@ theorem ancestor_insertAt {t t' : Tree} {parent node : NodeId} {child : Option N
     (hi : insertAt t parent node child = .ok t') {a n : NodeId}
     (h : Ancestor t a n) : Ancestor t' a n := by
   obtain ⟨pd, nd, hpd, hnd, hnone, hanc, hchild, rfl⟩ := insertAt_ok_cases hi
-  have hnp : parentOf t node = none := by simp [parentOf, hnd, hnone]
+  have hnp : parentOf t node = none := by simp [parentOf_eq, hnd, hnone]
   have key : ∀ x y, parentOf t y = some x →
       parentOf (insertAtIn t parent node child pd nd) y = some x := by
     intro x y hp
@@ -195,7 +195,7 @@ theorem iterCtx_insertNodesAt {s s' : DOMState} {parent : NodeId}
         (isDocument_ownerDocument h.wellFormed hpd').choose_spec.1,
         (isDocument_ownerDocument h.wellFormed hpd').choose_spec.2⟩
     · simp only [liveRangeInsertAdjust_tree]
-      simp [ownerDocumentOf, hpd']
+      simp [ownerDocumentOf_eq, hpd']
   rcases hrec with ⟨_, rfl⟩ | ⟨_, rfl⟩
   · exact hx'
   · exact IterCtx.congr (by simp) (by simp) hx'

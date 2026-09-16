@@ -555,7 +555,7 @@ theorem detach_childrenOf_ne (hpar : parentOf t n = some p) (hd : detach t n = .
   · subst hqn
     rcases detach_ok_cases hd with ⟨d, hdd, hdp, rfl⟩ | ⟨d, p', pd, hdd, hdp, hpd, rfl⟩
     · rfl
-    · rw [childrenOf, childrenOf, get?_detachFrom_self, hdd]
+    · rw [childrenOf_eq (get?_detachFrom_self ..), childrenOf_eq hdd]
   · exact childrenOf_congr (detach_frame hd hqn (fun p' hp' => by
       rw [hpar] at hp'; rw [Option.some.inj hp'] at hq; exact hq))
 

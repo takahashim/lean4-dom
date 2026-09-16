@@ -132,7 +132,7 @@ theorem replace_sound {s s' : DOMState} {child node parent : NodeId}
       by_cases hk : nd.kind = NodeKind.documentFragment
       · exfalso
         have hnp : nd.parent = none := hsv.fragmentHasNoParent node nd hnd hk
-        rw [hcn, parentOf, hnd] at hcp
+        rw [hcn, parentOf_eq, hnd] at hcp
         simp [hnp] at hcp
       · rw [if_neg (by simp [hk])]
         simp

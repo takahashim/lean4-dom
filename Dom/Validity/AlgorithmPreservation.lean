@@ -60,7 +60,7 @@ theorem documentTreesValid_of_sameShape {t t' : Tree}
   refine ⟨fun doc d hdoc hk => ?_⟩
   have hdoc' : ∃ d', t.get? doc = some d' ∧ d'.kind = .document := by
     have := hkind doc
-    rw [kindOf, kindOf, hdoc] at this
+    rw [kindOf_eq, kindOf_eq, hdoc] at this
     cases hd' : t.get? doc with
     | none => rw [hd'] at this; simp at this
     | some d' =>
@@ -629,11 +629,11 @@ theorem documentTreesValid_move {s s' : DOMState} {node newParent : NodeId}
     -- `doc` が挿入先。step 5 / 6 の事実を `s₁` 側に移して使う。
     have hpdoc : pd.kind = NodeKind.document := by
       have hkp := hkind doc
-      rw [kindOf, kindOf, hdoc₁, hpd] at hkp
+      rw [kindOf_eq, kindOf_eq, hdoc₁, hpd] at hkp
       simp only [Option.map_some, Option.some.injEq] at hkp
       rw [← hkp]; exact hk₁
     have hnode : kindOf s₁.tree node = some nd.kind := by
-      rw [hkind node, kindOf, hnd]; rfl
+      rw [hkind node, kindOf_eq, hnd]; rfl
     refine documentChildrenOk_of_insertAt hwf₁ hi ?_ ?_ ?_ hok₁
     · -- step 5：Document の子に Text は置けない
       intro k hk
@@ -779,7 +779,7 @@ theorem adopt_ownerDocument_self {s s' : DOMState} {node doc : NodeId}
   obtain ⟨nd₁, hnd₁⟩ : ∃ nd₁, s₁.tree.get? node = some nd₁ := by
     cases h1 : s₁.tree.get? node with
     | some x => exact ⟨x, rfl⟩
-    | none => rw [ownerDocumentOf, h1] at hown₁; simp at hown₁
+    | none => rw [ownerDocumentOf_eq, h1] at hown₁; simp at hown₁
   rcases hfinal with ⟨he, rfl⟩ | ⟨-, rfl⟩
   · rw [hown₁, he]
   · show ownerDocumentOf (setOwnerDocument s₁.tree node doc) node = some doc
@@ -800,12 +800,12 @@ theorem adopt_ownerDocument_other {s s' : DOMState} {node doc parent : NodeId}
   · show ownerDocumentOf (setOwnerDocument s₁.tree node doc) parent = some doc
     rw [ownerDocumentOf_setOwnerDocument_eq]
     cases h1 : s₁.tree.get? parent with
-    | none => rw [ownerDocumentOf, h1] at hp₁; simp at hp₁
+    | none => rw [ownerDocumentOf_eq, h1] at hp₁; simp at hp₁
     | some pd =>
       simp only [Option.map_some]
       split
       · rfl
-      · rw [ownerDocumentOf, h1] at hp₁; simpa using hp₁
+      · rw [ownerDocumentOf_eq, h1] at hp₁; simpa using hp₁
 
 /-! ## insertEach -/
 
@@ -906,7 +906,7 @@ theorem nodeDocumentsValid_insertEach :
           obtain ⟨_, _, hold, -, -⟩ := adopt_cases ha
           cases h1 : s.tree.get? n with
           | some x => exact ⟨x, rfl⟩
-          | none => rw [ownerDocumentOf, h1] at hold; simp at hold
+          | none => rw [ownerDocumentOf_eq, h1] at hold; simp at hold
         have hself : ownerDocumentOf s₁.tree n = some doc :=
           adopt_ownerDocument_self hs.wellFormed ha
         have hi' := (DOMState.mapTree_eq_ok hins).1
@@ -1077,7 +1077,7 @@ theorem nodeDocumentsValid_insertNodesAt {s s' : DOMState} {parent : NodeId}
   · exact ⟨_, by simpa using (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.1,
       (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.2⟩
   · simp only [liveRangeInsertAdjust_tree]
-    simp [ownerDocumentOf, hpd']
+    simp [ownerDocumentOf_eq, hpd']
 
 /-- PLAN §6.3 の形。`insert` は node document の整合性を保つ。 -/
 theorem nodeDocumentsValid_insert_of_facts {s s' : DOMState} {node parent : NodeId}
@@ -1171,8 +1171,8 @@ theorem insertNodes_textAndCount {t : Tree} {node parent : NodeId} {child : Opti
       intro m hm
       have hne := child_not_doctype hsv hnd (by rw [hfrag]; simp) hm
       cases hmd : t.get? m with
-      | none => simp [kindOf, hmd]
-      | some md => simp [kindOf, hmd, hne md hmd]
+      | none => simp [kindOf_eq, hmd]
+      | some md => simp [kindOf_eq, hmd, hne md hmd]
     refine ⟨?_, ?_⟩
     · intro m hm k hk
       have hnot : m ∉ textChildren t node := by rw [htx]; simp
@@ -1190,7 +1190,7 @@ theorem insertNodes_textAndCount {t : Tree} {node parent : NodeId} {child : Opti
       rw [helemfilter]
       exact hlen
   · rw [if_neg hfrag]
-    have hkn : kindOf t node = some nd.kind := by rw [kindOf, hnd]; rfl
+    have hkn : kindOf t node = some nd.kind := by rw [kindOf_eq, hnd]; rfl
     refine ⟨?_, ?_⟩
     · intro m hm k hk
       rcases List.mem_singleton.mp hm with rfl
@@ -1449,7 +1449,7 @@ theorem documentTreesValid_insertEach :
           by_cases hne : d = parent
           · subst hne
             have hdockind : kindOf s₁.tree d = some NodeKind.document := by
-              simp [kindOf, hd₁, hk₁]
+              simp [kindOf_eq, hd₁, hk₁]
             obtain ⟨f1, _, f3, f4, f5, f6⟩ := hok₁ hdockind
             refine documentChildrenOk_of_insertAt hwf₁ hins' ?_ ?_ ?_ hok'
             · intro k hk'
@@ -1601,10 +1601,10 @@ theorem documentTreesValid_insert {s s' : DOMState} {node parent : NodeId}
       ∃ pd, s.tree.get? parent = some pd ∧ pd.kind = NodeKind.document := by
     intro hkp
     cases hpd : s.tree.get? parent with
-    | none => rw [kindOf, hpd] at hkp; simp at hkp
+    | none => rw [kindOf_eq, hpd] at hkp; simp at hkp
     | some pd =>
       refine ⟨pd, rfl, ?_⟩
-      rw [kindOf, hpd] at hkp
+      rw [kindOf_eq, hpd] at hkp
       simpa using hkp
   by_cases hfragkind : nd.kind = NodeKind.documentFragment
   · rw [if_pos hfragkind]
@@ -1614,8 +1614,8 @@ theorem documentTreesValid_insert {s s' : DOMState} {node parent : NodeId}
       intro m hm
       have hne := child_not_doctype hsv hnd (by rw [hfragkind]; simp) hm
       cases hmd : s.tree.get? m with
-      | none => simp [kindOf, hmd]
-      | some md => simp [kindOf, hmd, hne md hmd]
+      | none => simp [kindOf_eq, hmd]
+      | some md => simp [kindOf_eq, hmd, hne md hmd]
     intro hkp
     obtain ⟨pd, hpd, hpk⟩ := hexists hkp
     obtain ⟨_, f2, f3, _⟩ := hfacts pd hpd hpk
@@ -1674,7 +1674,7 @@ theorem documentTreesValid_insert {s s' : DOMState} {node parent : NodeId}
     obtain ⟨pd, hpd, hpk⟩ := hexists hkp
     obtain ⟨f1, _, f3, f4⟩ := hfacts pd hpd hpk
     obtain ⟨he1, he2, _, _⟩ := hparentOk pd hpd hpk
-    have hkn : kindOf s.tree node = some nd.kind := by rw [kindOf, hnd]; rfl
+    have hkn : kindOf s.tree node = some nd.kind := by rw [kindOf_eq, hnd]; rfl
     have hE : ([node].filter fun m => kindOf s.tree m == some NodeKind.element).length
         = if nd.kind = NodeKind.element then 1 else 0 := by
       by_cases hk : nd.kind = NodeKind.element
@@ -1865,12 +1865,12 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
   -- parent は Document
   have hpk : pd.kind = NodeKind.document := by
     have hk := hkind parent
-    rw [hdocparent, kindOf, hpd] at hk
+    rw [hdocparent, kindOf_eq, hpd] at hk
     simpa using hk.symm
   obtain ⟨f1, f2, f3, f4⟩ := ensurePreInsertionValidity_documentFacts hpd hnd hpk hv
   have hkd : nd₂.kind = nd.kind := by
     have hk := hkind node
-    rw [kindOf, kindOf, hnd₂, hnd] at hk
+    rw [kindOf_eq, kindOf_eq, hnd₂, hnd] at hk
     simpa using hk
   -- children の列は `node` と `child` を抜いたものである
   have hsub₂ : ∀ p, (childrenOf s₂.tree p).Sublist (childrenOf s.tree p) := by
@@ -1928,8 +1928,8 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
     intro hfrag m hm
     have hne := child_not_doctype hsv hnd (by rw [hfrag]; simp) (hnschild.subset hm)
     cases hmd : s.tree.get? m with
-    | none => simp [kindOf, hmd]
-    | some md => simp [kindOf, hmd, hne md hmd]
+    | none => simp [kindOf_eq, hmd]
+    | some md => simp [kindOf_eq, hmd, hne md hmd]
   have helemcount : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
       fun m => kindOf s.tree m == some NodeKind.element).length ≤ 1 := by
     by_cases hk : nd₂.kind = NodeKind.documentFragment
@@ -1973,7 +1973,7 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
     · rw [if_neg hk, List.mem_singleton] at hx
       subst hx
       refine Or.inl ?_
-      rw [kindOf, hnd] at hxk
+      rw [kindOf_eq, hnd] at hxk
       simpa using hxk
   have hf4 : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
       fun m => kindOf s.tree m == some NodeKind.documentType) ≠ [] →
@@ -1987,7 +1987,7 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
       simp at hxk
     · rw [if_neg hk, List.mem_singleton] at hx
       subst hx
-      rw [kindOf, hnd] at hxk
+      rw [kindOf_eq, hnd] at hxk
       simpa using hxk
   -- `child` が外れるので、除外されていた子は残らない
   have helemnil : ((if nd₂.kind = NodeKind.documentFragment then nd₂.children else [node]).filter
@@ -2035,10 +2035,10 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
   -- s₂ 側で parent が Document であること
   obtain ⟨pd₂, hpd₂⟩ : ∃ pd₂, s₂.tree.get? parent = some pd₂ := by
     cases hq : s₂.tree.get? parent with
-    | none => rw [kindOf, hq] at hdocparent; simp at hdocparent
+    | none => rw [kindOf_eq, hq] at hdocparent; simp at hdocparent
     | some q => exact ⟨q, rfl⟩
   have hpk₂ : pd₂.kind = NodeKind.document := by
-    rw [kindOf, hpd₂] at hdocparent
+    rw [kindOf_eq, hpd₂] at hdocparent
     simpa using hdocparent
   obtain ⟨hb1, hb2, _, _⟩ := h₂.documentChildren parent pd₂ hpd₂ hpk₂
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -2057,7 +2057,7 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
       | true => exact absurd (List.mem_filter.mpr ⟨hm', by rw [hk']; exact hik⟩) hnot
     · rw [if_neg hfrag, List.mem_singleton] at hm'
       subst hm'
-      rw [kindOf, hnd] at hk'
+      rw [kindOf_eq, hnd] at hk'
       obtain rfl : k = nd.kind := (Option.some.inj hk').symm
       exact f1
   · -- element と doctype は合わせて高々一つ
@@ -2454,7 +2454,7 @@ theorem nodeDocumentsValid_replaceData {s s' : DOMState} {n : NodeId} {offset co
   have hown : ∀ m, ownerDocumentOf s'.tree m = ownerDocumentOf s.tree m := by
     intro m
     rw [htree]
-    simp only [ownerDocumentOf, hget]
+    simp only [ownerDocumentOf_eq, hget]
     split
     · next he => rw [he, hd]; rfl
     · rfl

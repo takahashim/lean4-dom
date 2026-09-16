@@ -147,11 +147,12 @@ theorem parentOf_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd : t.ge
 
 theorem childrenOf_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
     (as : List Attr) (m : NodeId) : childrenOf (setAttributes t n d as) m = childrenOf t m := by
-  unfold childrenOf
-  rw [get?_setAttributes hd]
   by_cases h : m = n
-  · subst h; simp [hd]
-  · rw [if_neg h]
+  · subst h
+    refine childrenOf_congr_children (d' := { d with attributes := as }) hd ?_ rfl
+    rw [get?_setAttributes hd]
+    simp
+  · exact childrenOf_congr (by rw [get?_setAttributes hd, if_neg h])
 
 theorem kindOf_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
     (as : List Attr) (m : NodeId) : kindOf (setAttributes t n d as) m = kindOf t m := by

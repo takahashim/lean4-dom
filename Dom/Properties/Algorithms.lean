@@ -620,7 +620,7 @@ theorem insertAt_isOk_of_validity {t : Tree} {node parent : NodeId} {child : Opt
     (hnp : parentOf t node = none) : ∃ t', insertAt t parent node child = .ok t' := by
   obtain ⟨⟨pd, hpd⟩, ⟨nd, hnd⟩, hanc, hchild⟩ := ensurePreInsertionValidity_ok hv
   have hnp' : nd.parent = none := by
-    rw [parentOf, hnd] at hnp; simpa using hnp
+    rw [parentOf_eq, hnd] at hnp; simpa using hnp
   refine ⟨_, insertAt_eq_ok hpd hnd hnp' hanc ?_⟩
   intro c hc
   have hmem := mem_childrenOf_of_parentOf hwf (hchild c hc)
