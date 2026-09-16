@@ -235,6 +235,13 @@ open Dom.Audit
   Dom.walkerAccepts_eq
   Dom.walkerAccepts_eq_false_of_get?_eq_none
   Dom.walkerBase_of_inclusiveAncestor
+  Dom.mem_splitWs_iff
+  Dom.Spec.wordIn_append_ws
+  Dom.Spec.wordIn_of_no_ws
+  Dom.Spec.selectorAttr_isSome_iff
+  Dom.Spec.plainAttr_isSome_iff
+  Dom.Spec.any_isAsciiWhitespace_caseFold
+  Infra.isAsciiWhitespace_asciiLowerChar
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

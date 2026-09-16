@@ -256,10 +256,155 @@ theorem mem_combCandidates_nextSibling {t : Tree} (hwf : WellFormed t) {n p : No
 
 def NoWhitespace (w : List Char) : Prop := ∀ c ∈ w, isAsciiWhitespace c = false
 
+/-- `w` が `v` の中に空白で区切られた語として現れる。 -/
+def WordIn (v w : List Char) : Prop :=
+  ∃ pre post, v = pre ++ (w ++ post) ∧
+    (∀ c, pre.getLast? = some c → isAsciiWhitespace c = true) ∧
+    (∀ c, post.head? = some c → isAsciiWhitespace c = true)
+
+private theorem getLast?_append_ne {u l : List Char} (h : l ≠ []) :
+    (u ++ l).getLast? = l.getLast? := by
+  rw [List.getLast?_append]
+  cases hl : l.getLast? with
+  | none => exact absurd (List.getLast?_eq_none_iff.mp hl) h
+  | some c => rfl
+
+theorem wordIn_of_no_ws {u w : List Char} (hu : ∀ c ∈ u, isAsciiWhitespace c = false) :
+    WordIn u w ↔ u = w := by
+  constructor
+  · rintro ⟨pre, post, hv, hpre, hpost⟩
+    have hpn : pre = [] := by
+      cases hp : pre with
+      | nil => rfl
+      | cons a as =>
+        exfalso
+        obtain ⟨c, hc⟩ : ∃ c, (a :: as).getLast? = some c := by
+          cases h2 : (a :: as).getLast? with
+          | none => exact absurd h2 (by simp)
+          | some c => exact ⟨c, rfl⟩
+        have hcw := hpre c (by rw [hp]; exact hc)
+        have hcmem : c ∈ (a :: as) := List.mem_of_getLast? hc
+        have hcm : c ∈ u := by
+          rw [hv, hp]
+          simp only [List.cons_append, List.mem_cons, List.mem_append]
+          rcases List.mem_cons.mp hcmem with rfl | hx
+          · exact Or.inl rfl
+          · exact Or.inr (Or.inl hx)
+        rw [hu c hcm] at hcw
+        simp at hcw
+    have hqn : post = [] := by
+      cases hp : post with
+      | nil => rfl
+      | cons a as =>
+        exfalso
+        have hcw := hpost a (by rw [hp]; rfl)
+        have hcm : a ∈ u := by rw [hv, hp]; simp
+        rw [hu a hcm] at hcw
+        simp at hcw
+    rw [hv, hpn, hqn]
+    simp
+  · intro h
+    exact ⟨[], [], by rw [h]; simp, by simp, by simp⟩
+
+theorem wordIn_append_ws {u : List Char} (hu : ∀ c ∈ u, isAsciiWhitespace c = false)
+    {ws : Char} (hws : isAsciiWhitespace ws = true) {rest w : List Char}
+    (hne : w ≠ []) (hnw : NoWhitespace w) :
+    WordIn (u ++ (ws :: rest)) w ↔ ((u ≠ [] ∧ u = w) ∨ WordIn rest w) := by
+  constructor
+  · rintro ⟨pre, post, hv, hpre, hpost⟩
+    rcases List.append_eq_append_iff.mp hv with ⟨as, hpe, hxs⟩ | ⟨bs, hue, hzs⟩
+    · -- pre = u ++ as, ws :: rest = as ++ (w ++ post)
+      cases as with
+      | nil =>
+        exfalso
+        simp only [List.nil_append] at hxs
+        cases w with
+        | nil => exact hne rfl
+        | cons a w' =>
+          rw [List.cons_append] at hxs
+          injection hxs with h1 _
+          have := hnw ws (by rw [h1]; simp)
+          rw [hws] at this
+          simp at this
+      | cons a as' =>
+        rw [List.cons_append] at hxs
+        injection hxs with h1 h2
+        refine Or.inr ⟨as', post, h2, ?_, hpost⟩
+        intro c hc
+        refine hpre c ?_
+        rw [hpe]
+        cases has : as' with
+        | nil => rw [has] at hc; simp at hc
+        | cons b bs' =>
+          rw [getLast?_append_ne (l := a :: b :: bs') (by simp)]
+          rw [has] at hc
+          simpa using hc
+    · -- u = pre ++ bs, w ++ post = bs ++ (ws :: rest)
+      have hpn : pre = [] := by
+        cases hp : pre with
+        | nil => rfl
+        | cons a as =>
+          exfalso
+          obtain ⟨c, hc⟩ : ∃ c, (a :: as).getLast? = some c := by
+            cases h2 : (a :: as).getLast? with
+            | none => exact absurd h2 (by simp)
+            | some c => exact ⟨c, rfl⟩
+          have hcw := hpre c (by rw [hp]; exact hc)
+          have hcmem : c ∈ (a :: as) := List.mem_of_getLast? hc
+          have hcm : c ∈ u := by rw [hue, hp]; exact List.mem_append.mpr (Or.inl hcmem)
+          rw [hu c hcm] at hcw
+          simp at hcw
+      subst hpn
+      simp only [List.nil_append] at hue hzs
+      subst hue
+      rcases List.append_eq_append_iff.mp hzs with ⟨as, hue2, hpost2⟩ | ⟨bs', hwe, hzs2⟩
+      · -- u = w ++ as, post = as ++ (ws :: rest)
+        cases as with
+        | nil =>
+          refine Or.inl ⟨?_, ?_⟩
+          · rw [hue2]; simpa using hne
+          · rw [hue2]; simp
+        | cons b bs'' =>
+          exfalso
+          have hb : b ∈ u := by rw [hue2]; exact List.mem_append.mpr (Or.inr (by simp))
+          have hh := hpost b (by rw [hpost2]; rfl)
+          rw [hu b hb] at hh
+          simp at hh
+      · -- w = u ++ bs', ws :: rest = bs' ++ post
+        cases bs' with
+        | nil =>
+          rw [List.append_nil] at hwe
+          exact Or.inl ⟨by rw [← hwe]; exact hne, hwe.symm⟩
+        | cons b bs'' =>
+          exfalso
+          rw [List.cons_append] at hzs2
+          injection hzs2 with h1 _
+          have : ws ∈ w := by rw [hwe, ← h1]; exact List.mem_append.mpr (Or.inr (by simp))
+          have h3 := hnw ws this
+          rw [hws] at h3
+          simp at h3
+  · rintro (⟨hune, rfl⟩ | ⟨pre', post', hr, hpre', hpost'⟩)
+    · exact ⟨[], ws :: rest, by simp, by simp, by simp [hws]⟩
+    · refine ⟨u ++ (ws :: pre'), post', by rw [hr]; simp, ?_, hpost'⟩
+      intro c hc
+      cases hp : pre' with
+      | nil =>
+        rw [hp] at hc
+        rw [getLast?_append_ne (l := [ws]) (by simp)] at hc
+        simp only [List.getLast?_singleton, Option.some.injEq] at hc
+        rw [← hc]; exact hws
+      | cons b bs =>
+        rw [hp] at hc
+        rw [getLast?_append_ne (l := ws :: b :: bs) (by simp)] at hc
+        refine hpre' c ?_
+        rw [hp]
+        simpa using hc
+
+
 /-- 六つの演算子が表す、値どうしの関係。 -/
 def AttrOpHolds : AttrOp -> List Char -> List Char -> Prop
   | .exact, v, w => v = w
-  | .includes, _, w => w ≠ [] ∧ NoWhitespace w
+  | .includes, v, w => w ≠ [] ∧ NoWhitespace w ∧ WordIn v w
   | .dashMatch, v, w => v = w ∨ ∃ rest, v = w ++ Char.ofNat 0x2D :: rest
   | .prefixMatch, v, w => w ≠ [] ∧ ∃ rest, v = w ++ rest
   | .suffixMatch, v, w => w ≠ [] ∧ ∃ pre, v = pre ++ w
@@ -315,15 +460,153 @@ theorem hasInfixL_iff (p : List Char) : ∀ (l : List Char),
         rw [List.cons_append, List.cons_append, List.cons.injEq] at h
         exact h.2
 
-/-- **六つの演算子は仕様の関係をちょうど表す（`~=` は但し書きだけ）。** -/
-theorem attrTestHolds_iff (test : AttrTest) (value : String) (h : test.op ≠ .includes) :
+/-! ### 空白区切りの語列（`splitWsAux` の特徴付け） -/
+
+end Dom.Spec
+
+namespace Dom
+open Dom.Spec Infra
+
+/-- accumulator は「まだ出していない語の逆順」なので、先頭に戻してよい。 -/
+theorem splitWsAux_no_ws : ∀ (l acc : List Char), (∀ c ∈ l, isAsciiWhitespace c = false) →
+    splitWsAux acc l = (if (acc.reverse ++ l).isEmpty then [] else [acc.reverse ++ l])
+  | [], acc, _ => by
+    show (if acc.isEmpty then [] else [acc.reverse]) = _
+    by_cases h : acc.isEmpty = true
+    · rw [if_pos h]
+      have : acc = [] := List.isEmpty_iff.mp h
+      subst this; simp
+    · rw [if_neg h]
+      have : acc ≠ [] := fun hc => h (by rw [hc]; rfl)
+      simp [this]
+  | a :: as, acc, h => by
+    have ha : isAsciiWhitespace a = false := h a (by simp)
+    show (if isAsciiWhitespace a then _ else splitWsAux (a :: acc) as) = _
+    rw [if_neg (by rw [ha]; simp),
+      splitWsAux_no_ws as (a :: acc) (fun c hc => h c (by simp [hc]))]
+    simp
+
+theorem splitWsAux_split : ∀ (word acc : List Char), (∀ c ∈ word, isAsciiWhitespace c = false) →
+    ∀ (ws : Char), isAsciiWhitespace ws = true → ∀ (tail : List Char),
+    splitWsAux acc (word ++ ws :: tail) =
+      (if (acc.reverse ++ word).isEmpty then [] else [acc.reverse ++ word]) ++ splitWsAux [] tail
+  | [], acc, _, ws, hws, tail => by
+    show (if isAsciiWhitespace ws then
+        (if acc.isEmpty then [] else [acc.reverse]) ++ splitWsAux [] tail else _) = _
+    rw [if_pos (by rw [hws])]
+    by_cases h : acc.isEmpty = true
+    · have : acc = [] := List.isEmpty_iff.mp h
+      subst this; simp
+    · have hne : acc ≠ [] := fun hc => h (by rw [hc]; rfl)
+      rw [if_neg h, if_neg (by simp [hne])]
+      simp
+  | a :: rest, acc, h, ws, hws, tail => by
+    have ha : isAsciiWhitespace a = false := h a (by simp)
+    show (if isAsciiWhitespace a then _ else splitWsAux (a :: acc) (rest ++ ws :: tail)) = _
+    rw [if_neg (by rw [ha]; simp),
+      splitWsAux_split rest (a :: acc) (fun c hc => h c (by simp [hc])) ws hws tail]
+    simp
+
+/-- 最初の whitespace で切る。 -/
+theorem exists_first_ws : ∀ (v : List Char),
+    (∀ c ∈ v, isAsciiWhitespace c = false) ∨
+    ∃ word ws tail, v = word ++ ws :: tail ∧ (∀ c ∈ word, isAsciiWhitespace c = false) ∧
+      isAsciiWhitespace ws = true
+  | [] => Or.inl (by simp)
+  | a :: rest => by
+    by_cases ha : isAsciiWhitespace a = true
+    · exact Or.inr ⟨[], a, rest, rfl, by simp, ha⟩
+    · rcases exists_first_ws rest with h | ⟨word, ws, tail, hv, hw, hws⟩
+      · refine Or.inl fun c hc => ?_
+        rcases List.mem_cons.mp hc with rfl | hc'
+        · simpa using ha
+        · exact h c hc'
+      · refine Or.inr ⟨a :: word, ws, tail, by rw [hv]; simp, fun c hc => ?_, hws⟩
+        rcases List.mem_cons.mp hc with rfl | hc'
+        · simpa using ha
+        · exact hw c hc'
+
+/-- **`splitWsAux [] v` は `v` の空白区切りの語をちょうど並べる。** -/
+theorem mem_splitWs_iff : ∀ (n : Nat) (v : List Char), v.length ≤ n → ∀ (w : List Char),
+    w ≠ [] → NoWhitespace w → (w ∈ splitWsAux [] v ↔ WordIn v w)
+  | 0, v, hlen, w, hne, hnw => by
+    have : v = [] := List.eq_nil_of_length_eq_zero (by omega)
+    subst this
+    constructor
+    · intro h; simp [splitWsAux] at h
+    · rintro ⟨pre, post, hv, -, -⟩
+      exfalso
+      have := congrArg List.length hv
+      simp at this
+      exact hne (List.eq_nil_of_length_eq_zero (by omega))
+  | n + 1, v, hlen, w, hne, hnw => by
+    rcases exists_first_ws v with hno | ⟨word, ws, tail, rfl, hword, hws⟩
+    · rw [splitWsAux_no_ws v [] hno, wordIn_of_no_ws hno]
+      split
+      · next h =>
+        have hvn : v = [] := by
+          have := List.isEmpty_iff.mp h
+          simpa using this
+        constructor
+        · intro hm; simp at hm
+        · intro hm; rw [hvn] at hm; exact absurd hm.symm hne
+      · next h =>
+        simp only [List.reverse_nil, List.nil_append, List.mem_singleton]
+        exact ⟨fun hm => hm.symm, fun hm => hm.symm⟩
+    · rw [splitWsAux_split word [] hword ws hws tail]
+      have hlt : tail.length ≤ n := by simp at hlen; omega
+      rw [wordIn_append_ws hword hws hne hnw]
+      rw [List.mem_append]
+      rw [mem_splitWs_iff n tail hlt w hne hnw]
+      have hsplit : (w ∈ (if ([].reverse ++ word).isEmpty = true then []
+          else [([].reverse ++ word)])) ↔ (word ≠ [] ∧ word = w) := by
+        split
+        · next h =>
+          have hwn : word = [] := by
+            have := List.isEmpty_iff.mp h
+            simpa using this
+          constructor
+          · intro hm; simp at hm
+          · rintro ⟨hne2, -⟩; exact absurd hwn hne2
+        · next h =>
+          simp only [List.reverse_nil, List.nil_append, List.mem_singleton]
+          have hwne : word ≠ [] := by
+            intro hc
+            rw [hc] at h
+            simp at h
+          exact ⟨fun hm => ⟨hwne, hm.symm⟩, fun hm => hm.2.symm⟩
+      rw [hsplit]
+
+end Dom
+
+namespace Dom.Spec
+
+open Dom Selectors
+
+/-- **六つの演算子は仕様の関係をちょうど表す。** -/
+theorem attrTestHolds_iff (test : AttrTest) (value : String) :
     attrTestHolds test value = true ↔
       AttrOpHolds test.op (caseFold test.case value.toList)
         (caseFold test.case test.value.toList) := by
   unfold attrTestHolds
   cases hop : test.op with
   | exact => simp [AttrOpHolds]
-  | includes => exact absurd hop h
+  | includes =>
+    simp only [AttrOpHolds, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
+      List.isEmpty_eq_false_iff, List.any_eq_false, List.any_eq_true, beq_iff_eq]
+    constructor
+    · rintro ⟨⟨hne, hnw⟩, hmem⟩
+      obtain ⟨x, hx, rfl⟩ := hmem
+      refine ⟨hne, fun c hc => ?_, ?_⟩
+      · have := hnw c hc
+        simpa using this
+      · exact (mem_splitWs_iff (caseFold test.case value.toList).length
+          (caseFold test.case value.toList) (Nat.le_refl _) _ hne
+          (fun c hc => by simpa using hnw c hc)).mp hx
+    · rintro ⟨hne, hnw, hword⟩
+      refine ⟨⟨hne, fun c hc => by simpa using hnw c hc⟩, ?_⟩
+      exact ⟨_, (mem_splitWs_iff (caseFold test.case value.toList).length
+        (caseFold test.case value.toList) (Nat.le_refl _) _ hne hnw).mpr hword, rfl⟩
   | dashMatch =>
     simp only [AttrOpHolds, Bool.or_eq_true, beq_iff_eq, hasPrefixL_iff]
     constructor
@@ -348,19 +631,38 @@ theorem includes_empty_never (c : AttrCase) (value : String) :
     attrTestHolds ⟨.includes, "", c⟩ value = false := by
   cases c <;> simp [attrTestHolds, caseFold]
 
-/-- **値が空白を含む `~=` は何にも当たらない。** もう一つの但し書き。 -/
+/--
+**`caseFold` は whitespace を含むかどうかを変えない。**
+
+`i` flag の ASCII lowercase は A-Z しか動かさないので、whitespace には触れない。
+-/
+theorem any_isAsciiWhitespace_caseFold (case : AttrCase) (l : List Char) :
+    (caseFold case l).any isAsciiWhitespace = l.any isAsciiWhitespace := by
+  cases case with
+  | insensitive =>
+    show (l.map Infra.asciiLowerChar).any isAsciiWhitespace = _
+    rw [List.any_map]
+    refine congrArg _ ?_
+    funext c
+    exact Infra.isAsciiWhitespace_asciiLowerChar c
+  | _ => rfl
+
+/--
+**値が空白を含む `~=` は何にも当たらない。** もう一つの但し書き。
+
+`i` flag が付いていても同じである（`any_isAsciiWhitespace_caseFold`）。
+-/
 theorem includes_whitespace_never (test : AttrTest) (value : String)
-    (hop : test.op = .includes) (hc : test.case ≠ .insensitive)
+    (hop : test.op = .includes)
     (hw : ∃ c ∈ test.value.toList, isAsciiWhitespace c = true) :
     attrTestHolds test value = false := by
   obtain ⟨c, hcmem, hcws⟩ := hw
   unfold attrTestHolds
-  have hfold : caseFold test.case test.value.toList = test.value.toList := by
-    cases hcase : test.case with
-    | insensitive => exact absurd hcase hc
-    | _ => rfl
-  simp only [hop, hfold, Bool.and_eq_false_iff]
-  exact Or.inl (Or.inr (by simp; exact ⟨c, hcmem, hcws⟩))
+  simp only [hop, Bool.and_eq_false_iff]
+  refine Or.inl (Or.inr ?_)
+  simp only [Bool.not_eq_eq_eq_not, Bool.not_false]
+  rw [any_isAsciiWhitespace_caseFold]
+  exact List.any_eq_true.mpr ⟨c, hcmem, hcws⟩
 
 /-! ## `:nth-*()` が数える列（Selectors Level 4 §14.3-14.7）
 
@@ -774,5 +1076,40 @@ theorem plainAttr_none {d : NodeData} {name : String} (h : plainAttr d name = no
     have := List.find?_eq_none.mp hf a ha
     simp only [Bool.and_eq_true, not_and, beq_iff_eq, Option.isNone_iff_eq_none] at this
     exact this hm.1 hm.2
+
+/-! ### 存在との同値（利用側のためのまとめ） -/
+
+/--
+**`[att]` が当たる attribute があることと、`selectorAttr` が返すことは同値である。**
+
+健全性（`selectorAttr_some`）と不在（`selectorAttr_none`）を一つにしたもの。
+使う側はこちらだけで済む。
+-/
+theorem selectorAttr_isSome_iff {t : Tree} {d : NodeData} {anyNs : Bool} {name : String} :
+    (selectorAttr t d anyNs name).isSome = true ↔
+      ∃ a ∈ d.attributes, SelectorAttrMatches t d anyNs name a := by
+  constructor
+  · intro h
+    obtain ⟨a, ha⟩ := Option.isSome_iff_exists.mp h
+    obtain ⟨hmem, hmatch⟩ := selectorAttr_some ha
+    exact ⟨a, hmem, hmatch⟩
+  · rintro ⟨a, hmem, hmatch⟩
+    cases hs : selectorAttr t d anyNs name with
+    | none => exact absurd hmatch (selectorAttr_none hs a hmem)
+    | some b => simp
+
+/-- **class / id も同じ形でまとめる。** -/
+theorem plainAttr_isSome_iff {d : NodeData} {name : String} :
+    (plainAttr d name).isSome = true ↔
+      ∃ a ∈ d.attributes, a.localName = name ∧ a.namespace = none := by
+  constructor
+  · intro h
+    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp h
+    obtain ⟨a, hmem, hn, hns, -⟩ := plainAttr_some hv
+    exact ⟨a, hmem, hn, hns⟩
+  · rintro ⟨a, hmem, hn, hns⟩
+    cases hs : plainAttr d name with
+    | none => exact absurd ⟨hn, hns⟩ (plainAttr_none hs a hmem)
+    | some v => simp
 
 end Dom.Spec

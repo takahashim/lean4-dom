@@ -113,6 +113,28 @@ theorem toNat_ofNat_ascii {n : Nat} (h : n < 0x80) : (Char.ofNat n).toNat = n :=
   rw [dif_pos (by simp [Nat.isValidChar]; omega)]
   simp [Char.ofNatAux, Char.toNat]
 
+/-- **ASCII lowercase は whitespace かどうかを変えない。** -/
+theorem isAsciiWhitespace_asciiLowerChar (c : Char) :
+    isAsciiWhitespace (asciiLowerChar c) = isAsciiWhitespace c := by
+  unfold asciiLowerChar
+  by_cases h : isAsciiUpperAlpha c = true
+  · rw [if_pos h]
+    unfold isAsciiUpperAlpha at h
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    have hv : (Char.ofNat (c.toNat + 32)).toNat = c.toNat + 32 :=
+      toNat_ofNat_ascii (by omega)
+    have hL : isAsciiWhitespace (Char.ofNat (c.toNat + 32)) = false := by
+      unfold isAsciiWhitespace
+      rw [hv]
+      simp only [Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq]
+      refine ⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩ <;> omega
+    have hR : isAsciiWhitespace c = false := by
+      unfold isAsciiWhitespace
+      simp only [Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq]
+      refine ⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩ <;> omega
+    rw [hL, hR]
+  · rw [if_neg h]
+
 /-- ASCII lowercase は文字を ASCII の中で動かすだけで、別の記号を作らない。 -/
 theorem asciiLowerChar_ne {c d : Char} (hd : isAsciiLowerAlpha d = false) (h : ¬c = d) :
     ¬asciiLowerChar c = d := by
