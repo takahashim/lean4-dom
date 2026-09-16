@@ -284,8 +284,21 @@ module Difftest
     nodes = scenario["nodes"] || []
     by_id = Generate.index_by_id(nodes)
     return false unless live_node_refs(scenario).all? { |id| by_id.key?(id) }
+    return false unless owner_documents_resolvable?(nodes)
 
     ranges_sane?(scenario, nodes, by_id)
+  end
+
+  # loader が node document を決められるか。
+  #
+  # `ownerDocument` を書いていない node は、最初の Document を node document にする。
+  # Document を落とした候補はそこで読めなくなり、model も impl も batch ごと落ちる。
+  # 最小化はその候補を「不一致が消えた」と読んでしまい、警告と余計な process 起動だけが残る。
+  def owner_documents_resolvable?(nodes)
+    return true if nodes.empty?
+    return true if nodes.any? { |n| n["kind"] == "document" }
+
+    nodes.none? { |n| n["kind"] != "document" && n["ownerDocument"].nil? }
   end
 
   # 候補を試し、まだ不一致なものがあればそれに進む。進めたかどうかを返す。

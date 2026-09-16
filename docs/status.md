@@ -4201,6 +4201,29 @@ makiri を `0.9.0` に、Dommy の commit を `4b7b1b2`（今セッションで�
 落とさない方針だからで、**落ちる場所が「bundle install」から「不一致の報告」に
 戻った**のが今回の意味である。
 
+## CI だけが通る経路を洗った
+
+上の pin の食い違いは「手元では踏まない経路」だったので、残りの entry point も
+一つずつ手元で走らせた。`lake exe dom-model --check` / `--batch`、`url-model` の七つ、
+`difftest.rb` の `--fixed-only` / 生成 / `--shrink`、`compare_impls.rb`、
+Differential の exploration の matrix。どれも動く。
+
+一つだけ直した。**最小化器が document node を落とした候補を作っていた。**
+`ownerDocument` を書いていない node は最初の Document を node document にするので、
+Document が消えると loader が読めず、model も impl も batch ごと落ちる。
+最小化はその候補を「不一致が消えた」と読み、警告と余計な process 起動だけが残っていた。
+`sane_scenario?` に `owner_documents_resolvable?` を足した。
+最小化の結果（node 2-4 個・操作 1 個）は変わらず、警告だけが消える。
+
+`compare_impls.rb` が挙げる「二つ以上の実装が model と違う scenario」は五つで、
+`comments-are-removed-by-the-tokenizer`・`empty-pseudo-allows-white-space`・
+`non-ascii-ident-code-points-are-a-list`・`scope-pseudo-is-the-scoping-root`・
+`selector-attributes-have-no-namespace` である。これは
+`docs/threats-to-validity.md` §5 が言う「仕様の読み直しに値する場所」の印だが、
+**五つとも既に本文を読み直してある**（findings 19・20・24・29・30・33）。
+うち三つは仕様側に改訂の記録があり（`:empty` の空白、ident code point の一覧）、
+二つは仕様本文に例が明記されている（virtual scoping root、`[att]` と `[|att]` の同値）。
+
 ## 同じ測定を §4.2.3 の中心に当てる
 
 Selectors で使った「壊して、誰が捕まえるかを測る」を mutation algorithm にも当てた。
