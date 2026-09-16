@@ -84,9 +84,8 @@ theorem append_fresh_isOk {s : DOMState} {node parent : NodeId} {nd : NodeData}
       · exact hnp he
       · exact not_ancestor_of_children_nil hwf₁ hnd₁ hch₁ parent ha
   have hins := insertAt_eq_ok (child := (none : Option NodeId)) hpd₁ hnd₁ hp₁ hanc' (by simp)
-  unfold append preInsert
-  rw [hv]
-  show ∃ s', insert s node parent none = .ok s'
+  unfold append
+  rw [preInsert_of_validity hv, preInsertReferenceChild_none]
   rw [insert_of_not_fragment hnd hnf]
   refine insertNodesAt_isOk ?_
   rw [insertEachAt_of_get? (by simpa using hpd)]

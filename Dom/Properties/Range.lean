@@ -107,19 +107,14 @@ theorem rangeEndpointsValid_congr {s₁ s₂ : DOMState} (ht : s₁.tree = s₂.
 theorem remove_ranges {s s' : DOMState} {n p : NodeId} {b : Bool}
     (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     s'.ranges = s.ranges.map (liveRangePreRemoveRange s.tree n p ((index s.tree n).getD 0)) := by
-  simp only [remove, hp] at h
-  split at h
-  · simp at h
-  · next sd hd =>
-    -- step 20-21 は range を変えない。
-    have hr : s'.ranges = sd.ranges := by
-      split at h
-      · rw [← Except.ok.inj h]; simp
-      · rw [← Except.ok.inj h]; simp
-    rw [hr]
-    obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
-    rw [hs, DOMState.withTree_ranges, iteratorPreRemove_ranges]
-    simp only [liveRangePreRemove, hp]
+  obtain ⟨p', sd, hp', hd, hrec⟩ := remove_cases h
+  -- step 20-21 は range を変えない。
+  have hr : s'.ranges = sd.ranges := by
+    rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> simp
+  rw [hr]
+  obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
+  rw [hs, DOMState.withTree_ranges, iteratorPreRemove_ranges]
+  simp only [liveRangePreRemove, hp]
 
 /--
 `remove` の後も boundary point は木の中にある。
@@ -1223,10 +1218,7 @@ theorem preInsert_preserves_endpoints {s s' : DOMState} {node parent : NodeId}
     (hlenq : ∀ q, parentOf s.tree node = some q → ChildCountKind s.tree q)
     (hv : RangeEndpointsValid s) (h : preInsert s node parent child = .ok s') :
     RangeEndpointsValid s' := by
-  unfold preInsert at h
-  split at h
-  · simp at h
-  · exact insert_preserves_endpoints hwf hlen hlenq hv h
+  exact insert_preserves_endpoints hwf hlen hlenq hv (preInsert_cases h).2
 
 theorem appendChild_preserves_endpoints {s s' : DOMState} {parent node : NodeId}
     (hwf : WellFormed s.tree) (hlen : ChildCountKind s.tree parent)
@@ -1246,10 +1238,7 @@ theorem insertBefore_preserves_endpoints {s s' : DOMState} {parent node : NodeId
 theorem preInsert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} (hv : RangesSameNodeOrdered s)
     (h : preInsert s node parent child = .ok s') : RangesSameNodeOrdered s' := by
-  unfold preInsert at h
-  split at h
-  · simp at h
-  · exact insert_preserves_sameNodeOrdered hv h
+  exact insert_preserves_sameNodeOrdered hv (preInsert_cases h).2
 
 theorem preRemove_preserves_sameNodeOrdered {s s' : DOMState} {child parent : NodeId}
     (hv : RangesSameNodeOrdered s) (h : preRemove s child parent = .ok s') :

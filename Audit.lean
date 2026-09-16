@@ -179,6 +179,13 @@ open Dom.Audit
   Url.opaqueHostParser_of_no_forbidden
   Dom.nodeEqualsFuel_eq_of_le
   Dom.nodeEqualsFuel_eq_nodeEquals
+  Dom.remove_cases
+  Dom.remove_of_detach
+  Dom.remove_of_no_parent
+  Dom.preInsert_cases
+  Dom.preInsert_of_validity
+  Dom.preInsert_of_validity_error
+  Dom.preInsertReferenceChild_eq
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

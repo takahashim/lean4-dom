@@ -25,7 +25,8 @@ open Dom
 theorem remove_suppress_of_detach {s s₁ : DOMState} {node p : NodeId}
     (hp : parentOf s.tree node = some p) (h : detachWithLiveAdjust s node = .ok s₁) :
     remove s node true = .ok (addTransientObservers s₁ node p) := by
-  simp [remove, hp, h]
+  rw [remove_of_detach hp h]
+  simp
 
 /-- **`detachWithLiveAdjust` は `MoveDetached` を満たす。** -/
 theorem moveDetached_of_detach {s s₁ : DOMState} {node p : NodeId} (hwf : WellFormed s.tree)

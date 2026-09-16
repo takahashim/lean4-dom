@@ -34,18 +34,7 @@ theorem remove_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree) {n : NodeId
     obtain ⟨pd, hpd⟩ : ∃ pd, s.tree.get? p = some pd := exists_data_of_parentOf hwf hp
     have hde : detach s.tree n = .ok (detachFrom s.tree n p nd pd) := by
       simp [detach, hnd, hnp, hpd]
-    unfold remove
-    rw [hp]
-    simp only
-    cases hd : detachWithLiveAdjust s n with
-    | error e =>
-      exfalso
-      rw [detachWithLiveAdjust_of_detach hde] at hd
-      simp at hd
-    | ok sd =>
-      cases b
-      · exact ⟨_, rfl⟩
-      · exact ⟨_, rfl⟩
+    exact ⟨_, remove_of_detach hp (detachWithLiveAdjust_of_detach hde)⟩
 
 /-- `remove` が失敗するのは、node が parent を持たないときちょうどである。 -/
 theorem remove_error_iff {s : DOMState} (hwf : WellFormed s.tree) {n : NodeId} {b : Bool}
@@ -56,7 +45,7 @@ theorem remove_error_iff {s : DOMState} (hwf : WellFormed s.tree) {n : NodeId} {
     cases hp : parentOf s.tree n with
     | none =>
       refine ⟨rfl, ?_⟩
-      simp only [remove, hp] at h
+      rw [remove_of_no_parent hp] at h
       simpa using h.symm
     | some p =>
       exfalso
@@ -64,8 +53,7 @@ theorem remove_error_iff {s : DOMState} (hwf : WellFormed s.tree) {n : NodeId} {
       rw [hok] at h
       simp at h
   · rintro ⟨hp, rfl⟩
-    unfold remove
-    rw [hp]
+    exact remove_of_no_parent hp
 
 /-- `pre-remove` が失敗するのは、child の parent が指定した parent でないときである。 -/
 theorem preRemove_error_notFound {s : DOMState} {child parent : NodeId}

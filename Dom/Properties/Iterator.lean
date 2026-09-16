@@ -165,20 +165,15 @@ theorem remove_iterators {s s' : DOMState} {n p : NodeId} {b : Bool}
       if ownerDocumentOf s.tree it.root == ownerDocumentOf s.tree n then
         iteratorPreRemoveOne s.tree n it
       else it := by
-  simp only [remove, hp] at h
-  split at h
-  · simp at h
-  · next sd hd =>
-    -- step 20-21 は iterator を変えない。
-    have hi : s'.iterators = sd.iterators := by
-      split at h
-      · rw [← Except.ok.inj h]; simp
-      · rw [← Except.ok.inj h]; simp
-    rw [hi]
-    obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
-    rw [hs, DOMState.withTree_iterators]
-    unfold iteratorPreRemove
-    simp
+  obtain ⟨p', sd, hp', hd, hrec⟩ := remove_cases h
+  -- step 20-21 は iterator を変えない。
+  have hi : s'.iterators = sd.iterators := by
+    rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> simp
+  rw [hi]
+  obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
+  rw [hs, DOMState.withTree_iterators]
+  unfold iteratorPreRemove
+  simp
 
 /-- 対象になった iterator は、`remove` の後も valid のままである。 -/
 theorem iteratorPreRemoveOne_valid {t t' : Tree} {n p : NodeId} {it : IteratorState}

@@ -56,52 +56,44 @@ theorem preservesRegs_insertAt {s : DOMState} {t' : Tree} {parent node : NodeId}
 theorem preservesRegs_remove {s s' : DOMState} {n : NodeId} {b : Bool}
     (hr : remove s n b = .ok s') : PreservesRegs s s' := by
   intro h
-  unfold remove at hr
-  split at hr
-  · simp at hr
-  · next p hp =>
-    simp only at hr
-    split at hr
-    · simp at hr
-    · next s₁ hd =>
-      -- detach までは registration も observer 列も変わらない
-      have hkp : ShapePreserving s.tree s₁.tree :=
-        shapePreserving_detach (detachWithLiveAdjust_tree hd)
-      obtain ⟨_, _, hs₁⟩ := detachWithLiveAdjust_cases hd
-      have hreg₁ : s₁.registrations = s.registrations := by rw [hs₁]; simp
-      have hobs₁ : s₁.observers.length = s.observers.length := by rw [hs₁]; simp
-      have h₁ : ObserverRegistrationsValid s₁ := preservesRegs_congr hkp hreg₁ hobs₁ h
-      -- transient registration を足す
-      have hnode : (s₁.tree.get? n).isSome := by
-        obtain ⟨nd, hnd⟩ : ∃ nd, s.tree.get? n = some nd := by
-          cases hq : s.tree.get? n with
-          | none => rw [parentOf, hq] at hp; simp at hp
-          | some q => exact ⟨q, rfl⟩
-        have hk := hkp n
-        rw [hnd] at hk
-        cases hq : s₁.tree.get? n with
-        | none => rw [hq] at hk; simp at hk
-        | some _ => simp
-      have h₂ : ObserverRegistrationsValid (addTransientObservers s₁ n p) := by
-        intro r hr'
-        have hobs : r.observer < s₁.observers.length :=
-          addTransientObservers_observer_lt s₁ n p hr' (fun r' hr'' => (h₁ r' hr'').1)
-        refine ⟨by simpa using hobs, ?_⟩
-        unfold addTransientObservers at hr'
-        simp only [List.mem_append] at hr'
-        rcases hr' with hx | hx
-        · simpa using (h₁ r hx).2
-        · obtain ⟨y, _, hy⟩ := List.mem_flatMap.mp hx
-          obtain ⟨r₀, _, hr₀⟩ := List.mem_map.mp hy
-          rw [← hr₀]
-          simpa using hnode
-      split at hr
-      · rw [← Except.ok.inj hr]; exact h₂
-      · rw [← Except.ok.inj hr]
-        intro r hr'
-        simp only [queueTreeMutationRecord_registrations] at hr'
-        obtain ⟨g1, g2⟩ := h₂ r hr'
-        exact ⟨by simpa using g1, by simpa using g2⟩
+  obtain ⟨p, s₁, hp, hd, hrec⟩ := remove_cases hr
+  -- detach までは registration も observer 列も変わらない
+  have hkp : ShapePreserving s.tree s₁.tree :=
+    shapePreserving_detach (detachWithLiveAdjust_tree hd)
+  obtain ⟨_, _, hs₁⟩ := detachWithLiveAdjust_cases hd
+  have hreg₁ : s₁.registrations = s.registrations := by rw [hs₁]; simp
+  have hobs₁ : s₁.observers.length = s.observers.length := by rw [hs₁]; simp
+  have h₁ : ObserverRegistrationsValid s₁ := preservesRegs_congr hkp hreg₁ hobs₁ h
+  -- transient registration を足す
+  have hnode : (s₁.tree.get? n).isSome := by
+    obtain ⟨nd, hnd⟩ : ∃ nd, s.tree.get? n = some nd := by
+      cases hq : s.tree.get? n with
+      | none => rw [parentOf, hq] at hp; simp at hp
+      | some q => exact ⟨q, rfl⟩
+    have hk := hkp n
+    rw [hnd] at hk
+    cases hq : s₁.tree.get? n with
+    | none => rw [hq] at hk; simp at hk
+    | some _ => simp
+  have h₂ : ObserverRegistrationsValid (addTransientObservers s₁ n p) := by
+    intro r hr'
+    have hobs : r.observer < s₁.observers.length :=
+      addTransientObservers_observer_lt s₁ n p hr' (fun r' hr'' => (h₁ r' hr'').1)
+    refine ⟨by simpa using hobs, ?_⟩
+    unfold addTransientObservers at hr'
+    simp only [List.mem_append] at hr'
+    rcases hr' with hx | hx
+    · simpa using (h₁ r hx).2
+    · obtain ⟨y, _, hy⟩ := List.mem_flatMap.mp hx
+      obtain ⟨r₀, _, hr₀⟩ := List.mem_map.mp hy
+      rw [← hr₀]
+      simpa using hnode
+  rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · exact h₂
+  · intro r hr'
+    simp only [queueTreeMutationRecord_registrations] at hr'
+    obtain ⟨g1, g2⟩ := h₂ r hr'
+    exact ⟨by simpa using g1, by simpa using g2⟩
 
 theorem preservesRegs_removeEach :
     ∀ (ns : List NodeId) {s s' : DOMState} {b : Bool},

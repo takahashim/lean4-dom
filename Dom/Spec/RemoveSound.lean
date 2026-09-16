@@ -164,19 +164,16 @@ theorem remove_registrations {s s' : DOMState} {n p : NodeId} {b : Bool}
         ((p :: ancestors s₁.tree p).flatMap fun m =>
           (s.registrations.filter fun r => r.node == m && r.subtree).map fun r =>
             { r with node := n, transient := true, source := some r.node }) := by
-  simp only [remove, hp] at h
-  split at h
-  · simp at h
-  · next s₁ hd =>
-    refine ⟨s₁, hd, ?_⟩
-    have hreg : s₁.registrations = s.registrations := remove_registrations_before_transient hd
-    have h₂ : s'.registrations = (addTransientObservers s₁ n p).registrations := by
-      split at h
-      · rw [← Except.ok.inj h]
-      · rw [← Except.ok.inj h]; simp
-    rw [h₂]
-    show s₁.registrations ++ _ = _
-    rw [hreg]
+  obtain ⟨p', s₁, hp', hd, hrec⟩ := remove_cases h
+  rw [hp] at hp'
+  cases hp'
+  refine ⟨s₁, hd, ?_⟩
+  have hreg : s₁.registrations = s.registrations := remove_registrations_before_transient hd
+  have h₂ : s'.registrations = (addTransientObservers s₁ n p).registrations := by
+    rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> simp
+  rw [h₂]
+  show s₁.registrations ++ _ = _
+  rw [hreg]
 
 /-- **step 20 の soundness。** -/
 theorem remove_sound_transient {s s' : DOMState} {n p : NodeId} {b : Bool}
@@ -296,80 +293,77 @@ theorem records_after_queue {s₂ s₃ : DOMState} {rec : MutationRecord} {mo : 
 theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     RecordQueued s s' n p (previousSibling s.tree n) (nextSibling s.tree n) b := by
-  simp only [remove, hp] at h
-  split at h
-  · simp at h
-  · next s₁ hd =>
-    have hobs₁ := detachWithLiveAdjust_observers hd
-    have hpend₁ := detachWithLiveAdjust_pending hd
-    have hmt₁ := detachWithLiveAdjust_microtask hd
-    -- step 20 の後の状態。record を積むのはこの上である。
-    have hlen₂ : (addTransientObservers s₁ n p).observers.length = s.observers.length := by
-      rw [addTransientObservers_observers_length, hobs₁]
-    have hget₂ : ∀ (mo : Nat) (o : ObserverState), s.observers[mo]? = some o →
-        ∃ o₂, (addTransientObservers s₁ n p).observers[mo]? = some o₂ ∧ o₂.records = o.records := by
-      intro mo o ho
-      rcases hq : (addTransientObservers s₁ n p).observers[mo]? with _ | o₂
-      · exfalso
-        rw [List.getElem?_eq_none_iff, hlen₂] at hq
-        rcases Nat.lt_or_ge mo s.observers.length with hk | hk
-        · omega
-        · rw [List.getElem?_eq_none hk] at ho; simp at ho
-      · exact ⟨o₂, rfl, records_addTransientObservers s₁ n p mo o o₂ (by rw [hobs₁]; exact ho) hq⟩
-    unfold RecordQueued TreeRecordQueued
-    split at h
-    · -- suppressObservers が true なら record は積まない。
-      next hb =>
-      rw [← Except.ok.inj h, if_pos hb]
-      refine ⟨hlen₂, ?_, ?_, ?_⟩
-      · intro mo o o' ho ho'
-        exact records_addTransientObservers s₁ n p mo o o' (by rw [hobs₁]; exact ho) ho'
-      · intro mo
-        have hp' : (addTransientObservers s₁ n p).pendingObservers = s.pendingObservers := hpend₁
-        rw [hp']
-      · show (addTransientObservers s₁ n p).microtaskQueued = _
-        exact hmt₁
-    · next hb =>
-      rw [← Except.ok.inj h, if_neg hb]
-      have hqueue : queueTreeMutationRecord (addTransientObservers s₁ n p) p [] [n]
-          (previousSibling s.tree n) (nextSibling s.tree n)
-            = queueMutationRecord (addTransientObservers s₁ n p)
-              { type := .childList, target := p, addedNodes := [], removedNodes := [n],
-                previousSibling := previousSibling s.tree n,
-                nextSibling := nextSibling s.tree n } none := by
-        unfold queueTreeMutationRecord
-        rw [if_neg (by simp)]
-      have hbridge := fun mo => interestedIn_childList_bridge hwf hp hd mo
-        ({ type := .childList, target := p, addedNodes := [], removedNodes := [n],
-           previousSibling := previousSibling s.tree n,
-           nextSibling := nextSibling s.tree n } : MutationRecord) rfl rfl rfl rfl
-      rw [hqueue]
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
-      · rw [queueMutationRecord_observers_length, hlen₂]
-      · intro mo o o' ho ho'
-        obtain ⟨o₂, ho₂, hrec₂⟩ := hget₂ mo o ho
-        have := records_after_queue (mo := mo) rfl rfl rfl ho₂ ho'
-        constructor
-        · intro hint
-          rw [this.1 ((hbridge mo).mpr hint), hrec₂]
-        · intro hint
-          rw [this.2 (fun hm => hint ((hbridge mo).mp hm)), hrec₂]
-      · intro mo hint
-        refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inr ?_)
-        exact (hbridge mo).mpr hint
-      · intro mo hmo
-        refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inl ?_)
-        show mo ∈ s₁.pendingObservers
-        rw [hpend₁]
-        exact hmo
-      · intro mo hmo
-        rcases (mem_pendingObservers_queueMutationRecord _ _ _ mo).mp hmo with hm | hm
-        · left
-          have hm' : mo ∈ s₁.pendingObservers := hm
-          rw [hpend₁] at hm'
-          exact hm'
-        · exact Or.inr ((hbridge mo).mp hm)
-      · exact microtaskQueued_queueMutationRecord _ _ _
+  obtain ⟨p', s₁, hp', hd, hrec⟩ := remove_cases h
+  rw [hp] at hp'
+  cases hp'
+  have hobs₁ := detachWithLiveAdjust_observers hd
+  have hpend₁ := detachWithLiveAdjust_pending hd
+  have hmt₁ := detachWithLiveAdjust_microtask hd
+  -- step 20 の後の状態。record を積むのはこの上である。
+  have hlen₂ : (addTransientObservers s₁ n p).observers.length = s.observers.length := by
+    rw [addTransientObservers_observers_length, hobs₁]
+  have hget₂ : ∀ (mo : Nat) (o : ObserverState), s.observers[mo]? = some o →
+      ∃ o₂, (addTransientObservers s₁ n p).observers[mo]? = some o₂ ∧ o₂.records = o.records := by
+    intro mo o ho
+    rcases hq : (addTransientObservers s₁ n p).observers[mo]? with _ | o₂
+    · exfalso
+      rw [List.getElem?_eq_none_iff, hlen₂] at hq
+      rcases Nat.lt_or_ge mo s.observers.length with hk | hk
+      · omega
+      · rw [List.getElem?_eq_none hk] at ho; simp at ho
+    · exact ⟨o₂, rfl, records_addTransientObservers s₁ n p mo o o₂ (by rw [hobs₁]; exact ho) hq⟩
+  unfold RecordQueued TreeRecordQueued
+  rcases hrec with ⟨hb, rfl⟩ | ⟨hb, rfl⟩
+  · -- suppressObservers が true なら record は積まない。
+    rw [if_pos (by simpa using hb)]
+    refine ⟨hlen₂, ?_, ?_, ?_⟩
+    · intro mo o o' ho ho'
+      exact records_addTransientObservers s₁ n p mo o o' (by rw [hobs₁]; exact ho) ho'
+    · intro mo
+      have hp' : (addTransientObservers s₁ n p).pendingObservers = s.pendingObservers := hpend₁
+      rw [hp']
+    · show (addTransientObservers s₁ n p).microtaskQueued = _
+      exact hmt₁
+  · rw [if_neg (by simpa using hb)]
+    have hqueue : queueTreeMutationRecord (addTransientObservers s₁ n p) p [] [n]
+        (previousSibling s.tree n) (nextSibling s.tree n)
+          = queueMutationRecord (addTransientObservers s₁ n p)
+            { type := .childList, target := p, addedNodes := [], removedNodes := [n],
+              previousSibling := previousSibling s.tree n,
+              nextSibling := nextSibling s.tree n } none := by
+      unfold queueTreeMutationRecord
+      rw [if_neg (by simp)]
+    have hbridge := fun mo => interestedIn_childList_bridge hwf hp hd mo
+      ({ type := .childList, target := p, addedNodes := [], removedNodes := [n],
+         previousSibling := previousSibling s.tree n,
+         nextSibling := nextSibling s.tree n } : MutationRecord) rfl rfl rfl rfl
+    rw [hqueue]
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    · rw [queueMutationRecord_observers_length, hlen₂]
+    · intro mo o o' ho ho'
+      obtain ⟨o₂, ho₂, hrec₂⟩ := hget₂ mo o ho
+      have := records_after_queue (mo := mo) rfl rfl rfl ho₂ ho'
+      constructor
+      · intro hint
+        rw [this.1 ((hbridge mo).mpr hint), hrec₂]
+      · intro hint
+        rw [this.2 (fun hm => hint ((hbridge mo).mp hm)), hrec₂]
+    · intro mo hint
+      refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inr ?_)
+      exact (hbridge mo).mpr hint
+    · intro mo hmo
+      refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inl ?_)
+      show mo ∈ s₁.pendingObservers
+      rw [hpend₁]
+      exact hmo
+    · intro mo hmo
+      rcases (mem_pendingObservers_queueMutationRecord _ _ _ mo).mp hmo with hm | hm
+      · left
+        have hm' : mo ∈ s₁.pendingObservers := hm
+        rw [hpend₁] at hm'
+        exact hm'
+      · exact Or.inr ((hbridge mo).mp hm)
+    · exact microtaskQueued_queueMutationRecord _ _ _
 
 /-! ## step 4：NodeIterator pre-remove steps -/
 

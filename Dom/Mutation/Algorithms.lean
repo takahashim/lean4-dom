@@ -188,6 +188,50 @@ def remove (s : DOMState) (node : NodeId) (suppressObservers : Bool := false) :
       if suppressObservers then .ok s₂
       else .ok (queueTreeMutationRecord s₂ parent [] [node] oldPreviousSibling oldNextSibling)
 
+/--
+`remove` が成功したときに通った経路を、本体を開かずに取り出す。
+
+step 1-2 で parent があり、step 3-7 が `detachWithLiveAdjust`、step 20 が
+transient observer、step 21 で record を積むかどうかが決まる。
+-/
+theorem remove_cases {s s' : DOMState} {node : NodeId} {b : Bool}
+    (h : remove s node b = .ok s') :
+    ∃ parent s₁, parentOf s.tree node = some parent ∧
+      detachWithLiveAdjust s node = .ok s₁ ∧
+      ((b = true ∧ s' = addTransientObservers s₁ node parent) ∨
+        (b = false ∧ s' = queueTreeMutationRecord (addTransientObservers s₁ node parent)
+          parent [] [node] (previousSibling s.tree node) (nextSibling s.tree node))) := by
+  unfold remove at h
+  split at h
+  · simp at h
+  · next parent hp =>
+    split at h
+    · simp at h
+    · next s₁ hd =>
+      refine ⟨parent, s₁, hp, hd, ?_⟩
+      split at h
+      · next hb => exact Or.inl ⟨by simpa using hb, (Except.ok.inj h).symm⟩
+      · next hb => exact Or.inr ⟨by simpa using hb, (Except.ok.inj h).symm⟩
+
+/-- step 1-2 と step 3-7 が通れば `remove` は通り、残りは step 20-21 だけである。 -/
+theorem remove_of_detach {s s₁ : DOMState} {node parent : NodeId} {b : Bool}
+    (hp : parentOf s.tree node = some parent)
+    (hd : detachWithLiveAdjust s node = .ok s₁) :
+    remove s node b =
+      .ok (if b then addTransientObservers s₁ node parent
+           else queueTreeMutationRecord (addTransientObservers s₁ node parent)
+             parent [] [node] (previousSibling s.tree node) (nextSibling s.tree node)) := by
+  unfold remove
+  rw [hp]
+  simp only [hd]
+  cases b <;> rfl
+
+/-- parent が無ければ step 1-2 で落ちる。 -/
+theorem remove_of_no_parent {s : DOMState} {node : NodeId} {b : Bool}
+    (hp : parentOf s.tree node = none) : remove s node b = .error .notFoundError := by
+  unfold remove
+  rw [hp]
+
 /-- node の列を順に remove する。DOM Standard §4.2.3 insert step 4 などで使う。 -/
 def removeEach (s : DOMState) (ns : List NodeId) (suppressObservers : Bool := false) :
     Except DOMException DOMState :=
@@ -514,6 +558,23 @@ theorem insert_of_not_fragment {s : DOMState} {node parent : NodeId} {child : Op
 
 /-! ## pre-insert / append / pre-remove / replace / replace all -/
 
+/--
+DOM Standard §4.2.3 "pre-insert" step 2-3 の reference child。
+
+`child` が `node` 自身なら、その次の兄弟に取り直す。
+-/
+def preInsertReferenceChild (t : Tree) (node : NodeId) (child : Option NodeId) : Option NodeId :=
+  if child = some node then nextSibling t node else child
+
+/-- `preInsertReferenceChild` の値。 -/
+theorem preInsertReferenceChild_eq (t : Tree) (node : NodeId) (child : Option NodeId) :
+    preInsertReferenceChild t node child =
+      if child = some node then nextSibling t node else child := rfl
+
+@[simp] theorem preInsertReferenceChild_none (t : Tree) (node : NodeId) :
+    preInsertReferenceChild t node none = none := by
+  rw [preInsertReferenceChild_eq, if_neg (by simp)]
+
 /-- DOM Standard §4.2.3 "pre-insert"。 -/
 def preInsert (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
     Except DOMException DOMState :=
@@ -521,10 +582,38 @@ def preInsert (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
   match ensurePreInsertionValidity s.tree node parent child [] with
   | .error e => .error e
   | .ok () =>
-    -- step 2-3
-    let referenceChild := if child = some node then nextSibling s.tree node else child
-    -- step 4
-    insert s node parent referenceChild
+    -- step 4。step 2-3 の reference child は木を変える前の値。
+    insert s node parent (preInsertReferenceChild s.tree node child)
+
+/-- step 1 が通れば `preInsert` は step 4 の `insert` そのものである。 -/
+theorem preInsert_of_validity {s : DOMState} {node parent : NodeId} {child : Option NodeId}
+    (hv : ensurePreInsertionValidity s.tree node parent child [] = .ok ()) :
+    preInsert s node parent child =
+      insert s node parent (preInsertReferenceChild s.tree node child) := by
+  unfold preInsert
+  rw [hv]
+
+/-- step 1 で落ちたらその例外をそのまま返す。 -/
+theorem preInsert_of_validity_error {s : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {e : DOMException}
+    (hv : ensurePreInsertionValidity s.tree node parent child [] = .error e) :
+    preInsert s node parent child = .error e := by
+  unfold preInsert
+  rw [hv]
+
+/-- `preInsert` が成功したなら step 1 が通っていて、効果は step 4 の `insert` である。 -/
+theorem preInsert_cases {s s' : DOMState} {node parent : NodeId} {child : Option NodeId}
+    (h : preInsert s node parent child = .ok s') :
+    ensurePreInsertionValidity s.tree node parent child [] = .ok () ∧
+      insert s node parent (preInsertReferenceChild s.tree node child) = .ok s' := by
+  unfold preInsert at h
+  split at h
+  · simp at h
+  · next hv =>
+    refine ⟨?_, h⟩
+    cases hx : ensurePreInsertionValidity s.tree node parent child [] with
+    | error e => rw [hx] at hv; exact absurd hv (by simp)
+    | ok u => cases u; rfl
 
 /-- DOM Standard §4.2.3 "append"。 -/
 def append (s : DOMState) (node parent : NodeId) : Except DOMException DOMState :=

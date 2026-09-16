@@ -81,62 +81,61 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
       pd'.ownerDocument = pd.ownerDocument) ∧
     s'.ranges = s.ranges := by
   -- append = pre-insert（child は null）
-  unfold append preInsert at h
-  split at h
-  · simp at h
-  · -- step 2-3 の reference child は null のまま
-    rw [if_neg (by simp : ¬((none : Option NodeId) = some node))] at h
-    obtain ⟨pd, s₁, hpd, ha, hi, hr⟩ := insert_single hnd (by simpa using hk) h
-    -- adopt は node の node document を変えるだけである。
-    have hpn : parentOf (liveRangeInsertAdjust s parent none 1).tree node = none := by
-      simp [liveRangeInsertAdjust_tree, parentOf, hnd, hp]
-    obtain ⟨hr₁, hs₁⟩ := adopt_of_no_parent hpn ha
-    have hother : ∀ m, m ≠ node → s₁.tree.get? m = s.tree.get? m := by
-      intro m hm
-      rcases hs₁ with he | he
-      · rw [he]; simp [liveRangeInsertAdjust_tree]
-      · rw [he]
-        have : m ∉ preorder (liveRangeInsertAdjust s parent none 1).tree node := by
-          rw [liveRangeInsertAdjust_tree]
-          rw [mem_preorder_iff hwf hnd]
-          rintro (rfl | hanc)
-          · exact hm rfl
-          · exact not_ancestor_of_children_nil hwf hnd hch m hanc
-        rw [get?_setOwnerDocument_of_not_mem this]
-        simp [liveRangeInsertAdjust_tree]
-    have hnode₁ : ∃ nd₁, s₁.tree.get? node = some nd₁ ∧ nd₁.shape = nd.shape ∧
-        nd₁.data = nd.data ∧ nd₁.children = [] ∧ nd₁.parent = none := by
-      rcases hs₁ with he | he
-      · exact ⟨nd, by rw [he]; simpa [liveRangeInsertAdjust_tree] using hnd, rfl, rfl, hch, hp⟩
-      · refine ⟨{ nd with ownerDocument := pd.ownerDocument }, ?_, rfl, rfl, hch, hp⟩
-        rw [he, get?_setOwnerDocument_of_mem ?_ (by simpa [liveRangeInsertAdjust_tree] using hnd)]
-        rw [liveRangeInsertAdjust_tree, mem_preorder_iff hwf hnd]
-        exact Or.inl rfl
-    obtain ⟨nd₁, hnd₁, hsh₁, hda₁, hch₁, hp₁⟩ := hnode₁
-    -- insertAt は parent と node だけを変える。
-    obtain ⟨pd₁, nd₁', hpd₁, hnd₁', -, hanc, -, htree⟩ := insertAt_ok_cases hi
-    rw [hnd₁] at hnd₁'
-    cases hnd₁'
-    -- insertAt は node が parent の inclusive ancestor でないことを確かめている。
-    have hnp : node ≠ parent := by
-      intro he
-      rw [he] at hanc
-      simp [isInclusiveAncestorOf] at hanc
-    refine ⟨?_, ?_, ?_, by rw [hr, hr₁]; rfl⟩
-    · intro m md hm h1 h2
-      rw [htree, get?_insertAtIn_other h1 h2, hother m h1]
-      exact hm
-    · exact ⟨{ nd₁ with parent := some parent }, by rw [htree]; simp, hsh₁, hda₁, hch₁⟩
-    · intro pd₀ hpd₀
-      have hpe : pd₁ = pd₀ := by
-        rw [hother parent (Ne.symm hnp)] at hpd₁
-        rw [hpd₀] at hpd₁
-        exact (Option.some.inj hpd₁).symm
-      subst hpe
-      refine ⟨{ pd₁ with children := ListUtil.insertBefore pd₁.children none node }, ?_, ?_,
-        rfl, rfl, rfl⟩
-      · rw [htree, get?_insertAtIn_parent hnp]
-      · simp
+  unfold append at h
+  obtain ⟨-, h⟩ := preInsert_cases h
+  -- step 2-3 の reference child は null のまま
+  rw [preInsertReferenceChild_none] at h
+  obtain ⟨pd, s₁, hpd, ha, hi, hr⟩ := insert_single hnd (by simpa using hk) h
+  -- adopt は node の node document を変えるだけである。
+  have hpn : parentOf (liveRangeInsertAdjust s parent none 1).tree node = none := by
+    simp [liveRangeInsertAdjust_tree, parentOf, hnd, hp]
+  obtain ⟨hr₁, hs₁⟩ := adopt_of_no_parent hpn ha
+  have hother : ∀ m, m ≠ node → s₁.tree.get? m = s.tree.get? m := by
+    intro m hm
+    rcases hs₁ with he | he
+    · rw [he]; simp [liveRangeInsertAdjust_tree]
+    · rw [he]
+      have : m ∉ preorder (liveRangeInsertAdjust s parent none 1).tree node := by
+        rw [liveRangeInsertAdjust_tree]
+        rw [mem_preorder_iff hwf hnd]
+        rintro (rfl | hanc)
+        · exact hm rfl
+        · exact not_ancestor_of_children_nil hwf hnd hch m hanc
+      rw [get?_setOwnerDocument_of_not_mem this]
+      simp [liveRangeInsertAdjust_tree]
+  have hnode₁ : ∃ nd₁, s₁.tree.get? node = some nd₁ ∧ nd₁.shape = nd.shape ∧
+      nd₁.data = nd.data ∧ nd₁.children = [] ∧ nd₁.parent = none := by
+    rcases hs₁ with he | he
+    · exact ⟨nd, by rw [he]; simpa [liveRangeInsertAdjust_tree] using hnd, rfl, rfl, hch, hp⟩
+    · refine ⟨{ nd with ownerDocument := pd.ownerDocument }, ?_, rfl, rfl, hch, hp⟩
+      rw [he, get?_setOwnerDocument_of_mem ?_ (by simpa [liveRangeInsertAdjust_tree] using hnd)]
+      rw [liveRangeInsertAdjust_tree, mem_preorder_iff hwf hnd]
+      exact Or.inl rfl
+  obtain ⟨nd₁, hnd₁, hsh₁, hda₁, hch₁, hp₁⟩ := hnode₁
+  -- insertAt は parent と node だけを変える。
+  obtain ⟨pd₁, nd₁', hpd₁, hnd₁', -, hanc, -, htree⟩ := insertAt_ok_cases hi
+  rw [hnd₁] at hnd₁'
+  cases hnd₁'
+  -- insertAt は node が parent の inclusive ancestor でないことを確かめている。
+  have hnp : node ≠ parent := by
+    intro he
+    rw [he] at hanc
+    simp [isInclusiveAncestorOf] at hanc
+  refine ⟨?_, ?_, ?_, by rw [hr, hr₁]; rfl⟩
+  · intro m md hm h1 h2
+    rw [htree, get?_insertAtIn_other h1 h2, hother m h1]
+    exact hm
+  · exact ⟨{ nd₁ with parent := some parent }, by rw [htree]; simp, hsh₁, hda₁, hch₁⟩
+  · intro pd₀ hpd₀
+    have hpe : pd₁ = pd₀ := by
+      rw [hother parent (Ne.symm hnp)] at hpd₁
+      rw [hpd₀] at hpd₁
+      exact (Option.some.inj hpd₁).symm
+    subst hpe
+    refine ⟨{ pd₁ with children := ListUtil.insertBefore pd₁.children none node }, ?_, ?_,
+      rfl, rfl, rfl⟩
+    · rw [htree, get?_insertAtIn_parent hnp]
+    · simp
 
 
 /-! ## `cloneMany` の仕様 -/

@@ -489,11 +489,8 @@ theorem admissible_toggleAttribute {s s' : DOMState} {element : NodeId} {qn : St
 theorem admissible_preInsert {s s' : DOMState} {node parent : NodeId} {child : Option NodeId}
     (h : AdmissibleDOMState s) (hp : preInsert s node parent child = .ok s') :
     AdmissibleDOMState s' := by
-  unfold preInsert at hp
-  split at hp
-  · simp at hp
-  · next hv =>
-    exact admissible_insert h (ensurePreInsertionValidity_shift h.wellFormed hv) hp
+  obtain ⟨hv, hi⟩ := preInsert_cases hp
+  exact admissible_insert h (ensurePreInsertionValidity_shift h.wellFormed hv) hi
 
 theorem admissible_append {s s' : DOMState} {node parent : NodeId}
     (h : AdmissibleDOMState s) (hp : append s node parent = .ok s') : AdmissibleDOMState s' :=

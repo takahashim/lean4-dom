@@ -150,21 +150,12 @@ mutation record を積む step（20-21）は木を変えないので、
 -/
 theorem remove_ok {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :
     (∃ p, parentOf s.tree n = some p) ∧ detach s.tree n = .ok s'.tree := by
-  unfold remove at h
-  split at h
-  · simp at h
-  · next p hp =>
-    simp only at h
-    split at h
-    · simp at h
-    · next s₁ hd =>
-      refine ⟨⟨p, hp⟩, ?_⟩
-      have htree : s'.tree = s₁.tree := by
-        split at h
-        · rw [← Except.ok.inj h]; simp
-        · rw [← Except.ok.inj h]; simp
-      rw [htree]
-      exact detachWithLiveAdjust_tree hd
+  obtain ⟨p, s₁, hp, hd, hrec⟩ := remove_cases h
+  refine ⟨⟨p, hp⟩, ?_⟩
+  have htree : s'.tree = s₁.tree := by
+    rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> simp
+  rw [htree]
+  exact detachWithLiveAdjust_tree hd
 
 theorem remove_preserves_wellformed {s s' : DOMState} {n : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (h : remove s n b = .ok s') : WellFormed s'.tree :=
@@ -350,10 +341,7 @@ theorem shapePreserving_insert {s s' : DOMState} {node parent : NodeId} {child :
 theorem preInsert_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} (hwf : WellFormed s.tree)
     (h : preInsert s node parent child = .ok s') : WellFormed s'.tree := by
-  unfold preInsert at h
-  split at h
-  · simp at h
-  · exact insert_preserves_wellformed hwf h
+  exact insert_preserves_wellformed hwf (preInsert_cases h).2
 
 theorem append_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
     (hwf : WellFormed s.tree) (h : append s node parent = .ok s') : WellFormed s'.tree :=
@@ -362,10 +350,7 @@ theorem append_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
 theorem shapePreserving_preInsert {s s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} (h : preInsert s node parent child = .ok s') :
     ShapePreserving s.tree s'.tree := by
-  unfold preInsert at h
-  split at h
-  · simp at h
-  · exact shapePreserving_insert h
+  exact shapePreserving_insert (preInsert_cases h).2
 
 theorem shapePreserving_append {s s' : DOMState} {node parent : NodeId}
     (h : append s node parent = .ok s') : ShapePreserving s.tree s'.tree :=
@@ -410,9 +395,7 @@ theorem remove_eq_of_detach {s sd : DOMState} {n p : NodeId} {b : Bool}
     (hp : parentOf s.tree n = some p) (hd : detachWithLiveAdjust s n = .ok sd) :
     ∃ s₁, remove s n b = .ok s₁ ∧ s₁.tree = sd.tree ∧ s₁.ranges = sd.ranges ∧
       s₁.iterators = sd.iterators := by
-  unfold remove
-  rw [hp]
-  simp only [hd]
+  rw [remove_of_detach hp hd]
   cases b
   · exact ⟨_, rfl, by simp, by simp, by simp⟩
   · exact ⟨_, rfl, by simp, by simp, by simp⟩
