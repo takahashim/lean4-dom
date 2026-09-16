@@ -4462,9 +4462,33 @@ harness の入口で、`runOperations_no_violation` が別の形で覆ってい�
 `isInclusiveAncestorOf` と同じ述語を別に定義していたことが分かった。
 二つが食い違っても差分テストでは分からないので、同値を確かめたうえで重複を消した。
 
-定理に一度も現れない `def` は 208 → 178。残りは `Selectors`（tokenizer 内部）69 と
-`Dom/Exec`（harness の配管）53 で、どちらも差分テストが担当する設計どおりの部分、
-それに `Url/` の 19 である。
+## `Url/` 側も同じ基準で埋めた
+
+`Url/` は全体で 500 本以上の定理があるが、§6 の API 側と §4.7 の origin に空白があった。
+
+* `Params.searchParams_withParams`：**書き戻してから読み直すと同じ list に戻る。**
+  §6.2 の「update a URLSearchParams object」と §6.1 の `searchParams` getter は
+  別々の algorithm なので、往復するかどうかは自明でない。
+* `setAttr_isSome_iff_getAttr_isSome` と `getAttr_href` 以下 10 本：
+  **getter と setter は同じ属性名を受け付ける。** 差分 test の期待値表は名前で
+  引くので、二つの対応表がずれるとその属性だけ黙って飛ばされる。
+* `Params.hasValue_eq` / `getAll_deleteValue` / `hasValue_deleteValue`
+* `origin_eq_none_of_other` / `_of_host_none` / `origin_of_special`
+* `startsWithWindowsDrive_of_isNormalized`
+
+`origin_eq_none_of_host_none` は最初 `blob` の枝を見落としていて証明が通らなかった。
+`blob` は path を URL として読み直すので、`u.host` が null でも読み直した先の host から
+tuple origin が出る。**定理を書こうとして初めて気づいた仕様の枝**である。
+
+## いまの残り
+
+定理に一度も現れない `def` は 208 → 158（全 857）。定理の総数は 2168。
+
+内訳は `Selectors`（tokenizer 内部）69 と `Dom/Exec`（harness の配管）53 で、
+どちらも差分テストが担当する設計どおりの部分である。残る 36 は
+mask 定数（`DocumentPosition.preceding` など）、他の定理の仮定として間接的に
+覆われている内部 helper（`takeDec` / `adaptLoop` / `validALabel`）、
+それに `Dom/Event`（別subsystem）である。
 
 ## 未着手
 
