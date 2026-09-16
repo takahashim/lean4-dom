@@ -218,6 +218,8 @@ open Dom.Audit
   Dom.isValidNamespacePrefix_of_isValidAttributeLocalName
   Dom.findAttr_owner
   Dom.findAttr_detached
+  Dom.checkValidWalker_iff
+  Dom.checkWalkersValid_iff
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

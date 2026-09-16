@@ -132,6 +132,31 @@ theorem exists_data_of_walkerMethod (hwf : WellFormed t) {m : WalkerMethod} {w :
   | previousNode => exact exists_data_of_walkerPreviousNode h
   | nextNode => exact exists_data_of_walkerNextNode h
 
+/-! ## 実行時の検査の健全性・完全性 -/
+
+/--
+**`checkValidWalker` は `ValidWalker` を決定する。**
+
+harness（`Dom/Exec/Eval.lean`）は `checkWalkersValid` で scenario を弾くので、
+これが `WalkersValid` と一致していないと、受理すべき状態を落としたり
+その逆をしたりする。`checkWellFormed_iff` や `checkAdmissibleDOMState_iff` と
+同じ位置づけの定理である。
+-/
+theorem checkValidWalker_iff (t : Tree) (w : WalkerState) :
+    checkValidWalker t w = true ↔ ValidWalker t w := by
+  unfold checkValidWalker ValidWalker
+  rw [Bool.and_eq_true, Option.isSome_iff_exists, Option.isSome_iff_exists]
+
+theorem checkWalkersValid_iff (s : DOMState) :
+    checkWalkersValid s = true ↔ WalkersValid s := by
+  unfold checkWalkersValid WalkersValid
+  rw [List.all_eq_true]
+  constructor
+  · intro h w hw
+    exact (checkValidWalker_iff s.tree w).mp (h w hw)
+  · intro h w hw
+    exact (checkValidWalker_iff s.tree w).mpr (h w hw)
+
 /-! ## `WalkersValid` の保存 -/
 
 /--
