@@ -154,6 +154,12 @@ open Dom.Audit
   Dom.replace_of_validity_error
   Dom.replaceReferenceChild_eq
   Dom.replaceNodes_eq
+  Dom.insertEachAt_cases
+  Dom.insertEachAt_of_get?
+  Dom.insertNodesAt_cases
+  Dom.insertNodesAt_isOk
+  Dom.insertPrevSibling_some
+  Dom.insertPrevSibling_none
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

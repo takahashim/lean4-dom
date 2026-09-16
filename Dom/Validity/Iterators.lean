@@ -184,32 +184,21 @@ theorem iterCtx_insertNodesAt {s s' : DOMState} {parent : NodeId}
     (hdt : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind = NodeKind.documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
     (hi : insertNodesAt s parent child nodes b = .ok s') : IterCtx s' := by
-  unfold insertNodesAt at hi
-  simp only at hi
-  split at hi
-  · simp at hi
-  · next sx hx =>
-    have htree : s' = sx ∨ s'.tree = sx.tree ∧ s'.iterators = sx.iterators := by
-      split at hi
-      · exact Or.inl (Except.ok.inj hi).symm
-      · exact Or.inr ⟨by rw [← Except.ok.inj hi]; simp, by rw [← Except.ok.inj hi]; simp⟩
-    have hx' : IterCtx sx := by
-      unfold insertEachAt at hx
-      split at hx
-      · simp at hx
-      · next pd hpd =>
-        have hpd' : s.tree.get? parent = some pd := by simpa using hpd
-        refine iterCtx_insertEach nodes
-          (IterCtx.congr (by simp) (by simp) h) ?_ (by simpa using hpk) ?_
-          (by simpa using hnk) (by simpa using hnf) (by simpa using hdt) hx
-        · exact ⟨_, by simpa using
-            (isDocument_ownerDocument h.wellFormed hpd').choose_spec.1,
-            (isDocument_ownerDocument h.wellFormed hpd').choose_spec.2⟩
-        · simp only [liveRangeInsertAdjust_tree]
-          simp [ownerDocumentOf, hpd']
-    rcases htree with rfl | ⟨ht, hit⟩
-    · exact hx'
-    · exact IterCtx.congr ht hit hx'
+  obtain ⟨sx, hx, hrec⟩ := insertNodesAt_cases hi
+  have hx' : IterCtx sx := by
+    obtain ⟨pd, hpd, hx⟩ := insertEachAt_cases hx
+    have hpd' : s.tree.get? parent = some pd := by simpa using hpd
+    refine iterCtx_insertEach nodes
+      (IterCtx.congr (by simp) (by simp) h) ?_ (by simpa using hpk) ?_
+      (by simpa using hnk) (by simpa using hnf) (by simpa using hdt) hx
+    · exact ⟨_, by simpa using
+        (isDocument_ownerDocument h.wellFormed hpd').choose_spec.1,
+        (isDocument_ownerDocument h.wellFormed hpd').choose_spec.2⟩
+    · simp only [liveRangeInsertAdjust_tree]
+      simp [ownerDocumentOf, hpd']
+  rcases hrec with ⟨_, rfl⟩ | ⟨_, rfl⟩
+  · exact hx'
+  · exact IterCtx.congr (by simp) (by simp) hx'
 
 /-- `insert` は iterator の妥当性を保つ。 -/
 theorem iterCtx_insert {s s' : DOMState} {node parent : NodeId}

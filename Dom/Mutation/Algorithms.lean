@@ -275,21 +275,81 @@ def insertEachAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
   | none => .error .notFoundError
   | some pd => insertEach s parent child pd.ownerDocument nodes
 
+/-- parent が木にあれば `insertEachAt` はその node document で `insertEach` する。 -/
+theorem insertEachAt_of_get? {s : DOMState} {parent : NodeId} {child : Option NodeId}
+    {nodes : List NodeId} {pd : NodeData} (hpd : s.tree.get? parent = some pd) :
+    insertEachAt s parent child nodes = insertEach s parent child pd.ownerDocument nodes := by
+  unfold insertEachAt
+  rw [hpd]
+
+/-- 成功したなら parent は木にある。 -/
+theorem insertEachAt_cases {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+    {nodes : List NodeId} (h : insertEachAt s parent child nodes = .ok s') :
+    ∃ pd, s.tree.get? parent = some pd ∧
+      insertEach s parent child pd.ownerDocument nodes = .ok s' := by
+  unfold insertEachAt at h
+  split at h
+  · simp at h
+  · next pd hpd => exact ⟨pd, hpd, h⟩
+
+/-- DOM Standard §4.2.3 insert step 6 の previous sibling。木を変える前に決める。 -/
+def insertPrevSibling (t : Tree) (parent : NodeId) (child : Option NodeId) : Option NodeId :=
+  match child with
+  | some c => previousSibling t c
+  | none => (childrenOf t parent).getLast?
+
+@[simp] theorem insertPrevSibling_some (t : Tree) (parent c : NodeId) :
+    insertPrevSibling t parent (some c) = previousSibling t c := rfl
+
+@[simp] theorem insertPrevSibling_none (t : Tree) (parent : NodeId) :
+    insertPrevSibling t parent none = (childrenOf t parent).getLast? := rfl
+
 /-- DOM Standard §4.2.3 insert step 5-9。 -/
 def insertNodesAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
     (nodes : List NodeId) (suppressObservers : Bool := false) :
     Except DOMException DOMState :=
-  -- step 6。木を変える前に決める。
-  let prev := match child with
-    | some c => previousSibling s.tree c
-    | none => (childrenOf s.tree parent).getLast?
   -- step 5, 7
   match insertEachAt (liveRangeInsertAdjust s parent child nodes.length) parent child nodes with
   | .error e => .error e
   | .ok s' =>
-    -- step 9
+    -- step 9。step 6 の previous sibling は木を変える前の値。
     if suppressObservers then .ok s'
-    else .ok (queueTreeMutationRecord s' parent nodes [] prev child)
+    else .ok (queueTreeMutationRecord s' parent nodes [] (insertPrevSibling s.tree parent child)
+      child)
+
+/--
+`insertNodesAt` が成功したときの形を、本体を開かずに取り出す。
+
+step 5-7 が通り、step 9 で record を積むかどうかが `suppressObservers` で決まる。
+-/
+theorem insertNodesAt_cases {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+    {nodes : List NodeId} {b : Bool} (h : insertNodesAt s parent child nodes b = .ok s') :
+    ∃ sx, insertEachAt (liveRangeInsertAdjust s parent child nodes.length) parent child nodes
+        = .ok sx ∧
+      ((b = true ∧ s' = sx) ∨
+        (b = false ∧ s' = queueTreeMutationRecord sx parent nodes []
+          (insertPrevSibling s.tree parent child) child)) := by
+  unfold insertNodesAt at h
+  split at h
+  · simp at h
+  · next sx hx =>
+    refine ⟨sx, hx, ?_⟩
+    split at h
+    · next hb => exact Or.inl ⟨by simpa using hb, (Except.ok.inj h).symm⟩
+    · next hb => exact Or.inr ⟨by simpa using hb, (Except.ok.inj h).symm⟩
+
+/-- step 5-7 が通れば `insertNodesAt` も通る。 -/
+theorem insertNodesAt_isOk {s : DOMState} {parent : NodeId} {child : Option NodeId}
+    {nodes : List NodeId} {b : Bool}
+    (h : ∃ sx, insertEachAt (liveRangeInsertAdjust s parent child nodes.length)
+      parent child nodes = .ok sx) :
+    ∃ s', insertNodesAt s parent child nodes b = .ok s' := by
+  obtain ⟨sx, h⟩ := h
+  unfold insertNodesAt
+  simp only [h]
+  split
+  · exact ⟨sx, rfl⟩
+  · exact ⟨_, rfl⟩
 
 /--
 DOM Standard §4.2.3 "insert"。

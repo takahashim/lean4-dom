@@ -148,6 +148,10 @@ theorem liveRangeInsertAdjust_nodes (s : DOMState) (parent : NodeId) (child : Op
   unfold liveRangePreRemove
   split <;> rfl
 
+/-- 末尾への挿入では range の調整は要らない（step 5 は「If child is non-null」で囲まれている）。 -/
+@[simp] theorem liveRangeInsertAdjust_none (s : DOMState) (p : NodeId) (k : Nat) :
+    liveRangeInsertAdjust s p none k = s := rfl
+
 @[simp] theorem liveRangeInsertAdjust_tree (s : DOMState) (p : NodeId) (c : Option NodeId)
     (k : Nat) : (liveRangeInsertAdjust s p c k).tree = s.tree := by
   unfold liveRangeInsertAdjust

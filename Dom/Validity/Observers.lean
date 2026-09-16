@@ -150,21 +150,15 @@ theorem preservesRegs_insertEach :
 theorem preservesRegs_insertNodesAt {s s' : DOMState} {parent : NodeId}
     {child : Option NodeId} {nodes : List NodeId} {b : Bool}
     (hi : insertNodesAt s parent child nodes b = .ok s') : PreservesRegs s s' := by
-  unfold insertNodesAt at hi
-  simp only at hi
-  split at hi
-  · simp at hi
-  · next sx hx =>
-    have hstep : PreservesRegs s sx := by
-      unfold insertEachAt at hx
-      split at hx
-      · simp at hx
-      · refine PreservesRegs.trans ?_ (preservesRegs_insertEach nodes hx)
-        exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
-    split at hi
-    · rw [← Except.ok.inj hi]; exact hstep
-    · rw [← Except.ok.inj hi]
-      exact hstep.trans (preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp))
+  obtain ⟨sx, hx, hrec⟩ := insertNodesAt_cases hi
+  have hstep : PreservesRegs s sx := by
+    obtain ⟨_, _, hx⟩ := insertEachAt_cases hx
+    refine PreservesRegs.trans ?_ (preservesRegs_insertEach nodes hx)
+    exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
+  rcases hrec with ⟨_, rfl⟩ | ⟨_, rfl⟩
+  · exact hstep
+  · exact hstep.trans
+      (preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp))
 
 theorem preservesRegs_insert {s s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hi : insert s node parent child b = .ok s') :

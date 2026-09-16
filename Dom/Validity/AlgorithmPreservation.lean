@@ -1021,25 +1021,18 @@ theorem structurallyValid_insertNodesAt {s s' : DOMState} {parent : NodeId}
     (hdt : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind = .documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = .document)
     (hi : insertNodesAt s parent child nodes b = .ok s') : StructurallyValid s'.tree := by
-  unfold insertNodesAt at hi
-  simp only at hi
-  split at hi
-  · simp at hi
-  · next sx hx =>
-    have htree : s'.tree = sx.tree := by
-      split at hi
-      · rw [← Except.ok.inj hi]
-      · rw [← Except.ok.inj hi]; simp
-    rw [htree]
-    unfold insertEachAt at hx
-    split at hx
-    · simp at hx
-    · next pd hpd =>
-      have hpd' : s.tree.get? parent = some pd := by simpa using hpd
-      refine structurallyValid_insertEach nodes (by simpa using h) (by simpa using hpk)
-        (by simpa using hnk) (by simpa using hnf) (by simpa using hdt) ?_ hx
-      exact ⟨_, by simpa using (isDocument_ownerDocument h.wellFormed hpd').choose_spec.1,
-        (isDocument_ownerDocument h.wellFormed hpd').choose_spec.2⟩
+  obtain ⟨sx, hx, hrec⟩ := insertNodesAt_cases hi
+  have htree : s'.tree = sx.tree := by
+    rcases hrec with ⟨_, rfl⟩ | ⟨_, rfl⟩
+    · rfl
+    · simp
+  rw [htree]
+  obtain ⟨pd, hpd, hx⟩ := insertEachAt_cases hx
+  have hpd' : s.tree.get? parent = some pd := by simpa using hpd
+  refine structurallyValid_insertEach nodes (by simpa using h) (by simpa using hpk)
+    (by simpa using hnk) (by simpa using hnf) (by simpa using hdt) ?_ hx
+  exact ⟨_, by simpa using (isDocument_ownerDocument h.wellFormed hpd').choose_spec.1,
+    (isDocument_ownerDocument h.wellFormed hpd').choose_spec.2⟩
 
 /--
 PLAN §6.3 の形。`insert` は構造上の妥当性を保つ。
@@ -1116,28 +1109,21 @@ theorem nodeDocumentsValid_insertNodesAt {s s' : DOMState} {parent : NodeId}
     (hdt : ∀ n ∈ nodes, ∀ nd, s.tree.get? n = some nd → nd.kind = .documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = .document)
     (hi : insertNodesAt s parent child nodes b = .ok s') : NodeDocumentsValid s'.tree := by
-  unfold insertNodesAt at hi
-  simp only at hi
-  split at hi
-  · simp at hi
-  · next sx hx =>
-    have htree : s'.tree = sx.tree := by
-      split at hi
-      · rw [← Except.ok.inj hi]
-      · rw [← Except.ok.inj hi]; simp
-    rw [htree]
-    unfold insertEachAt at hx
-    split at hx
-    · simp at hx
-    · next pd hpd =>
-      have hpd' : s.tree.get? parent = some pd := by simpa using hpd
-      refine nodeDocumentsValid_insertEach nodes (by simpa using hs) (by simpa using h)
-        ?_ (by simpa using hpk) ?_ (by simpa using hnk) (by simpa using hnf)
-        (by simpa using hdt) hx
-      · exact ⟨_, by simpa using (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.1,
-          (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.2⟩
-      · simp only [liveRangeInsertAdjust_tree]
-        simp [ownerDocumentOf, hpd']
+  obtain ⟨sx, hx, hrec⟩ := insertNodesAt_cases hi
+  have htree : s'.tree = sx.tree := by
+    rcases hrec with ⟨_, rfl⟩ | ⟨_, rfl⟩
+    · rfl
+    · simp
+  rw [htree]
+  obtain ⟨pd, hpd, hx⟩ := insertEachAt_cases hx
+  have hpd' : s.tree.get? parent = some pd := by simpa using hpd
+  refine nodeDocumentsValid_insertEach nodes (by simpa using hs) (by simpa using h)
+    ?_ (by simpa using hpk) ?_ (by simpa using hnk) (by simpa using hnf)
+    (by simpa using hdt) hx
+  · exact ⟨_, by simpa using (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.1,
+      (isDocument_ownerDocument hs.wellFormed hpd').choose_spec.2⟩
+  · simp only [liveRangeInsertAdjust_tree]
+    simp [ownerDocumentOf, hpd']
 
 /-- PLAN §6.3 の形。`insert` は node document の整合性を保つ。 -/
 theorem nodeDocumentsValid_insert_of_facts {s s' : DOMState} {node parent : NodeId}
@@ -1751,25 +1737,18 @@ theorem documentTreesValid_insertNodesAt {s s' : DOMState} {parent : NodeId}
     (hwf : WellFormed s.tree) (h : DocumentTreesValid s.tree)
     (hok : InsertSeqOk s.tree parent child nodes)
     (hi : insertNodesAt s parent child nodes b = .ok s') : DocumentTreesValid s'.tree := by
-  unfold insertNodesAt at hi
-  simp only at hi
-  split at hi
-  · simp at hi
-  · next sx hx =>
-    have htree : s'.tree = sx.tree := by
-      split at hi
-      · rw [← Except.ok.inj hi]
-      · rw [← Except.ok.inj hi]; simp
-    rw [htree]
-    unfold insertEachAt at hx
-    split at hx
-    · simp at hx
-    · next pd hpd =>
-      have hpd' : s.tree.get? parent = some pd := by simpa using hpd
-      refine documentTreesValid_insertEach nodes (by simpa using hwf) (by simpa using h) ?_
-        (by simpa using hok) hx
-      exact ⟨_, by simpa using (isDocument_ownerDocument hwf hpd').choose_spec.1,
-        (isDocument_ownerDocument hwf hpd').choose_spec.2⟩
+  obtain ⟨sx, hx, hrec⟩ := insertNodesAt_cases hi
+  have htree : s'.tree = sx.tree := by
+    rcases hrec with ⟨_, rfl⟩ | ⟨_, rfl⟩
+    · rfl
+    · simp
+  rw [htree]
+  obtain ⟨pd, hpd, hx⟩ := insertEachAt_cases hx
+  have hpd' : s.tree.get? parent = some pd := by simpa using hpd
+  refine documentTreesValid_insertEach nodes (by simpa using hwf) (by simpa using h) ?_
+    (by simpa using hok) hx
+  exact ⟨_, by simpa using (isDocument_ownerDocument hwf hpd').choose_spec.1,
+    (isDocument_ownerDocument hwf hpd').choose_spec.2⟩
 
 /--
 `insert` の Document 制約の保存を `InsertSeqOk` だけに依存させた形。

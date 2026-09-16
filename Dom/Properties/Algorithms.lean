@@ -299,50 +299,37 @@ theorem insertEachAt_preserves_wellformed {s s' : DOMState} {parent : NodeId}
     {child : Option NodeId} {nodes : List NodeId}
     (hwf : WellFormed s.tree) (h : insertEachAt s parent child nodes = .ok s') :
     WellFormed s'.tree := by
-  unfold insertEachAt at h
-  split at h
-  · simp at h
-  · next pd hpd =>
-    exact insertEach_preserves_wellformed _ hwf (isDocument_ownerDocument hwf hpd) h
+  obtain ⟨pd, hpd, h⟩ := insertEachAt_cases h
+  exact insertEach_preserves_wellformed _ hwf (isDocument_ownerDocument hwf hpd) h
 
 theorem shapePreserving_insertEachAt {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
     {nodes : List NodeId} (h : insertEachAt s parent child nodes = .ok s') :
     ShapePreserving s.tree s'.tree := by
-  unfold insertEachAt at h
-  split at h
-  · simp at h
-  · exact shapePreserving_insertEach _ h
+  obtain ⟨_, _, h⟩ := insertEachAt_cases h
+  exact shapePreserving_insertEach _ h
 
 theorem insertNodesAt_preserves_wellformed {s s' : DOMState} {parent : NodeId}
     {child : Option NodeId} {nodes : List NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (h : insertNodesAt s parent child nodes b = .ok s') :
     WellFormed s'.tree := by
-  unfold insertNodesAt at h
-  simp only at h
-  split at h
-  · simp at h
-  · next s₁ hi =>
-    have htree : s'.tree = s₁.tree := by
-      split at h
-      · rw [← Except.ok.inj h]
-      · rw [← Except.ok.inj h]; simp
-    rw [htree]
-    exact insertEachAt_preserves_wellformed (by simpa using hwf) hi
+  obtain ⟨s₁, hi, hstep⟩ := insertNodesAt_cases h
+  have htree : s'.tree = s₁.tree := by
+    rcases hstep with ⟨_, rfl⟩ | ⟨_, rfl⟩
+    · rfl
+    · simp
+  rw [htree]
+  exact insertEachAt_preserves_wellformed (by simpa using hwf) hi
 
 theorem shapePreserving_insertNodesAt {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
     {nodes : List NodeId} {b : Bool} (h : insertNodesAt s parent child nodes b = .ok s') :
     ShapePreserving s.tree s'.tree := by
-  unfold insertNodesAt at h
-  simp only at h
-  split at h
-  · simp at h
-  · next s₁ hi =>
-    have htree : s'.tree = s₁.tree := by
-      split at h
-      · rw [← Except.ok.inj h]
-      · rw [← Except.ok.inj h]; simp
-    rw [htree]
-    simpa using shapePreserving_insertEachAt hi
+  obtain ⟨s₁, hi, hstep⟩ := insertNodesAt_cases h
+  have htree : s'.tree = s₁.tree := by
+    rcases hstep with ⟨_, rfl⟩ | ⟨_, rfl⟩
+    · rfl
+    · simp
+  rw [htree]
+  simpa using shapePreserving_insertEachAt hi
 
 /-- PLAN §6.3。`insert` は well-formedness を保つ。 -/
 theorem insert_preserves_wellformed {s s' : DOMState} {node parent : NodeId}
@@ -697,37 +684,26 @@ theorem insert_single {s s' : DOMState} {node parent : NodeId} {child : Option N
       adopt (liveRangeInsertAdjust s parent child 1) node pd.ownerDocument = .ok s₁ ∧
       insertAt s₁.tree parent node child = .ok s'.tree ∧ s'.ranges = s₁.ranges := by
   rw [insert_of_not_fragment hnd (by simpa using hk)] at h
-  unfold insertNodesAt at h
-  simp only at h
-  split at h
-  · simp at h
-  · next sx hx =>
-    -- step 9 の record は木も range も変えない。
-    have ht : s'.tree = sx.tree := by
-      split at h
-      · rw [← Except.ok.inj h]
-      · rw [← Except.ok.inj h]; simp
-    have hr : s'.ranges = sx.ranges := by
-      split at h
-      · rw [← Except.ok.inj h]
-      · rw [← Except.ok.inj h]; simp
-    unfold insertEachAt at hx
-    simp only [List.length_cons, List.length_nil, liveRangeInsertAdjust_tree] at hx
+  obtain ⟨sx, hx, hstep⟩ := insertNodesAt_cases h
+  -- step 9 の record は木も range も変えない。
+  have ht : s'.tree = sx.tree ∧ s'.ranges = sx.ranges := by
+    rcases hstep with ⟨_, rfl⟩ | ⟨_, rfl⟩
+    · exact ⟨rfl, rfl⟩
+    · exact ⟨by simp, by simp⟩
+  obtain ⟨pd, hpd, hx⟩ := insertEachAt_cases hx
+  simp only [List.length_cons, List.length_nil, liveRangeInsertAdjust_tree] at hpd
+  rw [insertEach] at hx
+  split at hx
+  · simp at hx
+  · next s₁ ha =>
     split at hx
     · simp at hx
-    · next pd hpd =>
+    · next s₂ hi =>
       rw [insertEach] at hx
-      split at hx
-      · simp at hx
-      · next s₁ ha =>
-        split at hx
-        · simp at hx
-        · next s₂ hi =>
-          rw [insertEach] at hx
-          obtain ⟨hi₁, hi₂⟩ := DOMState.mapTree_eq_ok hi
-          refine ⟨pd, s₁, hpd, ha, ?_, ?_⟩
-          · rw [ht, ← Except.ok.inj hx]; exact hi₁
-          · rw [hr, ← Except.ok.inj hx, hi₂]; rfl
+      obtain ⟨hi₁, hi₂⟩ := DOMState.mapTree_eq_ok hi
+      refine ⟨pd, s₁, hpd, ha, ?_, ?_⟩
+      · rw [ht.1, ← Except.ok.inj hx]; exact hi₁
+      · rw [ht.2, ← Except.ok.inj hx, hi₂]; rfl
 
 /--
 PLAN §6.3。fragment でない node を `insert` すると、

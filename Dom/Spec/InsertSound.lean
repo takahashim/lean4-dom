@@ -199,16 +199,9 @@ theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option 
       s.tree.get? parent = some pd ∧
       InsertedEach parent child pd.ownerDocument s₂ nodes s₃ ∧
       TreeRecordQueued s₃ s' parent nodes [] prev child b ∧ ObserverOnly s₃ s' := by
-  unfold insertNodesAt at h
-  dsimp only at h
-  split at h
-  · simp at h
-  · next s₃ hie =>
-    unfold insertEachAt at hie
-    split at hie
-    · simp at hie
-    · next pd hpd =>
-      have htree : (liveRangeInsertAdjust s parent child nodes.length).tree = s.tree :=
+  obtain ⟨s₃, hie, hrec⟩ := insertNodesAt_cases h
+  · obtain ⟨pd, hpd, hie⟩ := insertEachAt_cases hie
+    · have htree : (liveRangeInsertAdjust s parent child nodes.length).tree = s.tree :=
         liveRangeInsertAdjust_tree ..
       have hpd' : s.tree.get? parent = some pd := by rw [← htree]; exact hpd
       have hdoc : IsDocument s.tree pd.ownerDocument := isDocument_ownerDocument hwf hpd'
@@ -239,13 +232,10 @@ theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option 
       · cases child with
         | none => rfl
         | some c => rfl
-      · split at h
-        · next hb =>
-          rw [hb, ← Except.ok.inj h]
+      · rcases hrec with ⟨hb, rfl⟩ | ⟨hb, rfl⟩
+        · rw [hb]
           exact ⟨treeRecordQueued_of_suppress .., ⟨rfl, rfl, rfl, rfl⟩⟩
-        · next hb =>
-          have hbf : b = false := by simpa using hb
-          rw [hbf, ← Except.ok.inj h]
+        · rw [hb]
           have hnodes : ¬(nodes.isEmpty && ([] : List NodeId).isEmpty) := by
             cases nodes with
             | nil => exact absurd rfl hne

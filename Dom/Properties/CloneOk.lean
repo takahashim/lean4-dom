@@ -175,11 +175,9 @@ theorem append_fresh_isOk {s : DOMState} {node parent : NodeId} {nd : NodeData}
   rw [hv]
   show ∃ s', insert s node parent none = .ok s'
   rw [insert_of_not_fragment hnd hnf]
-  unfold insertNodesAt
-  simp only [liveRangeInsertAdjust]
-  unfold insertEachAt
-  rw [hpd]
-  simp only [insertEach, hadopt, DOMState.mapTree, hins]
+  refine insertNodesAt_isOk ?_
+  rw [insertEachAt_of_get? (by simpa using hpd)]
+  simp only [liveRangeInsertAdjust_none, insertEach, hadopt, DOMState.mapTree, hins]
   exact ⟨_, rfl⟩
 
 
