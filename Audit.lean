@@ -767,7 +767,7 @@ open Dom.Audit
 #audit_axioms
   Url.percentDecodeBytes_ascii_id
   Url.percentDecodeToString_ascii
-  Url.asciiLowercase_id
+  Infra.asciiLowercase_id
   Url.asciiDomainToASCII_id
   Url.ipv4Serializer_char_facts
   Url.ipv4Serializer_ne_nil
@@ -776,8 +776,8 @@ open Dom.Audit
   Url.hostParser_opaque_id
   Url.hostParser_domain_id
   Url.hostParser_ipv6
-  Url.asciiLowerChar_idem
-  Url.asciiLowerChar_ascii
+  Infra.asciiLowerChar_idem
+  Infra.asciiLowerChar_ascii
   Url.asciiDomainToASCII_out
   Url.hostParser_ipv6_eq
   Url.hostParser_ipv4_eq
