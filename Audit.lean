@@ -242,6 +242,12 @@ open Dom.Audit
   Dom.Spec.plainAttr_isSome_iff
   Dom.Spec.any_isAsciiWhitespace_caseFold
   Infra.isAsciiWhitespace_asciiLowerChar
+  Selectors.scan_has_in_has
+  Selectors.scan_has_empty
+  Selectors.scan_nth_of_type_no_of
+  Selectors.scan_star_subclass
+  Selectors.scan_forgiving_drop
+  Selectors.scan_strict_fails
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

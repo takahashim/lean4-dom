@@ -466,4 +466,80 @@ def parseSelector (input : String) : Option SelectorList :=
     let cfg : ScanCfg := { forgiving := false, relative := false }
     scan cfg (initSt cfg []) cs
 
+/-! ## 受理と拒否
+
+`parseSelector` を具体的な文字列に当てて評価することは、整礎再帰なので kernel では
+できない（`native_decide` は使わない方針）。そこで grammar の要になる四点について、
+`scan` の構造に対する定理として書く。差分テストの固定 scenario
+（`has-cannot-be-nested` ほか）と対になっている。
+-/
+
+/-- **`:has()` の中に `:has()` は書けない（Selectors Level 4 §14.10）。** -/
+theorem scan_has_in_has {cfg : ScanCfg} (hin : cfg.inHas = true) (hf : cfg.forgiving = false)
+    (st : ScanSt) (args rest : List Component) :
+    scan cfg st (.tok .colon :: .func "has" args :: rest) = none := by
+  rw [scan]
+  rw [if_neg (by decide), if_neg (by decide), if_pos (by decide), if_pos hin,
+    if_neg (by rw [hf]; simp)]
+
+/--
+**`:has()` の引数が空なら受理しない。**
+
+引数の走査は `relative := true` なので、空の component 列は `finishComplex` を
+通らない（`flush` が `parts = []` を返し、`cur` が `none` のままになる）。
+-/
+theorem scan_has_empty {cfg : ScanCfg} (hin : cfg.inHas = false) (hf : cfg.forgiving = false)
+    (st : ScanSt) (rest : List Component) :
+    scan cfg st (.tok .colon :: .func "has" [] :: rest) = none := by
+  rw [scan]
+  rw [if_neg (by decide), if_neg (by decide), if_pos (by decide), if_neg (by rw [hin]; simp)]
+  have hinner : scan { forgiving := false, relative := true, inHas := true }
+      (initSt { forgiving := false, relative := true, inHas := true } []) [] = none := by
+    rw [scan]
+    rfl
+  simp only [hinner]
+  rw [if_neg (by rw [hf]; simp)]
+
+/-- **`:nth-of-type()` は `of S` を取れない（§14.7）。** -/
+theorem scan_nth_of_type_no_of {cfg : ScanCfg} (hf : cfg.forgiving = false) (st : ScanSt)
+    {args : List Component} {a b : List Component} (hof : splitAtOf args = some (a, b))
+    (rest : List Component) :
+    scan cfg st (.tok .colon :: .func "nth-of-type" args :: rest) = none := by
+  rw [scan]
+  simp only [
+    show (Infra.asciiLowercase "nth-of-type" == "is" ||
+      Infra.asciiLowercase "nth-of-type" == "where") = false from rfl,
+    show (Infra.asciiLowercase "nth-of-type" == "not") = false from rfl,
+    show (Infra.asciiLowercase "nth-of-type" == "has") = false from rfl,
+    show nthKindOf (Infra.asciiLowercase "nth-of-type") = some (NthKind.ofType, false) from rfl,
+    hf, Bool.false_eq_true, if_false, Bool.not_false, if_true]
+  split
+  · next h => rw [hof] at h; simp at h
+  · rfl
+
+/-- **`*` の後ろには subclass selector が続いてよい。** -/
+theorem scan_star_subclass (cfg : ScanCfg) (st : ScanSt) (hp : st.parts = [])
+    (v : String) (rest : List Component) :
+    scan cfg st (.tok (.delim CH_STAR) :: .tok (.hash v true) :: rest) =
+      scan cfg { st with parts := [.univ] } (.tok (.hash v true) :: rest) := by
+  rw [scan]
+  rw [if_neg (by decide), if_neg (by decide), if_pos (by decide)]
+  rw [if_neg (by rw [hp]; simp)]
+  all_goals simp
+
+/-- **forgiving selector list は、読めない項目を次の `,` まで捨てる。** -/
+theorem scan_forgiving_drop {cfg : ScanCfg} (hf : cfg.forgiving = true) (st : ScanSt)
+    (v : String) (rest : List Component) :
+    scan cfg st (.tok (.hash v false) :: rest) =
+      scan cfg (initSt cfg st.done) (dropToComma rest) := by
+  rw [scan]
+  rw [if_neg (by simp), if_pos hf]
+
+/-- **forgiving でなければ同じ項目で失敗する。** -/
+theorem scan_strict_fails {cfg : ScanCfg} (hf : cfg.forgiving = false) (st : ScanSt)
+    (v : String) (rest : List Component) :
+    scan cfg st (.tok (.hash v false) :: rest) = none := by
+  rw [scan]
+  rw [if_neg (by simp), if_neg (by rw [hf]; simp)]
+
 end Selectors
