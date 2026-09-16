@@ -4251,6 +4251,38 @@ record の previous sibling）は、そのやり方で scenario を書き、赤�
 Selectors の `+` の隣接と `-of-type` の絞り込みほか）は固定 scenario を書いて
 赤くなることを確かめてある。**確かめる手順を踏まないと三分の一を取り違える。**
 
+## MutationObserver にも当てる
+
+| 壊し方 | 定理 | 固定 scenario |
+| --- | --- | --- |
+| 記録先の observer を target 上のものだけにする（ancestor を見ない） | 捕まえる | 捕まえる（28 本） |
+| transient を subtree でない registration にも置く | 捕まえる | **捕まえない** |
+| `oldValue` を常に載せる | 捕まえる | 捕まえる（19 本） |
+| transient の対象から parent 自身を外す | 捕まえる | 捕まえる（20 本） |
+
+二つ目は手順どおり scenario を書いて確かめたところ、**本物だった**。
+§4.2.3 remove step 20 は「parent の inclusive ancestor に付いた registered observer の
+うち **subtree が true のものだけ**が transient registered observer を作る」と定める。
+`subtree` を落とすと、外した部分木の中の変更まで届いてしまう。
+`transient-observer-needs-subtree` を足したら赤くなる。
+
+既存の observer の固定 scenario は subtree を true にして登録するものばかりで、
+**「subtree でないから届かない」ほうを見ていなかった**。
+
+## 測定の総括
+
+六つの subsystem（Selectors・§4.2.3 の中心・Range・NodeIterator・CharacterData・
+MutationObserver）に同じ測定を当てた。「定理だけが捕まえた」は七件で、内訳は次のとおり。
+
+| 判定 | 件数 | 内訳 |
+| --- | --- | --- |
+| 本物（scenario を書いて赤くなることを確認し、塞いだ） | 5 | `replace` の step 2-3、record の previous sibling、transient の subtree、Selectors の `+` の隣接、`-of-type` の絞り込み |
+| 偽陽性（意味は変わらない。定理にして記録） | 2 | pre-remove の step 順、`replace data` の範囲内条件 |
+
+逆に「差分テストだけが捕まえた」ものは Selectors に固まっていた。
+あちらは定理が停止性しか言っていなかったからで、関係意味論を書いたあとは
+定理の側も捕まえるようになっている。
+
 ## CI だけが通る経路を洗った
 
 上の pin の食い違いは「手元では踏まない経路」だったので、残りの entry point も

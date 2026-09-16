@@ -1,0 +1,26 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-remove",
+    "algorithm": ["remove"],
+    "steps": "step 20。parent の inclusive ancestor に付いた registered observer のうち、subtree が true のものだけが transient registered observer を作る",
+    "note": "subtree でない registration は、外した部分木の中の変更を見続けない。この scenario は、外した後で中を変えても record が届かないことを見る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "div" },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "p" },
+    { "id": 4, "kind": "element", "parent": 2, "localName": "span" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [],
+  "observers": [{}],
+  "operations": [
+    { "op": "observe", "observer": 0, "target": 1, "childList": true },
+    { "op": "removeChild", "parent": 1, "node": 2 },
+    { "op": "removeChild", "parent": 2, "node": 3 },
+    { "op": "notify" },
+    { "op": "removeChild", "parent": 2, "node": 4 },
+    { "op": "notify" }
+  ]
+}
