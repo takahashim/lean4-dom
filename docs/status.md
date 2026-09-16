@@ -4374,6 +4374,53 @@ fragment の枝を別関数に括り出す（入出力は完全に同じ）。
 `let` を top-level の def に持ち上げただけで意味を変えていない。
 固定 scenario 155 件で振る舞いが同じことを毎回確認した。
 
+## 測り方の穴を塞いだ（`simp [定義名]` も本体を開く）
+
+前節の計測は `unfold` だけを数えていた。`simp [f]` / `rw [f]` も equation lemma を
+使うので、本体を開くことに変わりはない。合算して測り直すと 15 個の定義が
+4 ファイル以上から開かれていた。
+
+内訳と処置は次のとおりである。
+
+| 定義 | 前 | 後 | 備考 |
+| --- | --- | --- | --- |
+| `parentOf` | 15 | 0 | `unfold` はゼロにしていたが `simp [parentOf, …]` が残っていた |
+| `childrenOf` | 9 | 3 | `childrenOf_congr` を定義の隣へ移し、`_congr_children` を追加 |
+| `kindOf` | 8 | 0 | `kindOf_eq` / `_of_get?` / `_congr` |
+| `ownerDocumentOf` | 8 | 0 | 同上 |
+| `remove` | 7 | 1 | `remove_cases` / `_of_detach` / `_of_no_parent` |
+| `preInsert` | 6 | 1 | step 2-3 の値を `preInsertReferenceChild` と名付けた |
+| `liveRangePreRemoveBP` | 4 | 1 | `_pos` / `_neg` |
+| `rangeMoveOutOfSubtree` | 4 | 1 | `_pos` / `_neg` |
+| `rangeShiftAfterRemove` | 4 | 1 | `_eq` / `_pos` / `_neg` |
+| `isInclusiveAncestorOf` | 4 | 1 | `_eq` / `_self` |
+| `childHasParent` | 4 | 1 | `_none` / `_some` / `_some_iff` |
+
+残る 4 つは意図的にそのままにした。`removeEach` / `insertEach` は構造帰納の
+再帰関数で、defining equation がそのまま interface である。
+`isAsciiDigit` / `isAsciiUpperAlpha` は `decide` 同然の文字述語で、
+補題を挟んでも何も守られない。
+
+## `isEqualNode` の fuel と §4.4 の契約
+
+計測の副産物として二つ見つかった。
+
+**doc に書いてあって証明が無い主張。** `nodeEqualsFuel` の doc comment は
+「木にある node は深さが `t.size` 未満なので fuel で足りる」と書いていたが、
+定理が無かった。`cloneMany` には fuel 十分性の証明があるのに、ここだけ空白だった。
+危ないのは壊れ方で、fuel が尽きたときの戻り値は例外ではなく `false` である。
+`isEqualNode` が `false` を返すのは正常な場合でもあるので、
+**差分テストでは fuel 切れと「等しくない」の区別がつかない**。
+`nodeEqualsFuel_eq_of_le` と `nodeEqualsFuel_eq_nodeEquals` で埋めた
+（`mem_preorderFuel_of_inclusive_descendant` と同じ形の induction）。
+
+**定理がほとんど無い module。** `Dom/Query/NodeQuery.lean` は 25 定義に対して
+定理が 2 本だけだった。差分テストは個々の呼び出しの一致しか見ないので、
+API どうしの整合はそこからは出てこない。`Dom/Properties/NodeQuery.lean` を作り、
+`contains` と `compareDocumentPosition` の整合、`isEqualNode` の反射性、
+CharacterData での `textContent` と `nodeValue` の一致、
+`isDefaultNamespace` と `lookupNamespaceURI(null)` の同値などを書いた（35 本）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
