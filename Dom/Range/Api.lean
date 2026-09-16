@@ -195,10 +195,6 @@ def rangeIntersectsNode (s : DOMState) (i : Nat) (n : NodeId) : Except DOMExcept
 
 /-! ## `deleteContents` -/
 
-/-- `a` が `b` の inclusive ancestor か。 -/
-def isInclusiveAncestorB (t : Tree) (a b : NodeId) : Bool :=
-  a == b || (ancestors t b).contains a
-
 /--
 DOM Standard §5.5 "contained"。
 
@@ -229,12 +225,12 @@ start node が end node の inclusive ancestor ならその場に潰れる。
 その次の位置に潰れる。
 -/
 def deleteContentsNewBP (t : Tree) (r : RangeState) : BoundaryPoint :=
-  if isInclusiveAncestorB t r.start.node r.«end».node then r.start
+  if isInclusiveAncestorOf t r.start.node r.«end».node then r.start
   else
     let ref := ((r.start.node :: ancestors t r.start.node).find? fun x =>
         match parentOf t x with
         | none => true
-        | some p => isInclusiveAncestorB t p r.«end».node).getD r.start.node
+        | some p => isInclusiveAncestorOf t p r.«end».node).getD r.start.node
     match parentOf t ref, index t ref with
     | some p, some idx => ⟨p, idx + 1⟩
     | _, _ => r.start

@@ -211,6 +211,10 @@ open Dom.Audit
   Dom.parentElement_eq_some_iff
   Dom.documentElement_spec
   Dom.kindOf_of_mem_elementChain
+  Dom.mem_nodesToRemove_iff
+  Dom.nodesToRemove_nodup
+  Dom.parentOf_not_mem_nodesToRemove
+  Dom.rangeDeleteContents_of_collapsed
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS
