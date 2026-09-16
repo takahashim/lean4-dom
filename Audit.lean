@@ -248,6 +248,17 @@ open Dom.Audit
   Selectors.scan_star_subclass
   Selectors.scan_forgiving_drop
   Selectors.scan_strict_fails
+  Dom.runAction_stopImmediate
+  Dom.runAction_preventDefault_cancelable
+  Dom.runAction_preventDefault_not_cancelable
+  Dom.invokeOne_once
+  Dom.innerInvoke_skip
+  Dom.innerInvoke_log_prefix
+  Dom.runPass_log_prefix
+  Dom.runPass_stopPropagation
+  Dom.runPass_no_bubbles
+  Dom.dispatchEvent_not_cancelable
+  Dom.dispatchEvent_not_found
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

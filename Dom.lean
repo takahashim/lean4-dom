@@ -35,6 +35,8 @@ import Dom.Properties.Mutation
 import Dom.Properties.PreInsertValidity
 import Dom.Properties.Algorithms
 import Dom.Properties.Path
+import Dom.Event.Dispatch
+import Dom.Properties.Event
 import Dom.Properties.NodeQuery
 import Dom.Properties.RangeDelete
 import Dom.Properties.AttributeName
