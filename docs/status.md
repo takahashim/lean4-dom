@@ -4233,6 +4233,24 @@ live range の調整を四通りに壊した。
 record の previous sibling）は、そのやり方で scenario を書き、赤くなることを
 確かめてある。あちらは本物だった。
 
+## NodeIterator と CharacterData にも当てる
+
+| 壊し方 | 定理 | 固定 scenario |
+| --- | --- | --- |
+| iterator の step 1 の ancestor の向きを逆にする | 捕まえる | 捕まえる（20 本） |
+| iterator の step 3-4 の `pointerBeforeReference` を true にする | 捕まえる | 捕まえる（18 本） |
+| `replace data` の範囲内条件を `<` から `≤` に | 捕まえる | **捕まえない** |
+| `replace data` の範囲外 offset から `count` を引かない | 捕まえる | 捕まえる（18 本） |
+
+三つ目は Range の四つ目と同じ形だった。§4.10 step 8 は「start offset が `offset` より
+大きく `offset + count` 以下」の range を動かすが、`offset` ちょうどのものを入れても
+**移す先が `offset` なので結果が変わらない**。`Dom.replaceDataAdjustBP_at_start` にした。
+
+これで「定理だけが捕まえた」六件のうち、**二件が偽陽性**だった。残る四件
+（§4.2.3 の `replace` の step 2-3 と record の previous sibling、
+Selectors の `+` の隣接と `-of-type` の絞り込みほか）は固定 scenario を書いて
+赤くなることを確かめてある。**確かめる手順を踏まないと三分の一を取り違える。**
+
 ## CI だけが通る経路を洗った
 
 上の pin の食い違いは「手元では踏まない経路」だったので、残りの entry point も

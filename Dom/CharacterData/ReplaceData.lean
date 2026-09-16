@@ -78,6 +78,23 @@ def replaceDataAdjustBP (n : NodeId) (offset count newLen : Nat) (bp : BoundaryP
   else if offset + count < bp.offset then { bp with offset := bp.offset + newLen - count }
   else bp
 
+/--
+**置き換える範囲のちょうど先頭を指す boundary point は動かない。**
+
+§4.10 step 8 は「start offset が `offset` **より大きく**、`offset + count` 以下」の
+range だけを動かす。`offset` ちょうどのものは条件に入らないが、入れたとしても
+移す先が `offset` なので結果は同じである。だから実装が条件を `≤` で書いても観測できない。
+
+差分テストで `<` を `≤` に変えても不一致が出ないのはこのためである
+（`docs/status.md` の「定理が落ちても観測できるとは限らない」）。
+-/
+theorem replaceDataAdjustBP_at_start (n : NodeId) (offset count newLen : Nat)
+    (bp : BoundaryPoint) (hn : bp.node = n) (ho : bp.offset = offset) :
+    replaceDataAdjustBP n offset count newLen bp = bp := by
+  unfold replaceDataAdjustBP
+  rw [if_neg (by simp [hn])]
+  rw [if_neg (by omega), if_neg (by omega)]
+
 def replaceDataAdjustRange (n : NodeId) (offset count newLen : Nat) (r : RangeState) :
     RangeState :=
   { start := replaceDataAdjustBP n offset count newLen r.start
