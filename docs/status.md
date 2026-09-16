@@ -4421,6 +4421,51 @@ API どうしの整合はそこからは出てこない。`Dom/Properties/NodeQu
 CharacterData での `textContent` と `nodeValue` の一致、
 `isDefaultNamespace` と `lookupNamespaceURI(null)` の同値などを書いた（35 本）。
 
+## 「doc は主張しているが証明が無い」を機械的に洗った
+
+`nodeEqualsFuel` と同じ型の穴が他にないかを、三つの検査で洗った。
+
+**1. doc comment が名指ししている識別子が実在するか。** 実在しないものは無かった
+（`WellFormed.parent_child` などは structure の field で、検索側の誤検出）。
+
+**2. doc comment が性質を主張している `def` に定理があるか。** 12 件が引っかかったが、
+structure の field 経由で覆われているもの（`Url/Invariant.lean` の `hostNull` など）が
+大半で、実質の該当は `nodeEqualsFuel` だけだった。
+
+**3. 実行時の検査（`check*`）に健全性・完全性の定理があるか。** 29 個中 27 個は
+`_iff` か同等の定理が揃っていたが、**`checkValidWalker` / `checkWalkersValid` だけ
+無かった**。harness（`Dom/Exec/Eval.lean`）はこれで scenario を弾いているので、
+`WalkersValid` とずれていれば受理すべき状態を落とす。`checkValidWalker_iff` と
+`checkWalkersValid_iff` で埋めた。残る `checkScenario` / `checkScenarioString` は
+harness の入口で、`runOperations_no_violation` が別の形で覆っている。
+`checkStrictUrl` は Prop の決定手続きではなく、WPT と setter の実行時検査である。
+
+## 読者から見えない参照を消した
+
+`notes/` は gitignore されているのに、Lean の doc comment 19 箇所から参照していた。
+`docs/status.md` / `docs/theorems.md` の該当節に置き換えた。
+
+`PLAN.md`（29 file）と `memo.md`（8 file）はコミットされていないので、
+同じく読者からは見えない。こちらは節番号が doc 全体で一貫した label として
+使われているため、まだ触っていない。
+
+## 薄かった module に契約を入れた
+
+| module | 前 | 後 | 主な内容 |
+| --- | --- | --- | --- |
+| `Dom/Query`（§4.4） | 2 | 35 | `contains` と `compareDocumentPosition` の整合、`isEqualNode` の反射性と fuel、`isDefaultNamespace` と `lookupNamespaceURI(null)` の同値 |
+| `Dom/Range` の `deleteContents` | 0 | 6 | step 4 の「外す node の親は同じ列に入らない」ほか |
+| `Dom/Attribute` の名前検査 | 0 | 7 | valid attribute local name ⊆ valid namespace prefix、`findAttr` の owner element |
+| `Dom/Traversal`（TreeWalker） | — | +2 | 実行時検査の健全性・完全性 |
+
+`deleteContents` の作業中に、`Dom/Range/Api.lean` の `isInclusiveAncestorB` が
+`isInclusiveAncestorOf` と同じ述語を別に定義していたことが分かった。
+二つが食い違っても差分テストでは分からないので、同値を確かめたうえで重複を消した。
+
+定理に一度も現れない `def` は 208 → 178。残りは `Selectors`（tokenizer 内部）69 と
+`Dom/Exec`（harness の配管）53 で、どちらも差分テストが担当する設計どおりの部分、
+それに `Url/` の 19 である。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
