@@ -596,7 +596,7 @@ theorem parentOf_of_childHasParent {t : Tree} {child : Option NodeId} {parent : 
     (h : childHasParent t child parent = true) {c : NodeId} (hc : child = some c) :
     parentOf t c = some parent := by
   subst hc
-  simpa [childHasParent] using h
+  exact childHasParent_some_iff.mp h
 
 /-- `ensurePreInsertionValidity` が通れば、step 1-3 が保証する事実が取り出せる。 -/
 theorem ensurePreInsertionValidity_ok {t : Tree} {node parent : NodeId} {child : Option NodeId}

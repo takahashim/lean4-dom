@@ -192,6 +192,14 @@ open Dom.Audit
   Dom.ownerDocumentOf_of_get?
   Dom.childrenOf_congr
   Dom.childrenOf_congr_children
+  Dom.rangeMoveOutOfSubtree_pos
+  Dom.rangeMoveOutOfSubtree_neg
+  Dom.rangeShiftAfterRemove_pos
+  Dom.rangeShiftAfterRemove_neg
+  Dom.liveRangePreRemoveBP_pos
+  Dom.liveRangePreRemoveBP_neg
+  Dom.isInclusiveAncestorOf_self
+  Dom.childHasParent_some_iff
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

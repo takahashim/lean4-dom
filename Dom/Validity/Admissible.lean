@@ -149,12 +149,12 @@ theorem ensurePreInsertionValidity_shift {t : Tree} {node parent : NodeId}
     have hns : nextSibling t node = B.head? := nextSibling_of_split hwf hpar hL
     refine ensurePreInsertionValidity_child_congr ?_ ?_ ?_ hv
     · -- step 3：次の兄弟も同じ parent の子である
-      unfold childHasParent
       rw [hns]
       cases hBv : B with
-      | nil => rfl
+      | nil => exact childHasParent_none ..
       | cons y B' =>
-        simp only [List.head?_cons, decide_eq_true_eq]
+        rw [List.head?_cons]
+        refine childHasParent_some_iff.mpr ?_
         refine parentOf_of_mem_childrenOf hwf ?_
         rw [hL, hBv]
         exact List.mem_append_right _ (by simp)

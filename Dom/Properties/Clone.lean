@@ -120,7 +120,8 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
   have hnp : node ≠ parent := by
     intro he
     rw [he] at hanc
-    simp [isInclusiveAncestorOf] at hanc
+    rw [isInclusiveAncestorOf_self] at hanc
+    simp at hanc
   refine ⟨?_, ?_, ?_, by rw [hr, hr₁]; rfl⟩
   · intro m md hm h1 h2
     rw [htree, get?_insertAtIn_other h1 h2, hother m h1]

@@ -110,7 +110,7 @@ theorem ensurePreInsertionValidity_childParent {t : Tree} {node parent : NodeId}
   intro c hc
   subst hc
   obtain ⟨-, -, -, -, -, -, hch, -, -⟩ := ensurePreInsertionValidity_ok_steps h
-  simpa [childHasParent] using hch
+  exact childHasParent_some_iff.mp hch
 
 /-- step 4。node は DocumentFragment / DocumentType / Element / CharacterData であり、Document ではない。 -/
 theorem ensurePreInsertionValidity_nodeNotDocument {t : Tree} {node parent : NodeId}

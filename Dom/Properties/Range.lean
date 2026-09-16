@@ -142,37 +142,27 @@ theorem valid_liveRangePreRemoveBP {t t' : Tree} {n p : NodeId} {i : Nat} {bp : 
   have hpd'len : pd'.length = lengthOf t' p := by unfold lengthOf; rw [hpd']
   obtain ⟨d, hdd, hoff⟩ := hbp
   by_cases hin : isInclusiveAncestorOf t n bp.node = true
-  · have hres : liveRangePreRemoveBP t n p i bp = { node := p, offset := i } := by
-      simp [liveRangePreRemoveBP, rangeMoveOutOfSubtree, rangeShiftAfterRemove, hin]
-    rw [hres]
+  · rw [liveRangePreRemoveBP_pos hin]
     exact ⟨pd', hpd', by simp only []; omega⟩
   · have hbpn : bp.node ≠ n := by
       intro he
-      exact hin (by rw [he]; simp [isInclusiveAncestorOf])
-    have hmove : liveRangePreRemoveBP t n p i bp = rangeShiftAfterRemove p i bp := by
-      simp [liveRangePreRemoveBP, rangeMoveOutOfSubtree, hin]
-    rw [hmove]
+      exact hin (by rw [he]; exact isInclusiveAncestorOf_self ..)
+    rw [liveRangePreRemoveBP_neg (by simpa using hin)]
     by_cases hnp : bp.node = p
     · have hoffp : bp.offset ≤ lengthOf t p := by
         rw [← hnp]; unfold lengthOf; rw [hdd]; exact hoff
       by_cases hgt : i < bp.offset
-      · have hres : rangeShiftAfterRemove p i bp = { bp with offset := bp.offset - 1 } := by
-          simp [rangeShiftAfterRemove, hnp, hgt]
-        rw [hres]
+      · rw [rangeShiftAfterRemove_pos hnp hgt]
         refine ⟨pd', ?_, ?_⟩
         · show t'.get? bp.node = some pd'
           rw [hnp]; exact hpd'
         · show bp.offset - 1 ≤ pd'.length
           omega
-      · have hres : rangeShiftAfterRemove p i bp = bp := by
-          simp [rangeShiftAfterRemove, hgt]
-        rw [hres]
+      · rw [rangeShiftAfterRemove_neg (by simp [hgt])]
         refine ⟨pd', ?_, ?_⟩
         · rw [hnp]; exact hpd'
         · omega
-    · have hres : rangeShiftAfterRemove p i bp = bp := by
-        simp [rangeShiftAfterRemove, hnp]
-      rw [hres]
+    · rw [rangeShiftAfterRemove_neg (by simp [hnp])]
       have hframe : t'.get? bp.node = t.get? bp.node := by
         refine detach_frame hd hbpn ?_
         intro q hq
@@ -194,14 +184,8 @@ theorem liveRangePreRemoveBP_outside {t : Tree} {n p : NodeId} {i : Nat}
       · exact hwf.acyclic n (Ancestor.step (he ▸ hp))
       · exact hwf.acyclic n (ha.trans_ancestor (Ancestor.step hp))
   by_cases hin : isInclusiveAncestorOf t n bp.node = true
-  · have hres : liveRangePreRemoveBP t n p i bp = { node := p, offset := i } := by
-      simp [liveRangePreRemoveBP, rangeMoveOutOfSubtree, rangeShiftAfterRemove, hin]
-    rw [hres]; exact hnp
-  · have hres : (liveRangePreRemoveBP t n p i bp).node = bp.node := by
-      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree rangeShiftAfterRemove
-      rw [if_neg hin]
-      split <;> rfl
-    rw [hres]
+  · rw [liveRangePreRemoveBP_pos hin]; exact hnp
+  · rw [liveRangePreRemoveBP_neg (by simpa using hin), rangeShiftAfterRemove_node]
     simpa using hin
 
 /-! ## remove の定理 -/
@@ -727,10 +711,7 @@ theorem boundaryValidUpTo_liveRangePreRemoveBP {t t' : Tree} {n q parent : NodeI
   · obtain ⟨d, hdd, hoff⟩ := hv
     rw [if_pos hbp] at hoff
     have hnotin : isInclusiveAncestorOf t n bp.node = false := by rw [hbp]; exact hnotanc
-    have hmove : liveRangePreRemoveBP t n q i bp = rangeShiftAfterRemove q i bp := by
-      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
-      rw [if_neg (by simp [hnotin])]
-    rw [hmove]
+    rw [liveRangePreRemoveBP_neg hnotin]
     have hpn : parent ≠ n := by
       intro he
       rw [← he,
@@ -750,14 +731,13 @@ theorem boundaryValidUpTo_liveRangePreRemoveBP {t t' : Tree} {n q parent : NodeI
         | none => rw [hqq] at hkk; simp at hkk
         | some pd' => exact ⟨pd', rfl⟩
       have hpd'len : pd'.length = lengthOf t' q := by unfold lengthOf; rw [hpd']
-      unfold rangeShiftAfterRemove
       by_cases hgt : bp.node = q ∧ i < bp.offset
-      · rw [if_pos hgt]
+      · rw [rangeShiftAfterRemove_pos hgt.1 hgt.2]
         refine ⟨pd', by show t'.get? bp.node = some pd'; rw [hbp]; exact hpd', ?_⟩
         show bp.offset - 1 ≤ pd'.length + (if bp.node = q then slack else 0)
         rw [if_pos hbp]
         omega
-      · rw [if_neg hgt]
+      · rw [rangeShiftAfterRemove_neg hgt]
         have hle : bp.offset ≤ i := by
           rcases Nat.lt_or_ge i bp.offset with hlt | hge
           · exact (hgt ⟨hbp, hlt⟩).elim
@@ -766,10 +746,7 @@ theorem boundaryValidUpTo_liveRangePreRemoveBP {t t' : Tree} {n q parent : NodeI
         show bp.offset ≤ pd'.length + (if bp.node = q then slack else 0)
         rw [if_pos hbp]
         omega
-    · have hres : rangeShiftAfterRemove q i bp = bp := by
-        unfold rangeShiftAfterRemove
-        exact if_neg (fun hc => hq (by rw [← hc.1, hbp]))
-      rw [hres]
+    · rw [rangeShiftAfterRemove_neg (fun hc => hq (by rw [← hc.1, hbp]))]
       have hframe : t'.get? bp.node = t.get? bp.node := by
         refine detach_frame hd (by rw [hbp]; exact hpn) ?_
         intro q' hq'
@@ -977,18 +954,19 @@ theorem rangeShiftAfterRemove_mono {q : NodeId} {i : Nat} {a b : BoundaryPoint}
     (hnode : a.node = b.node) (hle : a.offset ≤ b.offset) :
     (rangeShiftAfterRemove q i a).node = (rangeShiftAfterRemove q i b).node ∧
       (rangeShiftAfterRemove q i a).offset ≤ (rangeShiftAfterRemove q i b).offset := by
-  unfold rangeShiftAfterRemove
   by_cases hq : a.node = q
   · by_cases h1 : i < a.offset
-    · rw [if_pos ⟨hq, h1⟩, if_pos ⟨by rw [← hnode]; exact hq, by omega⟩]
+    · rw [rangeShiftAfterRemove_pos hq h1,
+        rangeShiftAfterRemove_pos (by rw [← hnode]; exact hq) (by omega)]
       exact ⟨hnode, by show a.offset - 1 ≤ b.offset - 1; omega⟩
-    · rw [if_neg (fun hc => h1 hc.2)]
+    · rw [rangeShiftAfterRemove_neg (fun hc => h1 hc.2)]
       by_cases h2 : i < b.offset
-      · rw [if_pos ⟨by rw [← hnode]; exact hq, h2⟩]
+      · rw [rangeShiftAfterRemove_pos (by rw [← hnode]; exact hq) h2]
         exact ⟨hnode, by show a.offset ≤ b.offset - 1; omega⟩
-      · rw [if_neg (fun hc => h2 hc.2)]
+      · rw [rangeShiftAfterRemove_neg (fun hc => h2 hc.2)]
         exact ⟨hnode, hle⟩
-  · rw [if_neg (fun hc => hq hc.1), if_neg (fun hc => hq (by rw [hnode]; exact hc.1))]
+  · rw [rangeShiftAfterRemove_neg (fun hc => hq hc.1),
+      rangeShiftAfterRemove_neg (fun hc => hq (by rw [hnode]; exact hc.1))]
     exact ⟨hnode, hle⟩
 
 theorem liveRangePreRemoveBP_mono {t : Tree} {n q : NodeId} {i : Nat} {a b : BoundaryPoint}
@@ -996,21 +974,11 @@ theorem liveRangePreRemoveBP_mono {t : Tree} {n q : NodeId} {i : Nat} {a b : Bou
     (liveRangePreRemoveBP t n q i a).node = (liveRangePreRemoveBP t n q i b).node ∧
       (liveRangePreRemoveBP t n q i a).offset ≤ (liveRangePreRemoveBP t n q i b).offset := by
   by_cases hin : isInclusiveAncestorOf t n a.node = true
-  · have ha : liveRangePreRemoveBP t n q i a = rangeShiftAfterRemove q i ⟨q, i⟩ := by
-      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
-      rw [if_pos hin]
-    have hb : liveRangePreRemoveBP t n q i b = rangeShiftAfterRemove q i ⟨q, i⟩ := by
-      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
-      rw [if_pos (by rw [← hnode]; exact hin)]
-    rw [ha, hb]
+  · rw [liveRangePreRemoveBP_pos hin,
+      liveRangePreRemoveBP_pos (by rw [← hnode]; exact hin)]
     exact ⟨rfl, Nat.le_refl _⟩
-  · have ha : liveRangePreRemoveBP t n q i a = rangeShiftAfterRemove q i a := by
-      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
-      rw [if_neg hin]
-    have hb : liveRangePreRemoveBP t n q i b = rangeShiftAfterRemove q i b := by
-      unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
-      rw [if_neg (by rw [← hnode]; exact hin)]
-    rw [ha, hb]
+  · rw [liveRangePreRemoveBP_neg (by simpa using hin),
+      liveRangePreRemoveBP_neg (by rw [← hnode]; simpa using hin)]
     exact rangeShiftAfterRemove_mono hnode hle
 
 theorem rangeShiftAfterInsert_mono {parent : NodeId} {idx k : Nat} {a b : BoundaryPoint}
@@ -1263,10 +1231,13 @@ theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat
     (bp : BoundaryPoint) :
     rangeShiftAfterRemove parent index (rangeMoveOutOfSubtree t node parent index bp)
       = rangeMoveOutOfSubtree t node parent index (rangeShiftAfterRemove parent index bp) := by
-  unfold rangeMoveOutOfSubtree
-  rw [rangeShiftAfterRemove_node]
   cases hin : isInclusiveAncestorOf t node bp.node with
-  | true => simp [rangeShiftAfterRemove]
-  | false => simp
+  | true =>
+    rw [rangeMoveOutOfSubtree_pos hin,
+      rangeMoveOutOfSubtree_pos (by rw [rangeShiftAfterRemove_node]; exact hin),
+      rangeShiftAfterRemove_neg (by simp)]
+  | false =>
+    rw [rangeMoveOutOfSubtree_neg hin,
+      rangeMoveOutOfSubtree_neg (by rw [rangeShiftAfterRemove_node]; exact hin)]
 
 end Dom

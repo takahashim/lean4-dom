@@ -132,6 +132,17 @@ def childHasParent (t : Tree) (child : Option NodeId) (parent : NodeId) : Bool :
   | none => true
   | some c => parentOf t c = some parent
 
+@[simp] theorem childHasParent_none (t : Tree) (parent : NodeId) :
+    childHasParent t none parent = true := rfl
+
+theorem childHasParent_some (t : Tree) (c parent : NodeId) :
+    childHasParent t (some c) parent = decide (parentOf t c = some parent) := rfl
+
+theorem childHasParent_some_iff {t : Tree} {c parent : NodeId} :
+    childHasParent t (some c) parent = true ↔ parentOf t c = some parent := by
+  rw [childHasParent_some]
+  simp
+
 /-! ## remove -/
 
 /--

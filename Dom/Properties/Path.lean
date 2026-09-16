@@ -730,42 +730,36 @@ theorem bpKey_detach (hwf : WellFormed t) (hwf' : WellFormed t')
     {bp : BoundaryPoint} (hroot : root t bp.node = root t p) :
     bpKey t' (liveRangePreRemoveBP t n p i bp) = shiftKey (pathIndices t p) i (bpKey t bp) := by
   have hpp : pathIndices t' p = pathIndices t p := pathIndices_detach_parent hwf hwf' hpar hd
-  unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
   by_cases hin : InclusiveAncestor t n bp.node
   · -- 外す部分木の中：(parent, index) へ移される
-    rw [if_pos (by rw [isInclusiveAncestorOf_iff hwf]; exact hin)]
+    rw [liveRangePreRemoveBP_pos (by rw [isInclusiveAncestorOf_iff hwf]; exact hin)]
     obtain ⟨rest, hrest⟩ := pathIndices_split hwf hpar hin
     rw [hi] at hrest
     simp only [Option.getD_some] at hrest
-    have hshift : rangeShiftAfterRemove p i { node := p, offset := i }
-        = { node := p, offset := i } := by
-      unfold rangeShiftAfterRemove
-      rw [if_neg (by simp)]
-    rw [hshift]
     show pathIndices t' p ++ [i] = _
     rw [hpp]
     unfold bpKey
     rw [hrest, show (pathIndices t p ++ i :: rest) ++ [bp.offset]
       = pathIndices t p ++ i :: (rest ++ [bp.offset]) by simp, shiftKey_of_append]
     simp [shiftTail, shiftDown]
-  · rw [if_neg (by rw [isInclusiveAncestorOf_iff hwf]; exact hin)]
+  · rw [liveRangePreRemoveBP_neg
+      (by cases hb : isInclusiveAncestorOf t n bp.node with
+          | false => rfl
+          | true => exact absurd ((isInclusiveAncestorOf_iff hwf n bp.node).mp hb) hin)]
     by_cases hbp : bp.node = p
     · -- parent 自身を指す：offset だけずれる
       have hshift : rangeShiftAfterRemove p i bp = { node := p, offset := shiftDown i bp.offset } := by
-        unfold rangeShiftAfterRemove shiftDown
+        unfold shiftDown
         by_cases hlt : i < bp.offset
-        · rw [if_pos ⟨hbp, hlt⟩, if_pos hlt, hbp]
-        · rw [if_neg (fun hc => hlt hc.2), if_neg hlt, ← hbp]
+        · rw [rangeShiftAfterRemove_pos hbp hlt, if_pos hlt, hbp]
+        · rw [rangeShiftAfterRemove_neg (fun hc => hlt hc.2), if_neg hlt, ← hbp]
       rw [hshift]
       show pathIndices t' p ++ [shiftDown i bp.offset] = _
       rw [hpp]
       unfold bpKey
       rw [hbp, shiftKey_of_append]
       simp [shiftTail]
-    · have hshift : rangeShiftAfterRemove p i bp = bp := by
-        unfold rangeShiftAfterRemove
-        rw [if_neg (fun hc => hbp hc.1)]
-      rw [hshift]
+    · rw [rangeShiftAfterRemove_neg (fun hc => hbp hc.1)]
       by_cases hanc : Ancestor t p bp.node
       · -- parent の下：一段目だけずれる
         obtain ⟨k, rest, hki, hkt, hkt'⟩ :=
@@ -812,8 +806,10 @@ theorem exists_get?_detach {t t' : Tree} {n : NodeId} (hd : detach t n = .ok t')
     (bp : BoundaryPoint) :
     (liveRangePreRemoveBP t n p i bp).node =
       if isInclusiveAncestorOf t n bp.node then p else bp.node := by
-  unfold liveRangePreRemoveBP rangeMoveOutOfSubtree rangeShiftAfterRemove
-  split <;> split <;> rfl
+  cases hin : isInclusiveAncestorOf t n bp.node with
+  | true => rw [liveRangePreRemoveBP_pos hin, if_pos (by simp [hin])]
+  | false =>
+    rw [liveRangePreRemoveBP_neg hin, rangeShiftAfterRemove_node, if_neg (by simp [hin])]
 
 /-- 外す node の root は旧 parent の root。 -/
 theorem root_eq_of_parentOf (hwf : WellFormed t) (hpar : parentOf t n = some p) :
@@ -846,10 +842,11 @@ theorem liveRangePreRemoveBP_of_other_root (hwf : WellFormed t) (hpar : parentOf
     · exact hroot (by rw [← he, root_eq_of_parentOf hwf hpar])
     · exact hroot (by rw [root_eq_of_ancestor hwf ha, root_eq_of_parentOf hwf hpar])
   refine ⟨?_, hna, hnn, hnp⟩
-  unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
-  rw [if_neg (by rw [isInclusiveAncestorOf_iff hwf]; exact hnn)]
-  unfold rangeShiftAfterRemove
-  rw [if_neg (fun hc => hnp hc.1)]
+  rw [liveRangePreRemoveBP_neg
+      (by cases hb : isInclusiveAncestorOf t n bp.node with
+          | false => rfl
+          | true => exact absurd ((isInclusiveAncestorOf_iff hwf n bp.node).mp hb) hnn),
+    rangeShiftAfterRemove_neg (fun hc => hnp hc.1)]
 
 /--
 PLAN §8.2。remove（の木を変える部分と live range pre-remove steps）は

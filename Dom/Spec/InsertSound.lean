@@ -61,7 +61,8 @@ theorem treeInserted_insertAt {t t' : Tree} {parent node : NodeId} {child : Opti
   have hne : node ≠ parent := by
     intro he
     rw [he] at hanc
-    simp [isInclusiveAncestorOf] at hanc
+    rw [isInclusiveAncestorOf_self] at hanc
+    simp at hanc
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [parentOf_insertAtIn hpd, if_pos rfl]
   · rw [childrenOf_insertAtIn hnd hpd hne, if_pos rfl]

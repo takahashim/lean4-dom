@@ -156,6 +156,14 @@ def isAncestorOf (t : Tree) (a n : NodeId) : Bool :=
 def isInclusiveAncestorOf (t : Tree) (a n : NodeId) : Bool :=
   decide (a = n) || isAncestorOf t a n
 
+theorem isInclusiveAncestorOf_eq (t : Tree) (a n : NodeId) :
+    isInclusiveAncestorOf t a n = (decide (a = n) || isAncestorOf t a n) := rfl
+
+@[simp] theorem isInclusiveAncestorOf_self (t : Tree) (a : NodeId) :
+    isInclusiveAncestorOf t a a = true := by
+  rw [isInclusiveAncestorOf_eq]
+  simp
+
 /-! ## invariant の実行時検査で使う述語 -/
 
 /-- `n` から parent をたどると `fuel` 段以内に parent を持たない node に到達するか。 -/

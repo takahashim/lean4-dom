@@ -30,6 +30,39 @@ DOM Standard §5.5 "live range pre-remove steps" の step 5-6。
 def rangeShiftAfterRemove (parent : NodeId) (index : Nat) (bp : BoundaryPoint) : BoundaryPoint :=
   if bp.node = parent ∧ index < bp.offset then { bp with offset := bp.offset - 1 } else bp
 
+/-! ### `rangeMoveOutOfSubtree` / `rangeShiftAfterRemove` の値 -/
+
+theorem rangeMoveOutOfSubtree_eq (t : Tree) (node parent : NodeId) (index : Nat)
+    (bp : BoundaryPoint) :
+    rangeMoveOutOfSubtree t node parent index bp =
+      if isInclusiveAncestorOf t node bp.node then { node := parent, offset := index }
+      else bp := rfl
+
+theorem rangeMoveOutOfSubtree_pos {t : Tree} {node parent : NodeId} {index : Nat}
+    {bp : BoundaryPoint} (h : isInclusiveAncestorOf t node bp.node = true) :
+    rangeMoveOutOfSubtree t node parent index bp = { node := parent, offset := index } := by
+  rw [rangeMoveOutOfSubtree_eq, if_pos h]
+
+theorem rangeMoveOutOfSubtree_neg {t : Tree} {node parent : NodeId} {index : Nat}
+    {bp : BoundaryPoint} (h : isInclusiveAncestorOf t node bp.node = false) :
+    rangeMoveOutOfSubtree t node parent index bp = bp := by
+  rw [rangeMoveOutOfSubtree_eq, if_neg (by rw [h]; simp)]
+
+theorem rangeShiftAfterRemove_eq (parent : NodeId) (index : Nat) (bp : BoundaryPoint) :
+    rangeShiftAfterRemove parent index bp =
+      if bp.node = parent ∧ index < bp.offset then { bp with offset := bp.offset - 1 }
+      else bp := rfl
+
+theorem rangeShiftAfterRemove_pos {parent : NodeId} {index : Nat} {bp : BoundaryPoint}
+    (hn : bp.node = parent) (hlt : index < bp.offset) :
+    rangeShiftAfterRemove parent index bp = { bp with offset := bp.offset - 1 } := by
+  rw [rangeShiftAfterRemove_eq, if_pos ⟨hn, hlt⟩]
+
+theorem rangeShiftAfterRemove_neg {parent : NodeId} {index : Nat} {bp : BoundaryPoint}
+    (h : ¬ (bp.node = parent ∧ index < bp.offset)) :
+    rangeShiftAfterRemove parent index bp = bp := by
+  rw [rangeShiftAfterRemove_eq, if_neg h]
+
 /--
 **offset をずらしても boundary point の node は変わらない。**
 
@@ -50,6 +83,23 @@ step 5-6 の条件（`index` より大きい）には当てはまらない。
 def liveRangePreRemoveBP (t : Tree) (node parent : NodeId) (index : Nat)
     (bp : BoundaryPoint) : BoundaryPoint :=
   rangeShiftAfterRemove parent index (rangeMoveOutOfSubtree t node parent index bp)
+
+/-- 削除される部分木の中を指していた点は `(parent, index)` に移る。 -/
+theorem liveRangePreRemoveBP_pos {t : Tree} {node parent : NodeId} {index : Nat}
+    {bp : BoundaryPoint} (h : isInclusiveAncestorOf t node bp.node = true) :
+    liveRangePreRemoveBP t node parent index bp = { node := parent, offset := index } := by
+  unfold liveRangePreRemoveBP
+  rw [rangeMoveOutOfSubtree_pos h, rangeShiftAfterRemove_eq]
+  by_cases hi : index < index
+  · omega
+  · rw [if_neg (by simp [hi])]
+
+/-- 部分木の外を指していた点には、ずらす調整だけが効く。 -/
+theorem liveRangePreRemoveBP_neg {t : Tree} {node parent : NodeId} {index : Nat}
+    {bp : BoundaryPoint} (h : isInclusiveAncestorOf t node bp.node = false) :
+    liveRangePreRemoveBP t node parent index bp = rangeShiftAfterRemove parent index bp := by
+  unfold liveRangePreRemoveBP
+  rw [rangeMoveOutOfSubtree_neg h]
 
 /--
 **`liveRangePreRemoveBP` が何を返すかを、合成の形に依らずに言ったもの。**

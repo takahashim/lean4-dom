@@ -115,7 +115,7 @@ theorem ensurePreInsertionValidity_fresh {t : Tree} {node parent : NodeId} {pd n
         · next hbad => rw [hanc] at hbad; simp at hbad
         -- step 3
         · split
-          · next hbad => simp [childHasParent] at hbad
+          · next hbad => rw [childHasParent_none] at hbad; simp at hbad
           -- step 4
           · split
             · next hbad =>
