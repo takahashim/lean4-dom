@@ -220,6 +220,16 @@ open Dom.Audit
   Dom.findAttr_detached
   Dom.checkValidWalker_iff
   Dom.checkWalkersValid_iff
+  Url.Params.hasValue_eq
+  Url.Params.getAll_deleteValue
+  Url.Params.hasValue_deleteValue
+  Url.Params.searchParams_withParams
+  Url.getAttr_isSome_iff
+  Url.setAttr_isSome_iff_getAttr_isSome
+  Url.origin_eq_none_of_other
+  Url.origin_eq_none_of_host_none
+  Url.origin_of_special
+  Url.startsWithWindowsDrive_of_isNormalized
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

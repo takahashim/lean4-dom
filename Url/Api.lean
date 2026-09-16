@@ -98,6 +98,35 @@ def stripTrailingSpaces (u : Url) : Url :=
     if u.fragment.isSome || u.query.isSome then u
     else { u with path := .opaque (String.ofList ((p.toList.reverse.dropWhile (· == ' ')).reverse)) }
 
+/-- `stripTrailingSpaces` は path 以外を変えない。 -/
+@[simp] theorem stripTrailingSpaces_query (u : Url) :
+    (stripTrailingSpaces u).query = u.query := by
+  unfold stripTrailingSpaces
+  split
+  · rfl
+  · split <;> rfl
+
+@[simp] theorem stripTrailingSpaces_fragment (u : Url) :
+    (stripTrailingSpaces u).fragment = u.fragment := by
+  unfold stripTrailingSpaces
+  split
+  · rfl
+  · split <;> rfl
+
+@[simp] theorem stripTrailingSpaces_scheme (u : Url) :
+    (stripTrailingSpaces u).scheme = u.scheme := by
+  unfold stripTrailingSpaces
+  split
+  · rfl
+  · split <;> rfl
+
+@[simp] theorem stripTrailingSpaces_host (u : Url) :
+    (stripTrailingSpaces u).host = u.host := by
+  unfold stripTrailingSpaces
+  split
+  · rfl
+  · split <;> rfl
+
 /-- §6.1 `protocol` setter。 -/
 def Url.setProtocol (u : Url) (v : String) : Url :=
   (basicUrlParseOverride (v ++ ":") u .scheme).getD u
@@ -188,6 +217,47 @@ def Url.setAttr (u : Url) (name v : String)
   | _ => none
 
 /-! ## 性質 -/
+
+/-- getter が受け付ける属性名。 -/
+def attrNames : List String :=
+  ["href", "protocol", "username", "password", "host", "hostname", "port",
+    "pathname", "search", "hash"]
+
+theorem getAttr_isSome_iff (u : Url) (name : String) :
+    (u.getAttr name).isSome = true ↔ name ∈ attrNames := by
+  constructor
+  · intro h
+    unfold Url.getAttr at h
+    split at h <;> simp_all [attrNames]
+  · intro h
+    simp only [attrNames, List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+
+/--
+**getter と setter は同じ属性名を受け付ける。**
+
+差分 test の期待値表は名前で引くので、二つの対応表がずれると
+その属性だけ黙って飛ばされる。
+-/
+theorem setAttr_isSome_iff_getAttr_isSome (u : Url) (name v : String)
+    (toAscii : List Char → Option String) :
+    (u.setAttr name v toAscii).isSome = (u.getAttr name).isSome := by
+  cases hg : (u.getAttr name).isSome with
+  | true =>
+    have hm := (getAttr_isSome_iff u name).mp hg
+    simp only [attrNames, List.mem_cons, List.not_mem_nil, or_false] at hm
+    rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  | false =>
+    have hm : name ∉ attrNames := fun h => by
+      rw [(getAttr_isSome_iff u name).mpr h] at hg; simp at hg
+    cases hs : (u.setAttr name v toAscii).isSome with
+    | false => rfl
+    | true =>
+      exfalso
+      refine hm ?_
+      unfold Url.setAttr at hs
+      split at hs <;> simp_all [attrNames]
+
 
 /--
 credentials を置けない URL では `username` setter は何もしない。

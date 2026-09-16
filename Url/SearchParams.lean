@@ -1,5 +1,6 @@
 import Url.Api
 import Url.Urlencoded
+import Url.UrlencodedRoundtrip
 import Infra.Utf16
 
 /-!
@@ -122,6 +123,59 @@ def Url.withParams (u : Url) (l : Params) : Url :=
 
 namespace Params
 
+/-- **値も指定する `has` は、`getAll` の中に値があることである。** -/
+theorem hasValue_eq : ∀ (l : Params) (name value : String),
+    hasValue l name value = (getAll l name).contains value
+  | [], _, _ => rfl
+  | p :: rest, name, value => by
+    show ((p.1 == name && p.2 == value) || hasValue rest name value) = _
+    rw [hasValue_eq rest name value]
+    show _ = (if p.1 == name then p.2 :: getAll rest name else getAll rest name).contains value
+    by_cases h : p.1 = name
+    · rw [if_pos (by simp [h]), List.contains_cons]
+      simp [h, BEq.comm (a := p.2)]
+    · rw [if_neg (by simp [h])]
+      simp [h]
+
+/-- **値も指定する `delete` は、`getAll` からその値だけを落とす。** -/
+theorem getAll_deleteValue : ∀ (l : Params) (name value : String),
+    getAll (deleteValue l name value) name = (getAll l name).filter (fun v => v != value)
+  | [], _, _ => rfl
+  | p :: rest, name, value => by
+    show getAll (if p.1 == name && p.2 == value then deleteValue rest name value
+      else p :: deleteValue rest name value) name = _
+    by_cases h : p.1 = name
+    · by_cases hv : p.2 = value
+      · rw [if_pos (by simp [h, hv]), getAll_deleteValue rest name value]
+        show _ = (if p.1 == name then p.2 :: getAll rest name else getAll rest name).filter _
+        rw [if_pos (by simp [h]), List.filter_cons, if_neg (by simp [hv])]
+      · rw [if_neg (by simp [h, hv])]
+        show (if p.1 == name then p.2 :: getAll (deleteValue rest name value) name
+          else getAll (deleteValue rest name value) name) = _
+        rw [if_pos (by simp [h]), getAll_deleteValue rest name value]
+        show _ = (if p.1 == name then p.2 :: getAll rest name else getAll rest name).filter _
+        rw [if_pos (by simp [h]), List.filter_cons, if_pos (by simp [hv])]
+    · rw [if_neg (by simp [h])]
+      show (if p.1 == name then p.2 :: getAll (deleteValue rest name value) name
+        else getAll (deleteValue rest name value) name) = _
+      rw [if_neg (by simp [h]), getAll_deleteValue rest name value]
+      show _ = (if p.1 == name then p.2 :: getAll rest name else getAll rest name).filter _
+      rw [if_neg (by simp [h])]
+
+/-- **落としたあとは、その組はもう無い。** -/
+theorem hasValue_deleteValue (l : Params) (name value : String) :
+    hasValue (deleteValue l name value) name value = false := by
+  rw [hasValue_eq, getAll_deleteValue]
+  cases h : ((getAll l name).filter (fun v => v != value)).contains value with
+  | false => rfl
+  | true =>
+    exfalso
+    have hm := List.mem_of_elem_eq_true h
+    have := (List.mem_filter.mp hm).2
+    simp at this
+
+@[simp] theorem serialize_eq (l : Params) : serialize l = serializeUrlencoded l := rfl
+
 /-- `get` は `getAll` の先頭である。 -/
 theorem get_eq_head : ∀ (l : Params) (name : String), get l name = (getAll l name).head?
   | [], _ => rfl
@@ -238,6 +292,28 @@ theorem getAll_sort : ∀ (l : Params) (name : String), getAll (sort l) name = g
   | p :: rest, name => by
     show getAll (insert p (sort rest)) name = _
     rw [getAll_insert, getAll, getAll, getAll_sort rest name]
+
+/--
+**書き戻してから読み直すと、同じ list に戻る。**
+
+§6.2 の「update a URLSearchParams object」と §6.1 の `searchParams` getter は
+別々の algorithm なので、往復するかどうかは自明でない。
+serialize / parse の往復（`parse_serialize`）から出る。
+-/
+theorem searchParams_withParams (u : Url) (l : Params) :
+    (u.withParams l).searchParams = l := by
+  unfold Url.withParams Url.searchParams
+  by_cases h : (Params.serialize l).isEmpty = true
+  · rw [if_pos h]
+    have hempty : Params.serialize l = "" := String.isEmpty_toSlice_iff.mp h
+    rw [stripTrailingSpaces_query]
+    show parseUrlencodedString ((none : Option String).getD "") = l
+    rw [Option.getD_none, ← hempty]
+    exact parse_serialize l
+  · rw [if_neg h]
+    show parseUrlencodedString ((some (Params.serialize l)).getD "") = l
+    rw [Option.getD_some]
+    exact parse_serialize l
 
 end Params
 

@@ -162,6 +162,31 @@ def startsWithWindowsDrive (s : List Char) : Bool :=
         | [] => true)
   | _ => false
 
+/--
+**normalized Windows drive letter は「Windows drive letter で始まる」を満たす。**
+
+仕様は二つを別々に定義しているので、包含は定理で押さえる。
+-/
+theorem startsWithWindowsDrive_of_isNormalized {s : List Char}
+    (h : isNormalizedWindowsDrive s = true) : startsWithWindowsDrive s = true := by
+  unfold isNormalizedWindowsDrive at h
+  match s with
+  | [] => simp at h
+  | [_] => simp at h
+  | [a, b] =>
+    unfold startsWithWindowsDrive
+    simp only [Bool.and_eq_true] at h ⊢
+    exact ⟨⟨h.1, by simp [h.2]⟩, by simp⟩
+  | _ :: _ :: _ :: _ => simp at h
+
+/-- Windows drive letter で始まるなら、二文字以上ある。 -/
+theorem two_le_length_of_startsWithWindowsDrive {s : List Char}
+    (h : startsWithWindowsDrive s = true) : 2 ≤ s.length := by
+  match s with
+  | [] => simp [startsWithWindowsDrive] at h
+  | [_] => simp [startsWithWindowsDrive] at h
+  | _ :: _ :: r => simp
+
 /-- URL Standard §4.4 "shorten a URL's path"。 -/
 def shortenPath (u : Url) : Url :=
   match u.path with
@@ -700,5 +725,50 @@ def origin (u : Url) : Origin :=
         else none
     | .list _ => none
   else none
+
+/-! ### origin の性質 -/
+
+/-- **special でも `blob` でもない scheme の origin は opaque である。** -/
+theorem origin_eq_none_of_other {u : Url}
+    (h1 : u.scheme ≠ "ftp") (h2 : u.scheme ≠ "http") (h3 : u.scheme ≠ "https")
+    (h4 : u.scheme ≠ "ws") (h5 : u.scheme ≠ "wss") (h6 : u.scheme ≠ "blob") :
+    origin u = none := by
+  unfold origin
+  rw [if_neg (by simp [h1, h2, h3, h4, h5]), if_neg (by simp [h6])]
+
+/--
+**host の無い URL の origin は opaque である。ただし `blob` は除く。**
+
+`blob` は path を URL として読み直すので、`u.host` が null でも
+読み直した先の host から tuple origin が出る。
+-/
+theorem origin_eq_none_of_host_none {u : Url} (h : u.host = none) (hb : u.scheme ≠ "blob") :
+    origin u = none := by
+  unfold origin
+  split
+  · rw [h]
+  · rw [if_neg (by simp [hb])]
+
+/--
+**tuple origin を返すなら、その scheme と host と port は URL のものである。**
+
+`blob` の枝だけは読み直した URL のものになるので、そこは除く。
+-/
+theorem origin_of_special {u : Url} {o : String × Host × Option Nat}
+    (hs : u.scheme = "ftp" ∨ u.scheme = "http" ∨ u.scheme = "https" ∨
+      u.scheme = "ws" ∨ u.scheme = "wss")
+    (h : origin u = some o) : o.1 = u.scheme ∧ some o.2.1 = u.host ∧ o.2.2 = u.port := by
+  unfold origin at h
+  rw [if_pos (by rcases hs with h|h|h|h|h <;> simp [h])] at h
+  cases hh : u.host with
+  | none => rw [hh] at h; simp at h
+  | some x =>
+    rw [hh] at h
+    simp only [Option.some.injEq] at h
+    rw [← h]
+    exact ⟨rfl, rfl, rfl⟩
+
+/-- opaque origin は "null" に serialize される。 -/
+@[simp] theorem originSerializer_none : originSerializer none = "null" := rfl
 
 end Url

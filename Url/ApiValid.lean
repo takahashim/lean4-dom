@@ -664,19 +664,6 @@ theorem setAttr_valid {u : Url} (h : ValidUrl u) (name v : String)
 **引数を無視する setter でも両方を満たす**。ここは肯定側である。
 -/
 
-/-- `stripTrailingSpaces` は fragment も query も変えない。 -/
-theorem stripTrailingSpaces_fragment (u : Url) : (stripTrailingSpaces u).fragment = u.fragment := by
-  unfold stripTrailingSpaces
-  split
-  · rfl
-  · split <;> rfl
-
-theorem stripTrailingSpaces_query (u : Url) : (stripTrailingSpaces u).query = u.query := by
-  unfold stripTrailingSpaces
-  split
-  · rfl
-  · split <;> rfl
-
 /-- **`hash` に空文字列を入れると `hash` は空になる。** -/
 theorem setHash_empty_hash (u : Url) : (u.setHash "").hash = "" := by
   unfold Url.setHash Url.hash
