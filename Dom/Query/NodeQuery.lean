@@ -40,7 +40,8 @@ DOM Standard §4.4 `compareDocumentPosition(other)`。
 step 6 の「同じ木にない」場合は PRECEDING と FOLLOWING のどちらでもよいが、
 仕様は **一貫していること** を求める（"with the constraint that this is to be consistent"）。
 model は node id の順という全順序で決める。
-`compareDocumentPosition_disconnected_consistent` がその一貫性である。
+`Dom/Properties/NodeQuery.lean` の `compareDocumentPosition_disconnected_consistent` が
+その一貫性である。
 
 attribute は node ではないので step 3-5 は model の対象外である（roadmap §13.3）。
 -/
@@ -60,32 +61,6 @@ def compareDocumentPosition (t : Tree) (node other : NodeId) : Nat :=
   else if precedes t other node then DocumentPosition.preceding
   -- step 10
   else DocumentPosition.following
-
-/-- 同じ木にないときは、node id の順で PRECEDING か FOLLOWING を決める。 -/
-theorem compareDocumentPosition_disconnected {t : Tree} {a b : NodeId} (hne : a ≠ b)
-    (hr : root t b ≠ root t a) :
-    compareDocumentPosition t a b = if b.id < a.id then 35 else 37 := by
-  unfold compareDocumentPosition
-  rw [if_neg (by simp [hne]), if_pos (by simp [hr])]
-  split <;> rfl
-
-/--
-**同じ木にない二つの node については、逆に呼べば逆の答えになる。**
-
-仕様 step 6 の "consistent" がこれである。どちらを PRECEDING にするかは実装に任されるが、
-一方から見て「先行する」なら、他方から見ては「後続する」でなければならない。
--/
-theorem compareDocumentPosition_disconnected_consistent {t : Tree} {a b : NodeId}
-    (hne : a ≠ b) (hr : root t a ≠ root t b) :
-    (compareDocumentPosition t a b = 37 ∧ compareDocumentPosition t b a = 35) ∨
-    (compareDocumentPosition t a b = 35 ∧ compareDocumentPosition t b a = 37) := by
-  have hid : a.id ≠ b.id := fun h => hne (by cases a; cases b; simp_all)
-  rw [compareDocumentPosition_disconnected hne (Ne.symm hr),
-    compareDocumentPosition_disconnected (Ne.symm hne) hr]
-  rcases Nat.lt_or_ge a.id b.id with h | h
-  · exact Or.inl ⟨by rw [if_neg (by omega)], by rw [if_pos (by omega)]⟩
-  · have h' : b.id < a.id := by omega
-    exact Or.inr ⟨by rw [if_pos (by omega)], by rw [if_neg (by omega)]⟩
 
 /-- DOM Standard §4.4 `contains(other)`。 -/
 def nodeContains (t : Tree) (node other : NodeId) : Bool :=

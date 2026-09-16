@@ -200,6 +200,17 @@ open Dom.Audit
   Dom.liveRangePreRemoveBP_neg
   Dom.isInclusiveAncestorOf_self
   Dom.childHasParent_some_iff
+  Dom.nodeContains_iff
+  Dom.nodeContains_getRootNode
+  Dom.compareDocumentPosition_self
+  Dom.compareDocumentPosition_of_contains
+  Dom.nodeEquals_refl
+  Dom.getTextContent_eq_getNodeValue_of_characterData
+  Dom.isDefaultNamespace_iff
+  Dom.lookupNamespaceURI_xml
+  Dom.parentElement_eq_some_iff
+  Dom.documentElement_spec
+  Dom.kindOf_of_mem_elementChain
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS
