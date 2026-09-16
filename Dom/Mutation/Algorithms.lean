@@ -316,6 +316,53 @@ def insert (s : DOMState) (node parent : NodeId) (child : Option NodeId)
       -- step 1-3：nodes は « node » なので空にならない
       insertNodesAt s parent child [node] suppressObservers
 
+/--
+`insert` が成功したときに通った枝を、本体を開かずに取り出す。
+
+DOM Standard §4.2.3 の step 1-4 にあたる三つの場合しかない。`insert` を使う証明は
+この補題だけを見ればよく、本体の分岐の書き方には依存しない。
+-/
+theorem insert_cases {s s' : DOMState} {node parent : NodeId} {child : Option NodeId}
+    {b : Bool} (h : insert s node parent child b = .ok s') :
+    ∃ nd, s.tree.get? node = some nd ∧
+      ((nd.kind = NodeKind.documentFragment ∧ nd.children = [] ∧ s' = s)
+        ∨ (nd.kind = NodeKind.documentFragment ∧ nd.children ≠ [] ∧
+            ∃ s₁, removeEach s nd.children true = .ok s₁ ∧
+              insertNodesAt (queueTreeMutationRecord s₁ node [] nd.children none none)
+                parent child nd.children b = .ok s')
+        ∨ (nd.kind ≠ NodeKind.documentFragment ∧
+            insertNodesAt s parent child [node] b = .ok s')) := by
+  unfold insert at h
+  split at h
+  · simp at h
+  · next nd hnd =>
+    refine ⟨nd, hnd, ?_⟩
+    split at h
+    · next hkind =>
+      have hk : nd.kind = NodeKind.documentFragment := by simpa using hkind
+      split at h
+      · next hempty =>
+        exact Or.inl ⟨hk, by simpa using hempty, (Except.ok.inj h).symm⟩
+      · next hempty =>
+        split at h
+        · simp at h
+        · next s₁ hre =>
+          exact Or.inr (Or.inl ⟨hk, by simpa using hempty, s₁, hre, h⟩)
+    · next hkind =>
+      exact Or.inr (Or.inr ⟨by simpa using hkind, h⟩)
+
+/--
+fragment でない node の `insert` は step 1-3 と step 5-9 だけ、つまり
+`insertNodesAt` そのものである。`insert` の結果を作る側の証明はこれを使う。
+-/
+theorem insert_of_not_fragment {s : DOMState} {node parent : NodeId} {child : Option NodeId}
+    {b : Bool} {nd : NodeData} (hnd : s.tree.get? node = some nd)
+    (hk : nd.kind ≠ NodeKind.documentFragment) :
+    insert s node parent child b = insertNodesAt s parent child [node] b := by
+  unfold insert
+  rw [hnd]
+  simp only [beq_iff_eq, hk, if_false]
+
 /-! ## pre-insert / append / pre-remove / replace / replace all -/
 
 /-- DOM Standard §4.2.3 "pre-insert"。 -/

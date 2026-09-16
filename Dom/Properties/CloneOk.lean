@@ -174,10 +174,7 @@ theorem append_fresh_isOk {s : DOMState} {node parent : NodeId} {nd : NodeData}
   unfold append preInsert
   rw [hv]
   show ∃ s', insert s node parent none = .ok s'
-  have hfb : (nd.kind == NodeKind.documentFragment) = false := by simpa using hnf
-  unfold insert
-  rw [hnd]
-  simp only [hfb, Bool.false_eq_true, if_false]
+  rw [insert_of_not_fragment hnd hnf]
   unfold insertNodesAt
   simp only [liveRangeInsertAdjust]
   unfold insertEachAt

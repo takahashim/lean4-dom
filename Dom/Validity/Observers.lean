@@ -169,20 +169,13 @@ theorem preservesRegs_insertNodesAt {s s' : DOMState} {parent : NodeId}
 theorem preservesRegs_insert {s s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hi : insert s node parent child b = .ok s') :
     PreservesRegs s s' := by
-  unfold insert at hi
-  split at hi
-  · simp at hi
-  · next nd hnd =>
-    split at hi
-    · split at hi
-      · rw [← Except.ok.inj hi]; exact PreservesRegs.refl _
-      · split at hi
-        · simp at hi
-        · next s₁ hre =>
-          refine (preservesRegs_removeEach _ hre).trans (PreservesRegs.trans ?_
-            (preservesRegs_insertNodesAt hi))
-          exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
-    · exact preservesRegs_insertNodesAt hi
+  obtain ⟨_, _, hcase⟩ := insert_cases hi
+  rcases hcase with ⟨_, _, hs⟩ | ⟨_, _, _, hre, hins⟩ | ⟨_, hins⟩
+  · rw [hs]; exact PreservesRegs.refl _
+  · refine (preservesRegs_removeEach _ hre).trans (PreservesRegs.trans ?_
+      (preservesRegs_insertNodesAt hins))
+    exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
+  · exact preservesRegs_insertNodesAt hins
 
 theorem preservesRegs_move {s s' : DOMState} {node newParent : NodeId}
     {child : Option NodeId} (hm : move s node newParent child = .ok s') :

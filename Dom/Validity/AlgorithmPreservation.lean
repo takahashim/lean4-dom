@@ -1055,53 +1055,43 @@ theorem structurallyValid_insert_of_facts {s s' : DOMState} {node parent : NodeI
     (hdtf : ∀ nd, s.tree.get? node = some nd → nd.kind = NodeKind.documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
     (hi : insert s node parent child b = .ok s') : StructurallyValid s'.tree := by
-  unfold insert at hi
-  split at hi
-  · simp at hi
-  · next nd hnd =>
-    split at hi
-    · -- fragment を展開する
-      split at hi
-      · rw [← Except.ok.inj hi]; exact h
-      · split at hi
-        · simp at hi
-        · next s₁ hre =>
-          have h₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
-          have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
-          have hfragkind : nd.kind ≠ NodeKind.document := by
-            rename_i hfrag _ _
-            intro hc; rw [hc] at hfrag; simp at hfrag
-          refine structurallyValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
-            nd.children none none) (by simpa using h₁) ?_ ?_ ?_ ?_ hi
-          · simpa using
-              kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
-          · intro m hm
-            simpa using kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
-              (child_not_document h hnd hm)
-          · intro m hm
-            simpa using
-              kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentFragment) hkp
-                (child_not_fragment h hnd hm)
-          · intro m hm md hmd hkm _ _
-            refine absurd hkm ?_
-            have := kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentType) hkp
-              (child_not_doctype h hnd hfragkind hm)
-            exact this md (by simpa using hmd)
-    · -- 単独の node。fragment でないことは分岐の条件そのものである。
-      rename_i hnotfrag
-      refine structurallyValid_insertNodesAt h hpk ?_ ?_ ?_ hi
-      · intro m hm
-        rcases List.mem_singleton.mp hm with rfl
-        exact hnk
-      · intro m hm
-        rcases List.mem_singleton.mp hm with rfl
-        intro md hmd
-        rw [hnd] at hmd
-        cases hmd
-        simpa using hnotfrag
-      · intro m hm
-        rcases List.mem_singleton.mp hm with rfl
-        exact hdtf
+  obtain ⟨nd, hnd, hcase⟩ := insert_cases hi
+  rcases hcase with ⟨_, _, hsx⟩ | ⟨hk, _, s₁, hre, hins⟩ | ⟨hnotfrag, hins⟩
+  · rw [hsx]; exact h
+  · -- fragment を展開する
+    have h₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ h hre
+    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
+    have hfragkind : nd.kind ≠ NodeKind.document := by rw [hk]; simp
+    refine structurallyValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
+      nd.children none none) (by simpa using h₁) ?_ ?_ ?_ ?_ hins
+    · simpa using
+        kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
+    · intro m hm
+      simpa using kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
+        (child_not_document h hnd hm)
+    · intro m hm
+      simpa using
+        kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentFragment) hkp
+          (child_not_fragment h hnd hm)
+    · intro m hm md hmd hkm _ _
+      refine absurd hkm ?_
+      have := kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentType) hkp
+        (child_not_doctype h hnd hfragkind hm)
+      exact this md (by simpa using hmd)
+  · -- 単独の node
+    refine structurallyValid_insertNodesAt h hpk ?_ ?_ ?_ hins
+    · intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      exact hnk
+    · intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      intro md hmd
+      rw [hnd] at hmd
+      cases hmd
+      exact hnotfrag
+    · intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      exact hdtf
 
 /--
 PLAN §6.3 の形。`insert` は構造上の妥当性を保つ。
@@ -1158,52 +1148,42 @@ theorem nodeDocumentsValid_insert_of_facts {s s' : DOMState} {node parent : Node
     (hdtf : ∀ nd, s.tree.get? node = some nd → nd.kind = NodeKind.documentType →
       ∀ pd, s.tree.get? parent = some pd → pd.kind = NodeKind.document)
     (hi : insert s node parent child b = .ok s') : NodeDocumentsValid s'.tree := by
-  unfold insert at hi
-  split at hi
-  · simp at hi
-  · next nd hnd =>
-    split at hi
-    · split at hi
-      · rw [← Except.ok.inj hi]; exact h
-      · split at hi
-        · simp at hi
-        · next s₁ hre =>
-          have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ hs hre
-          have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_removeEach _ hs h hre
-          have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
-          have hfragkind : nd.kind ≠ NodeKind.document := by
-            rename_i hfrag _ _
-            intro hc; rw [hc] at hfrag; simp at hfrag
-          refine nodeDocumentsValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
-            nd.children none none) (by simpa using hs₁) (by simpa using h₁) ?_ ?_ ?_ ?_ hi
-          · simpa using
-              kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
-          · intro m hm
-            simpa using kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
-              (child_not_document hs hnd hm)
-          · intro m hm
-            simpa using
-              kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentFragment) hkp
-                (child_not_fragment hs hnd hm)
-          · intro m hm md hmd hkm _ _
-            refine absurd hkm ?_
-            have := kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentType) hkp
-              (child_not_doctype hs hnd hfragkind hm)
-            exact this md (by simpa using hmd)
-    · rename_i hnotfrag
-      refine nodeDocumentsValid_insertNodesAt hs h hpk ?_ ?_ ?_ hi
-      · intro m hm
-        rcases List.mem_singleton.mp hm with rfl
-        exact hnk
-      · intro m hm
-        rcases List.mem_singleton.mp hm with rfl
-        intro md hmd
-        rw [hnd] at hmd
-        cases hmd
-        simpa using hnotfrag
-      · intro m hm
-        rcases List.mem_singleton.mp hm with rfl
-        exact hdtf
+  obtain ⟨nd, hnd, hcase⟩ := insert_cases hi
+  rcases hcase with ⟨_, _, hsx⟩ | ⟨hk, _, s₁, hre, hins⟩ | ⟨hnotfrag, hins⟩
+  · rw [hsx]; exact h
+  · have hs₁ : StructurallyValid s₁.tree := structurallyValid_removeEach _ hs hre
+    have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_removeEach _ hs h hre
+    have hkp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hre
+    have hfragkind : nd.kind ≠ NodeKind.document := by rw [hk]; simp
+    refine nodeDocumentsValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
+      nd.children none none) (by simpa using hs₁) (by simpa using h₁) ?_ ?_ ?_ ?_ hins
+    · simpa using
+        kindFact_of_kindPreserving (P := fun k => k.canHaveChildren = true) hkp hpk
+    · intro m hm
+      simpa using kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.document) hkp
+        (child_not_document hs hnd hm)
+    · intro m hm
+      simpa using
+        kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentFragment) hkp
+          (child_not_fragment hs hnd hm)
+    · intro m hm md hmd hkm _ _
+      refine absurd hkm ?_
+      have := kindFact_of_kindPreserving (P := fun k => k ≠ NodeKind.documentType) hkp
+        (child_not_doctype hs hnd hfragkind hm)
+      exact this md (by simpa using hmd)
+  · refine nodeDocumentsValid_insertNodesAt hs h hpk ?_ ?_ ?_ hins
+    · intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      exact hnk
+    · intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      intro md hmd
+      rw [hnd] at hmd
+      cases hmd
+      exact hnotfrag
+    · intro m hm
+      rcases List.mem_singleton.mp hm with rfl
+      exact hdtf
 
 /-- PLAN §6.3 の形。`insert` は node document の整合性を保つ。 -/
 theorem nodeDocumentsValid_insert {s s' : DOMState} {node parent : NodeId}
@@ -1804,35 +1784,23 @@ theorem documentTreesValid_insert_of_seqOk {s s' : DOMState} {node parent : Node
       InsertSeqOk s.tree parent child
         (if nd.kind = NodeKind.documentFragment then nd.children else [node]))
     (hi : insert s node parent child b = .ok s') : DocumentTreesValid s'.tree := by
-  unfold insert at hi
-  split at hi
-  · simp at hi
-  · next nd hnd =>
-    split at hi
-    · next hfrag =>
-      have hfragkind : nd.kind = NodeKind.documentFragment := by simpa using hfrag
-      have hok' : InsertSeqOk s.tree parent child nd.children := by
-        have hx := hok nd hnd
-        rwa [if_pos hfragkind] at hx
-      split at hi
-      · rw [← Except.ok.inj hi]; exact h
-      · split at hi
-        · simp at hi
-        · next s₁ hre =>
-          have hwf₁ : WellFormed s₁.tree := removeEach_preserves_wellformed _ hwf hre
-          have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_removeEach _ hwf h hre
-          have hok₁ : InsertSeqOk s₁.tree parent child nd.children :=
-            insertSeqOk_removeEach _ hwf hre hok'
-          exact documentTreesValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
-            nd.children none none) (by simpa using hwf₁) (by simpa using h₁)
-            (by simpa using hok₁) hi
-    · next hfrag =>
-      have hnfrag : ¬ nd.kind = NodeKind.documentFragment := by
-        intro hc; rw [hc] at hfrag; simp at hfrag
-      have hok' : InsertSeqOk s.tree parent child [node] := by
-        have hx := hok nd hnd
-        rwa [if_neg hnfrag] at hx
-      exact documentTreesValid_insertNodesAt hwf h hok' hi
+  obtain ⟨nd, hnd, hcase⟩ := insert_cases hi
+  rcases hcase with ⟨_, _, hsx⟩ | ⟨hk, _, s₁, hre, hins⟩ | ⟨hnfrag, hins⟩
+  · rw [hsx]; exact h
+  · have hok' : InsertSeqOk s.tree parent child nd.children := by
+      have hx := hok nd hnd
+      rwa [if_pos hk] at hx
+    have hwf₁ : WellFormed s₁.tree := removeEach_preserves_wellformed _ hwf hre
+    have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_removeEach _ hwf h hre
+    have hok₁ : InsertSeqOk s₁.tree parent child nd.children :=
+      insertSeqOk_removeEach _ hwf hre hok'
+    exact documentTreesValid_insertNodesAt (s := queueTreeMutationRecord s₁ node []
+      nd.children none none) (by simpa using hwf₁) (by simpa using h₁)
+      (by simpa using hok₁) hins
+  · have hok' : InsertSeqOk s.tree parent child [node] := by
+      have hx := hok nd hnd
+      rwa [if_neg hnfrag] at hx
+    exact documentTreesValid_insertNodesAt hwf h hok' hins
 
 /--
 PLAN §6.3 の形。`insert` は Document の children 制約を保つ。

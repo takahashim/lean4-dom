@@ -148,6 +148,8 @@ open Dom.Audit
   Dom.liveRangePreRemoveBP_comm
   Dom.liveRangePreRemoveBP_eq
   Dom.rangeShiftAfterRemove_node
+  Dom.insert_cases
+  Dom.insert_of_not_fragment
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

@@ -682,55 +682,50 @@ theorem insert_fragment_preserves_endpoints {s s' : DOMState} {node parent : Nod
     (hlen : ChildCountKind s.tree parent)
     (hv : RangeEndpointsValid s) (h : insert s node parent child b = .ok s') :
     RangeEndpointsValid s' := by
-  unfold insert at h
-  split at h
-  · next hn => rw [hnd] at hn; simp at hn
-  · next nd' hnd' =>
-    rw [hnd] at hnd'
-    cases hnd'
-    rw [if_pos hk] at h
+  obtain ⟨nd', hnd', hcase⟩ := insert_cases h
+  rw [hnd] at hnd'
+  cases hnd'
+  clear h
+  rcases hcase with ⟨_, _, hsx⟩ | ⟨_, _, s₁, hre, h⟩ | ⟨hnf, _⟩
+  · rw [hsx]; exact hv
+  · -- fragment の children は fragment を parent に持つ
+    have hfrag : ChildCountKind s.tree node := by
+      refine childCountKind_of_kind ?_
+      intro d hd
+      rw [hnd] at hd
+      cases hd
+      exact Or.inr (Or.inl (by simpa using hk))
+    have hnodup : nd.children.Nodup := hwf.children_nodup node nd hnd
+    have hpar : ∀ m ∈ nd.children, parentOf s.tree m = some node := by
+      intro m hm
+      exact parentOf_of_mem_childrenOf hwf (by rw [childrenOf_eq hnd]; exact hm)
+    obtain ⟨hv₁, hnone, hwf₁, _, hkp⟩ :=
+      removeEach_from_parent nd.children hwf hfrag hnodup hpar hv hre
+    have hlen₁ : ChildCountKind s₁.tree parent := hlen.map hkp
+    -- step 5 と 7
+    unfold insertNodesAt at h
+    simp only at h
     split at h
-    · rw [← Except.ok.inj h]; exact hv
-    · split at h
-      · simp at h
-      · next s₁ hre =>
-        -- fragment の children は fragment を parent に持つ
-        have hfrag : ChildCountKind s.tree node := by
-          refine childCountKind_of_kind ?_
-          intro d hd
-          rw [hnd] at hd
-          cases hd
-          exact Or.inr (Or.inl (by simpa using hk))
-        have hnodup : nd.children.Nodup := hwf.children_nodup node nd hnd
-        have hpar : ∀ m ∈ nd.children, parentOf s.tree m = some node := by
-          intro m hm
-          exact parentOf_of_mem_childrenOf hwf (by rw [childrenOf_eq hnd]; exact hm)
-        obtain ⟨hv₁, hnone, hwf₁, _, hkp⟩ :=
-          removeEach_from_parent nd.children hwf hfrag hnodup hpar hv hre
-        have hlen₁ : ChildCountKind s₁.tree parent := hlen.map hkp
-        -- step 5 と 7
-        unfold insertNodesAt at h
-        simp only at h
+    · simp at h
+    · next sx hx =>
+      have hproj : s'.tree = sx.tree ∧ s'.ranges = sx.ranges := by
         split at h
-        · simp at h
-        · next sx hx =>
-          have hproj : s'.tree = sx.tree ∧ s'.ranges = sx.ranges := by
-            split at h
-            · rw [← Except.ok.inj h]; exact ⟨rfl, rfl⟩
-            · rw [← Except.ok.inj h]; exact ⟨by simp, by simp⟩
-          refine rangeEndpointsValid_congr hproj.1 hproj.2 ?_
-          unfold insertEachAt at hx
-          split at hx
-          · simp at hx
-          · next pd hpd =>
-            refine insertEach_valid_of_no_parent nd.children ?_ ?_ ?_ hnodup ?_ ?_ hx
-            · simpa using hwf₁
-            · exact isDocument_ownerDocument (by simpa using hwf₁) hpd
-            · simpa using hlen₁
-            · intro m hm
-              simpa using hnone m hm
-            · exact rangeValidUpTo_liveRangeInsertAdjust
-                (rangeEndpointsValid_congr (by simp) (by simp) hv₁)
+        · rw [← Except.ok.inj h]; exact ⟨rfl, rfl⟩
+        · rw [← Except.ok.inj h]; exact ⟨by simp, by simp⟩
+      refine rangeEndpointsValid_congr hproj.1 hproj.2 ?_
+      unfold insertEachAt at hx
+      split at hx
+      · simp at hx
+      · next pd hpd =>
+        refine insertEach_valid_of_no_parent nd.children ?_ ?_ ?_ hnodup ?_ ?_ hx
+        · simpa using hwf₁
+        · exact isDocument_ownerDocument (by simpa using hwf₁) hpd
+        · simpa using hlen₁
+        · intro m hm
+          simpa using hnone m hm
+        · exact rangeValidUpTo_liveRangeInsertAdjust
+            (rangeEndpointsValid_congr (by simp) (by simp) hv₁)
+  · exact absurd (by simpa using hk) hnf
 
 /-! ## parent を持つ node の insert -/
 
@@ -1134,38 +1129,31 @@ theorem liveRangeInsertAdjust_preserves_sameNodeOrdered {s : DOMState} {parent :
 theorem insert_preserves_sameNodeOrdered {s s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hv : RangesSameNodeOrdered s)
     (h : insert s node parent child b = .ok s') : RangesSameNodeOrdered s' := by
-  unfold insert at h
-  split at h
-  · simp at h
-  · next nd hnd =>
-    have hstep : ∀ (u : DOMState) (ns : List NodeId) (b' : Bool), RangesSameNodeOrdered u →
-        insertNodesAt u parent child ns b' = .ok s' → RangesSameNodeOrdered s' := by
-      intro u ns b' hu hun
-      unfold insertNodesAt at hun
-      simp only at hun
-      split at hun
-      · simp at hun
-      · next sx hx =>
-        have hrx : s'.ranges = sx.ranges := by
-          split at hun
-          · rw [← Except.ok.inj hun]
-          · rw [← Except.ok.inj hun]; simp
-        intro r hr
-        rw [hrx] at hr
-        unfold insertEachAt at hx
-        split at hx
-        · simp at hx
-        · exact insertEach_preserves_sameNodeOrdered ns
-            (liveRangeInsertAdjust_preserves_sameNodeOrdered hu) hx r hr
-    split at h
-    · split at h
-      · rw [← Except.ok.inj h]; exact hv
-      · split at h
-        · simp at h
-        · next s₁ hre =>
-          exact hstep _ _ _ (rangesSameNodeOrdered_congr (by simp)
-            (removeEach_preserves_sameNodeOrdered _ hv hre)) h
-    · exact hstep s _ _ hv h
+  have hstep : ∀ (u : DOMState) (ns : List NodeId) (b' : Bool), RangesSameNodeOrdered u →
+      insertNodesAt u parent child ns b' = .ok s' → RangesSameNodeOrdered s' := by
+    intro u ns b' hu hun
+    unfold insertNodesAt at hun
+    simp only at hun
+    split at hun
+    · simp at hun
+    · next sx hx =>
+      have hrx : s'.ranges = sx.ranges := by
+        split at hun
+        · rw [← Except.ok.inj hun]
+        · rw [← Except.ok.inj hun]; simp
+      intro r hr
+      rw [hrx] at hr
+      unfold insertEachAt at hx
+      split at hx
+      · simp at hx
+      · exact insertEach_preserves_sameNodeOrdered ns
+          (liveRangeInsertAdjust_preserves_sameNodeOrdered hu) hx r hr
+  obtain ⟨_, _, hcase⟩ := insert_cases h
+  rcases hcase with ⟨_, _, hsx⟩ | ⟨_, _, _, hre, hins⟩ | ⟨_, hins⟩
+  · rw [hsx]; exact hv
+  · exact hstep _ _ _ (rangesSameNodeOrdered_congr (by simp)
+      (removeEach_preserves_sameNodeOrdered _ hv hre)) hins
+  · exact hstep s _ _ hv hins
 
 /-- `remove` の後も、両端が同じ node を指す range は正しく並んでいる。 -/
 theorem remove_preserves_boundaryLE_sameNode {s s' : DOMState} {n p : NodeId}

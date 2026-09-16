@@ -266,46 +266,32 @@ step 5-9 は `insertNodesAt_sound` である。
 theorem insert_sound {s s' : DOMState} {node parent : NodeId} {child : Option NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (h : insert s node parent child b = .ok s') :
     InsertSpec s node parent child b s' := by
-  unfold insert at h
-  split at h
-  · simp at h
-  · next nd hnd =>
-    split at h
-    · next hkind =>
-      have hk : nd.kind = NodeKind.documentFragment := by simpa using hkind
-      split at h
-      · -- step 2-3。children が空なので何もしない。
-        next hempty =>
-        refine ⟨nd.children, ⟨nd, hnd, Or.inl ⟨hk, rfl⟩⟩, Or.inl ⟨by simpa using hempty, ?_⟩⟩
-        exact (Except.ok.inj h).symm
-      · next hempty =>
-        have hne : nd.children ≠ [] := by simpa using hempty
-        split at h
-        · simp at h
-        · next sr hre =>
-          have hwfr : WellFormed sr.tree := removeEach_preserves_wellformed _ hwf hre
-          have htree : (queueTreeMutationRecord sr node [] nd.children none none).tree
-              = sr.tree := queueTreeMutationRecord_tree ..
-          have hwf₁ : WellFormed (queueTreeMutationRecord sr node [] nd.children none none).tree := by
-            rw [htree]; exact hwfr
-          obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩ :=
-            insertNodesAt_sound hwf₁ hne h
-          refine ⟨nd.children, ⟨nd, hnd, Or.inl ⟨hk, rfl⟩⟩, Or.inr ⟨hne, ?_⟩⟩
-          refine ⟨queueTreeMutationRecord sr node [] nd.children none none, s₂, s₃, idx, prev, pd,
-            ⟨nd, hnd, ?_⟩, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩
-          rw [if_pos hk]
-          exact ⟨sr, removeEach_sound _ hwf hre,
-            treeRecordQueued_of_queue sr hwfr node [] nd.children none none (by
-              cases hc : nd.children with
-              | nil => exact absurd hc hne
-              | cons x xs => simp),
-            ⟨by simp, by simp, by simp, by simp⟩⟩
-    · next hkind =>
-      have hk : nd.kind ≠ NodeKind.documentFragment := by simpa using hkind
-      obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩ :=
-        insertNodesAt_sound hwf (by simp) h
-      exact ⟨[node], ⟨nd, hnd, Or.inr ⟨hk, rfl⟩⟩,
-        Or.inr ⟨by simp, s, s₂, s₃, idx, prev, pd, ⟨nd, hnd, by rw [if_neg hk]⟩,
-          hidx, hprev, hrange, hpd, hins, hrec, hframe⟩⟩
+  obtain ⟨nd, hnd, hcase⟩ := insert_cases h
+  clear h
+  rcases hcase with ⟨hk, hempty, hsx⟩ | ⟨hk, hne, sr, hre, h⟩ | ⟨hk, h⟩
+  · -- step 2-3。children が空なので何もしない。
+    exact ⟨nd.children, ⟨nd, hnd, Or.inl ⟨hk, rfl⟩⟩, Or.inl ⟨hempty, hsx⟩⟩
+  · have hwfr : WellFormed sr.tree := removeEach_preserves_wellformed _ hwf hre
+    have htree : (queueTreeMutationRecord sr node [] nd.children none none).tree
+        = sr.tree := queueTreeMutationRecord_tree ..
+    have hwf₁ : WellFormed (queueTreeMutationRecord sr node [] nd.children none none).tree := by
+      rw [htree]; exact hwfr
+    obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩ :=
+      insertNodesAt_sound hwf₁ hne h
+    refine ⟨nd.children, ⟨nd, hnd, Or.inl ⟨hk, rfl⟩⟩, Or.inr ⟨hne, ?_⟩⟩
+    refine ⟨queueTreeMutationRecord sr node [] nd.children none none, s₂, s₃, idx, prev, pd,
+      ⟨nd, hnd, ?_⟩, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩
+    rw [if_pos hk]
+    exact ⟨sr, removeEach_sound _ hwf hre,
+      treeRecordQueued_of_queue sr hwfr node [] nd.children none none (by
+        cases hc : nd.children with
+        | nil => exact absurd hc hne
+        | cons x xs => simp),
+      ⟨by simp, by simp, by simp, by simp⟩⟩
+  · obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩ :=
+      insertNodesAt_sound hwf (by simp) h
+    exact ⟨[node], ⟨nd, hnd, Or.inr ⟨hk, rfl⟩⟩,
+      Or.inr ⟨by simp, s, s₂, s₃, idx, prev, pd, ⟨nd, hnd, by rw [if_neg hk]⟩,
+        hidx, hprev, hrange, hpd, hins, hrec, hframe⟩⟩
 
 end Dom.Spec
