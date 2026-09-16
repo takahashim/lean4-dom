@@ -267,6 +267,10 @@ open Dom.Audit
   Dom.Spec.adopt_parentOf_none
   Dom.Spec.insertEach_complete
   Dom.Spec.removeEach_complete
+  Dom.Spec.insertEachAt_complete
+  Dom.Spec.insertNodesAt_isOk_of_spec
+  Dom.Spec.insert_isOk_of_spec
+  Dom.Spec.insert_complete
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

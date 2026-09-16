@@ -4557,9 +4557,19 @@ import を元の順序どおりに繋げば依存はそのまま通る。最大 
 では step 4 を含意しない。**つまり関係のほうが実行関数より弱かった。**
 
 `TreeInserted` に `childIsChild` を足した。構成側は二箇所だけである。
-そのうえで `insert_complete_of_nil`（入れる node の列が空なら関係を満たす状態は
-必ず `insert` の結果）まで進めた。残るのは列が空でない枝で、`removeEach` /
-`adopt` / `insertAt` の成功を関係の witness から組み立てる `insertEach_isOk` が要る。
+そのうえで **`insert_complete` を通した**。これで `remove` / `adopt` / `insert` の
+三つとも完全性まで揃った。
+
+構成は二段である。
+
+* `insert_isOk_of_spec`：関係を満たす状態があるなら `insert` は成功する。
+  step 4 は `removeEach_complete`、step 7 は `insertEach_complete` で、どちらも
+  関係の witness から実行関数の成功を組み立てる帰納である。step 7 では各段で
+  `adopt` の完全性と `insertAt` の四つの前提条件を使い、**`child` が `parent` の
+  子であることは上で足した `TreeInserted.childIsChild` がちょうど与える**。
+  step 5 の range 調整と step 4.2 / step 9 の record は既存の congruence
+  （`rangeInsertAdjusted_congr` / `treeRecordQueued_congr`）で繋いだ。
+* 観測が等しいことは既にあった `insert_no_extra_models` である。
 
 ### glue 定理の量を数えた
 

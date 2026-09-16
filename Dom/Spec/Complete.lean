@@ -241,13 +241,6 @@ theorem insert_complete_of_nil {s s' : DOMState} {node parent : NodeId}
     exact insert_of_empty_fragment hnd hk (by rw [← hch, hnil])
   · exact absurd (hnil ▸ hsing) (by simp)
 
-/--
-`insert` の完全性に残っているのは組み立てだけである。
-
-step 4（`removeEach_complete`）と step 7（`insertEach_complete`）は揃ったので、
-残るのは step 5 の range 調整と step 9 の record を挟んで
-`insertNodesAt` / `insertEachAt` の層まで持ち上げるところである。
--/
 theorem insert_no_extra_models {s s' out : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
@@ -255,5 +248,127 @@ theorem insert_no_extra_models {s s' out : DOMState} {node parent : NodeId}
     (h : InsertSpec s node parent child b s') (hok : insert s node parent child b = .ok out) :
     ObsEq s' out :=
   insertSpec_congr hwf (ObsEq.refl s) hacyc h (insert_sound hwf hok)
+
+/-- **step 5-7 の実現可能性。** -/
+theorem insertEachAt_complete {parent : NodeId} {child : Option NodeId} {doc : NodeId}
+    {nodes : List NodeId} {s sx out : DOMState} {pd : NodeData}
+    (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree doc)
+    (hacyc : ∀ m ∈ nodes, ¬ InclusiveAncestor s.tree m parent)
+    (hpd : s.tree.get? parent = some pd) (hdeq : doc = pd.ownerDocument)
+    (h : InsertedEach parent child doc s nodes out) (hobs : ObsEq s sx) :
+    ∃ o, insertEachAt sx parent child nodes = .ok o ∧ ObsEq out o := by
+  have hpdx : sx.tree.get? parent = some pd := by rw [hobs.tree]; exact hpd
+  rw [insertEachAt_of_get? hpdx, ← hdeq]
+  exact insertEach_complete nodes hwf hdoc hacyc ⟨pd, hpd⟩ h hobs
+
+/-- step 5-9 の実現可能性（共通部分）。 -/
+theorem insertNodesAt_isOk_of_spec {parent : NodeId} {child : Option NodeId}
+    {nodes : List NodeId} {s₁ sx s₂ s₃ : DOMState} {idx : Nat} {pd : NodeData} {b : Bool}
+    (hwf : WellFormed s₁.tree)
+    (hacyc : ∀ m ∈ nodes, ¬ InclusiveAncestor s₁.tree m parent)
+    (hpd : s₁.tree.get? parent = some pd)
+    (hidx : ChildIndex s₁.tree child idx)
+    (hra : RangeInsertAdjusted s₁ s₂ parent child idx nodes.length)
+    (hie : InsertedEach parent child pd.ownerDocument s₂ nodes s₃)
+    (hobs : ObsEq s₁ sx) :
+    ∃ o, insertNodesAt sx parent child nodes b = .ok o := by
+  have hidxx : ChildIndex sx.tree child idx := by
+    cases child with
+    | none => exact hidx
+    | some c =>
+      show index sx.tree c = some idx
+      rw [hobs.tree.index]; exact hidx
+  have hobs₂ : ObsEq s₂ (liveRangeInsertAdjust sx parent child nodes.length) :=
+    rangeInsertAdjusted_congr hobs hra
+      (rangeInsertAdjusted_of_adjust sx parent child nodes.length idx hidxx)
+  have hwf₂ : WellFormed s₂.tree := by rw [hra.tree]; exact hwf
+  have hdoc₂ : IsDocument s₂.tree pd.ownerDocument := by
+    rw [hra.tree]; exact isDocument_ownerDocument hwf hpd
+  have hpd₂ : s₂.tree.get? parent = some pd := by rw [hra.tree]; exact hpd
+  have hacyc₂ : ∀ m ∈ nodes, ¬ InclusiveAncestor s₂.tree m parent := by
+    rw [hra.tree]; exact hacyc
+  obtain ⟨o, hoeq, -⟩ :=
+    insertEachAt_complete hwf₂ hdoc₂ hacyc₂ hpd₂ rfl hie hobs₂
+  exact insertNodesAt_isOk ⟨o, hoeq⟩
+
+/-- **`insert` は関係を満たす状態があるなら成功する。** -/
+theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
+    (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (h : InsertSpec s node parent child b s') :
+    ∃ out, insert s node parent child b = .ok out := by
+  obtain ⟨nodes, hnodes, hcase⟩ := h
+  rcases hcase with ⟨hnil, hs⟩ | ⟨hne, s₁, s₂, s₃, idx, prev, pd, hfp, hidx, hprev, hra, hpd,
+    hie, hrec, hoo⟩
+  · exact ⟨s, insert_complete_of_nil hnodes hnil rfl⟩
+  · -- step 4：fragment を空にする
+    obtain ⟨hwf₁, hanc₁⟩ := fragmentPrepared_facts hwf hfp
+    have hacyc₁ : ∀ m ∈ nodes, ¬ InclusiveAncestor s₁.tree m parent := by
+      intro m hm hinc
+      refine hacyc nodes hnodes m hm ?_
+      rcases hinc with rfl | ha
+      · exact Or.inl rfl
+      · exact Or.inr (hanc₁ _ _ ha)
+    obtain ⟨d, hd, hfpcase⟩ := hfp
+    obtain ⟨d', hd', hnc⟩ := hnodes
+    rw [hd] at hd'
+    cases hd'
+    by_cases hk : d.kind = NodeKind.documentFragment
+    · rw [if_pos hk] at hfpcase
+      obtain ⟨sr, hre, hq, hoo'⟩ := hfpcase
+      have hnodes_eq : nodes = d.children := by
+        rcases hnc with ⟨-, hch⟩ | ⟨hkne, -⟩
+        · exact hch
+        · exact absurd hk hkne
+      obtain ⟨o₀, ho₀, hobs₀⟩ := removeEach_complete nodes hwf hre (ObsEq.refl s)
+      have hwfr : WellFormed sr.tree := removeEachSpec_wellFormed hwf hre
+      have hobs₁ : ObsEq s₁ (queueTreeMutationRecord o₀ node [] nodes none none) := by
+        refine treeRecordQueued_congr (s := sr) (s' := o₀) hobs₀ hq ?_ hoo' ?_
+        · exact treeRecordQueued_of_queue o₀ (hobs₀.tree.wellFormed hwfr) node [] nodes none none
+            (by cases hx : nodes with
+                | nil => exact absurd hx hne
+                | cons a as => simp)
+        · exact ⟨by simp, by simp, by simp, by simp⟩
+      have hstep := insertNodesAt_isOk_of_spec (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (b := b)
+        hwf₁ hacyc₁ hpd hidx hra hie hobs₁
+      unfold insert
+      simp only [hd]
+      rw [if_pos (by simp [hk]),
+        if_neg (by rw [← hnodes_eq]; cases hx : nodes with
+                   | nil => exact absurd hx hne
+                   | cons a as => simp)]
+      rw [← hnodes_eq]
+      simp only [ho₀]
+      exact hstep
+    · rw [if_neg hk] at hfpcase
+      subst hfpcase
+      have hnodes_eq : nodes = [node] := by
+        rcases hnc with ⟨hkf, -⟩ | ⟨-, hsing⟩
+        · exact absurd hkf hk
+        · exact hsing
+      have hstep := insertNodesAt_isOk_of_spec (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (b := b)
+        hwf₁ hacyc₁ hpd hidx hra hie (ObsEq.refl s₁)
+      unfold insert
+      simp only [hd]
+      rw [if_neg (by simp [hk])]
+      rw [hnodes_eq] at hstep
+      exact hstep
+
+/--
+**`insert` の完全性。**
+
+関係 `InsertSpec` を満たす状態があるなら、`insert` は成功して観測の等しい結果を
+返す。成功することは `insert_isOk_of_spec`、観測が等しいことは
+`insert_no_extra_models` である。
+-/
+theorem insert_complete {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
+    (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (h : InsertSpec s node parent child b s') :
+    ∃ out, insert s node parent child b = .ok out ∧ ObsEq s' out := by
+  obtain ⟨out, hok⟩ := insert_isOk_of_spec hwf hacyc h
+  exact ⟨out, hok, insert_no_extra_models hwf hacyc h hok⟩
 
 end Dom.Spec
