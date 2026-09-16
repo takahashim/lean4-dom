@@ -4516,6 +4516,58 @@ A-Z しか動かさないので whitespace には触れない。`isAsciiWhitespa
 残しているのは「forgiving なら必ず読める」という全称の形である。`scan.induct` が
 使えるので書けるはずだが、自動化が収束しなかった。
 
+## Dom 側への指摘に対応した
+
+構造と内容の二つの review があり、いずれも「Event が最大の proof gap」で一致した。
+
+### Event の振る舞い（0 本 → 29 本）
+
+`Dom/Event/Dispatch.lean` 自体の定理は 0 本、`Dom/Validity/Events.lean` の 15 本は
+すべて `ListenersOnly`（frame）と admissibility だった。`Dom/Properties/Event.lean`
+を作って仕様の振る舞いを書いた。
+
+* listener の選別（`innerInvoke_skip`）：capture 周は capture listener だけ、
+  bubble 周は非 capture だけ。`removed` と `type` の検査も同じ形
+* 停止フラグ（`runPass_stopPropagation`、`runAction_stopImmediate`、
+  `runAction_stopPropagation_mono`）
+* `once`（`invokeOne_once`、`removeListenerAt_removed`）：**呼ぶ前に**外れる
+* 順序と log（`innerInvoke_log_prefix` ほか）：log は伸びるだけ。
+  `runPass_no_bubbles` は `bubbles` が false なら bubble 周で target 以外を
+  呼ばないこと
+* 返り値（`dispatchEvent_not_cancelable`）：**`cancelable` が false なら必ず true**
+
+### `AlgorithmPreservation.lean` の分割
+
+2,481 行・76 定理を operation 別に 12 file へ切り分けた。元 file が線形だったので
+import を元の順序どおりに繋げば依存はそのまま通る。最大 594 行になった。
+`AlgorithmPreservation.lean` は再 export だけを残したので import 側は変更不要。
+
+### 挿入の仮定を `InsertFacts` に束ねた
+
+`insertEach` / `insertNodesAt` / `insert` の保存定理が並べていた四つの仮定
+（parent が children を持てる／入れる node が Document でない／DocumentFragment
+でない／doctype の親は Document）を `IterCtx` に倣って bundle にした。
+9 定理の signature が短くなり、差分は +207 / −236 行。
+
+### `insert` の完全性
+
+言えなかった理由は、関係が `insertAt` の step 4（`child` が指定されていれば
+`parent` の子であること）を写していないことだった。`ListUtil.insertBefore` は
+見つからない `child` を無視して末尾に足すので、`TreeInserted` の `children` だけ
+では step 4 を含意しない。**つまり関係のほうが実行関数より弱かった。**
+
+`TreeInserted` に `childIsChild` を足した。構成側は二箇所だけである。
+そのうえで `insert_complete_of_nil`（入れる node の列が空なら関係を満たす状態は
+必ず `insert` の結果）まで進めた。残るのは列が空でない枝で、`removeEach` /
+`adopt` / `insertAt` の成功を関係の witness から組み立てる `insertEach_isOk` が要る。
+
+### glue 定理の量を数えた
+
+`:= rfl` 一行が 4 本、`_refines_` が 8 本、`_frame` が 3 本で計 15 本。
+`_sound` / `_complete` / `_deterministic` / `_iff` は 84 本、全体は 2,200 本を
+超える。glue を「仕様適合の証拠」と数えるべきでないのはそのとおりだが、
+量としては全体の 0.7% で、主張の重みを歪める規模ではない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
