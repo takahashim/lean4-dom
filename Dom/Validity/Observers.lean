@@ -217,30 +217,14 @@ theorem preservesRegs_move {s s' : DOMState} {node newParent : NodeId}
 
 theorem preservesRegs_replace {s s' : DOMState} {child node parent : NodeId}
     (hr : replace s child node parent = .ok s') : PreservesRegs s s' := by
-  unfold replace at hr
-  split at hr
-  · simp at hr
-  · split at hr
-    · simp at hr
-    · next pd hpd =>
-      simp only at hr
-      split at hr
-      · simp at hr
-      · next s₁ ha =>
-        split at hr
-        · simp at hr
-        · next s₂ hrm =>
-          have h₂ : PreservesRegs s₁ s₂ := by
-            revert hrm
-            split
-            · intro hrm; rw [← Except.ok.inj hrm]; exact PreservesRegs.refl _
-            · intro hrm; exact preservesRegs_remove (by simpa using hrm)
-          split at hr
-          · simp at hr
-          · next s₃ hi =>
-            rw [← Except.ok.inj hr]
-            refine (((preservesRegs_adopt ha).trans h₂).trans (preservesRegs_insert hi)).trans ?_
-            exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
+  obtain ⟨_, s₁, s₂, s₃, _, _, ha, hrm, hi, hs⟩ := replace_cases hr
+  have h₂ : PreservesRegs s₁ s₂ := by
+    rcases hrm with ⟨_, rfl⟩ | ⟨_, hrm⟩
+    · exact PreservesRegs.refl _
+    · exact preservesRegs_remove hrm
+  rw [hs]
+  refine (((preservesRegs_adopt ha).trans h₂).trans (preservesRegs_insert hi)).trans ?_
+  exact preservesRegs_congr (shapePreserving_of_tree_eq (by simp)) (by simp) (by simp)
 
 theorem preservesRegs_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hr : replaceAll s node parent = .ok s') : PreservesRegs s s' := by

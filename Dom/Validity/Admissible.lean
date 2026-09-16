@@ -266,69 +266,48 @@ theorem adopt_preserves_endpoints {s s' : DOMState} {node doc : NodeId}
 theorem replace_preserves_endpoints {s s' : DOMState} {child node parent : NodeId}
     (h : StructurallyValid s.tree) (hv : RangeEndpointsValid s)
     (hr : replace s child node parent = .ok s') : RangeEndpointsValid s' := by
-  unfold replace at hr
-  split at hr
-  · simp at hr
-  · next hvv =>
-    split at hr
-    · simp at hr
-    · next pd hpd =>
-      simp only at hr
-      split at hr
-      · simp at hr
-      · next s₁ ha =>
-        have hs₁ : StructurallyValid s₁.tree :=
-          structurallyValid_adopt h (isDocument_ownerDocument h.wellFormed hpd) ha
-        have hv₁ : RangeEndpointsValid s₁ := adopt_preserves_endpoints h hv ha
-        -- adopt の後、node は parent を持たない
-        have hnp : parentOf s₁.tree node = none := by
-          obtain ⟨s₀, hstep, hfinal⟩ := adopt_ok_cases ha
-          have hnp₀ : parentOf s₀.tree node = none := by
-            rcases hstep with ⟨hn, rfl⟩ | hrm
-            · exact hn
-            · exact remove_parentOf hrm
-          rcases hfinal with rfl | rfl
-          · exact hnp₀
-          · rw [DOMState.withTree_tree, parentOf_setOwnerDocument]
-            exact hnp₀
-        split at hr
-        · simp at hr
-        · next s₂ hrm =>
-          have hstep : StructurallyValid s₂.tree ∧ RangeEndpointsValid s₂ ∧
-              parentOf s₂.tree node = none ∧ ShapePreserving s₁.tree s₂.tree := by
-            revert hrm
-            split
-            · intro hrm
-              rw [← Except.ok.inj hrm]
-              exact ⟨hs₁, hv₁, hnp, ShapePreserving.refl _⟩
-            · intro hrm
-              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
-              obtain ⟨⟨q, hq⟩, hd⟩ := remove_ok hrm'
-              have hne : node ≠ child := by
-                intro he
-                rw [he, hq] at hnp
-                simp at hnp
-              refine ⟨structurallyValid_remove hs₁ hrm',
-                remove_preserves_endpoints hs₁.wellFormed hq
-                  (childCountKind_of_parentOf hs₁ hq) hv₁ hrm', ?_,
-                shapePreserving_remove hrm'⟩
-              rw [parentOf_detach hd, if_neg hne]
-              exact hnp
-          obtain ⟨hs₂, hv₂, hnp₂, hkp₂⟩ := hstep
-          split at hr
-          · simp at hr
-          · next s₃ hi =>
-            have hpk : ∀ pd', s₂.tree.get? parent = some pd' →
-                pd'.kind.canHaveChildren = true :=
-              kindFact_of_kindPreserving ((shapePreserving_adopt ha).trans hkp₂)
-                (P := fun k => k.canHaveChildren = true)
-                (ensurePreInsertionValidity_parentCanHaveChildren hvv)
-            have hv₃ : RangeEndpointsValid s₃ :=
-              insert_preserves_endpoints hs₂.wellFormed
-                (childCountKind_of_canHaveChildren hpk)
-                (fun q hq => by rw [hnp₂] at hq; simp at hq) hv₂ hi
-            rw [← Except.ok.inj hr]
-            exact rangeEndpointsValid_congr (by simp) (by simp) hv₃
+  obtain ⟨pd, s₁, s₂, s₃, hvv, hpd, ha, hrm, hi, hstate⟩ := replace_cases hr
+  have hs₁ : StructurallyValid s₁.tree :=
+    structurallyValid_adopt h (isDocument_ownerDocument h.wellFormed hpd) ha
+  have hv₁ : RangeEndpointsValid s₁ := adopt_preserves_endpoints h hv ha
+  -- adopt の後、node は parent を持たない
+  have hnp : parentOf s₁.tree node = none := by
+    obtain ⟨s₀, hstep, hfinal⟩ := adopt_ok_cases ha
+    have hnp₀ : parentOf s₀.tree node = none := by
+      rcases hstep with ⟨hn, rfl⟩ | hrm'
+      · exact hn
+      · exact remove_parentOf hrm'
+    rcases hfinal with rfl | rfl
+    · exact hnp₀
+    · rw [DOMState.withTree_tree, parentOf_setOwnerDocument]
+      exact hnp₀
+  have hstep : StructurallyValid s₂.tree ∧ RangeEndpointsValid s₂ ∧
+      parentOf s₂.tree node = none ∧ ShapePreserving s₁.tree s₂.tree := by
+    rcases hrm with ⟨_, rfl⟩ | ⟨_, hrm'⟩
+    · exact ⟨hs₁, hv₁, hnp, ShapePreserving.refl _⟩
+    · obtain ⟨⟨q, hq⟩, hd⟩ := remove_ok hrm'
+      have hne : node ≠ child := by
+        intro he
+        rw [he, hq] at hnp
+        simp at hnp
+      refine ⟨structurallyValid_remove hs₁ hrm',
+        remove_preserves_endpoints hs₁.wellFormed hq
+          (childCountKind_of_parentOf hs₁ hq) hv₁ hrm', ?_,
+        shapePreserving_remove hrm'⟩
+      rw [parentOf_detach hd, if_neg hne]
+      exact hnp
+  obtain ⟨hs₂, hv₂, hnp₂, hkp₂⟩ := hstep
+  have hpk : ∀ pd', s₂.tree.get? parent = some pd' →
+      pd'.kind.canHaveChildren = true :=
+    kindFact_of_kindPreserving ((shapePreserving_adopt ha).trans hkp₂)
+      (P := fun k => k.canHaveChildren = true)
+      (ensurePreInsertionValidity_parentCanHaveChildren hvv)
+  have hv₃ : RangeEndpointsValid s₃ :=
+    insert_preserves_endpoints hs₂.wellFormed
+      (childCountKind_of_canHaveChildren hpk)
+      (fun q hq => by rw [hnp₂] at hq; simp at hq) hv₂ hi
+  rw [hstate]
+  exact rangeEndpointsValid_congr (by simp) (by simp) hv₃
 
 /-- `removeEach` は range の両端を木の中に保つ。 -/
 theorem removeEach_preserves_endpoints :

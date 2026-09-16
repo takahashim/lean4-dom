@@ -1975,98 +1975,58 @@ theorem documentTreesValid_insert {s s' : DOMState} {node parent : NodeId}
 theorem structurallyValid_replace {s s' : DOMState} {child node parent : NodeId}
     (hwf : WellFormed s.tree) (h : StructurallyValid s.tree)
     (hr : replace s child node parent = .ok s') : StructurallyValid s'.tree := by
-  unfold replace at hr
-  split at hr
-  · simp at hr
-  · next hv =>
-    split at hr
-    · simp at hr
-    · next pd hpd =>
-      simp only at hr
-      split at hr
-      · simp at hr
-      · next s₁ ha =>
-        have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
-        have h₁ : StructurallyValid s₁.tree := structurallyValid_adopt h
-          (isDocument_ownerDocument hwf hpd) ha
-        have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
-        split at hr
-        · simp at hr
-        · next s₂ hrm =>
-          have hstep : StructurallyValid s₂.tree ∧ ShapePreserving s₁.tree s₂.tree ∧
-              WellFormed s₂.tree := by
-            revert hrm; split
-            · intro hrm
-              rw [← Except.ok.inj hrm]
-              exact ⟨h₁, ShapePreserving.refl _, hwf₁⟩
-            · intro hrm
-              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
-              exact ⟨structurallyValid_remove h₁ hrm', shapePreserving_remove hrm',
-                remove_preserves_wellformed hwf₁ hrm'⟩
-          obtain ⟨h₂, hkp₂, hwf₂⟩ := hstep
-          have hkp : ShapePreserving s.tree s₂.tree := hkp₁.trans hkp₂
-          split at hr
-          · simp at hr
-          · next s₃ hi =>
-            have f1 := kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
-              (ensurePreInsertionValidity_parentCanHaveChildren hv)
-            have f2 := kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
-              (ensurePreInsertionValidity_nodeNotDocument hv)
-            have f3 := doctypeFact_of_kindPreserving hkp
-              (ensurePreInsertionValidity_doctypeParentIsDocument hv)
-            have h₃ : StructurallyValid s₃.tree :=
-              structurallyValid_insert_of_facts h₂ f1 f2 f3 hi
-            rw [← Except.ok.inj hr]
-            simpa using h₃
+  obtain ⟨pd, s₁, s₂, s₃, hv, hpd, ha, hrm, hi, hs⟩ := replace_cases hr
+  have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
+  have h₁ : StructurallyValid s₁.tree := structurallyValid_adopt h
+    (isDocument_ownerDocument hwf hpd) ha
+  have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
+  have hstep : StructurallyValid s₂.tree ∧ ShapePreserving s₁.tree s₂.tree ∧
+      WellFormed s₂.tree := by
+    rcases hrm with ⟨_, rfl⟩ | ⟨_, hrm'⟩
+    · exact ⟨h₁, ShapePreserving.refl _, hwf₁⟩
+    · exact ⟨structurallyValid_remove h₁ hrm', shapePreserving_remove hrm',
+        remove_preserves_wellformed hwf₁ hrm'⟩
+  obtain ⟨h₂, hkp₂, hwf₂⟩ := hstep
+  have hkp : ShapePreserving s.tree s₂.tree := hkp₁.trans hkp₂
+  have f1 := kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+    (ensurePreInsertionValidity_parentCanHaveChildren hv)
+  have f2 := kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+    (ensurePreInsertionValidity_nodeNotDocument hv)
+  have f3 := doctypeFact_of_kindPreserving hkp
+    (ensurePreInsertionValidity_doctypeParentIsDocument hv)
+  have h₃ : StructurallyValid s₃.tree :=
+    structurallyValid_insert_of_facts h₂ f1 f2 f3 hi
+  rw [hs]
+  simpa using h₃
 
 theorem nodeDocumentsValid_replace {s s' : DOMState} {child node parent : NodeId}
     (hwf : WellFormed s.tree) (hsv : StructurallyValid s.tree) (h : NodeDocumentsValid s.tree)
     (hr : replace s child node parent = .ok s') : NodeDocumentsValid s'.tree := by
-  unfold replace at hr
-  split at hr
-  · simp at hr
-  · next hv =>
-    split at hr
-    · simp at hr
-    · next pd hpd =>
-      simp only at hr
-      split at hr
-      · simp at hr
-      · next s₁ ha =>
-        have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
-        have hs₁ : StructurallyValid s₁.tree := structurallyValid_adopt hsv
-          (isDocument_ownerDocument hwf hpd) ha
-        have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_adopt hsv h
-          (isDocument_ownerDocument hwf hpd) (ensurePreInsertionValidity_nodeNotDocument hv) ha
-        have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
-        split at hr
-        · simp at hr
-        · next s₂ hrm =>
-          have hstep : NodeDocumentsValid s₂.tree ∧ StructurallyValid s₂.tree ∧
-              ShapePreserving s₁.tree s₂.tree ∧ WellFormed s₂.tree := by
-            revert hrm; split
-            · intro hrm
-              rw [← Except.ok.inj hrm]
-              exact ⟨h₁, hs₁, ShapePreserving.refl _, hwf₁⟩
-            · intro hrm
-              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
-              exact ⟨nodeDocumentsValid_remove hwf₁ h₁ hrm', structurallyValid_remove hs₁ hrm',
-                shapePreserving_remove hrm', remove_preserves_wellformed hwf₁ hrm'⟩
-          obtain ⟨h₂, hs₂, hkp₂, hwf₂⟩ := hstep
-          have hkp : ShapePreserving s.tree s₂.tree := hkp₁.trans hkp₂
-          split at hr
-          · simp at hr
-          · next s₃ hi =>
-            have f1 := kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
-              (ensurePreInsertionValidity_parentCanHaveChildren hv)
-            have f2 := kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
-              (ensurePreInsertionValidity_nodeNotDocument hv)
-            have f3 := doctypeFact_of_kindPreserving hkp
-              (ensurePreInsertionValidity_doctypeParentIsDocument hv)
-            have h₃ : NodeDocumentsValid s₃.tree :=
-              nodeDocumentsValid_insert_of_facts hs₂ h₂ f1 f2 f3 hi
-            rw [← Except.ok.inj hr]
-            simpa using h₃
+  obtain ⟨pd, s₁, s₂, s₃, hv, hpd, ha, hrm, hi, hstate⟩ := replace_cases hr
+  have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
+  have hs₁ : StructurallyValid s₁.tree := structurallyValid_adopt hsv
+    (isDocument_ownerDocument hwf hpd) ha
+  have h₁ : NodeDocumentsValid s₁.tree := nodeDocumentsValid_adopt hsv h
+    (isDocument_ownerDocument hwf hpd) (ensurePreInsertionValidity_nodeNotDocument hv) ha
+  have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
+  have hstep : NodeDocumentsValid s₂.tree ∧ StructurallyValid s₂.tree ∧
+      ShapePreserving s₁.tree s₂.tree ∧ WellFormed s₂.tree := by
+    rcases hrm with ⟨_, rfl⟩ | ⟨_, hrm'⟩
+    · exact ⟨h₁, hs₁, ShapePreserving.refl _, hwf₁⟩
+    · exact ⟨nodeDocumentsValid_remove hwf₁ h₁ hrm', structurallyValid_remove hs₁ hrm',
+        shapePreserving_remove hrm', remove_preserves_wellformed hwf₁ hrm'⟩
+  obtain ⟨h₂, hs₂, hkp₂, hwf₂⟩ := hstep
+  have hkp : ShapePreserving s.tree s₂.tree := hkp₁.trans hkp₂
+  have f1 := kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+    (ensurePreInsertionValidity_parentCanHaveChildren hv)
+  have f2 := kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+    (ensurePreInsertionValidity_nodeNotDocument hv)
+  have f3 := doctypeFact_of_kindPreserving hkp
+    (ensurePreInsertionValidity_doctypeParentIsDocument hv)
+  have h₃ : NodeDocumentsValid s₃.tree :=
+    nodeDocumentsValid_insert_of_facts hs₂ h₂ f1 f2 f3 hi
+  rw [hstate]
+  simpa using h₃
 
 
 
@@ -2494,60 +2454,38 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
 theorem documentTreesValid_replace {s s' : DOMState} {child node parent : NodeId}
     (hwf : WellFormed s.tree) (hsv : StructurallyValid s.tree) (h : DocumentTreesValid s.tree)
     (hr : replace s child node parent = .ok s') : DocumentTreesValid s'.tree := by
-  unfold replace at hr
-  split at hr
-  · simp at hr
-  · next hv =>
-    split at hr
-    · simp at hr
-    · next pd hpd =>
-      simp only at hr
-      split at hr
-      · simp at hr
-      · next s₁ ha =>
-        have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
-        have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_adopt hwf h ha
-        have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
-        have hch₁ : ∀ p, childrenOf s₁.tree p =
-            ListUtil.removeAll (childrenOf s.tree p) node := adopt_childrenOf hwf ha
-        split at hr
-        · simp at hr
-        · next s₂ hrm =>
-          have hstep : DocumentTreesValid s₂.tree ∧ ShapePreserving s₁.tree s₂.tree ∧
-              WellFormed s₂.tree ∧
-              (∀ p, childrenOf s₂.tree p = ListUtil.removeAll (childrenOf s₁.tree p) child) := by
-            revert hrm
-            split
-            · next hnone =>
-              intro hrm
-              rw [← Except.ok.inj hrm]
-              refine ⟨h₁, ShapePreserving.refl _, hwf₁, fun p => ?_⟩
-              rw [ListUtil.removeAll_eq_self]
-              intro hmem
-              have hpar := parentOf_of_mem_childrenOf hwf₁ hmem
-              rw [hnone] at hpar
-              simp at hpar
-            · intro hrm
-              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
-              exact ⟨documentTreesValid_remove hwf₁ h₁ hrm', shapePreserving_remove hrm',
-                remove_preserves_wellformed hwf₁ hrm',
-                detach_childrenOf_removeAll hwf₁ (remove_ok hrm').2⟩
-          obtain ⟨h₂, hkp₂, hwf₂, hch₂⟩ := hstep
-          have hkind : ∀ m, kindOf s₂.tree m = kindOf s.tree m := (hkp₁.trans hkp₂).kind
-          have hchall : ∀ p, childrenOf s₂.tree p =
-              ListUtil.removeAll (ListUtil.removeAll (childrenOf s.tree p) node) child := by
-            intro p
-            rw [hch₂ p, hch₁ p]
-          split at hr
-          · simp at hr
-          · next s₃ hi =>
-            have h₃ : DocumentTreesValid s₃.tree := by
-              refine documentTreesValid_insert_of_seqOk hwf₂ h₂ ?_ hi
-              intro nd₂ hnd₂
-              obtain ⟨nd, hnd, _⟩ := shapePreserving_get? (hkp₁.trans hkp₂) hnd₂
-              exact insertSeqOk_of_replace hwf hsv hpd hnd hv h₂ hkind hchall hnd₂
-            rw [← Except.ok.inj hr]
-            simpa using h₃
+  obtain ⟨pd, s₁, s₂, s₃, hv, hpd, ha, hrm, hi, hstate⟩ := replace_cases hr
+  have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
+  have h₁ : DocumentTreesValid s₁.tree := documentTreesValid_adopt hwf h ha
+  have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
+  have hch₁ : ∀ p, childrenOf s₁.tree p =
+      ListUtil.removeAll (childrenOf s.tree p) node := adopt_childrenOf hwf ha
+  have hstep : DocumentTreesValid s₂.tree ∧ ShapePreserving s₁.tree s₂.tree ∧
+      WellFormed s₂.tree ∧
+      (∀ p, childrenOf s₂.tree p = ListUtil.removeAll (childrenOf s₁.tree p) child) := by
+    rcases hrm with ⟨hnone, rfl⟩ | ⟨_, hrm'⟩
+    · refine ⟨h₁, ShapePreserving.refl _, hwf₁, fun p => ?_⟩
+      rw [ListUtil.removeAll_eq_self]
+      intro hmem
+      have hpar := parentOf_of_mem_childrenOf hwf₁ hmem
+      rw [hnone] at hpar
+      simp at hpar
+    · exact ⟨documentTreesValid_remove hwf₁ h₁ hrm', shapePreserving_remove hrm',
+        remove_preserves_wellformed hwf₁ hrm',
+        detach_childrenOf_removeAll hwf₁ (remove_ok hrm').2⟩
+  obtain ⟨h₂, hkp₂, hwf₂, hch₂⟩ := hstep
+  have hkind : ∀ m, kindOf s₂.tree m = kindOf s.tree m := (hkp₁.trans hkp₂).kind
+  have hchall : ∀ p, childrenOf s₂.tree p =
+      ListUtil.removeAll (ListUtil.removeAll (childrenOf s.tree p) node) child := by
+    intro p
+    rw [hch₂ p, hch₁ p]
+  have h₃ : DocumentTreesValid s₃.tree := by
+    refine documentTreesValid_insert_of_seqOk hwf₂ h₂ ?_ hi
+    intro nd₂ hnd₂
+    obtain ⟨nd, hnd, _⟩ := shapePreserving_get? (hkp₁.trans hkp₂) hnd₂
+    exact insertSeqOk_of_replace hwf hsv hpd hnd hv h₂ hkind hchall hnd₂
+  rw [hstate]
+  simpa using h₃
 
 /-! ## replace all -/
 

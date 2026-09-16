@@ -388,42 +388,114 @@ def preRemove (s : DOMState) (child parent : NodeId) : Except DOMException DOMSt
   -- step 2
   else remove s child
 
+/--
+DOM Standard §4.2.3 "replace" step 2-3 の reference child。
+
+`child` の次の兄弟。ただしそれが `node` 自身なら、さらにその次を取る。
+-/
+def replaceReferenceChild (t : Tree) (child node : NodeId) : Option NodeId :=
+  if nextSibling t child = some node then nextSibling t node else nextSibling t child
+
+/--
+DOM Standard §4.2.3 "replace" step 8 の nodes。
+
+fragment なら children、そうでなければ « node »。
+-/
+def replaceNodes (t : Tree) (node : NodeId) : List NodeId :=
+  match t.get? node with
+  | some nd => if nd.kind == .documentFragment then nd.children else [node]
+  | none => [node]
+
 /-- DOM Standard §4.2.3 "replace"。 -/
 def replace (s : DOMState) (child node parent : NodeId) : Except DOMException DOMState :=
   -- step 1
   match ensurePreInsertionValidity s.tree node parent (some child) [child] with
   | .error e => .error e
   | .ok () =>
-    -- step 2-3
-    let referenceChild₀ := nextSibling s.tree child
-    let referenceChild := if referenceChild₀ = some node then nextSibling s.tree node
-                          else referenceChild₀
     match s.tree.get? parent with
     | none => .error .notFoundError
     | some pd =>
-      -- step 4。record に載せる previousSibling は木を変える前の値。
-      let previousSibling₀ := previousSibling s.tree child
-      -- step 8。nodes は fragment なら children、そうでなければ « node »。
-      let nodes := match s.tree.get? node with
-        | some nd => if nd.kind == .documentFragment then nd.children else [node]
-        | none => [node]
       -- step 6
       match adopt s node pd.ownerDocument with
       | .error e => .error e
       | .ok s₁ =>
         -- step 7。removedNodes は child が実際に外れたときだけ « child »。
-        let removed := if (parentOf s₁.tree child).isSome then [child] else []
         match (match parentOf s₁.tree child with
                | none => (.ok s₁ : Except DOMException DOMState)
                | some _ => remove s₁ child true) with
         | .error e => .error e
         | .ok s₂ =>
           -- step 9。record は step 10 でまとめて積むので、ここでは抑制する。
-          match insert s₂ node parent referenceChild true with
+          match insert s₂ node parent (replaceReferenceChild s.tree child node) true with
           | .error e => .error e
           | .ok s₃ =>
-            -- step 10
-            .ok (queueTreeMutationRecord s₃ parent nodes removed previousSibling₀ referenceChild)
+            -- step 10。previousSibling と nodes は木を変える前の値。
+            .ok (queueTreeMutationRecord s₃ parent (replaceNodes s.tree node)
+              (if (parentOf s₁.tree child).isSome then [child] else [])
+              (previousSibling s.tree child) (replaceReferenceChild s.tree child node))
+
+/--
+`replace` が成功したときに通った経路を、本体を開かずに取り出す。
+
+DOM Standard §4.2.3 の step 1 / 6 / 7 / 9 / 10 にあたる。step 7 だけが
+「`child` に parent があるか」で二つに分かれる。
+-/
+theorem replace_cases {s s' : DOMState} {child node parent : NodeId}
+    (h : replace s child node parent = .ok s') :
+    ∃ pd s₁ s₂ s₃,
+      ensurePreInsertionValidity s.tree node parent (some child) [child] = .ok () ∧
+      s.tree.get? parent = some pd ∧
+      adopt s node pd.ownerDocument = .ok s₁ ∧
+      ((parentOf s₁.tree child = none ∧ s₂ = s₁) ∨
+        ((∃ q, parentOf s₁.tree child = some q) ∧ remove s₁ child true = .ok s₂)) ∧
+      insert s₂ node parent (replaceReferenceChild s.tree child node) true = .ok s₃ ∧
+      s' = queueTreeMutationRecord s₃ parent (replaceNodes s.tree node)
+        (if (parentOf s₁.tree child).isSome then [child] else [])
+        (previousSibling s.tree child) (replaceReferenceChild s.tree child node) := by
+  unfold replace at h
+  split at h
+  · simp at h
+  · next hv =>
+    split at h
+    · simp at h
+    · next pd hpd =>
+      split at h
+      · simp at h
+      · next s₁ ha =>
+        split at h
+        · simp at h
+        · next s₂ hrm =>
+          split at h
+          · simp at h
+          · next s₃ hi =>
+            refine ⟨pd, s₁, s₂, s₃, ?_, hpd, ha, ?_, hi, (Except.ok.inj h).symm⟩
+            · cases hx : ensurePreInsertionValidity s.tree node parent (some child) [child] with
+              | error e => rw [hx] at hv; exact absurd hv (by simp)
+              | ok u => cases u; rfl
+            · revert hrm
+              cases hp : parentOf s₁.tree child with
+              | none => intro hrm; exact Or.inl ⟨rfl, (Except.ok.inj hrm).symm⟩
+              | some q => intro hrm; exact Or.inr ⟨⟨q, rfl⟩, hrm⟩
+
+/-- `replaceReferenceChild` の値。 -/
+theorem replaceReferenceChild_eq (t : Tree) (child node : NodeId) :
+    replaceReferenceChild t child node =
+      if nextSibling t child = some node then nextSibling t node else nextSibling t child := rfl
+
+/-- `replaceNodes` の値。 -/
+theorem replaceNodes_eq {t : Tree} {node : NodeId} {nd : NodeData} (hnd : t.get? node = some nd) :
+    replaceNodes t node =
+      if nd.kind == NodeKind.documentFragment then nd.children else [node] := by
+  unfold replaceNodes
+  rw [hnd]
+
+/-- step 1 で落ちたら `replace` はその例外をそのまま返す。 -/
+theorem replace_of_validity_error {s : DOMState} {child node parent : NodeId}
+    {e : DOMException}
+    (hv : ensurePreInsertionValidity s.tree node parent (some child) [child] = .error e) :
+    replace s child node parent = .error e := by
+  unfold replace
+  rw [hv]
 
 /--
 DOM Standard §4.2.3 "replace all"。

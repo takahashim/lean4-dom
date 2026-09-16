@@ -150,6 +150,10 @@ open Dom.Audit
   Dom.rangeShiftAfterRemove_node
   Dom.insert_cases
   Dom.insert_of_not_fragment
+  Dom.replace_cases
+  Dom.replace_of_validity_error
+  Dom.replaceReferenceChild_eq
+  Dom.replaceNodes_eq
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

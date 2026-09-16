@@ -400,29 +400,14 @@ theorem preRemove_preserves_wellformed {s s' : DOMState} {child parent : NodeId}
 theorem replace_preserves_wellformed {s s' : DOMState} {child node parent : NodeId}
     (hwf : WellFormed s.tree) (h : replace s child node parent = .ok s') :
     WellFormed s'.tree := by
-  unfold replace at h
-  split at h
-  · simp at h
-  · split at h
-    · simp at h
-    · next pd hpd =>
-      simp only at h
-      split at h
-      · simp at h
-      · next s₁ ha =>
-        have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
-        split at h
-        · simp at h
-        · next s₂ hr =>
-          have hwf₂ : WellFormed s₂.tree := by
-            revert hr; split
-            · intro hr; rw [← Except.ok.inj hr]; exact hwf₁
-            · intro hr; exact remove_preserves_wellformed hwf₁ (by simpa using hr)
-          split at h
-          · simp at h
-          · next s₃ hi =>
-            rw [← Except.ok.inj h]
-            simpa using insert_preserves_wellformed hwf₂ hi
+  obtain ⟨pd, s₁, s₂, s₃, _, hpd, ha, hrm, hi, hs⟩ := replace_cases h
+  have hwf₁ := adopt_preserves_wellformed hwf (isDocument_ownerDocument hwf hpd) ha
+  have hwf₂ : WellFormed s₂.tree := by
+    rcases hrm with ⟨_, rfl⟩ | ⟨_, hrm⟩
+    · exact hwf₁
+    · exact remove_preserves_wellformed hwf₁ hrm
+  rw [hs]
+  simpa using insert_preserves_wellformed hwf₂ hi
 
 theorem replaceAll_preserves_wellformed {s s' : DOMState} {node : Option NodeId}
     {parent : NodeId} (hwf : WellFormed s.tree) (h : replaceAll s node parent = .ok s') :
@@ -913,30 +898,14 @@ theorem shapePreserving_moveBefore {s s' : DOMState} {parent node : NodeId}
 
 theorem shapePreserving_replace {s s' : DOMState} {child node parent : NodeId}
     (hr : replace s child node parent = .ok s') : ShapePreserving s.tree s'.tree := by
-  unfold replace at hr
-  split at hr
-  · simp at hr
-  · split at hr
-    · simp at hr
-    · next pd hpd =>
-      simp only at hr
-      split at hr
-      · simp at hr
-      · next s₁ ha =>
-        split at hr
-        · simp at hr
-        · next s₂ hrm =>
-          have h₂ : ShapePreserving s₁.tree s₂.tree := by
-            revert hrm
-            split
-            · intro hrm; rw [← Except.ok.inj hrm]; exact ShapePreserving.refl _
-            · intro hrm; exact shapePreserving_remove (by simpa using hrm)
-          split at hr
-          · simp at hr
-          · next s₃ hi =>
-            rw [← Except.ok.inj hr]
-            refine (((shapePreserving_adopt ha).trans h₂).trans (shapePreserving_insert hi)).trans ?_
-            exact shapePreserving_of_tree_eq (by simp)
+  obtain ⟨_, s₁, s₂, s₃, _, _, ha, hrm, hi, hs⟩ := replace_cases hr
+  have h₂ : ShapePreserving s₁.tree s₂.tree := by
+    rcases hrm with ⟨_, rfl⟩ | ⟨_, hrm⟩
+    · exact ShapePreserving.refl _
+    · exact shapePreserving_remove hrm
+  rw [hs]
+  refine (((shapePreserving_adopt ha).trans h₂).trans (shapePreserving_insert hi)).trans ?_
+  exact shapePreserving_of_tree_eq (by simp)
 
 theorem shapePreserving_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (hr : replaceAll s node parent = .ok s') : ShapePreserving s.tree s'.tree := by

@@ -130,9 +130,8 @@ theorem replace_cycle_precedes_notFound {s : DOMState} {parent : NodeId} {pd : N
     (hwf : WellFormed s.tree) (hpd : s.tree.get? parent = some pd)
     (hk : pd.kind.canHaveChildren = true) :
     replace s parent parent parent = .error .hierarchyRequestError := by
-  unfold replace
-  rw [ensurePreInsertionValidity_step2 hpd hpd hk
-    ((isInclusiveAncestorOf_iff hwf parent parent).mpr (Or.inl rfl))]
+  exact replace_of_validity_error (ensurePreInsertionValidity_step2 hpd hpd hk
+    ((isInclusiveAncestorOf_iff hwf parent parent).mpr (Or.inl rfl)))
 
 /-- `insertBefore` でも同じ順序である。 -/
 theorem insertBefore_cycle_precedes_notFound {s : DOMState} {parent : NodeId} {pd : NodeData}

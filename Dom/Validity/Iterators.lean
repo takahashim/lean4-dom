@@ -284,47 +284,26 @@ theorem iterCtx_moveBefore {s s' : DOMState} {parent node : NodeId} {child : Opt
 
 theorem iterCtx_replace {s s' : DOMState} {child node parent : NodeId}
     (h : IterCtx s) (hr : replace s child node parent = .ok s') : IterCtx s' := by
-  unfold replace at hr
-  split at hr
-  · simp at hr
-  · next hv =>
-    split at hr
-    · simp at hr
-    · next pd hpd =>
-      simp only at hr
-      split at hr
-      · simp at hr
-      · next s₁ ha =>
-        have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
-        have h₁ : IterCtx s₁ := iterCtx_adopt h (isDocument_ownerDocument h.wellFormed hpd)
-          (ensurePreInsertionValidity_nodeNotDocument hv) ha
-        split at hr
-        · simp at hr
-        · next s₂ hrm =>
-          have hstep : IterCtx s₂ ∧ ShapePreserving s₁.tree s₂.tree := by
-            revert hrm
-            split
-            · intro hrm
-              rw [← Except.ok.inj hrm]
-              exact ⟨h₁, ShapePreserving.refl _⟩
-            · intro hrm
-              have hrm' : remove s₁ child true = .ok s₂ := by simpa using hrm
-              exact ⟨iterCtx_remove h₁ hrm', shapePreserving_remove hrm'⟩
-          obtain ⟨h₂, hkp₂⟩ := hstep
-          have hkp : ShapePreserving s.tree s₂.tree := hkp₁.trans hkp₂
-          split at hr
-          · simp at hr
-          · next s₃ hi =>
-            have h₃ : IterCtx s₃ :=
-              iterCtx_insert h₂
-                (kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
-                  (ensurePreInsertionValidity_parentCanHaveChildren hv))
-                (kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
-                  (ensurePreInsertionValidity_nodeNotDocument hv))
-                (doctypeFact_of_kindPreserving hkp
-                  (ensurePreInsertionValidity_doctypeParentIsDocument hv)) hi
-            rw [← Except.ok.inj hr]
-            exact IterCtx.congr (by simp) (by simp) h₃
+  obtain ⟨pd, s₁, s₂, s₃, hv, hpd, ha, hrm, hi, hstate⟩ := replace_cases hr
+  have hkp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_adopt ha
+  have h₁ : IterCtx s₁ := iterCtx_adopt h (isDocument_ownerDocument h.wellFormed hpd)
+    (ensurePreInsertionValidity_nodeNotDocument hv) ha
+  have hstep : IterCtx s₂ ∧ ShapePreserving s₁.tree s₂.tree := by
+    rcases hrm with ⟨_, rfl⟩ | ⟨_, hrm'⟩
+    · exact ⟨h₁, ShapePreserving.refl _⟩
+    · exact ⟨iterCtx_remove h₁ hrm', shapePreserving_remove hrm'⟩
+  obtain ⟨h₂, hkp₂⟩ := hstep
+  have hkp : ShapePreserving s.tree s₂.tree := hkp₁.trans hkp₂
+  have h₃ : IterCtx s₃ :=
+    iterCtx_insert h₂
+      (kindFact_of_kindPreserving hkp (P := fun k => k.canHaveChildren = true)
+        (ensurePreInsertionValidity_parentCanHaveChildren hv))
+      (kindFact_of_kindPreserving hkp (P := fun k => k ≠ NodeKind.document)
+        (ensurePreInsertionValidity_nodeNotDocument hv))
+      (doctypeFact_of_kindPreserving hkp
+        (ensurePreInsertionValidity_doctypeParentIsDocument hv)) hi
+  rw [hstate]
+  exact IterCtx.congr (by simp) (by simp) h₃
 
 theorem iterCtx_replaceAll {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (h : IterCtx s)
