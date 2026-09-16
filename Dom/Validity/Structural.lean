@@ -6,7 +6,7 @@ import Dom.Properties.Tree
 `WellFormed`（parent と children の整合、children の重複禁止、非循環性、
 node document が Document であること）に、**kind から来る構造制約** を重ねる。
 
-`notes/research-foundation-roadmap.md` §4 の `StructurallyValid` である。
+`docs/status.md` の「Phase A：admissibility」が立てた層の `StructurallyValid` である。
 `WellFormed` は一般的な木の整合性なのでそのまま残し、
 DOM 固有の妥当性はこの層から上に足していく。
 -/
@@ -27,7 +27,7 @@ kind から決まる構造制約。
   したがって CharacterData と DocumentType の children は常に空である。
 * DocumentType の parent は Document だけである（同 step 5）。
 
-三つ目は `notes/research-foundation-roadmap.md` §4 の一覧には無かったが、
+三つ目は当初の一覧には無かったが、
 `insert` が `DocumentTreesValid` を保つことの証明に要る。
 これが無いと「doctype を子に持つ DocumentFragment」が admissible になり、
 それを Document に入れると doctype が document element より後ろに来てしまう。

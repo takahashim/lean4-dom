@@ -5,7 +5,7 @@ import Dom.Properties.Iterator
 /-!
 # admissibility から導かれる補助前提
 
-`notes/research-foundation-roadmap.md` §4 の目的は、
+`docs/status.md` の「Phase A：admissibility」が立てた層の目的は、
 Range と Iterator の保存定理を使うたびに **モデル外の前提** を渡さずに済むようにすることである。
 
 これまで `ChildCountKind` と `OtherDocumentIteratorsOutside` は

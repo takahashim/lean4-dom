@@ -5,7 +5,7 @@ import Dom.Attribute.Algorithms
 /-!
 # 観測モデル
 
-`notes/research-foundation-roadmap.md` §9。
+`docs/status.md` の「観測モデル」。
 
 Dommy との差分テストで **何を比べるか** を型で固定する。
 Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い。

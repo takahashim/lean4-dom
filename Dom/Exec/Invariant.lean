@@ -11,8 +11,7 @@ import Dom.Properties.Import
 /-!
 # oracle が自分の invariant を破らないこと
 
-`notes/research-foundation-roadmap.md` Phase B の
-`runOperations_never_reports_invariant_violation`。
+`docs/theorems.md` の `Dom.Exec.runOperations_no_violation`。
 
 `Dom/Exec/Scenario.lean` の `runOperations` は各 step の後に
 `AdmissibleDOMState` の七つの成分を実行時に検査し、
@@ -339,7 +338,7 @@ theorem run_preserves_admissibility :
 
 `AdmissibleDOMState` が **局所不変条件の閉包**であるのに対し、
 こちらは **構成可能性**である。両者は別の概念なので混同しない
-（`notes/research-foundation-roadmap.md` §4）。
+（`docs/status.md` の「Phase A：admissibility」）。
 -/
 inductive ReachableFrom (initial : DOMState → Prop) : DOMState → Prop where
   | base {s : DOMState} : initial s → ReachableFrom initial s

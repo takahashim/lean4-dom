@@ -5,7 +5,7 @@ import Dom.Properties.CharacterData
 /-!
 # §4.2.3 の algorithm による admissibility の保存
 
-`notes/research-foundation-roadmap.md` Phase A の完了条件
+`docs/status.md` の「Phase A：admissibility」の完了条件
 「全対象 operation の `preserves_admissible`」に向けて、
 まず木に関する三つの層（`StructurallyValid` / `NodeDocumentsValid` /
 `DocumentTreesValid`）を algorithm ごとに積み上げる。

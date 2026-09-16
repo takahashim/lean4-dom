@@ -4,7 +4,7 @@ import Dom.Properties.PreInsertValidity
 /-!
 # 契約：成功条件と例外の順序
 
-`notes/research-foundation-roadmap.md` §6。
+`docs/theorems.md` の「契約」。
 
 preservation（妥当な入力から妥当な出力）と effect / frame は
 `Dom/Validity/` と `Dom/Properties/` に散らばっている。

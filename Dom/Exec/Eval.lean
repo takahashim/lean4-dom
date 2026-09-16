@@ -125,7 +125,7 @@ def stepIterator (s : DOMState) (i : Nat)
 要求するのは **admissible な状態**（`AdmissibleDOMState`）であることである。
 range については両端が木の中にあることだけを見る。
 順序（`BoundaryLE`）は仕様の invariant ではないので要求しない
-（`notes/research-foundation-roadmap.md` §4。反例探索のために loader は
+（`docs/status.md` の「Phase A：admissibility」。反例探索のために loader は
 admissible な状態を広く受理してよい）。
 
 ただし differential testing に使う scenario は、Dommy 側が

@@ -4,7 +4,7 @@ import Dom.Mutation.Algorithms
 /-!
 # document tree の妥当性
 
-`notes/research-foundation-roadmap.md` §4 の `DocumentTreesValid`。
+`docs/status.md` の「Phase A：admissibility」が立てた層の `DocumentTreesValid`。
 
 Document の children には仕様上の制約がある（§4.2.3 "ensure pre-insertion validity" step 6）。
 これまで model はこの制約を **API 境界の検査** としてしか持っておらず、

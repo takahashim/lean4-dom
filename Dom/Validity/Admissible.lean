@@ -6,7 +6,7 @@ import Dom.Properties.PreInsertValidity
 /-!
 # `AdmissibleDOMState` の保存
 
-`notes/research-foundation-roadmap.md` Phase A の完了条件
+`docs/status.md` の「Phase A：admissibility」の完了条件
 「全対象 operation の `preserves_admissible`」。
 
 七つの成分のうち木に関する三つ（`Dom/Validity/AlgorithmPreservation.lean`）、
@@ -624,7 +624,7 @@ theorem admissible_setData {s s' : DOMState} {n : NodeId} {data : String}
 /--
 `remove` は live Range と NodeIterator の妥当性を保つ。
 
-`notes/research-foundation-roadmap.md` §16 の `remove_preserves_live_objects`。
+`docs/status.md` の「Phase A：admissibility」の `remove_preserves_live_objects`。
 pre-remove steps が両方を仕様どおり動かすことの帰結である。
 -/
 theorem remove_preserves_live_objects {s s' : DOMState} {n : NodeId} {b : Bool}

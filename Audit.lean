@@ -7,7 +7,7 @@ import Dom.Exec.Invariant
 /-!
 # 公開主定理の axiom audit
 
-`notes/research-foundation-roadmap.md` §11.1。
+`docs/theorems.md` の「axiom 依存」。
 
 公開する主定理が、許容した三つの axiom
 （`propext` / `Classical.choice` / `Quot.sound`）以外に依存していないことを検査する。

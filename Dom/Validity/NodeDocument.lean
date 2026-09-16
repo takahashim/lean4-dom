@@ -3,7 +3,7 @@ import Dom.Validity.Structural
 /-!
 # node document の妥当性
 
-`notes/research-foundation-roadmap.md` §4 の `NodeDocumentsValid`。
+`docs/status.md` の「Phase A：admissibility」が立てた層の `NodeDocumentsValid`。
 
 `NodeData.ownerDocument` が表しているのは API の `ownerDocument` ではなく、
 仕様の **node document** である。両者は Document 自身で食い違う。

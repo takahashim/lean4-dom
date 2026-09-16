@@ -3,7 +3,7 @@ import Dom.Exec.Invariant
 /-!
 # `BoundaryLE` の negative result
 
-`notes/research-foundation-roadmap.md` §8。
+`docs/status.md` の「`insert` 側の `BoundaryLE` は **保たれない**（仕様の性質）」。
 
 live range の「start ≤ end」は、**仕様の invariant ではない**。
 `insert` は step 5（parent を指す boundary point の offset を `+count` する）を
