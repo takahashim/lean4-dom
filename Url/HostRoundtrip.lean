@@ -58,12 +58,6 @@ theorem percentDecodeToString_ascii {l : List Char}
   rw [← utf8Encode_ofList_ascii l (fun c hc => (h c hc).1)]
   rw [utf8Decode_encode, String.toList_ofList]
 
-/-- 小文字に直しても変わらない文字だけの列は、`asciiLowercase` で変わらない。 -/
-theorem asciiLowercase_id {l : List Char} (h : ∀ c ∈ l, asciiLowerChar c = c) :
-    asciiLowercase (String.ofList l) = String.ofList l := by
-  unfold asciiLowercase
-  rw [String.toList_ofList, map_self_of_mem h]
-
 /-- すでに domain の形をしている列は、domain parser を素通りする。 -/
 theorem asciiDomainToASCII_id {l : List Char} (hne : ¬l = [])
     (h : ∀ c ∈ l, isAscii c = true ∧ asciiLowerChar c = c ∧ isForbiddenDomain c = false) :
@@ -256,30 +250,6 @@ example : hostParser asciiDomainToASCII
 `canonicalUrl` の host の条件は、host parser の出力ならいつでも成り立つ（`hostParser_idem`）。
 host の種類ごとに、上の四つの往復へ振り分ける。
 -/
-
-/-- 小文字に直す操作は二度やっても同じである。 -/
-theorem asciiLowerChar_idem (c : Char) : asciiLowerChar (asciiLowerChar c) = asciiLowerChar c := by
-  unfold asciiLowerChar
-  split
-  · next h =>
-    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq] at h
-    rw [if_neg ?_]
-    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_le]
-    rw [toNat_ofNat_ascii (by omega)]
-    omega
-  · rfl
-
-/-- 小文字に直しても ASCII のままである。 -/
-theorem asciiLowerChar_ascii {c : Char} (h : isAscii c = true) :
-    isAscii (asciiLowerChar c) = true := by
-  simp only [isAscii, decide_eq_true_eq] at h ⊢
-  unfold asciiLowerChar
-  split
-  · next h2 =>
-    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq] at h2
-    rw [toNat_ofNat_ascii (by omega)]
-    omega
-  · exact h
 
 /-- domain parser の出力は、空でない小文字の ASCII で、forbidden domain code point を含まない。 -/
 theorem asciiDomainToASCII_out {dom : List Char} {d : String}

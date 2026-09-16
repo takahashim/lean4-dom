@@ -3272,13 +3272,6 @@ theorem schemeChar_of_canonical {c : Char}
     Bool.eq_false_iff, ne_eq, not_and, Nat.not_le] at *
   rcases h with (((h | h) | h) | h) | h <;> simp_all <;> omega
 
-/-- 各文字を変えない写像なら、list は変わらない。 -/
-theorem map_self_of_mem : ∀ {l : List Char} {f : Char → Char}, (∀ c ∈ l, f c = c) → l.map f = l
-  | [], _, _ => rfl
-  | c :: t, f, h => by
-    simp only [List.map_cons, h c (by simp)]
-    rw [map_self_of_mem (fun x hx => h x (by simp [hx]))]
-
 /-- canonical な scheme は、先頭が小文字 alpha、残りが scheme の文字で、すでに小文字である。 -/
 theorem canonicalScheme_shape {s : String} (h : canonicalScheme s = true) :
     ∃ a rest, s.toList = a :: rest ∧ isAsciiLowerAlpha a = true ∧

@@ -150,4 +150,89 @@ theorem asciiLowerChar_ne {c d : Char} (hd : isAsciiLowerAlpha d = false) (h : �
     omega
   · exact h
 
+/-! ## list 上の道具 -/
+
+/-- 各文字を変えない写像なら、list は変わらない。 -/
+theorem map_self_of_mem : ∀ {l : List Char} {f : Char → Char}, (∀ c ∈ l, f c = c) → l.map f = l
+  | [], _, _ => rfl
+  | c :: t, f, h => by
+    simp only [List.map_cons, h c (by simp)]
+    rw [map_self_of_mem (fun x hx => h x (by simp [hx]))]
+
+/-! ## ASCII lowercase の性質 -/
+
+/-- 小文字に直しても変わらない文字だけの列は、`asciiLowercase` で変わらない。 -/
+theorem asciiLowercase_id {l : List Char} (h : ∀ c ∈ l, asciiLowerChar c = c) :
+    asciiLowercase (String.ofList l) = String.ofList l := by
+  unfold asciiLowercase
+  rw [String.toList_ofList, map_self_of_mem h]
+
+/-- 小文字に直す操作は二度やっても同じである。 -/
+theorem asciiLowerChar_idem (c : Char) : asciiLowerChar (asciiLowerChar c) = asciiLowerChar c := by
+  unfold asciiLowerChar
+  split
+  · next h =>
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [if_neg ?_]
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_le]
+    rw [toNat_ofNat_ascii (by omega)]
+    omega
+  · rfl
+
+/-- 小文字に直しても ASCII のままである。 -/
+theorem asciiLowerChar_ascii {c : Char} (h : isAscii c = true) :
+    isAscii (asciiLowerChar c) = true := by
+  simp only [isAscii, decide_eq_true_eq] at h ⊢
+  unfold asciiLowerChar
+  split
+  · next h2 =>
+    simp only [isAsciiUpperAlpha, Bool.and_eq_true, decide_eq_true_eq] at h2
+    rw [toNat_ofNat_ascii (by omega)]
+    omega
+  · exact h
+
+/-- upper alpha でない文字は `asciiLowerChar` で変わらない。 -/
+theorem asciiLowerChar_of_not_upper {c : Char} (h : isAsciiUpperAlpha c = false) :
+    asciiLowerChar c = c := by
+  unfold asciiLowerChar
+  rw [if_neg (by rw [h]; simp)]
+
+/-- ASCII でない文字は `asciiLowerChar` で変わらない。 -/
+theorem asciiLowerChar_of_not_ascii {c : Char} (h : isAscii c = false) :
+    asciiLowerChar c = c := by
+  refine asciiLowerChar_of_not_upper ?_
+  simp only [isAscii, decide_eq_false_iff_not, Nat.not_le] at h
+  simp only [isAsciiUpperAlpha, Bool.and_eq_false_iff, decide_eq_false_iff_not, Nat.not_le]
+  exact Or.inr (by omega)
+
+/-! ## digit と hex digit の対応 -/
+
+/-- ASCII digit なら `digitValue` は値を返す。 -/
+theorem digitValue_isSome {c : Char} (h : isAsciiDigit c = true) :
+    digitValue c = some (c.toNat - 0x30) := by
+  unfold digitValue
+  rw [if_pos (by simpa [isAsciiDigit] using h)]
+
+/-- ASCII digit でなければ `digitValue` は `none` である。 -/
+theorem digitValue_eq_none {c : Char} (h : isAsciiDigit c = false) : digitValue c = none := by
+  unfold digitValue
+  rw [if_neg (by simpa [isAsciiDigit] using h)]
+
+/-- ASCII hex digit なら `hexValue` は値を返す。 -/
+theorem hexValue_isSome {c : Char} (h : isAsciiHexDigit c = true) :
+    ∃ v, hexValue c = some v := by
+  unfold hexValue
+  simp only [isAsciiHexDigit, isAsciiUpperHexDigit, isAsciiLowerHexDigit, isAsciiDigit,
+    Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
+  split
+  · exact ⟨_, rfl⟩
+  · split
+    · exact ⟨_, rfl⟩
+    · split
+      · exact ⟨_, rfl⟩
+      · next h1 h2 h3 =>
+        exfalso
+        simp only [Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_le] at h1 h2 h3
+        omega
+
 end Infra
