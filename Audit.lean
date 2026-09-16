@@ -262,6 +262,8 @@ open Dom.Audit
   Dom.InsertFacts.congr
   Dom.InsertFacts.tail
   Dom.InsertFacts.singleton
+  Dom.Spec.insert_of_empty_fragment
+  Dom.Spec.insert_complete_of_nil
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

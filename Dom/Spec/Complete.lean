@@ -71,6 +71,35 @@ theorem adopt_complete {s s' : DOMState} {node doc : NodeId} (hwf : WellFormed s
 `insertAt` の step 4（`child` が `parent` の子であること）を関係が述べていないので
 まだ言えない。仕様ではその検査は `insert` の呼び出し側（pre-insert）にある。
 -/
+theorem insert_of_empty_fragment {s : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {b : Bool} {d : NodeData}
+    (hnd : s.tree.get? node = some d) (hk : d.kind = NodeKind.documentFragment)
+    (hch : d.children = []) : insert s node parent child b = .ok s := by
+  unfold insert
+  simp only [hnd]
+  rw [if_pos (by simp [hk]), if_pos (by rw [hch]; rfl)]
+
+/--
+**空の DocumentFragment については完全性が言える。**
+
+`InsertSpec` の step 2-3 の枝（入れる node の列が空）では、
+関係を満たす状態は必ず `insert` の結果である。
+-/
+theorem insert_complete_of_nil {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {b : Bool} {nodes : List NodeId}
+    (hn : NodesToInsert s.tree node nodes) (hnil : nodes = []) (hs : s' = s) :
+    insert s node parent child b = .ok s' := by
+  obtain ⟨d, hnd, hcase⟩ := hn
+  rcases hcase with ⟨hk, hch⟩ | ⟨-, hsing⟩
+  · rw [hs]
+    exact insert_of_empty_fragment hnd hk (by rw [← hch, hnil])
+  · exact absurd (hnil ▸ hsing) (by simp)
+
+/--
+残っているのは「入れる node の列が空でない」枝である。そこで `insert` が成功する
+ことを言うには、`removeEach` / `adopt` / `insertAt` がそれぞれ成功することを
+関係の witness から組み立てる必要がある（`insertEach_isOk` が要る）。
+-/
 theorem insert_no_extra_models {s s' out : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
