@@ -259,6 +259,9 @@ open Dom.Audit
   Dom.runPass_no_bubbles
   Dom.dispatchEvent_not_cancelable
   Dom.dispatchEvent_not_found
+  Dom.InsertFacts.congr
+  Dom.InsertFacts.tail
+  Dom.InsertFacts.singleton
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

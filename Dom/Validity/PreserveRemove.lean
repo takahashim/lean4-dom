@@ -158,44 +158,4 @@ theorem nodeDocumentsValid_removeEach :
       exact nodeDocumentsValid_removeEach ns (structurallyValid_remove hs h₁)
         (nodeDocumentsValid_remove hs.wellFormed h h₁) hr
 
-/-! ## kind の事実は kind を変えない操作で移る -/
-
-theorem kindFact_of_kindPreserving {t t' : Tree} (h : ShapePreserving t t') {n : NodeId}
-    {P : NodeKind → Prop} (hp : ∀ d, t.get? n = some d → P d.kind) :
-    ∀ d, t'.get? n = some d → P d.kind := by
-  intro d hd
-  have hk := h.kind n
-  rw [hd] at hk
-  cases hd' : t.get? n with
-  | none => rw [hd'] at hk; simp at hk
-  | some d' =>
-    rw [hd'] at hk
-    simp only [Option.map_some, Option.some.injEq] at hk
-    rw [hk]
-    exact hp d' hd'
-
-/-- kind が同じなら、node の有無も一致する。 -/
-theorem shapePreserving_get? {t t' : Tree} (h : ShapePreserving t t') {m : NodeId} {d : NodeData}
-    (hd : t'.get? m = some d) : ∃ d₀, t.get? m = some d₀ ∧ d₀.kind = d.kind := by
-  have hk := h.kind m
-  rw [hd] at hk
-  cases hd₀ : t.get? m with
-  | none => rw [hd₀] at hk; simp at hk
-  | some d₀ =>
-    rw [hd₀] at hk
-    simp only [Option.map_some, Option.some.injEq] at hk
-    exact ⟨d₀, rfl, hk.symm⟩
-
-/-- 「doctype を入れる先は Document である」という事実も kind を変えない操作で移る。 -/
-theorem doctypeFact_of_kindPreserving {t t' : Tree} (h : ShapePreserving t t') {n p : NodeId}
-    (hp : ∀ nd, t.get? n = some nd → nd.kind = .documentType →
-      ∀ pd, t.get? p = some pd → pd.kind = .document) :
-    ∀ nd, t'.get? n = some nd → nd.kind = .documentType →
-      ∀ pd, t'.get? p = some pd → pd.kind = .document := by
-  intro nd hnd hk pd hpd
-  obtain ⟨nd₀, hnd₀, hkn⟩ := shapePreserving_get? h hnd
-  obtain ⟨pd₀, hpd₀, hkp⟩ := shapePreserving_get? h hpd
-  rw [← hkp]
-  exact hp nd₀ hnd₀ (by rw [hkn]; exact hk) pd₀ hpd₀
-
 end Dom
