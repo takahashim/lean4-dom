@@ -84,6 +84,7 @@ import Dom.Spec.MoveSound
 import Dom.Spec.MoveCongr
 import Dom.Spec.Complete
 import Dom.Properties.Counterexample
+import Dom.Properties.Witness
 import Dom.Observation
 import Dom.Selector.Match
 import Dom.Selector.Api

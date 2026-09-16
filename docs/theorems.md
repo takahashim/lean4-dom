@@ -527,6 +527,52 @@ theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat
 | `Dom.ensurePreInsertionValidity_step1` 〜 `_step3` | pre-insert 検査の step 1-3 の優先順位 |
 | `Dom.moveValidity_step1` 〜 `_step4` | move 検査の step 1-4 の優先順位 |
 
+## 定理そのものを検査する
+
+定理が通ることと、定理が**意味のあることを言っている**ことは別である。
+次の四つで検査している。
+
+### 1. 空虚でないか
+
+`AdmissibleDOMState` は七つの条件の連言なので、それを満たす状態が本当にあるかは自明でない。
+`Dom/Properties/Witness.lean` が具体的な木を一つ組み立て、決定手続き
+`checkAdmissibleDOMState` が `true` を返すことを `rfl` で確かめ、
+`checkAdmissibleDOMState_iff` を通して `AdmissibleDOMState` を得ている。
+そのうえで `cloneNode_isOk` / `adoptNode_isOk` / `remove_succeeds_iff` を
+その状態に当てている。
+
+経験的な証人は固定 scenario 側にもある。`lake exe dom-model --check test/scenarios` が
+154 本の毎 step で admissibility を実行時に検査している。
+
+### 2. 仮定が飾りでないか
+
+同じ file で、仮定を外すと結論が成り立たなくなることを見る。
+`adoptNode` に Document を渡すと `NotSupportedError`、parent の無い node を
+`remove` すると `NotFoundError`、`ParentNode` でない受け手に `querySelector()` を
+呼ぶと `TypeError` になる。
+
+### 3. 関係が実装の言い換えになっていないか
+
+`ruby test/spec_dependence.rb` が、`Dom/Spec/` の関係の定義が実行側の名前を
+触っているかを機械的に出す。§4.2.3 の関係（`Insert` / `Remove` / `Replace` /
+`Adopt` / `Move` / `Record`）は `Dom.Basic.*` しか import していないので、
+実行関数を呼びようがない。import graph がそのまま保証になっている。
+
+Selectors の関係だけは照合の実装と同じ module を見るので、この script が要る。
+いま触れているのは `elementChildrenOf` / `isElementNode`（薄い補助）と、
+`nthPoolOf` / `NthPoolMember` の `matchSelList` である。後者は仕様自身が
+「S に当たる inclusive sibling」と照合を使って定義しているので避けられない。
+代わりに `mem_nthPoolOf_iff` を置いて、**数える列の中身は仕様の語彙
+（inclusive element sibling と same type）で決まる**ようにしてある。
+
+### 4. 実装を壊したときに落ちるか
+
+`docs/status.md` の測定。六つの subsystem で、仕様の step を一つずつ壊して
+定理・固定 scenario・生成 scenario のどれが捕まえるかを見た。
+**「定理が落ちた」は「観測できる誤りを入れた」と同じではない**ことも分かっている
+（七件中二件が偽陽性で、どちらも「仕様は順序を定めているが実装はどちらでもよい」
+という定理になった）。
+
 ## axiom 依存
 
 `Audit.lean` を CI で elaborate する。

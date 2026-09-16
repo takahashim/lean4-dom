@@ -469,6 +469,25 @@ def nthPoolOf (ctx : MatchCtx) (d : NodeData) (kind : NthKind)
     | some l => (elementSiblings ctx.tree n).filter (fun m => matchSelList ctx l m)
   | .ofType | .lastOfType => (elementSiblings ctx.tree n).filter (sameTypeAs ctx.tree d)
 
+/--
+`:nth-*()` が数える列の**中身**を、仕様の語彙で言ったもの。
+
+`nthPoolOf` は実行側の `pool` をそのまま写したものなので、それだけでは
+「何を数えるか」を仕様から独立に固定したことにならない。この述語と
+`mem_nthPoolOf_iff` を挟むことで、中身の側は inclusive element sibling と
+same type という仕様の語彙で決まる。並びの側は `matchSimple_nth_iff` が
+`pre ++ n :: post` の形で押さえている。
+-/
+def NthPoolMember (ctx : MatchCtx) (d : NodeData) (kind : NthKind)
+    (ofSel : Option (List Complex)) (n m : NodeId) : Prop :=
+  InclusiveElementSibling ctx.tree m n ∧
+    match kind with
+    | .ofType | .lastOfType => SameType ctx.tree d m
+    | _ =>
+      match ofSel with
+      | none => True
+      | some l => matchSelList ctx l m = true
+
 /-- `:nth-last-child()` と `:nth-last-of-type()` は末尾から数える。 -/
 def countsFromEnd : NthKind -> Bool
   | .lastChild | .lastOfType => true
@@ -529,6 +548,27 @@ theorem nth_index_iff {pool : List NodeId} {n : NodeId} {ab : AnB} (hnd : pool.N
           simpa using hd2.1
         rw [hrev, indexOfNode_of_split post.reverse pre.reverse n hnp] at hi
         simpa [← Option.some.inj hi] using hab
+
+/-- **数える列に入るのはちょうど、仕様が言う「inclusive sibling で S に当たるもの」である。** -/
+theorem mem_nthPoolOf_iff {t : Tree} (hwf : WellFormed t) {ctx : MatchCtx}
+    (hctx : ctx.tree = t) {n : NodeId} (hn : isElementNode t n = true) (d : NodeData)
+    (kind : NthKind) (ofSel : Option (List Complex)) (m : NodeId) :
+    m ∈ nthPoolOf ctx d kind ofSel n ↔ NthPoolMember ctx d kind ofSel n m := by
+  subst hctx
+  unfold nthPoolOf NthPoolMember
+  cases kind with
+  | child =>
+    cases ofSel with
+    | none => simpa using (mem_elementSiblings_iff hwf hn m)
+    | some l => rw [List.mem_filter, mem_elementSiblings_iff hwf hn m]
+  | lastChild =>
+    cases ofSel with
+    | none => simpa using (mem_elementSiblings_iff hwf hn m)
+    | some l => rw [List.mem_filter, mem_elementSiblings_iff hwf hn m]
+  | ofType =>
+    rw [List.mem_filter, mem_elementSiblings_iff hwf hn m, sameTypeAs_iff]
+  | lastOfType =>
+    rw [List.mem_filter, mem_elementSiblings_iff hwf hn m, sameTypeAs_iff]
 
 /--
 **`:nth-*()` は、数える列の中での 1 始まりの位置が `An+B` に当たることと同値である。**

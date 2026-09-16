@@ -735,6 +735,10 @@ open Dom.Audit
   Url.asciiDomainToASCII_ne_empty
   Url.utf8PercentEncode_id
 
+-- 定理が空虚でないことの証人
+#audit_axioms
+  Dom.Witness.state_admissible
+
 -- boolean checker と Prop の対応
 #audit_axioms
   Dom.checkAdmissibleDOMState_iff
@@ -792,6 +796,7 @@ open Dom.Audit
   Dom.Spec.indexOfNode_eq_some
   Dom.Spec.indexOfNode_eq_none
   Dom.Spec.nth_index_iff
+  Dom.Spec.mem_nthPoolOf_iff
   Dom.Spec.matchSimple_nth_iff
   Dom.Spec.typeHolds_iff
   Dom.Spec.matchSimple_root_iff
