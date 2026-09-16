@@ -1,0 +1,30 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-document-adoptnode",
+    "algorithm": ["adoptNode(node)", "adopt"],
+    "steps": "step 1 で Document なら NotSupportedError、step 3 で adopt。adopt は parent があれば remove してから node document を付け替える",
+    "note": "Document 以外なら kind に依らず成功する（`Dom.adoptNode_isOk`）。node document は部分木すべてに付く。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "document" },
+    { "id": 2, "kind": "documentType", "parent": 0 },
+    { "id": 3, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 4, "kind": "element", "parent": 3, "localName": "div" },
+    { "id": 5, "kind": "element", "parent": 4, "localName": "p" },
+    { "id": 6, "kind": "text", "parent": 4, "data": "t" },
+    { "id": 7, "kind": "comment", "parent": 4, "data": "c" },
+    { "id": 8, "kind": "documentFragment" },
+    { "id": 9, "kind": "element", "parent": 8, "localName": "span" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "adoptNode", "document": 1, "node": 4 },
+    { "op": "adoptNode", "document": 1, "node": 6 },
+    { "op": "adoptNode", "document": 1, "node": 7 },
+    { "op": "adoptNode", "document": 1, "node": 8 },
+    { "op": "adoptNode", "document": 1, "node": 2 },
+    { "op": "adoptNode", "document": 0, "node": 5 }
+  ]
+}

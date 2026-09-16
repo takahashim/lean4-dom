@@ -308,6 +308,7 @@ admissible な初期状態から始めれば、この検査は決して発火し
 | 定理 | module |
 | --- | --- |
 | `Dom.cloneNode_isOk` / `Dom.cloneNodeIn_isOk` / `Dom.importNode_isOk` | `Dom/Properties/CloneOk.lean` |
+| `Dom.adopt_isOk` / `Dom.adoptNode_isOk` | 同上 |
 
 ```lean
 theorem cloneNode_isOk {s : DOMState} {n : NodeId} {deep : Bool} {d : NodeData}
@@ -318,6 +319,12 @@ theorem cloneNode_isOk {s : DOMState} {n : NodeId} {deep : Bool} {d : NodeData}
 model の `cloneNode` は §4.2.3 の `append` を呼ぶので、原理的には pre-insert validity の
 検査に落ちて `HierarchyRequestError` を返しうる。落ちうる場所は三つ（fuel の枯渇、
 pre-insert validity、`append` の中の `adopt` と `insertAt`）で、妥当な木ではどれも起きない。
+
+`adoptNode` のほうは落ちうる場所が四つある。受け手が Document であること・node が
+木にあること・node が Document でないことは仮定で、残るのは step 2 の `remove` だけである。
+`adopt` は parent がある node にしか `remove` を呼ばないので、`remove_succeeds_iff`
+（`Dom/Properties/Contract.lean`）がそのまま効く。step 1 の `ownerDocumentOf` は
+`get?` の像なので、node が木にあれば必ず `some` になる。
 
 要は `AppendableInto` の `docKinds` である。**append 先に既に入れた children の kind 列と、
 これから入れる残りの kind 列を繋いだもの**が Document の制約を満たす、という形にしてある。

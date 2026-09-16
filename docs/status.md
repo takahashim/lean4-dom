@@ -4166,6 +4166,21 @@ jsdom に対しては normalize / observer の既知の不一致と findings 19-
 生成 scenario は seed を変えて 1100 本ほど回したが、
 selector まわりで新しい不一致は出ていない。
 
+## `adoptNode` は妥当な木の上では失敗しない
+
+`cloneNode` と対になる定理を入れた（`Dom.adopt_isOk` / `Dom.adoptNode_isOk`）。
+落ちうる場所は四つで、受け手が Document であること・node が木にあること・
+node が Document でないことは仮定だから、残るのは step 2 の `remove` だけである。
+`adopt` は parent がある node にしか `remove` を呼ばないので、
+`remove_succeeds_iff`（`Dom/Properties/Contract.lean`）がそのまま効く。
+step 1 の `ownerDocumentOf` は `get?` の像なので、node が木にあれば必ず `some` になる。
+
+`cloneNode` のときのような苦労は無かった。`cloneNode` は §4.2.3 の `append` を
+呼ぶので pre-insert validity に落ちうるが、`adopt` は木へ入れる操作をしないからである。
+
+固定 scenario `adopt-node-succeeds-for-every-kind` で、element・text・comment・
+DocumentFragment・doctype のどれでも成功することを見ている。両実装とも一致する。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

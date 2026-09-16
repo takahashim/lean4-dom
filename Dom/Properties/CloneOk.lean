@@ -1,5 +1,6 @@
 import Dom.Properties.Clone
 import Dom.Properties.Import
+import Dom.Properties.Contract
 
 /-!
 # `cloneNode` は失敗しない
@@ -762,5 +763,52 @@ theorem importNode_isOk {s : DOMState} {doc n : NodeId} {subtree : Bool} {dd d :
   simp only [hdk, beq_self_eq_true, if_pos, hd]
   rw [if_neg (by simpa using hnk)]
   exact cloneNodeIn_isOk hv ⟨dd, hdd, hdk⟩ hd
+
+/-! ## `adoptNode` は失敗しない
+
+`cloneNode` と同じことを `adoptNode` についても言う。落ちうる場所は四つある。
+
+| step | 失敗 | 妥当な木で起きない理由 |
+| --- | --- | --- |
+| `requireDocument` | `TypeError` | 受け手が Document であることを仮定する |
+| `get? n` | `NotFoundError` | node が木にあることを仮定する |
+| step 1 | `NotSupportedError` | node が Document でないことを仮定する |
+| step 2 の `remove` | `NotFoundError` | parent がある node にしか呼ばない |
+
+step 1 の `ownerDocumentOf` は `get?` の像なので、node が木にあれば必ず `some` である。
+-/
+
+/-- **`adopt` は木にある node に対して必ず成功する。** -/
+theorem adopt_isOk {s : DOMState} (hwf : WellFormed s.tree) {node doc : NodeId} {nd : NodeData}
+    (hnd : s.tree.get? node = some nd) : ∃ s₁, adopt s node doc = .ok s₁ := by
+  have hown : ownerDocumentOf s.tree node = some nd.ownerDocument := by
+    simp [ownerDocumentOf, hnd]
+  unfold adopt
+  rw [hown]
+  cases hp : parentOf s.tree node with
+  | none =>
+    simp only []
+    by_cases hd : doc = nd.ownerDocument
+    · exact ⟨s, by simp [hd]⟩
+    · exact ⟨s.withTree (setOwnerDocument s.tree node doc), by simp [hd]⟩
+  | some p =>
+    obtain ⟨s₁, h₁⟩ := (remove_succeeds_iff hwf (n := node) (b := false)).mpr (by rw [hp]; rfl)
+    simp only [h₁]
+    by_cases hd : doc = nd.ownerDocument
+    · exact ⟨s₁, by simp [hd]⟩
+    · exact ⟨s₁.withTree (setOwnerDocument s₁.tree node doc), by simp [hd]⟩
+
+/-- **`adoptNode` は、Document でない node なら必ず成功する。** -/
+theorem adoptNode_isOk {s : DOMState} {doc n : NodeId} {dd d : NodeData}
+    (hv : AdmissibleDOMState s) (hdd : s.tree.get? doc = some dd)
+    (hdk : dd.kind = NodeKind.document) (hd : s.tree.get? n = some d)
+    (hnk : d.kind ≠ NodeKind.document) :
+    ∃ s', adoptNode s doc n = .ok (n, s') := by
+  unfold adoptNode requireDocument
+  rw [hdd]
+  simp only [hdk, beq_self_eq_true, if_pos, hd]
+  rw [if_neg (by simpa using hnk)]
+  obtain ⟨s₁, h₁⟩ := adopt_isOk hv.wellFormed hd (doc := doc)
+  exact ⟨s₁, by rw [h₁]⟩
 
 end Dom

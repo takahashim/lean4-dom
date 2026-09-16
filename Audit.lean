@@ -143,6 +143,8 @@ open Dom.Audit
   Dom.cloneNode_isOk
   Dom.cloneNodeIn_isOk
   Dom.importNode_isOk
+  Dom.adopt_isOk
+  Dom.adoptNode_isOk
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS
   Dom.admissible_setAttributeNode

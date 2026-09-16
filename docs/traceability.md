@@ -380,6 +380,15 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | `matchesSelector_eq`, `closest_spec`, `closest_first`, `closest_eq_none_iff`, `closest_self`, `mem_matchTree_iff_matches` | `matches-and-closest-walk-up` | 済 |
 | `:scope` が scoping root を表すこと | Selectors §8.2 | `Simple.scope` | `scope_irrelevant`, `matchSelList_scope_irrelevant` | `scope-pseudo-is-the-scoping-root` | 済 |
 
+## `cloneNode` / `adoptNode` の全域性
+
+| Algorithm | 仕様 | 定理 | 内容 |
+| --- | --- | --- | --- |
+| `cloneNode(deep)` | DOM §4.4 | `cloneNode_isOk` | 妥当な木の上では `HierarchyRequestError` にならない |
+| `importNode(node, subtree)` | DOM §4.5 | `importNode_isOk` | 同上（Document でない node なら） |
+| `adopt` | DOM §4.5 | `adopt_isOk` | 木にある node に対して必ず成功する |
+| `adoptNode(node)` | DOM §4.5 | `adoptNode_isOk` | Document でない node なら必ず成功する |
+
 ## 仕様改訂時の手順
 
 1. `docs/spec-version.md` の commit から新しい commit までの `dom.bs` の差分を取る。
