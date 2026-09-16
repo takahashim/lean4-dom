@@ -588,6 +588,46 @@ Selectors の関係だけは照合の実装と同じ module を見るので、�
 代わりに `mem_nthPoolOf_iff` を置いて、**数える列の中身は仕様の語彙
 （inclusive element sibling と same type）で決まる**ようにしてある。
 
+### 4'. 証明が定義の「形」に結合していないか
+
+3 までは「定理が何を言っているか」の検査だが、もう一つ別の結合がある。
+**証明が、定義の意味ではなく書き方に依っている**ことがある。
+
+例。`liveRangePreRemoveBP` は二つの step の合成である。
+
+```lean
+def liveRangePreRemoveBP (t : Tree) (node parent : NodeId) (index : Nat) (bp : BoundaryPoint) :=
+  rangeShiftAfterRemove parent index (rangeMoveOutOfSubtree t node parent index bp)
+```
+
+合成の順序を入れ替えると build が落ちる。だが `liveRangePreRemoveBP_comm` が言うとおり、
+**二つは無条件に可換**なので、関数の値はどの入力でも変わらない。落ちているのは
+`Dom/Properties/Path.lean` の `bpKey_detach` で、証明が
+
+```lean
+  unfold liveRangePreRemoveBP rangeMoveOutOfSubtree
+  by_cases hin : InclusiveAncestor t n bp.node
+  · rw [if_pos …]
+```
+
+と書いてあるからである。展開したときに外側に来るのがどちらの `if` かを当てにしており、
+入れ替えると `hin` の型が `InclusiveAncestor t n bp.node` ではなく
+`InclusiveAncestor t n (rangeShiftAfterRemove p i bp).node` になって合わなくなる。
+**値は同じで、綴りだけが違う。**
+
+これが分かっていないと、壊して測る方法で「定理が守っている」と読み違える。
+実際、七件のうち二件がこれだった（`docs/status.md`）。
+
+対処は二段ある。
+
+1. **形が効かない理由を定理にする。** `rangeShiftAfterRemove_node`
+   （offset をずらしても `node` は変わらない）と `liveRangePreRemoveBP_comm`。
+   前者は `simp` 補題なので、以後の証明はこれを使えば順序に依らずに書ける。
+2. **既存の証明を書き直す。** こちらはやっていない。`simp` 補題を足しただけでは
+   既存の証明は直らない（`rw [if_pos …]` の側が使っていないため）。定義が変わる
+   見込みが無いので、費用に見合わないと判断した。**いま得ているのは
+   「結合があると知っていること」で、測定を読み違えないためのものである。**
+
 ### 4. 実装を壊したときに落ちるか
 
 `docs/status.md` の測定。六つの subsystem で、仕様の step を一つずつ壊して

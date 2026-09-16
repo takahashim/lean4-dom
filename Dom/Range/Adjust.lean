@@ -31,6 +31,16 @@ def rangeShiftAfterRemove (parent : NodeId) (index : Nat) (bp : BoundaryPoint) :
   if bp.node = parent ∧ index < bp.offset then { bp with offset := bp.offset - 1 } else bp
 
 /--
+**offset をずらしても boundary point の node は変わらない。**
+
+step 5-6 が step 3-4 の条件に影響しないのはこれが理由である。
+`simp` 補題にしてあるので、この二つを合成した証明が合成の順序に依らずに書ける。
+-/
+@[simp] theorem rangeShiftAfterRemove_node (parent : NodeId) (index : Nat) (bp : BoundaryPoint) :
+    (rangeShiftAfterRemove parent index bp).node = bp.node := by
+  unfold rangeShiftAfterRemove; split <;> rfl
+
+/--
 DOM Standard §5.5 "live range pre-remove steps"。
 
 `node` の removal の直前に走る。仕様の step 順に、まず部分木の外へ移し、次に offset をずらす。

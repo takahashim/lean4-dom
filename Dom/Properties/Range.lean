@@ -1311,10 +1311,8 @@ theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat
     (bp : BoundaryPoint) :
     rangeShiftAfterRemove parent index (rangeMoveOutOfSubtree t node parent index bp)
       = rangeMoveOutOfSubtree t node parent index (rangeShiftAfterRemove parent index bp) := by
-  have hnode : (rangeShiftAfterRemove parent index bp).node = bp.node := by
-    unfold rangeShiftAfterRemove; split <;> rfl
   unfold rangeMoveOutOfSubtree
-  rw [hnode]
+  rw [rangeShiftAfterRemove_node]
   cases hin : isInclusiveAncestorOf t node bp.node with
   | true => simp [rangeShiftAfterRemove]
   | false => simp
