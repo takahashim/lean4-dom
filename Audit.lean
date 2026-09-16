@@ -215,6 +215,9 @@ open Dom.Audit
   Dom.nodesToRemove_nodup
   Dom.parentOf_not_mem_nodesToRemove
   Dom.rangeDeleteContents_of_collapsed
+  Dom.isValidNamespacePrefix_of_isValidAttributeLocalName
+  Dom.findAttr_owner
+  Dom.findAttr_detached
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

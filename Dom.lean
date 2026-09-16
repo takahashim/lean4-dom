@@ -37,6 +37,7 @@ import Dom.Properties.Algorithms
 import Dom.Properties.Path
 import Dom.Properties.NodeQuery
 import Dom.Properties.RangeDelete
+import Dom.Properties.AttributeName
 import Dom.Properties.Range
 import Dom.Properties.Iterator
 import Dom.Properties.Walker
