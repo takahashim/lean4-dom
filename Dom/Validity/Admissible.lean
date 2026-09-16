@@ -43,8 +43,7 @@ theorem checkElementInsertion_shift {t : Tree} {parent node : NodeId} (hwf : Wel
   have hL : childrenOf t parent = A ++ node :: B := ListUtil.splitAt?_eq_some hs
   have hns : nextSibling t node = B.head? := nextSibling_of_split hwf hpar hL
   have hB : (B.any fun x => kindOf t x == some NodeKind.documentType) = false := by
-    unfold doctypeFollows at hfol
-    rw [hs] at hfol
+    rw [doctypeFollows_of_splitAt? hs] at hfol
     exact hfol
   unfold checkElementInsertion
   rw [if_neg (by rw [hnil]; simp)]
@@ -66,8 +65,7 @@ theorem checkElementInsertion_shift {t : Tree} {parent node : NodeId} (hwf : Wel
       rw [hrw'] at hnd
       exact (ListUtil.nodup_split hnd).1
     have hfol' : doctypeFollows t parent y = false := by
-      unfold doctypeFollows
-      rw [hsy]
+      rw [doctypeFollows_of_splitAt? hsy]
       exact hB.2
     rw [if_neg (by rw [hfol']; simp)]
     rw [if_neg (by simp [hB.1])]

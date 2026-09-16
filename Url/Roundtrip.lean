@@ -3140,10 +3140,7 @@ theorem hostParser_domain_eq {f : List Char → Option String} {input : List Cha
       exact absurd hx (by simp)
     · simp at h
   · split at h
-    · unfold opaqueHostParser at h
-      split at h
-      · simp at h
-      · split at h <;> simp at h
+    · rcases (opaqueHostParser_cases h).2 with ⟨-, hx⟩ | ⟨-, hx⟩ <;> simp at hx
     · split at h
       · simp at h
       · dsimp only at h
@@ -3209,15 +3206,12 @@ theorem hostReadable_of_canonical {sp : Bool} {h : Host}
         simp only [List.any_eq_false] at h2
         exact fun c hcm => by simpa using h2 c hcm
       have henc : o.toList = utf8PercentEncode c0ControlSet o.toList := by
-        unfold opaqueHostParser at hp
-        split at hp
-        · simp at hp
-        · split at hp
-          · simp at hp
-          · simp only [Option.some.injEq, Host.opaque.injEq] at hp
-            calc o.toList
-                = (String.ofList (utf8PercentEncode c0ControlSet o.toList)).toList := by rw [hp]
-              _ = utf8PercentEncode c0ControlSet o.toList := String.toList_ofList
+        rcases (opaqueHostParser_cases hp).2 with ⟨-, hx⟩ | ⟨-, hx⟩
+        · simp at hx
+        · simp only [Host.opaque.injEq] at hx
+          calc o.toList
+              = (String.ofList (utf8PercentEncode c0ControlSet o.toList)).toList := by rw [← hx]
+            _ = utf8PercentEncode c0ControlSet o.toList := String.toList_ofList
       refine ⟨Or.inl hnf, fun c hcm => ?_⟩
       have hcm' : c ∈ o.toList := hcm
       have hc0 : c0ControlSet c = false := by

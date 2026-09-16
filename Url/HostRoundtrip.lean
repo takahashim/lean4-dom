@@ -177,11 +177,11 @@ theorem hostParser_opaque_id {f : List Char → Option String} {o : String}
     revert h2
     decide
   · rw [if_pos rfl]
-    unfold opaqueHostParser
     have hany : o.toList.any isForbiddenHost = false := by
       simp only [List.any_eq_false]
       exact fun c hc => by simpa using hf c hc
-    simp only [hany, hemp, Bool.false_eq_true, if_false]
+    rw [opaqueHostParser_of_no_forbidden hany]
+    simp only [hemp, Bool.false_eq_true, if_false]
     rw [utf8PercentEncode_id hc0, String.ofList_toList]
 
 /-- **canonical な domain は、host parser を通すと元に戻る。** -/
@@ -329,10 +329,7 @@ theorem hostParser_ipv6_eq {f : List Char → Option String} {input : List Char}
       exact ⟨_, by rw [hx, hx2]⟩
     · simp at h
   · split at h
-    · unfold opaqueHostParser at h
-      split at h
-      · simp at h
-      · split at h <;> simp at h
+    · rcases (opaqueHostParser_cases h).2 with ⟨-, hx⟩ | ⟨-, hx⟩ <;> simp at hx
     · split at h
       · simp at h
       · dsimp only at h
@@ -356,10 +353,7 @@ theorem hostParser_ipv4_eq {f : List Char → Option String} {input : List Char}
       simp at hx
     · simp at h
   · split at h
-    · unfold opaqueHostParser at h
-      split at h
-      · simp at h
-      · split at h <;> simp at h
+    · rcases (opaqueHostParser_cases h).2 with ⟨-, hx⟩ | ⟨-, hx⟩ <;> simp at hx
     · next hb =>
       refine ⟨by simpa using hb, ?_⟩
       split at h
@@ -386,10 +380,7 @@ theorem hostParser_domain_eq' {f : List Char → Option String} {input : List Ch
       simp at hx
     · simp at h
   · split at h
-    · unfold opaqueHostParser at h
-      split at h
-      · simp at h
-      · split at h <;> simp at h
+    · rcases (opaqueHostParser_cases h).2 with ⟨-, hx⟩ | ⟨-, hx⟩ <;> simp at hx
     · next hb =>
       refine ⟨by simpa using hb, ?_⟩
       split at h
@@ -512,16 +503,10 @@ theorem hostParser_idem {input : List Char} {h : Host} {b : Bool}
       simp only [List.any_eq_false] at hnf
       exact fun c hc => by simpa using hnf c hc
     have hshape : o.toList = utf8PercentEncode c0ControlSet input ∧ ¬input = [] := by
-      unfold opaqueHostParser at hop
-      rw [if_neg (by simp [hnf])] at hop
-      split at hop
-      · simp at hop
-      · next hie =>
-        simp only [Option.some.injEq, Host.opaque.injEq] at hop
-        refine ⟨by rw [← hop, String.toList_ofList], ?_⟩
-        intro hx
-        rw [hx] at hie
-        simp at hie
+      rcases (opaqueHostParser_cases hop).2 with ⟨-, hx⟩ | ⟨hne, hx⟩
+      · simp at hx
+      · simp only [Host.opaque.injEq] at hx
+        exact ⟨by rw [hx, String.toList_ofList], hne⟩
     obtain ⟨hshape, hine⟩ := hshape
     refine hostParser_opaque_id ?_ ?_ ?_
     · show ¬o.toList = []

@@ -240,13 +240,9 @@ theorem hostParser_empty {f : List Char → Option String} {input : List Char} {
       exact absurd ha (by simp)
     · simp at h
   · split at h
-    · unfold opaqueHostParser at h
-      split at h
-      · simp at h
-      · next hf =>
-        split at h
-        · next he => simpa using he
-        · exact absurd (Option.some.inj h) (by simp)
+    · rcases (opaqueHostParser_cases h).2 with ⟨he, -⟩ | ⟨-, hx⟩
+      · simpa using he
+      · exact absurd hx (by simp)
     · split at h
       · simp at h
       · simp +zetaDelta only [] at h
@@ -280,11 +276,8 @@ theorem hostParser_hostKind {f : List Char → Option String} {input : List Char
     · -- opaque host parser。special でないときだけ呼ばれる。
       next hb =>
         have hs : isSpecialScheme scheme = false := by simpa using hb
-        unfold opaqueHostParser at hp
-        split at hp
-        · simp at hp
-        · rw [← Option.some.inj hp]
-          split <;> simp [hostKindOkOf, hs]
+        rcases (opaqueHostParser_cases hp).2 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;>
+          simp [hostKindOkOf, hs]
     · next hb =>
       have hs : isSpecialScheme scheme = true := by simpa using hb
       split at hp

@@ -244,9 +244,7 @@ theorem docKindsOk_of_documentChildrenOk {t : Tree} {doc : NodeId}
       exact List.mem_append_left _ hemem
     have hfalse := hord e hein
     obtain ⟨u, v, w, hs, hv⟩ := splitAt?_append_left CA CB e hemem
-    unfold doctypeFollows at hfalse
-    rw [hsplit, hs] at hfalse
-    simp only at hfalse
+    rw [doctypeFollows_of_splitAt? (by rw [hsplit]; exact hs)] at hfalse
     have : v.any (fun x => kindOf t x == some NodeKind.documentType) = true := by
       refine List.any_eq_true.mpr ⟨dt, ?_, by simp [hdk]⟩
       rw [hv]

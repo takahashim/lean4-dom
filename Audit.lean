@@ -168,6 +168,15 @@ open Dom.Audit
   Dom.adopt_cases
   Dom.adopt_of_steps
   Dom.ensurePreInsertionValidity_ok_steps
+  Dom.replaceAll_cases
+  Dom.preRemove_cases
+  Dom.preRemove_of_parent
+  Dom.nodeRemove_cases
+  Dom.nodeRemove_of_parent
+  Dom.doctypeFollows_of_splitAt?
+  Dom.doctypeFollows_congr
+  Url.opaqueHostParser_cases
+  Url.opaqueHostParser_of_no_forbidden
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

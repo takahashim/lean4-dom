@@ -65,12 +65,13 @@ theorem documentChildrenOk_congr_of_children {t t' : Tree} {doc : NodeId}
     hfil _ _ fun c hc => by simp [hkind c hc]
   have hdf : ∀ e, doctypeFollows t' doc e = doctypeFollows t doc e := by
     intro e
-    unfold doctypeFollows
-    rw [hch]
     cases hs : ListUtil.splitAt? (childrenOf t doc) e with
-    | none => rfl
+    | none =>
+      rw [doctypeFollows_of_splitAt?_none (by rw [hch]; exact hs),
+        doctypeFollows_of_splitAt?_none hs]
     | some pr =>
       obtain ⟨u, v⟩ := pr
+      rw [doctypeFollows_of_splitAt? (by rw [hch]; exact hs), doctypeFollows_of_splitAt? hs]
       refine any_congr v fun x hx => ?_
       have hmem : x ∈ childrenOf t doc := by
         rw [ListUtil.splitAt?_eq_some hs]

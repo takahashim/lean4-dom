@@ -85,6 +85,32 @@ def doctypeFollows (t : Tree) (parent c : NodeId) : Bool :=
   | none => false
   | some (_, after) => after.any fun x => kindOf t x == some .documentType
 
+/-- `c` が children の中にあるときの `doctypeFollows` の値。 -/
+theorem doctypeFollows_of_splitAt? {t : Tree} {parent c : NodeId} {before after : List NodeId}
+    (h : splitAt? (childrenOf t parent) c = some (before, after)) :
+    doctypeFollows t parent c = after.any fun x => kindOf t x == some NodeKind.documentType := by
+  unfold doctypeFollows
+  rw [h]
+
+/-- `c` が children に無ければ `doctypeFollows` は false。 -/
+theorem doctypeFollows_of_splitAt?_none {t : Tree} {parent c : NodeId}
+    (h : splitAt? (childrenOf t parent) c = none) : doctypeFollows t parent c = false := by
+  unfold doctypeFollows
+  rw [h]
+
+/-- `doctypeFollows` は children の列と kind だけで決まる。 -/
+theorem doctypeFollows_congr {t t' : Tree} {p p' c : NodeId}
+    (hch : childrenOf t' p' = childrenOf t p) (hkind : ∀ m, kindOf t' m = kindOf t m) :
+    doctypeFollows t' p' c = doctypeFollows t p c := by
+  cases hs : splitAt? (childrenOf t p) c with
+  | none =>
+    rw [doctypeFollows_of_splitAt?_none (by rw [hch]; exact hs),
+      doctypeFollows_of_splitAt?_none hs]
+  | some q =>
+    obtain ⟨u, v⟩ := q
+    rw [doctypeFollows_of_splitAt? (by rw [hch]; exact hs), doctypeFollows_of_splitAt? hs]
+    simp only [hkind]
+
 /--
 `c` より前に element があるか。
 

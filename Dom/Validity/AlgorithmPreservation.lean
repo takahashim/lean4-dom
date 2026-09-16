@@ -56,7 +56,7 @@ theorem documentTreesValid_of_sameShape {t t' : Tree}
   have htx : ∀ m, textChildren t' m = textChildren t m := by
     intro m; unfold textChildren; simp [hch, hkind]
   have hfol : ∀ m c, doctypeFollows t' m c = doctypeFollows t m c := by
-    intro m c; unfold doctypeFollows; simp [hch, hkind]
+    intro m c; exact doctypeFollows_congr (hch m) hkind
   refine ⟨fun doc d hdoc hk => ?_⟩
   have hdoc' : ∃ d', t.get? doc = some d' ∧ d'.kind = .document := by
     have := hkind doc
@@ -162,17 +162,19 @@ theorem doctypeFollows_of_removeAll {t t' : Tree} {p c a : NodeId}
     (hkind : ∀ m, kindOf t' m = kindOf t m)
     (hch : childrenOf t' p = ListUtil.removeAll (childrenOf t p) a)
     (h : doctypeFollows t p c = false) : doctypeFollows t' p c = false := by
-  unfold doctypeFollows at h ⊢
-  simp only [hch, hkind]
   by_cases hca : c = a
   · subst hca
-    rw [ListUtil.splitAt?_eq_none_of_not_mem (ListUtil.not_mem_removeAll _ _)]
+    exact doctypeFollows_of_splitAt?_none
+      (by rw [hch]; exact ListUtil.splitAt?_eq_none_of_not_mem (ListUtil.not_mem_removeAll _ _))
   · cases hs : ListUtil.splitAt? (childrenOf t p) c with
-    | none => rw [ListUtil.splitAt?_removeAll_none hs]
+    | none =>
+      exact doctypeFollows_of_splitAt?_none
+        (by rw [hch]; exact ListUtil.splitAt?_removeAll_none hs)
     | some q =>
       obtain ⟨u, v⟩ := q
-      rw [hs] at h
-      rw [ListUtil.splitAt?_removeAll hca hs]
+      rw [doctypeFollows_of_splitAt? hs] at h
+      rw [doctypeFollows_of_splitAt? (by rw [hch]; exact ListUtil.splitAt?_removeAll hca hs)]
+      simp only [hkind]
       rw [Bool.eq_false_iff] at h ⊢
       intro hcon
       obtain ⟨x, hx, hxk⟩ := List.any_eq_true.mp hcon
@@ -331,8 +333,6 @@ theorem doctypeFollows_split_of_mem_right {t t' : Tree} {parent node : NodeId}
     (hAB : childrenOf t parent = A ++ B) (hAB' : childrenOf t' parent = A ++ node :: B)
     {e : NodeId} (hnotA : e ∉ A) (hne : e ≠ node) (hmemB : e ∈ B) :
     doctypeFollows t' parent e = doctypeFollows t parent e := by
-  unfold doctypeFollows
-  simp only [hAB, hAB', hkind]
   obtain ⟨u, v, hs⟩ := ListUtil.exists_splitAt?_of_mem hmemB
   have hnotA' : e ∉ A ++ [node] := by
     intro hm
@@ -340,7 +340,10 @@ theorem doctypeFollows_split_of_mem_right {t t' : Tree} {parent node : NodeId}
     · exact hnotA h
     · exact hne (by simpa using h)
   have hrw : A ++ node :: B = (A ++ [node]) ++ B := by simp
-  rw [hrw, ListUtil.splitAt?_append_right hnotA' hs, ListUtil.splitAt?_append_right hnotA hs]
+  rw [doctypeFollows_of_splitAt? (t := t')
+      (by rw [hAB', hrw]; exact ListUtil.splitAt?_append_right hnotA' hs),
+    doctypeFollows_of_splitAt? (by rw [hAB]; exact ListUtil.splitAt?_append_right hnotA hs)]
+  simp only [hkind]
 
 /--
 挿入する node が doctype でなければ、
@@ -354,12 +357,12 @@ theorem doctypeFollows_insertAt_of_ne {t t' : Tree} {parent node : NodeId}
   obtain ⟨A, B, hAB, hAB'⟩ := insertAt_children_split_general hwf hi
   have hnot : node ∉ childrenOf t parent := insertAt_node_not_mem hwf hi
   have hnotA : node ∉ A := fun hm => hnot (by rw [hAB]; exact List.mem_append_left _ hm)
-  unfold doctypeFollows
-  simp only [hAB, hAB', hkind]
   by_cases hmem : e ∈ A
   · obtain ⟨u, v, hs⟩ := ListUtil.exists_splitAt?_of_mem hmem
-    rw [ListUtil.splitAt?_append_left hs B, ListUtil.splitAt?_append_left hs (node :: B)]
-    simp [List.any_append, hdoctype]
+    rw [doctypeFollows_of_splitAt? (t := t')
+        (by rw [hAB']; exact ListUtil.splitAt?_append_left hs (node :: B)),
+      doctypeFollows_of_splitAt? (by rw [hAB]; exact ListUtil.splitAt?_append_left hs B)]
+    simp [List.any_append, hdoctype, hkind]
   · by_cases hmemB : e ∈ B
     · obtain ⟨u, v, hs⟩ := ListUtil.exists_splitAt?_of_mem hmemB
       have hnotA' : e ∉ A ++ [node] := by
@@ -368,8 +371,10 @@ theorem doctypeFollows_insertAt_of_ne {t t' : Tree} {parent node : NodeId}
         · exact hmem h
         · exact hne (by simpa using h)
       have hrw : A ++ node :: B = (A ++ [node]) ++ B := by simp
-      rw [hrw, ListUtil.splitAt?_append_right hnotA' hs,
-        ListUtil.splitAt?_append_right hmem hs]
+      rw [doctypeFollows_of_splitAt? (t := t')
+          (by rw [hAB', hrw]; exact ListUtil.splitAt?_append_right hnotA' hs),
+        doctypeFollows_of_splitAt? (by rw [hAB]; exact ListUtil.splitAt?_append_right hmem hs)]
+      simp only [hkind]
     · have hnotAB : e ∉ A ++ B := by
         intro hm; rcases List.mem_append.mp hm with h | h
         · exact hmem h
@@ -381,8 +386,10 @@ theorem doctypeFollows_insertAt_of_ne {t t' : Tree} {parent node : NodeId}
         · rcases List.mem_cons.mp h with h | h
           · exact hne h
           · exact hmemB h
-      rw [ListUtil.splitAt?_eq_none_of_not_mem hnotAB,
-        ListUtil.splitAt?_eq_none_of_not_mem hnotAB']
+      rw [doctypeFollows_of_splitAt?_none
+          (by rw [hAB']; exact ListUtil.splitAt?_eq_none_of_not_mem hnotAB'),
+        doctypeFollows_of_splitAt?_none
+          (by rw [hAB]; exact ListUtil.splitAt?_eq_none_of_not_mem hnotAB)]
 
 /-- 挿入した node 自身の後ろに doctype が無いことは、validity 検査から従う。 -/
 theorem doctypeFollows_insertAt_self {t t' : Tree} {parent node : NodeId}
@@ -392,23 +399,23 @@ theorem doctypeFollows_insertAt_self {t t' : Tree} {parent node : NodeId}
     doctypeFollows t' parent node = false := by
   have hkind : ∀ m, kindOf t' m = kindOf t m := (shapePreserving_insertAt hi).kind
   have hnot : node ∉ childrenOf t parent := insertAt_node_not_mem hwf hi
-  unfold doctypeFollows
   cases child with
   | none =>
     have hch : childrenOf t' parent = childrenOf t parent ++ node :: [] := by
       rw [insertAt_childrenOf hwf hi, ListUtil.insertBefore_none]
-    rw [hch, ListUtil.splitAt?_append_cons_self hnot]
+    rw [doctypeFollows_of_splitAt?
+      (by rw [hch]; exact ListUtil.splitAt?_append_cons_self hnot [])]
     simp
   | some c =>
     obtain ⟨s₁, s₂, h₁, h₂⟩ := insertAt_children_split hwf hi
     have hnots₁ : node ∉ s₁ := fun hm => hnot (by rw [h₁]; exact List.mem_append_left _ hm)
     have hrw : s₁ ++ node :: c :: s₂ = s₁ ++ node :: (c :: s₂) := rfl
-    rw [h₂, hrw, ListUtil.splitAt?_append_cons_self hnots₁]
+    rw [doctypeFollows_of_splitAt?
+      (by rw [h₂, hrw]; exact ListUtil.splitAt?_append_cons_self hnots₁ (c :: s₂))]
     obtain ⟨hc, hfol⟩ := hafter c rfl
     have hs : ListUtil.splitAt? (childrenOf t parent) c = some (s₁, s₂) :=
       splitAt?_childrenOf_of_split hwf h₁
-    unfold doctypeFollows at hfol
-    rw [hs] at hfol
+    rw [doctypeFollows_of_splitAt? hs] at hfol
     simp only [List.any_cons, hkind, Bool.or_eq_false_iff]
     exact ⟨hc, hfol⟩
 
@@ -530,7 +537,7 @@ theorem documentChildrenOk_congr {t t' : Tree} {doc : NodeId}
   have htx : textChildren t' doc = textChildren t doc := by
     unfold textChildren; simp only [hch, hkind]
   have hf : ∀ c, doctypeFollows t' doc c = doctypeFollows t doc c := by
-    intro c; unfold doctypeFollows; simp only [hch, hkind]
+    intro c; exact doctypeFollows_congr hch hkind
   obtain ⟨h1, h2, h3, h4⟩ := h
   exact ⟨by rw [he]; exact h1, by rw [hdt]; exact h2, by rw [htx]; exact h3,
     fun e hm => by rw [hf]; exact h4 e (by rw [← he]; exact hm)⟩
@@ -1910,8 +1917,7 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
   -- 除外されていた条件は `child` が外れることで空になる
   have hnodoctypeB : doctypeFollows s.tree parent child
       = B.any fun x => kindOf s.tree x == some NodeKind.documentType := by
-    unfold doctypeFollows
-    rw [hsplit]
+    rw [doctypeFollows_of_splitAt? hsplit]
   have hnoelemA : elementPrecedes s.tree parent child
       = A.any fun x => kindOf s.tree x == some NodeKind.element := by
     unfold elementPrecedes
@@ -2132,8 +2138,7 @@ theorem insertSeqOk_of_replace {s s₂ : DOMState} {child node parent : NodeId}
           = some (ListUtil.removeAll A node, Q') := by
         rw [hch₂, hQ]
         exact ListUtil.splitAt?_append_cons_self hcnotA Q'
-      unfold doctypeFollows
-      rw [hsplit₂, Bool.eq_false_iff]
+      rw [doctypeFollows_of_splitAt? hsplit₂, Bool.eq_false_iff]
       intro hcon
       obtain ⟨x, hx, hxk⟩ := List.any_eq_true.mp hcon
       rw [hkind, hnoDT x (hQ'B x hx)] at hxk

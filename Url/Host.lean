@@ -58,6 +58,36 @@ def opaqueHostParser (input : List Char) : Option Host :=
   else some (if input.isEmpty then .empty
              else .opaque (String.ofList (utf8PercentEncode c0ControlSet input)))
 
+/-- forbidden host code point が無ければ "opaque-host parser" は必ず成功する。 -/
+theorem opaqueHostParser_of_no_forbidden {input : List Char}
+    (hf : input.any isForbiddenHost = false) :
+    opaqueHostParser input =
+      some (if input.isEmpty then .empty
+            else .opaque (String.ofList (utf8PercentEncode c0ControlSet input))) := by
+  unfold opaqueHostParser
+  rw [if_neg (by rw [hf]; simp)]
+
+/-- forbidden host code point があれば失敗する。 -/
+theorem opaqueHostParser_of_forbidden {input : List Char}
+    (hf : input.any isForbiddenHost = true) : opaqueHostParser input = none := by
+  unfold opaqueHostParser
+  rw [if_pos hf]
+
+/-- "opaque-host parser" が返す host は empty か opaque のどちらかである。 -/
+theorem opaqueHostParser_cases {input : List Char} {h : Host}
+    (hp : opaqueHostParser input = some h) :
+    input.any isForbiddenHost = false ∧
+      ((input = [] ∧ h = .empty) ∨
+        (input ≠ [] ∧ h = .opaque (String.ofList (utf8PercentEncode c0ControlSet input)))) := by
+  unfold opaqueHostParser at hp
+  split at hp
+  · simp at hp
+  · next hn =>
+    refine ⟨by simpa using hn, ?_⟩
+    split at hp
+    · next he => exact Or.inl ⟨by simpa using he, (Option.some.inj hp).symm⟩
+    · next he => exact Or.inr ⟨by simpa using he, (Option.some.inj hp).symm⟩
+
 /--
 ASCII だけからなる domain に対する "domain parser"。
 
@@ -123,10 +153,7 @@ def hostSerializer : Host → String
 /-- opaque host が返るなら、入力に forbidden host code point は無い。 -/
 theorem opaqueHostParser_no_forbidden {input : List Char} {h : Host}
     (hp : opaqueHostParser input = some h) : input.any isForbiddenHost = false := by
-  unfold opaqueHostParser at hp
-  split at hp
-  · simp at hp
-  · next hn => simpa using hn
+  exact (opaqueHostParser_cases hp).1
 
 /-- ASCII だけの domain parser が返す文字列には forbidden domain code point が無い。 -/
 theorem asciiDomainToASCII_no_forbidden {domain : List Char} {s : String}
