@@ -1,6 +1,7 @@
 import Dom.Properties.Clone
 import Dom.Properties.Import
 import Dom.Properties.Contract
+import Dom.Properties.PreInsertValidity
 
 /-!
 # `cloneNode` は失敗しない
@@ -21,92 +22,6 @@ namespace Dom
 
 /-! ## pre-insert validity を組み立てる -/
 
-/--
-作ったばかりの node（parent も children も持たない）を parent の末尾に入れるときの
-pre-insert validity。
-
-`child` が null なので step 3 は自明で、step 8 の DocumentFragment の枝も通らない。
-残るのは step 1（parent の kind）・step 2（循環）・step 4（node の kind）・
-step 5（doctype の parent）・step 6（Document に Text）・
-step 9 と step 11（Document の children の制約）である。
--/
-theorem ensurePreInsertionValidity_fresh {t : Tree} {node parent : NodeId} {pd nd : NodeData}
-    (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
-    (hpk : pd.kind.canHaveChildren = true)
-    (hanc : isInclusiveAncestorOf t node parent = false)
-    (hnk : nd.kind ≠ .document) (hnf : nd.kind ≠ .documentFragment)
-    (hdt : nd.kind = .documentType → pd.kind = .document)
-    (hdocText : pd.kind = .document → nd.kind.isText = false)
-    (hdocElem : pd.kind = .document → nd.kind = .element → elementChildren t parent = [])
-    (hdocDoctype : pd.kind = .document → nd.kind = .documentType →
-      doctypeChildren t parent = [] ∧ elementChildren t parent = []) :
-    ensurePreInsertionValidity t node parent none [] = .ok () := by
-  unfold ensurePreInsertionValidity
-  split
-  · next h => rw [h] at hpd; simp at hpd
-  · next pd' hpd' =>
-    rw [hpd'] at hpd
-    cases hpd
-    split
-    · next h => rw [h] at hnd; simp at hnd
-    · next nd' hnd' =>
-      rw [hnd'] at hnd
-      cases hnd
-      -- step 1
-      split
-      · next hbad =>
-        exfalso
-        cases hk : pd.kind <;> rw [hk] at hpk hbad <;> simp_all [NodeKind.canHaveChildren]
-      -- step 2
-      · split
-        · next hbad => rw [hanc] at hbad; simp at hbad
-        -- step 3
-        · split
-          · next hbad => simp [childHasParent] at hbad
-          -- step 4
-          · split
-            · next hbad =>
-              exfalso
-              cases hk : nd.kind <;> rw [hk] at hbad hnk hnf <;>
-                simp_all [NodeKind.isCharacterData]
-            -- step 5
-            · split
-              · next hpne =>
-                split
-                · next hdtb => exact absurd (hdt (by simpa using hdtb)) hpne
-                · rfl
-              · next hpne =>
-                have hpdoc : pd.kind = NodeKind.document := by
-                  by_cases h : pd.kind = NodeKind.document
-                  · exact h
-                  · exact absurd h hpne
-                -- step 6
-                split
-                · next hbad => rw [hdocText hpdoc] at hbad; simp at hbad
-                -- step 7
-                · split
-                  · rfl
-                  -- step 8
-                  · next hcd =>
-                    split
-                    · next hbad => exact absurd (by simpa using hbad) hnf
-                    -- step 9
-                    · split
-                      · next helem =>
-                        unfold checkElementInsertion
-                        rw [hdocElem hpdoc (by simpa using helem)]
-                        simp
-                      -- step 10-11
-                      · next helem =>
-                        have hdoctype : nd.kind = NodeKind.documentType := by
-                          cases hk : nd.kind <;> rw [hk] at hcd helem hnk hnf <;>
-                            simp_all [NodeKind.isCharacterData]
-                        obtain ⟨hdc, hec⟩ := hdocDoctype hpdoc hdoctype
-                        unfold checkDoctypeInsertion
-                        rw [hdc, hec]
-                        simp
-
-
 /-! ## `append` は落ちない -/
 
 /-- parent を持たない node の `adopt` は必ず成功し、node document を変えるだけである。 -/
@@ -116,13 +31,11 @@ theorem adopt_isOk_of_no_parent {s : DOMState} {node doc : NodeId} {nd : NodeDat
       (s₁ = s ∨ s₁ = s.withTree (setOwnerDocument s.tree node doc)) := by
   have hown : ownerDocumentOf s.tree node = some nd.ownerDocument := by
     simp [ownerDocumentOf, hnd]
-  have hpn : parentOf s.tree node = none := by simp [parentOf, hnd, hp]
-  unfold adopt
-  rw [hown]
-  simp only [hpn]
+  have hpn : parentOf s.tree node = none := by rw [parentOf_of_get? hnd, hp]
+  refine ⟨_, adopt_of_steps hown (Or.inl ⟨hpn, rfl⟩), ?_⟩
   by_cases hd : doc = nd.ownerDocument
-  · exact ⟨s, by simp [hd], Or.inl rfl⟩
-  · exact ⟨_, by simp [hd], Or.inr rfl⟩
+  · exact Or.inl (by rw [if_pos hd])
+  · exact Or.inr (by rw [if_neg hd])
 
 /--
 **作ったばかりの node を append すると必ず成功する。**
@@ -778,20 +691,11 @@ theorem adopt_isOk {s : DOMState} (hwf : WellFormed s.tree) {node doc : NodeId} 
     (hnd : s.tree.get? node = some nd) : ∃ s₁, adopt s node doc = .ok s₁ := by
   have hown : ownerDocumentOf s.tree node = some nd.ownerDocument := by
     simp [ownerDocumentOf, hnd]
-  unfold adopt
-  rw [hown]
   cases hp : parentOf s.tree node with
-  | none =>
-    simp only []
-    by_cases hd : doc = nd.ownerDocument
-    · exact ⟨s, by simp [hd]⟩
-    · exact ⟨s.withTree (setOwnerDocument s.tree node doc), by simp [hd]⟩
+  | none => exact ⟨_, adopt_of_steps hown (Or.inl ⟨hp, rfl⟩)⟩
   | some p =>
     obtain ⟨s₁, h₁⟩ := (remove_succeeds_iff hwf (n := node) (b := false)).mpr (by rw [hp]; rfl)
-    simp only [h₁]
-    by_cases hd : doc = nd.ownerDocument
-    · exact ⟨s₁, by simp [hd]⟩
-    · exact ⟨s₁.withTree (setOwnerDocument s₁.tree node doc), by simp [hd]⟩
+    exact ⟨_, adopt_of_steps hown (Or.inr ⟨⟨p, hp⟩, h₁⟩)⟩
 
 /-- **`adoptNode` は、Document でない node なら必ず成功する。** -/
 theorem adoptNode_isOk {s : DOMState} {doc n : NodeId} {dd d : NodeData}

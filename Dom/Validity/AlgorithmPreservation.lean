@@ -83,16 +83,10 @@ theorem ensurePreInsertionValidity_parentCanHaveChildren {t : Tree} {node parent
     (h : ensurePreInsertionValidity t node parent child excl = .ok ()) :
     ∀ pd, t.get? parent = some pd → pd.kind.canHaveChildren = true := by
   intro pd hpd
-  unfold ensurePreInsertionValidity at h
-  rw [hpd] at h
-  simp only at h
-  split at h
-  · simp at h
-  · split at h
-    · next hk => simp at h
-    · next hk =>
-      simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne] at hk
-      cases hkk : pd.kind <;> simp_all [NodeKind.canHaveChildren]
+  obtain ⟨pd', _, hpd', -, hk, -, -, -, -⟩ := ensurePreInsertionValidity_ok_steps h
+  rw [hpd] at hpd'
+  cases hpd'
+  cases hkk : pd.kind <;> rw [hkk] at hk <;> simp_all [NodeKind.canHaveChildren]
 
 /-- step 5。parent が Document でないなら doctype は入れられない。逆に言えば、doctype を入れる先は Document である。 -/
 theorem ensurePreInsertionValidity_doctypeParentIsDocument {t : Tree} {node parent : NodeId}
@@ -101,20 +95,12 @@ theorem ensurePreInsertionValidity_doctypeParentIsDocument {t : Tree} {node pare
     ∀ nd, t.get? node = some nd → nd.kind = .documentType →
       ∀ pd, t.get? parent = some pd → pd.kind = .document := by
   intro nd hnd hk pd hpd
-  unfold ensurePreInsertionValidity at h
-  rw [hpd, hnd] at h
-  simp only at h
-  split at h
-  · simp at h
-  · split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · simp at h
-        · split at h
-          · next hkp => simp [hk] at h
-          · next hkp => simpa using hkp
+  obtain ⟨pd', nd', hpd', hnd', -, -, -, -, hstep5⟩ := ensurePreInsertionValidity_ok_steps h
+  rw [hpd] at hpd'; cases hpd'
+  rw [hnd] at hnd'; cases hnd'
+  by_cases hd : pd.kind = NodeKind.document
+  · exact hd
+  · exact absurd (by simp [hk]) (hstep5 hd)
 
 /-- step 3。`child` が指定されていれば、その parent は `parent` である。 -/
 theorem ensurePreInsertionValidity_childParent {t : Tree} {node parent : NodeId}
@@ -123,21 +109,8 @@ theorem ensurePreInsertionValidity_childParent {t : Tree} {node parent : NodeId}
     ∀ c, child = some c → parentOf t c = some parent := by
   intro c hc
   subst hc
-  unfold ensurePreInsertionValidity at h
-  split at h
-  · simp at h
-  · split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · simp at h
-        · split at h
-          · simp at h
-          · next hk =>
-            simp only [Bool.not_eq_true', childHasParent, decide_eq_false_iff_not,
-              Decidable.not_not] at hk
-            exact hk
+  obtain ⟨-, -, -, -, -, -, hch, -, -⟩ := ensurePreInsertionValidity_ok_steps h
+  simpa [childHasParent] using hch
 
 /-- step 4。node は DocumentFragment / DocumentType / Element / CharacterData であり、Document ではない。 -/
 theorem ensurePreInsertionValidity_nodeNotDocument {t : Tree} {node parent : NodeId}
@@ -145,23 +118,10 @@ theorem ensurePreInsertionValidity_nodeNotDocument {t : Tree} {node parent : Nod
     (h : ensurePreInsertionValidity t node parent child excl = .ok ()) :
     ∀ nd, t.get? node = some nd → nd.kind ≠ .document := by
   intro nd hnd
-  unfold ensurePreInsertionValidity at h
-  split at h
-  · simp at h
-  · next pd hpd =>
-    rw [hnd] at h
-    simp only at h
-    split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · simp at h
-        · split at h
-          · next hk => simp at h
-          · next hk =>
-            simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne] at hk
-            cases hkk : nd.kind <;> simp_all [NodeKind.isCharacterData]
+  obtain ⟨-, nd', -, hnd', -, -, -, hk, -⟩ := ensurePreInsertionValidity_ok_steps h
+  rw [hnd] at hnd'
+  cases hnd'
+  cases hkk : nd.kind <;> rw [hkk] at hk <;> simp_all [NodeKind.isCharacterData]
 
 /-! ## remove -/
 
@@ -800,34 +760,24 @@ theorem documentTreesValid_removeEach :
 theorem adopt_ownerDocument_self {s s' : DOMState} {node doc : NodeId}
     (hwf : WellFormed s.tree) (ha : adopt s node doc = .ok s') :
     ownerDocumentOf s'.tree node = some doc := by
-  unfold adopt at ha
-  split at ha
-  · simp at ha
-  · next old hold =>
-    split at ha
-    · simp at ha
-    · next s₁ hr =>
-      have hown₁ : ownerDocumentOf s₁.tree node = some old := by
-        revert hr
-        split
-        · intro hr; rw [← Except.ok.inj hr]; exact hold
-        · intro hr
-          rw [ownerDocumentOf_detach (remove_ok hr).2]; exact hold
-      have hwf₁ : WellFormed s₁.tree := by
-        revert hr
-        split
-        · intro hr; rw [← Except.ok.inj hr]; exact hwf
-        · intro hr; exact remove_preserves_wellformed hwf hr
-      obtain ⟨nd₁, hnd₁⟩ : ∃ nd₁, s₁.tree.get? node = some nd₁ := by
-        cases h1 : s₁.tree.get? node with
-        | some x => exact ⟨x, rfl⟩
-        | none => rw [ownerDocumentOf, h1] at hown₁; simp at hown₁
-      split at ha
-      · next he => rw [← Except.ok.inj ha, hown₁, he]
-      · rw [← Except.ok.inj ha]
-        show ownerDocumentOf (setOwnerDocument s₁.tree node doc) node = some doc
-        rw [ownerDocumentOf_setOwnerDocument_eq, hnd₁]
-        simp [mem_preorder_self hwf₁ hnd₁]
+  obtain ⟨old, s₁, hold, hstep, hfinal⟩ := adopt_cases ha
+  have hown₁ : ownerDocumentOf s₁.tree node = some old := by
+    rcases hstep with ⟨_, rfl⟩ | ⟨_, hr⟩
+    · exact hold
+    · rw [ownerDocumentOf_detach (remove_ok hr).2]; exact hold
+  have hwf₁ : WellFormed s₁.tree := by
+    rcases hstep with ⟨_, rfl⟩ | ⟨_, hr⟩
+    · exact hwf
+    · exact remove_preserves_wellformed hwf hr
+  obtain ⟨nd₁, hnd₁⟩ : ∃ nd₁, s₁.tree.get? node = some nd₁ := by
+    cases h1 : s₁.tree.get? node with
+    | some x => exact ⟨x, rfl⟩
+    | none => rw [ownerDocumentOf, h1] at hown₁; simp at hown₁
+  rcases hfinal with ⟨he, rfl⟩ | ⟨-, rfl⟩
+  · rw [hown₁, he]
+  · show ownerDocumentOf (setOwnerDocument s₁.tree node doc) node = some doc
+    rw [ownerDocumentOf_setOwnerDocument_eq, hnd₁]
+    simp [mem_preorder_self hwf₁ hnd₁]
 
 /-- adopt は「parent の node document が `doc` である」という条件を壊さない。 -/
 theorem adopt_ownerDocument_other {s s' : DOMState} {node doc parent : NodeId}
@@ -946,13 +896,10 @@ theorem nodeDocumentsValid_insertEach :
           adopt_ownerDocument_other ha hpar
         -- node が木の中にあることは adopt の成功から出る。
         obtain ⟨nd, hnd⟩ : ∃ nd, s.tree.get? n = some nd := by
-          unfold adopt at ha
-          split at ha
-          · simp at ha
-          · next old hold =>
-            cases h1 : s.tree.get? n with
-            | some x => exact ⟨x, rfl⟩
-            | none => rw [ownerDocumentOf, h1] at hold; simp at hold
+          obtain ⟨_, _, hold, -, -⟩ := adopt_cases ha
+          cases h1 : s.tree.get? n with
+          | some x => exact ⟨x, rfl⟩
+          | none => rw [ownerDocumentOf, h1] at hold; simp at hold
         have hself : ownerDocumentOf s₁.tree n = some doc :=
           adopt_ownerDocument_self hs.wellFormed ha
         have hi' := (DOMState.mapTree_eq_ok hins).1
@@ -1190,183 +1137,6 @@ theorem eq_nil_of_forall_mem_nil {α : Type _} {l : List α} (h : ∀ e ∈ l, e
   cases hl : l with
   | nil => rfl
   | cons y r => exact absurd (h y (by rw [hl]; simp)) (by simp)
-
-/-- step 9 / 8 の element 挿入検査が通ったときに得られる事実。 -/
-theorem checkElementInsertion_ok {t : Tree} {parent : NodeId} {child : Option NodeId}
-    {excl : List NodeId} (h : checkElementInsertion t parent child excl = .ok ()) :
-    (∀ e ∈ elementChildren t parent, e ∈ excl) ∧
-      ∀ c, child = some c →
-        ((kindOf t c == some NodeKind.documentType) = false ∨ c ∈ excl) ∧
-          doctypeFollows t parent c = false := by
-  unfold checkElementInsertion at h
-  split at h
-  · simp at h
-  · next hany =>
-    have hall : ∀ e ∈ elementChildren t parent, e ∈ excl := by
-      simp only [List.any_eq_true, Bool.not_eq_true', not_exists, not_and] at hany
-      intro e he
-      have hb := hany e he
-      simpa using hb
-    refine ⟨hall, ?_⟩
-    intro c hc
-    subst hc
-    simp only at h
-    split at h
-    · simp at h
-    · next hfol =>
-      split at h
-      · simp at h
-      · next hk =>
-        refine ⟨?_, by simpa using hfol⟩
-        by_cases hcm : c ∈ excl
-        · exact Or.inr hcm
-        · refine Or.inl ?_
-          have hcont : excl.contains c = false := by simpa using hcm
-          rw [Bool.not_eq_true, Bool.and_eq_false_iff, hcont] at hk
-          simpa using hk
-
-/-- step 10-11 の doctype 挿入検査が通ったときに得られる事実。 -/
-theorem checkDoctypeInsertion_ok {t : Tree} {parent : NodeId} {child : Option NodeId}
-    {excl : List NodeId} (h : checkDoctypeInsertion t parent child excl = .ok ()) :
-    (∀ e ∈ doctypeChildren t parent, e ∈ excl) ∧
-      (∀ c, child = some c → elementPrecedes t parent c = false) ∧
-      (child = none → ∀ e ∈ elementChildren t parent, e ∈ excl) := by
-  unfold checkDoctypeInsertion at h
-  split at h
-  · simp at h
-  · next hany =>
-    have hall : ∀ e ∈ doctypeChildren t parent, e ∈ excl := by
-      simp only [List.any_eq_true, Bool.not_eq_true', not_exists, not_and] at hany
-      intro e he
-      simpa using hany e he
-    refine ⟨hall, ?_, ?_⟩
-    · intro c hc
-      subst hc
-      simp only at h
-      split at h
-      · simp at h
-      · next hp => simpa using hp
-    · intro hc
-      subst hc
-      simp only at h
-      split at h
-      · simp at h
-      · next hany' =>
-        simp only [List.any_eq_true, Bool.not_eq_true', not_exists, not_and] at hany'
-        intro e he
-        simpa using hany' e he
-
-/--
-parent が Document のとき、`ensure pre-insertion validity` が確立する事実。
-
-step 6（Text は入れられない）、step 8（fragment の中身）、
-step 9（element を入れる条件）、step 10-11（doctype を入れる条件）に対応する。
--/
-theorem ensurePreInsertionValidity_documentFacts {t : Tree} {node parent : NodeId}
-    {child : Option NodeId} {excl : List NodeId} {pd nd : NodeData}
-    (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
-    (hdoc : pd.kind = NodeKind.document)
-    (hv : ensurePreInsertionValidity t node parent child excl = .ok ()) :
-    nd.kind.isText = false ∧
-    (nd.kind = NodeKind.documentFragment →
-      (elementChildren t node).length ≤ 1 ∧ textChildren t node = []) ∧
-    ((nd.kind = NodeKind.element ∨
-        (nd.kind = NodeKind.documentFragment ∧ elementChildren t node ≠ [])) →
-      (∀ e ∈ elementChildren t parent, e ∈ excl) ∧
-        ∀ c, child = some c →
-          ((kindOf t c == some NodeKind.documentType) = false ∨ c ∈ excl) ∧
-            doctypeFollows t parent c = false) ∧
-    (nd.kind = NodeKind.documentType →
-      (∀ e ∈ doctypeChildren t parent, e ∈ excl) ∧
-        (∀ c, child = some c → elementPrecedes t parent c = false) ∧
-        (child = none → ∀ e ∈ elementChildren t parent, e ∈ excl)) := by
-  unfold ensurePreInsertionValidity at hv
-  rw [hpd, hnd] at hv
-  simp only at hv
-  split at hv
-  · simp at hv
-  · split at hv
-    · simp at hv
-    · split at hv
-      · simp at hv
-      · split at hv
-        · simp at hv
-        · split at hv
-          · next hne => exact absurd hdoc hne
-          · split at hv
-            · simp at hv
-            · next hisText =>
-              have htext : nd.kind.isText = false := by simpa using hisText
-              refine ⟨htext, ?_, ?_, ?_⟩ <;> split at hv
-              -- step 7：CharacterData ならここで終わり
-              · next hcd =>
-                intro hfrag
-                rw [hfrag] at hcd
-                simp [NodeKind.isCharacterData] at hcd
-              · next hcd =>
-                split at hv
-                · next hfrag =>
-                  split at hv
-                  · simp at hv
-                  · next hsizes =>
-                    intro _
-                    rw [Bool.not_eq_true, Bool.or_eq_false_iff] at hsizes
-                    obtain ⟨hlen, hemp⟩ := hsizes
-                    refine ⟨by simp at hlen; omega, ?_⟩
-                    rw [Bool.not_eq_false', List.isEmpty_iff] at hemp
-                    exact hemp
-                · next hnfrag =>
-                  intro hfrag
-                  rw [hfrag] at hnfrag
-                  simp at hnfrag
-              · next hcd =>
-                intro hcase
-                exfalso
-                rcases hcase with hk | ⟨hk, _⟩
-                · rw [hk] at hcd; simp [NodeKind.isCharacterData] at hcd
-                · rw [hk] at hcd; simp [NodeKind.isCharacterData] at hcd
-              · next hcd =>
-                split at hv
-                · next hfrag =>
-                  split at hv
-                  · simp at hv
-                  · split at hv
-                    · next hempty =>
-                      intro hcase
-                      rcases hcase with hk | ⟨_, hne⟩
-                      · rw [hk] at hfrag; simp at hfrag
-                      · exact absurd (by simpa using hempty) hne
-                    · intro _
-                      exact checkElementInsertion_ok hv
-                · next hnfrag =>
-                  split at hv
-                  · intro _
-                    exact checkElementInsertion_ok hv
-                  · next hnelem =>
-                    intro hcase
-                    exfalso
-                    rcases hcase with hk | ⟨hk, _⟩
-                    · rw [hk] at hnelem; simp at hnelem
-                    · rw [hk] at hnfrag; simp at hnfrag
-              · next hcd =>
-                intro hdt
-                exfalso
-                rw [hdt] at hcd
-                simp [NodeKind.isCharacterData] at hcd
-              · next hcd =>
-                split at hv
-                · next hfrag =>
-                  intro hdt
-                  rw [hdt] at hfrag
-                  simp at hfrag
-                · split at hv
-                  · next helem =>
-                    intro hdt
-                    rw [hdt] at helem
-                    simp at helem
-                  · intro _
-                    exact checkDoctypeInsertion_ok hv
-
 
 /--
 Document に入れる node の列は、Text を含まず、

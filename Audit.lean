@@ -165,6 +165,9 @@ open Dom.Audit
   Dom.parentOf_congr
   Dom.detachWithLiveAdjust_cases
   Dom.detachWithLiveAdjust_of_detach
+  Dom.adopt_cases
+  Dom.adopt_of_steps
+  Dom.ensurePreInsertionValidity_ok_steps
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

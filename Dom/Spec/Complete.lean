@@ -47,21 +47,11 @@ step 2 の `remove` は parent がある node にしか呼ばないので、そ�
 theorem adopt_succeeds_of_ownerDocument {s : DOMState} {node doc oldDoc : NodeId}
     (hwf : WellFormed s.tree) (h : ownerDocumentOf s.tree node = some oldDoc) :
     ∃ out, adopt s node doc = .ok out := by
-  unfold adopt
-  rw [h]
   cases hp : parentOf s.tree node with
-  | none =>
-    dsimp only
-    split
-    · exact ⟨s, rfl⟩
-    · exact ⟨_, rfl⟩
+  | none => exact ⟨_, adopt_of_steps h (Or.inl ⟨hp, rfl⟩)⟩
   | some p =>
     obtain ⟨s₁, hs₁⟩ := (remove_succeeds_iff hwf (n := node) (b := false)).mpr (by rw [hp]; rfl)
-    rw [hs₁]
-    dsimp only
-    split
-    · exact ⟨s₁, rfl⟩
-    · exact ⟨_, rfl⟩
+    exact ⟨_, adopt_of_steps h (Or.inr ⟨⟨p, hp⟩, hs₁⟩)⟩
 
 /-- **`AdoptSpec` を満たす状態があるなら、`adopt` は成功してその観測を作る。** -/
 theorem adopt_complete {s s' : DOMState} {node doc : NodeId} (hwf : WellFormed s.tree)

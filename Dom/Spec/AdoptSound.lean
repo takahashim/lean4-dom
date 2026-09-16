@@ -32,43 +32,29 @@ theorem documentAssigned_setOwnerDocument {t : Tree} (hwf : WellFormed t) {node 
 /-- **`adopt` は `AdoptSpec` を満たす。** -/
 theorem adopt_sound {s s' : DOMState} {node doc : NodeId} (hwf : WellFormed s.tree)
     (h : adopt s node doc = .ok s') : AdoptSpec s node doc s' := by
-  unfold adopt at h
-  split at h
-  · simp at h
-  · next oldDoc hold =>
-    refine ⟨oldDoc, hold, ?_⟩
-    -- step 2
-    split at h
-    · simp at h
-    · next s₁ hstep =>
-      refine ⟨s₁, ?_, ?_⟩
-      · -- parent の有無で分ける
-        revert hstep
-        split
-        · next hp => intro hstep; exact Or.inl ⟨hp, (Except.ok.inj hstep).symm⟩
-        · next p hp => intro hstep; exact Or.inr ⟨⟨p, hp⟩, remove_sound hwf hstep⟩
-      · -- step 3
-        have hwf₁ : WellFormed s₁.tree := by
-          revert hstep
-          split
-          · intro hstep; rw [← Except.ok.inj hstep]; exact hwf
-          · intro hstep; exact remove_preserves_wellformed hwf hstep
-        have hnode : ∃ nd, s₁.tree.get? node = some nd := by
-          obtain ⟨nd, hnd⟩ : ∃ nd, s.tree.get? node = some nd := by
-            unfold ownerDocumentOf at hold
-            cases hq : s.tree.get? node with
-            | none => rw [hq] at hold; simp at hold
-            | some nd => exact ⟨nd, rfl⟩
-          revert hstep
-          split
-          · intro hstep; rw [← Except.ok.inj hstep]; exact ⟨nd, hnd⟩
-          · intro hstep
-            exact exists_get?_of_kindPreserving (shapePreserving_remove hstep) hnd
-        obtain ⟨nd₁, hnd₁⟩ := hnode
-        split at h
-        · next he => rw [if_pos he, ← Except.ok.inj h]
-        · next he =>
-          rw [if_neg he, ← Except.ok.inj h]
-          exact ⟨documentAssigned_setOwnerDocument hwf₁ hnd₁, ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩⟩
+  obtain ⟨oldDoc, s₁, hold, hstep, hfinal⟩ := adopt_cases h
+  refine ⟨oldDoc, hold, s₁, ?_, ?_⟩
+  · -- step 2。parent の有無で分ける
+    rcases hstep with ⟨hp, hs⟩ | ⟨hp, hr⟩
+    · exact Or.inl ⟨hp, hs⟩
+    · exact Or.inr ⟨hp, remove_sound hwf hr⟩
+  · -- step 3
+    have hwf₁ : WellFormed s₁.tree := by
+      rcases hstep with ⟨_, rfl⟩ | ⟨_, hr⟩
+      · exact hwf
+      · exact remove_preserves_wellformed hwf hr
+    obtain ⟨nd₁, hnd₁⟩ : ∃ nd₁, s₁.tree.get? node = some nd₁ := by
+      obtain ⟨nd, hnd⟩ : ∃ nd, s.tree.get? node = some nd := by
+        unfold ownerDocumentOf at hold
+        cases hq : s.tree.get? node with
+        | none => rw [hq] at hold; simp at hold
+        | some nd => exact ⟨nd, rfl⟩
+      rcases hstep with ⟨_, rfl⟩ | ⟨_, hr⟩
+      · exact ⟨nd, hnd⟩
+      · exact exists_get?_of_kindPreserving (shapePreserving_remove hr) hnd
+    rcases hfinal with ⟨he, rfl⟩ | ⟨he, rfl⟩
+    · rw [if_pos he]
+    · rw [if_neg he]
+      exact ⟨documentAssigned_setOwnerDocument hwf₁ hnd₁, ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩⟩
 
 end Dom.Spec

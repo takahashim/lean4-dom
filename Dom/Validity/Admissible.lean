@@ -1,6 +1,7 @@
 import Dom.Validity.Attributes
 import Dom.Validity.Observers
 import Dom.Observer.Deliver
+import Dom.Properties.PreInsertValidity
 
 /-!
 # `AdmissibleDOMState` の保存
@@ -23,83 +24,6 @@ namespace Dom
 
 
 /-! ## pre-insert の step 2-3（reference child のずらし） -/
-
-/-- step 4 と step 7-9 の否定から、node は doctype である。 -/
-theorem kind_documentType_of {k : NodeKind}
-    (h4 : ¬ (!(k == NodeKind.documentFragment || k == NodeKind.documentType ||
-      k == NodeKind.element || k.isCharacterData)) = true)
-    (h7 : ¬ k.isCharacterData = true) (h8 : ¬ (k == NodeKind.documentFragment) = true)
-    (h9 : ¬ (k == NodeKind.element) = true) : k = NodeKind.documentType := by
-  cases k <;> simp_all [NodeKind.isCharacterData]
-
-/--
-`ensure pre-insertion validity` のうち `child` に依存するのは
-step 3 と step 8-11 の検査だけである。
--/
-theorem ensurePreInsertionValidity_child_congr {t : Tree} {node parent : NodeId}
-    {c₁ c₂ : Option NodeId} {excl : List NodeId}
-    (h3 : childHasParent t c₂ parent = true)
-    (hel : ∀ nd, t.get? node = some nd →
-      checkElementInsertion t parent c₁ excl = .ok () →
-      checkElementInsertion t parent c₂ excl = .ok ())
-    (hdt : ∀ nd, t.get? node = some nd → nd.kind = NodeKind.documentType →
-      checkDoctypeInsertion t parent c₁ excl = .ok () →
-      checkDoctypeInsertion t parent c₂ excl = .ok ())
-    (hv : ensurePreInsertionValidity t node parent c₁ excl = .ok ()) :
-    ensurePreInsertionValidity t node parent c₂ excl = .ok () := by
-  unfold ensurePreInsertionValidity at hv ⊢
-  split at hv
-  · simp at hv
-  · next pd hpd =>
-    split at hv
-    · simp at hv
-    · next nd hnd =>
-      split at hv
-      · simp at hv
-      · next h1 =>
-        rw [if_neg h1]
-        split at hv
-        · simp at hv
-        · next h2 =>
-          rw [if_neg h2]
-          rw [if_neg (show ¬(!childHasParent t c₂ parent) = true by simpa using h3)]
-          split at hv
-          · simp at hv
-          · split at hv
-            · simp at hv
-            · next h4 =>
-              rw [if_neg h4]
-              split at hv
-              · next h5 => rw [if_pos h5]; exact hv
-              · next h5 =>
-                rw [if_neg h5]
-                split at hv
-                · simp at hv
-                · next h6 =>
-                  rw [if_neg h6]
-                  split at hv
-                  · next h7 => rw [if_pos h7]
-                  · next h7 =>
-                    rw [if_neg h7]
-                    split at hv
-                    · next h8 =>
-                      rw [if_pos h8]
-                      split at hv
-                      · simp at hv
-                      · next h8a =>
-                        rw [if_neg h8a]
-                        split at hv
-                        · next h8b => rw [if_pos h8b]
-                        · next h8b => rw [if_neg h8b]; exact hel nd hnd hv
-                    · next h8 =>
-                      rw [if_neg h8]
-                      split at hv
-                      · next h9 => rw [if_pos h9]; exact hel nd hnd hv
-                      · next h9 =>
-                        rw [if_neg h9]
-                        refine hdt nd hnd ?_ hv
-                        exact kind_documentType_of h4 h7 h8 h9
-
 
 /--
 `child` が `node` 自身のとき、reference child を次の兄弟にずらしても step 9 の検査は通る。

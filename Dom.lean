@@ -32,6 +32,7 @@ import Dom.Validity.State
 import Dom.Properties.Tree
 import Dom.Properties.TreeOrder
 import Dom.Properties.Mutation
+import Dom.Properties.PreInsertValidity
 import Dom.Properties.Algorithms
 import Dom.Properties.Path
 import Dom.Properties.Range

@@ -1,4 +1,5 @@
 import Dom.Validity.Admissible
+import Dom.Properties.PreInsertValidity
 
 /-!
 # 契約：成功条件と例外の順序
@@ -73,51 +74,6 @@ theorem preRemove_error_notFound {s : DOMState} {child parent : NodeId}
   unfold preRemove
   rw [if_pos h]
 
-/-! ## ensure pre-insertion validity の検査順序 -/
-
-section PreInsertOrder
-
-variable {t : Tree} {node parent : NodeId} {child : Option NodeId} {excl : List NodeId}
-  {pd nd : NodeData}
-
-/-- step 1。parent が children を持てない kind なら、他に何があっても HierarchyRequestError。 -/
-theorem ensurePreInsertionValidity_step1
-    (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
-    (hk : pd.kind.canHaveChildren = false) :
-    ensurePreInsertionValidity t node parent child excl = .error .hierarchyRequestError := by
-  unfold ensurePreInsertionValidity
-  rw [hpd, hnd]
-  simp only
-  refine if_pos ?_
-  cases hkk : pd.kind <;> rw [hkk] at hk <;> simp_all [NodeKind.canHaveChildren]
-
-/-- step 2。cycle は step 3 以降の違反より先に返る。 -/
-theorem ensurePreInsertionValidity_step2
-    (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
-    (hk : pd.kind.canHaveChildren = true)
-    (hanc : isInclusiveAncestorOf t node parent = true) :
-    ensurePreInsertionValidity t node parent child excl = .error .hierarchyRequestError := by
-  unfold ensurePreInsertionValidity
-  rw [hpd, hnd]
-  simp only
-  rw [if_neg (by cases hkk : pd.kind <;> rw [hkk] at hk <;>
-    simp_all [NodeKind.canHaveChildren]), if_pos hanc]
-
-/-- step 3。reference child が parent の子でないなら NotFoundError。 -/
-theorem ensurePreInsertionValidity_step3
-    (hpd : t.get? parent = some pd) (hnd : t.get? node = some nd)
-    (hk : pd.kind.canHaveChildren = true)
-    (hanc : isInclusiveAncestorOf t node parent = false)
-    (hch : childHasParent t child parent = false) :
-    ensurePreInsertionValidity t node parent child excl = .error .notFoundError := by
-  unfold ensurePreInsertionValidity
-  rw [hpd, hnd]
-  simp only
-  rw [if_neg (by cases hkk : pd.kind <;> rw [hkk] at hk <;>
-    simp_all [NodeKind.canHaveChildren]), if_neg (by rw [hanc]; simp),
-    if_pos (by rw [hch]; simp)]
-
-end PreInsertOrder
 
 /--
 cycle（step 2）は「reference child が子でない」（step 3）より先に返る。

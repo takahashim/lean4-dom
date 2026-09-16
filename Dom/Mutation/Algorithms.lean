@@ -196,6 +196,48 @@ def adopt (s : DOMState) (node doc : NodeId) : Except DOMException DOMState :=
       if doc = oldDocument then .ok s₁
       else .ok (s₁.withTree (setOwnerDocument s₁.tree node doc))
 
+/--
+`adopt` が成功したときに通った経路を、本体を開かずに取り出す。
+
+step 2 は parent の有無で、step 3 は node document が変わるかどうかで分かれる。
+-/
+theorem adopt_cases {s s' : DOMState} {node doc : NodeId} (h : adopt s node doc = .ok s') :
+    ∃ old s₁, ownerDocumentOf s.tree node = some old ∧
+      ((parentOf s.tree node = none ∧ s₁ = s) ∨
+        ((∃ p, parentOf s.tree node = some p) ∧ remove s node = .ok s₁)) ∧
+      ((doc = old ∧ s' = s₁) ∨
+        (doc ≠ old ∧ s' = s₁.withTree (setOwnerDocument s₁.tree node doc))) := by
+  unfold adopt at h
+  split at h
+  · simp at h
+  · next old hold =>
+    split at h
+    · simp at h
+    · next s₁ hstep =>
+      refine ⟨old, s₁, hold, ?_, ?_⟩
+      · revert hstep
+        split
+        · next hp => intro hstep; exact Or.inl ⟨hp, (Except.ok.inj hstep).symm⟩
+        · next p hp => intro hstep; exact Or.inr ⟨⟨p, hp⟩, hstep⟩
+      · split at h
+        · next he => exact Or.inl ⟨he, (Except.ok.inj h).symm⟩
+        · next he => exact Or.inr ⟨he, (Except.ok.inj h).symm⟩
+
+/-- step 1 と step 2 が通れば `adopt` は通り、結果は step 3 だけで決まる。 -/
+theorem adopt_of_steps {s s₁ : DOMState} {node doc old : NodeId}
+    (hown : ownerDocumentOf s.tree node = some old)
+    (hstep : (parentOf s.tree node = none ∧ s₁ = s) ∨
+      ((∃ p, parentOf s.tree node = some p) ∧ remove s node = .ok s₁)) :
+    adopt s node doc =
+      .ok (if doc = old then s₁ else s₁.withTree (setOwnerDocument s₁.tree node doc)) := by
+  unfold adopt
+  rw [hown]
+  rcases hstep with ⟨hp, rfl⟩ | ⟨⟨p, hp⟩, hr⟩
+  · simp only [hp]
+    split <;> simp_all
+  · simp only [hp, hr]
+    split <;> simp_all
+
 /-! ## ensure pre-insert validity -/
 
 /--

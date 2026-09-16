@@ -1,4 +1,5 @@
 import Dom.Mutation.Algorithms
+import Dom.Properties.PreInsertValidity
 import Dom.Mutation.Api
 import Dom.Properties.Mutation
 
@@ -215,21 +216,14 @@ theorem shapePreserving_removeEach :
 theorem adopt_ok_cases {s s' : DOMState} {node doc : NodeId} (h : adopt s node doc = .ok s') :
     ∃ s₁, (parentOf s.tree node = none ∧ s₁ = s ∨ remove s node = .ok s₁) ∧
       (s' = s₁ ∨ s' = s₁.withTree (setOwnerDocument s₁.tree node doc)) := by
-  unfold adopt at h
-  split at h
-  · simp at h
-  · next old hold =>
-    split at h
-    · simp at h
-    · next s₁ hr =>
-      refine ⟨s₁, ?_, ?_⟩
-      · revert hr
-        split
-        · next hn => intro hr; exact Or.inl ⟨hn, (Except.ok.inj hr).symm⟩
-        · next p hn => intro hr; exact Or.inr hr
-      · split at h
-        · exact Or.inl (Except.ok.inj h).symm
-        · exact Or.inr (Except.ok.inj h).symm
+  obtain ⟨_, s₁, _, hstep, hfinal⟩ := adopt_cases h
+  refine ⟨s₁, ?_, ?_⟩
+  · rcases hstep with h₁ | ⟨_, hr⟩
+    · exact Or.inl h₁
+    · exact Or.inr hr
+  · rcases hfinal with ⟨_, h₁⟩ | ⟨_, h₁⟩
+    · exact Or.inl h₁
+    · exact Or.inr h₁
 
 theorem adopt_preserves_wellformed {s s' : DOMState} {node doc : NodeId}
     (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree doc) (h : adopt s node doc = .ok s') :
@@ -637,23 +631,9 @@ theorem ensurePreInsertionValidity_ok {t : Tree} {node parent : NodeId} {child :
     (∃ pd, t.get? parent = some pd) ∧ (∃ nd, t.get? node = some nd) ∧
       isInclusiveAncestorOf t node parent = false ∧
       ∀ c, child = some c → parentOf t c = some parent := by
-  unfold ensurePreInsertionValidity at h
-  split at h
-  · simp at h
-  · next pd hpd =>
-    split at h
-    · simp at h
-    · next nd hnd =>
-      split at h
-      · simp at h
-      · split at h
-        · simp at h
-        · next hanc =>
-          split at h
-          · simp at h
-          · next hchild =>
-            exact ⟨⟨pd, hpd⟩, ⟨nd, hnd⟩, by simpa using hanc,
-              fun c hc => parentOf_of_childHasParent (by simpa using hchild) hc⟩
+  obtain ⟨pd, nd, hpd, hnd, -, hanc, hchild, -, -⟩ := ensurePreInsertionValidity_ok_steps h
+  exact ⟨⟨pd, hpd⟩, ⟨nd, hnd⟩, hanc,
+    fun c hc => parentOf_of_childHasParent hchild hc⟩
 
 /--
 PLAN §6.3。`ensurePreInsertionValidity` が `.ok` を返し、node が parent を持たないなら、
