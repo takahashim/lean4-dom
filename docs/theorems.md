@@ -336,7 +336,7 @@ kind 列そのものだからである。
 
 | 定理 | module |
 | --- | --- |
-| `Dom.querySelector_eq_head` ほか | `Dom/Selector/Spec.lean` |
+| `Dom.querySelector_eq_head` ほか | `Dom/Properties/Selector.lean` |
 
 ```lean
 theorem querySelector_eq_head (t : Tree) (selectors : String) (node : NodeId) :
@@ -364,7 +364,7 @@ theorem mem_matchTree_iff (hwf : WellFormed t) {node : NodeId} {d : NodeData}
 
 | 定理 | module |
 | --- | --- |
-| `Dom.scope_irrelevant` / `Dom.mem_matchTree_iff_matches` | `Dom/Selector/Spec.lean` |
+| `Dom.scope_irrelevant` / `Dom.mem_matchTree_iff_matches` | `Dom/Properties/Selector.lean` |
 
 ```lean
 theorem matchSelList_scope_irrelevant {t : Tree} {s₁ s₂ a : Option NodeId}
@@ -526,6 +526,29 @@ theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat
 | `Dom.replace_cycle_precedes_notFound` | cycle は reference child の検査より先に返る |
 | `Dom.ensurePreInsertionValidity_step1` 〜 `_step3` | pre-insert 検査の step 1-3 の優先順位 |
 | `Dom.moveValidity_step1` 〜 `_step4` | move 検査の step 1-4 の優先順位 |
+
+## 実行関数と証明の置き場所
+
+module の層は次のとおりで、逆向きの import は一つだけである
+（`Dom/Properties/Counterexample.lean` が `Dom/Exec/Invariant.lean` を見る。
+harness そのものについての反例なので意図したもの）。
+
+| 層 | 内容 |
+| --- | --- |
+| 0 | `Infra/`、`Dom/Util/` — 仕様に依らない道具 |
+| 1 | `Dom/Basic/`、`Selectors/` — 木と観測の語彙、selector の構文 |
+| 2 | `Dom/Mutation/` ほか — 仕様の algorithm の翻訳 |
+| 3 | `Dom/Validity/`、`Dom/Properties/`、`Dom/Spec/` — 不変条件・契約・関係意味論 |
+| 4 | `Dom/Exec/` — 差分テストの harness |
+
+**層 2 の module は仕様の節に沿って切ってある。** 凝集度の基準は「同じ algorithm か」
+であって「同じ型を触るか」ではない。`docs/traceability.md` の表が algorithm から
+evaluator を引けるのはそのためで、ここを普通の意味で整理し直すと表が引けなくなる。
+
+契約（実行関数についての定理）は `Dom/Properties/`、関係意味論（仕様本文から
+独立に書き写したもの）は `Dom/Spec/` に置く。selector の契約が
+`Dom/Selector/Spec.lean` に居て `Dom/Spec/Selector.lean` と紛らわしかったので、
+`Dom/Properties/Selector.lean` に移した。
 
 ## 定理そのものを検査する
 

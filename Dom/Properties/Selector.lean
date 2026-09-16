@@ -3,10 +3,13 @@ import Dom.Properties.Tree
 import Dom.Properties.Path
 
 /-!
-# selector の API が満たすこと
+# selector の API が満たすこと（契約）
 
 `Dom/Selector/Api.lean` の四つの method について、差分テストで見ているのと
 同じことを定理として書く。
+
+仕様本文から独立に書き写した**関係意味論**のほうは `Dom/Spec/Selector.lean` にある。
+こちらは実行関数についての定理（契約）で、あちらは翻訳を誤っていないかを見るものである。
 
 * `querySelector()` は `querySelectorAll()` の先頭である
 * `querySelectorAll()` は **tree order の部分列**で、**重複を持たない**

@@ -3815,7 +3815,7 @@ parent としてふるまう」ものとして扱い、`df.querySelectorAll(":sc
 
 ### 契約
 
-停止性だけでなく、API が満たすことも定理にしてある（`Dom/Selector/Spec.lean`、
+停止性だけでなく、API が満たすことも定理にしてある（`Dom/Properties/Selector.lean`、
 `docs/theorems.md` の 16・17）。`querySelectorAll()` の結果が tree order の部分列で
 重複を持たないこと、そこに入るのがちょうど「scoping root の descendant である
 element で selector に当たるもの」であること、`closest()` が返すものより近い

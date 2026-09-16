@@ -235,7 +235,7 @@ theorem cxSize_lt_lSize : ∀ (l : List Complex) (c : Complex), c ∈ l -> cxSiz
 
 `matchSimple` が `ctx.scope` を読むのは `Simple.scope` の枝だけである。
 だから `:scope` を含まない selector は scoping root に依らない。
-`Dom/Selector/Spec.lean` の `matchSelList_scope_irrelevant` がそれを言う。
+`Dom/Properties/Selector.lean` の `matchSelList_scope_irrelevant` がそれを言う。
 -/
 
 /-- `:scope` そのものか。featureless な node に当たるのはこれだけである。 -/

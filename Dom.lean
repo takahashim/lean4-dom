@@ -88,7 +88,7 @@ import Dom.Properties.Witness
 import Dom.Observation
 import Dom.Selector.Match
 import Dom.Selector.Api
-import Dom.Selector.Spec
+import Dom.Properties.Selector
 import Dom.Spec.Selector
 
 /-!
