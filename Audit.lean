@@ -160,6 +160,11 @@ open Dom.Audit
   Dom.insertNodesAt_isOk
   Dom.insertPrevSibling_some
   Dom.insertPrevSibling_none
+  Dom.parentOf_eq
+  Dom.parentOf_of_get?
+  Dom.parentOf_congr
+  Dom.detachWithLiveAdjust_cases
+  Dom.detachWithLiveAdjust_of_detach
   Dom.replaceDataAdjustBP_at_start
   Dom.admissible_createAttribute
   Dom.admissible_createAttributeNS

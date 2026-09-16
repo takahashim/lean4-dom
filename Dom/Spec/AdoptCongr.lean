@@ -53,9 +53,7 @@ theorem documentAssigned_parentOf {nd : NodeData} (hnd : t.get? node = some nd)
       parentOf_eq_none_of_get?_eq_none hd]
   | some d =>
     obtain ⟨d', hd', -, hpar, -⟩ := documentAssigned_data hnd h hd
-    unfold parentOf
-    rw [hd, hd']
-    simp [hpar]
+    rw [parentOf_of_get? hd, parentOf_of_get? hd', hpar]
 
 theorem documentAssigned_childrenOf {nd : NodeData} (hnd : t.get? node = some nd)
     (h : DocumentAssigned t u node doc) (m : NodeId) : childrenOf u m = childrenOf t m := by
@@ -101,7 +99,8 @@ theorem documentAssigned_wellFormed (hwf : WellFormed t) {nd : NodeData}
     obtain ⟨cd, hcd, hcdp⟩ := parentOf_eq_some hcp
     exact ⟨cd, hcd, hcdp⟩
   · intro c cd p hcd hcdp
-    have hcp : parentOf t c = some p := by rw [← hpar c]; unfold parentOf; rw [hcd]; exact hcdp
+    have hcp : parentOf t c = some p := by
+      rw [← hpar c, parentOf_of_get? hcd]; exact hcdp
     have hmem : c ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hcp
     obtain ⟨pd, hpdt, -⟩ := exists_data_of_mem_childrenOf hmem
     obtain ⟨pd', hpd', -, -, -⟩ := documentAssigned_data hnd h hpdt

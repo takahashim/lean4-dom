@@ -30,7 +30,7 @@ theorem refl (t : Tree) : TreeObsEq t t := fun _ => rfl
 theorem symm (h : TreeObsEq t t') : TreeObsEq t' t := fun m => (h m).symm
 
 theorem parentOf (h : TreeObsEq t t') (m : NodeId) : Dom.parentOf t' m = Dom.parentOf t m := by
-  unfold Dom.parentOf; rw [h m]
+  exact Dom.parentOf_congr (h m)
 
 theorem childrenOf (h : TreeObsEq t t') (m : NodeId) : Dom.childrenOf t' m = Dom.childrenOf t m := by
   unfold Dom.childrenOf; rw [h m]
@@ -140,7 +140,7 @@ theorem precedes (h : TreeObsEq t t') (hwf : WellFormed t) (hwf' : WellFormed t'
   · cases hxd : t.get? x with
     | none =>
       -- 木に無いので、どちらの側でも列が空である。
-      have hp : Dom.parentOf t x = none := by unfold Dom.parentOf; rw [hxd]; rfl
+      have hp : Dom.parentOf t x = none := Dom.parentOf_eq_none_of_get?_eq_none hxd
       have hr : Dom.root t x = x := root_unique hwf (Or.inl rfl) hp
       have hr' : Dom.root t' x = x := by rw [h.root hwf hwf' x, hr]
       show precedesIn (preorder t' (Dom.root t' x)) x y

@@ -140,8 +140,7 @@ theorem get?_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (_hd : t.get? 
 
 theorem parentOf_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
     (as : List Attr) (m : NodeId) : parentOf (setAttributes t n d as) m = parentOf t m := by
-  unfold parentOf
-  rw [get?_setAttributes hd]
+  rw [parentOf_eq, parentOf_eq, get?_setAttributes hd]
   by_cases h : m = n
   · subst h; simp [hd]
   · rw [if_neg h]

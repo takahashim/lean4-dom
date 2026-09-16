@@ -110,16 +110,13 @@ theorem remove_sound_tree {s s' : DOMState} {n p : NodeId} {b : Bool}
 
 theorem detachWithLiveAdjust_observers {s s₁ : DOMState} {n : NodeId}
     (hd : detachWithLiveAdjust s n = .ok s₁) : s₁.observers = s.observers := by
-  unfold detachWithLiveAdjust at hd
-  obtain ⟨-, hs⟩ := DOMState.mapTree_eq_ok hd
-  rw [hs]
-  show (iteratorPreRemove (liveRangePreRemove s n) n).observers = _
-  rw [iteratorPreRemove_observers, liveRangePreRemove_observers]
+  obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
+  rw [hs, DOMState.withTree_observers, iteratorPreRemove_observers,
+    liveRangePreRemove_observers]
 
 theorem detachWithLiveAdjust_pending {s s₁ : DOMState} {n : NodeId}
     (hd : detachWithLiveAdjust s n = .ok s₁) : s₁.pendingObservers = s.pendingObservers := by
-  unfold detachWithLiveAdjust at hd
-  obtain ⟨-, hs⟩ := DOMState.mapTree_eq_ok hd
+  obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
   rw [hs]
   show (liveRangePreRemove s n).pendingObservers = _
   unfold liveRangePreRemove
@@ -127,8 +124,7 @@ theorem detachWithLiveAdjust_pending {s s₁ : DOMState} {n : NodeId}
 
 theorem detachWithLiveAdjust_microtask {s s₁ : DOMState} {n : NodeId}
     (hd : detachWithLiveAdjust s n = .ok s₁) : s₁.microtaskQueued = s.microtaskQueued := by
-  unfold detachWithLiveAdjust at hd
-  obtain ⟨-, hs⟩ := DOMState.mapTree_eq_ok hd
+  obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
   rw [hs]
   show (liveRangePreRemove s n).microtaskQueued = _
   unfold liveRangePreRemove
@@ -156,11 +152,9 @@ theorem ancestors_eq_after_detach {s s₁ : DOMState} {n p : NodeId} (hwf : Well
 /-- `remove` の step 3-7 は registration を変えない。 -/
 theorem remove_registrations_before_transient {s s₁ : DOMState} {n : NodeId}
     (hd : detachWithLiveAdjust s n = .ok s₁) : s₁.registrations = s.registrations := by
-  unfold detachWithLiveAdjust at hd
-  obtain ⟨_, hs⟩ := DOMState.mapTree_eq_ok hd
-  rw [hs]
-  show (iteratorPreRemove (liveRangePreRemove s n) n).registrations = _
-  rw [iteratorPreRemove_registrations, liveRangePreRemove_registrations]
+  obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
+  rw [hs, DOMState.withTree_registrations, iteratorPreRemove_registrations,
+    liveRangePreRemove_registrations]
 
 /-- `remove` が積む registration は、step 20 が足す transient の分だけである。 -/
 theorem remove_registrations {s s' : DOMState} {n p : NodeId} {b : Bool}

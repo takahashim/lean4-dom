@@ -23,11 +23,6 @@ variable {t : Tree}
 
 /-! ## 共通の補助補題 -/
 
-/-- `get?` が一致する node では `parentOf` も一致する。 -/
-theorem parentOf_congr {t t' : Tree} {m : NodeId} (h : t'.get? m = t.get? m) :
-    parentOf t' m = parentOf t m := by
-  unfold parentOf; rw [h]
-
 /-- `get?` が一致する node では `childrenOf` も一致する。 -/
 theorem childrenOf_congr {t t' : Tree} {m : NodeId} (h : t'.get? m = t.get? m) :
     childrenOf t' m = childrenOf t m := by
@@ -520,8 +515,7 @@ theorem get?_setOwnerDocument_of_not_mem {m : NodeId} (hm : m ∉ preorder t n) 
 /-- 木の形は変わらない。 -/
 theorem parentOf_setOwnerDocument (t : Tree) (n doc m : NodeId) :
     parentOf (setOwnerDocument t n doc) m = parentOf t m := by
-  unfold parentOf
-  rw [get?_setOwnerDocument]
+  rw [parentOf_eq, parentOf_eq, get?_setOwnerDocument]
   cases t.get? m with
   | none => rfl
   | some d => by_cases hm : m ∈ preorder t n <;> simp [hm]

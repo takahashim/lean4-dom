@@ -116,6 +116,27 @@ def detachWithLiveAdjust (s : DOMState) (node : NodeId) : Except DOMException DO
   (iteratorPreRemove (liveRangePreRemove s node) node).mapTree fun t => detach t node
 
 /--
+`detachWithLiveAdjust` が成功したときの結果。
+
+木は `detach` した結果そのもので、木以外は range 調整（step 3）と
+iterator の pre-removing steps（step 4）を通した状態である。
+-/
+theorem detachWithLiveAdjust_cases {s s₁ : DOMState} {node : NodeId}
+    (h : detachWithLiveAdjust s node = .ok s₁) :
+    ∃ t', detach s.tree node = .ok t' ∧
+      s₁ = (iteratorPreRemove (liveRangePreRemove s node) node).withTree t' := by
+  obtain ⟨hf, hs⟩ := DOMState.mapTree_eq_ok h
+  exact ⟨s₁.tree, by simpa using hf, hs⟩
+
+/-- `detach` が通れば `detachWithLiveAdjust` も通る。 -/
+theorem detachWithLiveAdjust_of_detach {s : DOMState} {node : NodeId} {t' : Tree}
+    (h : detach s.tree node = .ok t') :
+    detachWithLiveAdjust s node =
+      .ok ((iteratorPreRemove (liveRangePreRemove s node) node).withTree t') := by
+  unfold detachWithLiveAdjust DOMState.mapTree
+  simp only [iteratorPreRemove_tree, liveRangePreRemove_tree, h]
+
+/--
 DOM Standard §4.2.3 "remove"。
 
 step 1-2 は parent が非 null であることの assert なので、model では

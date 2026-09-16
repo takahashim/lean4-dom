@@ -175,10 +175,8 @@ theorem remove_iterators {s s' : DOMState} {n p : NodeId} {b : Bool}
       · rw [← Except.ok.inj h]; simp
       · rw [← Except.ok.inj h]; simp
     rw [hi]
-    unfold detachWithLiveAdjust at hd
-    obtain ⟨_, hs⟩ := DOMState.mapTree_eq_ok hd
-    rw [hs]
-    show (iteratorPreRemove (liveRangePreRemove s n) n).iterators = _
+    obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
+    rw [hs, DOMState.withTree_iterators]
     unfold iteratorPreRemove
     simp
 

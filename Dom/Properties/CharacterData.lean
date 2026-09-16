@@ -34,8 +34,7 @@ theorem get?_withData {t : Tree} {n : NodeId} {d : NodeData} (_hd : t.get? n = s
 
 theorem parentOf_withData {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
     (newData : String) (m : NodeId) : parentOf (withData t n d newData) m = parentOf t m := by
-  unfold parentOf
-  rw [get?_withData hd]
+  rw [parentOf_eq, parentOf_eq, get?_withData hd]
   by_cases h : m = n
   · subst h; simp [hd]
   · rw [if_neg h]

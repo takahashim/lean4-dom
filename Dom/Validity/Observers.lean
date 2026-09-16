@@ -67,14 +67,9 @@ theorem preservesRegs_remove {s s' : DOMState} {n : NodeId} {b : Bool}
       -- detach までは registration も observer 列も変わらない
       have hkp : ShapePreserving s.tree s₁.tree :=
         shapePreserving_detach (detachWithLiveAdjust_tree hd)
-      have hreg₁ : s₁.registrations = s.registrations := by
-        unfold detachWithLiveAdjust at hd
-        rw [(DOMState.mapTree_eq_ok hd).2]
-        simp
-      have hobs₁ : s₁.observers.length = s.observers.length := by
-        unfold detachWithLiveAdjust at hd
-        rw [(DOMState.mapTree_eq_ok hd).2]
-        simp
+      obtain ⟨_, _, hs₁⟩ := detachWithLiveAdjust_cases hd
+      have hreg₁ : s₁.registrations = s.registrations := by rw [hs₁]; simp
+      have hobs₁ : s₁.observers.length = s.observers.length := by rw [hs₁]; simp
       have h₁ : ObserverRegistrationsValid s₁ := preservesRegs_congr hkp hreg₁ hobs₁ h
       -- transient registration を足す
       have hnode : (s₁.tree.get? n).isSome := by
@@ -184,10 +179,9 @@ theorem preservesRegs_move {s s' : DOMState} {node newParent : NodeId}
       · simp at hm
       · next sd hd =>
         have h₁ : PreservesRegs s sd := by
-          unfold detachWithLiveAdjust at hd
-          rw [(DOMState.mapTree_eq_ok hd).2]
-          exact preservesRegs_congr
-            (shapePreserving_detach (by simpa using (DOMState.mapTree_eq_ok hd).1))
+          obtain ⟨t', hdt, hs⟩ := detachWithLiveAdjust_cases hd
+          subst hs
+          exact preservesRegs_congr (by simpa using shapePreserving_detach hdt)
             (by simp) (by simp)
         simp only at hm
         split at hm

@@ -39,8 +39,7 @@ theorem remove_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree) {n : NodeId
     cases hd : detachWithLiveAdjust s n with
     | error e =>
       exfalso
-      unfold detachWithLiveAdjust DOMState.mapTree at hd
-      simp only [iteratorPreRemove_tree, liveRangePreRemove_tree, hde] at hd
+      rw [detachWithLiveAdjust_of_detach hde] at hd
       simp at hd
     | ok sd =>
       cases b

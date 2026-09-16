@@ -117,11 +117,8 @@ theorem remove_ranges {s s' : DOMState} {n p : NodeId} {b : Bool}
       · rw [← Except.ok.inj h]; simp
       · rw [← Except.ok.inj h]; simp
     rw [hr]
-    unfold detachWithLiveAdjust at hd
-    obtain ⟨_, hs⟩ := DOMState.mapTree_eq_ok hd
-    rw [hs]
-    show (iteratorPreRemove (liveRangePreRemove s n) n).ranges = _
-    rw [iteratorPreRemove_ranges]
+    obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
+    rw [hs, DOMState.withTree_ranges, iteratorPreRemove_ranges]
     simp only [liveRangePreRemove, hp]
 
 /--

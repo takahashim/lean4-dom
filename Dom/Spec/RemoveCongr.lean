@@ -231,7 +231,7 @@ theorem treeRemoved_wellFormed {u : Tree} {node parent : NodeId} (hwf : WellForm
     exact ⟨cd, hcd, hcdp⟩
   child_parent := by
     intro c cd p hcd hcdp
-    have hcp : parentOf u c = some p := by unfold parentOf; rw [hcd]; exact hcdp
+    have hcp : parentOf u c = some p := by rw [parentOf_of_get? hcd]; exact hcdp
     have hne : c ≠ node := by
       intro hce
       rw [hce, hr.detached] at hcp

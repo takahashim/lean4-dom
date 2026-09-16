@@ -93,9 +93,26 @@ def index (t : Tree) (n : NodeId) : Option Nat :=
 
 /-! ## 基本的な言い換え -/
 
+/--
+`parentOf` の値。以降の証明はこの三つ（`_eq` / `_of_get?` / `_eq_none_of_get?_eq_none`）
+だけを使い、本体を開かない。
+-/
+theorem parentOf_eq (t : Tree) (n : NodeId) : parentOf t n = (t.get? n).bind (·.parent) := rfl
+
+theorem parentOf_of_get? {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d) :
+    parentOf t n = d.parent := by
+  rw [parentOf_eq, h]
+  rfl
+
 theorem parentOf_eq_none_of_get?_eq_none {t : Tree} {n : NodeId} (h : t.get? n = none) :
     parentOf t n = none := by
-  simp [parentOf, h]
+  rw [parentOf_eq, h]
+  rfl
+
+/-- `get?` が一致する node では `parentOf` も一致する。 -/
+theorem parentOf_congr {t t' : Tree} {m : NodeId} (h : t'.get? m = t.get? m) :
+    parentOf t' m = parentOf t m := by
+  rw [parentOf_eq, parentOf_eq, h]
 
 theorem childrenOf_eq_nil_of_get?_eq_none {t : Tree} {n : NodeId} (h : t.get? n = none) :
     childrenOf t n = [] := by
@@ -103,10 +120,9 @@ theorem childrenOf_eq_nil_of_get?_eq_none {t : Tree} {n : NodeId} (h : t.get? n 
 
 theorem parentOf_eq_some {t : Tree} {n p : NodeId} (h : parentOf t n = some p) :
     ∃ d, t.get? n = some d ∧ d.parent = some p := by
-  unfold parentOf at h
   cases hd : t.get? n with
-  | none => simp [hd] at h
-  | some d => exact ⟨d, rfl, by simpa [hd] using h⟩
+  | none => rw [parentOf_eq_none_of_get?_eq_none hd] at h; simp at h
+  | some d => exact ⟨d, rfl, by rw [← parentOf_of_get? hd]; exact h⟩
 
 theorem childrenOf_eq {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d) :
     childrenOf t n = d.children := by

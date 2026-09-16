@@ -137,9 +137,9 @@ theorem shapePreserving_setOwnerDocument (t : Tree) (n doc : NodeId) :
 
 theorem detachWithLiveAdjust_tree {s s' : DOMState} {n : NodeId}
     (h : detachWithLiveAdjust s n = .ok s') : detach s.tree n = .ok s'.tree := by
-  unfold detachWithLiveAdjust at h
-  have := (DOMState.mapTree_eq_ok h).1
-  simpa using this
+  obtain ⟨t', hdt, hs⟩ := detachWithLiveAdjust_cases h
+  rw [hs, DOMState.withTree_tree]
+  exact hdt
 
 /--
 `remove` が成功したなら parent があり、木の効果は `detach` と同じである。
