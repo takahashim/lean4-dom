@@ -5112,20 +5112,52 @@ theorem remove_result_sound (hwf : WellFormed s.tree) (node) (suppress) :
 `RemoveResult` は失敗を許さず、持たない node について成功を許さない。
 `PreInsertResult` も step 1 の validity について同じである。
 
-### 独立性の後退を記録した
+### validity そのものを独立に書いた
 
-`ruby test/spec_dependence.rb` が `PreInsertResult` を検出した。定義が実行側の
-`ensurePreInsertionValidity` と `preInsertReferenceChild` を呼ぶからである。
+最初、`PreInsertResult` の失敗側を実行側の `ensurePreInsertionValidity` に委ねていた。
+`ruby test/spec_dependence.rb` がそれを検出したので、validity の step 1-11 を
+実行側の関数を呼ばずに書き直した（`Dom/Spec/Validity.lean`）。
 
-* **成功側**は問題にならない。効果を述べるのは `InsertSpec` で、そちらは独立である。
-* **失敗側は実質的に循環している。**「step 1 がその例外で落ちる」としか言っておらず、
-  仕様の step 1-6 を読み違えて実装しても関係はその実装に合わせて成り立つ。
+条件は `Dom/Basic/` の語彙（`childrenOf` / `parentOf` / `kindOf` /
+`InclusiveAncestor`）と list の所属だけで書く。`elementChildren` や `doctypeFollows`
+のような実行側の helper は使わない。制御の流れ（どの step が先か、どこで return するか）は
+仕様の `<ol>` をそのまま写し、四つの combinator で組む。
 
-**ここで強くなったのは「成功するかどうかまで関係が決める」であって、
-「例外の種類が仕様どおりである」ではない。** 後者を言うには validity の step 1-6 を
-実行側と独立に書いた関係が要る。`_step1` / `_step2` / `_step3` は検査の順序を
-固定するが、条件そのものの独立な記述ではない。`RemoveResult` の側にはこの問題は無い
-（失敗条件が `parentOf` だけで書ける）。
+```lean
+def PreInsertValidity (t) (node parent) (child) (excl) : Except DOMException Unit → Prop :=
+  Step (¬ InTree t parent) .notFoundError <|          -- model の追加
+  Step (¬ InTree t node) .notFoundError <|
+  Step (¬ ParentIsContainer t parent) .hierarchyRequestError <|   -- step 1
+  Step (InclusiveAncestor t node parent) .hierarchyRequestError <| -- step 2
+  Step (¬ ChildIsChildOf t child parent) .notFoundError <|         -- step 3
+  Step (¬ NodeIsInsertable t node) .hierarchyRequestError <|       -- step 4
+  Branch (¬ KindIs t parent .document) ... -- step 5 以降
+```
+
+* `ensurePreInsertionValidity_spec`：実行関数の結果は、成否によらずこの関係を満たす。
+  **仮定を置かない。**
+* `preInsertValidity_deterministic`：関係は結果を一つに決める。
+  `Step` / `Return` / `Branch` / `Done` ごとの補題を組むだけで出る。
+* `preInsertValidity_iff`：二つを繋いで「関係と実行関数は同じ結果を指す」。
+
+橋（条件が実行側の判定と一致すること）は定理として別に置いた
+（`elementInsertionBlocked_iff` / `doctypeFollowing_iff` / `hasTwoElementChildren_iff` ほか）。
+**関係の定義は実行側を呼ばないが、橋の定理は両方に触れてよい**
+（`spec_dependence.rb` が見るのは `def` の本体だけである）。
+
+step 2-3 の reference child も `preInsertReferenceChild` を呼ばずに
+「`node` 自身なら次の兄弟、でなければそのまま」と書いた。
+これで `PreInsertResult` は `spec_dependence.rb` に出なくなり、
+**例外の種類まで含めて関係が決める**と言えるようになった。
+
+#### 残した読みの差
+
+step 9 の「a doctype is following child」と step 11 の「an element is preceding child」の
+`following` / `preceding` は、仕様では**木の順序**である。関係では
+`parent` の children の中での前後として書いた。両者が一致するのは
+「doctype と element の親は Document だけ」という構造上の制約によるが、
+その同値は証明していない。`DoctypeFollowing` / `ElementPreceding` の doc comment に
+書いてある。
 
 ### どこまで書けるか
 

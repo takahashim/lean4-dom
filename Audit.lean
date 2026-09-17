@@ -351,6 +351,16 @@ open Dom.Audit
   Dom.Spec.preInsert_result_complete
   Dom.Spec.preInsertResult_not_error_of_validity
   Dom.Spec.preInsertResult_not_ok_of_validity_error
+  Dom.Spec.ensurePreInsertionValidity_spec
+  Dom.Spec.preInsertValidity_deterministic
+  Dom.Spec.ensurePreInsertionValidity_eq_of_spec
+  Dom.Spec.preInsertValidity_iff
+  Dom.Spec.elementInsertionBlocked_iff
+  Dom.Spec.doctypeInsertionBlocked_iff
+  Dom.Spec.doctypeFollowing_iff
+  Dom.Spec.elementPreceding_iff
+  Dom.Spec.hasTwoElementChildren_iff
+  Dom.ListUtil.splitAt?_not_mem_left
   Dom.Spec.spliceData?_of_dataSpliced
   Dom.Spec.characterDataRecordQueued_unique
   Dom.Utf16.splitAt?_of_split

@@ -94,6 +94,7 @@ import Dom.Spec.Move
 import Dom.Spec.MoveSound
 import Dom.Spec.MoveCongr
 import Dom.Spec.Complete
+import Dom.Spec.Validity
 import Dom.Spec.Result
 import Dom.Properties.Counterexample
 import Dom.Properties.Witness

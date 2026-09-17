@@ -1,4 +1,5 @@
 import Dom.Spec.Complete
+import Dom.Spec.Validity
 import Dom.Properties.MoveContract
 
 /-!
@@ -11,6 +12,9 @@ import Dom.Properties.MoveContract
 その形だと、**極端には「常に失敗する実装」でも soundness を満たす**。
 completeness（`remove_complete`）がそれを塞ぐが、
 「関係が結果そのものを決める」とは言えていない。
+
+失敗側の条件そのものは `Dom/Spec/Validity.lean` に独立に書いてある
+（`ensure pre-insert validity` の step 1-11）。ここはそれを使って結果を組む。
 
 ここでは結果（`Except DOMException DOMState`）まで含めた関係を置き、
 
@@ -167,30 +171,25 @@ theorem nodesToInsert_not_ancestor_of_validity {t : Tree} (hwf : WellFormed t)
 失敗なら「step 1 がその例外で落ちる」である。
 `insertBefore` と `appendChild` はこれに委譲するだけである。
 
-## 独立性について（`ruby test/spec_dependence.rb` が検出する）
+## 独立性
 
-この定義は実行側の `ensurePreInsertionValidity` と `preInsertReferenceChild` を呼ぶ。
-`Dom/Spec/` の約束（関係は実行側の関数を呼ばない）を**満たしていない**。
+失敗側は `PreInsertValidity`（`Dom/Spec/Validity.lean`）で書く。仕様の step 1-11 を
+実行側の関数を呼ばずに写した関係で、`ensurePreInsertionValidity_spec`（仮定なしの
+soundness）と `preInsertValidity_deterministic` が実行側との対応を与える。
+step 2-3 の reference child も、`preInsertReferenceChild` を呼ばずに
+「`node` 自身なら次の兄弟、でなければそのまま」と書いてある。
 
-* **成功側**は問題にならない。効果を述べるのは `InsertSpec` で、そちらは独立である。
-  validity の呼び出しは「どの入力で成功するか」の指定に使っているだけで、
-  `ensurePreInsertionValidity_ok` を通せば仕様の四つの事実に開ける。
-* **失敗側は実質的に循環している。** 「step 1 がその例外で落ちる」としか言っておらず、
-  仕様の step 1-6 を読み違えて実装しても、この関係はその実装に合わせて成り立つ。
-
-つまりここで強くなったのは「**成功するかどうかまで関係が決める**」（`= .ok s'` を
-仮定しない soundness）であって、「例外の種類が仕様どおりである」ではない。
-後者を言うには validity の step 1-6 を実行側と独立に書いた関係が要る。
-`Dom/Properties/PreInsertValidity.lean` にある `_step1` / `_step2` / `_step3` は
-検査の**順序**を固定するが、条件そのものの独立な記述ではない。
-
-`RemoveResult` の側にはこの問題は無い。失敗条件が `parentOf` だけで書けるからである。
+したがってこの関係は、仕様の step を読み違えた実装に合わせて成り立つことはない。
+`ruby test/spec_dependence.rb` にも出ない。
 -/
 def PreInsertResult (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
     Except DOMException DOMState → Prop
-  | .ok s' => ensurePreInsertionValidity s.tree node parent child [] = .ok () ∧
-      InsertSpec s node parent (preInsertReferenceChild s.tree node child) false s'
-  | .error e => ensurePreInsertionValidity s.tree node parent child [] = .error e
+  | .ok s' => PreInsertValidity s.tree node parent child [] (.ok ()) ∧
+      -- step 2-3。reference child は `node` 自身なら次の兄弟に取り替える。
+      ∃ ref, (child = some node → ref = nextSibling s.tree node) ∧
+        (child ≠ some node → ref = child) ∧
+        InsertSpec s node parent ref false s'
+  | .error e => PreInsertValidity s.tree node parent child [] (.error e)
 
 /-- **`preInsert` の結果は、成否によらず関係を満たす。** -/
 theorem preInsert_result_sound {s : DOMState} (hwf : WellFormed s.tree)
@@ -199,8 +198,11 @@ theorem preInsert_result_sound {s : DOMState} (hwf : WellFormed s.tree)
   cases h : preInsert s node parent child with
   | ok s' =>
     obtain ⟨hv, hi⟩ := preInsert_cases h
-    exact ⟨hv, insert_sound hwf hi⟩
-  | error e => exact (preInsert_error_iff hwf).mp h
+    refine ⟨(preInsertValidity_iff hwf).mpr hv, preInsertReferenceChild s.tree node child,
+      ?_, ?_, insert_sound hwf hi⟩
+    · intro hc; rw [preInsertReferenceChild_eq, if_pos hc]
+    · intro hc; rw [preInsertReferenceChild_eq, if_neg hc]
+  | error e => exact (preInsertValidity_iff hwf).mpr ((preInsert_error_iff hwf).mp h)
 
 /-- **関係は結果を一つに決める。** -/
 theorem preInsert_result_deterministic {s : DOMState} (hwf : WellFormed s.tree)
@@ -211,25 +213,38 @@ theorem preInsert_result_deterministic {s : DOMState} (hwf : WellFormed s.tree)
   | ok s₁ =>
     cases r₂ with
     | ok s₂ =>
-      refine insertSpec_deterministic hwf ?_ h₁.2 h₂.2
-      exact nodesToInsert_not_ancestor_of_validity hwf
-        (ensurePreInsertionValidity_shift hwf h₁.1)
+      obtain ⟨ref₁, ha₁, hb₁, hi₁⟩ := h₁.2
+      obtain ⟨ref₂, ha₂, hb₂, hi₂⟩ := h₂.2
+      have hre : ref₂ = ref₁ := by
+        by_cases hc : child = some node
+        · rw [ha₁ hc, ha₂ hc]
+        · rw [hb₁ hc, hb₂ hc]
+      rw [hre] at hi₂
+      refine insertSpec_deterministic hwf ?_ hi₁ hi₂
+      have hv : ensurePreInsertionValidity s.tree node parent child [] = .ok () :=
+        (preInsertValidity_iff hwf).mp h₁.1
+      have hshift := ensurePreInsertionValidity_shift hwf hv
+      have hv' : ensurePreInsertionValidity s.tree node parent ref₁ [] = .ok () := by
+        by_cases hc : child = some node
+        · rw [ha₁ hc]; rw [if_pos hc] at hshift; exact hshift
+        · rw [hb₁ hc]; rw [if_neg hc] at hshift; exact hshift
+      exact nodesToInsert_not_ancestor_of_validity hwf hv'
     | error e₂ =>
       exfalso
-      have h2 : ensurePreInsertionValidity s.tree node parent child [] = .error e₂ := h₂
-      rw [h₁.1] at h2
+      have h2 := (preInsertValidity_iff hwf).mp (h₂ : PreInsertValidity _ _ _ _ _ (.error e₂))
+      rw [(preInsertValidity_iff hwf).mp h₁.1] at h2
       simp at h2
   | error e₁ =>
     cases r₂ with
     | ok s₂ =>
       exfalso
-      have h1 : ensurePreInsertionValidity s.tree node parent child [] = .error e₁ := h₁
-      rw [h₂.1] at h1
+      have h1 := (preInsertValidity_iff hwf).mp (h₁ : PreInsertValidity _ _ _ _ _ (.error e₁))
+      rw [(preInsertValidity_iff hwf).mp h₂.1] at h1
       simp at h1
     | error e₂ =>
       show e₁ = e₂
-      have h1 : ensurePreInsertionValidity s.tree node parent child [] = .error e₁ := h₁
-      have h2 : ensurePreInsertionValidity s.tree node parent child [] = .error e₂ := h₂
+      have h1 := (preInsertValidity_iff hwf).mp (h₁ : PreInsertValidity _ _ _ _ _ (.error e₁))
+      have h2 := (preInsertValidity_iff hwf).mp (h₂ : PreInsertValidity _ _ _ _ _ (.error e₂))
       rw [h1] at h2
       exact Except.error.inj h2
 
@@ -243,22 +258,22 @@ theorem preInsert_result_complete {s : DOMState} (hwf : WellFormed s.tree)
 /-! ### 関係が成否を決めていることの証人 -/
 
 /-- step 1 を通る入力については、関係は失敗を許さない。 -/
-theorem preInsertResult_not_error_of_validity {s : DOMState} {node parent : NodeId}
-    {child : Option NodeId} {e : DOMException}
+theorem preInsertResult_not_error_of_validity {s : DOMState} (hwf : WellFormed s.tree)
+    {node parent : NodeId} {child : Option NodeId} {e : DOMException}
     (hv : ensurePreInsertionValidity s.tree node parent child [] = .ok ()) :
     ¬ PreInsertResult s node parent child (.error e) := by
   intro h
-  have h1 : ensurePreInsertionValidity s.tree node parent child [] = .error e := h
+  have h1 := (preInsertValidity_iff hwf).mp (h : PreInsertValidity _ _ _ _ _ (.error e))
   rw [hv] at h1
   simp at h1
 
 /-- step 1 で落ちる入力については、関係は成功を許さない。 -/
-theorem preInsertResult_not_ok_of_validity_error {s s' : DOMState} {node parent : NodeId}
-    {child : Option NodeId} {e : DOMException}
+theorem preInsertResult_not_ok_of_validity_error {s s' : DOMState} (hwf : WellFormed s.tree)
+    {node parent : NodeId} {child : Option NodeId} {e : DOMException}
     (hv : ensurePreInsertionValidity s.tree node parent child [] = .error e) :
     ¬ PreInsertResult s node parent child (.ok s') := by
   intro h
-  have h1 : ensurePreInsertionValidity s.tree node parent child [] = .ok () := h.1
+  have h1 := (preInsertValidity_iff hwf).mp h.1
   rw [hv] at h1
   simp at h1
 
