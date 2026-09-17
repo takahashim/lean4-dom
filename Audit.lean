@@ -306,6 +306,12 @@ open Dom.Audit
   Dom.Spec.moveSpec_congr
   Dom.Spec.moveSpec_deterministic
   Dom.Spec.replaceData_sound
+  Dom.Spec.replaceDataSpec_deterministic
+  Dom.Spec.replaceData_isOk_of_spec
+  Dom.Spec.replaceData_complete
+  Dom.Spec.spliceData?_of_dataSpliced
+  Dom.Spec.characterDataRecordQueued_unique
+  Dom.Utf16.splitAt?_of_split
   Dom.Spec.characterDataRecordQueued_of_queue
   Dom.Spec.treeRecordQueued_of_queue
 

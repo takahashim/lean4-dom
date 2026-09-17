@@ -124,4 +124,41 @@ def CharacterDataRecordQueued (s s' : DOMState) (target : NodeId) (oldValue : St
   (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInCharacterData s mo target) ∧
   s'.microtaskQueued = true
 
+/-! ## record を積む段の一意性が共通に使う形 -/
+
+/--
+observer の queue が「長さが元と同じで、各 observer について同じ規則で決まる」なら、
+`records` の像は一致する。
+
+`treeRecordQueued_unique` と `characterDataRecordQueued_unique` が共通に使う。
+observer が居るかどうかは長さだけで決まるので、規則は「両方に居るとき」だけを見ればよい。
+-/
+theorem records_map_congr {s sa sb : DOMState}
+    (hla : sa.observers.length = s.observers.length)
+    (hlb : sb.observers.length = s.observers.length)
+    (hrec : ∀ (mo : Nat) (o oa : ObserverState), s.observers[mo]? = some o →
+      sa.observers[mo]? = some oa → ∀ ob : ObserverState, sb.observers[mo]? = some ob →
+      oa.records = ob.records) :
+    ∀ mo : Nat, (sa.observers[mo]?).map (·.records) = (sb.observers[mo]?).map (·.records) := by
+  intro mo
+  rcases ho : s.observers[mo]? with _ | o
+  · have ea : sa.observers[mo]? = none := by
+      rw [List.getElem?_eq_none_iff] at ho ⊢; rw [hla]; exact ho
+    have eb : sb.observers[mo]? = none := by
+      rw [List.getElem?_eq_none_iff] at ho ⊢; rw [hlb]; exact ho
+    rw [ea, eb]
+  · obtain ⟨oa, hoa⟩ : ∃ oa, sa.observers[mo]? = some oa := by
+      rcases hq : sa.observers[mo]? with _ | oa
+      · rw [List.getElem?_eq_none_iff, hla, ← List.getElem?_eq_none_iff] at hq
+        rw [hq] at ho; simp at ho
+      · exact ⟨oa, rfl⟩
+    obtain ⟨ob, hob⟩ : ∃ ob, sb.observers[mo]? = some ob := by
+      rcases hq : sb.observers[mo]? with _ | ob
+      · rw [List.getElem?_eq_none_iff, hlb, ← List.getElem?_eq_none_iff] at hq
+        rw [hq] at ho; simp at ho
+      · exact ⟨ob, rfl⟩
+    rw [hoa, hob]
+    simp only [Option.map_some, Option.some.injEq]
+    exact hrec mo o oa ho hoa ob hob
+
 end Dom.Spec

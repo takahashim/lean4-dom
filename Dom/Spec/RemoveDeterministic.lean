@@ -270,33 +270,15 @@ theorem treeRecordQueued_unique {s s₁ s₂ : DOMState} {target : NodeId}
     (∀ mo : Nat, (s₁.observers[mo]?).map (·.records) = (s₂.observers[mo]?).map (·.records)) ∧
       (∀ mo : Nat, mo ∈ s₁.pendingObservers ↔ mo ∈ s₂.pendingObservers) ∧
       s₁.microtaskQueued = s₂.microtaskQueued := by
-  -- 長さが同じで、各 observer の queue が同じ規則で決まる、という形は両方に共通である。
+  -- 長さが同じで、各 observer の queue が同じ規則で決まる形は共通なので、
+  -- `records_map_congr`（`Dom/Spec/Record.lean`）に切り出してある。
   have common : ∀ (sa sb : DOMState), sa.observers.length = s.observers.length →
       sb.observers.length = s.observers.length →
       (∀ (mo : Nat) (o oa : ObserverState), s.observers[mo]? = some o →
         sa.observers[mo]? = some oa → ∀ (ob : ObserverState), sb.observers[mo]? = some ob →
         oa.records = ob.records) →
-      ∀ mo : Nat, (sa.observers[mo]?).map (·.records) = (sb.observers[mo]?).map (·.records) := by
-    intro sa sb hla hlb hrec mo
-    rcases ho : s.observers[mo]? with _ | o
-    · have ea : sa.observers[mo]? = none := by
-        rw [List.getElem?_eq_none_iff] at ho ⊢; rw [hla]; exact ho
-      have eb : sb.observers[mo]? = none := by
-        rw [List.getElem?_eq_none_iff] at ho ⊢; rw [hlb]; exact ho
-      rw [ea, eb]
-    · obtain ⟨oa, hoa⟩ : ∃ oa, sa.observers[mo]? = some oa := by
-        rcases hq : sa.observers[mo]? with _ | oa
-        · rw [List.getElem?_eq_none_iff, hla, ← List.getElem?_eq_none_iff] at hq
-          rw [hq] at ho; simp at ho
-        · exact ⟨oa, rfl⟩
-      obtain ⟨ob, hob⟩ : ∃ ob, sb.observers[mo]? = some ob := by
-        rcases hq : sb.observers[mo]? with _ | ob
-        · rw [List.getElem?_eq_none_iff, hlb, ← List.getElem?_eq_none_iff] at hq
-          rw [hq] at ho; simp at ho
-        · exact ⟨ob, rfl⟩
-      rw [hoa, hob]
-      simp only [Option.map_some, Option.some.injEq]
-      exact hrec mo o oa ho hoa ob hob
+      ∀ mo : Nat, (sa.observers[mo]?).map (·.records) = (sb.observers[mo]?).map (·.records) :=
+    fun _ _ hla hlb hrec => records_map_congr hla hlb hrec
   unfold TreeRecordQueued at h₁ h₂
   split at h₁
   · next hsup =>

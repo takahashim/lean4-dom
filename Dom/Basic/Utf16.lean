@@ -63,6 +63,26 @@ def splitAt? : List Char → Nat → Option (List Char × List Char)
     if n + 1 < unitsOf c then none
     else (splitAt? rest (n + 1 - unitsOf c)).map fun p => (c :: p.1, p.2)
 
+/--
+逆向き。**scalar 境界で切れる分け方があるなら、`splitAt?` はそれを返す。**
+
+`DataSpliced`（`Dom/Spec/ReplaceData.lean`）のように「そう切れる」という関係から
+実行関数の成功を取り出すときに使う。
+-/
+theorem splitAt?_of_split : ∀ (a b : List Char), splitAt? (a ++ b) (lengthOfList a) = some (a, b)
+  | [], b => by simp [splitAt?]
+  | c :: a, b => by
+    have hpos := unitsOf_pos c
+    obtain ⟨m, hm⟩ : ∃ m, unitsOf c + lengthOfList a = m + 1 := by
+      exact ⟨unitsOf c + lengthOfList a - 1, by omega⟩
+    show splitAt? (c :: (a ++ b)) (unitsOf c + lengthOfList a) = _
+    rw [hm]
+    simp only [splitAt?]
+    rw [if_neg (by omega)]
+    rw [show m + 1 - unitsOf c = lengthOfList a from by omega]
+    rw [splitAt?_of_split a b]
+    rfl
+
 /-- 分けられたなら、繋ぎ直すと元に戻り、前半の長さはちょうど `n` である。 -/
 theorem splitAt?_spec : ∀ {l : List Char} {n : Nat} {a b : List Char},
     splitAt? l n = some (a, b) → a ++ b = l ∧ lengthOfList a = n

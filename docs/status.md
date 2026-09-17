@@ -4906,7 +4906,7 @@ walker を一つ足した状態、listener を一つ足した状態、detach さ
 | `insert` | ✔ | ✔ | ✔ | ✔ |
 | `replace` | ✔ | ✔ | ✔ | — |
 | `move` | ✔ | ✔ | ✔ | — |
-| `replaceData` | ✔ | — | — | — |
+| `replaceData` | ✔ | （不要） | ✔ | ✔ |
 
 ### 成功・失敗の契約
 
@@ -4920,7 +4920,30 @@ walker を一つ足した状態、listener を一つ足した状態、detach さ
 `replaceDataSpec_deterministic` と `replaceData_complete` → public API の
 成功・失敗条件 → 例外結果を含む関係意味論）はそのまま妥当である。
 
-### 着手した分
+### `replaceData` を閉じた
+
+`replaceData` は葉である（他の関係の中に現れない）ので congruence は要らない。
+必要なのは determinism と completeness で、両方入れた
+（`Dom/Spec/ReplaceDataDeterministic.lean`）。
+
+段ごとの一意性はどれも「関係が関数の graph である」ことに帰着する。
+
+* step 3 の切り詰め（`clampedCount_unique`）
+* step 5-7 の splice。`DataSpliced` は「scalar 境界でこう切れる」という**存在**の形
+  なので、そこから実行関数の成功を取り出すのに逆向きの補題が要った
+  （`Utf16.splitAt?_of_split`：境界で切れる分け方があるなら `splitAt?` はそれを返す）。
+  これで `spliceData?_of_dataSpliced` が出て、splice の一意性はその系になる。
+  **同じ補題が completeness の「成功する」側もそのまま与える。**
+* step 8-11 の boundary point（`dataAdjusted_unique`）。四つの枝が互いに排他であること。
+* step 4 の record（`characterDataRecordQueued_unique`）。
+  `treeRecordQueued_unique` が使っていた「長さが同じで各 observer が同じ規則で決まる」
+  という形を `records_map_congr` として `Dom/Spec/Record.lean` に切り出し、両方で使う。
+
+`replaceData_complete` は `replaceData_isOk_of_spec`（成功する）と
+soundness ＋ determinism（観測が一致する）を繋いだものである。
+`remove` / `adopt` / `insert` と同じ水準になった。
+
+### 残りに着手した分
 
 `replace_complete` は二段に分かれる。`insert_complete` と同じ形で、
 
