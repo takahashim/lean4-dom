@@ -297,17 +297,25 @@ theorem insertNodesAt_isOk_of_spec {parent : NodeId} {child : Option NodeId}
     insertEachAt_complete hwf₂ hdoc₂ hacyc₂ hpd₂ rfl hie hobs₂
   exact insertNodesAt_isOk ⟨o, hoeq⟩
 
-/-- **`insert` は関係を満たす状態があるなら成功する。** -/
-theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
+/--
+**`insert` は関係を満たす状態があるなら、観測の等しいどの状態でも成功する。**
+
+実行側が走るのは関係の入力そのものとは限らない（`replace` の step 9 がそれで、
+adopt と removal を通った後の状態は関係の中間状態と観測が等しいだけである）。
+`insertNodesAt_isOk_of_spec` と `removeEach_complete` が既に `ObsEq` を引数に
+取っているので、ここも同じ形にしておく。
+-/
+theorem insert_isOk_of_spec_obs {s sx s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (hobs : ObsEq s sx)
     (h : InsertSpec s node parent child b s') :
-    ∃ out, insert s node parent child b = .ok out := by
+    ∃ out, insert sx node parent child b = .ok out := by
   obtain ⟨nodes, hnodes, hcase⟩ := h
   rcases hcase with ⟨hnil, hs⟩ | ⟨hne, s₁, s₂, s₃, idx, prev, pd, hfp, hidx, hprev, hra, hpd,
     hie, hrec, hoo⟩
-  · exact ⟨s, insert_complete_of_nil hnodes hnil rfl⟩
+  · exact ⟨sx, insert_complete_of_nil (nodesToInsert_transport hobs.tree hnodes) hnil rfl⟩
   · -- step 4：fragment を空にする
     obtain ⟨hwf₁, hanc₁⟩ := fragmentPrepared_facts hwf hfp
     have hacyc₁ : ∀ m ∈ nodes, ¬ InclusiveAncestor s₁.tree m parent := by
@@ -320,6 +328,7 @@ theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
     obtain ⟨d', hd', hnc⟩ := hnodes
     rw [hd] at hd'
     cases hd'
+    have hdx : sx.tree.get? node = some d := by rw [hobs.tree node]; exact hd
     by_cases hk : d.kind = NodeKind.documentFragment
     · rw [if_pos hk] at hfpcase
       obtain ⟨sr, hre, hq, hoo'⟩ := hfpcase
@@ -327,7 +336,7 @@ theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
         rcases hnc with ⟨-, hch⟩ | ⟨hkne, -⟩
         · exact hch
         · exact absurd hk hkne
-      obtain ⟨o₀, ho₀, hobs₀⟩ := removeEach_complete nodes hwf hre (ObsEq.refl s)
+      obtain ⟨o₀, ho₀, hobs₀⟩ := removeEach_complete nodes hwf hre hobs
       have hwfr : WellFormed sr.tree := removeEachSpec_wellFormed hwf hre
       have hobs₁ : ObsEq s₁ (queueTreeMutationRecord o₀ node [] nodes none none) := by
         refine treeRecordQueued_congr (s := sr) (s' := o₀) hobs₀ hq ?_ hoo' ?_
@@ -339,7 +348,7 @@ theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
       have hstep := insertNodesAt_isOk_of_spec (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (b := b)
         hwf₁ hacyc₁ hpd hidx hra hie hobs₁
       unfold insert
-      simp only [hd]
+      simp only [hdx]
       rw [if_pos (by simp [hk]),
         if_neg (by rw [← hnodes_eq]; cases hx : nodes with
                    | nil => exact absurd hx hne
@@ -354,12 +363,21 @@ theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
         · exact absurd hkf hk
         · exact hsing
       have hstep := insertNodesAt_isOk_of_spec (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (b := b)
-        hwf₁ hacyc₁ hpd hidx hra hie (ObsEq.refl s₁)
+        hwf₁ hacyc₁ hpd hidx hra hie hobs
       unfold insert
-      simp only [hd]
+      simp only [hdx]
       rw [if_neg (by simp [hk])]
       rw [hnodes_eq] at hstep
       exact hstep
+
+/-- **`insert` は関係を満たす状態があるなら成功する。** -/
+theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
+    {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
+    (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (h : InsertSpec s node parent child b s') :
+    ∃ out, insert s node parent child b = .ok out :=
+  insert_isOk_of_spec_obs hwf hacyc (ObsEq.refl s) h
 
 /--
 **`insert` の完全性。**
@@ -385,12 +403,83 @@ theorem insert_complete {s s' : DOMState} {node parent : NodeId}
 `insert_no_extra_models` と同じ形で、congruence を自分自身に当てる。
 -/
 theorem replace_no_extra_models {s s' out : DOMState} {child node parent : NodeId}
-    (hsv : StructurallyValid s.tree) (hnep : node ≠ parent)
-    (hcp : parentOf s.tree child = some parent)
+    (hsv : StructurallyValid s.tree)
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h : ReplaceSpec s child node parent s') (hok : replace s child node parent = .ok out) :
-    ObsEq s' out :=
-  replaceSpec_congr hsv.wellFormed (ObsEq.refl s) hnep hcp hacyc h (replace_sound hsv hok)
+    ObsEq s' out := by
+  -- `node ≠ parent` と `child` の parent は step 1 の validity が与える。
+  obtain ⟨-, -, -, -, hv, -⟩ := replace_cases hok
+  obtain ⟨-, -, -, hchild⟩ := ensurePreInsertionValidity_ok hv
+  exact replaceSpec_congr hsv.wellFormed (ObsEq.refl s)
+    (replace_node_ne_parent hsv.wellFormed hv) (hchild child rfl) hacyc h
+    (replace_sound hsv hok)
+
+/--
+**`replace` は関係を満たす状態があるなら成功する。**
+
+step ごとに、関係の中間状態と観測が等しい状態を実行側で作っていく。
+step 9 の `insert` だけは実行側の入力が関係の中間状態そのものではないので、
+`insert_isOk_of_spec_obs`（`ObsEq` を引数に取る版）を使う。
+-/
+theorem replace_isOk_of_spec {s s' : DOMState} {child node parent : NodeId}
+    (hwf : WellFormed s.tree)
+    (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (hv : ensurePreInsertionValidity s.tree node parent (some child) [child] = .ok ())
+    (h : ReplaceSpec s child node parent s') :
+    ∃ out, replace s child node parent = .ok out := by
+  have hnep : node ≠ parent := replace_node_ne_parent hwf hv
+  have hcp : parentOf s.tree child = some parent :=
+    (ensurePreInsertionValidity_ok hv).2.2.2 child rfl
+  obtain ⟨ref, prev, nodes, removed, pd, s₁, s₂, s₃,
+    href, -, hpd, ha, hcr, hni, hi, -, -, -⟩ := h
+  -- step 2-3。実行側が使う reference child は関係が決めたものと同じである。
+  have hrefx : replaceReferenceChild s.tree child node = ref := by
+    refine referenceChild_unique (TreeObsEq.refl s.tree) ?_ href
+    rw [replaceReferenceChild_eq]
+    by_cases hc : nextSibling s.tree child = some node
+    · exact Or.inl ⟨hc, by rw [if_pos hc]⟩
+    · exact Or.inr ⟨hc, by rw [if_neg hc]⟩
+  -- step 6
+  have hdoc : IsDocument s.tree pd.ownerDocument := isDocument_ownerDocument hwf hpd
+  have hwf₁ : WellFormed s₁.tree := adoptSpec_wellFormed hwf hdoc ha
+  obtain ⟨o₁, ho₁, hobs₁⟩ := adopt_complete hwf ha
+  have hwfo₁ : WellFormed o₁.tree := hobs₁.tree.wellFormed hwf₁
+  -- step 9 が要る acyclicity を s₂ へ移す
+  have hacyc₂ := nodesToInsertAcyc_step9 hwf hwf₁ hnep hcp hacyc ha hcr
+  have hwf₂ : WellFormed s₂.tree := (childRemoved_facts hwf₁ hcr).1
+  -- step 7。`child` に parent があるかで分かれる。実行側の match を潰すために、
+  -- 分岐したまま最後まで組み立てる。
+  unfold replace
+  simp only [hv, hpd, ho₁]
+  rcases hcr with ⟨hpn, -, rfl⟩ | ⟨⟨q, hq⟩, -, hrm⟩
+  · have hpx : parentOf o₁.tree child = none := by rw [hobs₁.tree.parentOf]; exact hpn
+    obtain ⟨o₃, ho₃⟩ := insert_isOk_of_spec_obs hwf₂ hacyc₂ hobs₁ hi
+    simp only [hpx, hrefx, ho₃]
+    exact ⟨_, rfl⟩
+  · have hqx : parentOf o₁.tree child = some q := by rw [hobs₁.tree.parentOf]; exact hq
+    obtain ⟨o₂, ho₂, hobs₂⟩ :=
+      remove_complete hwfo₁ (removeSpec_transport hwfo₁ (ObsEq.symm hobs₁) hrm)
+    obtain ⟨o₃, ho₃⟩ := insert_isOk_of_spec_obs hwf₂ hacyc₂ hobs₂ hi
+    simp only [hqx, ho₂, hrefx, ho₃]
+    exact ⟨_, rfl⟩
+
+/--
+**`replace` の完全性。**
+
+関係 `ReplaceSpec` を満たす状態があるなら、`replace` は成功して観測の等しい結果を返す。
+成功することは `replace_isOk_of_spec`、観測が等しいことは `replace_no_extra_models`
+である。これで `remove` / `adopt` / `insert` / `replaceData` と同じ水準になる。
+-/
+theorem replace_complete {s s' : DOMState} {child node parent : NodeId}
+    (hsv : StructurallyValid s.tree)
+    (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (hv : ensurePreInsertionValidity s.tree node parent (some child) [child] = .ok ())
+    (h : ReplaceSpec s child node parent s') :
+    ∃ out, replace s child node parent = .ok out ∧ ObsEq s' out := by
+  obtain ⟨out, hok⟩ := replace_isOk_of_spec hsv.wellFormed hacyc hv h
+  exact ⟨out, hok, replace_no_extra_models hsv hacyc h hok⟩
 
 end Dom.Spec

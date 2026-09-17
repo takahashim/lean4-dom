@@ -59,6 +59,59 @@ theorem childRemoved_congr {s₁ s₁' s₂ s₂' : DOMState} {r₁ r₂ : List 
 /-! ## 全体 -/
 
 /--
+**step 9 が要る acyclicity を `s` から `s₂` へ移す。**
+
+step 1 の validity は `s` について「入れる node は `parent` の inclusive ancestor でない」
+と言う。step 9 の `insert` が要るのは adopt と removal を通った `s₂` についての同じ主張で、
+`node` の kind と children が両方を跨いで残ることと、adopt も removal も
+ancestor 関係を増やさないことから移せる。
+-/
+theorem nodesToInsertAcyc_step9 {s s₁ s₂ : DOMState} {doc : NodeId} {removed : List NodeId}
+    (hwf : WellFormed s.tree) (hwf₁ : WellFormed s₁.tree) (hnep : node ≠ parent)
+    (hcp : parentOf s.tree child = some parent)
+    (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (ha : AdoptSpec s node doc s₁) (hcr : ChildRemoved s₁ s₂ child removed) :
+    ∀ ns : List NodeId, NodesToInsert s₂.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s₂.tree m parent := by
+  obtain ⟨-, hancr⟩ := childRemoved_facts hwf₁ hcr
+  -- `node` の kind と children は adopt も removal も跨いで残るので、
+  -- `s₂` で読んだ列は `s` で読んだものと同じである。
+  have hb : ∀ ns, NodesToInsert s₂.tree node ns → NodesToInsert s.tree node ns := by
+    obtain ⟨od, hod, -⟩ := (id ha : AdoptSpec _ _ _ _)
+    obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
+    obtain ⟨nd₁, hnd₁, hk₁, hch₁⟩ := adoptSpec_selfData hwf ha hnd
+    have hside : ∀ q, parentOf s₁.tree child = some q → node ≠ q := by
+      intro q hq
+      by_cases hcn : child = node
+      · exfalso
+        rw [hcn, adoptSpec_detached ha] at hq
+        simp at hq
+      · rw [adoptSpec_parentOf ha hcn, hcp] at hq
+        rw [← Option.some.inj hq]
+        exact hnep
+    obtain ⟨nd₂, hnd₂, hk₂, hch₂⟩ :
+        ∃ nd₂, s₂.tree.get? node = some nd₂ ∧ nd₂.kind = nd.kind ∧
+          nd₂.children = nd.children := by
+      rcases hcr with ⟨-, -, rfl⟩ | ⟨-, -, hrm⟩
+      · exact ⟨nd₁, hnd₁, hk₁, hch₁⟩
+      · obtain ⟨nd₂, hnd₂, hk₂', hch₂'⟩ := removeSpec_data hrm hnd₁ hside
+        exact ⟨nd₂, hnd₂, by rw [hk₂', hk₁], by rw [hch₂', hch₁]⟩
+    intro ns hns
+    obtain ⟨nd₂', hnd₂', hcase⟩ := hns
+    rw [hnd₂] at hnd₂'
+    cases hnd₂'
+    refine ⟨nd, hnd, ?_⟩
+    rcases hcase with ⟨hk, hns'⟩ | ⟨hk, hns'⟩
+    · exact Or.inl ⟨by rw [← hk₂]; exact hk, by rw [hns', hch₂]⟩
+    · exact Or.inr ⟨by rw [← hk₂]; exact hk, hns'⟩
+  intro ns hns m hm hc
+  refine hacyc ns (hb ns hns) m hm ?_
+  rcases hc with he | hanc
+  · exact Or.inl he
+  · exact Or.inr (adoptSpec_ancestor ha (hancr m parent hanc))
+
+/--
 **`ReplaceSpec` の congruence。**
 
 step ごとに観測を持ち上げる。`node` の kind と children は adopt も removal も跨いで
@@ -98,43 +151,7 @@ theorem replaceSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : 
   have hnse : nodes' = nodes := (nodesToInsert_unique hobs₂.tree hni₁ hni₂).symm
   subst hnse
   -- step 9。validity が `s` について言うことを `s₂` へ移す。
-  have hacyc₂ : ∀ ns : List NodeId, NodesToInsert s₂.tree node ns →
-      ∀ m ∈ ns, ¬ InclusiveAncestor s₂.tree m parent := by
-    -- `node` の kind と children は adopt も removal も跨いで残るので、
-    -- `s₂` で読んだ列は `s` で読んだものと同じである。
-    have hb : ∀ ns, NodesToInsert s₂.tree node ns → NodesToInsert s.tree node ns := by
-      obtain ⟨od, hod, -⟩ := (id ha₁ : AdoptSpec _ _ _ _)
-      obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
-      obtain ⟨nd₁, hnd₁, hk₁, hch₁⟩ := adoptSpec_selfData hwf ha₁ hnd
-      have hside : ∀ q, parentOf s₁.tree child = some q → node ≠ q := by
-        intro q hq
-        by_cases hcn : child = node
-        · exfalso
-          rw [hcn, adoptSpec_detached ha₁] at hq
-          simp at hq
-        · rw [adoptSpec_parentOf ha₁ hcn, hcp] at hq
-          rw [← Option.some.inj hq]
-          exact hnep
-      obtain ⟨nd₂, hnd₂, hk₂, hch₂⟩ :
-          ∃ nd₂, s₂.tree.get? node = some nd₂ ∧ nd₂.kind = nd.kind ∧
-            nd₂.children = nd.children := by
-        rcases hcr₁ with ⟨-, -, rfl⟩ | ⟨-, -, hrm⟩
-        · exact ⟨nd₁, hnd₁, hk₁, hch₁⟩
-        · obtain ⟨nd₂, hnd₂, hk₂', hch₂'⟩ := removeSpec_data hrm hnd₁ hside
-          exact ⟨nd₂, hnd₂, by rw [hk₂', hk₁], by rw [hch₂', hch₁]⟩
-      intro ns hns
-      obtain ⟨nd₂', hnd₂', hcase⟩ := hns
-      rw [hnd₂] at hnd₂'
-      cases hnd₂'
-      refine ⟨nd, hnd, ?_⟩
-      rcases hcase with ⟨hk, hns'⟩ | ⟨hk, hns'⟩
-      · exact Or.inl ⟨by rw [← hk₂]; exact hk, by rw [hns', hch₂]⟩
-      · exact Or.inr ⟨by rw [← hk₂]; exact hk, hns'⟩
-    intro ns hns m hm hc
-    refine hacyc ns (hb ns hns) m hm ?_
-    rcases hc with he | hanc
-    · exact Or.inl he
-    · exact Or.inr (adoptSpec_ancestor ha₁ (hanc₂ m parent hanc))
+  have hacyc₂ := nodesToInsertAcyc_step9 hwf hwf₁ hnep hcp hacyc ha₁ hcr₁
   have hobs₃ : ObsEq s₃ s₃' := insertSpec_congr hwf₂ hobs₂ hacyc₂ hi₁ hi₂
   -- step 10
   exact treeRecordQueued_congr hobs₃ hrec₁ hrec₂ hfr₁ hfr₂

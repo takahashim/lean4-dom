@@ -4904,7 +4904,7 @@ walker を一つ足した状態、listener を一つ足した状態、detach さ
 | `remove` | ✔ | ✔ | ✔ | ✔ |
 | `adopt` | ✔ | ✔ | ✔ | ✔ |
 | `insert` | ✔ | ✔ | ✔ | ✔ |
-| `replace` | ✔ | ✔ | ✔ | — |
+| `replace` | ✔ | ✔ | ✔ | ✔ |
 | `move` | ✔ | ✔ | ✔ | — |
 | `replaceData` | ✔ | （不要） | ✔ | ✔ |
 
@@ -4943,18 +4943,30 @@ walker を一つ足した状態、listener を一つ足した状態、detach さ
 soundness ＋ determinism（観測が一致する）を繋いだものである。
 `remove` / `adopt` / `insert` と同じ水準になった。
 
-### 残りに着手した分
+### `replace` を閉じた
 
-`replace_complete` は二段に分かれる。`insert_complete` と同じ形で、
+`replace_complete` は二段である。`replace_no_extra_models`（congruence を自分自身に
+当てる）と `replace_isOk_of_spec`（関係を満たす状態があるなら成功する）を繋いだ。
 
-* **関係の他に model を持たないこと**（`replace_no_extra_models`）——
-  congruence を自分自身に当てるだけなので、入れた。
-* **関係を満たす状態があるなら成功すること**（`replace_isOk_of_spec`）——
-  こちらは残っている。`ReplaceSpec` の step 9 は `InsertSpec s₂ …` だが、
-  実行側が走るのは `s₂` と観測が等しいだけの別の状態なので、
-  **`insertSpec_transport` が要る**（`removeSpec_transport` に当たるもの）。
-  `InsertSpec` の部分関係のうち `FragmentPrepared` は `removeEach` を含むので、
-  そこから組み上げる必要がある。`insert_complete` と同規模の作業になる。
+後者で問題になったのは step 9 である。`ReplaceSpec` の step 9 は
+`InsertSpec s₂ …` だが、実行側が走るのは `s₂` と観測が等しいだけの別の状態である。
+
+最初は `insertSpec_transport`（`removeSpec_transport` に当たるもの）を考えたが、
+**それは成り立たない。** `InsertSpec` には「入れる列が空なら `s' = s`」という枝があり、
+入力を観測の等しい別の状態に差し替えると、この等式が壊れるからである。
+`RemoveSpec` にはその形の枝が無いので transport が書ける。
+
+代わりに、この repository が既に使っている形——`insertNodesAt_isOk_of_spec` と
+`removeEach_complete` が `ObsEq` を引数に取る——に揃えた。
+`insert_isOk_of_spec_obs` は「関係の入力と観測が等しいどの状態でも `insert` は成功する」
+で、元の `insert_isOk_of_spec` はその `ObsEq.refl` の場合になった。
+
+step 9 が要る acyclicity を `s` から `s₂` へ移す部分は `replaceSpec_congr` の中に
+書いてあったので、`nodesToInsertAcyc_step9` として切り出して両方で使う。
+
+仮定も減らした。`node ≠ parent` と「`child` の parent は `parent`」は
+step 1 の validity から出るので、`replace_complete` は受け取らない
+（`replace_no_extra_models` は成功した実行から `replace_cases` で取り出す）。
 
 ## 未着手
 

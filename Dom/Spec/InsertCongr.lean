@@ -253,6 +253,12 @@ theorem insertedEach_congr {doc : NodeId} : ∀ (ns : List NodeId) {s sb o₁ o�
 
 /-! ## step 1・5・6：入れる列と位置 -/
 
+/-- **step 1 は木の観測だけで決まる。** 観測の等しい木へそのまま移せる。 -/
+theorem nodesToInsert_transport (h : TreeObsEq t tb) {ns : List NodeId}
+    (h₁ : NodesToInsert t node ns) : NodesToInsert tb node ns := by
+  obtain ⟨d, hd, hc⟩ := h₁
+  exact ⟨d, by rw [h node]; exact hd, hc⟩
+
 theorem nodesToInsert_unique (h : TreeObsEq t tb) {ns₁ ns₂ : List NodeId}
     (h₁ : NodesToInsert t node ns₁) (h₂ : NodesToInsert tb node ns₂) : ns₁ = ns₂ := by
   obtain ⟨d₁, hd₁, hc₁⟩ := h₁
