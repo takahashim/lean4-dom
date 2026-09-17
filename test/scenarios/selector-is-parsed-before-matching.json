@@ -1,0 +1,20 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#scope-match-a-selectors-string",
+    "algorithm": ["scope-match a selectors string"],
+    "steps": "step 1 で selectors を parse し、失敗したら step 2 で SyntaxError を投げる。照合（step 3）はその後である",
+    "note": "parse は受け手の部分木を見ないので、当たる element が一つも無くても失敗は同じように起きる。空の DocumentFragment がその境目である。同じ selector を子のある DocumentFragment・element・document に当てると jsdom も SyntaxError を投げるが、空の DocumentFragment のときだけ parse を飛ばして空の list を返す（findings 35）。model は最初の例外で評価を止めるので、対照は同じ scenario に並べられない。step 0 は同じ受け手が妥当な selector には答えることを見るために置いてある。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "p" },
+    { "id": 3, "kind": "documentFragment" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 3, "selectors": "div" },
+    { "op": "querySelectorAll", "node": 3, "selectors": ":unknown-thing" }
+  ]
+}

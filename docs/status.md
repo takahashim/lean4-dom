@@ -3699,7 +3699,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-34 の索引
+## findings 12-35 の索引
 
 Selectors の形式化のあいだに出た findings。どれも固定 scenario を赤のままにしてある
 （不一致を expected に落とすと直ったことに気付けなくなる）。
@@ -3729,6 +3729,7 @@ Selectors の形式化のあいだに出た findings。どれも固定 scenario 
 | 32 | Dommy | NULL を含む selector が読めない | `null-becomes-replacement-character` |
 | 33 | jsdom | `div/* c */p` が通る | `comments-are-removed-by-the-tokenizer` |
 | 34 | jsdom | element に対する scoped query が compound 三つ以上で当たらない | `only-the-subject-must-be-in-scope` |
+| 35 | jsdom | 空の DocumentFragment では selector を parse しない | `selector-is-parsed-before-matching` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -4109,6 +4110,30 @@ Document に `matches()` を呼ぶ、といった scenario が無かったから
 あわせて、仕様の「scope の中に居なければならないのは最後に選ばれる element だけで、
 **残りの部分は制限なく当たってよい**」（§4.4）と、受け手が木から外れている場合・
 `DocumentFragment` の場合も scenario にした。前者で jsdom との差が出た。
+
+### findings 35：空の DocumentFragment では selector が検証されない（jsdom）
+
+`scope-match a selectors string` は step 1 で parse し、失敗したら step 2 で
+`SyntaxError` を投げる。照合は step 3 なので、**当たる element が一つも無くても
+失敗は同じように起きる**。jsdom は受け手が空の DocumentFragment のときだけ
+parse を飛ばして空の list を返す。
+
+```
+空の fragment      qsa(":unknown-thing") -> ok len 0     ← 例外にならない
+子のある fragment   qsa(":unknown-thing") -> SyntaxError
+子の無い element    qsa(":unknown-thing") -> SyntaxError
+document          qsa(":unknown-thing") -> SyntaxError
+```
+
+受け手の種類でも子の有無でもなく、**その両方が揃ったときだけ**分かれる。
+Dommy はどの受け手でも `SyntaxError` を投げるので、model と Dommy が一致して
+jsdom だけが外れる形である。happy-dom はどの受け手でも投げない（未知の
+pseudo-class をそもそも invalid として扱っていない）ので、
+厳しい側の読みを支持する証拠にはなるが弱い。
+
+生成 scenario から出た。`--listeners` と `--doctype-prob` を既定の 0 から開けた
+掃引（seed 11-13 × 300 本）の副産物で、shrink が
+`documentFragment.querySelectorAll(":unknown-thing")` の 1 操作まで落とした。
 
 ### findings 34：element に対する scoped query が三つ以上の compound で当たらない（jsdom）
 
@@ -4699,6 +4724,32 @@ Dommy の runner は document ごとに `Dommy::Window` を作るので影響が
 **既定値で回らない region は、そこに欠陥があっても永久に見えない。**
 これは model の findings ではなく**計測器の欠陥**で、偽陽性を出すだけでなく
 本物を隠しうる点でより重い。
+
+### 同じ掃引の収穫
+
+runner を直したうえで seed 11-13 × 300 本を数え直した。
+
+| seed | 一致 | 対象外 | 不一致 |
+| --- | --- | --- | --- |
+| 11 | 262 | 37 | 1 |
+| 12 | 258 | 40 | 2 |
+| 13 | 258 | 38 | 4 |
+
+7 件のうち 6 件は既知である（`normalize()` の record の近似が 4 件、
+`normalize-on-text-is-noop` と transient registered observer が 1 件ずつ）。
+残る 1 件が **findings 35** になった。
+
+Dommy にも同じ設定（doctype は既定どおり 0）で seed 11-12 × 300 本を当てた。
+不一致は 43 件出たが、最初に食い違う step まで遡ると
+`removeAttributeNode` が 24 件（findings 17）、`importNode` が 19 件
+（findings 13 / 14 / 16）の**二種類しかなく**、新規は無かった。
+深さを上げても同じ穴に何度も当たるだけで、新しい場所には届かない。
+
+### 差分テストの現状（findings 35 を入れたあと）
+
+固定 scenario 156 本に対して、Dommy は 135 一致 / 17 不一致、
+jsdom は 117 一致 / 19 不一致である。どちらも findings を expected に
+落とさない方針なので赤いままである。
 
 ## 未着手
 
