@@ -258,7 +258,20 @@ theorem removeSpec_deterministic {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool
 木の表現そのものは決まらない（store が association list なので、同じ `get?` を持つ表現が
 複数ある）。決まるのは **観測**である。registered observer list は順序を決めていないので
 所属の一致になる。soundness と合わせると「`remove` の結果は、関係が許す唯一の観測である」
-と言える。completeness（関係を満たす状態が必ず作れること）はまだ無い。
+と言える。
+
+completeness（関係を満たす状態があるなら実行関数は成功して同じ観測を作ること）も
+**六つの関係すべてにある**。
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.remove_complete` / `adopt_complete` / `insert_complete` | `Dom/Spec/Complete.lean` |
+| `Dom.Spec.replace_complete` / `move_complete` | `Dom/Spec/Complete.lean` |
+| `Dom.Spec.replaceData_complete` | `Dom/Spec/ReplaceDataDeterministic.lean` |
+
+どれも「成功すること」（`*_isOk_of_spec`）と「観測が一つに決まること」
+（`*_deterministic` または `*_no_extra_models`）を繋いだ形である。
+soundness だけなら「常に失敗する実装」でも通るが、completeness はそれを許さない。
 
 ### 観測が等しい状態どうしの congruence
 
