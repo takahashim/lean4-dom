@@ -166,6 +166,25 @@ theorem nodesToInsert_not_ancestor_of_validity {t : Tree} (hwf : WellFormed t)
 成功なら「step 1 を通り、step 4 の `insert` が関係を満たす」、
 失敗なら「step 1 がその例外で落ちる」である。
 `insertBefore` と `appendChild` はこれに委譲するだけである。
+
+## 独立性について（`ruby test/spec_dependence.rb` が検出する）
+
+この定義は実行側の `ensurePreInsertionValidity` と `preInsertReferenceChild` を呼ぶ。
+`Dom/Spec/` の約束（関係は実行側の関数を呼ばない）を**満たしていない**。
+
+* **成功側**は問題にならない。効果を述べるのは `InsertSpec` で、そちらは独立である。
+  validity の呼び出しは「どの入力で成功するか」の指定に使っているだけで、
+  `ensurePreInsertionValidity_ok` を通せば仕様の四つの事実に開ける。
+* **失敗側は実質的に循環している。** 「step 1 がその例外で落ちる」としか言っておらず、
+  仕様の step 1-6 を読み違えて実装しても、この関係はその実装に合わせて成り立つ。
+
+つまりここで強くなったのは「**成功するかどうかまで関係が決める**」（`= .ok s'` を
+仮定しない soundness）であって、「例外の種類が仕様どおりである」ではない。
+後者を言うには validity の step 1-6 を実行側と独立に書いた関係が要る。
+`Dom/Properties/PreInsertValidity.lean` にある `_step1` / `_step2` / `_step3` は
+検査の**順序**を固定するが、条件そのものの独立な記述ではない。
+
+`RemoveResult` の側にはこの問題は無い。失敗条件が `parentOf` だけで書けるからである。
 -/
 def PreInsertResult (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
     Except DOMException DOMState → Prop

@@ -5112,6 +5112,21 @@ theorem remove_result_sound (hwf : WellFormed s.tree) (node) (suppress) :
 `RemoveResult` は失敗を許さず、持たない node について成功を許さない。
 `PreInsertResult` も step 1 の validity について同じである。
 
+### 独立性の後退を記録した
+
+`ruby test/spec_dependence.rb` が `PreInsertResult` を検出した。定義が実行側の
+`ensurePreInsertionValidity` と `preInsertReferenceChild` を呼ぶからである。
+
+* **成功側**は問題にならない。効果を述べるのは `InsertSpec` で、そちらは独立である。
+* **失敗側は実質的に循環している。**「step 1 がその例外で落ちる」としか言っておらず、
+  仕様の step 1-6 を読み違えて実装しても関係はその実装に合わせて成り立つ。
+
+**ここで強くなったのは「成功するかどうかまで関係が決める」であって、
+「例外の種類が仕様どおりである」ではない。** 後者を言うには validity の step 1-6 を
+実行側と独立に書いた関係が要る。`_step1` / `_step2` / `_step3` は検査の順序を
+固定するが、条件そのものの独立な記述ではない。`RemoveResult` の側にはこの問題は無い
+（失敗条件が `parentOf` だけで書ける）。
+
 ### どこまで書けるか
 
 書けるのは失敗条件が両側で捕まっているものだけで、いまは algorithm の `remove` と
