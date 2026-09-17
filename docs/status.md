@@ -4654,6 +4654,52 @@ NFC・Bidi・Joiner の code point は誤って扱うのではなく `none` を�
 不正な byte 列に対する Encoding Standard の復元規則（U+FFFD の置き方）は
 証明の外にある。ここは残りとして記録した。
 
+## 差分テストが偽の不一致を作っていた（JS runner の window 使い回し）
+
+生成器の既定で回っていない領域を探したところ、`--listeners`（初期状態の
+event listener）と `--doctype-prob` が既定 0 で、**一度も回っていなかった**。
+そこを開けて jsdom に seed 11-13 × 300 本を当てると seed 11 で 5 件の不一致が出たが、
+**そのうち 4 件は偽だった。**
+
+### 症状
+
+`invocations: lean=[{callback 1, currentTarget 0, eventPhase 2}] jsdom=[]`。
+model は listener を呼ぶのに jsdom は一つも呼ばない。ところが同じ scenario を
+**単独で回すと一致する**。batch の中の位置に依存していた。
+
+### 原因
+
+二分探索で最小再現まで落とせた。`gen168` の直後に `gen207` を評価すると再現する。
+
+`test/js_runner.mjs` は batch 全体で window を一つしか作らず、
+`test/js/scenario.js` の `makeDocumentFactory` は各 scenario の最初の
+document node にその `win.document` を割り当てる。子は外して空にするが、
+**event listener と MutationObserver の登録は DOM の API では外せない。**
+`gen168` は document に `stopImmediatePropagation` する listener を残す。
+`gen207` が同じ type を document へ dispatch すると、前の scenario の listener が
+先に走って伝播を止め、`gen207` 自身の listener が一つも呼ばれない。
+log は scenario ごとの配列なので、残骸が呼ばれたことは記録に出ない。
+
+`test/browser_runner.mjs` は最初から scenario ごとに page を作っていて、
+そこには「前の scenario が document を書き換えているので使い回せない」と
+書いてある。**同じ懸念が一方の runner にだけ効いていた。**
+Dommy の runner は document ごとに `Dommy::Window` を作るので影響が無い。
+
+### 直し方と効果
+
+`runBatch` が scenario ごとに window を作り直すようにした。
+300 本で +1.6 秒。固定 scenario の結果は変化しない（jsdom 117 ok / 18 不一致のまま）。
+生成 scenario は seed 11 で 5 件 → 1 件になり、残った 1 件は既知の
+`normalize()` の record の近似である。
+
+### なぜ今まで出なかったか
+
+`--listeners` の既定が 0 だからである。listener は操作（`addEventListener`）でしか
+生えず、それが document を的にすることは稀だった。
+**既定値で回らない region は、そこに欠陥があっても永久に見えない。**
+これは model の findings ではなく**計測器の欠陥**で、偽陽性を出すだけでなく
+本物を隠しうる点でより重い。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

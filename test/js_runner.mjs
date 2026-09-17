@@ -48,7 +48,17 @@ function isScenarioFile(path) {
   return path.endsWith(".json") && !path.endsWith(".lean.json") && !path.endsWith(".impl.json");
 }
 
-function runBatch(win, dir) {
+// scenario ごとに window を作り直す。
+//
+// 使い回すと、`makeDocumentFactory` が最初の document node に割り当てる
+// `win.document` が全 scenario で同じ object になる。`makeDocumentFactory` は
+// 子を外して空にするが、**event listener と MutationObserver の登録は外せない**。
+// そのため前の scenario が document に付けた listener が次の scenario の
+// dispatch に割り込む。`stopImmediatePropagation` する listener が残っていると
+// 次の scenario の listener が一つも呼ばれず、**偽の不一致**になる。
+//
+// `browser_runner.mjs` は同じ理由で最初から scenario ごとに page を作っている。
+async function runBatch(impl, dir) {
   let failed = 0;
   for (const name of readdirSync(dir).sort()) {
     const path = join(dir, name);
@@ -56,7 +66,8 @@ function runBatch(win, dir) {
     const base = basename(name, ".json");
     let out;
     try {
-      out = run(win, JSON.parse(readFileSync(path, "utf8")));
+      const { window: fresh } = await openImplementation(impl);
+      out = run(fresh, JSON.parse(readFileSync(path, "utf8")));
     } catch (e) {
       failed = 1;
       out = { error: `${e?.constructor?.name}: ${e?.message}` };
@@ -73,9 +84,8 @@ if (implIndex >= 0) {
   impl = argv[implIndex + 1];
   argv.splice(implIndex, 2);
 }
-const { window: win } = await openImplementation(impl);
-
 if (argv[0] === "--capabilities") {
+  const { window: win } = await openImplementation(impl);
   console.log(JSON.stringify(capabilities(win), null, 2));
   process.exit(0);
 } else if (argv[0] === "--batch") {
@@ -84,7 +94,7 @@ if (argv[0] === "--capabilities") {
     console.error("usage: js_runner.mjs [--impl NAME] --batch DIR");
     process.exit(2);
   }
-  process.exit(runBatch(win, dir));
+  process.exit(await runBatch(impl, dir));
 } else {
   const path = argv[0];
   if (!path) {
@@ -92,6 +102,7 @@ if (argv[0] === "--capabilities") {
     process.exit(2);
   }
   try {
+    const { window: win } = await openImplementation(impl);
     console.log(JSON.stringify(run(win, JSON.parse(readFileSync(path, "utf8")))));
   } catch (e) {
     console.error(`${path}: 初期状態を組み立てられない: ${e?.constructor?.name}: ${e?.message}`);
