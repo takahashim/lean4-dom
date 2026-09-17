@@ -4892,6 +4892,47 @@ structure Untouched (s s' : DOMState) : Prop where
 walker を一つ足した状態、listener を一つ足した状態、detach された `Attr` を
 一つ足した状態は、どれも `ObsEq` ではない。**直す前はどれも通っていた。**
 
+## 「成功を仮定した定理が多い」を測った
+
+指摘の二点目は「preservation は `operation … = .ok s' → invariant s'` の形なので、
+極端には**常に失敗する実装でも通る**」であった。実際に数えた。
+
+### 関係意味論の網羅
+
+| 関係 | sound | congr | deterministic | complete |
+| --- | --- | --- | --- | --- |
+| `remove` | ✔ | ✔ | ✔ | ✔ |
+| `adopt` | ✔ | ✔ | ✔ | ✔ |
+| `insert` | ✔ | ✔ | ✔ | ✔ |
+| `replace` | ✔ | ✔ | ✔ | — |
+| `move` | ✔ | ✔ | ✔ | — |
+| `replaceData` | ✔ | — | — | — |
+
+### 成功・失敗の契約
+
+両側（成功する条件と失敗する条件の両方）を持つのは `remove` だけである
+（`remove_succeeds_iff` / `remove_error_iff`）。片側（`_isOk`）は
+`cloneNode` / `cloneNodeIn` / `cloneMany` / `importNode` / `adopt` / `adoptNode` /
+`append_fresh` / `insertAt` / `insertNodesAt` にある。**合わせて 14 本**で、
+77 種類の操作に対しては薄い。
+
+指摘の優先順（`replace_complete` → `move_complete` →
+`replaceDataSpec_deterministic` と `replaceData_complete` → public API の
+成功・失敗条件 → 例外結果を含む関係意味論）はそのまま妥当である。
+
+### 着手した分
+
+`replace_complete` は二段に分かれる。`insert_complete` と同じ形で、
+
+* **関係の他に model を持たないこと**（`replace_no_extra_models`）——
+  congruence を自分自身に当てるだけなので、入れた。
+* **関係を満たす状態があるなら成功すること**（`replace_isOk_of_spec`）——
+  こちらは残っている。`ReplaceSpec` の step 9 は `InsertSpec s₂ …` だが、
+  実行側が走るのは `s₂` と観測が等しいだけの別の状態なので、
+  **`insertSpec_transport` が要る**（`removeSpec_transport` に当たるもの）。
+  `InsertSpec` の部分関係のうち `FragmentPrepared` は `removeEach` を含むので、
+  そこから組み上げる必要がある。`insert_complete` と同規模の作業になる。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

@@ -2,6 +2,8 @@ import Dom.Spec.RemoveCongr
 import Dom.Spec.AdoptCongr
 import Dom.Spec.InsertCongr
 import Dom.Spec.InsertSound
+import Dom.Spec.ReplaceCongr
+import Dom.Spec.ReplaceSound
 import Dom.Properties.Contract
 
 /-!
@@ -374,5 +376,21 @@ theorem insert_complete {s s' : DOMState} {node parent : NodeId}
     ∃ out, insert s node parent child b = .ok out ∧ ObsEq s' out := by
   obtain ⟨out, hok⟩ := insert_isOk_of_spec hwf hacyc h
   exact ⟨out, hok, insert_no_extra_models hwf hacyc h hok⟩
+
+/-! ## §4.2.3 replace -/
+
+/--
+**`replace` は関係の他に model を持たない。**
+
+`insert_no_extra_models` と同じ形で、congruence を自分自身に当てる。
+-/
+theorem replace_no_extra_models {s s' out : DOMState} {child node parent : NodeId}
+    (hsv : StructurallyValid s.tree) (hnep : node ≠ parent)
+    (hcp : parentOf s.tree child = some parent)
+    (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
+      ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
+    (h : ReplaceSpec s child node parent s') (hok : replace s child node parent = .ok out) :
+    ObsEq s' out :=
+  replaceSpec_congr hsv.wellFormed (ObsEq.refl s) hnep hcp hacyc h (replace_sound hsv hok)
 
 end Dom.Spec

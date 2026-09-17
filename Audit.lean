@@ -294,6 +294,7 @@ open Dom.Audit
   Dom.Spec.remove_complete
   Dom.Spec.adopt_complete
   Dom.Spec.insert_no_extra_models
+  Dom.Spec.replace_no_extra_models
   Dom.Spec.adopt_sound
   Dom.Spec.insert_sound
   Dom.Spec.insertEach_sound
