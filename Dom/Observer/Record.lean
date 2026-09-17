@@ -156,6 +156,135 @@ def addTransientObservers (s : DOMState) (node parent : NodeId) : DOMState :=
   { s with registrations := s.registrations ++ added, observers := observers }
 
 
+/-! ## walker・listener・detach された `Attr` には触れない -/
+
+/--
+record を積む段はどれも三成分を持ち越す。`Untouched`（`Dom/Basic/State.lean`）は
+これを束ねたもので、関係意味論が frame 条件として持つ。
+-/
+@[simp] theorem queueMutationObserverMicrotask_walkers (s : DOMState) :
+    (queueMutationObserverMicrotask s).walkers = s.walkers := by
+  unfold queueMutationObserverMicrotask; split <;> rfl
+
+@[simp] theorem addPendingObserver_walkers (s : DOMState) (mo : Nat) :
+    (addPendingObserver s mo).walkers = s.walkers := by
+  unfold addPendingObserver; split <;> rfl
+
+theorem foldl_addPendingObserver_walkers :
+    ∀ (l : List (Nat × Option String)) (s : DOMState),
+      (l.foldl (fun st p => addPendingObserver st p.1) s).walkers = s.walkers
+  | [], _ => rfl
+  | x :: xs, s => by
+    show (xs.foldl _ (addPendingObserver s x.1)).walkers = s.walkers
+    rw [foldl_addPendingObserver_walkers xs, addPendingObserver_walkers]
+
+@[simp] theorem queueMutationRecord_walkers (s : DOMState) (rec : MutationRecord)
+    (ov : Option String) : (queueMutationRecord s rec ov).walkers = s.walkers := by
+  unfold queueMutationRecord
+  rw [queueMutationObserverMicrotask_walkers, foldl_addPendingObserver_walkers]
+
+@[simp] theorem queueTreeMutationRecord_walkers (s : DOMState) (t : NodeId)
+    (a r : List NodeId) (p n : Option NodeId) :
+    (queueTreeMutationRecord s t a r p n).walkers = s.walkers := by
+  unfold queueTreeMutationRecord
+  split
+  · rfl
+  · simp
+
+@[simp] theorem queueCharacterDataRecord_walkers (s : DOMState) (t : NodeId) (v : String) :
+    (queueCharacterDataRecord s t v).walkers = s.walkers := by
+  unfold queueCharacterDataRecord; simp
+
+@[simp] theorem addTransientObservers_walkers (s : DOMState) (n p : NodeId) :
+    (addTransientObservers s n p).walkers = s.walkers := rfl
+
+@[simp] theorem queueMutationObserverMicrotask_listeners (s : DOMState) :
+    (queueMutationObserverMicrotask s).listeners = s.listeners := by
+  unfold queueMutationObserverMicrotask; split <;> rfl
+
+@[simp] theorem addPendingObserver_listeners (s : DOMState) (mo : Nat) :
+    (addPendingObserver s mo).listeners = s.listeners := by
+  unfold addPendingObserver; split <;> rfl
+
+theorem foldl_addPendingObserver_listeners :
+    ∀ (l : List (Nat × Option String)) (s : DOMState),
+      (l.foldl (fun st p => addPendingObserver st p.1) s).listeners = s.listeners
+  | [], _ => rfl
+  | x :: xs, s => by
+    show (xs.foldl _ (addPendingObserver s x.1)).listeners = s.listeners
+    rw [foldl_addPendingObserver_listeners xs, addPendingObserver_listeners]
+
+@[simp] theorem queueMutationRecord_listeners (s : DOMState) (rec : MutationRecord)
+    (ov : Option String) : (queueMutationRecord s rec ov).listeners = s.listeners := by
+  unfold queueMutationRecord
+  rw [queueMutationObserverMicrotask_listeners, foldl_addPendingObserver_listeners]
+
+@[simp] theorem queueTreeMutationRecord_listeners (s : DOMState) (t : NodeId)
+    (a r : List NodeId) (p n : Option NodeId) :
+    (queueTreeMutationRecord s t a r p n).listeners = s.listeners := by
+  unfold queueTreeMutationRecord
+  split
+  · rfl
+  · simp
+
+@[simp] theorem queueCharacterDataRecord_listeners (s : DOMState) (t : NodeId) (v : String) :
+    (queueCharacterDataRecord s t v).listeners = s.listeners := by
+  unfold queueCharacterDataRecord; simp
+
+@[simp] theorem addTransientObservers_listeners (s : DOMState) (n p : NodeId) :
+    (addTransientObservers s n p).listeners = s.listeners := rfl
+
+@[simp] theorem queueMutationObserverMicrotask_detachedAttrs (s : DOMState) :
+    (queueMutationObserverMicrotask s).detachedAttrs = s.detachedAttrs := by
+  unfold queueMutationObserverMicrotask; split <;> rfl
+
+@[simp] theorem addPendingObserver_detachedAttrs (s : DOMState) (mo : Nat) :
+    (addPendingObserver s mo).detachedAttrs = s.detachedAttrs := by
+  unfold addPendingObserver; split <;> rfl
+
+theorem foldl_addPendingObserver_detachedAttrs :
+    ∀ (l : List (Nat × Option String)) (s : DOMState),
+      (l.foldl (fun st p => addPendingObserver st p.1) s).detachedAttrs = s.detachedAttrs
+  | [], _ => rfl
+  | x :: xs, s => by
+    show (xs.foldl _ (addPendingObserver s x.1)).detachedAttrs = s.detachedAttrs
+    rw [foldl_addPendingObserver_detachedAttrs xs, addPendingObserver_detachedAttrs]
+
+@[simp] theorem queueMutationRecord_detachedAttrs (s : DOMState) (rec : MutationRecord)
+    (ov : Option String) : (queueMutationRecord s rec ov).detachedAttrs = s.detachedAttrs := by
+  unfold queueMutationRecord
+  rw [queueMutationObserverMicrotask_detachedAttrs, foldl_addPendingObserver_detachedAttrs]
+
+@[simp] theorem queueTreeMutationRecord_detachedAttrs (s : DOMState) (t : NodeId)
+    (a r : List NodeId) (p n : Option NodeId) :
+    (queueTreeMutationRecord s t a r p n).detachedAttrs = s.detachedAttrs := by
+  unfold queueTreeMutationRecord
+  split
+  · rfl
+  · simp
+
+@[simp] theorem queueCharacterDataRecord_detachedAttrs (s : DOMState) (t : NodeId) (v : String) :
+    (queueCharacterDataRecord s t v).detachedAttrs = s.detachedAttrs := by
+  unfold queueCharacterDataRecord; simp
+
+@[simp] theorem addTransientObservers_detachedAttrs (s : DOMState) (n p : NodeId) :
+    (addTransientObservers s n p).detachedAttrs = s.detachedAttrs := rfl
+
+theorem untouched_queueMutationRecord (s : DOMState) (rec : MutationRecord)
+    (oldValue : Option String) : Untouched s (queueMutationRecord s rec oldValue) :=
+  ⟨by simp, by simp, by simp⟩
+
+theorem untouched_queueTreeMutationRecord (s : DOMState) (target : NodeId)
+    (added removed : List NodeId) (prev next : Option NodeId) :
+    Untouched s (queueTreeMutationRecord s target added removed prev next) :=
+  ⟨by simp, by simp, by simp⟩
+
+theorem untouched_queueCharacterDataRecord (s : DOMState) (target : NodeId) (oldValue : String) :
+    Untouched s (queueCharacterDataRecord s target oldValue) := ⟨by simp, by simp, by simp⟩
+
+theorem untouched_addTransientObservers (s : DOMState) (node parent : NodeId) :
+    Untouched s (addTransientObservers s node parent) := ⟨rfl, rfl, rfl⟩
+
 /-! ## microtask と pending は他の成分を変えない -/
 
 @[simp] theorem queueMutationObserverMicrotask_tree (s : DOMState) :

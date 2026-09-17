@@ -150,6 +150,6 @@ theorem replace_sound {s s' : DOMState} {child node parent : NodeId}
   exact ⟨_, _, _, _, pd, s₁, s₂, s₃, href, rfl, hpd, adopt_sound hwf ha, hcr, hni,
     insert_sound hwf₂ hi, hassert,
     treeRecordQueued_of_queue s₃ hwf₃ parent _ _ _ _ hguard,
-    ⟨by simp, by simp, by simp, by simp⟩⟩
+    ⟨by simp, by simp, by simp, by simp, untouched_queueTreeMutationRecord ..⟩⟩
 
 end Dom.Spec

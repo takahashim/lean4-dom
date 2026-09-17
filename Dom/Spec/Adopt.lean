@@ -34,6 +34,8 @@ structure LiveObjectsUnchangedExceptTree (s s' : DOMState) : Prop where
   observers : s'.observers = s.observers
   pendingObservers : s'.pendingObservers = s.pendingObservers
   microtaskQueued : s'.microtaskQueued = s.microtaskQueued
+  /-- `Dom/Basic/State.lean` の `Untouched`。 -/
+  untouched : Untouched s s'
 
 /--
 **§4.5 "adopt" の関係意味論。**
@@ -58,5 +60,7 @@ structure LiveObjectsUnchangedExceptRanges (s s' : DOMState) : Prop where
   observers : s'.observers = s.observers
   pendingObservers : s'.pendingObservers = s.pendingObservers
   microtaskQueued : s'.microtaskQueued = s.microtaskQueued
+  /-- `Dom/Basic/State.lean` の `Untouched`。 -/
+  untouched : Untouched s s'
 
 end Dom.Spec

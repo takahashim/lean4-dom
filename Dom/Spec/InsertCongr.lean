@@ -241,7 +241,14 @@ theorem insertedEach_congr {doc : NodeId} : ∀ (ns : List NodeId) {s sb o₁ o�
             pendingObservers := fun mo => by
               rw [hl₂.pendingObservers, hl₁.pendingObservers]; exact hobsa.pendingObservers mo
             microtaskQueued := by
-              rw [hl₂.microtaskQueued, hobsa.microtaskQueued, hl₁.microtaskQueued] }
+              rw [hl₂.microtaskQueued, hobsa.microtaskQueued, hl₁.microtaskQueued]
+            walkers := by
+              rw [hl₂.untouched.walkers, hobsa.walkers, hl₁.untouched.walkers]
+            listeners := by
+              rw [hl₂.untouched.listeners, hobsa.listeners, hl₁.untouched.listeners]
+            detachedAttrs := by
+              rw [hl₂.untouched.detachedAttrs, hobsa.detachedAttrs,
+                hl₁.untouched.detachedAttrs] }
         exact ih hwfb hdocb hacycb hobsb hrest₁ hrest₂
 
 /-! ## step 1・5・6：入れる列と位置 -/
@@ -333,7 +340,11 @@ theorem rangeInsertAdjusted_congr {s sb o₁ o₂ : DOMState} {idx count : Nat} 
       pendingObservers := fun mo => by
         rw [h₂.live.pendingObservers, h₁.live.pendingObservers]; exact h.pendingObservers mo
       microtaskQueued := by
-        rw [h₂.live.microtaskQueued, h.microtaskQueued, h₁.live.microtaskQueued] }
+        rw [h₂.live.microtaskQueued, h.microtaskQueued, h₁.live.microtaskQueued]
+      walkers := by rw [h₂.live.untouched.walkers, h.walkers, h₁.live.untouched.walkers]
+      listeners := by rw [h₂.live.untouched.listeners, h.listeners, h₁.live.untouched.listeners]
+      detachedAttrs := by
+        rw [h₂.live.untouched.detachedAttrs, h.detachedAttrs, h₁.live.untouched.detachedAttrs] }
 
 /-! ## step 4：DocumentFragment を空にする -/
 

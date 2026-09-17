@@ -93,6 +93,19 @@ def iteratorPreRemove (s : DOMState) (node : NodeId) : DOMState :=
           iteratorPreRemoveOne s.tree node it
         else it }
 
+@[simp] theorem iteratorPreRemove_walkers (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).walkers = s.walkers := rfl
+
+@[simp] theorem iteratorPreRemove_listeners (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).listeners = s.listeners := rfl
+
+@[simp] theorem iteratorPreRemove_detachedAttrs (s : DOMState) (n : NodeId) :
+    (iteratorPreRemove s n).detachedAttrs = s.detachedAttrs := rfl
+
+/-- iterator の pre-remove は `Untouched`（`Dom/Basic/State.lean`）である。 -/
+theorem untouched_iteratorPreRemove (s : DOMState) (n : NodeId) :
+    Untouched s (iteratorPreRemove s n) := ⟨rfl, rfl, rfl⟩
+
 @[simp] theorem iteratorPreRemove_tree (s : DOMState) (n : NodeId) :
     (iteratorPreRemove s n).tree = s.tree := rfl
 

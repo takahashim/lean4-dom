@@ -188,6 +188,45 @@ theorem liveRangeInsertAdjust_nodes (s : DOMState) (parent : NodeId) (child : Op
 
 /-! ## 木を変えないこと -/
 
+/-! ## walker・listener・detach された `Attr` には触れない -/
+
+@[simp] theorem liveRangePreRemove_walkers (s : DOMState) (n : NodeId) :
+    (liveRangePreRemove s n).walkers = s.walkers := by
+  unfold liveRangePreRemove
+  split <;> rfl
+
+@[simp] theorem liveRangeInsertAdjust_walkers (s : DOMState) (p : NodeId) (c : Option NodeId)
+    (k : Nat) : (liveRangeInsertAdjust s p c k).walkers = s.walkers := by
+  unfold liveRangeInsertAdjust
+  split <;> rfl
+
+@[simp] theorem liveRangePreRemove_listeners (s : DOMState) (n : NodeId) :
+    (liveRangePreRemove s n).listeners = s.listeners := by
+  unfold liveRangePreRemove
+  split <;> rfl
+
+@[simp] theorem liveRangeInsertAdjust_listeners (s : DOMState) (p : NodeId) (c : Option NodeId)
+    (k : Nat) : (liveRangeInsertAdjust s p c k).listeners = s.listeners := by
+  unfold liveRangeInsertAdjust
+  split <;> rfl
+
+@[simp] theorem liveRangePreRemove_detachedAttrs (s : DOMState) (n : NodeId) :
+    (liveRangePreRemove s n).detachedAttrs = s.detachedAttrs := by
+  unfold liveRangePreRemove
+  split <;> rfl
+
+@[simp] theorem liveRangeInsertAdjust_detachedAttrs (s : DOMState) (p : NodeId) (c : Option NodeId)
+    (k : Nat) : (liveRangeInsertAdjust s p c k).detachedAttrs = s.detachedAttrs := by
+  unfold liveRangeInsertAdjust
+  split <;> rfl
+
+/-- live range の調整は `Untouched`（`Dom/Basic/State.lean`）である。 -/
+theorem untouched_liveRangePreRemove (s : DOMState) (n : NodeId) :
+    Untouched s (liveRangePreRemove s n) := ⟨by simp, by simp, by simp⟩
+
+theorem untouched_liveRangeInsertAdjust (s : DOMState) (p : NodeId) (c : Option NodeId)
+    (k : Nat) : Untouched s (liveRangeInsertAdjust s p c k) := ⟨by simp, by simp, by simp⟩
+
 @[simp] theorem liveRangePreRemove_tree (s : DOMState) (n : NodeId) :
     (liveRangePreRemove s n).tree = s.tree := by
   unfold liveRangePreRemove

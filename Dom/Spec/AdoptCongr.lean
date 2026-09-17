@@ -272,7 +272,13 @@ theorem adoptSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s sb) {o₁ o₂ : 
         pendingObservers := fun mo => by
           rw [hl₂.pendingObservers, hl₁.pendingObservers]; exact hobs.pendingObservers mo
         microtaskQueued := by
-          rw [hl₂.microtaskQueued, hobs.microtaskQueued, hl₁.microtaskQueued] }
+          rw [hl₂.microtaskQueued, hobs.microtaskQueued, hl₁.microtaskQueued]
+        walkers := by
+          rw [hl₂.untouched.walkers, hobs.walkers, hl₁.untouched.walkers]
+        listeners := by
+          rw [hl₂.untouched.listeners, hobs.listeners, hl₁.untouched.listeners]
+        detachedAttrs := by
+          rw [hl₂.untouched.detachedAttrs, hobs.detachedAttrs, hl₁.untouched.detachedAttrs] }
 
 /--
 `AdoptSpec` の結果も well-formed である。

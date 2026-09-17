@@ -544,6 +544,24 @@ theorem remove_sound_iterator {s s' : DOMState} {n p : NodeId} {b : Bool}
 /-! ## まとめ -/
 
 /--
+`remove` は walker・listener・detach された `Attr` に触れない。
+
+step のどれもその三つを読まないので、状態の更新がそのまま持ち越す。
+-/
+theorem remove_sound_untouched {s s' : DOMState} {n : NodeId} {b : Bool}
+    (h : remove s n b = .ok s') : Untouched s s' := by
+  obtain ⟨p, sd, hp, hd, hrec⟩ := remove_cases h
+  obtain ⟨t', -, hsd⟩ := detachWithLiveAdjust_cases hd
+  have hstep : Untouched s sd := by
+    rw [hsd]
+    exact ((untouched_liveRangePreRemove s n).trans
+      (untouched_iteratorPreRemove _ n)).trans (DOMState.untouched_withTree _ t')
+  refine hstep.trans ?_
+  rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · exact untouched_addTransientObservers ..
+  · exact (untouched_addTransientObservers sd n p).trans (untouched_queueTreeMutationRecord ..)
+
+/--
 **`remove` は `RemoveSpec` を満たす。**
 
 仕様の step のうち model が扱うものすべてについて、
@@ -554,6 +572,7 @@ theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}
   obtain ⟨⟨p, hp⟩, -⟩ := remove_ok h
   exact ⟨p, (index s.tree n).getD 0, hp, rfl,
     remove_sound_range hwf hp h, remove_sound_iterator hwf hp h,
-    remove_sound_tree hwf hp h, remove_sound_transient hwf hp h, remove_sound_record hwf hp h⟩
+    remove_sound_tree hwf hp h, remove_sound_transient hwf hp h, remove_sound_record hwf hp h,
+    remove_sound_untouched h⟩
 
 end Dom.Spec

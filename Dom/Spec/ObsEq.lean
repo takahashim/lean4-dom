@@ -206,6 +206,12 @@ end TreeObsEq
 `Dom/Observation.lean` の `Observation` が見るものの一致である。
 木は表現ではなく `get?` で、registered observer list は順序を決めていないので所属で、
 observer は record queue だけで比べる（`ObserverState.nodeList` は観測に出ない）。
+
+`walkers` / `listeners` / `detachedAttrs` も入れる。§4.2.3 の algorithm はこの三つに
+触れないが、**`Observation` には出る**ので、抜くと「将来の操作から区別できない」
+という意味にならない（`Dom/Basic/State.lean` の `Untouched` を参照）。
+関係の側はその frame 条件を持っているので、determinism も completeness も
+この三つまで込みで言える。
 -/
 structure ObsEq (s s' : DOMState) : Prop where
   tree : TreeObsEq s.tree s'.tree
@@ -215,6 +221,9 @@ structure ObsEq (s s' : DOMState) : Prop where
   records : ∀ mo : Nat, (s'.observers[mo]?).map (·.records) = (s.observers[mo]?).map (·.records)
   pendingObservers : ∀ mo : Nat, mo ∈ s'.pendingObservers ↔ mo ∈ s.pendingObservers
   microtaskQueued : s'.microtaskQueued = s.microtaskQueued
+  walkers : s'.walkers = s.walkers
+  listeners : s'.listeners = s.listeners
+  detachedAttrs : s'.detachedAttrs = s.detachedAttrs
 
 namespace ObsEq
 
@@ -228,6 +237,9 @@ theorem refl (s : DOMState) : ObsEq s s where
   records := fun _ => rfl
   pendingObservers := fun _ => Iff.rfl
   microtaskQueued := rfl
+  walkers := rfl
+  listeners := rfl
+  detachedAttrs := rfl
 
 theorem symm (h : ObsEq s s') : ObsEq s' s where
   tree := h.tree.symm
@@ -237,6 +249,9 @@ theorem symm (h : ObsEq s s') : ObsEq s' s where
   records := fun mo => (h.records mo).symm
   pendingObservers := fun mo => (h.pendingObservers mo).symm
   microtaskQueued := h.microtaskQueued.symm
+  walkers := h.walkers.symm
+  listeners := h.listeners.symm
+  detachedAttrs := h.detachedAttrs.symm
 
 theorem trans (h : ObsEq s s') (h' : ObsEq s' s'') : ObsEq s s'' where
   tree := fun m => (h'.tree m).trans (h.tree m)
@@ -246,6 +261,13 @@ theorem trans (h : ObsEq s s') (h' : ObsEq s' s'') : ObsEq s s'' where
   records := fun mo => (h'.records mo).trans (h.records mo)
   pendingObservers := fun mo => (h'.pendingObservers mo).trans (h.pendingObservers mo)
   microtaskQueued := h'.microtaskQueued.trans h.microtaskQueued
+  walkers := h'.walkers.trans h.walkers
+  listeners := h'.listeners.trans h.listeners
+  detachedAttrs := h'.detachedAttrs.trans h.detachedAttrs
+
+/-- 観測が等しければ、触れない三成分も等しい。 -/
+theorem untouched (h : ObsEq s s') : Untouched s s' :=
+  ⟨h.walkers, h.listeners, h.detachedAttrs⟩
 
 /-- record queue が一致すれば、observer が居るかどうかも一致する。 -/
 theorem observers_isSome (h : ObsEq s s') (mo : Nat) :
@@ -294,6 +316,32 @@ theorem exists_observer (h : ObsEq s s') {mo : Nat} {o : ObserverState}
   cases ho' : s'.observers[mo]? with
   | none => rw [ho'] at hs; exact Bool.noConfusion hs
   | some o' => exact ⟨o', rfl, h.records_of ho ho'⟩
+
+/-! ### 三成分が飾りでないこと
+
+`walkers` / `listeners` / `detachedAttrs` のどれか一つだけを変えた状態は、
+もう `ObsEq` ではない。入れる前はこの三つがどれも通っていた。
+-/
+
+/-- walker を一つ足すと観測が変わる。 -/
+example (s : DOMState) (w : WalkerState) : ¬ ObsEq s { s with walkers := w :: s.walkers } := by
+  intro h
+  have hw : w :: s.walkers = s.walkers := h.walkers
+  exact absurd hw (by simp)
+
+/-- listener を一つ足すと観測が変わる。 -/
+example (s : DOMState) (l : EventListener) :
+    ¬ ObsEq s { s with listeners := l :: s.listeners } := by
+  intro h
+  have hl : l :: s.listeners = s.listeners := h.listeners
+  exact absurd hl (by simp)
+
+/-- detach された `Attr` を一つ足すと観測が変わる。 -/
+example (s : DOMState) (a : Attr) :
+    ¬ ObsEq s { s with detachedAttrs := a :: s.detachedAttrs } := by
+  intro h
+  have ha : a :: s.detachedAttrs = s.detachedAttrs := h.detachedAttrs
+  exact absurd ha (by simp)
 
 end ObsEq
 

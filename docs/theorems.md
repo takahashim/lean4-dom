@@ -287,6 +287,13 @@ theorem insertSpec_deterministic {s o₁ o₂ : DOMState} {suppress : Bool}
 pre-insertion validity が保証するもので、`insert` 本体は前提として受け取る。
 これが無いと木が循環し、`TreeInserted` の結果が well-formed でなくなる。
 
+`ObsEq` は `DOMState` の十成分すべてを見る。木・range・iterator・registration・
+record queue・pending・microtask に加えて、`walkers` / `listeners` / `detachedAttrs`
+である。後の三つは §4.2.3 の algorithm が触れないが `Observation` には出るので、
+抜くと determinism も completeness も「将来の操作から区別できない」ことを
+意味しなくなる（`Dom/Basic/State.lean` の `Untouched`）。
+関係の側は frame 条件としてこれを持つ。
+
 ## 14. oracle は自分の invariant を破らない
 
 | 定理 | module |

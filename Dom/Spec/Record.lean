@@ -69,6 +69,8 @@ structure ObserverOnly (s s' : DOMState) : Prop where
   ranges : s'.ranges = s.ranges
   iterators : s'.iterators = s.iterators
   registrations : s'.registrations = s.registrations
+  /-- `Dom/Basic/State.lean` の `Untouched`。record を積む段は三成分に触れない。 -/
+  untouched : Untouched s s'
 
 /--
 observer の側が何も変わらないこと。`ObserverOnly` の裏である。
@@ -82,6 +84,8 @@ structure ObserversUntouched (s s' : DOMState) : Prop where
   observers : s'.observers = s.observers
   pendingObservers : s'.pendingObservers = s.pendingObservers
   microtaskQueued : s'.microtaskQueued = s.microtaskQueued
+  /-- `Dom/Basic/State.lean` の `Untouched`。 -/
+  untouched : Untouched s s'
 
 /-! ## characterData の record -/
 

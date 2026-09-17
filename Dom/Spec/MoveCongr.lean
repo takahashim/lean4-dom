@@ -43,7 +43,11 @@ theorem moveDetached_congr {s₁ s₁' : DOMState} {p : NodeId} {i : Nat} {nd : 
       pendingObservers := fun mo => by
         rw [hu₂.pendingObservers, hu₁.pendingObservers]; exact h.pendingObservers mo
       microtaskQueued := by
-        rw [hu₂.microtaskQueued, h.microtaskQueued, hu₁.microtaskQueued] }
+        rw [hu₂.microtaskQueued, h.microtaskQueued, hu₁.microtaskQueued]
+      walkers := by rw [hu₂.untouched.walkers, h.walkers, hu₁.untouched.walkers]
+      listeners := by rw [hu₂.untouched.listeners, h.listeners, hu₁.untouched.listeners]
+      detachedAttrs := by
+        rw [hu₂.untouched.detachedAttrs, h.detachedAttrs, hu₁.untouched.detachedAttrs] }
 
 /-! ## 全体 -/
 
@@ -83,7 +87,11 @@ theorem moveSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : Obs
       pendingObservers := fun mo => by
         rw [hl₂.pendingObservers, hl₁.pendingObservers]; exact hobsa.pendingObservers mo
       microtaskQueued := by
-        rw [hl₂.microtaskQueued, hobsa.microtaskQueued, hl₁.microtaskQueued] }
+        rw [hl₂.microtaskQueued, hobsa.microtaskQueued, hl₁.microtaskQueued]
+      walkers := by rw [hl₂.untouched.walkers, hobsa.walkers, hl₁.untouched.walkers]
+      listeners := by rw [hl₂.untouched.listeners, hobsa.listeners, hl₁.untouched.listeners]
+      detachedAttrs := by
+        rw [hl₂.untouched.detachedAttrs, hobsa.detachedAttrs, hl₁.untouched.detachedAttrs] }
   -- step 23-24
   have hobs₃ : ObsEq s₃ s₃' := by
     refine treeRecordQueued_congr hobs₂ hq₁ ?_ hf₁ hf₂

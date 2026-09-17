@@ -281,10 +281,10 @@ theorem removeSpec_wellFormed {out : DOMState} {node : NodeId} {suppress : Bool}
 theorem removeSpec_transport (hwf : WellFormed s.tree) (h : ObsEq s s') {out : DOMState}
     {node : NodeId} {suppress : Bool} (hq : RemoveSpec s' node suppress out) :
     RemoveSpec s node suppress out := by
-  obtain ⟨parent, index, hpre, hidx, hr, hit, htr, htn, hrec⟩ := hq
+  obtain ⟨parent, index, hpre, hidx, hr, hit, htr, htn, hrec, hun⟩ := hq
   refine ⟨parent, index, ?_, ?_, rangeAdjusted_transport h hr,
     iteratorAdjusted_transport hwf h hit, treeRemoved_transport h.tree htr,
-    transientAdded_transport h htn, ?_⟩
+    transientAdded_transport h htn, ?_, h.untouched.trans hun⟩
   · show parentOf s.tree node = some parent
     rw [← h.tree.parentOf]; exact hpre
   · rw [hidx, h.tree.index]
@@ -302,9 +302,10 @@ theorem removeSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s s')
     (h₁ : RemoveSpec s node suppress s₁) (h₂ : RemoveSpec s' node suppress s₂) :
     ObsEq s₁ s₂ := by
   have h₂' : RemoveSpec s node suppress s₂ := removeSpec_transport hwf h h₂
-  obtain ⟨htree, hrng, hit, hreg, hrec, hpend, hmt⟩ := removeSpec_deterministic hwf h₁ h₂'
+  obtain ⟨htree, hrng, hit, hreg, hrec, hpend, hmt, hw, hl, ha⟩ :=
+    removeSpec_deterministic hwf h₁ h₂'
   exact ⟨fun m => (htree m).symm, hrng.symm, hit.symm, fun r => (hreg r).symm,
-    fun mo => (hrec mo).symm, fun mo => (hpend mo).symm, hmt.symm⟩
+    fun mo => (hrec mo).symm, fun mo => (hpend mo).symm, hmt.symm, hw.symm, hl.symm, ha.symm⟩
 
 
 /--
@@ -359,7 +360,11 @@ theorem treeRecordQueued_congr (h : ObsEq s s') {o₁ o₂ : DOMState} {target :
         rw [f₂.registrations, f₁.registrations]; exact h.registrations r
       records := fun mo => (hrec mo).symm
       pendingObservers := fun mo => (hpend mo).symm
-      microtaskQueued := hmt.symm }
+      microtaskQueued := hmt.symm
+      walkers := by rw [f₂.untouched.walkers, h.walkers, f₁.untouched.walkers]
+      listeners := by rw [f₂.untouched.listeners, h.listeners, f₁.untouched.listeners]
+      detachedAttrs := by
+        rw [f₂.untouched.detachedAttrs, h.detachedAttrs, f₁.untouched.detachedAttrs] }
 
 
 /-- `remove` は ancestor を増やさない。 -/

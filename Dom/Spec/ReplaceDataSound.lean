@@ -75,7 +75,8 @@ theorem replaceData_sound {s s' : DOMState} {node : NodeId} {offset count : Nat}
           refine ⟨d, adjustedCount d.length offset count, spliced,
             queueCharacterDataRecord s node d.data, hd, by simpa using hkind, by omega,
             clampedCount_adjustedCount .., dataSpliced_of_spliceData? hsp,
-            characterDataRecordQueued_of_queue s hwf node d.data, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+            characterDataRecordQueued_of_queue s hwf node d.data,
+            ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · -- step 5-7：木の効果
             rw [← Except.ok.inj h]
             refine ⟨?_, ?_⟩
@@ -108,5 +109,7 @@ theorem replaceData_sound {s s' : DOMState} {node : NodeId} {offset count : Nat}
             show (queueCharacterDataRecord s node d.data).iterators = _
             unfold queueCharacterDataRecord
             exact queueMutationRecord_iterators ..
+          · rw [← Except.ok.inj h]
+            exact (untouched_queueCharacterDataRecord s node d.data).trans ⟨rfl, rfl, rfl⟩
 
 end Dom.Spec

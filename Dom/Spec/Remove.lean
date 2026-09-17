@@ -229,7 +229,9 @@ def RemoveSpec (s : DOMState) (node : NodeId) (suppress : Bool) (s' : DOMState) 
     IteratorAdjusted s s' node ∧
     TreeRemoved s.tree s'.tree node parent ∧
     TransientAdded s s' node parent ∧
-    RecordQueued s s' node parent (previousSibling s.tree node) (nextSibling s.tree node) suppress
+    RecordQueued s s' node parent (previousSibling s.tree node) (nextSibling s.tree node) suppress ∧
+    -- `walkers` / `listeners` / `detachedAttrs` には触れない（`Dom/Spec/Frame.lean`）
+    Untouched s s'
 
 /-! ## 列に対する remove -/
 

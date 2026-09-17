@@ -230,6 +230,54 @@ structure DOMState where
   detachedAttrs : List Attr := []
 deriving Repr, Inhabited
 
+/-! ## algorithm が触れない成分 -/
+
+/--
+**§4.2.3 の algorithm が触れない三成分。**
+
+`DOMState` の十成分のうち `walkers` / `listeners` / `detachedAttrs` は、木を変える
+algorithm のどれも読まないし書かない（`Dom/Validity/Walkers.lean` と
+`Dom/Validity/Events.lean` がその理由を書いている）。
+
+触れないことを**関係意味論の側に書いておかないと**、関係は「その三つが何であっても
+よい」という意味になる。すると `Dom/Spec/ObsEq.lean` の `ObsEq` にその三つを
+入れられず、determinism も completeness も「将来の操作から区別できない」ことを
+意味しなくなる。
+
+* `walkers` が違えば次の `walkerMove` の結果が違う
+* `listeners` が違えば次の `dispatchEvent` の invocation が違う
+* `detachedAttrs` が違えば次に割り当てられる `Attr` の id が違いうる
+
+どれも `Dom/Observation.lean` の `Observation` に出るので、観測の等しさに含める。
+-/
+structure Untouched (s s' : DOMState) : Prop where
+  walkers : s'.walkers = s.walkers
+  listeners : s'.listeners = s.listeners
+  detachedAttrs : s'.detachedAttrs = s.detachedAttrs
+
+namespace Untouched
+
+theorem refl (s : DOMState) : Untouched s s := ⟨rfl, rfl, rfl⟩
+
+theorem symm {s s' : DOMState} (h : Untouched s s') : Untouched s' s :=
+  ⟨h.walkers.symm, h.listeners.symm, h.detachedAttrs.symm⟩
+
+theorem trans {s s' s'' : DOMState} (h : Untouched s s') (h' : Untouched s' s'') :
+    Untouched s s'' :=
+  ⟨h'.walkers.trans h.walkers, h'.listeners.trans h.listeners,
+    h'.detachedAttrs.trans h.detachedAttrs⟩
+
+/-- 状態そのものが等しければ、当然触れていない。 -/
+theorem of_eq {s s' : DOMState} (h : s' = s) : Untouched s s' := by rw [h]; exact refl s
+
+/-- 一歩ずつ触れないなら、畳み込んでも触れない。 -/
+theorem foldl {α : Type} {f : DOMState → α → DOMState} (hf : ∀ s a, Untouched s (f s a)) :
+    ∀ (l : List α) (s : DOMState), Untouched s (l.foldl f s)
+  | [], s => refl s
+  | a :: rest, s => (hf s a).trans (foldl hf rest (f s a))
+
+end Untouched
+
 /-! ## attribute の id -/
 
 /-- detach された attribute の id の最大。 -/
@@ -273,7 +321,20 @@ def withTree (s : DOMState) (t : Tree) : DOMState := { s with tree := t }
 
 @[simp] theorem withTree_tree (s : DOMState) (t : Tree) : (s.withTree t).tree = t := rfl
 
+/-- 木だけを差し替える更新は `Untouched` の三成分を持ち越す。 -/
+theorem untouched_withTree (s : DOMState) (t : Tree) : Untouched s (s.withTree t) :=
+  ⟨rfl, rfl, rfl⟩
+
 @[simp] theorem withTree_ranges (s : DOMState) (t : Tree) : (s.withTree t).ranges = s.ranges := rfl
+
+@[simp] theorem withTree_walkers (s : DOMState) (t : Tree) :
+    (s.withTree t).walkers = s.walkers := rfl
+
+@[simp] theorem withTree_listeners (s : DOMState) (t : Tree) :
+    (s.withTree t).listeners = s.listeners := rfl
+
+@[simp] theorem withTree_detachedAttrs (s : DOMState) (t : Tree) :
+    (s.withTree t).detachedAttrs = s.detachedAttrs := rfl
 
 @[simp] theorem withTree_iterators (s : DOMState) (t : Tree) :
     (s.withTree t).iterators = s.iterators := rfl

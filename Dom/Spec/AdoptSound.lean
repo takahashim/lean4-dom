@@ -55,6 +55,7 @@ theorem adopt_sound {s s' : DOMState} {node doc : NodeId} (hwf : WellFormed s.tr
     rcases hfinal with ⟨he, rfl⟩ | ⟨he, rfl⟩
     · rw [if_pos he]
     · rw [if_neg he]
-      exact ⟨documentAssigned_setOwnerDocument hwf₁ hnd₁, ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩⟩
+      exact ⟨documentAssigned_setOwnerDocument hwf₁ hnd₁,
+        ⟨rfl, rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩⟩⟩
 
 end Dom.Spec

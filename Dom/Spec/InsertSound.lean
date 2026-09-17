@@ -118,7 +118,7 @@ theorem insertEach_sound : ∀ (ns : List NodeId) {s s' : DOMState} {parent doc 
         have hwfa := adopt_preserves_wellformed hwf hdoc ha
         have hdoca := hdoc.map (shapePreserving_adopt ha)
         refine .cons (adopt_sound hwf ha) (treeInserted_insertAt hi') ?_ ?_
-        · rw [hsb]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+        · rw [hsb]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩⟩
         · exact insertEach_sound ns (insertAt_preserves_wellformed hwfa hi')
             (hdoca.map (shapePreserving_insertAt hi')) h
 
@@ -130,7 +130,7 @@ theorem rangeInsertAdjusted_of_adjust (s : DOMState) (parent : NodeId) (child : 
     RangeInsertAdjusted s (liveRangeInsertAdjust s parent child count) parent child idx count := by
   cases child with
   | none =>
-    refine ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl⟩, rfl, ?_⟩
+    refine ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩⟩, rfl, ?_⟩
     intro i r r' hr hr'
     refine Or.inl ⟨rfl, ?_⟩
     have he : some r = some r' := by rw [← hr]; exact hr'
@@ -143,7 +143,7 @@ theorem rangeInsertAdjusted_of_adjust (s : DOMState) (parent : NodeId) (child : 
         s.ranges.map (liveRangeInsertAdjustRange parent idx count) := by
       show (s.ranges.map (liveRangeInsertAdjustRange parent ((index s.tree c).getD 0) count)) = _
       rw [hidx']
-    refine ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl⟩, ?_, ?_⟩
+    refine ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩⟩, ?_, ?_⟩
     · rw [hranges]; exact List.length_map ..
     · intro i r r' hr hr'
       rw [hranges, List.getElem?_map, hr] at hr'
@@ -238,13 +238,13 @@ theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option 
         | some c => rfl
       · rcases hrec with ⟨hb, rfl⟩ | ⟨hb, rfl⟩
         · rw [hb]
-          exact ⟨treeRecordQueued_of_suppress .., ⟨rfl, rfl, rfl, rfl⟩⟩
+          exact ⟨treeRecordQueued_of_suppress .., ⟨rfl, rfl, rfl, rfl, Untouched.refl _⟩⟩
         · rw [hb]
           have hnodes : ¬(nodes.isEmpty && ([] : List NodeId).isEmpty) := by
             cases nodes with
             | nil => exact absurd rfl hne
             | cons n ns => simp
-          refine ⟨?_, ⟨by simp, by simp, by simp, by simp⟩⟩
+          refine ⟨?_, ⟨by simp, by simp, by simp, by simp, untouched_queueTreeMutationRecord ..⟩⟩
           cases child with
           | none => exact treeRecordQueued_of_queue s₃ hwf₃ parent nodes [] _ none hnodes
           | some c => exact treeRecordQueued_of_queue s₃ hwf₃ parent nodes [] _ (some c) hnodes
@@ -281,7 +281,7 @@ theorem insert_sound {s s' : DOMState} {node parent : NodeId} {child : Option No
         cases hc : nd.children with
         | nil => exact absurd hc hne
         | cons x xs => simp),
-      ⟨by simp, by simp, by simp, by simp⟩⟩
+      ⟨by simp, by simp, by simp, by simp, untouched_queueTreeMutationRecord ..⟩⟩
   · obtain ⟨s₂, s₃, idx, prev, pd, hidx, hprev, hrange, hpd, hins, hrec, hframe⟩ :=
       insertNodesAt_sound hwf (by simp) h
     exact ⟨[node], ⟨nd, hnd, Or.inr ⟨hk, rfl⟩⟩,

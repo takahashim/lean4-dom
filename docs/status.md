@@ -4834,6 +4834,64 @@ findings 36 自体は古い生成器でも到達できた組み合わせ（`setA
 XMLNS namespace と `xmlns:` prefix、observer 側に `attributeFilter`）で、
 **生成器を変えて乱数列がずれた結果**当たった。新しい経路が直接見つけたものではない。
 
+## `ObsEq` が公称より狭かった（観測の射影を直した）
+
+指摘は「`ObsEq` は名乗っている観測より弱い」であった。実際そのとおりで、
+`ObsEq` が見ていたのは七成分（木・range・iterator・registration・record queue・
+pending・microtask）だけで、`DOMState` の残り三成分——
+`walkers` / `listeners` / `detachedAttrs`——が抜けていた。
+
+`Dom/Observation.lean` の `Observation` は `walkers` と `detachedAttrs` を直接出し、
+`invocations` は `listeners` に依存する。つまり
+
+* `walkers` が違えば次の `walkerMove` の結果が違う
+* `listeners` が違えば次の `dispatchEvent` の invocation が違う
+* `detachedAttrs` が違えば次に割り当てられる `Attr` の id が違いうる
+
+のに、どれも `ObsEq` と判定されえた。**determinism も completeness も
+「将来の任意の操作から区別できない」という意味になっていなかった。**
+
+### 関係の側を先に直す
+
+`ObsEq` に三成分を足すだけでは通らない。関係（`RemoveSpec` など）がその三つに
+ついて何も言っていないので、関係は「何であってもよい」という意味であり、
+強い `ObsEq` での completeness は**偽**になるからである。
+
+そこで `Dom/Basic/State.lean` に `Untouched` を置いた。
+
+```lean
+structure Untouched (s s' : DOMState) : Prop where
+  walkers : s'.walkers = s.walkers
+  listeners : s'.listeners = s.listeners
+  detachedAttrs : s'.detachedAttrs = s.detachedAttrs
+```
+
+`refl` / `symm` / `trans` に加えて `foldl`（一歩ずつ触れないなら畳み込んでも
+触れない）を付けた。そのうえで
+
+* 既にある frame 構造（`ObserverOnly` / `ObserversUntouched` /
+  `LiveObjectsUnchangedExceptTree` / `LiveObjectsUnchangedExceptRanges`）に
+  `untouched` 成分を足した。
+* frame 構造が覆わない `RemoveSpec` と `ReplaceDataSpec` には、top level の
+  連言に `Untouched s s'` を足した。
+* 実行側は record を積む段・live range の調整・iterator の pre-remove・
+  `withTree` について `Untouched` を示した（`untouched_queueMutationRecord` ほか）。
+  どれも既にある `_tree` / `_ranges` の per-field 補題と同じ形で、
+  `walkers` / `listeners` / `detachedAttrs` 版を並べただけである。
+
+`InsertSpec` / `AdoptSpec` / `MoveSpec` / `ReplaceSpec` は部分関係の frame から
+`Untouched` が出るので、top level には足していない。
+
+### 効果
+
+`ObsEq` に三成分を足した。`removeSpec_deterministic` の結論も三つ増えた。
+`*_congr` と `*_deterministic`、`remove_complete` / `adopt_complete` /
+`insert_complete` はすべて**強くなった結論のまま**通る。
+
+三成分が飾りでないことは `Dom/Spec/ObsEq.lean` の三つの `example` で固定した。
+walker を一つ足した状態、listener を一つ足した状態、detach された `Attr` を
+一つ足した状態は、どれも `ObsEq` ではない。**直す前はどれも通っていた。**
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

@@ -152,7 +152,7 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
         treeInserted_insertAt (by rw [ho₂, DOMState.withTree_tree]; exact hins)
       have htree : TreeObsEq sb.tree o₂.tree := treeInserted_congr hobsa.tree hi hins₂
       have hobsb : ObsEq sb o₂ := by
-        refine ⟨htree, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨htree, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · rw [ho₂, DOMState.withTree_ranges, hobsa.ranges, hlive.ranges]
         · rw [ho₂, DOMState.withTree_iterators, hobsa.iterators, hlive.iterators]
         · intro r
@@ -169,6 +169,10 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
           rw [hobsa.pendingObservers mo, hlive.pendingObservers]
         · rw [ho₂, DOMState.withTree_microtaskQueued, hobsa.microtaskQueued,
             hlive.microtaskQueued]
+        · rw [ho₂, DOMState.withTree_walkers, hobsa.walkers, hlive.untouched.walkers]
+        · rw [ho₂, DOMState.withTree_listeners, hobsa.listeners, hlive.untouched.listeners]
+        · rw [ho₂, DOMState.withTree_detachedAttrs, hobsa.detachedAttrs,
+            hlive.untouched.detachedAttrs]
       have hpdsa : sa.tree.get? parent = some pd₁ := by rw [← hobsa.tree parent]; exact hpd₁
       have hpdsb : ∃ pdb, sb.tree.get? parent = some pdb := by
         have hsn := hi.sameNodes parent
@@ -329,7 +333,7 @@ theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
             (by cases hx : nodes with
                 | nil => exact absurd hx hne
                 | cons a as => simp)
-        · exact ⟨by simp, by simp, by simp, by simp⟩
+        · exact ⟨by simp, by simp, by simp, by simp, untouched_queueTreeMutationRecord ..⟩
       have hstep := insertNodesAt_isOk_of_spec (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (b := b)
         hwf₁ hacyc₁ hpd hidx hra hie hobs₁
       unfold insert

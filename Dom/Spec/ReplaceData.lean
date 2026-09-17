@@ -76,6 +76,8 @@ def ReplaceDataSpec (s : DOMState) (node : NodeId) (offset count : Nat) (data : 
     -- record 以外の live object は動かない
     s'.observers = s₀.observers ∧ s'.pendingObservers = s₀.pendingObservers ∧
     s'.microtaskQueued = s₀.microtaskQueued ∧ s'.registrations = s.registrations ∧
-    s'.iterators = s.iterators
+    s'.iterators = s.iterators ∧
+    -- `walkers` / `listeners` / `detachedAttrs` には触れない（`Dom/Basic/State.lean`）
+    Untouched s s'
 
 end Dom.Spec

@@ -357,9 +357,11 @@ theorem removeSpec_deterministic {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool
       (∀ r, r ∈ s₁.registrations ↔ r ∈ s₂.registrations) ∧
       (∀ mo : Nat, (s₁.observers[mo]?).map (·.records) = (s₂.observers[mo]?).map (·.records)) ∧
       (∀ mo : Nat, mo ∈ s₁.pendingObservers ↔ mo ∈ s₂.pendingObservers) ∧
-      s₁.microtaskQueued = s₂.microtaskQueued := by
-  obtain ⟨p₁, i₁, hp₁, hi₁, hr₁, hit₁, ht₁, htr₁, hrec₁⟩ := h₁
-  obtain ⟨p₂, i₂, hp₂, hi₂, hr₂, hit₂, ht₂, htr₂, hrec₂⟩ := h₂
+      s₁.microtaskQueued = s₂.microtaskQueued ∧
+      s₁.walkers = s₂.walkers ∧ s₁.listeners = s₂.listeners ∧
+      s₁.detachedAttrs = s₂.detachedAttrs := by
+  obtain ⟨p₁, i₁, hp₁, hi₁, hr₁, hit₁, ht₁, htr₁, hrec₁, hun₁⟩ := h₁
+  obtain ⟨p₂, i₂, hp₂, hi₂, hr₂, hit₂, ht₂, htr₂, hrec₂, hun₂⟩ := h₂
   -- parent と index は元の状態から決まる。
   have hpe : p₁ = p₂ := Option.some.inj (hp₁ ▸ hp₂ : some p₁ = some p₂)
   subst hpe
@@ -369,6 +371,9 @@ theorem removeSpec_deterministic {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool
   obtain ⟨hobs, hpend, hmt⟩ := recordQueued_unique hrec₁ hrec₂
   exact ⟨treeRemoved_unique ht₁ ht₂, rangeAdjusted_unique hr₁ hr₂,
     iteratorAdjusted_unique hwf hnd hp₁ hit₁ hit₂, transientAdded_unique htr₁ htr₂,
-    hobs, hpend, hmt⟩
+    hobs, hpend, hmt,
+    hun₁.walkers.trans hun₂.walkers.symm,
+    hun₁.listeners.trans hun₂.listeners.symm,
+    hun₁.detachedAttrs.trans hun₂.detachedAttrs.symm⟩
 
 end Dom.Spec

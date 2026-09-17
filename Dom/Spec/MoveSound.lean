@@ -41,7 +41,7 @@ theorem moveDetached_of_detach {s s₁ : DOMState} {node p : NodeId} (hwf : Well
   · have hq := remove_sound_tree hwf hp hr
     simpa using hq
   · obtain ⟨-, hs⟩ := DOMState.mapTree_eq_ok h
-    refine ⟨?_, ?_, ?_, ?_⟩ <;> rw [hs] <;> simp
+    refine ⟨?_, ?_, ?_, ?_, ⟨?_, ?_, ?_⟩⟩ <;> rw [hs] <;> first | rfl | simp
 
 /-! ## 全体 -/
 
@@ -106,10 +106,11 @@ theorem move_sound {s s' : DOMState} {node newParent : NodeId} {child : Option N
             rangeInsertAdjusted_of_adjust s₁ newParent child 1 idx hidx,
             treeInserted_insertAt hi',
             ⟨by rw [hs₂]; rfl, by rw [hs₂]; rfl, by rw [hs₂]; rfl, by rw [hs₂]; rfl,
-              by rw [hs₂]; rfl, by rw [hs₂]; rfl⟩,
+              by rw [hs₂]; rfl, by rw [hs₂]; rfl,
+              ⟨by rw [hs₂]; rfl, by rw [hs₂]; rfl, by rw [hs₂]; rfl⟩⟩,
             treeRecordQueued_of_queue s₂ hwf₂ oldParent [] [node] _ _ (by simp),
-            ⟨by simp, by simp, by simp, by simp⟩,
+            ⟨by simp, by simp, by simp, by simp, untouched_queueTreeMutationRecord ..⟩,
             treeRecordQueued_of_queue _ hwf₃ newParent [node] [] _ _ (by simp),
-            ⟨by simp, by simp, by simp, by simp⟩⟩
+            ⟨by simp, by simp, by simp, by simp, untouched_queueTreeMutationRecord ..⟩⟩
 
 end Dom.Spec
