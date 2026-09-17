@@ -5137,22 +5137,32 @@ API の水準では validity から出せるようになった。
 `ruby test/spec_dependence.rb` が「関係が実行側の名前を触っている」と報告していた。
 validity は仕様本文（§4.2.3 step 1-11）から独立に書き写すべきものである。
 
-`Dom/Spec/PreInsertValidity.lean` に仕様語彙だけの関係を置いた。
+`Dom/Spec/PreInsertValidity.lean` に仕様語彙だけの関係を置いた。条件は `Dom.Basic.*` の
+語彙（`childrenOf` / `parentOf` / `kindOf` / `InclusiveAncestor`）と list の所属だけで書き、
+実行側の helper（`elementChildren` / `doctypeFollows` など）は使わない。この module は
+`Dom.Basic.*` しか import しないので、import graph がそのまま独立性の保証になっている。
 
-* `PreInsertValid` — step 1-11 を通る（順序を持たない連言）
-* `PreInsertError` — どの step でどの例外になるか（先の step を通ることを前提に持つため、
-  二つ以上の枝が同時に成り立たない）
+* `PreInsertValidity` — 仕様の `<ol>` を `Step` / `Return` / `Branch` / `Done` でそのまま写した
+  結果述語。制御の流れを持つので、実行関数に触れずに**構造的に**結果を一つに決める
+  （`preInsertValidity_deterministic`）。
+* `PreInsertValid` / `PreInsertError` — その `.ok ()` / `.error e` を開いた pre/post 条件。
+  `PreInsertResult` と `nodesToInsert_not_ancestor_of_validity` はこちらを使う。
 * `PreInsertRefChild` — step 2-3 の reference child
 
 実行関数との一致は `Dom/Properties/PreInsertValidityBridge.lean` で示す。
 
-* `ensurePreInsertionValidity_ok_iff` — `.ok` と `PreInsertValid` は同値
-* `ensurePreInsertionValidity_error_iff` — `.error` と `PreInsertError` は同値
+* `ensurePreInsertionValidity_spec` — 実行関数の結果は成否によらず関係を満たす（仮定なし）
+* `preInsertValidity_iff` — 上の soundness と `preInsertValidity_deterministic` を繋いで、
+  関係と実行関数が同じ結果を指す
+* `ensurePreInsertionValidity_ok_iff` / `ensurePreInsertionValidity_error_iff` — 上の二つを
+  `.ok ()` / `.error e` の形に開いた系
 
-逆向き（関係 → 実行関数）は仕様の側から各 step を直接示す。順方向は
-「validity が失敗するなら必ず `PreInsertError` の枝が立つ」（`preInsertError_of_not_valid`）と
-実行関数の値を突き合わせて出す。step 1-3 の通過から step 4 以降の kind の分岐へ進む部分は
-`PreP123` / `PreP1234` / … という前段条件で表してある。
+条件が実行側の判定と一致すること（`elementInsertionBlocked_iff` / `doctypeFollowing_iff`
+ほか）は bridge 側の補題として示す。関係の定義は実行側を呼ばないが、bridge の定理は
+両方に触れてよい（`spec_dependence.rb` が見るのは `Dom/Spec/` の `def` の本体だけ）。
+
+step 9 の following と step 11 の preceding の読みの差（木の順序か children の中の前後か）は
+`DoctypeFollowing` / `ElementPreceding` の doc comment に書いてある。
 
 ## 未着手
 

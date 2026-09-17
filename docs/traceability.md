@@ -37,15 +37,19 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
 | replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic`（congr は不要） | `replaceData_complete` |
 
+| ensure pre-insert validity | `Dom.Spec.PreInsertValidity` | `ensurePreInsertionValidity_spec`（仮定なし） | `preInsertValidity_deterministic` | `preInsertValidity_iff` |
 | pre-insert（結果込み） | `Dom.Spec.PreInsertResult` | `preInsert_result_sound` | `preInsert_result_deterministic` | `preInsert_result_complete` |
 | remove（結果込み） | `Dom.Spec.RemoveResult` | `remove_result_sound` | `remove_result_deterministic` | `remove_result_complete` |
 
-定理はすべて `Dom.Spec` 名前空間にある。下二つは**例外まで含めた**関係で、
-soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。
+定理はすべて `Dom.Spec` 名前空間にある（bridge の補題は `Dom` 名前空間）。下二つは
+**例外まで含めた**関係で、soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。
 
 `PreInsertResult` が参照する validity（step 1-11）は実行関数ではなく、仕様本文から
-独立に書き写した `Dom.Spec.PreInsertValid` / `Dom.Spec.PreInsertError`
-（`Dom/Spec/PreInsertValidity.lean`）である。実行関数 `ensurePreInsertionValidity`
+独立に書き写した `Dom.Spec.PreInsertValidity`（その `.ok ()` / `.error e` を開いた
+`Dom.Spec.PreInsertValid` / `Dom.Spec.PreInsertError`）である
+（`Dom/Spec/PreInsertValidity.lean`）。制御の流れを `Step` / `Return` / `Branch` / `Done`
+で写しているので、関係は実行関数に触れずに結果を一つに決める
+（`preInsertValidity_deterministic`）。実行関数 `ensurePreInsertionValidity`
 との一致は `Dom/Properties/PreInsertValidityBridge.lean` で別に証明する。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、

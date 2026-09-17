@@ -1,40 +1,83 @@
 import Dom.Properties.PreInsertValidity
+import Dom.Properties.Mutation
 import Dom.Properties.Tree
 import Dom.Spec.PreInsertValidity
+import Dom.Util.List
 
 /-!
 # `ensure pre-insert validity` と仕様語彙の validity の一致
 
-`Dom/Spec/PreInsertValidity.lean` が仕様本文から独立に書き写した
-`PreInsertValid` / `PreInsertError` が、実行関数 `ensurePreInsertionValidity`
-の `.ok` / `.error` と一致することを示す。
+`Dom/Spec/PreInsertValidity.lean` が仕様本文から独立に書き写した `PreInsertValidity`
+（と、その `.ok ()` / `.error e` を開いた `PreInsertValid` / `PreInsertError`）が、
+実行関数 `ensurePreInsertionValidity` の結果と一致することを示す。
 
-関係の側は実行側の名前を触らない。この file が bridge である。
+関係の側は実行側の名前を触らない。この file が bridge である。条件が実行側の判定と
+一致することを言う補題（`elementInsertionBlocked_iff` など）は両方に触れてよい。
+`ruby test/spec_dependence.rb` が見るのは `Dom/Spec/` の `def` の本体だけである。
+
+## 主定理
+
+* `ensurePreInsertionValidity_spec` — 実行関数の結果は、成否によらず関係を満たす。
+  **仮定を置かない。**
+* `preInsertValidity_iff` — 関係と実行関数は同じ結果を指す
+  （`ensurePreInsertionValidity_spec` と `preInsertValidity_deterministic` を繋いだもの）。
+* `ensurePreInsertionValidity_ok_iff` / `ensurePreInsertionValidity_error_iff` —
+  上の二つを pre/post 条件の形に開いた系。
 -/
 
 namespace Dom
 
 open Dom.Spec
 
-/-! ## kind の条件 -/
+theorem kindIs_iff {t : Tree} {n : NodeId} {k : NodeKind} :
+    KindIs t n k ↔ kindOf t n = some k := by
+  unfold KindIs
+  rw [kindOf_eq]
+  cases h : t.get? n with
+  | none => simp
+  | some d => simp
 
-/-- step 1 の kind 条件。 -/
-@[simp] theorem canHaveChildren_beq (k : NodeKind) :
-    (k == NodeKind.document || k == NodeKind.documentFragment || k == NodeKind.element) =
-      k.canHaveChildren := by
-  cases k <;> simp [NodeKind.canHaveChildren]
+theorem inTree_iff {t : Tree} {n : NodeId} : InTree t n ↔ (t.get? n).isSome := by
+  unfold InTree
+  cases h : t.get? n <;> simp
 
-/-- step 4 の kind 条件。 -/
-theorem nodeKindOk_beq (k : NodeKind) :
-    (k == NodeKind.documentFragment || k == NodeKind.documentType || k == NodeKind.element ||
-      k.isCharacterData) = true ↔
-      (k = NodeKind.documentFragment ∨ k = NodeKind.documentType ∨ k = NodeKind.element ∨
-        k.isCharacterData = true) := by
-  cases k <;> simp [NodeKind.isCharacterData]
+theorem isText_iff {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d) :
+    IsText t n ↔ d.kind.isText = true := by
+  unfold IsText
+  rw [h]
+  simp
 
-/-! ## 祖先・child・kind の条件 -/
+theorem isCharacterData_iff {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d) :
+    IsCharacterData t n ↔ d.kind.isCharacterData = true := by
+  unfold IsCharacterData
+  rw [h]
+  simp
 
-/-- step 2 の条件。 -/
+theorem parentIsContainer_iff {t : Tree} {parent : NodeId} {pd : NodeData}
+    (h : t.get? parent = some pd) :
+    ParentIsContainer t parent ↔
+      (pd.kind = .document ∨ pd.kind = .documentFragment ∨ pd.kind = .element) := by
+  unfold ParentIsContainer KindIs
+  rw [h]
+  simp
+
+theorem nodeIsInsertable_iff {t : Tree} {node : NodeId} {nd : NodeData}
+    (h : t.get? node = some nd) :
+    NodeIsInsertable t node ↔
+      (nd.kind = .documentFragment ∨ nd.kind = .documentType ∨ nd.kind = .element ∨
+        nd.kind.isCharacterData = true) := by
+  unfold NodeIsInsertable KindIs IsCharacterData
+  rw [h]
+  simp
+
+theorem childIsChildOf_iff {t : Tree} {child : Option NodeId} {parent : NodeId} :
+    ChildIsChildOf t child parent ↔ childHasParent t child parent = true := by
+  unfold ChildIsChildOf
+  cases child with
+  | none => simp
+  | some c => rw [childHasParent_some_iff]; simp
+
+/-- step 2 の条件（失敗側）。 -/
 theorem isInclusiveAncestorOf_eq_false_iff {t : Tree} (hwf : WellFormed t) (a n : NodeId) :
     isInclusiveAncestorOf t a n = false ↔ ¬ InclusiveAncestor t a n := by
   constructor
@@ -47,653 +90,464 @@ theorem isInclusiveAncestorOf_eq_false_iff {t : Tree} (hwf : WellFormed t) (a n 
     intro ht
     exact h ((isInclusiveAncestorOf_iff hwf a n).mp ht)
 
-/-- step 3 の条件（成功側）。 -/
-theorem childHasParent_eq_true_iff {t : Tree} {child : Option NodeId} {parent : NodeId} :
-    childHasParent t child parent = true ↔
-      ∀ c, child = some c → parentOf t c = some parent := by
-  cases child with
-  | none => simp [childHasParent_none]
-  | some c => simp [childHasParent_some_iff]
-
-/-- step 3 の条件（失敗側）。 -/
-theorem childHasParent_eq_false_iff {t : Tree} {child : Option NodeId} {parent : NodeId} :
-    childHasParent t child parent = false ↔
-      ∃ c, child = some c ∧ parentOf t c ≠ some parent := by
-  cases child with
-  | none => simp [childHasParent_none]
-  | some c => simp [childHasParent_some]
-
-/-! ## children の列と kind -/
-
-@[simp] theorem elementChildren_eq_childrenOfKind (t : Tree) (p : NodeId) :
-    elementChildren t p = childrenOfKind t p .element := rfl
-
-@[simp] theorem doctypeChildren_eq_childrenOfKind (t : Tree) (p : NodeId) :
-    doctypeChildren t p = childrenOfKind t p .documentType := rfl
-
-@[simp] theorem textChildren_eq_textChildrenOf (t : Tree) (p : NodeId) :
-    textChildren t p = textChildrenOf t p := rfl
-
-/-- `excl` に無いものを一つも含まない。 -/
-theorem any_not_contains_eq_false_iff {l excl : List NodeId} :
-    (l.any (fun c => !excl.contains c)) = false ↔ ∀ c, c ∈ l → c ∈ excl := by
-  rw [List.any_eq_false]
+theorem hasChildOfKind_iff {t : Tree} {p : NodeId} {k : NodeKind} :
+    HasChildOfKind t p k ↔ ((childrenOf t p).filter (fun c => kindOf t c == some k)) ≠ [] := by
+  unfold HasChildOfKind
   constructor
-  · intro h c hc
-    simpa using h c hc
-  · intro h c hc
-    simpa using h c hc
+  · rintro ⟨c, hc, hk⟩ he
+    have hm : c ∈ (childrenOf t p).filter (fun c => kindOf t c == some k) :=
+      List.mem_filter.mpr ⟨hc, by simp [kindIs_iff.mp hk]⟩
+    rw [he] at hm
+    simp at hm
+  · intro h
+    cases hq : (childrenOf t p).filter (fun c => kindOf t c == some k) with
+    | nil => exact absurd hq h
+    | cons x xs =>
+      have hx : x ∈ (childrenOf t p).filter (fun c => kindOf t c == some k) := by rw [hq]; simp
+      obtain ⟨hm, hk⟩ := List.mem_filter.mp hx
+      exact ⟨x, hm, kindIs_iff.mpr (by simpa using hk)⟩
 
-/-- `excl` に無いものを含む。 -/
-theorem any_not_contains_eq_true_iff {l excl : List NodeId} :
-    (l.any (fun c => !excl.contains c)) = true ↔ ∃ c, c ∈ l ∧ c ∉ excl := by
+theorem hasChildOfKindOutside_iff {t : Tree} {p : NodeId} {k : NodeKind} {excl : List NodeId} :
+    HasChildOfKindOutside t p k excl ↔
+      ((childrenOf t p).filter (fun c => kindOf t c == some k)).any
+        (fun c => !excl.contains c) = true := by
+  unfold HasChildOfKindOutside
   rw [List.any_eq_true]
   constructor
-  · rintro ⟨c, hc, hq⟩
-    exact ⟨c, hc, by simpa using hq⟩
-  · rintro ⟨c, hc, hq⟩
-    exact ⟨c, hc, by simpa using hq⟩
+  · rintro ⟨c, hc, hk, hex⟩
+    exact ⟨c, List.mem_filter.mpr ⟨hc, by simp [kindIs_iff.mp hk]⟩, by simpa using hex⟩
+  · rintro ⟨c, hm, hex⟩
+    obtain ⟨hc, hk⟩ := List.mem_filter.mp hm
+    exact ⟨c, hc, kindIs_iff.mpr (by simpa using hk), by simpa using hex⟩
 
-/-- `doctypeFollows` と仕様語彙 `HasKindAfter` の一致。 -/
-theorem doctypeFollows_eq_true_iff {t : Tree} {parent c : NodeId} :
-    doctypeFollows t parent c = true ↔ HasKindAfter t parent c .documentType := by
-  unfold doctypeFollows HasKindAfter
-  cases Dom.ListUtil.splitAt? (childrenOf t parent) c with
-  | none => simp
-  | some p =>
-    obtain ⟨before, after⟩ := p
-    simp [List.any_eq_true]
-
-/-- `elementPrecedes` と仕様語彙 `HasKindBefore` の一致。 -/
-theorem elementPrecedes_eq_true_iff {t : Tree} {parent c : NodeId} :
-    elementPrecedes t parent c = true ↔ HasKindBefore t parent c .element := by
-  unfold elementPrecedes HasKindBefore
-  cases Dom.ListUtil.splitAt? (childrenOf t parent) c with
-  | none => simp
-  | some p =>
-    obtain ⟨before, after⟩ := p
-    simp [List.any_eq_true]
-
-/-- `doctypeFollows` と仕様語彙 `HasKindAfter` の一致（失敗側）。 -/
-theorem doctypeFollows_eq_false_iff {t : Tree} {parent c : NodeId} :
-    doctypeFollows t parent c = false ↔ ¬ HasKindAfter t parent c .documentType := by
+theorem hasTextChild_iff {t : Tree} {p : NodeId} : HasTextChild t p ↔ textChildren t p ≠ [] := by
+  unfold HasTextChild textChildren IsText
   constructor
-  · intro h hh
-    rw [(doctypeFollows_eq_true_iff (t := t) (parent := parent) (c := c)).mpr hh] at h
-    exact Bool.noConfusion h
+  · rintro ⟨c, hc, d, hd, hk⟩ he
+    have hm : c ∈ (childrenOf t p).filter (fun c => match kindOf t c with
+        | some k => k.isText | none => false) :=
+      List.mem_filter.mpr ⟨hc, by rw [kindOf_of_get? hd]; exact hk⟩
+    exact List.ne_nil_of_mem hm he
   · intro h
-    rw [Bool.eq_false_iff]
-    intro ht
-    exact h ((doctypeFollows_eq_true_iff (t := t) (parent := parent) (c := c)).mp ht)
+    cases hq : (childrenOf t p).filter (fun c => match kindOf t c with
+        | some k => k.isText | none => false) with
+    | nil => exact absurd hq h
+    | cons x xs =>
+      have hx : x ∈ (childrenOf t p).filter (fun c => match kindOf t c with
+          | some k => k.isText | none => false) := by rw [hq]; simp
+      obtain ⟨hm, hk⟩ := List.mem_filter.mp hx
+      cases hd : t.get? x with
+      | none => rw [kindOf_eq, hd] at hk; simp at hk
+      | some d => exact ⟨x, hm, d, hd, by rw [kindOf_of_get? hd] at hk; exact hk⟩
 
-/-- `elementPrecedes` と仕様語彙 `HasKindBefore` の一致（失敗側）。 -/
-theorem elementPrecedes_eq_false_iff {t : Tree} {parent c : NodeId} :
-    elementPrecedes t parent c = false ↔ ¬ HasKindBefore t parent c .element := by
+theorem doctypeFollowing_iff {t : Tree} {parent c : NodeId} :
+    DoctypeFollowing t parent c ↔ doctypeFollows t parent c = true := by
+  unfold DoctypeFollowing doctypeFollows
   constructor
-  · intro h hh
-    rw [(elementPrecedes_eq_true_iff (t := t) (parent := parent) (c := c)).mpr hh] at h
-    exact Bool.noConfusion h
+  · rintro ⟨A, B, hL, hnot, d, hd, hk⟩
+    rw [hL, ListUtil.splitAt?_append_cons_self hnot]
+    exact List.any_eq_true.mpr ⟨d, hd, by simp [kindIs_iff.mp hk]⟩
   · intro h
-    rw [Bool.eq_false_iff]
-    intro ht
-    exact h ((elementPrecedes_eq_true_iff (t := t) (parent := parent) (c := c)).mp ht)
+    cases hq : ListUtil.splitAt? (childrenOf t parent) c with
+    | none => rw [hq] at h; simp at h
+    | some q =>
+      rw [hq] at h
+      obtain ⟨d, hd, hk⟩ := List.any_eq_true.mp h
+      refine ⟨q.1, q.2, ListUtil.splitAt?_eq_some hq, ?_, d, hd, kindIs_iff.mpr (by simpa using hk)⟩
+      exact ListUtil.splitAt?_not_mem_left hq
 
-/-! ## step 8.2 / 9 の部分検査 -/
+theorem elementPreceding_iff {t : Tree} {parent c : NodeId} :
+    ElementPreceding t parent c ↔ elementPrecedes t parent c = true := by
+  unfold ElementPreceding elementPrecedes
+  constructor
+  · rintro ⟨A, B, hL, hnot, d, hd, hk⟩
+    rw [hL, ListUtil.splitAt?_append_cons_self hnot]
+    exact List.any_eq_true.mpr ⟨d, hd, by simp [kindIs_iff.mp hk]⟩
+  · intro h
+    cases hq : ListUtil.splitAt? (childrenOf t parent) c with
+    | none => rw [hq] at h; simp at h
+    | some q =>
+      rw [hq] at h
+      obtain ⟨d, hd, hk⟩ := List.any_eq_true.mp h
+      refine ⟨q.1, q.2, ListUtil.splitAt?_eq_some hq, ?_, d, hd, kindIs_iff.mpr (by simpa using hk)⟩
+      exact ListUtil.splitAt?_not_mem_left hq
 
-theorem checkElementInsertion_ok_iff {t : Tree} {parent : NodeId} {child : Option NodeId}
+/-- `elementChildren` は kind `element` の子の filter そのものである。 -/
+theorem hasElementChild_iff {t : Tree} {p : NodeId} :
+    HasChildOfKind t p .element ↔ elementChildren t p ≠ [] := hasChildOfKind_iff
+
+theorem hasElementChildOutside_iff {t : Tree} {p : NodeId} {excl : List NodeId} :
+    HasChildOfKindOutside t p .element excl ↔
+      (elementChildren t p).any (fun c => !excl.contains c) = true := hasChildOfKindOutside_iff
+
+theorem hasDoctypeChildOutside_iff {t : Tree} {p : NodeId} {excl : List NodeId} :
+    HasChildOfKindOutside t p .documentType excl ↔
+      (doctypeChildren t p).any (fun c => !excl.contains c) = true := hasChildOfKindOutside_iff
+
+theorem hasTwoElementChildren_iff {t : Tree} {p : NodeId}
+    (hnd : (childrenOf t p).Nodup) :
+    HasTwoElementChildren t p ↔ 1 < (elementChildren t p).length := by
+  unfold HasTwoElementChildren
+  constructor
+  · rintro ⟨a, ha, b, hb, hab, hka, hkb⟩
+    have hma : a ∈ elementChildren t p :=
+      List.mem_filter.mpr ⟨ha, by simp [kindIs_iff.mp hka]⟩
+    have hmb : b ∈ elementChildren t p :=
+      List.mem_filter.mpr ⟨hb, by simp [kindIs_iff.mp hkb]⟩
+    rcases Nat.lt_or_ge 1 (elementChildren t p).length with hlt | hle
+    · exact hlt
+    · exfalso
+      cases hq : elementChildren t p with
+      | nil => rw [hq] at hma; simp at hma
+      | cons x xs =>
+        cases hr : xs with
+        | nil =>
+          rw [hq, hr] at hma hmb
+          simp only [List.mem_cons, List.not_mem_nil, or_false] at hma hmb
+          exact hab (by rw [hma, hmb])
+        | cons y ys => rw [hq, hr] at hle; simp at hle
+  · intro h
+    cases hq : elementChildren t p with
+    | nil => rw [hq] at h; simp at h
+    | cons x xs =>
+      cases hr : xs with
+      | nil => rw [hq, hr] at h; simp at h
+      | cons y ys =>
+        have hnd' : (elementChildren t p).Nodup := hnd.filter _
+        rw [hq, hr] at hnd'
+        have hxy : x ≠ y := by
+          intro he
+          exact (List.nodup_cons.mp hnd').1 (by rw [he]; simp)
+        have hmx : x ∈ elementChildren t p := by rw [hq]; simp
+        have hmy : y ∈ elementChildren t p := by rw [hq, hr]; simp
+        obtain ⟨hcx, hkx⟩ := List.mem_filter.mp hmx
+        obtain ⟨hcy, hky⟩ := List.mem_filter.mp hmy
+        exact ⟨x, hcx, y, hcy, hxy, kindIs_iff.mpr (by simpa using hkx),
+          kindIs_iff.mpr (by simpa using hky)⟩
+
+theorem elementInsertionBlocked_iff {t : Tree} {parent : NodeId} {child : Option NodeId}
     {excl : List NodeId} :
-    checkElementInsertion t parent child excl = .ok () ↔
-      ElementInsertionOk t parent child excl := by
-  unfold checkElementInsertion ElementInsertionOk
-  rw [elementChildren_eq_childrenOfKind]
-  cases child with
-  | none =>
-    dsimp only
-    by_cases hany : (childrenOfKind t parent .element).any (fun c => !excl.contains c) = true
-    · rw [if_pos hany]
-      refine iff_of_false (by simp) ?_
-      rintro ⟨hall, -⟩
-      obtain ⟨e, he, hne⟩ := any_not_contains_eq_true_iff.mp hany
-      exact hne (hall e he)
-    · rw [if_neg hany]
-      exact iff_of_true (by simp)
-        ⟨any_not_contains_eq_false_iff.mp (by simpa [Bool.not_eq_true] using hany), trivial⟩
-  | some c =>
-    dsimp only
-    by_cases hany : (childrenOfKind t parent .element).any (fun c => !excl.contains c) = true
-    · rw [if_pos hany]
-      refine iff_of_false (by simp) ?_
-      rintro ⟨hall, -⟩
-      obtain ⟨e, he, hne⟩ := any_not_contains_eq_true_iff.mp hany
-      exact hne (hall e he)
-    · rw [if_neg hany]
-      have hall := any_not_contains_eq_false_iff.mp (by simpa [Bool.not_eq_true] using hany)
+    ElementInsertionBlocked t parent child excl ↔
+      checkElementInsertion t parent child excl ≠ .ok () := by
+  unfold ElementInsertionBlocked checkElementInsertion
+  by_cases hel : (elementChildren t parent).any (fun c => !excl.contains c) = true
+  · rw [if_pos hel]
+    simp only [ne_eq, reduceCtorEq, not_false_eq_true, iff_true]
+    exact Or.inl (hasElementChildOutside_iff.mpr hel)
+  · rw [if_neg hel]
+    cases child with
+    | none =>
+      simp only [ne_eq, not_true_eq_false, iff_false, not_or]
+      refine ⟨fun hq => hel (hasElementChildOutside_iff.mp hq), ?_, ?_⟩
+      · rintro ⟨c', hc', -⟩
+        simp at hc'
+      · rintro ⟨c', hc', -, -⟩
+        simp at hc'
+    | some c =>
+      simp only []
       by_cases hdf : doctypeFollows t parent c = true
       · rw [if_pos hdf]
-        refine iff_of_false (by simp) ?_
-        rintro ⟨-, hna, -⟩
-        exact hna ((doctypeFollows_eq_true_iff (t := t) (parent := parent) (c := c)).mp hdf)
-      · have hna : ¬ HasKindAfter t parent c .documentType := by
-          intro hh
-          exact hdf ((doctypeFollows_eq_true_iff (t := t) (parent := parent) (c := c)).mpr hh)
-        rw [if_neg hdf]
-        by_cases hcd : (kindOf t c == some .documentType && !excl.contains c) = true
-        · rw [if_pos hcd]
-          refine iff_of_false (by simp) ?_
-          rintro ⟨-, -, hmem⟩
-          simp only [Bool.and_eq_true] at hcd
-          obtain ⟨hk, hnc⟩ := hcd
-          have hkc : kindOf t c = some NodeKind.documentType := by simpa using hk
-          exact (by simpa using hnc : c ∉ excl) (hmem hkc)
-        · rw [if_neg hcd]
-          refine iff_of_true (by simp) ⟨hall, hna, ?_⟩
-          intro hkc
-          by_cases hc : c ∈ excl
-          · exact hc
-          · exfalso
-            have hcont : excl.contains c = false := by simpa using hc
-            have hkb : (kindOf t c == some NodeKind.documentType) = true := by simpa using hkc
-            have hboth : (kindOf t c == some NodeKind.documentType && !excl.contains c) = true := by
-              rw [hkb, hcont]; rfl
-            exact hcd hboth
+        simp only [ne_eq, reduceCtorEq, not_false_eq_true, iff_true]
+        exact Or.inr (Or.inl ⟨c, rfl, doctypeFollowing_iff.mpr hdf⟩)
+      · rw [if_neg hdf]
+        by_cases hdt : (kindOf t c == some .documentType && !excl.contains c) = true
+        · rw [if_pos hdt]
+          simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true', ne_eq, reduceCtorEq,
+            not_false_eq_true, iff_true] at hdt ⊢
+          exact Or.inr (Or.inr ⟨c, rfl, kindIs_iff.mpr hdt.1, by simpa using hdt.2⟩)
+        · rw [if_neg hdt]
+          simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true', not_and] at hdt
+          simp only [ne_eq, not_true_eq_false, iff_false, not_or]
+          refine ⟨fun hq => hel (hasElementChildOutside_iff.mp hq), ?_, ?_⟩
+          · rintro ⟨c', hc', hq⟩
+            cases hc'
+            exact hdf (doctypeFollowing_iff.mp hq)
+          · rintro ⟨c', hc', hk, hex⟩
+            cases hc'
+            exact absurd (hdt (kindIs_iff.mp hk)) (by simpa using hex)
 
-/-! ## step 10-11 の部分検査 -/
-
-theorem checkDoctypeInsertion_ok_iff {t : Tree} {parent : NodeId} {child : Option NodeId}
+theorem doctypeInsertionBlocked_iff {t : Tree} {parent : NodeId} {child : Option NodeId}
     {excl : List NodeId} :
-    checkDoctypeInsertion t parent child excl = .ok () ↔
-      DoctypeInsertionOk t parent child excl := by
-  unfold checkDoctypeInsertion DoctypeInsertionOk
-  rw [doctypeChildren_eq_childrenOfKind]
-  cases child with
-  | none =>
-    dsimp only
-    by_cases hany : (childrenOfKind t parent .documentType).any
-        (fun c => !excl.contains c) = true
-    · rw [if_pos hany]
-      refine iff_of_false (by simp) ?_
-      rintro ⟨hall, -⟩
-      obtain ⟨d, hd, hne⟩ := any_not_contains_eq_true_iff.mp hany
-      exact hne (hall d hd)
-    · rw [if_neg hany]
-      have hall := any_not_contains_eq_false_iff.mp (by simpa [Bool.not_eq_true] using hany)
-      rw [elementChildren_eq_childrenOfKind]
-      by_cases hele : (childrenOfKind t parent .element).any
-          (fun c => !excl.contains c) = true
-      · rw [if_pos hele]
-        refine iff_of_false (by simp) ?_
-        rintro ⟨-, hmem⟩
-        obtain ⟨e, he, hne⟩ := any_not_contains_eq_true_iff.mp hele
-        exact hne (hmem e he)
-      · rw [if_neg hele]
-        exact iff_of_true (by simp) ⟨hall,
-          any_not_contains_eq_false_iff.mp (by simpa [Bool.not_eq_true] using hele)⟩
-  | some c =>
-    dsimp only
-    by_cases hany : (childrenOfKind t parent .documentType).any
-        (fun c => !excl.contains c) = true
-    · rw [if_pos hany]
-      refine iff_of_false (by simp) ?_
-      rintro ⟨hall, -⟩
-      obtain ⟨d, hd, hne⟩ := any_not_contains_eq_true_iff.mp hany
-      exact hne (hall d hd)
-    · rw [if_neg hany]
-      have hall := any_not_contains_eq_false_iff.mp (by simpa [Bool.not_eq_true] using hany)
+    DoctypeInsertionBlocked t parent child excl ↔
+      checkDoctypeInsertion t parent child excl ≠ .ok () := by
+  unfold DoctypeInsertionBlocked checkDoctypeInsertion
+  by_cases hdt : (doctypeChildren t parent).any (fun c => !excl.contains c) = true
+  · rw [if_pos hdt]
+    simp only [ne_eq, reduceCtorEq, not_false_eq_true, iff_true]
+    exact Or.inl (hasDoctypeChildOutside_iff.mpr hdt)
+  · rw [if_neg hdt]
+    cases child with
+    | some c =>
+      simp only []
       by_cases hep : elementPrecedes t parent c = true
       · rw [if_pos hep]
-        refine iff_of_false (by simp) ?_
-        rintro ⟨-, hna⟩
-        exact hna ((elementPrecedes_eq_true_iff (t := t) (parent := parent) (c := c)).mp hep)
+        simp only [ne_eq, reduceCtorEq, not_false_eq_true, iff_true]
+        exact Or.inr (Or.inl ⟨c, rfl, elementPreceding_iff.mpr hep⟩)
       · rw [if_neg hep]
-        refine iff_of_true (by simp) ⟨hall, ?_⟩
-        intro hh
-        exact hep ((elementPrecedes_eq_true_iff (t := t) (parent := parent) (c := c)).mpr hh)
-
-/-- `checkElementInsertion` が返す例外は `hierarchyRequestError` だけである。 -/
-theorem checkElementInsertion_error_eq {t : Tree} {parent : NodeId} {child : Option NodeId}
-    {excl : List NodeId} {e : DOMException}
-    (h : checkElementInsertion t parent child excl = .error e) : e = .hierarchyRequestError := by
-  unfold checkElementInsertion at h
-  rw [elementChildren_eq_childrenOfKind] at h
-  cases child with
-  | none =>
-    dsimp only at h
-    cases hb : ((childrenOfKind t parent .element).any (fun c => !excl.contains c)) with
-    | false => rw [hb] at h; simp at h
-    | true => rw [hb] at h; exact (Except.error.inj h).symm
-  | some c =>
-    dsimp only at h
-    cases hb : ((childrenOfKind t parent .element).any (fun c => !excl.contains c)) with
-    | false =>
-      rw [hb] at h
-      cases hb2 : doctypeFollows t parent c with
-      | true => rw [hb2] at h; exact (Except.error.inj h).symm
-      | false =>
-        rw [hb2] at h
-        cases hb3 : (kindOf t c == some .documentType && !excl.contains c) with
-        | true => rw [hb3] at h; exact (Except.error.inj h).symm
-        | false => rw [hb3] at h; simp at h
-    | true => rw [hb] at h; exact (Except.error.inj h).symm
-
-/-- `checkDoctypeInsertion` が返す例外は `hierarchyRequestError` だけである。 -/
-theorem checkDoctypeInsertion_error_eq {t : Tree} {parent : NodeId} {child : Option NodeId}
-    {excl : List NodeId} {e : DOMException}
-    (h : checkDoctypeInsertion t parent child excl = .error e) : e = .hierarchyRequestError := by
-  unfold checkDoctypeInsertion at h
-  rw [doctypeChildren_eq_childrenOfKind, elementChildren_eq_childrenOfKind] at h
-  cases child with
-  | none =>
-    dsimp only at h
-    cases hb : ((childrenOfKind t parent .documentType).any (fun c => !excl.contains c)) with
-    | false =>
-      rw [hb] at h
-      cases hb2 : ((childrenOfKind t parent .element).any (fun c => !excl.contains c)) with
-      | true => rw [hb2] at h; exact (Except.error.inj h).symm
-      | false => rw [hb2] at h; simp at h
-    | true => rw [hb] at h; exact (Except.error.inj h).symm
-  | some c =>
-    dsimp only at h
-    cases hb : ((childrenOfKind t parent .documentType).any (fun c => !excl.contains c)) with
-    | false =>
-      rw [hb] at h
-      cases hb2 : elementPrecedes t parent c with
-      | true => rw [hb2] at h; exact (Except.error.inj h).symm
-      | false => rw [hb2] at h; simp at h
-    | true => rw [hb] at h; exact (Except.error.inj h).symm
-
-/-- 仕様語彙の側から `checkElementInsertion` の失敗が出る。 -/
-theorem checkElementInsertion_error_of_not_ok {t : Tree} {parent : NodeId}
-    {child : Option NodeId} {excl : List NodeId}
-    (hne : ¬ ElementInsertionOk t parent child excl) :
-    checkElementInsertion t parent child excl = .error .hierarchyRequestError := by
-  cases hx : checkElementInsertion t parent child excl with
-  | ok u =>
-    cases u
-    exact absurd ((checkElementInsertion_ok_iff (t := t) (parent := parent)
-      (child := child) (excl := excl)).mp hx) hne
-  | error e => exact congrArg Except.error (checkElementInsertion_error_eq hx)
-
-/-- 仕様語彙の側から `checkDoctypeInsertion` の失敗が出る。 -/
-theorem checkDoctypeInsertion_error_of_not_ok {t : Tree} {parent : NodeId}
-    {child : Option NodeId} {excl : List NodeId}
-    (hne : ¬ DoctypeInsertionOk t parent child excl) :
-    checkDoctypeInsertion t parent child excl = .error .hierarchyRequestError := by
-  cases hx : checkDoctypeInsertion t parent child excl with
-  | ok u =>
-    cases u
-    exact absurd ((checkDoctypeInsertion_ok_iff (t := t) (parent := parent)
-      (child := child) (excl := excl)).mp hx) hne
-  | error e => exact congrArg Except.error (checkDoctypeInsertion_error_eq hx)
-
-/-! ## 全体：`.ok` との一致 -/
-
-/-- `.ok` から仕様語彙の validity が出る。 -/
-theorem valid_of_ensurePreInsertionValidity_ok {t : Tree} {node parent : NodeId}
-    {child : Option NodeId} {excl : List NodeId} (hwf : WellFormed t)
-    (h : ensurePreInsertionValidity t node parent child excl = .ok ()) :
-    PreInsertValid t node parent child excl := by
-  obtain ⟨pd, nd, hpd, hnd, h1, h2, h3, h4, h5⟩ := ensurePreInsertionValidity_ok_steps h
-  have hcanHave : pd.kind.canHaveChildren = true := by rw [← canHaveChildren_beq]; exact h1
-  have hanc : ¬ InclusiveAncestor t node parent :=
-    (isInclusiveAncestorOf_eq_false_iff hwf node parent).mp h2
-  have hchild := childHasParent_eq_true_iff.mp h3
-  have hkind := (nodeKindOk_beq nd.kind).mp h4
-  have hdt : PreDoctypeParentOk pd nd := by
-    intro hk
-    by_cases hdoc : pd.kind = NodeKind.document
-    · exact hdoc
-    · exact absurd (by simpa using h5 hdoc) (by simp [hk])
-  by_cases hpdoc : pd.kind = NodeKind.document
-  · obtain ⟨htext, hfrag, hele, hdoct⟩ :=
-      ensurePreInsertionValidity_documentFacts hpd hnd hpdoc h
-    refine ⟨pd, nd, hpd, hnd, hcanHave, hanc, hchild, hkind, hdt, ?_, ?_⟩
-    · intro _; exact htext
-    · intro _
-      refine ⟨?_, ?_, ?_⟩
-      · intro hkf
-        obtain ⟨hlen, htxt⟩ := hfrag hkf
-        exact ⟨by simpa using hlen, by simpa using htxt⟩
-      · intro hcase
-        obtain ⟨hall, hc⟩ := hele hcase
-        cases child with
-        | none => exact ⟨by simpa using hall, trivial⟩
-        | some c =>
-          obtain ⟨hor, hdf⟩ := hc c rfl
-          refine ⟨by simpa using hall, doctypeFollows_eq_false_iff.mp hdf, ?_⟩
-          intro hk
-          rcases hor with hf | hm
-          · exact absurd (by simpa using hk : (kindOf t c == some NodeKind.documentType) = true)
-              (by simp [hf])
-          · exact hm
-      · intro hkdt
-        obtain ⟨hdhall, hprec, hnone⟩ := hdoct hkdt
-        cases child with
-        | none => exact ⟨by simpa using hdhall, by simpa using hnone rfl⟩
-        | some c =>
-          refine ⟨by simpa using hdhall, ?_⟩
-          exact elementPrecedes_eq_false_iff.mp (hprec c rfl)
-  · refine ⟨pd, nd, hpd, hnd, hcanHave, hanc, hchild, hkind, hdt, ?_, ?_⟩
-    · intro hc; exact absurd hc hpdoc
-    · intro hc; exact absurd hc hpdoc
+        simp only [ne_eq, not_true_eq_false, iff_false, not_or]
+        refine ⟨fun hq => hdt (hasDoctypeChildOutside_iff.mp hq), ?_, ?_⟩
+        · rintro ⟨c', hc', hq⟩
+          cases hc'
+          exact hep (elementPreceding_iff.mp hq)
+        · rintro ⟨hc', -⟩
+          simp at hc'
+    | none =>
+      simp only []
+      by_cases hel : (elementChildren t parent).any (fun c => !excl.contains c) = true
+      · rw [if_pos hel]
+        simp only [ne_eq, reduceCtorEq, not_false_eq_true, iff_true]
+        exact Or.inr (Or.inr ⟨trivial, hasElementChildOutside_iff.mpr hel⟩)
+      · rw [if_neg hel]
+        simp only [ne_eq, not_true_eq_false, iff_false, not_or]
+        refine ⟨fun hq => hdt (hasDoctypeChildOutside_iff.mp hq), ?_, ?_⟩
+        · rintro ⟨c', hc', -⟩
+          simp at hc'
+        · rintro ⟨-, hq⟩
+          exact hel (hasElementChildOutside_iff.mp hq)
 
 /--
-step 1-4 を通るなら、親が Document でない限り step 5.2 で `ok` になる。
-仕様語彙の側から実行関数の `.ok` を出す逆向きの bridge の前段である。
--/
-theorem ensurePreInsertionValidity_ok_of_valid {t : Tree} {node parent : NodeId}
-    {child : Option NodeId} {excl : List NodeId} (hwf : WellFormed t)
-    (hv : PreInsertValid t node parent child excl) :
-    ensurePreInsertionValidity t node parent child excl = .ok () := by
-  obtain ⟨pd, nd, hcore⟩ := hv
-  obtain ⟨hpd, hnd, hk, hanc, hchild, hkind, hdt, hnotext, hdoc⟩ := hcore
-  have hancB : isInclusiveAncestorOf t node parent = false :=
-    (isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hanc
-  have hchildB : childHasParent t child parent = true := childHasParent_eq_true_iff.mpr hchild
-  have hkB : (pd.kind == NodeKind.document || pd.kind == NodeKind.documentFragment ||
-      pd.kind == NodeKind.element) = true := by rw [canHaveChildren_beq]; exact hk
-  have hkindB : (nd.kind == NodeKind.documentFragment || nd.kind == NodeKind.documentType ||
-      nd.kind == NodeKind.element || nd.kind.isCharacterData) = true :=
-    (nodeKindOk_beq nd.kind).mpr hkind
-  unfold ensurePreInsertionValidity
-  rw [hpd, hnd]
-  simp only
-  rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-    if_neg (by simp [hkindB])]
-  by_cases hpdoc : pd.kind = NodeKind.document
-  · rw [if_neg (by simp [hpdoc])]
-    rw [if_neg (by simp [hnotext hpdoc])]
-    by_cases hcd : nd.kind.isCharacterData = true
-    · rw [if_pos hcd]
-    · rw [if_neg hcd]
-      by_cases hfrag : (nd.kind == NodeKind.documentFragment) = true
-      · rw [if_pos hfrag]
-        have hkf : nd.kind = NodeKind.documentFragment := by simpa using hfrag
-        obtain ⟨hlen, htxt⟩ := (hdoc hpdoc).1 hkf
-        rw [elementChildren_eq_childrenOfKind, textChildren_eq_textChildrenOf]
-        have htxt' : (textChildrenOf t node).isEmpty = true := by simp [htxt]
-        have hlen' : ¬ 1 < (childrenOfKind t node .element).length := by omega
-        rw [if_neg (by simp [hlen', htxt'])]
-        by_cases hemp : (childrenOfKind t node .element).isEmpty = true
-        · rw [if_pos hemp]
-        · rw [if_neg hemp]
-          have hne : childrenOfKind t node .element ≠ [] := by
-            simpa [List.isEmpty_iff] using hemp
-          exact (checkElementInsertion_ok_iff (t := t) (parent := parent) (child := child)
-            (excl := excl)).mpr ((hdoc hpdoc).2.1 (Or.inr ⟨hkf, hne⟩))
-      · rw [if_neg hfrag]
-        by_cases helem : (nd.kind == NodeKind.element) = true
-        · rw [if_pos helem]
-          have hke : nd.kind = NodeKind.element := by simpa using helem
-          exact (checkElementInsertion_ok_iff (t := t) (parent := parent) (child := child)
-            (excl := excl)).mpr ((hdoc hpdoc).2.1 (Or.inl hke))
-        · rw [if_neg helem]
-          have hkdt : nd.kind = NodeKind.documentType := by
-            rcases hkind with h | h | h | h
-            · exact absurd (by simpa using h) hfrag
-            · exact h
-            · exact absurd (by simpa using h) helem
-            · exact absurd h hcd
-          exact (checkDoctypeInsertion_ok_iff (t := t) (parent := parent) (child := child)
-            (excl := excl)).mpr ((hdoc hpdoc).2.2 hkdt)
-  · rw [if_pos (by simpa using hpdoc)]
-    rw [if_neg (by simp [show nd.kind ≠ NodeKind.documentType from fun heq => hpdoc (hdt heq)])]
+**関係は結果を一つに決める。**
 
-/-- **`.ok` と仕様語彙の validity は一致する。** -/
+combinator ごとの補題を組むだけである。`Step` / `Return` / `Branch` のどれも
+条件が `Prop` なので、両側が同じ枝を取る。
+-/
+theorem preInsertValidity_deterministic (t : Tree) (node parent : NodeId)
+    (child : Option NodeId) (excl : List NodeId) :
+    Deterministic (PreInsertValidity t node parent child excl) :=
+  Step_deterministic <| Step_deterministic <| Step_deterministic <| Step_deterministic <|
+  Step_deterministic <| Step_deterministic <|
+  Branch_deterministic (Step_deterministic Done_deterministic) <|
+  Step_deterministic <| Return_deterministic <|
+  Branch_deterministic
+    (Step_deterministic (Return_deterministic (Step_deterministic Done_deterministic)))
+    (Branch_deterministic (Step_deterministic Done_deterministic)
+      (Step_deterministic Done_deterministic))
+
+/-! ## soundness -/
+
+/--
+**`ensurePreInsertionValidity` の結果は、成否によらず関係を満たす。**
+
+仮定を置かないので、「どの入力でどの例外を返すか」まで関係が決めることになる。
+`WellFormed` が要るのは step 2（`isInclusiveAncestorOf` と `InclusiveAncestor` の対応）と
+step 8.1（children に重複が無いこと）である。
+-/
+theorem ensurePreInsertionValidity_spec {t : Tree} (hwf : WellFormed t)
+    (node parent : NodeId) (child : Option NodeId) (excl : List NodeId) :
+    PreInsertValidity t node parent child excl
+      (ensurePreInsertionValidity t node parent child excl) := by
+  unfold PreInsertValidity ensurePreInsertionValidity Step Branch Return Done
+  cases hpd : t.get? parent with
+  | none => exact Or.inl ⟨by rw [inTree_iff, hpd]; simp, rfl⟩
+  | some pd =>
+  simp only []
+  refine Or.inr ⟨by rw [inTree_iff, hpd]; simp, ?_⟩
+  cases hnd : t.get? node with
+  | none => exact Or.inl ⟨by rw [inTree_iff, hnd]; simp, rfl⟩
+  | some nd =>
+  simp only []
+  refine Or.inr ⟨by rw [inTree_iff, hnd]; simp, ?_⟩
+  -- step 1
+  by_cases h1 : (pd.kind = .document ∨ pd.kind = .documentFragment ∨ pd.kind = .element)
+  · have hb1 : (pd.kind == .document || pd.kind == .documentFragment ||
+        pd.kind == .element) = true := by rcases h1 with h | h | h <;> simp [h]
+    rw [if_neg (by simp [hb1])]
+    refine Or.inr ⟨by rw [parentIsContainer_iff hpd]; exact fun hq => hq h1, ?_⟩
+    -- step 2
+    by_cases h2 : isInclusiveAncestorOf t node parent = true
+    · rw [if_pos h2]
+      exact Or.inl ⟨(isInclusiveAncestorOf_iff hwf node parent).mp h2, rfl⟩
+    · rw [if_neg h2]
+      refine Or.inr ⟨fun hq => h2 ((isInclusiveAncestorOf_iff hwf node parent).mpr hq), ?_⟩
+      -- step 3
+      by_cases h3 : childHasParent t child parent = true
+      · rw [if_neg (by simp [h3])]
+        refine Or.inr ⟨not_not_intro (childIsChildOf_iff.mpr h3), ?_⟩
+        -- step 4
+        by_cases h4 : (nd.kind = .documentFragment ∨ nd.kind = .documentType ∨
+            nd.kind = .element ∨ nd.kind.isCharacterData = true)
+        · have hb4 : (nd.kind == .documentFragment || nd.kind == .documentType ||
+              nd.kind == .element || nd.kind.isCharacterData) = true := by
+            rcases h4 with h | h | h | h <;> simp [h]
+          rw [if_neg (by simp [hb4])]
+          refine Or.inr ⟨by rw [nodeIsInsertable_iff hnd]; exact fun hq => hq h4, ?_⟩
+          -- step 5
+          by_cases h5 : pd.kind = .document
+          · rw [if_neg (by simp [h5])]
+            refine Or.inr ⟨by rw [kindIs_iff, kindOf_of_get? hpd]; simpa using h5, ?_⟩
+            -- step 6
+            by_cases h6 : nd.kind.isText = true
+            · rw [if_pos h6]
+              exact Or.inl ⟨(isText_iff hnd).mpr h6, rfl⟩
+            · rw [if_neg h6]
+              refine Or.inr ⟨fun hq => h6 ((isText_iff hnd).mp hq), ?_⟩
+              -- step 7
+              by_cases h7 : nd.kind.isCharacterData = true
+              · rw [if_pos h7]
+                exact Or.inl ⟨(isCharacterData_iff hnd).mpr h7, rfl⟩
+              · rw [if_neg h7]
+                refine Or.inr ⟨fun hq => h7 ((isCharacterData_iff hnd).mp hq), ?_⟩
+                -- step 8
+                by_cases h8 : nd.kind = .documentFragment
+                · rw [if_pos (by simp [h8])]
+                  refine Or.inl ⟨by rw [kindIs_iff, kindOf_of_get? hnd]; simpa using h8, ?_⟩
+                  by_cases h81a : 1 < (elementChildren t node).length
+                  · rw [if_pos (by simp [h81a])]
+                    exact Or.inl ⟨Or.inl
+                      ((hasTwoElementChildren_iff (childrenOf_nodup hwf node)).mpr h81a), rfl⟩
+                  by_cases h81b : textChildren t node = []
+                  · rw [if_neg (by simp [h81a, h81b])]
+                    refine Or.inr ⟨?_, ?_⟩
+                    · rintro (h | h)
+                      · exact h81a ((hasTwoElementChildren_iff (childrenOf_nodup hwf node)).mp h)
+                      · exact hasTextChild_iff.mp h h81b
+                    · by_cases h82 : elementChildren t node = []
+                      · rw [if_pos (by simp [h82])]
+                        exact Or.inl ⟨fun hq => hasElementChild_iff.mp hq h82, rfl⟩
+                      · rw [if_neg (by simp [h82])]
+                        refine Or.inr ⟨fun hq => hq (hasElementChild_iff.mpr h82), ?_⟩
+                        by_cases h9 : checkElementInsertion t parent child excl = .ok ()
+                        · rw [h9]
+                          exact Or.inr ⟨fun hq => (elementInsertionBlocked_iff.mp hq) h9, rfl⟩
+                        · refine Or.inl ⟨elementInsertionBlocked_iff.mpr h9, ?_⟩
+                          cases hq : checkElementInsertion t parent child excl with
+                          | ok u => exact absurd (by cases u; exact hq) h9
+                          | error e =>
+                            have : e = .hierarchyRequestError := by
+                              unfold checkElementInsertion at hq
+                              split at hq
+                              · exact (Except.error.inj hq).symm
+                              · split at hq
+                                · simp at hq
+                                · split at hq
+                                  · exact (Except.error.inj hq).symm
+                                  · split at hq
+                                    · exact (Except.error.inj hq).symm
+                                    · simp at hq
+                            rw [this]
+                  · rw [if_pos (by simp [h81b])]
+                    exact Or.inl ⟨Or.inr (hasTextChild_iff.mpr h81b), rfl⟩
+                · rw [if_neg (by simp [h8])]
+                  refine Or.inr ⟨by rw [kindIs_iff, kindOf_of_get? hnd]; simpa using h8, ?_⟩
+                  -- step 9
+                  by_cases h9 : nd.kind = .element
+                  · rw [if_pos (by simp [h9])]
+                    refine Or.inl ⟨by rw [kindIs_iff, kindOf_of_get? hnd]; simpa using h9, ?_⟩
+                    by_cases hc : checkElementInsertion t parent child excl = .ok ()
+                    · rw [hc]
+                      exact Or.inr ⟨fun hq => (elementInsertionBlocked_iff.mp hq) hc, rfl⟩
+                    · refine Or.inl ⟨elementInsertionBlocked_iff.mpr hc, ?_⟩
+                      cases hq : checkElementInsertion t parent child excl with
+                      | ok u => exact absurd (by cases u; exact hq) hc
+                      | error e =>
+                        have : e = .hierarchyRequestError := by
+                          unfold checkElementInsertion at hq
+                          split at hq
+                          · exact (Except.error.inj hq).symm
+                          · split at hq
+                            · simp at hq
+                            · split at hq
+                              · exact (Except.error.inj hq).symm
+                              · split at hq
+                                · exact (Except.error.inj hq).symm
+                                · simp at hq
+                        rw [this]
+                  · rw [if_neg (by simp [h9])]
+                    refine Or.inr ⟨by rw [kindIs_iff, kindOf_of_get? hnd]; simpa using h9, ?_⟩
+                    -- step 10-11
+                    by_cases hc : checkDoctypeInsertion t parent child excl = .ok ()
+                    · rw [hc]
+                      exact Or.inr ⟨fun hq => (doctypeInsertionBlocked_iff.mp hq) hc, rfl⟩
+                    · refine Or.inl ⟨doctypeInsertionBlocked_iff.mpr hc, ?_⟩
+                      cases hq : checkDoctypeInsertion t parent child excl with
+                      | ok u => exact absurd (by cases u; exact hq) hc
+                      | error e =>
+                        have : e = .hierarchyRequestError := by
+                          unfold checkDoctypeInsertion at hq
+                          split at hq
+                          · exact (Except.error.inj hq).symm
+                          · split at hq
+                            · split at hq
+                              · exact (Except.error.inj hq).symm
+                              · simp at hq
+                            · split at hq
+                              · exact (Except.error.inj hq).symm
+                              · simp at hq
+                        rw [this]
+          · rw [if_pos (by simp [h5])]
+            by_cases hdt : nd.kind = .documentType
+            · rw [if_pos (by simp [hdt])]
+              refine Or.inl ⟨by rw [kindIs_iff, kindOf_of_get? hpd]; simpa using h5, ?_⟩
+              exact Or.inl ⟨by rw [kindIs_iff, kindOf_of_get? hnd]; simpa using hdt, rfl⟩
+            · rw [if_neg (by simp [hdt])]
+              refine Or.inl ⟨by rw [kindIs_iff, kindOf_of_get? hpd]; simpa using h5, ?_⟩
+              exact Or.inr ⟨by rw [kindIs_iff, kindOf_of_get? hnd]; simpa using hdt, rfl⟩
+        · rw [if_pos (by
+            simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq]
+            simp only [not_or] at h4
+            exact ⟨⟨⟨h4.1, h4.2.1⟩, h4.2.2.1⟩, by simpa using h4.2.2.2⟩)]
+          exact Or.inl ⟨by rw [nodeIsInsertable_iff hnd]; exact h4, rfl⟩
+      · rw [if_pos (by simp [h3])]
+        exact Or.inl ⟨fun hq => h3 (childIsChildOf_iff.mp hq), rfl⟩
+  · rw [if_pos (by
+      simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq]
+      simp only [not_or] at h1
+      exact ⟨⟨h1.1, h1.2.1⟩, h1.2.2⟩)]
+    exact Or.inl ⟨by rw [parentIsContainer_iff hpd]; exact h1, rfl⟩
+
+/--
+**関係を満たす結果は、実行関数の結果そのものである。**
+
+soundness（仮定なし）と一意性を繋いだもの。
+「例外の種類まで含めて関係が決める」という主張はこれである。
+-/
+theorem ensurePreInsertionValidity_eq_of_spec {t : Tree} (hwf : WellFormed t)
+    {node parent : NodeId} {child : Option NodeId} {excl : List NodeId}
+    {r : Except DOMException Unit} (h : PreInsertValidity t node parent child excl r) :
+    r = ensurePreInsertionValidity t node parent child excl :=
+  preInsertValidity_deterministic t node parent child excl _ _ h
+    (ensurePreInsertionValidity_spec hwf node parent child excl)
+
+/-- **関係と実行関数は同じ結果を指す。** 上の二つを繋いだ形。 -/
+theorem preInsertValidity_iff {t : Tree} (hwf : WellFormed t)
+    {node parent : NodeId} {child : Option NodeId} {excl : List NodeId}
+    {r : Except DOMException Unit} :
+    PreInsertValidity t node parent child excl r ↔
+      ensurePreInsertionValidity t node parent child excl = r := by
+  constructor
+  · intro h; exact (ensurePreInsertionValidity_eq_of_spec hwf h).symm
+  · intro h; rw [← h]; exact ensurePreInsertionValidity_spec hwf node parent child excl
+
+/-! ## pre/post 条件の形 -/
+
+/-- `.ok ()` と `PreInsertValid` の一致。 -/
 theorem ensurePreInsertionValidity_ok_iff {t : Tree} {node parent : NodeId}
     {child : Option NodeId} {excl : List NodeId} (hwf : WellFormed t) :
     ensurePreInsertionValidity t node parent child excl = .ok () ↔
-      PreInsertValid t node parent child excl :=
-  ⟨valid_of_ensurePreInsertionValidity_ok hwf,
-    ensurePreInsertionValidity_ok_of_valid hwf⟩
+      PreInsertValid t node parent child excl := by
+  unfold PreInsertValid
+  exact (preInsertValidity_iff hwf).symm
 
-/--
-**仕様語彙の側から実行関数の `.error` が出る。**
-
-優先順位は `PreInsertError` の枝が先の step を通ることを前提に持つことで表されており、
-各枝で `ensurePreInsertionValidity` がその例外で落ちることを直接示す。
--/
-theorem ensurePreInsertionValidity_error_of_preInsertError {t : Tree} {node parent : NodeId}
-    {child : Option NodeId} {excl : List NodeId} {e : DOMException} (hwf : WellFormed t)
-    (he : PreInsertError t node parent child excl e) :
-    ensurePreInsertionValidity t node parent child excl = .error e := by
-  rcases he with ⟨hp, rfl⟩ | ⟨pd, hp, hn, rfl⟩ |
-    ⟨pd, nd, hp, hn, hk, rfl⟩ | ⟨pd, nd, hbase, hanc, rfl⟩ |
-    ⟨pd, nd, hbase, hnanc, hc, rfl⟩ | ⟨pd, nd, hP123, hne, rfl⟩ |
-    ⟨pd, nd, hP1234, hne, rfl⟩ | ⟨pd, nd, hP12345, hne, rfl⟩ |
-    ⟨pd, nd, hP123456, hpdoc, hkf, hsize, rfl⟩ |
-    ⟨pd, nd, hP123456, hpdoc, hkindcase, hne, rfl⟩ |
-    ⟨pd, nd, hP123456, hpdoc, hkdt, hne, rfl⟩
-  · simp [ensurePreInsertionValidity, hp]
-  · simp [ensurePreInsertionValidity, hp, hn]
-  · exact ensurePreInsertionValidity_step1 hp hn hk
-  · obtain ⟨hp', hn', hk⟩ := hbase
-    exact ensurePreInsertionValidity_step2 hp' hn' hk
-      ((isInclusiveAncestorOf_iff hwf node parent).mpr hanc)
-  · obtain ⟨hp', hn', hk⟩ := hbase
-    exact ensurePreInsertionValidity_step3 hp' hn' hk
-      ((isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hnanc)
-      (childHasParent_eq_false_iff.mpr hc)
-  · obtain ⟨⟨hp', hn', hk⟩, hanc, hchild⟩ := hP123
-    have hkB : (pd.kind == NodeKind.document || pd.kind == NodeKind.documentFragment ||
-        pd.kind == NodeKind.element) = true := by rw [canHaveChildren_beq]; exact hk
-    have hancB : isInclusiveAncestorOf t node parent = false :=
-      (isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hanc
-    have hchildB : childHasParent t child parent = true := childHasParent_eq_true_iff.mpr hchild
-    have hC4 : (nd.kind == NodeKind.documentFragment || nd.kind == NodeKind.documentType ||
-        nd.kind == NodeKind.element || nd.kind.isCharacterData) = false := by
-      rw [Bool.eq_false_iff]
-      intro ht
-      exact hne ((nodeKindOk_beq nd.kind).mp ht)
-    unfold ensurePreInsertionValidity
-    rw [hp', hn']
-    simp only
-    rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-      if_pos (by simp [hC4])]
-  · obtain ⟨⟨⟨hp', hn', hk⟩, hanc, hchild⟩, hkk⟩ := hP1234
-    have hkB : (pd.kind == NodeKind.document || pd.kind == NodeKind.documentFragment ||
-        pd.kind == NodeKind.element) = true := by rw [canHaveChildren_beq]; exact hk
-    have hancB : isInclusiveAncestorOf t node parent = false :=
-      (isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hanc
-    have hchildB : childHasParent t child parent = true := childHasParent_eq_true_iff.mpr hchild
-    have hC4t : (nd.kind == NodeKind.documentFragment || nd.kind == NodeKind.documentType ||
-        nd.kind == NodeKind.element || nd.kind.isCharacterData) = true :=
-      (nodeKindOk_beq nd.kind).mpr hkk
-    have hkdt : nd.kind = NodeKind.documentType := by
-      by_cases h : nd.kind = NodeKind.documentType
-      · exact h
-      · exfalso; exact hne (fun hh => absurd hh h)
-    have hpne : pd.kind ≠ NodeKind.document := fun hh => hne (fun _ => hh)
-    unfold ensurePreInsertionValidity
-    rw [hp', hn']
-    simp only
-    rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-      if_neg (by simp [hC4t]), if_pos (by simp [hpne]),
-      if_pos (by simp [show (nd.kind == NodeKind.documentType) = true from by simpa using hkdt])]
-  · obtain ⟨⟨⟨⟨hp', hn', hk⟩, hanc, hchild⟩, hkk⟩, hdtp⟩ := hP12345
-    have hkB : (pd.kind == NodeKind.document || pd.kind == NodeKind.documentFragment ||
-        pd.kind == NodeKind.element) = true := by rw [canHaveChildren_beq]; exact hk
-    have hancB : isInclusiveAncestorOf t node parent = false :=
-      (isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hanc
-    have hchildB : childHasParent t child parent = true := childHasParent_eq_true_iff.mpr hchild
-    have hC4t : (nd.kind == NodeKind.documentFragment || nd.kind == NodeKind.documentType ||
-        nd.kind == NodeKind.element || nd.kind.isCharacterData) = true :=
-      (nodeKindOk_beq nd.kind).mpr hkk
-    have hpdoc' : pd.kind = NodeKind.document := by
-      by_cases h : pd.kind = NodeKind.document
-      · exact h
-      · exfalso; exact hne (fun hh => absurd hh h)
-    have htext : nd.kind.isText = true := by
-      by_cases h : nd.kind.isText = true
-      · exact h
-      · exfalso; exact hne (fun _ => by simpa using h)
-    unfold ensurePreInsertionValidity
-    rw [hp', hn']
-    simp only
-    rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-      if_neg (by simp [hC4t]), if_neg (by simp [hpdoc']), if_pos (by simpa using htext)]
-  · obtain ⟨⟨⟨⟨⟨hp', hn', hk⟩, hanc, hchild⟩, hkk⟩, hdtp⟩, hnotext⟩ := hP123456
-    have hkB : (pd.kind == NodeKind.document || pd.kind == NodeKind.documentFragment ||
-        pd.kind == NodeKind.element) = true := by rw [canHaveChildren_beq]; exact hk
-    have hancB : isInclusiveAncestorOf t node parent = false :=
-      (isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hanc
-    have hchildB : childHasParent t child parent = true := childHasParent_eq_true_iff.mpr hchild
-    have hC4t : (nd.kind == NodeKind.documentFragment || nd.kind == NodeKind.documentType ||
-        nd.kind == NodeKind.element || nd.kind.isCharacterData) = true :=
-      (nodeKindOk_beq nd.kind).mpr hkk
-    have htext : nd.kind.isText = false := hnotext hpdoc
-    have hsizeB : (1 < (elementChildren t node).length || !(textChildren t node).isEmpty) = true := by
-      rw [elementChildren_eq_childrenOfKind, textChildren_eq_textChildrenOf]
-      rcases hsize with h | h
-      · simp [h]
-      · have : (textChildrenOf t node).isEmpty = false := by simp [h]
-        simp [this]
-    unfold ensurePreInsertionValidity
-    rw [hp', hn']
-    simp only
-    rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-      if_neg (by simp [hC4t]), if_neg (by simp [hpdoc]), if_neg (by simp [htext]),
-      if_neg (by simp [show nd.kind.isCharacterData = false by rw [hkf]; rfl]),
-      if_pos (by simp [show (nd.kind == NodeKind.documentFragment) = true by simpa using hkf]),
-      if_pos hsizeB]
-  · obtain ⟨⟨⟨⟨⟨hp', hn', hk⟩, hanc, hchild⟩, hkk⟩, hdtp⟩, hnotext⟩ := hP123456
-    have hkB : (pd.kind == NodeKind.document || pd.kind == NodeKind.documentFragment ||
-        pd.kind == NodeKind.element) = true := by rw [canHaveChildren_beq]; exact hk
-    have hancB : isInclusiveAncestorOf t node parent = false :=
-      (isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hanc
-    have hchildB : childHasParent t child parent = true := childHasParent_eq_true_iff.mpr hchild
-    have hC4t : (nd.kind == NodeKind.documentFragment || nd.kind == NodeKind.documentType ||
-        nd.kind == NodeKind.element || nd.kind.isCharacterData) = true :=
-      (nodeKindOk_beq nd.kind).mpr hkk
-    have htext : nd.kind.isText = false := hnotext hpdoc
-    have hcd : nd.kind.isCharacterData = false := by
-      rcases hkindcase with h | ⟨h, -⟩ <;> rw [h] <;> rfl
-    rcases hkindcase with hke | ⟨hkf, hne'⟩
-    · unfold ensurePreInsertionValidity
-      rw [hp', hn']
-      simp only
-      rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-        if_neg (by simp [hC4t]), if_neg (by simp [hpdoc]), if_neg (by simp [htext]),
-        if_neg (by simp [hcd]),
-        if_neg (by simp [show (nd.kind == NodeKind.documentFragment) = false by rw [hke]; rfl]),
-        if_pos (by simp [show (nd.kind == NodeKind.element) = true by rw [hke]; rfl])]
-      exact checkElementInsertion_error_of_not_ok hne
-    · unfold ensurePreInsertionValidity
-      rw [hp', hn']
-      simp only
-      rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-        if_neg (by simp [hC4t]), if_neg (by simp [hpdoc]), if_neg (by simp [htext]),
-        if_neg (by simp [hcd]),
-        if_pos (by simp [show (nd.kind == NodeKind.documentFragment) = true by rw [hkf]; rfl])]
-      have hemp : (childrenOfKind t node .element).isEmpty = false := by
-        simpa [Bool.eq_false_iff, List.isEmpty_iff] using hne'
-      by_cases h81 : (1 < (elementChildren t node).length ||
-          !(textChildren t node).isEmpty) = true
-      · rw [if_pos h81]
-      · rw [if_neg h81]
-        rw [elementChildren_eq_childrenOfKind]
-        rw [if_neg (by simpa using hemp)]
-        exact checkElementInsertion_error_of_not_ok hne
-  · obtain ⟨⟨⟨⟨⟨hp', hn', hk⟩, hanc, hchild⟩, hkk⟩, hdtp⟩, hnotext⟩ := hP123456
-    have hkB : (pd.kind == NodeKind.document || pd.kind == NodeKind.documentFragment ||
-        pd.kind == NodeKind.element) = true := by rw [canHaveChildren_beq]; exact hk
-    have hancB : isInclusiveAncestorOf t node parent = false :=
-      (isInclusiveAncestorOf_eq_false_iff hwf node parent).mpr hanc
-    have hchildB : childHasParent t child parent = true := childHasParent_eq_true_iff.mpr hchild
-    have hC4t : (nd.kind == NodeKind.documentFragment || nd.kind == NodeKind.documentType ||
-        nd.kind == NodeKind.element || nd.kind.isCharacterData) = true :=
-      (nodeKindOk_beq nd.kind).mpr hkk
-    have htext : nd.kind.isText = false := hnotext hpdoc
-    unfold ensurePreInsertionValidity
-    rw [hp', hn']
-    simp only
-    rw [if_neg (by simp [hkB]), if_neg (by simp [hancB]), if_neg (by simp [hchildB]),
-      if_neg (by simp [hC4t]), if_neg (by simp [hpdoc]), if_neg (by simp [htext]),
-      if_neg (by simp [show nd.kind.isCharacterData = false by rw [hkdt]; rfl]),
-      if_neg (by simp [show (nd.kind == NodeKind.documentFragment) = false by rw [hkdt]; rfl]),
-      if_neg (by simp [show (nd.kind == NodeKind.element) = false by rw [hkdt]; rfl])]
-    exact checkDoctypeInsertion_error_of_not_ok hne
-
-/-- **`PreInsertError` は validity が失敗するとき必ず成り立つ。** -/
-theorem preInsertError_of_not_valid {t : Tree} {node parent : NodeId} {child : Option NodeId}
-    {excl : List NodeId} (h : ¬ PreInsertValid t node parent child excl) :
-    ∃ e, PreInsertError t node parent child excl e := by
-  cases hpp : t.get? parent with
-  | none => exact ⟨_, Or.inl ⟨hpp, rfl⟩⟩
-  | some pd =>
-    cases hnn : t.get? node with
-    | none => exact ⟨_, Or.inr (Or.inl ⟨pd, hpp, hnn, rfl⟩)⟩
-    | some nd =>
-      have hcore : ¬ PreInsertValidCore t node parent child excl pd nd :=
-        fun hc => h ⟨pd, nd, hc⟩
-      by_cases hk : pd.kind.canHaveChildren = true
-      · by_cases hanc : ¬ InclusiveAncestor t node parent
-        · by_cases hchild : ∀ c, child = some c → parentOf t c = some parent
-          · by_cases hkk : PreNodeKindOk nd
-            · by_cases hdtp : PreDoctypeParentOk pd nd
-              · by_cases hnt : PreNoTextInDocument pd nd
-                · have hdocnot : ¬ (pd.kind = NodeKind.document →
-                      PreInsertDocumentOk t node parent child excl pd nd) :=
-                    fun hc => hcore ⟨hpp, hnn, hk, hanc, hchild, hkk, hdtp, hnt, hc⟩
-                  obtain ⟨hpdoc, hnotok⟩ := Classical.not_imp.mp hdocnot
-                  have hP123456 : PreP123456 t node parent child pd nd := ⟨⟨⟨⟨⟨hpp, hnn, hk⟩, hanc, hchild⟩, hkk⟩, hdtp⟩, hnt⟩
-                  by_cases hA : (nd.kind = NodeKind.documentFragment →
-                      (childrenOfKind t node NodeKind.element).length ≤ 1 ∧
-                        textChildrenOf t node = [])
-                  · by_cases hB : ((nd.kind = NodeKind.element ∨
-                        (nd.kind = NodeKind.documentFragment ∧
-                          childrenOfKind t node NodeKind.element ≠ [])) →
-                        ElementInsertionOk t parent child excl)
-                    · have hC : ¬ (nd.kind = NodeKind.documentType →
-                          DoctypeInsertionOk t parent child excl) :=
-                        fun hc => hnotok ⟨hA, hB, hc⟩
-                      obtain ⟨hkdt, hne⟩ := Classical.not_imp.mp hC
-                      exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (⟨pd, nd, hP123456, hpdoc, hkdt, hne, rfl⟩))))))))))⟩
-                    · obtain ⟨hcase, hne⟩ := Classical.not_imp.mp hB
-                      exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨pd, nd, hP123456, hpdoc, hcase, hne, rfl⟩)))))))))⟩
-                  · obtain ⟨hkf, hsize⟩ := Classical.not_imp.mp hA
-                    have hsize' : 1 < (childrenOfKind t node NodeKind.element).length ∨
-                        textChildrenOf t node ≠ [] := by
-                      by_cases h1 : 1 < (childrenOfKind t node NodeKind.element).length
-                      · exact Or.inl h1
-                      · exact Or.inr (fun htext => hsize ⟨by omega, htext⟩)
-                    exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨pd, nd, hP123456, hpdoc, hkf, hsize', rfl⟩))))))))⟩
-                · exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨pd, nd, ⟨⟨⟨⟨⟨hpp, hnn, hk⟩, hanc, hchild⟩, hkk⟩, hdtp⟩, hnt, rfl⟩⟩)))))))⟩
-              · exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨pd, nd, ⟨⟨⟨⟨hpp, hnn, hk⟩, hanc, hchild⟩, hkk⟩, hdtp, rfl⟩⟩))))))⟩
-            · exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨pd, nd, ⟨⟨⟨hpp, hnn, hk⟩, hanc, hchild⟩, hkk, rfl⟩⟩)))))⟩
-          · have hcex : ∃ c, child = some c ∧ parentOf t c ≠ some parent := by
-              obtain ⟨c, hc⟩ := Classical.not_forall.mp hchild
-              obtain ⟨hcs, hne⟩ := Classical.not_imp.mp hc
-              exact ⟨c, hcs, hne⟩
-            exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨pd, nd, ⟨hpp, hnn, hk⟩, hanc, hcex, rfl⟩))))⟩
-        · have hinc : InclusiveAncestor t node parent := by
-            by_cases hh : InclusiveAncestor t node parent
-            · exact hh
-            · exact absurd hh hanc
-          exact ⟨_, Or.inr (Or.inr (Or.inr (Or.inl ⟨pd, nd, ⟨hpp, hnn, hk⟩, hinc, rfl⟩)))⟩
-      · have hkf : pd.kind.canHaveChildren = false := by
-          cases h : pd.kind.canHaveChildren <;> simp_all
-        exact ⟨_, Or.inr (Or.inr (Or.inl ⟨pd, nd, hpp, hnn, hkf, rfl⟩))⟩
-
-/-- **実行関数の `.error` から仕様語彙の error 関係が出る。** -/
-theorem preInsertError_of_ensurePreInsertionValidity_error {t : Tree} {node parent : NodeId}
-    {child : Option NodeId} {excl : List NodeId} {e : DOMException} (hwf : WellFormed t)
-    (h : ensurePreInsertionValidity t node parent child excl = .error e) :
-    PreInsertError t node parent child excl e := by
-  have hnv : ¬ PreInsertValid t node parent child excl := fun hok => by
-    rw [(ensurePreInsertionValidity_ok_iff hwf).mpr hok] at h
-    simp at h
-  obtain ⟨e', he'⟩ := preInsertError_of_not_valid hnv
-  have h' := ensurePreInsertionValidity_error_of_preInsertError hwf he'
-  rw [h] at h'
-  rw [← Except.error.inj h'] at he'
-  exact he'
-
-/-- **`.error` と仕様語彙の error 関係は一致する。** -/
+/-- `.error e` と `PreInsertError` の一致。 -/
 theorem ensurePreInsertionValidity_error_iff {t : Tree} {node parent : NodeId}
     {child : Option NodeId} {excl : List NodeId} {e : DOMException} (hwf : WellFormed t) :
     ensurePreInsertionValidity t node parent child excl = .error e ↔
-      PreInsertError t node parent child excl e :=
-  ⟨preInsertError_of_ensurePreInsertionValidity_error hwf,
-    ensurePreInsertionValidity_error_of_preInsertError hwf⟩
+      PreInsertError t node parent child excl e := by
+  unfold PreInsertError
+  exact (preInsertValidity_iff hwf).symm
+
+/-- 仕様語彙の側から実行関数の `.ok` を出す。 -/
+theorem ensurePreInsertionValidity_ok_of_valid {t : Tree} {node parent : NodeId}
+    {child : Option NodeId} {excl : List NodeId} (hwf : WellFormed t)
+    (hv : PreInsertValid t node parent child excl) :
+    ensurePreInsertionValidity t node parent child excl = .ok () :=
+  (ensurePreInsertionValidity_ok_iff hwf).mpr hv
+
+/-- 仕様語彙の側から実行関数の `.error` を出す。 -/
+theorem ensurePreInsertionValidity_error_of_preInsertError {t : Tree} {node parent : NodeId}
+    {child : Option NodeId} {excl : List NodeId} {e : DOMException} (hwf : WellFormed t)
+    (he : PreInsertError t node parent child excl e) :
+    ensurePreInsertionValidity t node parent child excl = .error e :=
+  (ensurePreInsertionValidity_error_iff hwf).mpr he
 
 end Dom

@@ -652,6 +652,27 @@ theorem splitAt?_append_cons_self {α : Type _} [DecidableEq α] {n : α} {A : L
   have h : splitAt? (n :: B) n = some ([], B) := by simp [splitAt?]
   simpa using splitAt?_append_right hnot h
 
+/-- 切った左側には切った要素そのものは入らない。最初の出現で切るからである。 -/
+theorem splitAt?_not_mem_left {α : Type _} [DecidableEq α] {a : α} :
+    ∀ {l u v : List α}, splitAt? l a = some (u, v) → a ∉ u
+  | [], _, _, h => by simp [splitAt?] at h
+  | x :: rest, u, v, h => by
+    simp only [splitAt?] at h
+    split at h
+    · next he =>
+      simp only [Option.some.injEq, Prod.mk.injEq] at h
+      rw [← h.1]
+      simp
+    · next hne =>
+      obtain ⟨q, hq, hab⟩ := Option.map_eq_some_iff.mp h
+      simp only [Prod.mk.injEq] at hab
+      rw [← hab.1]
+      intro hm
+      simp only [List.mem_cons] at hm
+      rcases hm with rfl | hm
+      · exact hne rfl
+      · exact splitAt?_not_mem_left hq hm
+
 /-- 含まれない要素では `splitAt?` は `none` を返す。 -/
 theorem splitAt?_eq_none_of_not_mem {α : Type _} [DecidableEq α] {a : α} :
     ∀ {l : List α}, a ∉ l → splitAt? l a = none

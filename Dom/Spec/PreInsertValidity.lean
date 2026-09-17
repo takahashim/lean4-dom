@@ -2,211 +2,246 @@ import Dom.Basic.State
 import Dom.Basic.Order
 
 /-!
-# pre-insertion validity の関係意味論（§4.2.3 step 1-11）
+# `ensure pre-insert validity` の関係意味論（§4.2.3 step 1-11）
 
-`Dom.Spec.Result` の `PreInsertResult` が「どの入力でどの例外を返すか」まで
-述べるには、validity の成否と例外が要る。実行関数 `ensurePreInsertionValidity`
-をそのまま使うと関係が実装の言い換えになるので、仕様本文から独立に書き写す。
+実行関数 `ensurePreInsertionValidity` をそのまま関係にすると、仕様の step 1-11 を
+読み違えて実装しても関係がその実装に合わせて成り立つ。だからここでは step 1-11 を
+**実行側の関数を呼ばずに**書く。
 
-この module は `Dom.Basic.*` しか import しない。したがって実行側の
-algorithm（`ensurePreInsertionValidity` とその補助検査）を呼びようがない。
-実行関数との一致は `Dom/Properties/PreInsertValidityBridge.lean` で別に証明する。
+条件は `Dom/Basic/` の語彙（`childrenOf` / `parentOf` / `kindOf` / `InclusiveAncestor`）
+と list の所属だけで書き、`elementChildren` や `doctypeFollows` のような実行側の helper は
+使わない。この file は `Dom.Basic.*` しか import しないので、import graph がそのまま
+「実行側を呼びようがない」ことの保証になっている。
 
-## 構成
+制御の流れ（どの step が先か、どこで return するか）は仕様の `<ol>` の形をそのまま写し、
+`Step` / `Return` / `Branch` / `Done` の四つの combinator で組む。この形だと関係が
+**構造的に結果を一つに決める**（`preInsertValidity_deterministic`）ので、実行側に触れずに
+一意性が言える。実行関数がこの関係を満たすこと（soundness）と、逆にこの関係を満たす結果が
+実行関数の結果そのものであることは `Dom/Properties/PreInsertValidityBridge.lean` で示す。
 
-| 定義 | 仕様の step |
-| --- | --- |
-| `PreInsertValid` | 1-11 を全部通る |
-| `PreInsertError` | どの step でどの例外になるか（先に落ちる step が優先） |
+`PreInsertValid` / `PreInsertError` は、この結果の関係を使いやすい pre/post 条件の形に
+開いた略記である（それぞれ `.ok ()` と `.error e` の場合）。
 
-`PreInsertError` は優先順位を「先の step を通ること」で表す。たとえば step 4 の
-枝は step 1-3 を通ることを連言に含むので、step 1-3 で落ちる入力とは排他になる。
+## 「following」「preceding」の読み
+
+step 9 の「a doctype is following child」と step 11 の「an element is preceding child」の
+`following` / `preceding` は、仕様では**木の順序**である。ここでは
+**`parent` の children の中での前後**として書いた。両者が一致するのは
+「doctype と element の親は Document だけ」という構造上の制約による。
+その差は `DoctypeFollowing` / `ElementPreceding` の doc comment に書いてある。
 -/
 
 namespace Dom.Spec
 
 open Dom
 
-/-! ## step 2-3：reference child -/
+/-! ## 条件の語彙 -/
+
+/-- node が木にあり、kind が `k` であること。 -/
+def KindIs (t : Tree) (n : NodeId) (k : NodeKind) : Prop :=
+  ∃ d, t.get? n = some d ∧ d.kind = k
+
+/-- node が木にあること。 -/
+def InTree (t : Tree) (n : NodeId) : Prop := ∃ d, t.get? n = some d
+
+/-- node が Text（`CDATASection` を含む）であること。 -/
+def IsText (t : Tree) (n : NodeId) : Prop :=
+  ∃ d, t.get? n = some d ∧ d.kind.isText = true
+
+/-- node が CharacterData であること。 -/
+def IsCharacterData (t : Tree) (n : NodeId) : Prop :=
+  ∃ d, t.get? n = some d ∧ d.kind.isCharacterData = true
+
+/-- step 1。parent は Document / DocumentFragment / Element である。 -/
+def ParentIsContainer (t : Tree) (parent : NodeId) : Prop :=
+  KindIs t parent .document ∨ KindIs t parent .documentFragment ∨ KindIs t parent .element
+
+/-- step 3。reference child があれば `parent` の子である。 -/
+def ChildIsChildOf (t : Tree) (child : Option NodeId) (parent : NodeId) : Prop :=
+  ∀ c, child = some c → parentOf t c = some parent
+
+/-- step 4。入れられるのは DocumentFragment / DocumentType / Element / CharacterData。 -/
+def NodeIsInsertable (t : Tree) (node : NodeId) : Prop :=
+  KindIs t node .documentFragment ∨ KindIs t node .documentType ∨
+    KindIs t node .element ∨ IsCharacterData t node
+
+/-- `p` が kind `k` の子を持つこと。 -/
+def HasChildOfKind (t : Tree) (p : NodeId) (k : NodeKind) : Prop :=
+  ∃ c ∈ childrenOf t p, KindIs t c k
+
+/-- `p` が `excl` に入っていない kind `k` の子を持つこと。 -/
+def HasChildOfKindOutside (t : Tree) (p : NodeId) (k : NodeKind) (excl : List NodeId) : Prop :=
+  ∃ c ∈ childrenOf t p, KindIs t c k ∧ c ∉ excl
+
+/-- `p` が Text の子を持つこと。 -/
+def HasTextChild (t : Tree) (p : NodeId) : Prop := ∃ c ∈ childrenOf t p, IsText t c
+
+/-- step 8.1。`p` が element の子を二つ以上持つこと。 -/
+def HasTwoElementChildren (t : Tree) (p : NodeId) : Prop :=
+  ∃ a ∈ childrenOf t p, ∃ b ∈ childrenOf t p, a ≠ b ∧ KindIs t a .element ∧ KindIs t b .element
+
+/--
+step 9 の「a doctype is following child」。
+
+仕様の `following` は木の順序だが、ここでは `parent` の children の中での後ろとして
+書いた。doctype の親は Document だけ（§4.1 の制約）で、木に Document は一つしか
+無いので、`parent` が Document のとき両者は一致する。
+step 9 へ来ているのは `parent` が Document のときだけである（step 5 が分岐する）。
+
+`A ++ c :: B` の形に `c ∉ A` を付けてあるのは「`c` の位置で切る」と言うためである。
+children に重複が無いので条件としては同じで、`splitAt?` の意味とも合う。
+-/
+def DoctypeFollowing (t : Tree) (parent c : NodeId) : Prop :=
+  ∃ A B, childrenOf t parent = A ++ c :: B ∧ c ∉ A ∧ ∃ d ∈ B, KindIs t d .documentType
+
+/-- step 11 の「an element is preceding child」。読みは `DoctypeFollowing` と同じである。 -/
+def ElementPreceding (t : Tree) (parent c : NodeId) : Prop :=
+  ∃ A B, childrenOf t parent = A ++ c :: B ∧ c ∉ A ∧ ∃ d ∈ A, KindIs t d .element
+
+/-- step 9.1。DocumentFragment と Element を Document に入れるときの三条件。 -/
+def ElementInsertionBlocked (t : Tree) (parent : NodeId) (child : Option NodeId)
+    (excl : List NodeId) : Prop :=
+  HasChildOfKindOutside t parent .element excl ∨
+    (∃ c, child = some c ∧ DoctypeFollowing t parent c) ∨
+    (∃ c, child = some c ∧ KindIs t c .documentType ∧ c ∉ excl)
+
+/-- step 11。doctype を Document に入れるときの三条件。 -/
+def DoctypeInsertionBlocked (t : Tree) (parent : NodeId) (child : Option NodeId)
+    (excl : List NodeId) : Prop :=
+  HasChildOfKindOutside t parent .documentType excl ∨
+    (∃ c, child = some c ∧ ElementPreceding t parent c) ∨
+    (child = none ∧ HasChildOfKindOutside t parent .element excl)
+
+/-! ## 制御の流れ -/
+
+/-- 検査が終わって成功すること。 -/
+def Done (r : Except DOMException Unit) : Prop := r = .ok ()
+
+/-- 「`p` なら例外 `e`、でなければ次へ」。仕様の "If ... then throw ..." である。 -/
+def Step (p : Prop) (e : DOMException) (next : Except DOMException Unit → Prop)
+    (r : Except DOMException Unit) : Prop :=
+  (p ∧ r = .error e) ∨ (¬ p ∧ next r)
+
+/-- 「`p` なら return、でなければ次へ」。仕様の "If ... then return" である。 -/
+def Return (p : Prop) (next : Except DOMException Unit → Prop)
+    (r : Except DOMException Unit) : Prop :=
+  (p ∧ Done r) ∨ (¬ p ∧ next r)
+
+/-- 「`p` なら `a`、でなければ `b`」。 -/
+def Branch (p : Prop) (a b : Except DOMException Unit → Prop)
+    (r : Except DOMException Unit) : Prop :=
+  (p ∧ a r) ∨ (¬ p ∧ b r)
+
+/-- 「その関係は結果を一つに決める」。 -/
+def Deterministic (f : Except DOMException Unit → Prop) : Prop :=
+  ∀ r₁ r₂, f r₁ → f r₂ → r₁ = r₂
+
+theorem Done_deterministic : Deterministic Done := by
+  intro r₁ r₂ h₁ h₂; rw [h₁, h₂]
+
+theorem Step_deterministic {p : Prop} {e : DOMException}
+    {next : Except DOMException Unit → Prop} (h : Deterministic next) :
+    Deterministic (Step p e next) := by
+  rintro r₁ r₂ (⟨hp₁, rfl⟩ | ⟨hp₁, hn₁⟩) (⟨hp₂, rfl⟩ | ⟨hp₂, hn₂⟩)
+  · rfl
+  · exact absurd hp₁ hp₂
+  · exact absurd hp₂ hp₁
+  · exact h _ _ hn₁ hn₂
+
+theorem Return_deterministic {p : Prop} {next : Except DOMException Unit → Prop}
+    (h : Deterministic next) : Deterministic (Return p next) := by
+  rintro r₁ r₂ (⟨hp₁, hd₁⟩ | ⟨hp₁, hn₁⟩) (⟨hp₂, hd₂⟩ | ⟨hp₂, hn₂⟩)
+  · rw [hd₁, hd₂]
+  · exact absurd hp₁ hp₂
+  · exact absurd hp₂ hp₁
+  · exact h _ _ hn₁ hn₂
+
+theorem Branch_deterministic {p : Prop} {a b : Except DOMException Unit → Prop}
+    (ha : Deterministic a) (hb : Deterministic b) : Deterministic (Branch p a b) := by
+  rintro r₁ r₂ (⟨hp₁, hn₁⟩ | ⟨hp₁, hn₁⟩) (⟨hp₂, hn₂⟩ | ⟨hp₂, hn₂⟩)
+  · exact ha _ _ hn₁ hn₂
+  · exact absurd hp₁ hp₂
+  · exact absurd hp₂ hp₁
+  · exact hb _ _ hn₁ hn₂
+
+/-! ## 全体 -/
+
+/--
+**§4.2.3 "ensure pre-insert validity" の関係意味論。**
+
+仕様の `<ol>` をそのまま写した形である。先頭の二つ（parent と node が木にあること）は
+model の追加で、仕様の algorithm は node object を受け取るので存在を前提にしている。
+-/
+def PreInsertValidity (t : Tree) (node parent : NodeId) (child : Option NodeId)
+    (excl : List NodeId) : Except DOMException Unit → Prop :=
+  -- model の追加：parent と node が木にあること
+  Step (¬ InTree t parent) .notFoundError <|
+  Step (¬ InTree t node) .notFoundError <|
+  -- step 1
+  Step (¬ ParentIsContainer t parent) .hierarchyRequestError <|
+  -- step 2
+  Step (InclusiveAncestor t node parent) .hierarchyRequestError <|
+  -- step 3
+  Step (¬ ChildIsChildOf t child parent) .notFoundError <|
+  -- step 4
+  Step (¬ NodeIsInsertable t node) .hierarchyRequestError <|
+  -- step 5
+  Branch (¬ KindIs t parent .document)
+    (Step (KindIs t node .documentType) .hierarchyRequestError Done)
+    -- step 6
+    (Step (IsText t node) .hierarchyRequestError <|
+     -- step 7
+     Return (IsCharacterData t node) <|
+     -- step 8
+     Branch (KindIs t node .documentFragment)
+       (Step (HasTwoElementChildren t node ∨ HasTextChild t node) .hierarchyRequestError <|
+        Return (¬ HasChildOfKind t node .element) <|
+        Step (ElementInsertionBlocked t parent child excl) .hierarchyRequestError Done)
+       -- step 9
+       (Branch (KindIs t node .element)
+          (Step (ElementInsertionBlocked t parent child excl) .hierarchyRequestError Done)
+          -- step 10-11（node は doctype）
+          (Step (DoctypeInsertionBlocked t parent child excl) .hierarchyRequestError Done)))
+
+/--
+**関係は結果を一つに決める。**
+
+combinator ごとの補題を組むだけである。`Step` / `Return` / `Branch` のどれも
+条件が `Prop` なので、両側が同じ枝を取る。実行関数には触れない。
+-/
+theorem preInsertValidity_deterministic (t : Tree) (node parent : NodeId)
+    (child : Option NodeId) (excl : List NodeId) :
+    Deterministic (PreInsertValidity t node parent child excl) :=
+  Step_deterministic <| Step_deterministic <| Step_deterministic <| Step_deterministic <|
+  Step_deterministic <| Step_deterministic <|
+  Branch_deterministic (Step_deterministic Done_deterministic) <|
+  Step_deterministic <| Return_deterministic <|
+  Branch_deterministic
+    (Step_deterministic (Return_deterministic (Step_deterministic Done_deterministic)))
+    (Branch_deterministic (Step_deterministic Done_deterministic)
+      (Step_deterministic Done_deterministic))
+
+/-! ## pre-insert step 2-3：reference child -/
 
 /-- §4.2.3 pre-insert step 2-3。`child` が `node` 自身ならその次の兄弟に取り直す。 -/
 def PreInsertRefChild (t : Tree) (node : NodeId) (child : Option NodeId) : Option NodeId :=
   if child = some node then nextSibling t node else child
 
-/-! ## children の分類と tree order -/
-
-/-- `p` の children のうち kind が `k` であるもの。 -/
-def childrenOfKind (t : Tree) (p : NodeId) (k : NodeKind) : List NodeId :=
-  (childrenOf t p).filter fun c => kindOf t c == some k
-
-/-- `p` の children のうち Text であるもの（CDATASection を含む）。 -/
-def textChildrenOf (t : Tree) (p : NodeId) : List NodeId :=
-  (childrenOf t p).filter fun c =>
-    match kindOf t c with
-    | some k => k.isText
-    | none => false
-
-/-- `c` の後ろ（children の並び）に kind `k` の child がある。 -/
-def HasKindAfter (t : Tree) (parent c : NodeId) (k : NodeKind) : Prop :=
-  match Dom.ListUtil.splitAt? (childrenOf t parent) c with
-  | none => False
-  | some (_, tail) => ∃ d, d ∈ tail ∧ kindOf t d = some k
-
-/-- `c` の前（children の並び）に kind `k` の child がある。 -/
-def HasKindBefore (t : Tree) (parent c : NodeId) (k : NodeKind) : Prop :=
-  match Dom.ListUtil.splitAt? (childrenOf t parent) c with
-  | none => False
-  | some (head, _) => ∃ d, d ∈ head ∧ kindOf t d = some k
-
-/-! ## step 8.2 / 9・10-11 の部分検査 -/
+/-! ## pre/post 条件の形 -/
 
 /--
-step 8.2 / step 9。element（または element child を持つ fragment）を入れる条件。
-
-parent の element child が `excl` の外に無く、`child` の位置の後ろに
-excluded でない doctype が来ないこと。
--/
-def ElementInsertionOk (t : Tree) (parent : NodeId) (child : Option NodeId)
-    (excl : List NodeId) : Prop :=
-  (∀ e, e ∈ childrenOfKind t parent .element → e ∈ excl) ∧
-  match child with
-  | none => True
-  | some c =>
-    ¬ HasKindAfter t parent c .documentType ∧
-      (kindOf t c = some .documentType → c ∈ excl)
-
-/--
-step 10-11。doctype を入れる条件。
-
-parent の doctype child が `excl` の外に無く、`child` の位置より前に element が
-無く、`child` が null なら parent に element child が無いこと。
--/
-def DoctypeInsertionOk (t : Tree) (parent : NodeId) (child : Option NodeId)
-    (excl : List NodeId) : Prop :=
-  (∀ d, d ∈ childrenOfKind t parent .documentType → d ∈ excl) ∧
-  match child with
-  | none => ∀ e, e ∈ childrenOfKind t parent .element → e ∈ excl
-  | some c => ¬ HasKindBefore t parent c .element
-
-/-! ## step 1-11 を通ること -/
-
-/-- step 4 が許す node の kind。 -/
-def PreNodeKindOk (nd : NodeData) : Prop :=
-  nd.kind = .documentFragment ∨ nd.kind = .documentType ∨ nd.kind = .element ∨
-    nd.kind.isCharacterData = true
-
-/-- step 5 が許す parent と node の組。 -/
-def PreDoctypeParentOk (pd nd : NodeData) : Prop :=
-  nd.kind = .documentType → pd.kind = .document
-
-/-- step 6 が禁じるもの。 -/
-def PreNoTextInDocument (pd nd : NodeData) : Prop :=
-  pd.kind = .document → nd.kind.isText = false
-
-/-- step 6-11 のうち、parent が Document のときにだけ効く条件。 -/
-def PreInsertDocumentOk (t : Tree) (node parent : NodeId) (child : Option NodeId)
-    (excl : List NodeId) (_pd nd : NodeData) : Prop :=
-  (nd.kind = .documentFragment →
-    (childrenOfKind t node .element).length ≤ 1 ∧ textChildrenOf t node = []) ∧
-  ((nd.kind = .element ∨
-      (nd.kind = .documentFragment ∧ childrenOfKind t node .element ≠ [])) →
-    ElementInsertionOk t parent child excl) ∧
-  (nd.kind = .documentType → DoctypeInsertionOk t parent child excl)
-
-/-- step 1-11 を通ることを、parent と node の data を固定して書いたもの。 -/
-def PreInsertValidCore (t : Tree) (node parent : NodeId) (child : Option NodeId)
-    (excl : List NodeId) (pd nd : NodeData) : Prop :=
-  t.get? parent = some pd ∧ t.get? node = some nd ∧
-    pd.kind.canHaveChildren = true ∧
-    ¬ InclusiveAncestor t node parent ∧
-    (∀ c, child = some c → parentOf t c = some parent) ∧
-    PreNodeKindOk nd ∧
-    PreDoctypeParentOk pd nd ∧
-    PreNoTextInDocument pd nd ∧
-    (pd.kind = .document → PreInsertDocumentOk t node parent child excl pd nd)
-
-/--
-**§4.2.3 pre-insertion validity を全部通る。**
-
-順序を持たない連言である。どの例外になるかは `PreInsertError` が持つ。
-
-step 5 は「parent が Document でなければ、doctype のときだけ落ちて、あとは return」
-なので、step 6-11 は parent が Document のときにだけ効く。
+step 1-11 を通ること。`PreInsertValidity` の `.ok ()` を開いた略記である。
 -/
 def PreInsertValid (t : Tree) (node parent : NodeId) (child : Option NodeId)
     (excl : List NodeId) : Prop :=
-  ∃ pd nd, PreInsertValidCore t node parent child excl pd nd
-
-/-! ## どの step で落ちるか -/
-
-/-- step 1-2 のうち、parent と node が在り parent が children を持てること（step 1 まで通る）。 -/
-def PreBase (t : Tree) (node parent : NodeId) (pd nd : NodeData) : Prop :=
-  t.get? parent = some pd ∧ t.get? node = some nd ∧ pd.kind.canHaveChildren = true
-
-/-- step 1-3 を通る。 -/
-def PreP123 (t : Tree) (node parent : NodeId) (child : Option NodeId)
-    (pd nd : NodeData) : Prop :=
-  PreBase t node parent pd nd ∧ ¬ InclusiveAncestor t node parent ∧
-    (∀ c, child = some c → parentOf t c = some parent)
-
-/-- step 1-4 を通る。 -/
-def PreP1234 (t : Tree) (node parent : NodeId) (child : Option NodeId)
-    (pd nd : NodeData) : Prop :=
-  PreP123 t node parent child pd nd ∧ PreNodeKindOk nd
-
-/-- step 1-5 を通る。 -/
-def PreP12345 (t : Tree) (node parent : NodeId) (child : Option NodeId)
-    (pd nd : NodeData) : Prop :=
-  PreP1234 t node parent child pd nd ∧ PreDoctypeParentOk pd nd
-
-/-- step 1-6 を通る。 -/
-def PreP123456 (t : Tree) (node parent : NodeId) (child : Option NodeId)
-    (pd nd : NodeData) : Prop :=
-  PreP12345 t node parent child pd nd ∧ PreNoTextInDocument pd nd
+  PreInsertValidity t node parent child excl (.ok ())
 
 /--
-**§4.2.3 pre-insertion validity がどの例外で落ちるか。**
-
-枝は優先順位を表す。先に落ちる step の枝は、後ろの step の枝の前提（先の step を
-通ること）を満たさない。同じ step に属する二つの枝（8.1 と 8.2/9）は同じ例外を
-持つので、どの入力でも成り立つ `e` は高々一つに定まる。
+どの例外で落ちるか。`PreInsertValidity` の `.error e` を開いた略記である。
+優先順位は `PreInsertValidity` の制御の流れが表す。
 -/
 def PreInsertError (t : Tree) (node parent : NodeId) (child : Option NodeId)
     (excl : List NodeId) (e : DOMException) : Prop :=
-  -- parent が無い
-  (t.get? parent = none ∧ e = .notFoundError) ∨
-  -- node が無い
-  (∃ pd, t.get? parent = some pd ∧ t.get? node = none ∧ e = .notFoundError) ∨
-  -- step 1：parent が children を持てない
-  (∃ pd nd, t.get? parent = some pd ∧ t.get? node = some nd ∧
-    pd.kind.canHaveChildren = false ∧ e = .hierarchyRequestError) ∨
-  -- step 2：循環する
-  (∃ pd nd, PreBase t node parent pd nd ∧ InclusiveAncestor t node parent ∧
-    e = .hierarchyRequestError) ∨
-  -- step 3：child の parent が違う
-  (∃ pd nd, PreBase t node parent pd nd ∧ ¬ InclusiveAncestor t node parent ∧
-    (∃ c, child = some c ∧ parentOf t c ≠ some parent) ∧ e = .notFoundError) ∨
-  -- step 4：node の kind が許されない
-  (∃ pd nd, PreP123 t node parent child pd nd ∧ ¬ PreNodeKindOk nd ∧
-    e = .hierarchyRequestError) ∨
-  -- step 5：doctype の parent が Document でない
-  (∃ pd nd, PreP1234 t node parent child pd nd ∧ ¬ PreDoctypeParentOk pd nd ∧
-    e = .hierarchyRequestError) ∨
-  -- step 6：Document に Text
-  (∃ pd nd, PreP12345 t node parent child pd nd ∧ ¬ PreNoTextInDocument pd nd ∧
-    e = .hierarchyRequestError) ∨
-  -- step 8.1：fragment が element を二つ持つか Text を持つ
-  (∃ pd nd, PreP123456 t node parent child pd nd ∧ pd.kind = .document ∧
-    nd.kind = .documentFragment ∧
-    (1 < (childrenOfKind t node .element).length ∨ textChildrenOf t node ≠ []) ∧
-    e = .hierarchyRequestError) ∨
-  -- step 8.2 / 9：element の挿入条件
-  (∃ pd nd, PreP123456 t node parent child pd nd ∧ pd.kind = .document ∧
-    (nd.kind = .element ∨ (nd.kind = .documentFragment ∧ childrenOfKind t node .element ≠ [])) ∧
-    ¬ ElementInsertionOk t parent child excl ∧ e = .hierarchyRequestError) ∨
-  -- step 10-11：doctype の挿入条件
-  (∃ pd nd, PreP123456 t node parent child pd nd ∧ pd.kind = .document ∧
-    nd.kind = .documentType ∧
-    ¬ DoctypeInsertionOk t parent child excl ∧ e = .hierarchyRequestError)
+  PreInsertValidity t node parent child excl (.error e)
 
 end Dom.Spec

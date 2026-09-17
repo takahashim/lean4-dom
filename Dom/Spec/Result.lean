@@ -140,9 +140,11 @@ theorem nodesToInsert_not_ancestor_of_validity {t : Tree} (hwf : WellFormed t)
     (hv : PreInsertValid t node parent child excl) :
     ∀ ns : List NodeId, NodesToInsert t node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor t m parent := by
-  obtain ⟨_, nd, hcore⟩ := hv
-  obtain ⟨_, hnd, _, hanc, _, _, _, _, _⟩ := hcore
-  have hnotanc : ¬ InclusiveAncestor t node parent := hanc
+  have hv' : ensurePreInsertionValidity t node parent child excl = .ok () :=
+    (preInsertValidity_iff hwf).mp hv
+  obtain ⟨-, ⟨nd, hnd⟩, hanc, -⟩ := ensurePreInsertionValidity_ok hv'
+  have hnotanc : ¬ InclusiveAncestor t node parent :=
+    (isInclusiveAncestorOf_eq_false_iff hwf node parent).mp hanc
   intro ns hns m hm
   obtain ⟨nd', hnd', hcase⟩ := hns
   rw [hnd] at hnd'
@@ -168,8 +170,8 @@ theorem nodesToInsert_not_ancestor_of_validity {t : Tree} (hwf : WellFormed t)
 `insertBefore` と `appendChild` はこれに委譲するだけである。
 
 validity は実行関数 `ensurePreInsertionValidity` ではなく、仕様本文から独立に
-書き写した `PreInsertValid` / `PreInsertError` で述べる
-（一致は `Dom/Properties/PreInsertValidityBridge.lean`）。
+書き写した `PreInsertValidity`（その `.ok ()` / `.error e` を開いた `PreInsertValid` /
+`PreInsertError`）で述べる（一致は `Dom/Properties/PreInsertValidityBridge.lean`）。
 -/
 def PreInsertResult (s : DOMState) (node parent : NodeId) (child : Option NodeId) :
     Except DOMException DOMState → Prop
@@ -201,24 +203,18 @@ theorem preInsert_result_deterministic {s : DOMState} (hwf : WellFormed s.tree)
       exact nodesToInsert_not_ancestor_of_validity hwf h₁.1
     | error e₂ =>
       exfalso
-      have hok := ensurePreInsertionValidity_ok_of_valid hwf h₁.1
-      have herr := ensurePreInsertionValidity_error_of_preInsertError hwf h₂
-      rw [hok] at herr
-      simp at herr
+      have hEq := preInsertValidity_deterministic s.tree node parent child [] _ _ h₁.1 h₂
+      cases hEq
   | error e₁ =>
     cases r₂ with
     | ok s₂ =>
       exfalso
-      have hok := ensurePreInsertionValidity_ok_of_valid hwf h₂.1
-      have herr := ensurePreInsertionValidity_error_of_preInsertError hwf h₁
-      rw [hok] at herr
-      simp at herr
+      have hEq := preInsertValidity_deterministic s.tree node parent child [] _ _ h₂.1 h₁
+      cases hEq
     | error e₂ =>
       show e₁ = e₂
-      have h1e := ensurePreInsertionValidity_error_of_preInsertError hwf h₁
-      have h2e := ensurePreInsertionValidity_error_of_preInsertError hwf h₂
-      rw [h1e] at h2e
-      exact Except.error.inj h2e
+      exact Except.error.inj
+        (preInsertValidity_deterministic s.tree node parent child [] _ _ h₁ h₂)
 
 /-- **完全性も結果の水準で言える。** -/
 theorem preInsert_result_complete {s : DOMState} (hwf : WellFormed s.tree)
