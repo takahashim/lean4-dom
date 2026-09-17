@@ -302,6 +302,13 @@ open Dom.Audit
   Dom.moveValidity_ok_child
   Dom.moveValidity_parentOf_isSome
   Dom.preRemove_succeeds_iff
+  Dom.insertEach_isOk
+  Dom.removeEach_isOk
+  Dom.insertNodesAt_isOk_of_insertable
+  Dom.insert_isOk_of_validity
+  Dom.preInsert_succeeds_iff
+  Dom.preInsert_error_iff
+  Dom.append_succeeds_iff
   Dom.preRemove_error_iff
   Dom.Spec.move_isOk_of_spec
   Dom.Spec.move_complete

@@ -4922,9 +4922,27 @@ walker を一つ足した状態、listener を一つ足した状態、detach さ
 step 1 を通れば残るのは `remove` で、`remove` は parent があれば必ず成功するので、
 **`removeChild` が返す例外は step 1 の `NotFoundError` だけ**だと言える。
 
-`insertBefore` / `replaceChild` / `moveBefore` の側は「validity を通れば必ず成功する」
-まで言えていない。`insert` の成功は fragment の children ひとつずつについて
-`insertAt` の四つの前提が要り、それは `insertEach_complete` と同規模の帰納になる。
+`insertBefore` と `appendChild` の側も両側にした。芯は
+**`insert_isOk_of_validity`（pre-insertion validity を通れば `insert` は落ちない）**で、
+これが無いと「失敗するのは step 1 だけ」と言えない。
+
+そのために `Insertable`（`Dom/Properties/InsertOk.lean`）を置いた。`insertAt` の
+四つの前提を**列の全要素について**述べた不変条件で、`adopt` の step 2（parent があれば
+外す）・`setOwnerDocument`・`insertAt` のそれぞれで保たれることを示す。
+`nodup` が要るのは同じ node を二度入れると二度目に parent を持っているからで、
+「reference child が入れる列に入っていない」が要るのは、入っていると adopt した拍子に
+`parent` の子でなくなって `insertAt` の step 4 が落ちるからである。
+
+fragment の枝では step 4 の `removeEach` も落ちないことが要る
+（`removeEach_isOk`：同じ parent を持つ node の列は順に外せる）。
+
+**`child` が `node` 自身の場合だけ除いてある。** そのとき step 2-3 が reference child を
+`node` の次の兄弟に取り替えるので、validity を取り替えた側で読み直す必要があり、
+`ensurePreInsertionValidity_child_congr` の前提（element と doctype の検査が移ること）を
+別に示さなければならない。`appendChild`（`child = none`）はこの場合に当たらないので
+`append_succeeds_iff` に除外は無い。
+
+`replaceChild` / `moveBefore` の側はまだである。
 
 その途中で、`move` の本体に書いてあった
 「step 7-9 の assert（`oldParent` が非 null）は step 1-2 から従う」という**主張だけあって

@@ -56,6 +56,8 @@ import Dom.Validity.RangeApi
 import Dom.Validity.Walkers
 import Dom.Properties.Record
 import Dom.Properties.Contract
+import Dom.Properties.InsertOk
+import Dom.Properties.InsertContract
 import Dom.Mutation.Create
 import Dom.Properties.Create
 import Dom.Validity.Create
