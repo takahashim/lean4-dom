@@ -26,9 +26,12 @@ import Dom.Basic.Order
 
 step 9 の「a doctype is following child」と step 11 の「an element is preceding child」の
 `following` / `preceding` は、仕様では**木の順序**である。ここでは
-**`parent` の children の中での前後**として書いた。両者が一致するのは
-「doctype と element の親は Document だけ」という構造上の制約による。
-その差は `DoctypeFollowing` / `ElementPreceding` の doc comment に書いてある。
+**`parent` の children の中での前後**として書いた。
+
+**両者が一致することは証明してある**（`Dom/Spec/PreInsertValidityOrder.lean` の
+`doctypeFollowing_iff_precedes` / `elementPreceding_iff_precedes`）。
+step 9 / step 11 の文脈、つまり `parent` が Document で `child` がその子であるときに、
+`StructurallyValid` の下で成り立つ。
 -/
 
 namespace Dom.Spec
@@ -87,6 +90,7 @@ step 9 の「a doctype is following child」。
 書いた。doctype の親は Document だけ（§4.1 の制約）で、木に Document は一つしか
 無いので、`parent` が Document のとき両者は一致する。
 step 9 へ来ているのは `parent` が Document のときだけである（step 5 が分岐する）。
+木順との一致は `doctypeFollowing_iff_precedes`（`Dom/Spec/PreInsertValidityOrder.lean`）にある。
 
 `A ++ c :: B` の形に `c ∉ A` を付けてあるのは「`c` の位置で切る」と言うためである。
 children に重複が無いので条件としては同じで、`splitAt?` の意味とも合う。
@@ -94,7 +98,12 @@ children に重複が無いので条件としては同じで、`splitAt?` の意
 def DoctypeFollowing (t : Tree) (parent c : NodeId) : Prop :=
   ∃ A B, childrenOf t parent = A ++ c :: B ∧ c ∉ A ∧ ∃ d ∈ B, KindIs t d .documentType
 
-/-- step 11 の「an element is preceding child」。読みは `DoctypeFollowing` と同じである。 -/
+/--
+step 11 の「an element is preceding child」。読みは `DoctypeFollowing` と同じである。
+
+element は木のどこにでもあるが、Document の子で子孫を持つものは element しかないので、
+木順との一致はやはり言える（`elementPreceding_iff_precedes`）。
+-/
 def ElementPreceding (t : Tree) (parent c : NodeId) : Prop :=
   ∃ A B, childrenOf t parent = A ++ c :: B ∧ c ∉ A ∧ ∃ d ∈ A, KindIs t d .element
 

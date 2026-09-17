@@ -5161,8 +5161,27 @@ validity は仕様本文（§4.2.3 step 1-11）から独立に書き写すべき
 ほか）は bridge 側の補題として示す。関係の定義は実行側を呼ばないが、bridge の定理は
 両方に触れてよい（`spec_dependence.rb` が見るのは `Dom/Spec/` の `def` の本体だけ）。
 
-step 9 の following と step 11 の preceding の読みの差（木の順序か children の中の前後か）は
-`DoctypeFollowing` / `ElementPreceding` の doc comment に書いてある。
+#### 読みの差は証明で埋めた
+
+step 9 の「a doctype is following child」と step 11 の「an element is preceding child」の
+`following` / `preceding` は、仕様では**木の順序**である。関係では `parent` の
+children の中での前後として書いた。**その二つが一致することを証明した**
+（`Dom/Spec/PreInsertValidityOrder.lean`）。
+
+* **doctype 側**（`doctypeFollowing_iff_precedes`）：doctype の親は Document だけで
+  （`doctypeParentIsDocument`）、Document は parent を持たない
+  （`documentHasNoParent`）。だから木順で `child` の後ろに来る doctype は
+  `child` の後ろの兄弟でしかない。
+* **element 側**（`elementPreceding_iff_precedes`）：element は木のどこにでもあるので、
+  `child` より前の兄弟の**子孫**が element ということがありうる。しかし子を持てるのは
+  Document / DocumentFragment / Element だけで（`childrenOnlyUnderContainers`）、
+  Document の子は Document でも DocumentFragment でもない。つまり子孫を持つ兄弟は
+  element そのものなので、やはり element の兄弟が前にいる。
+
+どちらも `PrecedesStruct`（`Dom/Properties/Tree.lean` の木順序）との同値で、
+前提は `StructurallyValid` と「`parent` が Document で `child` がその子」である。
+
+これで `Dom/Spec/PreInsertValidity.lean` の関係は仕様の字義どおりだと言える。
 
 ## 未着手
 

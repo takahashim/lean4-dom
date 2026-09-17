@@ -95,6 +95,7 @@ import Dom.Spec.MoveSound
 import Dom.Spec.MoveCongr
 import Dom.Spec.Complete
 import Dom.Spec.PreInsertValidity
+import Dom.Spec.PreInsertValidityOrder
 import Dom.Properties.PreInsertValidityBridge
 import Dom.Spec.Result
 import Dom.Properties.Counterexample
