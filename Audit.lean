@@ -361,6 +361,8 @@ open Dom.Audit
   Dom.Spec.elementPreceding_iff
   Dom.Spec.hasTwoElementChildren_iff
   Dom.ListUtil.splitAt?_not_mem_left
+  Dom.Spec.doctypeFollowing_iff_precedes
+  Dom.Spec.elementPreceding_iff_precedes
   Dom.Spec.spliceData?_of_dataSpliced
   Dom.Spec.characterDataRecordQueued_unique
   Dom.Utf16.splitAt?_of_split

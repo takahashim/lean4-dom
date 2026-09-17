@@ -5150,14 +5150,27 @@ step 2-3 の reference child も `preInsertReferenceChild` を呼ばずに
 これで `PreInsertResult` は `spec_dependence.rb` に出なくなり、
 **例外の種類まで含めて関係が決める**と言えるようになった。
 
-#### 残した読みの差
+#### 読みの差は証明で埋めた
 
 step 9 の「a doctype is following child」と step 11 の「an element is preceding child」の
-`following` / `preceding` は、仕様では**木の順序**である。関係では
-`parent` の children の中での前後として書いた。両者が一致するのは
-「doctype と element の親は Document だけ」という構造上の制約によるが、
-その同値は証明していない。`DoctypeFollowing` / `ElementPreceding` の doc comment に
-書いてある。
+`following` / `preceding` は、仕様では**木の順序**である。関係では `parent` の
+children の中での前後として書いた。**その二つが一致することを証明した**
+（`Dom/Spec/ValidityOrder.lean`）。
+
+* **doctype 側**（`doctypeFollowing_iff_precedes`）：doctype の親は Document だけで
+  （`doctypeParentIsDocument`）、Document は parent を持たない
+  （`documentHasNoParent`）。だから木順で `child` の後ろに来る doctype は
+  `child` の後ろの兄弟でしかない。
+* **element 側**（`elementPreceding_iff_precedes`）：element は木のどこにでもあるので、
+  `child` より前の兄弟の**子孫**が element ということがありうる。しかし子を持てるのは
+  Document / DocumentFragment / Element だけで（`childrenOnlyUnderContainers`）、
+  Document の子は Document でも DocumentFragment でもない。つまり子孫を持つ兄弟は
+  element そのものなので、やはり element の兄弟が前にいる。
+
+どちらも `PrecedesStruct`（`Dom/Properties/Tree.lean` の木順序）との同値で、
+前提は `StructurallyValid` と「`parent` が Document で `child` がその子」である。
+
+これで `Dom/Spec/Validity.lean` の関係は仕様の字義どおりだと言える。
 
 ### どこまで書けるか
 
