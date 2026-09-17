@@ -3699,7 +3699,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-35 の索引
+## findings 12-36 の索引
 
 Selectors の形式化のあいだに出た findings。どれも固定 scenario を赤のままにしてある
 （不一致を expected に落とすと直ったことに気付けなくなる）。
@@ -3730,6 +3730,7 @@ Selectors の形式化のあいだに出た findings。どれも固定 scenario 
 | 33 | jsdom | `div/* c */p` が通る | `comments-are-removed-by-the-tokenizer` |
 | 34 | jsdom | element に対する scoped query が compound 三つ以上で当たらない | `only-the-subject-must-be-in-scope` |
 | 35 | jsdom | 空の DocumentFragment では selector を parse しない | `selector-is-parsed-before-matching` |
+| 36 | jsdom | `attributeFilter` が namespace 付きの attribute を素通しする | `observer-attribute-filter-skips-namespaced` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -4110,6 +4111,28 @@ Document に `matches()` を呼ぶ、といった scenario が無かったから
 あわせて、仕様の「scope の中に居なければならないのは最後に選ばれる element だけで、
 **残りの部分は制限なく当たってよい**」（§4.4）と、受け手が木から外れている場合・
 `DocumentFragment` の場合も scenario にした。前者で jsdom との差が出た。
+
+### findings 36：`attributeFilter` が namespace 付きの attribute を素通しする（jsdom）
+
+"queue a mutation record" step 2.3 の三つ目の bullet は
+
+> type が `"attributes"` で `options["attributeFilter"]` が存在し、かつ
+> 「`attributeFilter` が name を含まない**または** namespace が非 null」なら continue
+
+である。`attributeFilter` は local name だけを並べた list なので、
+**namespace 付きの attribute はまとめて外れる**。jsdom は前半（名前が一致するか）
+だけを見ていて、namespace が違う同名の attribute まで拾う。
+
+```
+setAttributeNS("http://example.com/ns", "p:data-x")  model/Dommy/happy-dom: 積まない  jsdom: 積む
+setAttribute("data-x")                               全員: 積む
+setAttributeNS(XMLNS ns, "xmlns:data-x")             model/Dommy/happy-dom: 積まない  jsdom: 積む
+```
+
+**model と三つの実装のうち二つが一致し、jsdom だけが外れる。**
+`Dom/Observer/Record.lean` の `Registration.interestedIn` はこの条件を
+`«namespace».isNone` として書いてあり、doc comment にも
+「namespace 付きの attribute は filter では拾えない」と明記してある。
 
 ### findings 35：空の DocumentFragment では selector が検証されない（jsdom）
 
@@ -4745,11 +4768,71 @@ Dommy にも同じ設定（doctype は既定どおり 0）で seed 11-12 × 300 
 （findings 13 / 14 / 16）の**二種類しかなく**、新規は無かった。
 深さを上げても同じ穴に何度も当たるだけで、新しい場所には届かない。
 
-### 差分テストの現状（findings 35 を入れたあと）
+### 差分テストの現状（findings 35・36 を入れたあと）
 
-固定 scenario 156 本に対して、Dommy は 135 一致 / 17 不一致、
-jsdom は 117 一致 / 19 不一致である。どちらも findings を expected に
+固定 scenario 157 本に対して、Dommy は 136 一致 / 17 不一致、
+jsdom は 117 一致 / 20 不一致である。どちらも findings を expected に
 落とさない方針なので赤いままである。
+
+## 生成器が到達しない検査経路を数えて、開けた
+
+`--listeners` の件で「既定で回らない region は見えない」と分かったので、
+**生成器がどこに到達していないか**を測った。生成 scenario 3,000 本・15,364 step を
+model だけで回し、操作ごとの結果を数える。
+
+| 例外 | 修正前 | 修正後 |
+| --- | --- | --- |
+| HierarchyRequestError | 704 | 676 |
+| NotFoundError | 621 | 617 |
+| InvalidNodeTypeError | 391 | 376 |
+| IndexSizeError | 349 | 341 |
+| WrongDocumentError | 214 | 162 |
+| TypeError | 177 | 150 |
+| **InvalidCharacterError** | **0** | **123** |
+| NotSupportedError | 61 | 78 |
+| NamespaceError | 28 | 78 |
+| InUseAttributeError | 69 | 74 |
+| SyntaxError | 31 | 33 |
+
+**`InvalidCharacterError` は一度も出ていなかった。**
+加えて `createElement`（199 回）・`createElementNS`（196）・`createAttributeNS`（196）・
+`importNode`（190）・`observe`（240）は**一度も失敗していなかった**。
+
+### なぜ避けていたか
+
+生成器のコメントにそのまま書いてある。「"validate and extract" が通る組だけを作る」
+「Document を渡すと node が作られないので避ける」である。
+**作る系の操作が失敗すると、生成器が次の node id / `Attr` id を予測できなくなる。**
+以降の操作が id で node を指せなくなるので、失敗しない引数だけを出していた。
+
+### 解き方
+
+生成器は自分が出した引数を知っているので、**必ず失敗する**ことも分かる。
+分かっているなら id の counter を進めなければよいだけである。`certainly_fails?` を
+置き、`CREATE_OPS` と `ATTR_CREATE_OPS` の counter をその判定で飛ばすようにした。
+
+必ず失敗する引数は三つ組にした。
+
+* `BAD_ATTR_NAMES` = `""`, `"a b"`, `"a=b"`, `"a/b"`, `"a>b"`
+  （§1.3 valid attribute local name）
+* `BAD_ELEMENT_NAMES` = `""`, `"1x"`, `"a b"`, `"a>b"`, `"a/b"`
+  （valid element local name。先頭が ASCII alpha なら `=` は許されるので別の list）
+* `BAD_NS_NAMES` = "validate and extract" の step 6 / 8 / 9 / 10 / 11 に一つずつ当たる
+  `(namespace, qualifiedName)` の組
+
+確率は `INVALID_NAME_PROB = 0.2` で、**既定で回す**。
+既定で回らない region を作らないためである。
+
+### 効果
+
+11 種の例外がすべて到達するようになった。jsdom に seed 11-13 × 300 本を当てると
+不一致は 8 件で、うち 6 件は既知（`normalize()` の record の近似と live range の
+引き渡し、transient registered observer）、1 件が **findings 36** である。
+Dommy でも id の予測は崩れておらず、不一致の数は前と変わらない。
+
+findings 36 自体は古い生成器でも到達できた組み合わせ（`setAttributeNS` に
+XMLNS namespace と `xmlns:` prefix、observer 側に `attributeFilter`）で、
+**生成器を変えて乱数列がずれた結果**当たった。新しい経路が直接見つけたものではない。
 
 ## 未着手
 

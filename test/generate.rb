@@ -111,6 +111,25 @@ module Generate
   # 空白を含む値を混ぜるのは `[attr~=value]` と複数 class を撫でるためである。
   ATTR_VALUES = ["", "1", "vv", "u v"].freeze
 
+  # **必ず失敗する**名前。
+  #
+  # 生成器がこれを出したときは node も `Attr` も作られないと分かるので、
+  # id の予測（`next_id` / `attr_next`）を崩さずに検査の**失敗側**を撫でられる。
+  # 作る系の操作が今まで成功しかしなかったのはこの予測のためで、
+  # `InvalidCharacterError` は 15,000 step 回しても一度も出なかった。
+  #
+  # §1.3 valid attribute local name は「空でなく、ASCII whitespace・NUL・
+  # `/`・`=`・`>` を含まない」。valid element local name は先頭が ASCII alpha なら
+  # `=` を許すので、element 側は別に並べる。
+  BAD_ATTR_NAMES = ["", "a b", "a=b", "a/b", "a>b"].freeze
+  BAD_ELEMENT_NAMES = ["", "1x", "a b", "a>b", "a/b"].freeze
+
+  # 名前を不正にする確率。既定で回す。
+  #
+  # 既定で回らない region は、そこに欠陥があっても見えないままになる
+  # （`docs/status.md` の「差分テストが偽の不一致を作っていた」）。
+  INVALID_NAME_PROB = 0.2
+
   # element の local name。SVG namespace のものも混ぜて、
   # 「HTML namespace の element だけが attribute 名を lowercase する」分岐を撫でる。
   ELEMENT_NAMES = %w[div span p].freeze
@@ -129,6 +148,34 @@ module Generate
   XML_NS = "http://www.w3.org/XML/1998/namespace"
   XMLNS_NS = "http://www.w3.org/2000/xmlns/"
   ATTR_NAMESPACES = [nil, "http://example.com/ns", XML_NS, XMLNS_NS].freeze
+
+  # **必ず失敗する** (namespace, qualifiedName) の組。
+  # 上から §1.3 "validate and extract" の step 6 / 8 / 9 / 10 / 11 に当たる。
+  # local name の `"a b"` は attribute でも element でも不正なので、
+  # createElementNS と createAttributeNS の両方に使える。
+  BAD_NS_NAMES = [
+    [nil, "a b"],
+    [nil, "p:a"],
+    ["http://example.com/ns", "xml:a"],
+    ["http://example.com/ns", "xmlns"],
+    [XMLNS_NS, "p:a"]
+  ].freeze
+
+  # その操作が**必ず失敗する**（= node も `Attr` も作らない）か。
+  #
+  # 失敗すると分かっていれば id の counter を進めなくてよい。
+  # 判定は生成した引数だけで決まるので、木の状態は要らない
+  # （`importNode` だけは渡す node の kind を見る）。
+  def self.certainly_fails?(op, kinds)
+    case op["op"]
+    when "createElement" then BAD_ELEMENT_NAMES.include?(op["localName"])
+    when "createAttribute" then BAD_ATTR_NAMES.include?(op["name"])
+    when "createElementNS", "createAttributeNS"
+      BAD_NS_NAMES.include?([op["namespace"], op["name"]])
+    when "importNode" then kinds[op["node"]] == "document"
+    else false
+    end
+  end
 
   SPEC_OPS = {
     "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS + SELECTOR_PARENT_OPS,
@@ -431,7 +478,8 @@ module Generate
       { "op" => op, "node" => pick.call,
         "data" => ["", "pq", "rstu", ASTRAL, "p#{ASTRAL}q"][rng.rand(5)] }
     when "setAttribute"
-      { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng),
+      names = rng.rand < INVALID_NAME_PROB ? BAD_ATTR_NAMES : ATTR_OP_NAMES
+      { "op" => op, "element" => pick.call, "name" => names.sample(random: rng),
         "value" => ATTR_VALUES.sample(random: rng) }
     when "setAttributeNS"
       ns, qn = random_ns_and_qualified_name(rng)
@@ -444,7 +492,8 @@ module Generate
         "namespace" => ATTR_NAMESPACES.sample(random: rng),
         "name" => ATTR_NAMES.sample(random: rng) }
     when "toggleAttribute"
-      { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng),
+      names = rng.rand < INVALID_NAME_PROB ? BAD_ATTR_NAMES : ATTR_OP_NAMES
+      { "op" => op, "element" => pick.call, "name" => names.sample(random: rng),
         "force" => [nil, true, false].sample(random: rng) }
     when "moveBefore"
       { "op" => op, "parent" => pick.call, "node" => maybe.call,
@@ -482,18 +531,30 @@ module Generate
     doc = docs.sample(random: rng)
     case op
     when "createElement"
-      { "op" => op, "document" => doc, "localName" => ELEMENT_NAMES.sample(random: rng) }
+      names = rng.rand < INVALID_NAME_PROB ? BAD_ELEMENT_NAMES : ELEMENT_NAMES
+      { "op" => op, "document" => doc, "localName" => names.sample(random: rng) }
     when "createElementNS"
-      ident = element_identity(rng)
-      qn = ident["prefix"] ? "#{ident['prefix']}:#{ident['localName']}" : ident["localName"]
-      { "op" => op, "document" => doc, "namespace" => ident["namespace"], "name" => qn }
+      if rng.rand < INVALID_NAME_PROB
+        ns, qn = BAD_NS_NAMES.sample(random: rng)
+        { "op" => op, "document" => doc, "namespace" => ns, "name" => qn }
+      else
+        ident = element_identity(rng)
+        qn = ident["prefix"] ? "#{ident['prefix']}:#{ident['localName']}" : ident["localName"]
+        { "op" => op, "document" => doc, "namespace" => ident["namespace"], "name" => qn }
+      end
     when "createTextNode", "createComment"
       { "op" => op, "document" => doc, "data" => ["x", "yz", ASTRAL][rng.rand(3)] }
     when "createDocumentFragment"
       { "op" => op, "document" => doc }
     when "importNode"
-      # Document を渡すと NotSupportedError になり node が作られないので、避ける。
-      src = ids.reject { |i| kinds[i] == "document" }.sample(random: rng)
+      # Document を渡すと NotSupportedError になる。node は作られないので
+      # （`certainly_fails?`）、id を追ったまま失敗側も撫でられる。
+      pool = if rng.rand < INVALID_NAME_PROB
+               ids.select { |i| kinds[i] == "document" }
+             else
+               ids.reject { |i| kinds[i] == "document" }
+             end
+      src = pool.sample(random: rng)
       return nil if src.nil?
 
       { "op" => op, "document" => doc, "node" => src, "deep" => rng.rand < 0.4 }
@@ -516,13 +577,19 @@ module Generate
       docs = ids.select { |i| kinds[i] == "document" }
       return nil if docs.empty?
 
-      { "op" => op, "document" => docs.sample(random: rng),
-        "name" => ATTR_OP_NAMES.sample(random: rng) }
+      names = rng.rand < INVALID_NAME_PROB ? BAD_ATTR_NAMES : ATTR_OP_NAMES
+      { "op" => op, "document" => docs.sample(random: rng), "name" => names.sample(random: rng) }
     when "createAttributeNS"
       docs = ids.select { |i| kinds[i] == "document" }
       return nil if docs.empty?
 
-      # prefix 付きは namespace が要る。"validate and extract" が通る組だけを作る。
+      if rng.rand < INVALID_NAME_PROB
+        ns, qn = BAD_NS_NAMES.sample(random: rng)
+        return { "op" => op, "document" => docs.sample(random: rng), "namespace" => ns,
+                 "name" => qn }
+      end
+
+      # 通る側。prefix 付きは namespace が要る。
       if rng.rand < 0.5
         { "op" => op, "document" => docs.sample(random: rng), "namespace" => nil,
           "name" => ATTR_NAMES.sample(random: rng) }
@@ -873,14 +940,17 @@ module Generate
       next if allow && !allow.call(op, kind)
 
       operations << op
+      fails = certainly_fails?(op, kinds)
       if ATTR_UNSAFE_OPS.include?(op["op"])
         # 以降は attribute の id が読めない。
         attr_ok = false
-      elsif ATTR_CREATE_OPS.include?(op["op"])
+      elsif ATTR_CREATE_OPS.include?(op["op"]) && !fails
         attr_ids << attr_next
         attr_next += 1
       end
       next unless CREATE_OPS.include?(op["op"])
+      # 必ず失敗する呼び出しは node を作らないので、id も `can_create` も動かさない。
+      next if fails
 
       if op["deep"]
         # 何個の node ができるかは木の形で決まる。以降は新しい node を作らない。

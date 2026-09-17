@@ -1,0 +1,68 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#queue-a-mutation-record",
+    "algorithm": [
+      "queue a mutation record",
+      "setAttributeNS",
+      "handle attribute changes"
+    ],
+    "steps": "queue a mutation record step 2.3 の三つ目の bullet: type が \"attributes\" で options[\"attributeFilter\"] が存在し、かつ「name を含まない**または** namespace が非 null」なら、その registration には積まない",
+    "note": "attributeFilter は local name だけを見る list なので、仕様は namespace 付きの attribute をまとめて外す。filter を「名前が一致するか」だけで実装すると、namespace が違う同名の attribute まで拾ってしまう（findings 36）。三つの操作はどれも local name が \"data-x\" で、namespace が null の step 1 だけが record を積む。step 0 の qualified name を \"p:data-x\" に してあるのは、step 1 の setAttribute が qualified name で引くからである（\"data-x\" にすると step 0 が作った namespace 付きの attribute を書き換えてしまい、step 1 も積まれなくなる）。 notify を置いていないのは、JS の runner が配送順を復元できず比較の対象外になるためである（record queue はそのまま比べられる）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {
+      "target": 2,
+      "subtree": false,
+      "attributes": true,
+      "attributeOldValue": true,
+      "attributeFilter": [
+        "data-x"
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "op": "setAttributeNS",
+      "element": 2,
+      "namespace": "http://example.com/ns",
+      "name": "p:data-x",
+      "value": "ns"
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "data-x",
+      "value": "plain"
+    },
+    {
+      "op": "setAttributeNS",
+      "element": 2,
+      "namespace": "http://www.w3.org/2000/xmlns/",
+      "name": "xmlns:data-x",
+      "value": "u v"
+    }
+  ]
+}
