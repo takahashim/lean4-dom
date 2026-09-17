@@ -4,6 +4,8 @@ import Dom.Spec.InsertCongr
 import Dom.Spec.InsertSound
 import Dom.Spec.ReplaceCongr
 import Dom.Spec.ReplaceSound
+import Dom.Spec.MoveCongr
+import Dom.Spec.MoveSound
 import Dom.Properties.Contract
 
 /-!
@@ -481,5 +483,106 @@ theorem replace_complete {s s' : DOMState} {child node parent : NodeId}
     ∃ out, replace s child node parent = .ok out ∧ ObsEq s' out := by
   obtain ⟨out, hok⟩ := replace_isOk_of_spec hsv.wellFormed hacyc hv h
   exact ⟨out, hok, replace_no_extra_models hsv hacyc h hok⟩
+
+/-! ## §4.2.4 move -/
+
+/--
+**`move` は関係を満たす状態があるなら成功する。**
+
+落ちうるのは step 10-11,14 の `detach` と step 16-18 の `insertAt` の二箇所である。
+前者は「`node` に parent がある」から出る（関係の step 7-9 が言っている）。
+後者の四つの前提のうち三つは step 1-6 の validity から、
+**`child` が新しい parent の子であること**は関係の `TreeInserted.childIsChild` から出る。
+外した後の木で子であることは validity だけでは言えない（`child = node` がその場合である）。
+-/
+theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : Option NodeId}
+    (hwf : WellFormed s.tree)
+    (hv : moveValidity s.tree node newParent child = .ok ())
+    (h : MoveSpec s node newParent child s') :
+    ∃ out, move s node newParent child = .ok out := by
+  obtain ⟨oldParent, index, idx, newPrev, s₁, sa, s₂, s₃,
+    hp, hidx, hmd, -, -, hra, hti, -, -, -, -, -⟩ := h
+  subst hidx
+  obtain ⟨nd, pd, hnd, hpd, -, -, -, -⟩ := moveValidity_ok hv
+  obtain ⟨hanc0, -⟩ := moveValidity_ok_child hv
+  -- step 10-11, 14：`detach` は成功する
+  obtain ⟨ndn, hndn, hnpn⟩ := parentOf_eq_some hp
+  obtain ⟨opd, hopd⟩ : ∃ opd, s.tree.get? oldParent = some opd := exists_data_of_parentOf hwf hp
+  have hdet : detach s.tree node = .ok (detachFrom s.tree node oldParent ndn opd) := by
+    simp [detach, hndn, hnpn, hopd]
+  obtain ⟨e₁, he₁⟩ : ∃ e₁ : DOMState, e₁ =
+      (iteratorPreRemove (liveRangePreRemove s node) node).withTree
+        (detachFrom s.tree node oldParent ndn opd) := ⟨_, rfl⟩
+  have hdw : detachWithLiveAdjust s node = .ok e₁ := by
+    rw [he₁]; exact detachWithLiveAdjust_of_detach hdet
+  have hobs₁ : ObsEq s₁ e₁ :=
+    moveDetached_congr hwf (ObsEq.refl s) hnd hp hmd (moveDetached_of_detach hwf hp hdw)
+  have htr : TreeRemoved s.tree s₁.tree node oldParent := hmd.2.2.1
+  have hwf₁ : WellFormed s₁.tree := treeRemoved_wellFormed hwf hp htr
+  have hwfe₁ : WellFormed e₁.tree := hobs₁.tree.wellFormed hwf₁
+  -- step 16-18：`insertAt` の四つの前提
+  obtain ⟨pd₁, hpd₁⟩ : ∃ pd₁, e₁.tree.get? newParent = some pd₁ := by
+    have h1 := htr.sameNodes newParent
+    rw [hpd] at h1
+    rw [hobs₁.tree newParent]
+    cases hq : s₁.tree.get? newParent with
+    | some x => exact ⟨x, rfl⟩
+    | none => rw [hq] at h1; simp at h1
+  obtain ⟨nd₁, hnd₁⟩ : ∃ nd₁, e₁.tree.get? node = some nd₁ := by
+    have h1 := htr.sameNodes node
+    rw [hnd] at h1
+    rw [hobs₁.tree node]
+    cases hq : s₁.tree.get? node with
+    | some x => exact ⟨x, rfl⟩
+    | none => rw [hq] at h1; simp at h1
+  have hnp₁ : nd₁.parent = none := by
+    have h1 : parentOf e₁.tree node = none := by rw [hobs₁.tree.parentOf]; exact htr.detached
+    rw [parentOf_of_get? hnd₁] at h1
+    exact h1
+  have hanc₁ : isInclusiveAncestorOf e₁.tree node newParent = false := by
+    cases hb : isInclusiveAncestorOf e₁.tree node newParent with
+    | false => rfl
+    | true =>
+      exfalso
+      have h2 : InclusiveAncestor s₁.tree node newParent :=
+        hobs₁.tree.inclusiveAncestor_iff.mp ((isInclusiveAncestorOf_iff hwfe₁ _ _).mp hb)
+      have h3 : InclusiveAncestor s.tree node newParent := by
+        rcases h2 with he | ha
+        · exact Or.inl he
+        · exact Or.inr (treeRemoved_ancestor htr ha)
+      rw [(isInclusiveAncestorOf_iff hwf node newParent).mpr h3] at hanc0
+      exact Bool.noConfusion hanc0
+  have hchild₁ : ∀ c, child = some c → c ∈ pd₁.children := by
+    intro c hc
+    have hcm := hti.childIsChild c hc
+    rw [hra.tree] at hcm
+    rw [← childrenOf_eq hpd₁, hobs₁.tree.childrenOf]
+    exact hcm
+  have hins := insertAt_eq_ok hpd₁ hnd₁ hnp₁ hanc₁ hchild₁
+  -- 組み立て
+  unfold move
+  simp only [hv, hp, hdw]
+  rw [show (liveRangeInsertAdjust e₁ newParent child 1).mapTree
+      (fun t => insertAt t newParent node child) =
+      .ok ((liveRangeInsertAdjust e₁ newParent child 1).withTree
+        (insertAtIn e₁.tree newParent node child pd₁ nd₁)) from by
+    show (match insertAt (liveRangeInsertAdjust e₁ newParent child 1).tree newParent node child with
+      | Except.error e => Except.error e
+      | Except.ok t => Except.ok (_root_.Dom.DOMState.withTree _ t)) = _
+    rw [liveRangeInsertAdjust_tree, hins]]
+  exact ⟨_, rfl⟩
+
+/--
+**`move` の完全性。**
+
+これで §4.2.3 / §4.2.4 の六つの関係すべてに soundness と completeness が揃う。
+-/
+theorem move_complete {s s' : DOMState} {node newParent : NodeId} {child : Option NodeId}
+    (hwf : WellFormed s.tree)
+    (hv : moveValidity s.tree node newParent child = .ok ())
+    (h : MoveSpec s node newParent child s') :
+    ∃ out, move s node newParent child = .ok out ∧ ObsEq s' out := by
+  obtain ⟨out, hok⟩ := move_isOk_of_spec hwf hv h
+  exact ⟨out, hok, moveSpec_deterministic hwf h (move_sound hwf hok)⟩
 
 end Dom.Spec

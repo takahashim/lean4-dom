@@ -4905,8 +4905,10 @@ walker を一つ足した状態、listener を一つ足した状態、detach さ
 | `adopt` | ✔ | ✔ | ✔ | ✔ |
 | `insert` | ✔ | ✔ | ✔ | ✔ |
 | `replace` | ✔ | ✔ | ✔ | ✔ |
-| `move` | ✔ | ✔ | ✔ | — |
+| `move` | ✔ | ✔ | ✔ | ✔ |
 | `replaceData` | ✔ | （不要） | ✔ | ✔ |
+
+**六つとも soundness と completeness が揃った。**
 
 ### 成功・失敗の契約
 
@@ -4967,6 +4969,23 @@ step 9 が要る acyclicity を `s` から `s₂` へ移す部分は `replaceSpe
 仮定も減らした。`node ≠ parent` と「`child` の parent は `parent`」は
 step 1 の validity から出るので、`replace_complete` は受け取らない
 （`replace_no_extra_models` は成功した実行から `replace_cases` で取り出す）。
+
+### `move` を閉じた
+
+`move` が落ちうるのは二箇所である。step 10-11,14 の `detach` と
+step 16-18 の `insertAt`。前者は「`node` に parent がある」から出て、
+これは関係の step 7-9 がそのまま言っている。
+
+後者の四つの前提のうち三つ（新 parent が在る・`node` が在って parent を持たない・
+`node` は新 parent の inclusive ancestor でない）は step 1-6 の validity から出るが、
+**`child` が新しい parent の子であること**だけは validity では足りない。
+validity が見るのは**外す前**の木で、`child = node` のときは外した後に子でなくなる
+からである。ここは関係の `TreeInserted.childIsChild` がちょうど与える。
+これは今 session の前半で「関係のほうが実行関数より弱かった」として足した成分で、
+`insert` の完全性に続いて二度目の働きをした。
+
+validity から step 2-3 を取り出す `moveValidity_ok_child` を足した。
+`moveValidity_ok` は保存の証明が使わないのでこの二つを出していなかった。
 
 ## 未着手
 

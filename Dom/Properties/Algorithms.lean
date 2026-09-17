@@ -470,6 +470,31 @@ theorem move_ranges {s s' : DOMState} {node newParent : NodeId} {child : Option 
           exact liveRangeInsertAdjust_ranges_congr ht.symm hr.symm
 
 /--
+move の step 2-3。validity を通ったなら、cycle は無く reference child は新 parent の子である。
+
+`moveValidity_ok` はこの二つを出さない（保存の証明が使わないため）。
+完全性（`move_isOk_of_spec`）は `insertAt` の前提として要るので、こちらで出す。
+-/
+theorem moveValidity_ok_child {t : Tree} {node newParent : NodeId} {child : Option NodeId}
+    (h : moveValidity t node newParent child = .ok ()) :
+    isInclusiveAncestorOf t node newParent = false ∧
+      childHasParent t child newParent = true := by
+  unfold moveValidity at h
+  split at h
+  · simp at h
+  · split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · split at h
+        · simp at h
+        · next h2 =>
+          split at h
+          · simp at h
+          · next h3 =>
+            exact ⟨by simpa using h2, by simpa using h3⟩
+
+/--
 `moveValidity` が通ったときに得られる kind の事実。
 
 step 4 は「node は Element か CharacterData」、

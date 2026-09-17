@@ -299,6 +299,9 @@ open Dom.Audit
   Dom.Spec.nodesToInsertAcyc_step9
   Dom.Spec.replace_isOk_of_spec
   Dom.Spec.replace_complete
+  Dom.moveValidity_ok_child
+  Dom.Spec.move_isOk_of_spec
+  Dom.Spec.move_complete
   Dom.Spec.adopt_sound
   Dom.Spec.insert_sound
   Dom.Spec.insertEach_sound
