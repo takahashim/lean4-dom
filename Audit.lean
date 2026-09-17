@@ -316,6 +316,8 @@ open Dom.Audit
   Dom.replaceReferenceChild_facts
   Dom.replace_succeeds_iff
   Dom.replace_error_iff
+  Dom.move_isOk_of_validity
+  Dom.moveBefore_succeeds_iff
   Dom.preRemove_error_iff
   Dom.Spec.move_isOk_of_spec
   Dom.Spec.move_complete

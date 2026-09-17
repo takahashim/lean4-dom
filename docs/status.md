@@ -4957,7 +4957,39 @@ step 2-3 の reference child が `parent` の子で `node` でも `child` でも
 `replaceReferenceChild_facts` にまとめた。`child` でないことは
 「次の兄弟の次の兄弟は元の node ではない」（`nextSibling_nextSibling_ne`）による。
 
-`moveBefore` の側はまだである。
+`moveBefore` も両側にした（`moveBefore_succeeds_iff`）。`move` が落ちうるのは
+step 1-6 の `moveValidity`・step 10-11,14 の `detach`・step 16-18 の `insertAt` で、
+`detach` は step 7-9 の assert（`moveValidity_parentOf_isSome`）から落ちない。
+
+`insertAt` の四つの前提のうち **reference child が `node` 自身でない**ことだけは
+`moveValidity` から出ない。仕様を読み直したところ、**その除外は `move` algorithm には
+無く、`moveBefore()` の method steps の側にあった。**
+
+    1. Let referenceChild be child.
+    2. If referenceChild is node, then set referenceChild to node's next sibling.
+    3. Move node into this before referenceChild.
+
+`pre-insert` の step 2-3 と同じ形である。model の `moveBefore` はこれを実装して
+いたので、`moveBefore` の契約には除外が要らない。`move` を直接呼ぶ側
+（`move_isOk_of_validity`）にだけ `child ≠ some node` が付く。
+
+なお `child` が `node` のまま `move` に入ると、step 14 で `node` を外した後に
+step 18 が「`child` の index の前に入れる」と言うので、**仕様本文としても定まらない**。
+`moveBefore` がそこへ行かせないので実際に届く経路は無いが、
+`move` を primitive として公開する仕様の書き方としては穴である。
+
+### 契約の現状
+
+| API | 成功条件 | 失敗条件 |
+| --- | --- | --- |
+| `removeChild` | `preRemove_succeeds_iff` | `preRemove_error_iff` |
+| `appendChild` | `append_succeeds_iff` | （`preInsert_error_iff`） |
+| `insertBefore` | `preInsert_succeeds_iff` | `preInsert_error_iff` |
+| `replaceChild` | `replace_succeeds_iff` | `replace_error_iff` |
+| `moveBefore` | `moveBefore_succeeds_iff` | — |
+
+**§4.2.3 / §4.2.4 の mutation API は、返る例外が validity のものだけであると
+言えるようになった。**
 
 その途中で、`move` の本体に書いてあった
 「step 7-9 の assert（`oldParent` が非 null）は step 1-2 から従う」という**主張だけあって
