@@ -340,6 +340,17 @@ open Dom.Audit
   Dom.Spec.replaceDataSpec_deterministic
   Dom.Spec.replaceData_isOk_of_spec
   Dom.Spec.replaceData_complete
+  Dom.Spec.remove_result_sound
+  Dom.Spec.remove_result_deterministic
+  Dom.Spec.remove_result_complete
+  Dom.Spec.removeResult_not_error_of_parent
+  Dom.Spec.removeResult_not_ok_of_no_parent
+  Dom.Spec.nodesToInsert_not_ancestor_of_validity
+  Dom.Spec.preInsert_result_sound
+  Dom.Spec.preInsert_result_deterministic
+  Dom.Spec.preInsert_result_complete
+  Dom.Spec.preInsertResult_not_error_of_validity
+  Dom.Spec.preInsertResult_not_ok_of_validity_error
   Dom.Spec.spliceData?_of_dataSpliced
   Dom.Spec.characterDataRecordQueued_unique
   Dom.Utf16.splitAt?_of_split

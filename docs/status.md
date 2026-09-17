@@ -5080,6 +5080,57 @@ validity が見るのは**外す前**の木で、`child = node` のときは外�
 validity から step 2-3 を取り出す `moveValidity_ok_child` を足した。
 `moveValidity_ok` は保存の証明が使わないのでこの二つを出していなかった。
 
+## 例外まで含めた関係意味論
+
+指摘の五点目。`Dom/Spec/` の関係は**成功したときの状態遷移**しか述べておらず、
+`remove_sound` のように `= .ok s'` を仮定に置く。だから「どの入力でどの例外を返すか」は
+関係の外（`Dom/Properties/Contract.lean`）にあった。
+
+その形だと、**極端には「常に失敗する実装」でも soundness を満たす。**
+completeness がそれを塞ぐが、「関係が結果そのものを決める」とは言えていない。
+
+そこで結果（`Except DOMException DOMState`）まで含めた関係を `Dom/Spec/Result.lean` に
+置いた。観測の等しさも結果の水準に上げる（`ResultObsEq`：成功どうしなら `ObsEq`、
+失敗どうしなら同じ例外、成功と失敗は等しくない）。
+
+| 関係 | soundness | 一意性 | completeness |
+| --- | --- | --- | --- |
+| `RemoveResult` | `remove_result_sound` | `remove_result_deterministic` | `remove_result_complete` |
+| `PreInsertResult` | `preInsert_result_sound` | `preInsert_result_deterministic` | `preInsert_result_complete` |
+
+**soundness が仮定なしになったのが本体である。**
+
+```lean
+theorem remove_result_sound (hwf : WellFormed s.tree) (node) (suppress) :
+    RemoveResult s node suppress (remove s node suppress)
+```
+
+`= .ok s'` を仮定しないので、成功するかどうかまで関係が決める。
+「常に失敗する実装」はこの時点で落ちる。
+
+関係が成否を決めていることは、四つの証人で固定した。parent を持つ node について
+`RemoveResult` は失敗を許さず、持たない node について成功を許さない。
+`PreInsertResult` も step 1 の validity について同じである。
+
+### どこまで書けるか
+
+書けるのは失敗条件が両側で捕まっているものだけで、いまは algorithm の `remove` と
+public API の `preInsert`（`insertBefore` / `appendChild`）である。
+`insert` は algorithm 単体の失敗条件を持たないが、呼び出し側では step 1 の validity が
+すべてを決めるので、API の水準では書ける。
+
+`replace` と `moveBefore` も同じ形で書ける（`replace_error_iff` /
+`moveBefore_error_iff` が揃っている）。`moveBefore` は receiver 自身の失敗が二つ
+あるぶん関係が三枝になる。まだ入れていない。
+
+### 副産物
+
+`nodesToInsert_not_ancestor_of_validity`：step 1 の validity は step 4 が要る
+acyclicity を含んでいる。fragment の children が `parent` の inclusive ancestor なら
+fragment 自身もそうなるので、validity の step 2 がそれを弾いている。
+`insertSpec_deterministic` が引数で受け取っていた `hacyc` を、
+API の水準では validity から出せるようになった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

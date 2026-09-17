@@ -37,7 +37,11 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
 | replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic`（congr は不要） | `replaceData_complete` |
 
-定理はすべて `Dom.Spec` 名前空間にある。
+| pre-insert（結果込み） | `Dom.Spec.PreInsertResult` | `preInsert_result_sound` | `preInsert_result_deterministic` | `preInsert_result_complete` |
+| remove（結果込み） | `Dom.Spec.RemoveResult` | `remove_result_sound` | `remove_result_deterministic` | `remove_result_complete` |
+
+定理はすべて `Dom.Spec` 名前空間にある。下二つは**例外まで含めた**関係で、
+soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`

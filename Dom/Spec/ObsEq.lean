@@ -345,4 +345,42 @@ example (s : DOMState) (a : Attr) :
 
 end ObsEq
 
+/-! ## 結果の観測 -/
+
+/--
+**結果の観測が等しいこと。**
+
+成功どうしなら状態の観測が等しいこと、失敗どうしなら同じ例外であること。
+成功と失敗は等しくない。
+
+例外まで含めた関係意味論（`Dom/Spec/Result.lean`）の一意性はこの形で述べる。
+-/
+def ResultObsEq : Except DOMException DOMState → Except DOMException DOMState → Prop
+  | .ok a, .ok b => ObsEq a b
+  | .error e, .error e' => e = e'
+  | _, _ => False
+
+namespace ResultObsEq
+
+theorem refl : ∀ r : Except DOMException DOMState, ResultObsEq r r
+  | .ok a => ObsEq.refl a
+  | .error _ => rfl
+
+theorem symm {r r' : Except DOMException DOMState} (h : ResultObsEq r r') :
+    ResultObsEq r' r := by
+  cases r <;> cases r' <;> first | exact Eq.symm h | exact ObsEq.symm h | exact h.elim
+
+theorem trans {r r' r'' : Except DOMException DOMState}
+    (h : ResultObsEq r r') (h' : ResultObsEq r' r'') : ResultObsEq r r'' := by
+  cases r <;> cases r' <;> cases r'' <;>
+    first | exact Eq.trans h h' | exact ObsEq.trans h h' | exact h.elim | exact h'.elim
+
+/-- 成功どうしなら状態の観測が等しい。 -/
+theorem of_ok {a b : DOMState} (h : ResultObsEq (.ok a) (.ok b)) : ObsEq a b := h
+
+/-- 失敗どうしなら同じ例外である。 -/
+theorem of_error {e e' : DOMException} (h : ResultObsEq (.error e) (.error e')) : e = e' := h
+
+end ResultObsEq
+
 end Dom.Spec
