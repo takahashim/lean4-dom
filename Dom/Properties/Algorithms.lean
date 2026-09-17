@@ -548,6 +548,32 @@ theorem moveValidity_ok {t : Tree} {node newParent : NodeId} {child : Option Nod
                       rw [Bool.or_eq_false_iff, Bool.not_eq_false', List.isEmpty_iff] at h6
                       exact h6
 
+/--
+**move の step 7-9 の assert は step 1-2 から従う。**
+
+`move` の本体には「`oldParent` が非 null であることの assert」と書いてあるが、
+その根拠は validity にある。`node` に parent が無ければ `node` は自分の木の root なので、
+step 1（root が同じ）から `root t newParent = node`、つまり `node` は `newParent` の
+inclusive ancestor になり、step 2 が弾く。
+
+doc comment が主張していたことを定理にしたものである。
+-/
+theorem moveValidity_parentOf_isSome {t : Tree} (hwf : WellFormed t)
+    {node newParent : NodeId} {child : Option NodeId}
+    (h : moveValidity t node newParent child = .ok ()) : (parentOf t node).isSome := by
+  obtain ⟨-, -, -, -, hroot, -, -, -⟩ := moveValidity_ok h
+  obtain ⟨hanc, -⟩ := moveValidity_ok_child h
+  cases hp : parentOf t node with
+  | some p => rfl
+  | none =>
+    exfalso
+    have hr : root t node = node := root_unique hwf (Or.inl rfl) hp
+    have : InclusiveAncestor t node newParent := by
+      rw [← hr, ← hroot]
+      exact root_inclusive_ancestor t newParent
+    rw [(isInclusiveAncestorOf_iff hwf node newParent).mpr this] at hanc
+    exact Bool.noConfusion hanc
+
 /-- `move` が成功したなら step 1-6 の validity 検査を通っている。 -/
 theorem move_moveValidity {s s' : DOMState} {node newParent : NodeId} {child : Option NodeId}
     (h : move s node newParent child = .ok s') :

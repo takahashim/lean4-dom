@@ -32,10 +32,10 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | --- | --- | --- | --- | --- |
 | remove | `Dom.Spec.RemoveSpec` | `remove_sound` | `removeSpec_deterministic` / `removeSpec_congr` | `remove_complete` |
 | adopt（§4.5） | `Dom.Spec.AdoptSpec` | `adopt_sound` | `adoptSpec_deterministic` / `adoptSpec_congr` | `adopt_complete` |
-| insert | `Dom.Spec.InsertSpec` | `insert_sound` | `insertSpec_deterministic` / `insertSpec_congr` | `insert_no_extra_models`（実現性は未） |
-| replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | `replaceSpec_deterministic` / `replaceSpec_congr` | 未 |
-| move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | 未 |
-| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | 未 | 未 |
+| insert | `Dom.Spec.InsertSpec` | `insert_sound` | `insertSpec_deterministic` / `insertSpec_congr` | `insert_complete` |
+| replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | `replaceSpec_deterministic` / `replaceSpec_congr` | `replace_complete` |
+| move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
+| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic`（congr は不要） | `replaceData_complete` |
 
 定理はすべて `Dom.Spec` 名前空間にある。
 
@@ -76,10 +76,10 @@ soundness も component 単位で証明してある
 | insert | 1-3 nodes と count / 4 fragment の children を外す / 5 live range の offset 調整 / 6 previousSibling / 7 adopt して入れる / 9 record | `insert`, `insertNodesAt`, `insertEachAt`, `insertEach` | preservation `admissible_insert`、effect `insert_parentOf` `insert_children_split` `insert_preserves_endpoints`、frame `insertAt_frame`、negative `exists_insert_breaking_boundaryLE` | `basic-insert-remove`, `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb`, `test_wpt_mutation_record_insertion_point.rb` | 済（success は未） |
 | append | 1 pre-insert(child=null) | `append` | 委譲 `append_refines_preInsert`、preservation `admissible_append` | `basic-insert-remove` | `test_wpt_node_mutation.rb` | 済 |
 | remove | 1-2 parent の assert / 3 live range の pre-remove / 4 NodeIterator の pre-remove / 14 children から外す / 20 transient observer / 21 record | `remove`, `detachWithLiveAdjust`, `detach` | preservation `admissible_remove`、success `remove_succeeds_iff`、exception `remove_error_iff`、effect `remove_parentOf` `remove_not_mem_childrenOf` `remove_ranges` `remove_iterators`、frame `detach_frame` | `basic-insert-remove`, `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_mutation_primitives.rb`, `test_wpt_transient_registered_observer.rb` | 済 |
-| pre-remove | 1 parent の一致 / 2 remove | `preRemove` | exception `preRemove_error_notFound`、委譲 `removeChild_refines_preRemove` | `basic-insert-remove` | `test_wpt_node_methods_on_every_node.rb` | 済 |
+| pre-remove | 1 parent の一致 / 2 remove | `preRemove` | success `preRemove_succeeds_iff`、exception `preRemove_error_iff` `preRemove_error_notFound`、委譲 `removeChild_refines_preRemove` | `basic-insert-remove` | `test_wpt_node_methods_on_every_node.rb` | 済 |
 | replace | 1 validity(child を除外) / 2-3 reference child / 4 previousSibling / 6 adopt / 7 child を外す / 9 insert / 10 record | `replace` | preservation `admissible_replace`、exception `replace_cycle_precedes_notFound`、effect `replace_reference_head` | `replacewith-bypasses-validity` | `test_wpt_mutation_record_insertion_point.rb` | 済（success は未） |
 | replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
-| move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 10-11 pre-remove / 14 外す / 16 offset 調整 / 18 入れる / 23-24 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、exception 順序 `moveValidity_step1`〜`_step4`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move` | `test_wpt_move_before.rb` | 済（success は未） |
+| move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 10-11 pre-remove / 14 外す / 16 offset 調整 / 18 入れる / 23-24 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、exception 順序 `moveValidity_step1`〜`_step4`、step 7-9 の assert `moveValidity_parentOf_isSome`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move` | `test_wpt_move_before.rb` | 済（success は未） |
 
 ## §4.4 `Node.normalize()`
 

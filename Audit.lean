@@ -300,6 +300,9 @@ open Dom.Audit
   Dom.Spec.replace_isOk_of_spec
   Dom.Spec.replace_complete
   Dom.moveValidity_ok_child
+  Dom.moveValidity_parentOf_isSome
+  Dom.preRemove_succeeds_iff
+  Dom.preRemove_error_iff
   Dom.Spec.move_isOk_of_spec
   Dom.Spec.move_complete
   Dom.Spec.adopt_sound

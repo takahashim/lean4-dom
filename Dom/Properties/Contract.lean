@@ -84,6 +84,46 @@ theorem insertBefore_cycle_precedes_notFound {s : DOMState} {parent : NodeId} {p
   rw [ensurePreInsertionValidity_step2 hpd hpd hk
     ((isInclusiveAncestorOf_iff hwf parent parent).mpr (Or.inl rfl))]
 
+/-! ## preRemove（`removeChild`）の成功条件 -/
+
+/--
+**`preRemove` が成功するのは、`child` の parent が `parent` のときちょうどである。**
+
+`removeChild(child)` の契約そのものである。step 1 を通れば残るのは `remove` で、
+`remove` は parent があれば必ず成功する（`remove_succeeds_iff`）。
+-/
+theorem preRemove_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree)
+    {child parent : NodeId} :
+    (∃ s', preRemove s child parent = .ok s') ↔ parentOf s.tree child = some parent := by
+  constructor
+  · rintro ⟨s', h⟩
+    exact (preRemove_cases h).1
+  · intro hp
+    rw [preRemove_of_parent hp]
+    exact (remove_succeeds_iff hwf).mpr (by rw [hp]; rfl)
+
+/--
+**`preRemove` が失敗するのは、そのときちょうどで、例外は `NotFoundError` である。**
+
+`remove` の側は parent があれば失敗しないので、返る例外は step 1 のものだけになる。
+-/
+theorem preRemove_error_iff {s : DOMState} (hwf : WellFormed s.tree)
+    {child parent : NodeId} {e : DOMException} :
+    preRemove s child parent = .error e ↔
+      (parentOf s.tree child ≠ some parent ∧ e = .notFoundError) := by
+  constructor
+  · intro h
+    by_cases hp : parentOf s.tree child = some parent
+    · exfalso
+      obtain ⟨s', hs'⟩ := (preRemove_succeeds_iff hwf).mpr hp
+      rw [hs'] at h
+      simp at h
+    · refine ⟨hp, ?_⟩
+      rw [preRemove_of_not_parent hp] at h
+      exact (Except.error.inj h).symm
+  · rintro ⟨hp, rfl⟩
+    exact preRemove_of_not_parent hp
+
 /-! ## move の検査順序 -/
 
 section MoveOrder

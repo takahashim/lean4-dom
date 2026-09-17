@@ -4912,11 +4912,25 @@ walker を一つ足した状態、listener を一つ足した状態、detach さ
 
 ### 成功・失敗の契約
 
-両側（成功する条件と失敗する条件の両方）を持つのは `remove` だけである
+測ったときは、両側（成功する条件と失敗する条件の両方）を持つのが `remove` だけだった
 （`remove_succeeds_iff` / `remove_error_iff`）。片側（`_isOk`）は
 `cloneNode` / `cloneNodeIn` / `cloneMany` / `importNode` / `adopt` / `adoptNode` /
 `append_fresh` / `insertAt` / `insertNodesAt` にある。**合わせて 14 本**で、
 77 種類の操作に対しては薄い。
+
+`removeChild` の側は両側にした（`preRemove_succeeds_iff` / `preRemove_error_iff`）。
+step 1 を通れば残るのは `remove` で、`remove` は parent があれば必ず成功するので、
+**`removeChild` が返す例外は step 1 の `NotFoundError` だけ**だと言える。
+
+`insertBefore` / `replaceChild` / `moveBefore` の側は「validity を通れば必ず成功する」
+まで言えていない。`insert` の成功は fragment の children ひとつずつについて
+`insertAt` の四つの前提が要り、それは `insertEach_complete` と同規模の帰納になる。
+
+その途中で、`move` の本体に書いてあった
+「step 7-9 の assert（`oldParent` が非 null）は step 1-2 から従う」という**主張だけあって
+証明が無かった**ものを定理にした（`moveValidity_parentOf_isSome`）。
+`node` に parent が無ければ `node` は自分の木の root なので、step 1（root が同じ）から
+`node` は `newParent` の inclusive ancestor になり、step 2 が弾く。
 
 指摘の優先順（`replace_complete` → `move_complete` →
 `replaceDataSpec_deterministic` と `replaceData_complete` → public API の
