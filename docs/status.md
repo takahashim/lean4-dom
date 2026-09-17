@@ -4942,7 +4942,22 @@ fragment の枝では step 4 の `removeEach` も落ちないことが要る
 取り替えた先が `node` になることも無い（`nextSibling_ne_self`：children に重複が
 無いので node は自分自身の次の兄弟ではない）。
 
-`replaceChild` / `moveBefore` の側はまだである。
+`replaceChild` も両側にした（`replace_succeeds_iff` / `replace_error_iff`）。
+`replace` が落ちうるのは四箇所（step 1 の validity・step 6 の `adopt`・
+step 7 の `remove`・step 9 の `insert`）で、後ろ三つが落ちないことを言えばよい。
+
+厄介なのは step 9 だけである。**`insert` が走るのは validity を通った状態そのもの
+ではなく、adopt と removal を通った後の状態**だからで、`insert_isOk_of_validity` は
+そのままでは使えない。そこで中核を `insert_isOk_of_facts`（validity ではなく
+四つの事実で受ける版）に切り出し、事実を adopt と removal を跨いで運んだ。
+運ぶ道具は `parentOf_adopt_ne` / `ancestor_of_adopt` /
+`parentOf_detach` / `ancestor_of_detach` である。
+
+step 2-3 の reference child が `parent` の子で `node` でも `child` でもないことは
+`replaceReferenceChild_facts` にまとめた。`child` でないことは
+「次の兄弟の次の兄弟は元の node ではない」（`nextSibling_nextSibling_ne`）による。
+
+`moveBefore` の側はまだである。
 
 その途中で、`move` の本体に書いてあった
 「step 7-9 の assert（`oldParent` が非 null）は step 1-2 から従う」という**主張だけあって

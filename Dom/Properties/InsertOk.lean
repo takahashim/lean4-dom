@@ -191,6 +191,32 @@ theorem adopt_parentOf_eq_none {s s' : DOMState} {node doc : NodeId}
   · exact h₁
   · rw [DOMState.withTree_tree, parentOf_setOwnerDocument]; exact h₁
 
+/-- `adopt` が動かす parent は adopt する node のものだけである。 -/
+theorem parentOf_adopt_ne {s s' : DOMState} {node doc : NodeId}
+    (h : adopt s node doc = .ok s') {m : NodeId} (hm : m ≠ node) :
+    parentOf s'.tree m = parentOf s.tree m := by
+  obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases h
+  have h₁ : parentOf s₁.tree m = parentOf s.tree m := by
+    rcases hstep with ⟨-, rfl⟩ | hr
+    · rfl
+    · rw [parentOf_detach (remove_ok hr).2, if_neg hm]
+  rcases hfinal with rfl | rfl
+  · exact h₁
+  · rw [DOMState.withTree_tree, parentOf_setOwnerDocument]; exact h₁
+
+/-- `adopt` は祖先関係を増やさない。 -/
+theorem ancestor_of_adopt {s s' : DOMState} {node doc : NodeId}
+    (h : adopt s node doc = .ok s') {a x : NodeId} (ha : Ancestor s'.tree a x) :
+    Ancestor s.tree a x := by
+  obtain ⟨s₁, hstep, hfinal⟩ := adopt_ok_cases h
+  have ha₁ : Ancestor s₁.tree a x := by
+    rcases hfinal with rfl | rfl
+    · exact ha
+    · rw [DOMState.withTree_tree] at ha; exact ancestor_setOwnerDocument.mp ha
+  rcases hstep with ⟨-, rfl⟩ | hr
+  · exact ha₁
+  · exact ancestor_of_detach (remove_ok hr).2 ha₁
+
 /-- **`adopt` は入れる列についての条件を保つ。** -/
 theorem insertable_adopt {s s' : DOMState} {parent n doc : NodeId} {child : Option NodeId}
     {ns : List NodeId} (h : adopt s n doc = .ok s')
@@ -352,21 +378,22 @@ theorem insertNodesAt_isOk_of_insertable {s : DOMState} {parent : NodeId}
     (by rw [htree]; exact isDocument_ownerDocument hwf hpd) (by rw [htree]; exact h)
 
 /--
-**`insert` は pre-insertion validity を通っていれば必ず成功する。**
+**`insert` は四つの事実があれば必ず成功する。**
 
-`child` が `node` 自身でないことは別に要る。`preInsert` は step 2-3 の
-`preInsertReferenceChild` でその場合を避けている。
+pre-insertion validity が与えるもののうち、kind の検査（step 4-6）は要らない。
+落ちうるのは step 4 の `removeEach` と step 7 の `adopt` / `insertAt` で、
+そこに効くのはこの四つだけだからである。
+
+`replace` の step 9 のように、**validity を通った状態そのものではなく
+その後の状態で `insert` を呼ぶ**場面があるので、validity ではなく事実で受ける。
 -/
-theorem insert_isOk_of_validity {s : DOMState} {node parent : NodeId} {child : Option NodeId}
-    {b : Bool} (hwf : WellFormed s.tree)
-    (hv : ensurePreInsertionValidity s.tree node parent child [] = .ok ())
+theorem insert_isOk_of_facts {s : DOMState} {node parent : NodeId} {child : Option NodeId}
+    {b : Bool} {pd nd : NodeData} (hwf : WellFormed s.tree)
+    (hpd : s.tree.get? parent = some pd) (hnd : s.tree.get? node = some nd)
+    (hnotanc : ¬ InclusiveAncestor s.tree node parent)
+    (hchild : ∀ c, child = some c → parentOf s.tree c = some parent)
     (hcn : ∀ c, child = some c → c ≠ node) :
     ∃ s', insert s node parent child b = .ok s' := by
-  obtain ⟨⟨pd, hpd⟩, ⟨nd, hnd⟩, hanc, hchild⟩ := ensurePreInsertionValidity_ok hv
-  have hnotanc : ¬ InclusiveAncestor s.tree node parent := by
-    intro hq
-    rw [(isInclusiveAncestorOf_iff hwf node parent).mpr hq] at hanc
-    exact Bool.noConfusion hanc
   have hne : node ≠ parent := fun he => hnotanc (Or.inl he)
   unfold insert
   simp only [hnd]
@@ -421,5 +448,22 @@ theorem insert_isOk_of_validity {s : DOMState} {node parent : NodeId} {child : O
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
       rw [hm]
       exact hnotanc
+
+/--
+**`insert` は pre-insertion validity を通っていれば必ず成功する。**
+
+validity が与える四つの事実を `insert_isOk_of_facts` に渡すだけである。
+`child` が `node` 自身でないことは別に要る（`preInsert` は step 2-3 でそれを保証する）。
+-/
+theorem insert_isOk_of_validity {s : DOMState} {node parent : NodeId} {child : Option NodeId}
+    {b : Bool} (hwf : WellFormed s.tree)
+    (hv : ensurePreInsertionValidity s.tree node parent child [] = .ok ())
+    (hcn : ∀ c, child = some c → c ≠ node) :
+    ∃ s', insert s node parent child b = .ok s' := by
+  obtain ⟨⟨pd, hpd⟩, ⟨nd, hnd⟩, hanc, hchild⟩ := ensurePreInsertionValidity_ok hv
+  refine insert_isOk_of_facts hwf hpd hnd ?_ hchild hcn
+  intro hq
+  rw [(isInclusiveAncestorOf_iff hwf node parent).mpr hq] at hanc
+  exact Bool.noConfusion hanc
 
 end Dom

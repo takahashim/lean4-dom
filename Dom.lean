@@ -58,6 +58,7 @@ import Dom.Properties.Record
 import Dom.Properties.Contract
 import Dom.Properties.InsertOk
 import Dom.Properties.InsertContract
+import Dom.Properties.ReplaceContract
 import Dom.Mutation.Create
 import Dom.Properties.Create
 import Dom.Validity.Create

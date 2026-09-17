@@ -310,6 +310,12 @@ open Dom.Audit
   Dom.preInsert_error_iff
   Dom.append_succeeds_iff
   Dom.nextSibling_ne_self
+  Dom.parentOf_nextSibling
+  Dom.nextSibling_nextSibling_ne
+  Dom.insert_isOk_of_facts
+  Dom.replaceReferenceChild_facts
+  Dom.replace_succeeds_iff
+  Dom.replace_error_iff
   Dom.preRemove_error_iff
   Dom.Spec.move_isOk_of_spec
   Dom.Spec.move_complete

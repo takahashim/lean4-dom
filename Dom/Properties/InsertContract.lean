@@ -36,6 +36,50 @@ theorem nextSibling_ne_self {t : Tree} (hwf : WellFormed t) (n : NodeId) :
       simpa using (List.nodup_cons.mp this).1
     exact hnn hmem
 
+/-- 次の兄弟は同じ parent を持つ。 -/
+theorem parentOf_nextSibling {t : Tree} (hwf : WellFormed t) {n m p : NodeId}
+    (hp : parentOf t n = some p) (hn : nextSibling t n = some m) : parentOf t m = some p := by
+  obtain ⟨A, B, hs⟩ := ListUtil.exists_splitAt?_of_mem ((mem_childrenOf_iff hwf n p).mp hp)
+  have hL : childrenOf t p = A ++ n :: B := ListUtil.splitAt?_eq_some hs
+  rw [nextSibling_of_split hwf hp hL] at hn
+  have hmem : m ∈ B := by
+    cases hb : B with
+    | nil => rw [hb] at hn; simp at hn
+    | cons x xs => rw [hb] at hn; simp at hn; simp [← hn]
+  exact (mem_childrenOf_iff hwf m p).mpr (by rw [hL]; simp [hmem])
+
+/--
+次の兄弟の次の兄弟は、元の node ではない。
+
+`replace` の step 2-3 が `child` の次を飛ばして `node` の次を取るとき、
+その結果が `child` に戻らないことを言う。children に重複が無いからである。
+-/
+theorem nextSibling_nextSibling_ne {t : Tree} (hwf : WellFormed t) {n m k p : NodeId}
+    (hp : parentOf t n = some p) (hn : nextSibling t n = some m)
+    (hm : nextSibling t m = some k) : k ≠ n := by
+  obtain ⟨A, B, hs⟩ := ListUtil.exists_splitAt?_of_mem ((mem_childrenOf_iff hwf n p).mp hp)
+  have hL : childrenOf t p = A ++ n :: B := ListUtil.splitAt?_eq_some hs
+  have hB := nextSibling_of_split hwf hp hL
+  rw [hB] at hn
+  cases hb : B with
+  | nil => rw [hb] at hn; simp at hn
+  | cons x B' =>
+    rw [hb] at hn
+    simp only [List.head?_cons, Option.some.injEq] at hn
+    subst hn
+    have hpm : parentOf t x = some p := parentOf_nextSibling hwf hp (by rw [hB, hb]; simp)
+    have hL' : childrenOf t p = (A ++ [n]) ++ x :: B' := by rw [hL, hb]; simp
+    rw [nextSibling_of_split hwf hpm hL'] at hm
+    have hkm : k ∈ B' := by
+      cases hc : B' with
+      | nil => rw [hc] at hm; simp at hm
+      | cons y ys => rw [hc] at hm; simp at hm; simp [← hm]
+    intro he
+    have hnd : (childrenOf t p).Nodup := childrenOf_nodup hwf p
+    rw [hL, hb] at hnd
+    have hnn : n ∉ x :: B' := (List.nodup_cons.mp (List.nodup_append.mp hnd).2.1).1
+    exact hnn (by simp [← he, hkm])
+
 /--
 **`preInsert` が成功するのは、step 1 の validity を通るときちょうどである。**
 
