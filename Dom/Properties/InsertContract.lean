@@ -1,5 +1,6 @@
 import Dom.Properties.InsertOk
 import Dom.Properties.Contract
+import Dom.Validity.Admissible
 
 /-!
 # 契約：`insertBefore` と `appendChild` の成功条件
@@ -14,31 +15,60 @@ import Dom.Properties.Contract
 
 namespace Dom
 
+/-- node は自分自身の次の兄弟ではない。children に重複が無いからである。 -/
+theorem nextSibling_ne_self {t : Tree} (hwf : WellFormed t) (n : NodeId) :
+    nextSibling t n ≠ some n := by
+  intro he
+  cases hp : parentOf t n with
+  | none => rw [nextSibling, hp] at he; simp at he
+  | some p =>
+    obtain ⟨A, B, hs⟩ := ListUtil.exists_splitAt?_of_mem ((mem_childrenOf_iff hwf n p).mp hp)
+    have hL : childrenOf t p = A ++ n :: B := ListUtil.splitAt?_eq_some hs
+    rw [nextSibling_of_split hwf hp hL] at he
+    have hmem : n ∈ B := by
+      cases hb : B with
+      | nil => rw [hb] at he; simp at he
+      | cons x xs => rw [hb] at he; simp at he; simp [← he]
+    have hnd : (childrenOf t p).Nodup := childrenOf_nodup hwf p
+    rw [hL] at hnd
+    have hnn : n ∉ B := by
+      have := (List.nodup_append.mp hnd).2.1
+      simpa using (List.nodup_cons.mp this).1
+    exact hnn hmem
+
 /--
 **`preInsert` が成功するのは、step 1 の validity を通るときちょうどである。**
 
 つまり `insertBefore` が返す例外は **pre-insertion validity のものだけ**である。
 step 4 の `insert` は落ちない（`insert_isOk_of_validity`）。
 
-`child` が `node` 自身の場合は除いてある。そのとき step 2-3 は reference child を
-`node` の次の兄弟に取り替えるので、validity を取り替えた側で読み直す必要があり、
-`ensurePreInsertionValidity_child_congr` の前提（element と doctype の検査が移ること）を
-別に示さなければならない。`appendChild`（`child = none`）はこの場合に当たらない。
+`child` が `node` 自身の場合は step 2-3 が reference child を `node` の次の兄弟に
+取り替えるが、validity はその取り替えを跨ぐ（`ensurePreInsertionValidity_shift`）。
+取り替えた先が `node` になることも無い（`nextSibling_ne_self`）ので、除外は要らない。
 -/
 theorem preInsert_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree)
-    {node parent : NodeId} {child : Option NodeId} (hcn : child ≠ some node) :
+    {node parent : NodeId} {child : Option NodeId} :
     (∃ s', preInsert s node parent child = .ok s') ↔
       ensurePreInsertionValidity s.tree node parent child [] = .ok () := by
   constructor
   · rintro ⟨s', h⟩
     exact (preInsert_cases h).1
   · intro hv
-    rw [preInsert_of_validity hv, preInsertReferenceChild_eq, if_neg hcn]
-    exact insert_isOk_of_validity hwf hv (fun c hc he => hcn (by rw [hc, he]))
+    rw [preInsert_of_validity hv]
+    refine insert_isOk_of_validity hwf ?_ ?_
+    · rw [preInsertReferenceChild_eq]
+      exact ensurePreInsertionValidity_shift hwf hv
+    · intro c hc he
+      rw [preInsertReferenceChild_eq] at hc
+      by_cases hq : child = some node
+      · rw [if_pos hq] at hc
+        exact nextSibling_ne_self hwf node (by rw [hc, he])
+      · rw [if_neg hq] at hc
+        exact hq (by rw [hc, he])
 
 /-- **`preInsert` が失敗するのは validity で落ちるときちょうどで、例外はそれである。** -/
 theorem preInsert_error_iff {s : DOMState} (hwf : WellFormed s.tree)
-    {node parent : NodeId} {child : Option NodeId} {e : DOMException} (hcn : child ≠ some node) :
+    {node parent : NodeId} {child : Option NodeId} {e : DOMException} :
     preInsert s node parent child = .error e ↔
       ensurePreInsertionValidity s.tree node parent child [] = .error e := by
   constructor
@@ -51,17 +81,17 @@ theorem preInsert_error_iff {s : DOMState} (hwf : WellFormed s.tree)
       rfl
     | ok u =>
       exfalso
-      obtain ⟨s', hs'⟩ := (preInsert_succeeds_iff hwf hcn).mpr (by cases u; exact hx)
+      obtain ⟨s', hs'⟩ := (preInsert_succeeds_iff hwf).mpr (by cases u; exact hx)
       rw [hs'] at h
       simp at h
   · exact preInsert_of_validity_error
 
-/-- **`appendChild` の契約。** `child` が無いので上の除外に当たらない。 -/
+/-- **`appendChild` の契約。** -/
 theorem append_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree) {node parent : NodeId} :
     (∃ s', append s node parent = .ok s') ↔
       ensurePreInsertionValidity s.tree node parent none [] = .ok () := by
   rw [append]
-  exact preInsert_succeeds_iff hwf (by simp)
+  exact preInsert_succeeds_iff hwf
 
 
 end Dom

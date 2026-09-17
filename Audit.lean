@@ -309,6 +309,7 @@ open Dom.Audit
   Dom.preInsert_succeeds_iff
   Dom.preInsert_error_iff
   Dom.append_succeeds_iff
+  Dom.nextSibling_ne_self
   Dom.preRemove_error_iff
   Dom.Spec.move_isOk_of_spec
   Dom.Spec.move_complete

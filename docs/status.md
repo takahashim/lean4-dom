@@ -4936,11 +4936,11 @@ step 1 を通れば残るのは `remove` で、`remove` は parent があれば�
 fragment の枝では step 4 の `removeEach` も落ちないことが要る
 （`removeEach_isOk`：同じ parent を持つ node の列は順に外せる）。
 
-**`child` が `node` 自身の場合だけ除いてある。** そのとき step 2-3 が reference child を
-`node` の次の兄弟に取り替えるので、validity を取り替えた側で読み直す必要があり、
-`ensurePreInsertionValidity_child_congr` の前提（element と doctype の検査が移ること）を
-別に示さなければならない。`appendChild`（`child = none`）はこの場合に当たらないので
-`append_succeeds_iff` に除外は無い。
+`child` が `node` 自身の場合も除外が要らなかった。step 2-3 が reference child を
+`node` の次の兄弟に取り替えるが、validity はその取り替えを跨ぐ
+（`ensurePreInsertionValidity_shift`、`Dom/Validity/Admissible.lean` に既にあった）。
+取り替えた先が `node` になることも無い（`nextSibling_ne_self`：children に重複が
+無いので node は自分自身の次の兄弟ではない）。
 
 `replaceChild` / `moveBefore` の側はまだである。
 
