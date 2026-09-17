@@ -4996,10 +4996,14 @@ step 14 で外した後の `node` の index は 0 であり、step 18 は「先�
 | `appendChild` | `append_succeeds_iff` | （`preInsert_error_iff`） |
 | `insertBefore` | `preInsert_succeeds_iff` | `preInsert_error_iff` |
 | `replaceChild` | `replace_succeeds_iff` | `replace_error_iff` |
-| `moveBefore` | `moveBefore_succeeds_iff` | — |
+| `moveBefore` | `moveBefore_succeeds_iff` | `moveBefore_error_iff`（＋`moveBefore_error_receiver`） |
 
 **§4.2.3 / §4.2.4 の mutation API は、返る例外が validity のものだけであると
 言えるようになった。**
+
+`moveBefore` だけは receiver 自身の失敗が二つある（木に無ければ `NotFoundError`、
+`ParentNode` でなければ WebIDL の `TypeError`）。これは move algorithm ではなく
+IDL の話なので `moveBefore_error_receiver` に分けてある。
 
 その途中で、`move` の本体に書いてあった
 「step 7-9 の assert（`oldParent` が非 null）は step 1-2 から従う」という**主張だけあって

@@ -146,6 +146,14 @@ theorem move_isOk_of_validity {s : DOMState} {node newParent : NodeId}
     rw [liveRangeInsertAdjust_tree, hins]]
   exact ⟨_, rfl⟩
 
+/-- step 1-6 で落ちたら `move` はその例外をそのまま返す。 -/
+theorem move_of_validity_error {s : DOMState} {node newParent : NodeId}
+    {child : Option NodeId} {e : DOMException}
+    (hv : moveValidity s.tree node newParent child = .error e) :
+    move s node newParent child = .error e := by
+  unfold move
+  rw [hv]
+
 /--
 **`moveBefore` が成功するのは、receiver が `ParentNode` で validity を通るときちょうどである。**
 
@@ -167,5 +175,57 @@ theorem moveBefore_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree)
     exact move_moveValidity h
   · intro hv
     exact move_isOk_of_validity hwf hv href
+
+/--
+**`moveBefore` が失敗するのは validity で落ちるときちょうどで、例外はそれである。**
+
+receiver が `ParentNode` であるときの話である。receiver 自身の二つの失敗
+（木に無い・`ParentNode` でない）は `moveBefore_error_receiver` に分けてある。
+
+step 7-9 の `detach` と step 16-18 の `insertAt` は落ちないので
+（`move_isOk_of_validity`）、返る例外は step 1-6 のものだけになる。
+-/
+theorem moveBefore_error_iff {s : DOMState} (hwf : WellFormed s.tree)
+    {parent node : NodeId} {child : Option NodeId} {pd : NodeData} {e : DOMException}
+    (hpd : s.tree.get? parent = some pd) (hk : pd.kind.canHaveChildren = true) :
+    moveBefore s parent node child = .error e ↔
+      moveValidity s.tree node parent
+        (if child = some node then nextSibling s.tree node else child) = .error e := by
+  have href := moveBefore_reference_ne hwf node child
+  unfold moveBefore
+  simp only [hpd]
+  rw [if_neg (by simp [hk])]
+  constructor
+  · intro h
+    cases hx : moveValidity s.tree node parent
+        (if child = some node then nextSibling s.tree node else child) with
+    | error e' =>
+      rw [move_of_validity_error hx] at h
+      have he : e' = e := Except.error.inj h
+      subst he
+      rfl
+    | ok u =>
+      exfalso
+      obtain ⟨s', hs'⟩ := move_isOk_of_validity hwf (by cases u; exact hx) href
+      rw [hs'] at h
+      simp at h
+  · exact move_of_validity_error
+
+/-- **receiver 自身の二つの失敗。** 木に無ければ `NotFoundError`、`ParentNode` でなければ `TypeError`。 -/
+theorem moveBefore_error_receiver {s : DOMState} {parent node : NodeId}
+    {child : Option NodeId} {e : DOMException} :
+    (s.tree.get? parent = none → (moveBefore s parent node child = .error e ↔ e = .notFoundError)) ∧
+      (∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = false →
+        (moveBefore s parent node child = .error e ↔ e = .typeError)) := by
+  constructor
+  · intro hp
+    unfold moveBefore
+    rw [hp]
+    exact ⟨fun h => (Except.error.inj h).symm, fun h => by rw [h]⟩
+  · intro pd hpd hk
+    unfold moveBefore
+    simp only [hpd]
+    rw [if_pos (by simp [hk])]
+    exact ⟨fun h => (Except.error.inj h).symm, fun h => by rw [h]⟩
 
 end Dom

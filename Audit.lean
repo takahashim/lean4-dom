@@ -320,6 +320,9 @@ open Dom.Audit
   Dom.moveBefore_succeeds_iff
   Dom.moveBefore_reference_ne
   Dom.moveBefore_eq_move
+  Dom.move_of_validity_error
+  Dom.moveBefore_error_iff
+  Dom.moveBefore_error_receiver
   Dom.preRemove_error_iff
   Dom.Spec.move_isOk_of_spec
   Dom.Spec.move_complete
