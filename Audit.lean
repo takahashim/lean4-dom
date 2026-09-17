@@ -318,6 +318,8 @@ open Dom.Audit
   Dom.replace_error_iff
   Dom.move_isOk_of_validity
   Dom.moveBefore_succeeds_iff
+  Dom.moveBefore_reference_ne
+  Dom.moveBefore_eq_move
   Dom.preRemove_error_iff
   Dom.Spec.move_isOk_of_spec
   Dom.Spec.move_complete

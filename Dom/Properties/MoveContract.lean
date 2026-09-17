@@ -31,11 +31,51 @@ step 14 で `node` を外すと `node` は parent を失うので preceding sibl
 **model はそこで `notFoundError` を返す。** `insertAt` が「`child` は `parent` の子」を
 primitive の前提として検査するからである（`Dom/Mutation/Insert.lean`）。
 仕様はその検査を `pre-insert` の validity 側（step 3）に置いていて、
-`move` の側には置いていない。したがってこれは **model 側の近似**であって
-仕様の穴ではない。`moveBefore` が step 1-2 でそこへ行かせないので観測はできない。
+`move` の側には置いていない。したがってこれは **model 側の近似**である。
+
+その差が観測できないことは、散文ではなく二つの検査で押さえてある。
+
+* `moveBefore_reference_ne`（下）：`moveBefore` が `move` に渡す reference child は
+  `node` 自身にならない。
+* `ruby test/callsites.rb`：`move` を呼ぶ実行定義は `moveBefore` だけである。
+
+二つ合わせて「`move` の `child = node` の枝に届く経路は無い」になる。
+どちらかが破れたら差が観測できるようになるので、そのとき検査が落ちる。
 -/
 
 namespace Dom
+
+/--
+**`moveBefore` が `move` に渡す reference child は `node` 自身にならない。**
+
+step 1-2 が `child = node` を `node` の次の兄弟に取り替え、children に重複が無いので
+その結果が `node` になることも無い（`nextSibling_ne_self`）。
+
+`ruby test/callsites.rb`（`move` を呼ぶ実行定義は `moveBefore` だけ）と合わせて、
+`move` の `child = node` の枝に届く経路が無いことの根拠になる。
+-/
+theorem moveBefore_reference_ne {t : Tree} (hwf : WellFormed t) (node : NodeId)
+    (child : Option NodeId) :
+    (if child = some node then nextSibling t node else child) ≠ some node := by
+  by_cases hq : child = some node
+  · rw [if_pos hq]; exact nextSibling_ne_self hwf node
+  · rw [if_neg hq]; exact hq
+
+/--
+**`moveBefore` は、`node` 自身でない reference child で `move` を呼ぶ。**
+
+委譲そのものを定理にしてある。定義を読んで確かめるのではなく、
+`moveBefore` が `move` へ渡す値がどういうものかを型で押さえるためである。
+-/
+theorem moveBefore_eq_move {s : DOMState} (hwf : WellFormed s.tree) {parent node : NodeId}
+    {child : Option NodeId} {pd : NodeData} (hpd : s.tree.get? parent = some pd)
+    (hk : pd.kind.canHaveChildren = true) :
+    ∃ ref, ref ≠ some node ∧ moveBefore s parent node child = move s node parent ref := by
+  refine ⟨if child = some node then nextSibling s.tree node else child,
+    moveBefore_reference_ne hwf node child, ?_⟩
+  unfold moveBefore
+  simp only [hpd]
+  rw [if_neg (by simp [hk])]
 
 /--
 **`move` は validity を通り、reference child が `node` 自身でなければ必ず成功する。**
@@ -118,10 +158,7 @@ theorem moveBefore_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree)
     (∃ s', moveBefore s parent node child = .ok s') ↔
       moveValidity s.tree node parent
         (if child = some node then nextSibling s.tree node else child) = .ok () := by
-  have href : (if child = some node then nextSibling s.tree node else child) ≠ some node := by
-    by_cases hq : child = some node
-    · rw [if_pos hq]; exact nextSibling_ne_self hwf node
-    · rw [if_neg hq]; exact hq
+  have href := moveBefore_reference_ne hwf node child
   unfold moveBefore
   simp only [hpd, hk, Bool.not_eq_true']
   rw [if_neg (by simp [hk])]

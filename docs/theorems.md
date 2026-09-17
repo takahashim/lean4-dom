@@ -613,6 +613,24 @@ state machine、語彙は §1.3 の percent-encode と §4.1 の record、§3.2 
 Infra である。いま触れているものは無い。`encChar` は §1.3 の操作なので
 `Url/Parser.lean` から `Url/Percent.lean` へ移した。
 
+### 4''. 到達しない枝を散文で片付けていないか
+
+model の primitive には、仕様が algorithm 側に置いている検査を primitive 側に
+持たせているものがある。`insertAt` の「`child` は `parent` の子」がそれで、
+仕様はこれを `pre-insert` の validity（step 3）に置き、`move` の側には置いていない。
+そのため `move` を `child = node` で呼ぶと、仕様は「先頭に入れる」（外した後の
+`node` の index は 0 だから）のに対し model は `notFoundError` を返す。
+
+**この差が観測できない根拠は「その呼び方をする経路が無い」ことだけ**なので、
+散文ではなく二つの検査で押さえる。
+
+| 何を | どこで |
+| --- | --- |
+| `moveBefore` が `move` に渡す reference child は `node` 自身でない | `Dom.moveBefore_reference_ne`（＋委譲そのものは `moveBefore_eq_move`） |
+| `move` を呼ぶ実行定義は `moveBefore` だけである | `ruby test/callsites.rb` |
+
+どちらかが破れたら差が観測できるようになるので、そのとき検査が落ちる。
+
 ### 4'. 証明が定義の「形」に結合していないか
 
 3 までは「定理が何を言っているか」の検査だが、もう一つ別の結合がある。

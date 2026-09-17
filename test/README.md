@@ -50,6 +50,17 @@ scenario は全実装で同じものを使う（実装ごとの capabilities で
 値する場所だという印である。差分テストで直した実装は model の写しに
 なっているので、その一致を独立した証拠として数えてはいけない。
 
+## call-site の固定
+
+`ruby test/callsites.rb` は、**guard が仕様より厳しい primitive の呼び出し元**を
+固定する。いまは `move` だけで、呼んでよいのは `moveBefore` である。
+
+model の `insertAt` は「`child` は `parent` の子」を primitive の前提として検査する。
+仕様はその検査を `pre-insert` の validity（step 3）に置いていて `move` の側には
+置いていないので、`move` を `child = node` で呼ぶと結果が食い違う。その差が
+観測できない根拠は「その呼び方をする経路が無い」ことだけなので、
+散文ではなくここで固定する（Lean 側の対は `Dom.moveBefore_reference_ne`）。
+
 ## 記録済みの divergence
 
 実装が仕様本文から離れていて、こちらの findings ではないものは
