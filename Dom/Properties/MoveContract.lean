@@ -24,9 +24,15 @@ import Dom.Properties.ReplaceContract
 `pre-insert` の step 2-3 と同じ形である。したがって `move` を直接呼ぶときだけ
 `child ≠ some node` が要り、`moveBefore` の側では要らない。
 
-（`child` が `node` のまま `move` に入ると、step 14 で `node` を外した後に
-step 18 が「`child` の index の前に入れる」と言うので、仕様本文としても定まらない。
-`moveBefore` がそこへ行かせないので、実際に届く経路は無い。）
+`child` が `node` のまま `move` に入ったときの**仕様の**振る舞いは定まっている。
+step 14 で `node` を外すと `node` は parent を失うので preceding sibling が 0 個、
+§1.4 の定義により index は 0 になり、step 18 は「先頭に入れる」になる。
+
+**model はそこで `notFoundError` を返す。** `insertAt` が「`child` は `parent` の子」を
+primitive の前提として検査するからである（`Dom/Mutation/Insert.lean`）。
+仕様はその検査を `pre-insert` の validity 側（step 3）に置いていて、
+`move` の側には置いていない。したがってこれは **model 側の近似**であって
+仕様の穴ではない。`moveBefore` が step 1-2 でそこへ行かせないので観測はできない。
 -/
 
 namespace Dom

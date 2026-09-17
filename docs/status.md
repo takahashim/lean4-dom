@@ -4973,10 +4973,20 @@ step 1-6 の `moveValidity`・step 10-11,14 の `detach`・step 16-18 の `inser
 いたので、`moveBefore` の契約には除外が要らない。`move` を直接呼ぶ側
 （`move_isOk_of_validity`）にだけ `child ≠ some node` が付く。
 
-なお `child` が `node` のまま `move` に入ると、step 14 で `node` を外した後に
-step 18 が「`child` の index の前に入れる」と言うので、**仕様本文としても定まらない**。
-`moveBefore` がそこへ行かせないので実際に届く経路は無いが、
-`move` を primitive として公開する仕様の書き方としては穴である。
+#### 訂正：これは仕様の穴ではない
+
+最初「`child` が `node` のまま `move` に入ると仕様本文としても定まらない」と書いたが、
+**誤りだった**。§1.4 の `index` は「preceding siblings の個数、無ければ 0」なので、
+step 14 で外した後の `node` の index は 0 であり、step 18 は「先頭に入れる」と定まる。
+
+実際に起きているのは model 側の近似である。model の `insertAt` は
+「`child` は `parent` の子」を primitive の前提として検査するので、そこで
+`notFoundError` を返す。仕様はその検査を `pre-insert` の validity（step 3）に置いていて
+`move` の側には置いていない。**仕様と model の差**であって、仕様の不備ではない。
+
+`moveBefore` が step 1-2 でそこへ行かせないので観測できる経路は無く、
+差分テストにも出ない。`move_isOk_of_validity` の `child ≠ some node` は
+この model 側の前提を写したものである。
 
 ### 契約の現状
 
