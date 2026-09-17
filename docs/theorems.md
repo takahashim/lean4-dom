@@ -601,6 +601,11 @@ evaluator を引けるのはそのためで、ここを普通の意味で整理�
 `Adopt` / `Move` / `Record`）は `Dom.Basic.*` しか import していないので、
 実行関数を呼びようがない。import graph がそのまま保証になっている。
 
+例外まで含めた関係（`Dom/Spec/Result.lean`）も同じ規約に従う。`PreInsertResult` は
+step 1 の validity を `ensurePreInsertionValidity` ではなく、仕様本文から独立に書き写した
+`PreInsertValid` / `PreInsertError`（`Dom/Spec/PreInsertValidity.lean`）で述べる。
+実行関数との一致は `Dom/Properties/PreInsertValidityBridge.lean` で別に示す。
+
 Selectors の関係だけは照合の実装と同じ module を見るので、この script が要る。
 いま触れているのは `elementChildrenOf` / `isElementNode`（薄い補助）と、
 `nthPoolOf` / `NthPoolMember` の `matchSelList` である。後者は仕様自身が

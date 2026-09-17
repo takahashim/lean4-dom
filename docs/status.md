@@ -5131,6 +5131,29 @@ fragment 自身もそうなるので、validity の step 2 がそれを弾いて
 `insertSpec_deterministic` が引数で受け取っていた `hacyc` を、
 API の水準では validity から出せるようになった。
 
+### `PreInsertResult` は実装に触れない
+
+`PreInsertResult` は当初 `ensurePreInsertionValidity` を直接呼んでおり、
+`ruby test/spec_dependence.rb` が「関係が実行側の名前を触っている」と報告していた。
+validity は仕様本文（§4.2.3 step 1-11）から独立に書き写すべきものである。
+
+`Dom/Spec/PreInsertValidity.lean` に仕様語彙だけの関係を置いた。
+
+* `PreInsertValid` — step 1-11 を通る（順序を持たない連言）
+* `PreInsertError` — どの step でどの例外になるか（先の step を通ることを前提に持つため、
+  二つ以上の枝が同時に成り立たない）
+* `PreInsertRefChild` — step 2-3 の reference child
+
+実行関数との一致は `Dom/Properties/PreInsertValidityBridge.lean` で示す。
+
+* `ensurePreInsertionValidity_ok_iff` — `.ok` と `PreInsertValid` は同値
+* `ensurePreInsertionValidity_error_iff` — `.error` と `PreInsertError` は同値
+
+逆向き（関係 → 実行関数）は仕様の側から各 step を直接示す。順方向は
+「validity が失敗するなら必ず `PreInsertError` の枝が立つ」（`preInsertError_of_not_valid`）と
+実行関数の値を突き合わせて出す。step 1-3 の通過から step 4 以降の kind の分岐へ進む部分は
+`PreP123` / `PreP1234` / … という前段条件で表してある。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

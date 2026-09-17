@@ -43,6 +43,11 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 定理はすべて `Dom.Spec` 名前空間にある。下二つは**例外まで含めた**関係で、
 soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。
 
+`PreInsertResult` が参照する validity（step 1-11）は実行関数ではなく、仕様本文から
+独立に書き写した `Dom.Spec.PreInsertValid` / `Dom.Spec.PreInsertError`
+（`Dom/Spec/PreInsertValidity.lean`）である。実行関数 `ensurePreInsertionValidity`
+との一致は `Dom/Properties/PreInsertValidityBridge.lean` で別に証明する。
+
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`
 （木は `get?`、registered observer は所属、observer は record queue）の一致である。
