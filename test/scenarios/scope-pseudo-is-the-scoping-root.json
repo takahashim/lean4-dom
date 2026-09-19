@@ -3,26 +3,19 @@
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#the-scope-pseudo",
     "algorithm": [":scope"],
-    "steps": ":scope はその照合の scoping root を表す。scoping root は真の element とは限らない",
-    "note": "DOM の scope-match は受け手そのものを scoping root に渡す。element に対して呼べば受け手自身である。document や DocumentFragment に対して呼んだときは virtual scoping root になり、仕様はそれを「その木の root element の parent としてふるまう」ものとして扱う。仕様自身が df.querySelectorAll(\":scope > .foo\") を例に挙げている。"
+    "steps": ":scope はその照合の scoping root を表す。scoping root が真の element なら、:scope はその element だけに当たる。",
+    "note": "Element を受け手にした基本形。querySelector 系の scoping root は受け手そのものなので、`ul.querySelectorAll(\":scope > li\")` は ul の直接の子だけを、`ul.matches(\":scope\")` は ul 自身だけを当てる。三実装（Dommy・jsdom・happy-dom）とも一致する。virtual scoping root（Document・DocumentFragment）の場合は別の scenario に分けてある：`scope-pseudo-is-the-document-element.json`、`scope-pseudo-virtual-root-is-featureless.json`。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },
     { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
     { "id": 2, "kind": "element", "parent": 1, "localName": "ul" },
-    { "id": 3, "kind": "element", "parent": 2, "localName": "li" },
-    { "id": 4, "kind": "documentFragment" },
-    { "id": 5, "kind": "element", "parent": 4, "localName": "div",
-      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "foo" }] },
-    { "id": 6, "kind": "element", "parent": 5, "localName": "p" }
+    { "id": 3, "kind": "element", "parent": 2, "localName": "li" }
   ],
   "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
   "operations": [
     { "op": "querySelectorAll", "node": 2, "selectors": ":scope > li" },
     { "op": "querySelectorAll", "node": 2, "selectors": ":scope" },
-    { "op": "matches", "element": 2, "selectors": ":scope" },
-    { "op": "querySelectorAll", "node": 4, "selectors": ":scope > .foo" },
-    { "op": "querySelectorAll", "node": 0, "selectors": ":scope > *" },
-    { "op": "querySelectorAll", "node": 0, "selectors": ":scope" }
+    { "op": "matches", "element": 2, "selectors": ":scope" }
   ]
 }

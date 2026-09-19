@@ -378,12 +378,12 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | `:has()` の候補 | Selectors §14.10 | `matchSimple` の `.has` の枝 | `matchSimple_has_iff` | `has-can-look-at-siblings` | 済 |
 | attribute selector の namespace | Selectors §6.2 | `selectorAttr`, `plainAttr` | `selectorAttr_some`, `selectorAttr_none`, `plainAttr_some`, `plainAttr_none` | `selector-attributes-have-no-namespace` | 済 |
 | `:nth-*()` が数える列 | Selectors §14.3-14.7 | `elementSiblings`, `matchSimple` の `.nth` の枝 | `mem_elementSiblings_iff`, `sameTypeAs_iff`, `matchSimple_nth_iff` | `nth-of-type-counts-only-its-own-type`, `detached-element-is-its-own-only-sibling`, `structural-pseudo-classes-count-elements` | 済 |
-| match a selector against a tree / scope-match a selectors string | Selectors §17.3 / DOM §1.3 | `matchTree`, `scopeMatch`（`Dom/Selector/Api.lean`） | `matchTree_sublist`, `matchTree_nodup`, `mem_matchTree_iff` | `query-selector-finds-in-tree-order`, `scope-pseudo-is-the-scoping-root` | 済 |
+| match a selector against a tree / scope-match a selectors string | Selectors §17.3 / DOM §1.3 | `matchTree`, `scopeMatch`（`Dom/Selector/Api.lean`） | `matchTree_sublist`, `matchTree_nodup`, `mem_matchTree_iff` | `query-selector-finds-in-tree-order`, `scope-pseudo-is-the-scoping-root`, `scope-pseudo-is-the-document-element`, `scope-pseudo-virtual-root-is-featureless` | 済 |
 | `querySelector(selectors)` / `querySelectorAll(selectors)` | DOM §4.2.6 | `querySelector`, `querySelectorAll` | `admissible_mapConst`, `querySelector_eq_head`, `querySelectorAll_eq_matchTree` | `query-selector-finds-in-tree-order`, `selector-is-parsed-before-matching` | 済 |
 | 受け手の種別検査（WebIDL の TypeError） | DOM §4.2.6・§4.8 | `requireParentNode`, `requireElementNode` | — | `query-selector-needs-a-parent-node`, `matches-needs-an-element` | 済 |
 | scoped selector（subject だけが scope 内） | Selectors §4.4 | `matchTree` | `mem_matchTree_iff` | `only-the-subject-must-be-in-scope`, `query-selector-on-detached-and-fragment` | 済 |
 | `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | `matchesSelector_eq`, `closest_spec`, `closest_first`, `closest_eq_none_iff`, `closest_self`, `mem_matchTree_iff_matches` | `matches-and-closest-walk-up` | 済 |
-| `:scope` が scoping root を表すこと | Selectors §8.2 | `Simple.scope` | `scope_irrelevant`, `matchSelList_scope_irrelevant` | `scope-pseudo-is-the-scoping-root` | 済 |
+| `:scope` が scoping root を表すこと | Selectors §8.2 | `Simple.scope` | `scope_irrelevant`, `matchSelList_scope_irrelevant` | `scope-pseudo-is-the-scoping-root`, `scope-pseudo-is-the-document-element`, `scope-pseudo-virtual-root-is-featureless` | 済 |
 
 ## `cloneNode` / `adoptNode` の全域性
 

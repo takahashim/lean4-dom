@@ -1,0 +1,20 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#the-scope-pseudo",
+    "algorithm": [":scope"],
+    "steps": ":scope may be either a true element or a virtual one (such as a DocumentFragment). A virtual scoping root is some object representing the root of a document fragment ... acting as the parent of any root elements in the document fragment it represents. A virtual scoping root is featureless and cannot be the subject of the selector.",
+    "note": "仕様は `df.querySelectorAll(\":scope > .foo\")` を名指しの例として挙げ、DocumentFragment を「その木の root element の parent としてふるまう featureless な node」として combinator の左に置けるとしている。DOM の scope-match は受け手をそのまま scoping root に渡すので、model はこの読みに従い `.foo` を返す。\n\nDommy・jsdom・happy-dom は三つとも空を返す（findings 20）。ただし csswg-drafts#7261（2018年に一度、2022-05に再度立った）では逆の読みが有力だった時期があり、それに基づいて書かれた WPT `css/selectors/scope-selector.html`（2022-05-11、wpt#34032）は `documentFragment.querySelectorAll(':scope > div').length === 0` を assert している。issue は2023-02-16に tabatkins が『Rune の読み（:scope は真の element しか指さない）は間違いだった、virtual scoping root は docfrag 自身に当たる（ただし subject にはなれない）』と明言して再クローズしており、DOM 側の scope-match の定義も変わっていない。つまり **実装と WPT の両方が、撤回済みの読みのまま止まっている**。model はここでは実装や WPT にではなく、現行の仕様本文と csswg の最終結論に従う。\n\nDocument を受け手にした場合（`scope-pseudo-is-the-document-element.json`）も同じ形の不一致になる。tabatkins 自身、document については browser の挙動（`:scope` が document element を指す）のほうを妥当だと述べ、DOM 仕様側を直したいと言っているので、二つの scenario は同じ一つの根を持つ。\n\n`test/known-divergences.yml` の (dommy, jsdom) entry を参照。https://github.com/w3c/csswg-drafts/issues/7261#issuecomment-1435079033"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "documentFragment" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "div",
+      "attributes": [{ "namespace": null, "prefix": null, "localName": "class", "value": "foo" }] },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "p" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 1, "selectors": ":scope > .foo" }
+  ]
+}

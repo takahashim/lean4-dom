@@ -84,6 +84,14 @@ model が仕様の翻訳として正しいかは別に担保するもの（関�
 **残る危険。** 仕様の読み違いがあれば、正しい実装を「不一致」として直してしまう。
 実装側の修正には spec の URL と step を commit message に残してあるので、後から検証できる。
 
+findings 19・20（`docs/status.md` の「findings 19・20 の見直し」）はこの危険の
+外側にある第三の形を見せた。19 は「仕様の読み違い」ではなく、**仕様の本文が
+自分自身の適合テストと矛盾したまま揺れている**場合で、csswg-drafts の issue が
+open のままであることでしか見分けられない。20 は逆に、実装と WPT のほうが
+csswg の撤回済みの読みで止まっている場合だった。どちらも `docs/traceability.md`
+の step 対応や `dom.bs` を読むだけでは出てこず、csswg-drafts の issue tracker と
+WPT の commit 履歴を当たって初めて分かった。
+
 ## 6. 証明の検査
 
 `lake build` が通り、`sorry` が無く、公開主定理が
