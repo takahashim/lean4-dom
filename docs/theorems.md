@@ -601,6 +601,19 @@ evaluator を引けるのはそのためで、ここを普通の意味で整理�
 `Adopt` / `Move` / `Record`）は `Dom.Basic.*` しか import していないので、
 実行関数を呼びようがない。import graph がそのまま保証になっている。
 
+例外まで含めた関係（`Dom/Spec/Result.lean`）も同じ規約に従う。`PreInsertResult` は
+step 1 の validity を `ensurePreInsertionValidity` ではなく、仕様本文から独立に書き写した
+`PreInsertValidity`（`Dom/Spec/Validity.lean`）で述べる。`ruby test/spec_dependence.rb` は
+`def` の本体しか見ないので、`PreInsertValidity` を実行側と同じ file に置いても、その定義
+自体が実行側の名前に触れていなければ検出には出ない（同 file の `ensurePreInsertionValidity_spec`
+/ `preInsertValidity_iff` は実行側に触れるが `theorem` なので対象外であり、これらが
+`PreInsertValidity` と実行関数を橋渡しする）。
+
+`PreInsertValidity` は制御の流れを `Step` / `Return` / `Branch` / `Done` で写した結果述語
+なので、実行関数に触れずに**構造的に**結果を一つに決める（`preInsertValidity_deterministic`）。
+`PreInsertResult` と `nodesToInsert_not_ancestor_of_validity` はこの `PreInsertValidity` を
+`.ok ()` / `.error e` の形で使う。
+
 Selectors の関係だけは照合の実装と同じ module を見るので、この script が要る。
 いま触れているのは `elementChildrenOf` / `isElementNode`（薄い補助）と、
 `nthPoolOf` / `NthPoolMember` の `matchSelList` である。後者は仕様自身が
