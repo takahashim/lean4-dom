@@ -5191,6 +5191,38 @@ fragment 自身もそうなるので、validity の step 2 がそれを弾いて
 `insertSpec_deterministic` が引数で受け取っていた `hacyc` を、
 API の水準では validity から出せるようになった。
 
+## nightly の差分テストが赤であること
+
+`Differential` workflow（nightly）は 2026-09-13 から毎晩赤である。`CI` workflow は
+緑である。中身を確かめたところ、**新規の不一致は無く、記録済みの findings だけ**である。
+
+* 固定 scenario の MISMATCH 17 本は findings 12-17・19-24・26・29-32 で、
+  `test/pinned-versions.json` の `_note` に書いてあるものと一致する。
+  不一致を expected に落とさない方針なので、Dommy が直すまで赤のままである。
+* 生成 scenario の不一致（seed 10 本 × 100 件で 2-8 件ずつ）も、形は同じ findings の
+  系統である。PI が Comment `"?pi …"` になる（13）、`importNode(document)` が通る（12）、
+  selector の `SyntaxError` の食い違い（21・26・29-32）など。
+* 赤になった初日（run `34780675951`）の原因は当日の commit で TreeWalker・query・event を
+  harness に入れたことで、findings 9・11 と Range 系が見えたことである。
+  その後 Dommy の pin を上げてそれらは消えたが、入れ替わりに Selectors の
+  findings 12-32 が入った。
+
+ついでに二つ直した。
+
+* `difftest.rb` の固定 scenario 集合が `test/scenarios/*.json` をそのまま読むので、
+  seed を回す loop の後の周回が、前の周回が書き出した `failing-*.json` を
+  固定 scenario として拾っていた。seed 10 の時点で固定 scenario が 320 本
+  （うち 43 本が `failing-*`）に膨らみ、同じ不一致を何度も報告しながら
+  job の時間が伸びていた（`(12,10,…)` の job で 52 分）。`failing-*` を弾いた。
+* 固定 scenario は seed に依らないのに 10 周とも回していた。`--no-fixed` を足して、
+  workflow では固定 scenario を先に一度だけ回すようにした。
+
+残る問題は、**探索の job が記録済みの findings で必ず赤になるので、新規の不一致が
+出ても赤の中に埋もれる**ことである。`known-divergences.yml` は scenario の名前で
+引くので、名前がランダムな生成 scenario には当たらない。digest も message から
+作るので node id が違えば当たらない。切り分けるなら、findings の「形」を
+scenario の名前に依らない述語で書けるようにする必要がある。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

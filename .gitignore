@@ -3,3 +3,6 @@ mise.toml
 
 /notes/
 
+
+# 生成 scenario が割れたときの書き出し。curate したものは名前を付けて残す。
+/test/scenarios/failing-*.json

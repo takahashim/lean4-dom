@@ -144,7 +144,18 @@ jobs:
           EOF
           cd difftest && bundle install
 
+      # 固定 scenario は seed に依らないので一度だけ回す。
+      - name: Fixed scenarios
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+          IMPL_CMD: bundle exec ruby ${{ github.workspace }}/test/dommy_runner.rb
+          IMPL_NAME: dommy
+        run: ruby test/difftest.rb --fixed-only
+
       - name: Explore
+        # 固定 scenario が赤でも探索はする。赤のままにしてあるのは記録済みの
+        # findings で、直ったことに気付くための印だからである。
+        if: always()
         env:
           BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
           IMPL_CMD: bundle exec ruby ${{ github.workspace }}/test/dommy_runner.rb
@@ -152,7 +163,7 @@ jobs:
         run: |
           status=0
           for seed in 1 2 3 4 5 6 7 8 9 10; do
-            ruby test/difftest.rb --count 100 --seed "$seed" \
+            ruby test/difftest.rb --no-fixed --count 100 --seed "$seed" \
               --nodes ${{ matrix.nodes }} --ops ${{ matrix.ops }} \
               --ranges ${{ matrix.ranges }} --iterators ${{ matrix.iterators }} \
               --observers ${{ matrix.observers }} --move || status=1

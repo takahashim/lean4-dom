@@ -6,7 +6,7 @@
 # 食い違いは実装の findings として扱う。実装は runner を差し替えて選ぶ。
 #
 #   ruby test/difftest.rb [--count N] [--seed N] [--nodes N] [--ops N]
-#                         [--move] [--all-ops] [--fixed-only]
+#                         [--move] [--all-ops] [--fixed-only] [--no-fixed]
 #   ruby test/difftest.rb --shrink FILE   # 既にある scenario を最小化する
 #
 # この script 自身は実装を読み込まない。実装側の評価は別 process に投げる。
@@ -388,7 +388,7 @@ if $PROGRAM_NAME == __FILE__
   # 既定で混ぜると初期状態の時点で多数が不一致になり、
   # 操作の意味論の比較ができなくなる。
   opts = { count: 50, seed: Random.new_seed, nodes: 8, ops: 6,
-           move: false, all: false, fixed_only: false, doctype: 0.0,
+           move: false, all: false, fixed_only: false, no_fixed: false, doctype: 0.0,
            ranges: 2, iterators: 1, observers: 0, walkers: 1, listeners: 0 }
   OptionParser.new do |o|
     o.on("--count N", Integer) { |v| opts[:count] = v }
@@ -398,6 +398,9 @@ if $PROGRAM_NAME == __FILE__
     o.on("--move") { opts[:move] = true }
     o.on("--all-ops") { opts[:all] = true }
     o.on("--fixed-only") { opts[:fixed_only] = true }
+    # 固定 scenario を飛ばして生成 scenario だけ回す。seed を変えて何周もするとき、
+    # 固定 scenario は毎周同じ答えを返すので一度だけ回せば足りる。
+    o.on("--no-fixed") { opts[:no_fixed] = true }
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
@@ -419,8 +422,12 @@ if $PROGRAM_NAME == __FILE__
   Difftest.report_capabilities
 
   scenarios_dir = File.join(__dir__, "scenarios")
+  # `failing-*.json` は生成 scenario が割れたときに下で書き出す**出力**であって、
+  # 固定 scenario ではない。ここで弾かないと、seed を回す loop の後の周回が
+  # 前の周回の書き出しを固定 scenario として拾い、同じ不一致を何度も報告しながら
+  # 集合が膨らんでいく。curate したものは説明の付く名前に改名して残す。
   all_fixed = Dir[File.join(scenarios_dir, "*.json")].reject do |p|
-    p.end_with?(".lean.json", ".impl.json")
+    p.end_with?(".lean.json", ".impl.json") || File.basename(p).start_with?("failing-")
   end.sort
   # `_basis.comparable` が false の scenario は model 固有の近似を固定するためのもので、
   # 実装と突き合わせる対象ではない（`docs/traceability.md` の「対象外」を参照）。
@@ -430,14 +437,14 @@ if $PROGRAM_NAME == __FILE__
     false
   end
 
-  unless model_only.empty?
+  unless model_only.empty? || opts[:no_fixed]
     puts "model 固有（差分比較の対象外）:"
     model_only.each { |p| puts "  #{File.basename(p, '.json')}" }
     puts
   end
   failures = 0
 
-  unless fixed.empty?
+  unless fixed.empty? || opts[:no_fixed]
     puts "固定 scenario:"
     Dir.mktmpdir do |dir|
       fixed.each { |p| FileUtils.cp(p, dir) }
