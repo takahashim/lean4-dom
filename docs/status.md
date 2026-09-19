@@ -3713,8 +3713,8 @@ Selectors の形式化のあいだに出た findings。どれも固定 scenario 
 | 16 | Dommy | import が attribute の namespace を落とす | `import-node-keeps-attribute-namespace` |
 | 17 | Dommy | `removeAttributeNode` が element を検査しない | `remove-attribute-node-checks-the-element` |
 | 18 | Dommy | `Range.insertNode` の後の `textContent` で segfault | `test/crashers/` |
-| 19 | Dommy / jsdom | `:empty` が空白だけの text を許さない | `empty-pseudo-allows-white-space` |
-| 20 | Dommy / jsdom | virtual scoping root が combinator の左に来ない | `scope-pseudo-is-the-scoping-root` |
+| 19 | Dommy / jsdom | `:empty` が空白だけの text を許さない（仕様側も自分の適合テストと矛盾したまま。§「findings 19・20 の見直し」） | `empty-pseudo-allows-white-space` |
+| 20 | Dommy / jsdom | virtual scoping root（DocumentFragment・Document）が combinator の左に来ない（同上） | `scope-pseudo-is-the-document-element`, `scope-pseudo-virtual-root-is-featureless` |
 | 21 | Dommy | `#1` が id selector として通る | `id-selector-needs-an-identifier` |
 | 22 | Dommy | `div` が大文字の local name に当たる | `type-selector-case-follows-namespace` |
 | 23 | Dommy | `a[href` が Ruby の `TypeError` になる | `unclosed-block-is-closed-at-eof` |
@@ -3804,8 +3804,67 @@ Selectors Level 4 の `:empty` は「子が無いか、あっても document whi
 `DocumentFragment` のような virtual scoping root を「その木の root element の
 parent としてふるまう」ものとして扱い、`df.querySelectorAll(":scope > .foo")`
 を例に挙げている。Dommy はこれを空に、jsdom も空にする。
-`document` に対しては両方とも `:scope` を document element に読み替える。
-`test/scenarios/scope-pseudo-is-the-scoping-root.json`。
+`test/scenarios/scope-pseudo-virtual-root-is-featureless.json`。
+
+`document` を受け手にした場合も同じ形で割れる。`test/scenarios/
+scope-pseudo-is-the-document-element.json`。以前ここに「document に対しては
+両方とも `:scope` を document element に読み替える」と書いていたのは誤りで、
+実際には確かめていなかった（下の「findings 19・20 の見直し」を参照）。
+
+### findings 19・20 の見直し（2026-09-19）
+
+Dommy 側から、19・20 は WPT と Dommy が共通の挙動なので Dommy 側を直さない
+ほうがよいのでは、という指摘が来た。仕様を読み直し、csswg-drafts の issue と
+WPT の履歴を当たった。
+
+**19（`:empty`）。** pin した Selectors Level 4 の本文（`c282dbe`）は
+model の読みだが、本文が自分で挙げる適合テスト `css/selectors/
+selectors-empty-001.xml` の negative 群が `<test6> </test6>`（空白だけの
+text）を「`:empty` に当たってはならない」と assert しており、本文と自分の
+wpt リストが矛盾している。csswg-drafts#8106
+"Is current spec for `:empty` web compatible?"（2022-11-19 起票、2024-10
+時点でも open）が「どの browser にも実装されていない」と問うたまま決着して
+いない。Dommy・jsdom が Selectors 3 の読みに揃っているのは仕様の改訂に
+追随できていないからではなく、**仕様の本文が自分自身の適合テストと矛盾した
+まま揺れている**からである。
+
+**20（virtual scoping root）。** 逆に、こちらは仕様本文のほうが正しく、
+WPT が古い。DocumentFragment の場合の WPT `css/selectors/scope-selector.html`
+は 2022-05-11（wpt#34032）に「`:scope` は真の element しか指せない」という
+読みで書き直されたが、その根拠になった csswg-drafts#7261 は 2023-02-16 に
+tabatkins が「その読みは間違いだった、virtual scoping root は docfrag 自身に
+当たる」と明言して再クローズしている。WPT はこの巻き戻しに追随していない。
+
+この調査で分かったこと。`test/compare.rb` は最初に割れた step で比較を
+打ち切るので、`document` を受け手にした二つの操作（`:scope > *`・`:scope`
+単体）は、もとの一本にまとめた scenario では一度も評価されていなかった。
+分割して単独で走らせたところ、こちらも同じ形で全実装（Dommy・jsdom・
+happy-dom）と割れることが分かった。ただし tabatkins は同じ issue で
+「document については現行の browser の挙動（`:scope` が document element を
+指す）のほうが妥当だと思う、DOM 仕様側を直したい」とも述べており、
+DocumentFragment の場合ほど決着していない。
+
+結論。**model は変えない。** どちらも pin した仕様本文の字義どおりであり、
+`test/README.md` の「oracle は model だけ・多数決はしない」に従う。ただし
+記録の置き場所を変えた。
+
+* 19・20 を `test/known-divergences.yml` に移した（対象は Dommy・jsdom。
+  happy-dom は 19 では別の不具合の形になるため対象外、20 では同じ形で割れる
+  ことを reason に書いたが正式な entry は Dommy・jsdom の二つに絞った）。
+  `test/README.md` が定める「実装が仕様本文から離れていて、model が本文に
+  従っている」場合の受け入れ条件にちょうど当てはまる。
+* `scope-pseudo-is-the-scoping-root.json` を、真の element を受け手にした
+  基本形（`scope-pseudo-is-the-scoping-root.json`、全実装一致）・
+  `document` を受け手にした場合（`scope-pseudo-is-the-document-element.json`、
+  新しく見つかった不一致）・`DocumentFragment` を受け手にした場合
+  （`scope-pseudo-virtual-root-is-featureless.json`、もとの finding 20）の
+  三つに分けた。
+* 各 scenario の `_basis.note` に、今回の csswg issue・WPT の履歴・矛盾の
+  中身を書き足した。
+
+`docs/threats-to-validity.md` §5 にも一行足した。19 は「仕様の読み違い」
+ではなく「仕様が自分の適合テストと矛盾したまま揺れている」という、そこに
+挙げていなかった第三の形である。
 
 ### findings 21：`#1` が id selector として通る（Dommy）
 
@@ -4353,6 +4412,11 @@ Document が消えると loader が読めず、model も impl も batch ごと�
 **五つとも既に本文を読み直してある**（findings 19・20・24・29・30・33）。
 うち三つは仕様側に改訂の記録があり（`:empty` の空白、ident code point の一覧）、
 二つは仕様本文に例が明記されている（virtual scoping root、`[att]` と `[|att]` の同値）。
+
+（`scope-pseudo-is-the-scoping-root` は 2026-09-19 に分割した。当時ここが
+指していた不一致は `scope-pseudo-virtual-root-is-featureless.json` と
+`scope-pseudo-is-the-document-element.json` に移っている。「findings 19・20
+の見直し」を参照。）
 
 ## 同じ測定を §4.2.3 の中心に当てる
 

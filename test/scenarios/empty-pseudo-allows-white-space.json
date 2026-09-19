@@ -4,7 +4,7 @@
     "spec": "https://drafts.csswg.org/selectors-4/#the-empty-pseudo",
     "algorithm": [":empty"],
     "steps": "an element that has no children except, optionally, document white space characters",
-    "note": "空白だけの text と comment は :empty を壊さない。Selectors 3 は空白も数えていたので、実装はそちらに残っていることがある。"
+    "note": "空白だけの text と comment は :empty を壊さない。Selectors 3 は空白も数えていたので、実装はそちらに残っていることがある。\n\nDommy と jsdom はどちらも `<b> </b>`（node 5、空白だけの text）を :empty から除外する（Selectors 3 の読みのまま）。ただし本文が挙げる自分自身の適合テスト `css/selectors/selectors-empty-001.xml` の negative 群が `<test6> </test6>`（空白だけの text）を「:empty に当たってはならない」と assert しており、本文の一文目（white space は数えない）と自分の wpt リストの一文目（white space も長さゼロでないので empty を壊す、という Selectors 3 の説明がそのまま残っている）が矛盾している。csswg-drafts#8106（2022-11-19 起票、2026 時点で open）は『:empty は web compatible か』を問うたままで、閉じていない。よって Dommy・jsdom が Selectors 3 の読みに留まっているのは、仕様の改訂に追随できていないというより、**仕様自身が自分の適合テストと矛盾したまま揺れている**ことの反映であり、直すべきかどうかは仕様側の決着を待つべきである。`test/known-divergences.yml` の (dommy, jsdom) entry を参照。\n\nhappy-dom はさらに別の不具合で node 7（`<i>x</i>`、空白でない text を持つ）まで :empty に含めてしまう。これは white space の扱いとは無関係の、happy-dom 固有の広い誤りなので、この finding の証拠には数えていない。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

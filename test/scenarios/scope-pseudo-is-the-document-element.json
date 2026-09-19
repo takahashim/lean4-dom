@@ -1,0 +1,20 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#the-scope-pseudo",
+    "algorithm": [":scope"],
+    "steps": ":scope may be either a true element or a virtual one (such as a DocumentFragment). A virtual scoping root ... acts as the parent of any root elements in the document fragment it represents, and cannot be the subject of the selector.",
+    "note": "DOM の `scope-match a selectors string` は受け手をそのまま scoping root として渡す（`dom.bs` の scope-match、及び `ParentNode` の `querySelectorAll()`）。`document.querySelectorAll(...)` を呼べば scoping root は Document 自身であり、Document は真の element ではないので、Selectors の定義に従えば **DocumentFragment と同じ virtual scoping root** として扱われるはずである。その場合 `:scope > *` は document element（html）だけに当たり、`:scope` 単体は subject になれないので何にも当たらない。model はこの読みに従う。\n\nDommy・jsdom・happy-dom はどれもそうならない。`:scope` を document element（html）そのものと同一視し、`:scope > *` は html の子（この scenario では ul）に当たり、`:scope` 単体は html に当たる。これは csswg-drafts#7261 で tabatkins が『現行の browser の挙動（:scope が html を返し、:scope > * が body/head を返す）は document について妥当だと思う。DOM 仕様のほうを直したい』（2023-02-16）と明言している、まさにその挙動である。同じ issue で彼自身『仕様が書かれているとおりに読めば document.querySelector(\":scope > *\") は html を返すはずだ』とも認めている。つまり **Selectors の本文は変わっておらず、実装群と WPT（`css/selectors/scope-selector.html` の `document.querySelector(':scope') === document.documentElement`）だけが、まだ書かれていない DOM 仕様の修正を先取りしている**。\n\nDocumentFragment の場合（`scope-pseudo-virtual-root-is-featureless.json`）と根は同じで、どちらも『virtual scoping root を真の element と同じように subject 化する』という同じ browser の近道である。\n\n`test/known-divergences.yml` の (dommy, jsdom) entry を参照。https://github.com/w3c/csswg-drafts/issues/7261#issuecomment-1435079033"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "ul" },
+    { "id": 3, "kind": "element", "parent": 2, "localName": "li" }
+  ],
+  "ranges": [], "iterators": [], "walkers": [], "listeners": [], "observers": [],
+  "operations": [
+    { "op": "querySelectorAll", "node": 0, "selectors": ":scope > *" },
+    { "op": "querySelectorAll", "node": 0, "selectors": ":scope" }
+  ]
+}

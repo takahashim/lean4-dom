@@ -75,3 +75,92 @@
     DocumentFragment を自分自身で置き換えたときだけ素通りし、children も
     そのまま残る（no-op になる）。
     https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
+
+- impl: dommy
+  scenario: empty-pseudo-allows-white-space
+  digest: 26e7fa321f0fe980
+  reason: &empty_whitespace |
+    Selectors Level 4 の `:empty`（本文固定は `docs/selectors-spec-version.md`）は
+    「子が無いか、あっても document white space characters だけ」で、Selectors 3 の
+    「空白も子として数える」から変わっている。Dommy はまだ Selectors 3 の読みのままで、
+    `<b> </b>`（空白だけの text 一つを子に持つ）を :empty から除外する。
+
+    ただし本文自身が挙げる適合テスト `css/selectors/selectors-empty-001.xml` の negative
+    群は `<test6> </test6>`（同じ形）を「:empty に当たってはならない」と assert しており、
+    本文の一文目と自分の wpt リストが矛盾している。csswg-drafts#8106
+    "[selectors-4] Is current spec for `:empty` web compatible?"（2022-11-19 起票）は
+    「どの browser にも実装されていない、web compatible か疑わしい」と問うたまま
+    2024-10 の最終コメントでも開いている。つまり Dommy がここで実装や WPT と揃っているのは
+    「仕様の改訂に追随できていない」からではなく、**仕様の本文がまだ自分自身の適合テストと
+    矛盾したまま決着していない**からである。model は pin した本文の字義（空白は :empty を
+    壊さない）に従うが、この行が仕様側の都合で変わる可能性は他の findings より高い。
+
+    jsdom も同じ形で割れる（別 entry）。happy-dom は空白でない text を持つ要素まで
+    :empty に含めるという別の不具合を持つので、この根拠には数えていない。
+    https://drafts.csswg.org/selectors-4/#the-empty-pseudo
+    https://github.com/w3c/csswg-drafts/issues/8106
+
+- impl: jsdom
+  scenario: empty-pseudo-allows-white-space
+  digest: 94e566a925ceb931
+  reason: *empty_whitespace
+
+- impl: dommy
+  scenario: scope-pseudo-virtual-root-is-featureless
+  digest: dcb1b6b4653c29ff
+  reason: &scope_virtual_root |
+    Selectors Level 4 の `:scope`（本文固定は `docs/selectors-spec-version.md`）は、
+    scoping root が真の element でないとき（DocumentFragment のような virtual scoping
+    root）、それを「その木の root element の parent としてふるまう featureless な node」
+    として扱うと定め、`df.querySelectorAll(":scope > .foo")` を名指しの例に挙げている。
+    DOM の "scope-match a selectors string" は受け手をそのまま scoping root として渡すので、
+    model はこの読みに従い `.foo` を返す。Dommy は空を返す。
+
+    csswg-drafts#7261 では一時「:scope は真の element しか指せない」という逆の読みが
+    有力になった時期があり（2022-05）、それを踏まえて書き直された WPT
+    `css/selectors/scope-selector.html`（2022-05-11、wpt#34032）が
+    `documentFragment.querySelectorAll(':scope > div').length === 0` を固定している。
+    issue は2023-02-16に tabatkins が「その読みは間違いだった、virtual scoping root は
+    docfrag 自身に当たる（ただし subject にはなれない）」と明言して再クローズしており、
+    DOM 側の定義も変わっていない。つまり Dommy と WPT は、csswg が撤回した読みのほうに
+    揃っている。model はここでは実装や WPT ではなく、現行の仕様本文と csswg の最終結論に従う。
+
+    同根の不一致が `scope-pseudo-is-the-document-element` にもある（別 entry）。
+    jsdom・happy-dom も同じ形で割れる。
+    https://drafts.csswg.org/selectors-4/#the-scope-pseudo
+    https://github.com/w3c/csswg-drafts/issues/7261#issuecomment-1435079033
+
+- impl: jsdom
+  scenario: scope-pseudo-virtual-root-is-featureless
+  digest: 2017fffa97108dd6
+  reason: *scope_virtual_root
+
+- impl: dommy
+  scenario: scope-pseudo-is-the-document-element
+  digest: 8cc5bcc9ef1c06ef
+  reason: &scope_document_element |
+    `scope-pseudo-virtual-root-is-featureless` と同根。Document は真の element ではない
+    ので、model は Selectors の定義どおり Document も virtual scoping root として扱う。
+    `document.querySelectorAll(":scope > *")` は document element（html）だけに当たり、
+    `document.querySelectorAll(":scope")` は単体では subject になれないので何にも当たらない。
+
+    Dommy は `:scope` を document element そのものと同一視する。`:scope > *` は html の
+    子（この scenario では ul）に当たり、`:scope` 単体は html に当たる。csswg-drafts#7261
+    で tabatkins が2023-02-16に「document については、現行の browser の挙動（:scope が
+    html を返し、:scope > * が body/head を返す）のほうが妥当だと思う。DOM 仕様側を
+    直したい」と明言しているのが、まさにこの挙動である。同じコメントで彼自身
+    「仕様が書かれているとおりに読めば document.querySelector(':scope > *') は html を
+    返すはずだ」とも認めている。つまり Selectors の本文は変わっておらず、DOM 仕様と
+    WPT・実装群だけが、まだ書かれていない DOM 仕様の修正を先取りしている。
+
+    この不一致は `test/compare.rb` が最初に割れた step で比較を打ち切るため、
+    元は一つの scenario にまとめてあった `scope-pseudo-is-the-scoping-root.json`
+    （2026-09-19 に分割）では見えていなかった。分割して初めて表に出た。
+    jsdom・happy-dom も同じ形で割れる。
+    https://drafts.csswg.org/selectors-4/#the-scope-pseudo
+    https://github.com/w3c/csswg-drafts/issues/7261#issuecomment-1435079033
+
+- impl: jsdom
+  scenario: scope-pseudo-is-the-document-element
+  digest: c45edd043ff5a9e8
+  reason: *scope_document_element
