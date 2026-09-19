@@ -1,4 +1,4 @@
-import Url.RoundtripIpv6Host
+import Url.Roundtrip.Ipv6Host
 
 /-!
 # `file:` の往復

@@ -1,4 +1,4 @@
-import Url.RoundtripQuery
+import Url.Roundtrip.Query
 
 /-!
 # 文字の性質

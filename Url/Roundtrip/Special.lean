@@ -1,4 +1,4 @@
-import Url.RoundtripPath
+import Url.Roundtrip.Path
 
 /-!
 # special scheme の往復

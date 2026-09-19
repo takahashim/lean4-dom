@@ -1,4 +1,4 @@
-import Url.RoundtripHost
+import Url.Roundtrip.Host
 
 /-!
 # **URL の往復**
@@ -9,19 +9,19 @@ serialize して parse すると元に戻ることの、最後の組み立て。
 
 | file | 内容 |
 | --- | --- |
-| `Url/RoundtripCanonical.lean` | canonical form と正規形の道具 |
-| `Url/RoundtripQuery.lean` | query と fragment の往復 |
-| `Url/RoundtripChars.lean` | 文字の性質 |
-| `Url/RoundtripPath.lean` | path の往復 |
-| `Url/RoundtripSpecial.lean` | special scheme の往復 |
-| `Url/RoundtripAssemble.lean` | 組み立て |
-| `Url/RoundtripPort.lean` | port の往復 |
-| `Url/RoundtripAuthority.lean` | authority の往復 |
-| `Url/RoundtripIpv6Chars.lean` | IPv6 serializer が出す文字 |
-| `Url/RoundtripHostRun.lean` | host state の走行 |
-| `Url/RoundtripIpv6Host.lean` | authority の走行と host の往復 |
-| `Url/RoundtripFile.lean` | `file:` の往復 |
-| `Url/RoundtripHost.lean` | host の条件 |
+| `Url/Roundtrip/Canonical.lean` | canonical form と正規形の道具 |
+| `Url/Roundtrip/Query.lean` | query と fragment の往復 |
+| `Url/Roundtrip/Chars.lean` | 文字の性質 |
+| `Url/Roundtrip/Path.lean` | path の往復 |
+| `Url/Roundtrip/Special.lean` | special scheme の往復 |
+| `Url/Roundtrip/Assemble.lean` | 組み立て |
+| `Url/Roundtrip/Port.lean` | port の往復 |
+| `Url/Roundtrip/Authority.lean` | authority の往復 |
+| `Url/Roundtrip/Ipv6Chars.lean` | IPv6 serializer が出す文字 |
+| `Url/Roundtrip/HostRun.lean` | host state の走行 |
+| `Url/Roundtrip/Ipv6Host.lean` | authority の走行と host の往復 |
+| `Url/Roundtrip/File.lean` | `file:` の往復 |
+| `Url/Roundtrip/Host.lean` | host の条件 |
 -/
 
 namespace Url

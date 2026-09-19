@@ -1,4 +1,4 @@
-import Url.RoundtripCanonical
+import Url.Roundtrip.Canonical
 
 /-!
 # query と fragment の往復

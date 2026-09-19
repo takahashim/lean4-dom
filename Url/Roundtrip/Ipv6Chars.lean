@@ -1,4 +1,4 @@
-import Url.RoundtripAuthority
+import Url.Roundtrip.Authority
 
 /-!
 # IPv6 serializer が出す文字
