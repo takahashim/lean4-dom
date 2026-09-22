@@ -1,5 +1,6 @@
 import Dom.Spec.Complete
 import Dom.Spec.Validity
+import Dom.Spec.MoveValidity
 import Dom.Properties.MoveContract
 
 /-!
@@ -34,10 +35,9 @@ completeness（`remove_complete`）がそれを塞ぐが、
   step 1 の validity がすべてを決める。
 * public API では `replace`（`replace_error_iff`）。step 1 は `preInsert` と同じ
   `ensurePreInsertionValidity` なので、`PreInsertValidity` をそのまま使い回せる。
-
-`moveBefore` も同じ材料（`moveBefore_error_iff`）はあるが、失敗側の条件
-（`moveValidity`）がまだ実行側から独立に書かれていない。`moveBefore` は
-receiver 自身の失敗が二つあるぶん関係も三枝になる。ここには入れていない。
+* public API では `moveBefore`（`moveBefore_error_iff` / `moveBefore_error_receiver`）。
+  step 1-6 は `MoveValidity`（`Dom/Spec/MoveValidity.lean`）で独立に書いた。
+  receiver 自身の失敗が二つあるぶん、関係は三枝になる。
 -/
 
 namespace Dom.Spec
@@ -385,5 +385,177 @@ theorem replaceResult_not_ok_of_validity_error {s s' : DOMState} (hwf : WellForm
   have h1 := (preInsertValidity_iff hwf).mp h.1
   rw [hv] at h1
   simp at h1
+
+/-! ## public API：`moveBefore` -/
+
+/--
+**§4.2.4 move の、結果まで含めた関係。**
+
+`moveBefore` は `ParentNode` の method なので、失敗しうる箇所が三つある。
+
+* receiver（`parent`）が木に無い（`NotFoundError`）
+* receiver が `ParentNode`（`canHaveChildren`）でない（`TypeError`、WebIDL による）
+* step 1-2 が決める reference child のもとで、step 1-6 の validity が落ちる
+
+前の二つが無ければ、reference child は `child` が `node` 自身なら
+`node` の次の兄弟に取り替えたもので、`move` の結果は `MoveValidity` と `MoveSpec` で
+決まる。成功できるのは三つ目も通ったときだけなので、成功側は一枝で足りる。
+
+## 独立性
+
+三つ目は `MoveValidity`（`Dom/Spec/MoveValidity.lean`）で書く。仕様の step 1-6 を
+実行側の関数を呼ばずに写した関係なので、`PreInsertResult` / `ReplaceResult` と
+同じ理由で、仕様の step を読み違えた実装に合わせて成り立つことはない。
+-/
+def MoveResult (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
+    Except DOMException DOMState → Prop
+  | .ok s' =>
+      ∃ pd, s.tree.get? parent = some pd ∧ pd.kind.canHaveChildren = true ∧
+        ∃ ref, (child = some node → ref = nextSibling s.tree node) ∧
+          (child ≠ some node → ref = child) ∧
+          MoveValidity s.tree node parent ref (.ok ()) ∧ MoveSpec s node parent ref s'
+  | .error e =>
+      (s.tree.get? parent = none ∧ e = .notFoundError) ∨
+      (∃ pd, s.tree.get? parent = some pd ∧ pd.kind.canHaveChildren = false ∧
+        e = .typeError) ∨
+      (∃ pd, s.tree.get? parent = some pd ∧ pd.kind.canHaveChildren = true ∧
+        ∃ ref, (child = some node → ref = nextSibling s.tree node) ∧
+          (child ≠ some node → ref = child) ∧
+          MoveValidity s.tree node parent ref (.error e))
+
+/-- **`moveBefore` の結果は、成否によらず関係を満たす。** -/
+theorem move_result_sound {s : DOMState} (hwf : WellFormed s.tree) (parent node : NodeId)
+    (child : Option NodeId) :
+    MoveResult s parent node child (moveBefore s parent node child) := by
+  cases hpd : s.tree.get? parent with
+  | none =>
+    have hmv0 : moveBefore s parent node child = .error .notFoundError := by
+      unfold moveBefore; rw [hpd]
+    rw [hmv0]
+    exact Or.inl ⟨hpd, rfl⟩
+  | some pd =>
+    by_cases hk : pd.kind.canHaveChildren = true
+    · cases hmv : moveBefore s parent node child with
+      | ok s' =>
+        refine ⟨pd, hpd, hk, if child = some node then nextSibling s.tree node else child,
+          fun hc => if_pos hc, fun hc => if_neg hc, ?_, ?_⟩
+        · exact (moveValidity_iff hwf).mpr ((moveBefore_succeeds_iff hwf hpd hk).mp ⟨s', hmv⟩)
+        · have hmv' : move s node parent
+              (if child = some node then nextSibling s.tree node else child) = .ok s' := by
+            unfold moveBefore at hmv
+            rw [hpd] at hmv
+            simpa [hk] using hmv
+          exact move_sound hwf hmv'
+      | error e =>
+        refine Or.inr (Or.inr ⟨pd, hpd, hk,
+          if child = some node then nextSibling s.tree node else child,
+          fun hc => if_pos hc, fun hc => if_neg hc, ?_⟩)
+        exact (moveValidity_iff hwf).mpr ((moveBefore_error_iff hwf hpd hk).mp hmv)
+    · have hkf : pd.kind.canHaveChildren = false := by simpa using hk
+      have hmv0 : moveBefore s parent node child = .error .typeError := by
+        unfold moveBefore; rw [hpd]; simp [hkf]
+      rw [hmv0]
+      exact Or.inr (Or.inl ⟨pd, hpd, hkf, rfl⟩)
+
+/-- **関係は結果を一つに決める。** -/
+theorem move_result_deterministic {s : DOMState} (hwf : WellFormed s.tree)
+    {parent node : NodeId} {child : Option NodeId} {r₁ r₂ : Except DOMException DOMState}
+    (h₁ : MoveResult s parent node child r₁) (h₂ : MoveResult s parent node child r₂) :
+    ResultObsEq r₁ r₂ := by
+  cases r₁ with
+  | ok s₁ =>
+    obtain ⟨pd₁, hp₁, hk₁, ref₁, hra₁, hrb₁, hv₁, hspec₁⟩ := h₁
+    cases r₂ with
+    | ok s₂ =>
+      obtain ⟨pd₂, hp₂, hk₂, ref₂, hra₂, hrb₂, hv₂, hspec₂⟩ := h₂
+      have href : ref₂ = ref₁ := by
+        by_cases hc : child = some node
+        · rw [hra₁ hc, hra₂ hc]
+        · rw [hrb₁ hc, hrb₂ hc]
+      rw [href] at hspec₂
+      exact moveSpec_deterministic hwf hspec₁ hspec₂
+    | error e₂ =>
+      exfalso
+      rcases h₂ with ⟨hp₂, -⟩ | ⟨pd₂, hp₂, hk₂, -⟩ |
+        ⟨pd₂, hp₂, hk₂, ref₂, hra₂, hrb₂, hv₂⟩
+      · rw [hp₁] at hp₂; simp at hp₂
+      · have hpdeq : pd₁ = pd₂ := by rw [hp₁] at hp₂; exact Option.some.inj hp₂
+        rw [hpdeq, hk₂] at hk₁
+        simp at hk₁
+      · have href : ref₂ = ref₁ := by
+          by_cases hc : child = some node
+          · rw [hra₁ hc, hra₂ hc]
+          · rw [hrb₁ hc, hrb₂ hc]
+        rw [href] at hv₂
+        have h1 := (moveValidity_iff hwf).mp hv₁
+        have h2 := (moveValidity_iff hwf).mp hv₂
+        rw [h1] at h2
+        simp at h2
+  | error e₁ =>
+    rcases h₁ with ⟨hp₁, he₁⟩ | ⟨pd₁, hp₁, hk₁, he₁⟩ |
+      ⟨pd₁, hp₁, hk₁, ref₁, hra₁, hrb₁, hv₁⟩
+    · cases r₂ with
+      | ok s₂ =>
+        exfalso
+        obtain ⟨pd₂, hp₂, -, -⟩ := h₂
+        rw [hp₁] at hp₂; simp at hp₂
+      | error e₂ =>
+        show e₁ = e₂
+        rcases h₂ with ⟨hp₂, he₂⟩ | ⟨pd₂, hp₂, -, -⟩ | ⟨pd₂, hp₂, -, -⟩
+        · rw [he₁, he₂]
+        · rw [hp₁] at hp₂; simp at hp₂
+        · rw [hp₁] at hp₂; simp at hp₂
+    · cases r₂ with
+      | ok s₂ =>
+        exfalso
+        obtain ⟨pd₂, hp₂, hk₂, -⟩ := h₂
+        have hpdeq : pd₁ = pd₂ := by rw [hp₁] at hp₂; exact Option.some.inj hp₂
+        rw [hpdeq, hk₂] at hk₁
+        simp at hk₁
+      | error e₂ =>
+        show e₁ = e₂
+        rcases h₂ with ⟨hp₂, he₂⟩ | ⟨pd₂, hp₂, hk₂, he₂⟩ | ⟨pd₂, hp₂, hk₂, -⟩
+        · rw [hp₁] at hp₂; simp at hp₂
+        · rw [he₁, he₂]
+        · have hpdeq : pd₁ = pd₂ := by rw [hp₁] at hp₂; exact Option.some.inj hp₂
+          rw [hpdeq, hk₂] at hk₁
+          simp at hk₁
+    · cases r₂ with
+      | ok s₂ =>
+        exfalso
+        obtain ⟨pd₂, hp₂, -, ref₂, hra₂, hrb₂, hv₂, -⟩ := h₂
+        have href : ref₂ = ref₁ := by
+          by_cases hc : child = some node
+          · rw [hra₁ hc, hra₂ hc]
+          · rw [hrb₁ hc, hrb₂ hc]
+        rw [href] at hv₂
+        have h1 := (moveValidity_iff hwf).mp hv₁
+        have h2 := (moveValidity_iff hwf).mp hv₂
+        rw [h1] at h2
+        simp at h2
+      | error e₂ =>
+        show e₁ = e₂
+        rcases h₂ with ⟨hp₂, -⟩ | ⟨pd₂, hp₂, hk₂, -⟩ |
+          ⟨pd₂, hp₂, hk₂, ref₂, hra₂, hrb₂, hv₂⟩
+        · rw [hp₁] at hp₂; simp at hp₂
+        · have hpdeq : pd₁ = pd₂ := by rw [hp₁] at hp₂; exact Option.some.inj hp₂
+          rw [hpdeq, hk₂] at hk₁
+          simp at hk₁
+        · have href : ref₂ = ref₁ := by
+            by_cases hc : child = some node
+            · rw [hra₁ hc, hra₂ hc]
+            · rw [hrb₁ hc, hrb₂ hc]
+          rw [href] at hv₂
+          have h1 := (moveValidity_iff hwf).mp hv₁
+          have h2 := (moveValidity_iff hwf).mp hv₂
+          rw [h1] at h2
+          exact Except.error.inj h2
+
+/-- **完全性も結果の水準で言える。** -/
+theorem move_result_complete {s : DOMState} (hwf : WellFormed s.tree)
+    {parent node : NodeId} {child : Option NodeId} {r : Except DOMException DOMState}
+    (h : MoveResult s parent node child r) :
+    ResultObsEq r (moveBefore s parent node child) :=
+  move_result_deterministic hwf h (move_result_sound hwf parent node child)
 
 end Dom.Spec

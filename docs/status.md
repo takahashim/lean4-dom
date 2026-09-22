@@ -5246,12 +5246,34 @@ public API の `preInsert`（`insertBefore` / `appendChild`）・`replace`
 `PreInsertValidity` をそのまま使い回して `ReplaceResult` を組んだ
 （`replace_result_sound` / `_deterministic` / `_complete`、2026-09-22）。
 
-`moveBefore` も同じ材料（`moveBefore_error_iff`）はあるが、`moveValidity`
-（step 1-6）がまだ実行側から独立に書かれていないので、こちらは `PreInsertValidity`
-を使い回せない。先に `MoveValidity` を `Dom/Spec/Validity.lean` と同じ
-`Step`/`Return`/`Branch`/`Done` の combinator で書き、実行側の `moveValidity`
-との同値を証明する必要がある。`moveBefore` は receiver 自身の失敗が二つ
-あるぶん関係も三枝になる。まだ入れていない。
+`moveBefore` も同じ材料（`moveBefore_error_iff`）はあったが、`moveValidity`
+（step 1-6）は `ensurePreInsertionValidity` と条件の語彙が違う
+（step 4「element または CharacterData」、step 6「document への element 挿入」は
+insert の語彙と一致しない）ので、`PreInsertValidity` を使い回せなかった。
+
+`Dom/Spec/MoveValidity.lean` を新設し、`PreInsertValidity` と同じ
+`Step`/`Return`/`Branch`/`Done` の combinator で step 1-6 を独立に書いた
+（`moveValidity_spec`：仮定なしの soundness、`moveValidity_deterministic`：
+構造からの一意性、`moveValidity_iff`：実行関数との一致）。新しい語彙は二つだけで
+済んだ。
+
+* `IsElementOrCharacterData`（step 4）
+* `MoveElementInsertionBlocked`（step 6）。`ElementInsertionBlocked`（insert の
+  step 9.1）と概念は同じだが `excl` を持たない。`move` は常に一個の node を動かし
+  fragment を展開しないので、除外リストが要らない
+
+step 1（同じ root）・2（inclusive ancestor でない）・3（child の parent）は
+`root` と `InclusiveAncestor`・`ChildIsChildOf`（`PreInsertValidity` と共有する
+既存の語彙）をそのまま使えた。
+
+`moveBefore` は receiver 自身の失敗が二つある（木に無い・`ParentNode` でない）ので、
+`MoveResult` は成功側が一枝、失敗側が三枝になった
+（`move_result_sound` / `_deterministic` / `_complete`、2026-09-22）。
+
+検証：`lake build` 359 targets、`lake env lean Audit.lean` は新しい7定理
+（`moveValidity_spec` ほか）を含めて三つの axiom のみ、`spec_dependence.rb` は
+`MoveValidity.lean` / `Result.lean` を検出しない、`callsites.rb` と
+`dom-model --check`（159 件）は変化なし。
 
 ### 副産物
 

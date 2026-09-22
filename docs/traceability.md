@@ -38,16 +38,19 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic`（congr は不要） | `replaceData_complete` |
 
 | ensure pre-insert validity | `Dom.Spec.PreInsertValidity` | `ensurePreInsertionValidity_spec`（仮定なし） | `preInsertValidity_deterministic` | `preInsertValidity_iff` |
+| move の pre-move validity（§4.2.4） | `Dom.Spec.MoveValidity` | `moveValidity_spec`（仮定なし） | `moveValidity_deterministic` | `moveValidity_iff` |
 | pre-insert（結果込み） | `Dom.Spec.PreInsertResult` | `preInsert_result_sound` | `preInsert_result_deterministic` | `preInsert_result_complete` |
 | remove（結果込み） | `Dom.Spec.RemoveResult` | `remove_result_sound` | `remove_result_deterministic` | `remove_result_complete` |
 | replace（結果込み） | `Dom.Spec.ReplaceResult` | `replace_result_sound` | `replace_result_deterministic` | `replace_result_complete` |
+| moveBefore（結果込み） | `Dom.Spec.MoveResult` | `move_result_sound` | `move_result_deterministic` | `move_result_complete` |
 
-定理はすべて `Dom.Spec` 名前空間にある。下三つは**例外まで含めた**関係で、
+定理はすべて `Dom.Spec` 名前空間にある。下四つは**例外まで含めた**関係で、
 soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。`replace` の
 失敗側は `preInsert` と同じ `PreInsertValidity` を使い回す（`replace` の step 1 が
-`ensurePreInsertionValidity` そのものであるため）。`move`（`moveBefore`）は
-まだ無い。失敗側の `moveValidity`（`Dom/Mutation/Algorithms.lean`）に相当する
-独立な関係がまだ無いためである。
+`ensurePreInsertionValidity` そのものであるため）。`move` は条件の語彙が違うので
+使い回せず、`Dom/Spec/MoveValidity.lean` に独立な `MoveValidity` を別に置いた。
+`moveBefore` は receiver 自身の失敗（木に無い・`ParentNode` でない）が二つある分、
+`MoveResult` の失敗側は三枝になる。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`
