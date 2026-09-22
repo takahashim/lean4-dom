@@ -32,10 +32,12 @@ completeness（`remove_complete`）がそれを塞ぐが、
 * public API では `preInsert`（`insertBefore` / `appendChild`）。
   `insert` は algorithm 単体の失敗条件を持たないが、呼び出し側では
   step 1 の validity がすべてを決める。
+* public API では `replace`（`replace_error_iff`）。step 1 は `preInsert` と同じ
+  `ensurePreInsertionValidity` なので、`PreInsertValidity` をそのまま使い回せる。
 
-`replace` と `moveBefore` も同じ形で書ける（`replace_error_iff` /
-`moveBefore_error_iff` が揃っている）。`moveBefore` は receiver 自身の失敗が二つ
-あるぶん関係が三枝になる。ここには入れていない。
+`moveBefore` も同じ材料（`moveBefore_error_iff`）はあるが、失敗側の条件
+（`moveValidity`）がまだ実行側から独立に書かれていない。`moveBefore` は
+receiver 自身の失敗が二つあるぶん関係も三枝になる。ここには入れていない。
 -/
 
 namespace Dom.Spec
@@ -272,6 +274,113 @@ theorem preInsertResult_not_ok_of_validity_error {s s' : DOMState} (hwf : WellFo
     {node parent : NodeId} {child : Option NodeId} {e : DOMException}
     (hv : ensurePreInsertionValidity s.tree node parent child [] = .error e) :
     ¬ PreInsertResult s node parent child (.ok s') := by
+  intro h
+  have h1 := (preInsertValidity_iff hwf).mp h.1
+  rw [hv] at h1
+  simp at h1
+
+/-! ## public API：`replaceChild` -/
+
+/--
+**§4.2.3 replace の、結果まで含めた関係。**
+
+成功なら「step 1 を通り、`ReplaceSpec` を満たす」、失敗なら「step 1 がその例外で落ちる」
+である。`replaceChild` はこれに委譲するだけである。
+
+## 独立性
+
+失敗側は `PreInsertResult` と同じ `PreInsertValidity`（`Dom/Spec/Validity.lean`）で書く。
+`replace` の step 1 は `ensurePreInsertionValidity` そのもので、`excl` に `[child]` を渡す
+（置き換えられる `child` 自身は、fragment の子孫チェックから除く。`child` は
+`node` の子ではありえないので、`node` が fragment でも `child` が
+その中に紛れ込むことはないが、`excl` はそれを実行側と同じ形で明示する）。
+
+したがってこの関係も、`PreInsertResult` と同じ理由で、仕様の step を読み違えた
+実装に合わせて成り立つことはない。
+-/
+def ReplaceResult (s : DOMState) (child node parent : NodeId) :
+    Except DOMException DOMState → Prop
+  | .ok s' => PreInsertValidity s.tree node parent (some child) [child] (.ok ()) ∧
+      ReplaceSpec s child node parent s'
+  | .error e => PreInsertValidity s.tree node parent (some child) [child] (.error e)
+
+/--
+**`replace` の結果は、成否によらず関係を満たす。**
+
+`ReplaceSpec` 自体が要る `StructurallyValid`（step 10 の assertion。
+`node` と `child` が同じ空の `DocumentFragment` という場合を `fragmentHasNoParent` が
+禁じることで成り立つ）をそのまま引き継ぐ。
+-/
+theorem replace_result_sound {s : DOMState} (hsv : StructurallyValid s.tree)
+    (child node parent : NodeId) :
+    ReplaceResult s child node parent (replace s child node parent) := by
+  have hwf := hsv.wellFormed
+  cases h : replace s child node parent with
+  | ok s' =>
+    exact ⟨(preInsertValidity_iff hwf).mpr ((replace_succeeds_iff hwf).mp ⟨s', h⟩),
+      replace_sound hsv h⟩
+  | error e => exact (preInsertValidity_iff hwf).mpr ((replace_error_iff hwf).mp h)
+
+/-- **関係は結果を一つに決める。** -/
+theorem replace_result_deterministic {s : DOMState} (hsv : StructurallyValid s.tree)
+    {child node parent : NodeId} {r₁ r₂ : Except DOMException DOMState}
+    (h₁ : ReplaceResult s child node parent r₁) (h₂ : ReplaceResult s child node parent r₂) :
+    ResultObsEq r₁ r₂ := by
+  have hwf := hsv.wellFormed
+  cases r₁ with
+  | ok s₁ =>
+    cases r₂ with
+    | ok s₂ =>
+      have hv := (preInsertValidity_iff hwf).mp h₁.1
+      obtain ⟨-, -, -, hchild⟩ := ensurePreInsertionValidity_ok hv
+      exact replaceSpec_deterministic hwf (replace_node_ne_parent hwf hv) (hchild child rfl)
+        (nodesToInsert_not_ancestor_of_validity hwf hv) h₁.2 h₂.2
+    | error e₂ =>
+      exfalso
+      have h1 := (preInsertValidity_iff hwf).mp h₁.1
+      have h2 := (preInsertValidity_iff hwf).mp (h₂ : PreInsertValidity _ _ _ _ _ (.error e₂))
+      rw [h1] at h2
+      simp at h2
+  | error e₁ =>
+    cases r₂ with
+    | ok s₂ =>
+      exfalso
+      have h1 := (preInsertValidity_iff hwf).mp (h₁ : PreInsertValidity _ _ _ _ _ (.error e₁))
+      have h2 := (preInsertValidity_iff hwf).mp h₂.1
+      rw [h1] at h2
+      simp at h2
+    | error e₂ =>
+      show e₁ = e₂
+      have h1 := (preInsertValidity_iff hwf).mp (h₁ : PreInsertValidity _ _ _ _ _ (.error e₁))
+      have h2 := (preInsertValidity_iff hwf).mp (h₂ : PreInsertValidity _ _ _ _ _ (.error e₂))
+      rw [h1] at h2
+      exact Except.error.inj h2
+
+/-- **完全性も結果の水準で言える。** -/
+theorem replace_result_complete {s : DOMState} (hsv : StructurallyValid s.tree)
+    {child node parent : NodeId} {r : Except DOMException DOMState}
+    (h : ReplaceResult s child node parent r) :
+    ResultObsEq r (replace s child node parent) :=
+  replace_result_deterministic hsv h (replace_result_sound hsv child node parent)
+
+/-! ### 関係が成否を決めていることの証人 -/
+
+/-- step 1 を通る入力については、関係は失敗を許さない。 -/
+theorem replaceResult_not_error_of_validity {s : DOMState} (hsv : StructurallyValid s.tree)
+    {child node parent : NodeId} {e : DOMException}
+    (hv : ensurePreInsertionValidity s.tree node parent (some child) [child] = .ok ()) :
+    ¬ ReplaceResult s child node parent (.error e) := by
+  intro h
+  have h1 := (preInsertValidity_iff hsv.wellFormed).mp
+    (h : PreInsertValidity _ _ _ _ _ (.error e))
+  rw [hv] at h1
+  simp at h1
+
+/-- step 1 で落ちる入力については、関係は成功を許さない。 -/
+theorem replaceResult_not_ok_of_validity_error {s s' : DOMState} (hwf : WellFormed s.tree)
+    {child node parent : NodeId} {e : DOMException}
+    (hv : ensurePreInsertionValidity s.tree node parent (some child) [child] = .error e) :
+    ¬ ReplaceResult s child node parent (.ok s') := by
   intro h
   have h1 := (preInsertValidity_iff hwf).mp h.1
   rw [hv] at h1

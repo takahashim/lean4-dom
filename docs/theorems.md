@@ -614,6 +614,12 @@ step 1 の validity を `ensurePreInsertionValidity` ではなく、仕様本文
 `PreInsertResult` と `nodesToInsert_not_ancestor_of_validity` はこの `PreInsertValidity` を
 `.ok ()` / `.error e` の形で使う。
 
+`replace` の step 1 も同じ `ensurePreInsertionValidity` なので、`ReplaceResult` は
+`PreInsertValidity` をそのまま失敗側に使い回す（`replace_result_sound` /
+`_deterministic` / `_complete`）。`move` の step 1-6（`moveValidity`）はまだ
+これに相当する独立な関係が無く、実行関数の定義そのものなので、`MoveResult` は
+まだ組んでいない。
+
 Selectors の関係だけは照合の実装と同じ module を見るので、この script が要る。
 いま触れているのは `elementChildrenOf` / `isElementNode`（薄い補助）と、
 `nthPoolOf` / `NthPoolMember` の `matchSelList` である。後者は仕様自身が

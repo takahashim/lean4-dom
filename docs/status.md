@@ -5239,13 +5239,19 @@ children の中での前後として書いた。**その二つが一致するこ
 ### どこまで書けるか
 
 書けるのは失敗条件が両側で捕まっているものだけで、いまは algorithm の `remove` と
-public API の `preInsert`（`insertBefore` / `appendChild`）である。
-`insert` は algorithm 単体の失敗条件を持たないが、呼び出し側では step 1 の validity が
-すべてを決めるので、API の水準では書ける。
+public API の `preInsert`（`insertBefore` / `appendChild`）・`replace`
+（`replaceChild`）である。`insert` は algorithm 単体の失敗条件を持たないが、
+呼び出し側では step 1 の validity がすべてを決めるので、API の水準では書ける。
+`replace` の step 1 も `preInsert` と同じ `ensurePreInsertionValidity` なので、
+`PreInsertValidity` をそのまま使い回して `ReplaceResult` を組んだ
+（`replace_result_sound` / `_deterministic` / `_complete`、2026-09-22）。
 
-`replace` と `moveBefore` も同じ形で書ける（`replace_error_iff` /
-`moveBefore_error_iff` が揃っている）。`moveBefore` は receiver 自身の失敗が二つ
-あるぶん関係が三枝になる。まだ入れていない。
+`moveBefore` も同じ材料（`moveBefore_error_iff`）はあるが、`moveValidity`
+（step 1-6）がまだ実行側から独立に書かれていないので、こちらは `PreInsertValidity`
+を使い回せない。先に `MoveValidity` を `Dom/Spec/Validity.lean` と同じ
+`Step`/`Return`/`Branch`/`Done` の combinator で書き、実行側の `moveValidity`
+との同値を証明する必要がある。`moveBefore` は receiver 自身の失敗が二つ
+あるぶん関係も三枝になる。まだ入れていない。
 
 ### 副産物
 

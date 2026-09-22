@@ -351,6 +351,11 @@ open Dom.Audit
   Dom.Spec.preInsert_result_complete
   Dom.Spec.preInsertResult_not_error_of_validity
   Dom.Spec.preInsertResult_not_ok_of_validity_error
+  Dom.Spec.replace_result_sound
+  Dom.Spec.replace_result_deterministic
+  Dom.Spec.replace_result_complete
+  Dom.Spec.replaceResult_not_error_of_validity
+  Dom.Spec.replaceResult_not_ok_of_validity_error
   Dom.Spec.ensurePreInsertionValidity_spec
   Dom.Spec.preInsertValidity_deterministic
   Dom.Spec.ensurePreInsertionValidity_eq_of_spec
