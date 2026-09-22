@@ -614,6 +614,19 @@ step 1 の validity を `ensurePreInsertionValidity` ではなく、仕様本文
 `PreInsertResult` と `nodesToInsert_not_ancestor_of_validity` はこの `PreInsertValidity` を
 `.ok ()` / `.error e` の形で使う。
 
+`replace` の step 1 も同じ `ensurePreInsertionValidity` なので、`ReplaceResult` は
+`PreInsertValidity` をそのまま失敗側に使い回す（`replace_result_sound` /
+`_deterministic` / `_complete`）。
+
+`move` の step 1-6（`moveValidity`）は条件の語彙が違う（`ChildIsChildOf` は同じだが、
+「element または CharacterData」（step 4）と「document への element 挿入の二条件」
+（step 6）は insert の語彙と一致しない）ので、`PreInsertValidity` を使い回せない。
+`Dom/Spec/MoveValidity.lean` に `PreInsertValidity` と同じ `Step` / `Return` /
+`Branch` / `Done` の combinator で独立に書き、実行側の `moveValidity` との同値
+（`moveValidity_iff`）を証明した。`moveBefore` は receiver 自身の失敗が二つ
+あるので、`MoveResult` は成功側が一枝、失敗側が三枝の形になる
+（`move_result_sound` / `_deterministic` / `_complete`）。
+
 Selectors の関係だけは照合の実装と同じ module を見るので、この script が要る。
 いま触れているのは `elementChildrenOf` / `isElementNode`（薄い補助）と、
 `nthPoolOf` / `NthPoolMember` の `matchSelList` である。後者は仕様自身が
