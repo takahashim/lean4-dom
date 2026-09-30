@@ -1,3 +1,5 @@
+import Infra.List
+
 /-!
 # Infra Standard の code point
 
@@ -149,15 +151,6 @@ theorem asciiLowerChar_ne {c d : Char} (hd : isAsciiLowerAlpha d = false) (h : �
     rw [toNat_ofNat_ascii (by omega)] at ht
     omega
   · exact h
-
-/-! ## list 上の道具 -/
-
-/-- 各文字を変えない写像なら、list は変わらない。 -/
-theorem map_self_of_mem : ∀ {l : List Char} {f : Char → Char}, (∀ c ∈ l, f c = c) → l.map f = l
-  | [], _, _ => rfl
-  | c :: t, f, h => by
-    simp only [List.map_cons, h c (by simp)]
-    rw [map_self_of_mem (fun x hx => h x (by simp [hx]))]
 
 /-! ## ASCII lowercase の性質 -/
 
