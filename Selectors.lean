@@ -2,3 +2,7 @@ import Selectors.Token
 import Selectors.Ast
 import Selectors.Component
 import Selectors.Parser
+import Selectors.Spec.Split
+import Selectors.Spec.Attr
+import Selectors.Spec.AttrSound
+import Selectors.Spec.AnB
