@@ -1,4 +1,5 @@
 import Lean
+import Infra
 import Dom
 import Url
 import Selectors
@@ -801,6 +802,15 @@ open Dom.Audit
   Infra.utf8Decode_encode
   Infra.utf8DecodeString_encode
 
+-- UTF-8 decode の関係仕様（Infra/Spec）
+#audit_axioms
+  Infra.Spec.utf8Decode_spec
+  Infra.Spec.firstCont3_iff
+  Infra.Spec.firstCont4_iff
+  Infra.Spec.Chunk.deterministic
+  Infra.Spec.Decodes.deterministic
+  Infra.Spec.Decodes.eq_utf8Decode_iff
+
 -- URL Standard §5 の往復
 #audit_axioms
   Url.utf8Encode_ofList_ascii
@@ -1039,6 +1049,21 @@ open Dom.Audit
   Dom.Spec.selectorAttr_none
   Dom.Spec.plainAttr_some
   Dom.Spec.plainAttr_none
+
+-- selector の構文の関係仕様（部分）
+#audit_axioms
+  Selectors.Spec.attrFlag_spec
+  Selectors.Spec.attrValue_spec
+  Selectors.Spec.attrTail_spec
+  Selectors.Spec.parseAttrBlock_spec
+  Selectors.Spec.dropToComma_spec
+  Selectors.Spec.splitAtOf_spec
+  Selectors.Spec.signlessInt_spec
+  Selectors.Spec.digitsAfter_spec
+  Selectors.Spec.parseB_spec
+  Selectors.Spec.identAnB_spec
+  Selectors.Spec.parseAnB_spec
+  Selectors.Spec.parseAnBFull_spec
 
 -- selector の API が満たすこと
 #audit_axioms
