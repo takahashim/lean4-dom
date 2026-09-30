@@ -41,6 +41,9 @@ def utf8Encode (s : String) : Bytes := s.toList.flatMap utf8EncodeChar
 /-- Infra の replacement character。 -/
 def replacementChar : Char := ⟨0xFFFD, by decide⟩
 
+/-- code point の値が Unicode scalar value の範囲にあるか。 -/
+def isScalarValue (n : Nat) : Bool := n < 0xD800 || (0xDFFF < n && n < 0x110000)
+
 /--
 code point の値から `Char` を作る。surrogate と範囲外は replacement character にする。
 
@@ -48,7 +51,7 @@ Unicode scalar value でない値は `Char` で表せないので、ここで潰
 UTF-8 decode の出力が必ず `String` に収まるのはこのためである。
 -/
 def charOfScalar (n : Nat) : Char :=
-  if n < 0xD800 || (0xDFFF < n && n < 0x110000) then Char.ofNat n else replacementChar
+  if isScalarValue n then Char.ofNat n else replacementChar
 
 /--
 continuation byte（`10xxxxxx`）から下位 6 bit を取り出す。
@@ -57,13 +60,21 @@ continuation byte でなければ `none`。
 def continuationBits (b : UInt8) : Option Nat :=
   if b.toNat &&& 0xC0 == 0x80 then some (b.toNat &&& 0x3F) else none
 
+/-- 選択済みの包含境界に byte 値が収まるかを判定する。 -/
+def withinBoundary (lower upper value : Nat) : Bool :=
+  decide (lower ≤ value) && decide (value ≤ upper)
+
 /--
 UTF-8 decode without BOM、不正な並びは replacement character に置き換える。
 
-先頭 byte の形から続く byte 数を決め、足りない・形が違う・overlong・
-surrogate・範囲外ならその 1 byte を replacement character にして次へ進む。
-仕様（Encoding Standard）の decoder はもう少し細かく「どこまで巻き戻すか」を決めるが、
-URL Standard が使うのは「不正なら U+FFFD」という結果だけである。
+Encoding Standard の UTF-8 decoder と同じく、**maximal subpart** ごとに 1 個の
+replacement character を出す。先頭 byte の形で続く byte 数を決め、E0 / ED / F0 / F4 では
+最初の continuation byte の範囲（lower / upper boundary）も見る。範囲外ならその byte を
+読み直しに回し、**先頭 byte ぶんだけ**を replacement character にする。途中の
+continuation が欠けている・形が違うなら、そこまでを 1 個にしてその byte を読み直す。
+
+boundary が overlong・surrogate・範囲外をすべて捉えるので、組み立てた code point は
+必ず Unicode scalar value になる。
 -/
 def utf8Decode : Bytes → List Char
   | [] => []
@@ -71,6 +82,7 @@ def utf8Decode : Bytes → List Char
     let n := b.toNat
     if n < 0x80 then charOfScalar n :: utf8Decode rest
     else if 0xC2 ≤ n && n ≤ 0xDF then
+      -- 2 byte: 2 byte 目を消費するか、置換文字の後に読み直す。
       match _hr : rest with
       | b1 :: rest' =>
         match continuationBits b1 with
@@ -78,24 +90,46 @@ def utf8Decode : Bytes → List Char
         | none => replacementChar :: utf8Decode rest
       | [] => [replacementChar]
     else if 0xE0 ≤ n && n ≤ 0xEF then
+      -- 3 byte: 最後の byte を調べる前に境界を検証する。
+      let lo := if n == 0xE0 then 0xA0 else 0x80
+      let hi := if n == 0xED then 0x9F else 0xBF
       match _hr : rest with
       | b1 :: b2 :: rest' =>
-        match continuationBits b1, continuationBits b2 with
-        | some v1, some v2 =>
-          let cp := ((n &&& 0x0F) <<< 12) ||| (v1 <<< 6) ||| v2
-          -- overlong と surrogate は `charOfScalar` が replacement にする。
-          (if cp < 0x800 then replacementChar else charOfScalar cp) :: utf8Decode rest'
-        | _, _ => replacementChar :: utf8Decode rest
-      | _ => replacementChar :: utf8Decode rest
+        if withinBoundary lo hi b1.toNat = true then
+          match continuationBits b2 with
+          | some v2 =>
+            charOfScalar (((n &&& 0x0F) <<< 12) ||| ((b1.toNat &&& 0x3F) <<< 6) ||| v2)
+              :: utf8Decode rest'
+          | none => replacementChar :: utf8Decode (b2 :: rest')
+        else replacementChar :: utf8Decode rest
+      | b1 :: [] =>
+        if withinBoundary lo hi b1.toNat = true then [replacementChar]
+        else replacementChar :: utf8Decode rest
+      | [] => [replacementChar]
     else if 0xF0 ≤ n && n ≤ 0xF4 then
+      -- 4 byte: 不正・途中終了の各 prefix を maximal subpart に従って処理する。
+      let lo := if n == 0xF0 then 0x90 else 0x80
+      let hi := if n == 0xF4 then 0x8F else 0xBF
       match _hr : rest with
       | b1 :: b2 :: b3 :: rest' =>
-        match continuationBits b1, continuationBits b2, continuationBits b3 with
-        | some v1, some v2, some v3 =>
-          let cp := ((n &&& 0x07) <<< 18) ||| (v1 <<< 12) ||| (v2 <<< 6) ||| v3
-          (if cp < 0x10000 then replacementChar else charOfScalar cp) :: utf8Decode rest'
-        | _, _, _ => replacementChar :: utf8Decode rest
-      | _ => replacementChar :: utf8Decode rest
+        if withinBoundary lo hi b1.toNat = true then
+          match continuationBits b2, continuationBits b3 with
+          | some v2, some v3 =>
+            charOfScalar (((n &&& 0x07) <<< 18) ||| ((b1.toNat &&& 0x3F) <<< 12) ||| (v2 <<< 6)
+              ||| v3) :: utf8Decode rest'
+          | some _, none => replacementChar :: utf8Decode (b3 :: rest')
+          | none, _ => replacementChar :: utf8Decode (b2 :: b3 :: rest')
+        else replacementChar :: utf8Decode rest
+      | b1 :: b2 :: [] =>
+        if withinBoundary lo hi b1.toNat = true then
+          match continuationBits b2 with
+          | some _ => [replacementChar]
+          | none => replacementChar :: utf8Decode [b2]
+        else replacementChar :: utf8Decode rest
+      | b1 :: [] =>
+        if withinBoundary lo hi b1.toNat = true then [replacementChar]
+        else replacementChar :: utf8Decode rest
+      | [] => [replacementChar]
     else replacementChar :: utf8Decode rest
 termination_by bs => bs.length
 decreasing_by all_goals first | (subst_vars; simp_wf; omega) | (subst_vars; simp_wf) | simp_wf

@@ -1,4 +1,5 @@
 import Infra.Bytes
+import Infra.Bits
 
 /-!
 # UTF-8 の往復
@@ -6,30 +7,13 @@ import Infra.Bytes
 `utf8Decode (utf8Encode s) = s.toList`。
 
 符号化はビット演算で書いてあるので、まずそれを算術に直す足場を作る。
-`|||` が足し算になるのは「上位を空けた値」と「その桁未満の値」を合わせるときで、
-UTF-8 の byte はすべてその形をしている。
+`|||` を足し算に直す汎用補題は `Infra/Bits.lean` にあり、ここでは UTF-8 の
+byte の形（先頭 byte の印と continuation byte）に固有の補題だけを置く。
 -/
 
 namespace Infra
 
-/-! ## ビットの足場 -/
-
-/-- 上位を空けた値と、その桁未満の値の `|||` は足し算である。 -/
-theorem lor_add {k a b : Nat} (hb : b < 2 ^ k) : (a * 2 ^ k) ||| b = a * 2 ^ k + b := by
-  have hpos : 0 < 2 ^ k := Nat.pow_pos (by omega)
-  have hdiv : ((a * 2 ^ k) ||| b) / 2 ^ k = a := by
-    rw [Nat.or_div_two_pow, Nat.mul_div_cancel _ hpos, Nat.div_eq_of_lt hb]
-    simp
-  have hmod : ((a * 2 ^ k) ||| b) % 2 ^ k = b := by
-    rw [Nat.or_mod_two_pow, Nat.mul_mod_left, Nat.mod_eq_of_lt hb]
-    simp
-  have h2 := Nat.div_add_mod ((a * 2 ^ k) ||| b) (2 ^ k)
-  rw [hdiv, hmod, Nat.mul_comm] at h2
-  omega
-
-/-- 先頭 byte の印と、それに続く桁。 -/
-theorem lead_add {k m v : Nat} (hv : v < 2 ^ k) : (m * 2 ^ k) ||| v = m * 2 ^ k + v :=
-  lor_add hv
+/-! ## UTF-8 の byte の形 -/
 
 /-- continuation byte。 -/
 theorem cont_add {v : Nat} (hv : v < 64) : (0x80 ||| v) = 128 + v := by
@@ -48,52 +32,6 @@ theorem lead4_add {v : Nat} (hv : v < 8) : (0xF0 ||| v) = 240 + v := by
   show (30 * 2 ^ 3 ||| v) = _
   rw [lor_add (k := 3) (by omega)]
 
-/-- 6 bit の取り出し。 -/
-theorem and_3F (x : Nat) : x &&& 0x3F = x % 64 := Nat.and_two_pow_sub_one_eq_mod x 6
-
-theorem and_1F (x : Nat) : x &&& 0x1F = x % 32 := Nat.and_two_pow_sub_one_eq_mod x 5
-
-theorem and_0F (x : Nat) : x &&& 0x0F = x % 16 := Nat.and_two_pow_sub_one_eq_mod x 4
-
-theorem and_07 (x : Nat) : x &&& 0x07 = x % 8 := Nat.and_two_pow_sub_one_eq_mod x 3
-
-/-- continuation byte の判定に使う上位 2 bit。 -/
-theorem and_C0 (x : Nat) : x &&& 0xC0 = 64 * ((x / 64) &&& 3) := by
-  have hmod : (x &&& 0xC0) % 2 ^ 6 = 0 := by
-    rw [Nat.and_mod_two_pow]
-    show (x % 64) &&& 0 = 0
-    simp
-  have hdiv : (x &&& 0xC0) / 2 ^ 6 = (x / 64) &&& 3 := by
-    rw [Nat.and_div_two_pow]
-  have h2 := Nat.div_add_mod (x &&& 0xC0) (2 ^ 6)
-  rw [hdiv, hmod] at h2
-  omega
-
-/-- 下位 `k` bit が空いている値には、その桁未満の値を足し込める。 -/
-theorem lor_low {k A d : Nat} (hA : A % 2 ^ k = 0) (hd : d < 2 ^ k) : A ||| d = A + d := by
-  have h := Nat.div_add_mod A (2 ^ k)
-  rw [hA, Nat.add_zero, Nat.mul_comm] at h
-  calc A ||| d = ((A / 2 ^ k) * 2 ^ k) ||| d := by rw [h]
-    _ = (A / 2 ^ k) * 2 ^ k + d := lor_add hd
-    _ = A + d := by rw [h]
-
-/-- 3 byte ぶんの組み立て。 -/
-theorem lor3 {a b c : Nat} (hb : b < 64) (hc : c < 64) :
-    (a * 2 ^ 12 ||| b * 2 ^ 6) ||| c = a * 4096 + b * 64 + c := by
-  have h1 : a * 2 ^ 12 ||| b * 2 ^ 6 = a * 2 ^ 12 + b * 2 ^ 6 :=
-    lor_low (k := 12) (by omega) (by omega)
-  rw [h1, lor_low (k := 6) (by omega) (by omega)]
-
-/-- 4 byte ぶんの組み立て。 -/
-theorem lor4 {a b c d : Nat} (hb : b < 64) (hc : c < 64) (hd : d < 64) :
-    ((a * 2 ^ 18 ||| b * 2 ^ 12) ||| c * 2 ^ 6) ||| d
-      = a * 262144 + b * 4096 + c * 64 + d := by
-  have h1 : a * 2 ^ 18 ||| b * 2 ^ 12 = a * 2 ^ 18 + b * 2 ^ 12 :=
-    lor_low (k := 18) (by omega) (by omega)
-  have h2 : (a * 2 ^ 18 + b * 2 ^ 12) ||| c * 2 ^ 6
-      = (a * 2 ^ 18 + b * 2 ^ 12) + c * 2 ^ 6 := lor_low (k := 12) (by omega) (by omega)
-  rw [h1, h2, lor_low (k := 6) (by omega) (by omega)]
-
 /-- `0x80 + v` は continuation byte として読める。 -/
 theorem continuationBits_ofNat {v : Nat} (hv : v < 64) :
     continuationBits (UInt8.ofNat (128 + v)) = some v := by
@@ -110,16 +48,18 @@ theorem continuationBits_ofNat {v : Nat} (hv : v < 64) :
 
 /-! ## `Char` の往復 -/
 
+/-- `Char` の値は必ず scalar value の範囲にある。 -/
+theorem isScalarValue_toNat (c : Char) : isScalarValue c.toNat = true := by
+  have hv : c.toNat < 0xD800 ∨ (0xDFFF < c.toNat ∧ c.toNat < 0x110000) := c.valid
+  unfold isScalarValue
+  rcases hv with h | h
+  · simp [h]
+  · simp [h.1, h.2]
+
 /-- `Char` の値は必ず scalar value なので、番号から作り直すと元に戻る。 -/
 theorem charOfScalar_toNat (c : Char) : charOfScalar c.toNat = c := by
-  have hv : c.toNat < 0xD800 ∨ (0xDFFF < c.toNat ∧ c.toNat < 0x110000) := c.valid
-  have hcond : (decide (c.toNat < 0xD800) ||
-      (decide (0xDFFF < c.toNat) && decide (c.toNat < 0x110000))) = true := by
-    rcases hv with h | h
-    · simp [h]
-    · simp [h.1, h.2]
   unfold charOfScalar
-  rw [if_pos hcond]
+  rw [if_pos (isScalarValue_toNat c)]
   exact Char.ofNat_toNat c
 
 /-- `Char` の番号は Unicode の上限未満である。4 byte の場合の先頭 byte の範囲に使う。 -/
@@ -128,6 +68,89 @@ theorem toNat_lt (c : Char) : c.toNat < 0x110000 := by
   rcases hv with h | h
   · omega
   · exact h.2
+
+/-- 3 byte の符号化で、最初の continuation byte が decoder の boundary に入る。 -/
+theorem lead3_bound (c : Char) (h2 : ¬ c.toNat < 0x800) (h3 : c.toNat < 0x10000) :
+    ((if (224 + c.toNat / 4096) == 0xE0 then (0xA0 : Nat) else 0x80)
+        ≤ 128 + c.toNat / 64 % 64 &&
+      128 + c.toNat / 64 % 64
+        ≤ (if (224 + c.toNat / 4096) == 0xED then (0x9F : Nat) else 0xBF)) = true := by
+  have hq : c.toNat / 4096 < 16 := by omega
+  have hr : c.toNat / 64 % 64 < 64 := by omega
+  by_cases hq0 : c.toNat / 4096 = 0
+  · have hlo : (if (224 + c.toNat / 4096) == 0xE0 then (0xA0 : Nat) else 0x80) = 0xA0 := by
+      rw [if_pos (by rw [beq_iff_eq]; omega)]
+    have hhi : (if (224 + c.toNat / 4096) == 0xED then (0x9F : Nat) else 0xBF) = 0xBF := by
+      rw [if_neg (by rw [beq_iff_eq]; omega)]
+    rw [hlo, hhi]
+    simp only [Bool.and_eq_true, decide_eq_true_eq]
+    omega
+  · by_cases hq13 : c.toNat / 4096 = 13
+    · have hlo : (if (224 + c.toNat / 4096) == 0xE0 then (0xA0 : Nat) else 0x80) = 0x80 := by
+        rw [if_neg (by rw [beq_iff_eq]; omega)]
+      have hhi : (if (224 + c.toNat / 4096) == 0xED then (0x9F : Nat) else 0xBF) = 0x9F := by
+        rw [if_pos (by rw [beq_iff_eq]; omega)]
+      have hsur : c.toNat < 0xD800 := by
+        have hv : c.toNat < 0xD800 ∨ (0xDFFF < c.toNat ∧ c.toNat < 0x110000) := c.valid
+        rcases hv with h | h
+        · exact h
+        · omega
+      rw [hlo, hhi]
+      simp only [Bool.and_eq_true, decide_eq_true_eq]
+      have h1 : c.toNat / 64 < 864 := by omega
+      have h2 : 832 ≤ c.toNat / 64 := by omega
+      have hd : c.toNat / 64 / 64 = 13 := by omega
+      omega
+    · have hlo : (if (224 + c.toNat / 4096) == 0xE0 then (0xA0 : Nat) else 0x80) = 0x80 := by
+        rw [if_neg (by rw [beq_iff_eq]; omega)]
+      have hhi : (if (224 + c.toNat / 4096) == 0xED then (0x9F : Nat) else 0xBF) = 0xBF := by
+        rw [if_neg (by rw [beq_iff_eq]; omega)]
+      rw [hlo, hhi]
+      simp only [Bool.and_eq_true, decide_eq_true_eq]
+      omega
+
+/-- 4 byte の符号化で、最初の continuation byte が decoder の boundary に入る。 -/
+theorem lead4_bound (c : Char) (h3 : ¬ c.toNat < 0x10000) :
+    ((if (240 + c.toNat / 262144) == 0xF0 then (0x90 : Nat) else 0x80)
+        ≤ 128 + c.toNat / 4096 % 64 &&
+      128 + c.toNat / 4096 % 64
+        ≤ (if (240 + c.toNat / 262144) == 0xF4 then (0x8F : Nat) else 0xBF)) = true := by
+  have hmax := toNat_lt c
+  have hq : c.toNat / 262144 < 8 := by omega
+  have hr : c.toNat / 4096 % 64 < 64 := by omega
+  by_cases hq0 : c.toNat / 262144 = 0
+  · have hlo : (if (240 + c.toNat / 262144) == 0xF0 then (0x90 : Nat) else 0x80) = 0x90 := by
+      rw [if_pos (by rw [beq_iff_eq]; omega)]
+    have hhi : (if (240 + c.toNat / 262144) == 0xF4 then (0x8F : Nat) else 0xBF) = 0xBF := by
+      rw [if_neg (by rw [beq_iff_eq]; omega)]
+    rw [hlo, hhi]
+    simp only [Bool.and_eq_true, decide_eq_true_eq]
+    have h1 : 16 ≤ c.toNat / 4096 := by omega
+    have h2 : c.toNat / 4096 < 64 := by omega
+    have hd : c.toNat / 4096 / 64 = 0 := by
+      rw [Nat.div_div_eq_div_mul, show 4096 * 64 = 262144 by omega]
+      exact hq0
+    omega
+  · by_cases hq4 : c.toNat / 262144 = 4
+    · have hlo : (if (240 + c.toNat / 262144) == 0xF0 then (0x90 : Nat) else 0x80) = 0x80 := by
+        rw [if_neg (by rw [beq_iff_eq]; omega)]
+      have hhi : (if (240 + c.toNat / 262144) == 0xF4 then (0x8F : Nat) else 0xBF) = 0x8F := by
+        rw [if_pos (by rw [beq_iff_eq]; omega)]
+      rw [hlo, hhi]
+      simp only [Bool.and_eq_true, decide_eq_true_eq]
+      have h1 : c.toNat / 4096 < 272 := by omega
+      have h2 : 256 ≤ c.toNat / 4096 := by omega
+      have hd : c.toNat / 4096 / 64 = 4 := by
+        rw [Nat.div_div_eq_div_mul, show 4096 * 64 = 262144 by omega]
+        exact hq4
+      omega
+    · have hlo : (if (240 + c.toNat / 262144) == 0xF0 then (0x90 : Nat) else 0x80) = 0x80 := by
+        rw [if_neg (by rw [beq_iff_eq]; omega)]
+      have hhi : (if (240 + c.toNat / 262144) == 0xF4 then (0x8F : Nat) else 0xBF) = 0xBF := by
+        rw [if_neg (by rw [beq_iff_eq]; omega)]
+      rw [hlo, hhi]
+      simp only [Bool.and_eq_true, decide_eq_true_eq]
+      omega
 
 /-! ## 一文字ぶんの往復 -/
 
@@ -181,9 +204,17 @@ theorem utf8Decode_encodeChar (c : Char) (rest : Bytes) :
     rw [henc]
     have hb : (UInt8.ofNat (224 + c.toNat / 4096)).toNat = 224 + c.toNat / 4096 := by
       simp [Nat.mod_eq_of_lt (show 224 + c.toNat / 4096 < 256 by omega)]
+    have hb1 : (UInt8.ofNat (128 + c.toNat / 64 % 64)).toNat = 128 + c.toNat / 64 % 64 := by
+      simp [Nat.mod_eq_of_lt (show 128 + c.toNat / 64 % 64 < 256 by omega)]
+    have hbound0 := lead3_bound c h2 h3
+    have hbound : withinBoundary
+        (if (224 + c.toNat / 4096) == 0xE0 then 0xA0 else 0x80)
+        (if (224 + c.toNat / 4096) == 0xED then 0x9F else 0xBF)
+        (128 + c.toNat / 64 % 64) = true := by
+      simpa [withinBoundary, beq_iff_eq] using hbound0
+    have hmask : (128 + c.toNat / 64 % 64) &&& 63 = c.toNat / 64 % 64 := by rw [and_3F]; omega
     rw [utf8Decode.eq_def]
-    simp +zetaDelta only [hb, List.cons_append, continuationBits_ofNat hv1,
-      continuationBits_ofNat hv2,
+    simp +zetaDelta only [hb, hb1, hbound, List.cons_append, continuationBits_ofNat hv2,
       show ¬(224 + c.toNat / 4096 < 128) by omega,
       show (decide (194 ≤ 224 + c.toNat / 4096) && decide (224 + c.toNat / 4096 ≤ 223)) = false by
         simp; omega,
@@ -191,9 +222,9 @@ theorem utf8Decode_encodeChar (c : Char) (rest : Bytes) :
         simp; omega,
       Bool.false_eq_true, reduceIte, if_false]
     have hand : (224 + c.toNat / 4096) &&& 15 = c.toNat / 4096 := by rw [and_0F]; omega
-    rw [hand, Nat.shiftLeft_eq, Nat.shiftLeft_eq, lor3 hv1 hv2,
+    rw [hand, hmask, Nat.shiftLeft_eq, Nat.shiftLeft_eq, lor3 hv1 hv2,
       show c.toNat / 4096 * 4096 + c.toNat / 64 % 64 * 64 + c.toNat % 64 = c.toNat by omega,
-      if_neg (show ¬(c.toNat < 2048) by omega), charOfScalar_toNat]
+      charOfScalar_toNat]
     simp
   · -- 4 byte
     have hmax := toNat_lt c
@@ -210,9 +241,18 @@ theorem utf8Decode_encodeChar (c : Char) (rest : Bytes) :
     rw [henc]
     have hb : (UInt8.ofNat (240 + c.toNat / 262144)).toNat = 240 + c.toNat / 262144 := by
       simp [Nat.mod_eq_of_lt (show 240 + c.toNat / 262144 < 256 by omega)]
+    have hb1 : (UInt8.ofNat (128 + c.toNat / 4096 % 64)).toNat = 128 + c.toNat / 4096 % 64 := by
+      simp [Nat.mod_eq_of_lt (show 128 + c.toNat / 4096 % 64 < 256 by omega)]
+    have hbound0 := lead4_bound c h3
+    have hbound : withinBoundary
+        (if (240 + c.toNat / 262144) == 0xF0 then 0x90 else 0x80)
+        (if (240 + c.toNat / 262144) == 0xF4 then 0x8F else 0xBF)
+        (128 + c.toNat / 4096 % 64) = true := by
+      simpa [withinBoundary, beq_iff_eq] using hbound0
+    have hmask : (128 + c.toNat / 4096 % 64) &&& 63 = c.toNat / 4096 % 64 := by rw [and_3F]; omega
     rw [utf8Decode.eq_def]
-    simp +zetaDelta only [hb, List.cons_append, continuationBits_ofNat hv1,
-      continuationBits_ofNat hv2, continuationBits_ofNat hv3,
+    simp +zetaDelta only [hb, hb1, hbound, List.cons_append, continuationBits_ofNat hv2,
+      continuationBits_ofNat hv3,
       show ¬(240 + c.toNat / 262144 < 128) by omega,
       show (decide (194 ≤ 240 + c.toNat / 262144) &&
         decide (240 + c.toNat / 262144 ≤ 223)) = false by simp; omega,
@@ -222,10 +262,10 @@ theorem utf8Decode_encodeChar (c : Char) (rest : Bytes) :
         decide (240 + c.toNat / 262144 ≤ 244)) = true by simp; omega,
       Bool.false_eq_true, reduceIte, if_false]
     have hand : (240 + c.toNat / 262144) &&& 7 = c.toNat / 262144 := by rw [and_07]; omega
-    rw [hand, Nat.shiftLeft_eq, Nat.shiftLeft_eq, Nat.shiftLeft_eq, lor4 hv1 hv2 hv3,
+    rw [hand, hmask, Nat.shiftLeft_eq, Nat.shiftLeft_eq, Nat.shiftLeft_eq, lor4 hv1 hv2 hv3,
       show c.toNat / 262144 * 262144 + c.toNat / 4096 % 64 * 4096 + c.toNat / 64 % 64 * 64
         + c.toNat % 64 = c.toNat by omega,
-      if_neg (show ¬(c.toNat < 65536) by omega), charOfScalar_toNat]
+      charOfScalar_toNat]
     simp
 
 /-! ## 文字列の往復 -/
