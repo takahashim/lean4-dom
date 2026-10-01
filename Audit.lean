@@ -1061,6 +1061,7 @@ open Dom.Audit
   Selectors.Spec.parseAttrBlock_spec
   Selectors.Spec.dropToComma_spec
   Selectors.Spec.splitAtOf_spec
+  Selectors.Spec.dropWs_spec
   Selectors.Spec.signlessInt_spec
   Selectors.Spec.digitsAfter_spec
   Selectors.Spec.parseB_spec

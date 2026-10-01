@@ -4,8 +4,12 @@ import Selectors.Parser
 # `An+B` の関係仕様（CSS Syntax §9）
 
 `Selectors/Parser.lean` の `An+B` の部品 `signlessInt` / `digitsAfter` /
-`parseB` / `identAnB` と、`parseAnB` / `parseAnBFull` を、実行関数を呼ばずに
-関係として書く。
+`parseB` / `identAnB` と、`parseAnB` / `parseAnBFull` を関係として書く。
+
+関係は parser の関数を呼ばない。符号なし整数と「接頭辞の後ろの数字列」は
+`SignlessInt` / `DigitsAfter` として入力の形で書き、`signlessInt_spec` /
+`digitsAfter_spec` で実行関数と結ぶ。例外は先頭の空白を飛ばす `dropWs` で、
+これは `dropWs_spec`（空白 token をいくつか剥がしたもの）で特徴づけたうえで使う。
 -/
 
 namespace Selectors.Spec
@@ -13,11 +17,57 @@ namespace Selectors.Spec
 open Selectors
 open Infra
 
+/-! ## 空白・符号なし整数・数字列 -/
+
+/-- **`dropWs` は先頭の空白 token をすべて剥がす。** 残りは空白で始まらない。 -/
+theorem dropWs_spec (l l' : List Component) :
+    dropWs l = l' ↔
+      ∃ k, l = List.replicate k (Component.tok Token.whitespace) ++ l' ∧
+        ∀ rest, l' ≠ Component.tok Token.whitespace :: rest := by
+  induction l with
+  | nil =>
+    simp only [dropWs]
+    constructor
+    · rintro rfl; exact ⟨0, rfl, fun _ h => nomatch h⟩
+    · rintro ⟨k, hk, _⟩
+      cases k <;> simp_all
+  | cons c rest ih =>
+    by_cases hc : c = Component.tok Token.whitespace
+    · subst hc
+      simp only [dropWs]
+      rw [ih]
+      constructor
+      · rintro ⟨k, hk, hn⟩; exact ⟨k + 1, by simp [hk, List.replicate_succ], hn⟩
+      · rintro ⟨k, hk, hn⟩
+        cases k with
+        | zero => simp at hk; exact absurd hk.symm (hn rest)
+        | succ k => exact ⟨k, by simpa [List.replicate_succ] using hk, hn⟩
+    · have hd : dropWs (c :: rest) = c :: rest := by
+        unfold dropWs; split
+        · next h => exact absurd (List.cons.inj h).1 hc
+        · rfl
+      rw [hd]
+      constructor
+      · rintro rfl; exact ⟨0, rfl, fun r h => hc (List.cons.inj h).1⟩
+      · rintro ⟨k, hk, hn⟩
+        cases k with
+        | zero => simpa using hk
+        | succ k => exact absurd (List.cons.inj hk).1 hc
+
+/-- 符号の無い整数 token がちょうど一つ。 -/
+def SignlessInt (l : List Component) (v : Nat) (r : List Component) : Prop :=
+  ∃ n : Num, l = Component.tok (Token.number n) :: r ∧ n.isInteger = true ∧
+    n.sign = none ∧ 0 ≤ n.value ∧ v = n.value.toNat
+
+/-- 文字列 `s` が接頭辞 `pre` と、空でない ASCII 数字列 `d`（値 `v`）からなる。 -/
+def DigitsAfter (pre s : String) (v : Nat) : Prop :=
+  ∃ d : List Char, s.toList = pre.toList ++ d ∧ d ≠ [] ∧
+    (∀ c ∈ d, isAsciiDigit c = true) ∧ v = digitsToNat d
+
 /-- **`signlessInt` は符号なし整数 token をちょうど読む。** -/
 theorem signlessInt_spec (l : List Component) (v : Nat) (r : List Component) :
-    signlessInt l = some (v, r) ↔
-      ∃ n : Num, l = Component.tok (Token.number n) :: r ∧ n.isInteger = true ∧
-        n.sign = none ∧ 0 ≤ n.value ∧ v = n.value.toNat := by
+    signlessInt l = some (v, r) ↔ SignlessInt l v r := by
+  unfold SignlessInt
   constructor
   · intro h
     unfold signlessInt at h
@@ -41,9 +91,8 @@ theorem signlessInt_spec (l : List Component) (v : Nat) (r : List Component) :
 
 /-- **`digitsAfter` は接頭辞の後ろの数字列をちょうど読む。** -/
 theorem digitsAfter_spec (pre s : String) (v : Nat) :
-    digitsAfter pre s = some v ↔
-      ∃ d : List Char, s.toList = pre.toList ++ d ∧ d ≠ [] ∧
-        (∀ c ∈ d, isAsciiDigit c = true) ∧ v = digitsToNat d := by
+    digitsAfter pre s = some v ↔ DigitsAfter pre s v := by
+  unfold DigitsAfter
   constructor
   · intro h
     unfold digitsAfter at h
@@ -99,11 +148,11 @@ inductive BRel (a : Int) : List Component → Int → List Component → Prop wh
       BRel a l 0 l
   | plus {l : List Component} {d : Char} {rest : List Component} {v : Nat} {r : List Component}
       (hd : dropWs l = Component.tok (Token.delim d) :: rest) (hd1 : d = CH_PLUS)
-      (hs : signlessInt (dropWs rest) = some (v, r)) :
+      (hs : SignlessInt (dropWs rest) v r) :
       BRel a l (v : Int) r
   | minus {l : List Component} {d : Char} {rest : List Component} {v : Nat} {r : List Component}
       (hd : dropWs l = Component.tok (Token.delim d) :: rest) (hd1 : d = CH_HYPHEN)
-      (hs : signlessInt (dropWs rest) = some (v, r)) :
+      (hs : SignlessInt (dropWs rest) v r) :
       BRel a l (-(v : Int)) r
 
 /-- **`parseB` は `BRel` をちょうど表す。** -/
@@ -142,11 +191,11 @@ theorem parseB_spec (a : Int) (l : List Component) (ab : AnB) (r : List Componen
           · subst hplus
             have hne : (CH_PLUS == CH_HYPHEN) = false := by decide
             simp only [hne, Bool.false_eq_true, if_false]
-            exact ⟨trivial, .plus hd rfl hs⟩
+            exact ⟨trivial, .plus hd rfl ((signlessInt_spec _ _ _).mp hs)⟩
           · subst hminus
             have hha : (CH_HYPHEN == CH_HYPHEN) = true := by decide
             simp only [hha, if_true]
-            exact ⟨trivial, .minus hd rfl hs⟩
+            exact ⟨trivial, .minus hd rfl ((signlessInt_spec _ _ _).mp hs)⟩
         · next hn => simp at h
       · next hnc =>
         simp only [Option.some.injEq, Prod.mk.injEq] at h
@@ -189,11 +238,13 @@ theorem parseB_spec (a : Int) (l : List Component) (ab : AnB) (r : List Componen
         · next d rest heq => exact absurd heq (hd d rest)
         · rfl
       | plus hd hd1 hs =>
+        replace hs := (signlessInt_spec _ _ _).mpr hs
         unfold parseB
         rw [hd, hd1]
         have hne : (CH_PLUS == CH_HYPHEN) = false := by decide
         simp [hs, hne]
       | minus hd hd1 hs =>
+        replace hs := (signlessInt_spec _ _ _).mpr hs
         unfold parseB
         rw [hd, hd1]
         have hpf : (CH_HYPHEN == CH_PLUS) = false := by decide
@@ -217,17 +268,16 @@ inductive IdentRel (kw : Bool) (s : String) : List Component → Int → Int →
       (hs : asciiLowercase s == "-n") (hb : BRel (-1) rest b r) :
       IdentRel kw s rest (-1) b r
   | nDash {rest : List Component} {v : Nat} {r : List Component}
-      (hs : asciiLowercase s == "n-") (h : signlessInt (dropWs rest) = some (v, r)) :
+      (hs : asciiLowercase s == "n-") (h : SignlessInt (dropWs rest) v r) :
       IdentRel kw s rest 1 (-(v : Int)) r
   | negnDash {rest : List Component} {v : Nat} {r : List Component}
-      (hs : asciiLowercase s == "-n-") (h : signlessInt (dropWs rest) = some (v, r)) :
+      (hs : asciiLowercase s == "-n-") (h : SignlessInt (dropWs rest) v r) :
       IdentRel kw s rest (-1) (-(v : Int)) r
   | nDigits {rest : List Component} {v : Nat}
-      (hn : digitsAfter "-n-" (asciiLowercase s) = none)
-      (hs : digitsAfter "n-" (asciiLowercase s) = some v) :
+      (hs : DigitsAfter "n-" (asciiLowercase s) v) :
       IdentRel kw s rest 1 (-(v : Int)) rest
   | negnDigits {rest : List Component} {v : Nat}
-      (hs : digitsAfter "-n-" (asciiLowercase s) = some v) :
+      (hs : DigitsAfter "-n-" (asciiLowercase s) v) :
       IdentRel kw s rest (-1) (-(v : Int)) rest
 
 /-- **`identAnB` は `IdentRel` をちょうど表す。** -/
@@ -266,7 +316,7 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
               · next v r2 hs =>
                 simp only [Option.some.injEq, Prod.mk.injEq] at h
                 obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-                exact .nDash hc hs
+                exact .nDash hc ((signlessInt_spec _ _ _).mp hs)
               · next hn => simp at h
             · split at h
               · next hc =>
@@ -274,19 +324,19 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
                 · next v r2 hs =>
                   simp only [Option.some.injEq, Prod.mk.injEq] at h
                   obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-                  exact .negnDash hc hs
+                  exact .negnDash hc ((signlessInt_spec _ _ _).mp hs)
                 · next hn => simp at h
               · split at h
                 · next v hs =>
                   simp only [Option.some.injEq, Prod.mk.injEq] at h
                   obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-                  exact .negnDigits hs
+                  exact .negnDigits ((digitsAfter_spec _ _ _).mp hs)
                 · next hnone =>
                   split at h
                   · next v hs =>
                     simp only [Option.some.injEq, Prod.mk.injEq] at h
                     obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-                    exact .nDigits hnone hs
+                    exact .nDigits ((digitsAfter_spec _ _ _).mp hs)
                   · simp at h
   · intro hb
     cases ab with
@@ -329,6 +379,7 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
         simp only [hs, beq_self_eq_true, if_true]
         exact (parseB_spec (-1) rest ⟨-1, b'⟩ r).mpr ⟨rfl, hb⟩
       | nDash hs h =>
+        replace h := (signlessInt_spec _ _ _).mpr h
         unfold identAnB
         dsimp only
         have hodd : (kw && (asciiLowercase s == "odd")) = false := by
@@ -344,6 +395,7 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
         simp only [hs, beq_self_eq_true, Bool.false_eq_true, if_false, if_true, h]
         rfl
       | negnDash hs h =>
+        replace h := (signlessInt_spec _ _ _).mpr h
         unfold identAnB
         dsimp only
         have hodd : (kw && (asciiLowercase s == "odd")) = false := by
@@ -360,10 +412,18 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
         rw [beq_iff_eq] at hs
         simp only [hs, beq_self_eq_true, Bool.false_eq_true, if_false, if_true, h]
         rfl
-      | nDigits hnegd hs =>
+      | nDigits hs =>
+        obtain ⟨d, hd, hdne, _, _⟩ := id hs
+        -- `-n-` で始まる文字列は `n-` で始まらないので、実装の試す順序は効かない。
+        have hnegd : digitsAfter "-n-" (asciiLowercase s) = none := by
+          cases h' : digitsAfter "-n-" (asciiLowercase s) with
+          | none => rfl
+          | some v' =>
+            obtain ⟨d', hd', _⟩ := (digitsAfter_spec _ _ _).mp h'
+            rw [hd] at hd'; simp at hd'
+        replace hs := (digitsAfter_spec _ _ _).mpr hs
         unfold identAnB
         dsimp only
-        obtain ⟨d, hd, hdne, _, _⟩ := (digitsAfter_spec "n-" (asciiLowercase s) _).mp hs
         have hodd : ¬ (kw && (asciiLowercase s == "odd")) = true := by
           intro hc; rw [Bool.and_eq_true] at hc; rw [beq_iff_eq] at hc
           rw [hc.2] at hd; simp_all
@@ -382,9 +442,10 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
         simp only [hnegd, hs]
         rfl
       | negnDigits hs =>
+        obtain ⟨d, hd, hdne, _, _⟩ := id hs
+        replace hs := (digitsAfter_spec _ _ _).mpr hs
         unfold identAnB
         dsimp only
-        obtain ⟨d, hd, hdne, _, _⟩ := (digitsAfter_spec "-n-" (asciiLowercase s) _).mp hs
         have hodd : ¬ (kw && (asciiLowercase s == "odd")) = true := by
           intro hc; rw [Bool.and_eq_true] at hc; rw [beq_iff_eq] at hc
           rw [hc.2] at hd; simp_all
@@ -420,11 +481,11 @@ inductive AnBSyntax : List Component → AnB → List Component → Prop where
   | dimNDash (l : List Component) (n : Num) (u : String) (rest : List Component) (v : Nat)
       (r : List Component) (hd : dropWs l = Component.tok (Token.dimension n u) :: rest)
       (hi : n.isInteger = true) (hu : asciiLowercase u == "n-")
-      (hs : signlessInt (dropWs rest) = some (v, r)) :
+      (hs : SignlessInt (dropWs rest) v r) :
       AnBSyntax l ⟨n.value, -(v : Int)⟩ r
   | dimDigits (l : List Component) (n : Num) (u : String) (rest : List Component) (v : Nat)
       (hd : dropWs l = Component.tok (Token.dimension n u) :: rest)
-      (hi : n.isInteger = true) (hu : digitsAfter "n-" (asciiLowercase u) = some v) :
+      (hi : n.isInteger = true) (hu : DigitsAfter "n-" (asciiLowercase u) v) :
       AnBSyntax l ⟨n.value, -(v : Int)⟩ rest
   | plusIdent (l : List Component) (d : Char) (s : String) (rest : List Component) (a b : Int)
       (r : List Component)
@@ -465,13 +526,13 @@ theorem parseAnB_spec (l : List Component) (ab : AnB) (r : List Component) :
             · next v r2 hs =>
               simp only [Option.some.injEq, Prod.mk.injEq] at h
               obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-              exact .dimNDash l n u rest v _ hd hi hu hs
+              exact .dimNDash l n u rest v _ hd hi hu ((signlessInt_spec _ _ _).mp hs)
             · simp at h
           · split at h
             · next v hu =>
               simp only [Option.some.injEq, Prod.mk.injEq] at h
               obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-              exact .dimDigits l n u rest v hd hi hu
+              exact .dimDigits l n u rest v hd hi ((digitsAfter_spec _ _ _).mp hu)
             · simp at h
     · next d s rest hd =>
       split at h
@@ -496,6 +557,7 @@ theorem parseAnB_spec (l : List Component) (ab : AnB) (r : List Component) :
       simp [hu]
       exact (parseB_spec n.value rest ⟨n.value, b⟩ r).mpr ⟨rfl, hb⟩
     | dimNDash n u rest v r hd hi hu hs =>
+      replace hs := (signlessInt_spec _ _ _).mpr hs
       unfold parseAnB
       rw [hd]
       simp only [hi, Bool.not_true, Bool.false_eq_true, if_false]
@@ -507,7 +569,8 @@ theorem parseAnB_spec (l : List Component) (ab : AnB) (r : List Component) :
       unfold parseAnB
       rw [hd]
       simp only [hi, Bool.not_true, Bool.false_eq_true, if_false]
-      obtain ⟨d, hd2, hdne, _, _⟩ := (digitsAfter_spec "n-" (asciiLowercase u) _).mp hu
+      obtain ⟨d, hd2, hdne, _, _⟩ := id hu
+      replace hu := (digitsAfter_spec _ _ _).mpr hu
       have hu' : ¬ (asciiLowercase u == "n") = true := by
         intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd2; simp_all
       have hu'' : ¬ (asciiLowercase u == "n-") = true := by
