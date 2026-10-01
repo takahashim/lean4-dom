@@ -1068,6 +1068,18 @@ open Dom.Audit
   Selectors.Spec.identAnB_spec
   Selectors.Spec.parseAnB_spec
   Selectors.Spec.parseAnBFull_spec
+  Selectors.Spec.isAsciiDigit_iff
+  Selectors.Spec.isAsciiHexDigit_iff
+  Selectors.Spec.isNonAsciiIdent_iff
+  Selectors.Spec.isIdentStart_iff
+  Selectors.Spec.isIdentChar_iff
+  Selectors.Spec.isWhitespace_iff
+  Selectors.Spec.filterCodePoints_spec
+  Selectors.Spec.Preprocessed.deterministic
+  Selectors.Spec.Preprocessed.eq_filterCodePoints_iff
+  Selectors.Spec.startsValidEscape_iff
+  Selectors.Spec.startsIdentSeq_iff
+  Selectors.Spec.startsNumber_iff
 
 -- selector の API が満たすこと
 #audit_axioms

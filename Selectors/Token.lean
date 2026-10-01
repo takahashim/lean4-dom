@@ -142,15 +142,15 @@ def filterCodePoints : List Char -> List Char
     if c == CH_CR && d == CH_LF then CH_LF :: filterCodePoints rest
     else filterChar c :: filterCodePoints (d :: rest)
 
-/-! ## 先読みの判定（§4.3.8-4.3.11） -/
+/-! ## 先読みの判定（§4.3.8-4.3.10） -/
 
-/-- §4.3.10 "check if two code points are a valid escape"。 -/
+/-- §4.3.8 "check if two code points are a valid escape"。 -/
 def startsValidEscape : List Char -> Bool
   | [] => false
   | [c] => c == CH_BACKSLASH
   | c :: d :: _ => c == CH_BACKSLASH && d != CH_LF
 
-/-- §4.3.11 "check if three code points would start an ident sequence"。 -/
+/-- §4.3.9 "check if three code points would start an ident sequence"。 -/
 def startsIdentSeq : List Char -> Bool
   | [] => false
   | c :: rest =>
@@ -161,7 +161,7 @@ def startsIdentSeq : List Char -> Bool
     else if c == CH_BACKSLASH then startsValidEscape (c :: rest)
     else isIdentStart c
 
-/-- §4.3.12 "check if three code points would start a number"。 -/
+/-- §4.3.10 "check if three code points would start a number"。 -/
 def startsNumber : List Char -> Bool
   | [] => false
   | c :: rest =>
@@ -300,7 +300,7 @@ theorem consumeIdentSeq_le_of_start {c : Char} {rest : List Char}
     simp only [hc, Bool.false_eq_true, if_false, hesc, if_pos]
     exact Nat.le_trans (identSeqAux_le _ _) (consumeEscape_le_self rest)
 
-/-- §4.3.11 の判定が通ったなら、先頭は ident code point か escape の始まりである。 -/
+/-- §4.3.9 の判定が通ったなら、先頭は ident code point か escape の始まりである。 -/
 theorem identChar_or_escape_of_startsIdentSeq {c : Char} {rest : List Char}
     (h : startsIdentSeq (c :: rest) = true) :
     isIdentChar c = true ∨ startsValidEscape (c :: rest) = true := by
@@ -463,7 +463,7 @@ theorem consumeNumber_le (l : List Char) : (consumeNumber l).2.length <= l.lengt
   have h4 := takeExponent_le (takeFraction (takeDigits (takeSign l).2).2).2
   omega
 
-/-- §4.3.12 の判定を、`consumeNumber` の場合分けに合う形にほどく。 -/
+/-- §4.3.10 の判定を、`consumeNumber` の場合分けに合う形にほどく。 -/
 theorem startsNumber_cases {c : Char} {rest : List Char} (h : startsNumber (c :: rest) = true) :
     (c == CH_PLUS || c == CH_HYPHEN) = true ∨ isAsciiDigit c = true ∨
       ((c == CH_DOT) = true ∧ (rest.head?.map isAsciiDigit).getD false = true) := by

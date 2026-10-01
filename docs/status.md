@@ -4093,7 +4093,7 @@ Selectors 側を読み尽くしたので tokenizer に移った。**生成器は
 
 ### findings 26：`--foo` が ident にならない（Dommy）
 
-§4.3.11 は「先頭が `-` なら、二つめが ident-start code point か **U+002D** なら true」
+§4.3.9 は「先頭が `-` なら、二つめが ident-start code point か **U+002D** なら true」
 と定める。`.--foo` は正しい class selector である。Dommy は `SyntaxError` を投げる。
 逆斜線で入力が尽きた `.a\` も同様で、§4.3.7 は EOF のとき U+FFFD を返すと定めている。
 jsdom は両方とも model と一致する。

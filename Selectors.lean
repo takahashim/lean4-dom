@@ -6,3 +6,6 @@ import Selectors.Spec.Split
 import Selectors.Spec.Attr
 import Selectors.Spec.AttrSound
 import Selectors.Spec.AnB
+import Selectors.Spec.Token
+import Selectors.Spec.TokenSound
+import Selectors.Spec.TokenDeterministic
