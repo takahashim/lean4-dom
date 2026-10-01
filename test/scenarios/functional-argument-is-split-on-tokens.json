@@ -1,0 +1,98 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#starts-with-a-valid-escape",
+    "algorithm": [
+      "check if two code points are a valid escape",
+      "consume comments",
+      "consume a string token",
+      "parse a comma-separated list of component values"
+    ],
+    "steps": "関数の引数の終わりの `)` と selector list の `,` は token で決まる。escape した `,` `)` は ident の一部、comment と string の中身は構造にならない",
+    "note": "`:is(.a\\\\,b)` は class `a,b` に当たる。`:not(.a\\\\))` と `:not(p /* , */, div)` は読める。findings 41。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a,b"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": []
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(.a\\,b)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":not(.a\\))"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":not(p /* , */, div)"
+    }
+  ]
+}

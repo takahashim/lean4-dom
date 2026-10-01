@@ -3699,7 +3699,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-40 の索引
+## findings 12-42 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3748,6 +3748,8 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 | 38 | Dommy | string の中の逆斜線と改行が継続にならない／逆斜線と EOF が U+FFFD を足す | `string-backslash-newline-continues`, `string-backslash-at-eof-adds-nothing` |
 | 39 | Dommy | 逆斜線と改行を valid escape として読む | `backslash-newline-is-not-an-escape` |
 | 40 | jsdom | `'` で開いたまま EOF になった string が SyntaxError（`"` なら通る） | `unclosed-string-is-closed-at-eof` |
+| 41 | Dommy | 関数の引数の `)` と `,` を文字で探すので、escape・comment・string の中身を構造と取り違える | `functional-argument-is-split-on-tokens` |
+| 42 | Dommy / jsdom | An+B を生の文字列の正規表現で見るので、comment（Dommy）と escape（両方）を扱えない | `anb-comments-are-not-tokens`, `anb-escapes-are-decoded` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5445,6 +5447,37 @@ escape を含むものが 3,475、comment が 2,673、CR/FF が 2,428、非 ASCI
 
 固定 scenario は 37-40 の 5 本を足して、Dommy では 152 ok / 2 skip / 3 known / **4 mismatch**（37-39）になる。
 不一致を expected に落とさない方針なので、nightly の固定 scenario は Dommy が直すまで赤になる。
+
+### 同じ形の見落とし：findings 41・42
+
+37-39 を直す途中で、Dommy の selector parser に「文字を一つずつ見て構造を決める」箇所が
+ほかにも二つあることに気付いた。tokenizer の関係が言うとおり、escape・string・comment は
+一つの単位として読まなければならない。手で 41 本を当てて 30 本が割れた。うち 2 本（`:lang()`・`:dir()`）は
+model の形式化の範囲外なので findings ではない。
+
+* **41**（Dommy）。関数の引数の終わりの `)` を探す走査と、引数の selector list を `,` で分ける走査が、
+  escape した `,` `)` `(` `[` `'`（§4.3.8）と comment（§4.3.2）を区別しない。`:is(.a\,b)` が `.a\` と `b` に
+  分かれ、`:not(.a\))` と `:not(p /* ) */)` は違う `)` で切れ、`:not(p /* , */, div)` は `*/` という項目を作る。
+  jsdom はすべて model と一致する。
+* **42**（Dommy / jsdom）。An+B を引数の生の文字列に対する正規表現で読んでいる。本文の An+B は token の文法なので、
+  comment は token を作らず（`2n/**/+1` は `2n` と `+1`、`-/**/n` は `-n` ではない）、unit や ident は escape を
+  復号した値で比べる（`2\6E+1` は `2n+1`、`od\64` は `odd`）。comment の形は jsdom は model と一致し、
+  escape の形は jsdom も通さない。§9.2 は `<n-dimension>` を「unit が "n" に ASCII case-insensitive に一致する
+  dimension token」と定義しており、token の値は escape を復号したものなので、model は本文の字義に従っている。
+  二つの実装が揃って model と違うのは、どちらも正規表現で読んでいるからである。
+
+固定 scenario は 3 本足した。pin した Dommy ではこれも割れるので、mismatch は 7 本になる。
+
+### Dommy 側の修正
+
+`~/git/dommy` の branch `fix/css-escape-edge-cases`（未 push）に 37・38・39・41・42 を一つずつ直した commit を置いた。
+41 は escape・string・comment を一つの単位として飛ばす `Parser.atom_end` を二つの走査で使い、42 は引数を
+An+B に要る範囲で tokenize してから §9.2 の文法を token の上で照合する。それぞれ Dommy の
+`test/internal/test_selector_parser.rb` に test を足し、修正を外すと落ちることを確かめた。
+
+この branch の Dommy に当てると、固定 scenario は **160 ok / 2 skip / 3 known / 0 mismatch**、
+手で当てた 129 本も（範囲外の 2 本を除いて）すべて一致し、生成 scenario（selector の操作に絞った seed 1-6 × 300 本、
+既定の設定の seed 1-3 × 100 本）も不一致は無い。Dommy 自身の test は 4,641 runs で失敗 0。
 
 ## 未着手
 

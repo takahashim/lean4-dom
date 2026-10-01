@@ -1,0 +1,91 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#anb-syntax",
+    "algorithm": [
+      "consume an escaped code point",
+      "parse <an+b>"
+    ],
+    "steps": "<n-dimension> は unit が \"n\" に ASCII case-insensitive に一致する dimension token。unit は escape を復号した値で比べる",
+    "note": "`2\\\\6E+1` は `2n+1`、`od\\\\64` は `odd`。Dommy・jsdom とも生の文字列を正規表現で見ていて通さない。findings 42。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a,b"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": []
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(2\\6E+1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(od\\64)"
+    }
+  ]
+}

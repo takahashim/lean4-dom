@@ -1,0 +1,91 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#anb-microsyntax",
+    "algorithm": [
+      "consume comments",
+      "parse <an+b>"
+    ],
+    "steps": "An+B は token の文法で、comment は token を作らない。`2n/**/+1` は `2n` と `+1` の二つの token",
+    "note": "`of` の前に comment があってもよい。findings 42。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a,b"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": []
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(2n/**/+1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(2n /* of */ of p)"
+    }
+  ]
+}
