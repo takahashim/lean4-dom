@@ -26,7 +26,7 @@
 | --- | --- |
 | `dommy_runner.rb` | Dommy（Ruby） |
 | `js_runner.mjs` | jsdom / happy-dom（`--impl` で選ぶ） |
-| `browser_runner.mjs` | Playwright の Chromium |
+| `browser_runner.mjs` | Playwright の Chromium・Firefox・WebKit（`BROWSER` で選ぶ。既定は `chromium`） |
 
 `js_runner.mjs` の `--impl` は名前でも module の path でもよい。
 path を渡せば checkout した working tree をそのまま測れる。
@@ -75,7 +75,15 @@ model の `insertAt` は「`child` は `parent` の子」を primitive の前提
 当たらなくなり、ふつうの不一致として出る。消えた divergence も報告する。
 
 browser を動かすには Playwright が要る（`PLAYWRIGHT_PATH` か node_modules か
-global install から探す）。**browser は oracle ではない。** 並べる意味は、
+global install から探す）。browser は環境変数 `BROWSER`（`chromium`・`firefox`・`webkit`）で選び、
+`IMPL_NAME` も同じ名前にする（`known-divergences.yml` は `IMPL_NAME` で引く）。
+
+```sh
+BROWSER=firefox IMPL_NAME=firefox IMPL_CMD="node $PWD/test/browser_runner.mjs" \
+  ruby test/difftest.rb --fixed-only
+```
+
+**browser は oracle ではない。** 並べる意味は、
 実装が揃って model と違うときに「実装側の穴」と「model の読み違い」を
 分けられることにある。
 
@@ -203,7 +211,8 @@ Dommy を読み込んでいない process の仕事にしてある。
   attribute 名を ASCII lowercase するかどうかがこの二つで決まる。
 * document の `mode` は `"no-quirks"`（省略時）・`"quirks"`・`"limited-quirks"`。
   runner は quirks と limited-quirks の document を HTML parser（Dommy は backend の parser、
-  JS は `DOMParser`）に doctype を読ませて作り、子を外してから使う。
+  JS は `DOMParser`。WebKit の `DOMParser` は doctype が無くても no-quirks を返すので、そのときは
+  iframe の document に `document.write` で読ませる）に doctype を読ませて作り、子を外してから使う。
   quirks mode では class selector・id selector・`getElementsByClassName()` の比較が
   ASCII case-insensitive になる。生成 scenario では `--quirks-prob F` で混ぜる（既定は 0）。
 * element の `attributes` は

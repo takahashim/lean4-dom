@@ -5632,6 +5632,62 @@ Dommy の main（`dd6bcbc`）で見た。行番号は `gems/dommy/lib/dommy/` �
 
 固定 scenario は Dommy の main で 171 ok / 3 skip / 3 known / 4 mismatch で、mismatch の 4 本と
 `attr-is-a-node-outside-the-tree` の skip がこの二つである。
+## Firefox と WebKit を並べた
+
+`test/browser_runner.mjs` を環境変数 `BROWSER`（`chromium`・`firefox`・`webkit`、既定は `chromium`）で
+browser を選べるようにし、Playwright 1.63 の Firefox 155 と WebKit 26.6 を Chromium 153 の横に並べた。
+model・Dommy・jsdom と合わせて比べる列が五つになった。
+
+**harness の側で直したもの。** WebKit の `DOMParser` は doctype の無い HTML を読んでも no-quirks の document を
+返す（`compatMode` が `CSS1Compat`）。HTML の parser は "initial" insertion mode で doctype が無ければ quirks mode に
+するので、これは WebKit の `DOMParser` の外れ方だが、model の外（`DOMParser` は model に無い）なので記録はしない。
+quirks mode の document が作れないと `quirks-mode-*` の 2 本が偽の不一致になるので、`test/js/scenario.js` は
+`DOMParser` の document が quirks でなければ iframe の document に `document.write` で読ませて作る（三つの browser とも
+`BackCompat` になり、子を外しても変わらない）。
+
+**固定 scenario 173 本。**
+
+| browser | ok | skip | known | mismatch |
+| --- | --- | --- | --- | --- |
+| Chromium 153 | 144 | 18 | 11 | 0 |
+| Firefox 155 | 141 | 18 | 14 | 0 |
+| WebKit 26.6 | 139 | 24 | 10 | 0 |
+
+skip の 18 本は三つとも MutationObserver の配送順（JS からは復元できない）と model の対象外の 2 本である。WebKit は
+`moveBefore` を持たないので、さらに 6 本が skip になる。
+
+**割れた形の分類。** どれも「engine が本文から離れていて、model が本文に従っている」と判断し、
+`test/known-divergences.yml` に入れた。
+
+| 形 | Chromium | Firefox | WebKit | 本文 |
+| --- | --- | --- | --- | --- |
+| `:empty` と空白だけの text（findings 19） | 割れる | 割れる | 割れる | 仕様側が未決着（既存の entry） |
+| virtual scoping root（findings 20、2 本） | 割れる | 割れる | 割れる | 同上 |
+| non-ASCII ident code point の一覧（findings 29） | `.☃` を通す | 通す | 通す | css-syntax-3 の一覧 |
+| `[class~/**/=u]`（findings 43） | SyntaxError | SyntaxError | SyntaxError | comment は token でも whitespace でもない |
+| type selector `RECT` と SVG の `rect` | 当たる | 当たらない | 当たらない | HTML §4.16.2 |
+| insert の live range 調整の順序（3 本） | 割れる（既存） | 割れる | 割れる | §4.2.3 step 5 が先 |
+| `deleteContents` の record の順序 | 割れる（既存） | skip | 割れる | §5.5 step 6・7・8 の順 |
+| `frag.replaceChildren(frag)` | 通す（既存） | 投げる | 通す | HierarchyRequestError |
+| `insertNode` の newOffset（node が前方の sibling） | 一致 | end が一つ後ろ | 一致 | §5.5 step 9 の後で数える |
+| `[a='1']` と namespace 付きの同名 attribute | 一致 | 当たらない | 一致 | namespace の無い attribute だけを見る |
+| `getElementsByName("")` | 一致 | 空を返す | 一致 | identical（空も例外でない） |
+| locate a namespace の step 3（prefix が null） | 一致 | `xmlns` 属性だけを見る（2 本） | 一致 | 自分の namespace を先に見る |
+| transient registered observer の連鎖 | skip | record を積まない | skip | list の要素なので interested |
+
+生成 scenario（既定の設定と `--quirks-prob 0.5` の seed 1-2 × 100、selector・lookup に絞った `--quirks-prob 0.6` の
+seed 3 × 200）でも、出たのは同じ形だけだった。Firefox では locate a namespace の形が `lookupNamespaceURI("")`
+（CharacterData から）や `isDefaultNamespace()`（Document から）でも繰り返し出て、`document.replaceChildren(element)`
+（既存の document element がある）を HierarchyRequestError にする（`replaceChildren` が自分の children を除外する
+whatwg/dom#1045 を入れていない）。WebKit では `comment.before(frag)`（comment が frag の子）を通す
+（`frag.replaceChildren(frag)` と同じ形）。生成 scenario は名前で引けないので、これらは記録に入らない。
+quirks mode の比較（class・id・`getElementsByClassName()`）は三つとも model と一致した。
+
+**model の読みを疑うべきところ。** 三つの browser が揃って model と違うのは、findings 19・20（仕様側が未決着で既に
+記録済み）と、29・43 の二つである。29 は css-syntax-3 が明示的に変えた定義で、changes にも載っているので本文の
+読みは揺れない。43 は Selectors §18 の「token の間に whitespace を置かない」と、CSS Syntax の「comment は token を
+作らない」を合わせた読みで、`~=` を一つの token として読んでいた CSS 2.1 の名残と考えられる。ただし三つの engine と
+jsdom が揃って SyntaxError にするので、WPT に `[a~/**/=x]` の case があるかを確かめ、無ければ csswg に問う値打ちがある。
 
 ## 未着手
 

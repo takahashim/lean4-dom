@@ -41,6 +41,19 @@ function makeDocumentFactory(win) {
     let doc;
     if (mode in MODE_SOURCE) {
       doc = new win.DOMParser().parseFromString(MODE_SOURCE[mode], "text/html");
+      // WebKit の `DOMParser` は doctype が無くても no-quirks の document を返す。
+      // そのときは iframe の document に `document.write` で読ませる（こちらは parser が mode を決める）。
+      if (mode === "quirks" && doc.compatMode !== "BackCompat" && win.document.body) {
+        const frame = win.document.createElement("iframe");
+        win.document.body.appendChild(frame);
+        doc = frame.contentDocument;
+        doc.open();
+        doc.write(MODE_SOURCE[mode]);
+        doc.close();
+      }
+      if (mode === "quirks" && doc.compatMode !== "BackCompat") {
+        throw new Unsupported("quirks mode の document を作れない");
+      }
     } else {
       doc = first ? win.document : win.document.implementation.createHTMLDocument("");
       first = false;
