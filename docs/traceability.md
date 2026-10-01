@@ -260,9 +260,16 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | create an attribute / `createAttribute` / `createAttributeNS` | createAttribute 1-3 / createAttributeNS 1-2 | `createAttributeIn`, `createAttribute`, `createAttributeNS` | preservation `admissible_createAttribute`, `admissible_createAttributeNS` | `attr-node-identity-moves` | — | 済 |
 | `getAttributeNode` / `getAttributeNodeNS` | 全 | `getAttributeNode`, `getAttributeNodeNS` | — | 同上 | — | 済 |
 | set an attribute / `setAttributeNode` | 2 InUseAttributeError / 3-4 同じ鍵を引く / 7 replace / 8 append（step 1 と 6 は Trusted Types なので非対象） | `setAttributeNode`, `replaceAttributeWith` | preservation `admissible_setAttributeNode`、`attributesValid_replace` | 同上 | — | 済（`setAttributeNodeNS` は step が同一なので別に置かない） |
-| replace an attribute | 1-6（step 4 の node document は model に無い） | `replaceAttributeWith` | `attributesValid_replace` | 同上 | — | 済 |
+| replace an attribute | 1-6 | `replaceAttributeWith` | `attributesValid_replace` | 同上 | — | 済 |
 | `removeAttributeNode` | 1 NotFoundError / 2-3 | `removeAttributeNode`, `detachAttribute` | preservation `admissible_removeAttributeNode` | `remove-attribute-node-checks-the-element` | — | 済 |
 | `NamedNodeMap.removeNamedItem` | 1-2 | `removeNamedItem` | preservation `admissible_removeNamedItem` | `attr-node-identity-moves` | — | 済（`item` / `length` は attribute list の観測で足りる） |
+| `Attr` の node document（create・append・replace・adopt） | create an attribute / append an attribute 3 / replace an attribute 4 / adopt 3.3.1 | `Attr.ownerDocument`, `createAttributeIn`, `appendAttribute`, `replaceAttributeWith`, `NodeData.withOwnerDocument`（`setOwnerDocument`） | `DocumentAssigned`（`Dom/Spec/Adopt.lean`）、`documentAssigned_setOwnerDocument` | `adopting-an-element-moves-its-attributes` | — | 済 |
+| `adoptNode` / `importNode` / `cloneNode` に `Attr` を渡す | adoptNode 1-4 / adopt 1-3 / clone a single node の `Attr` の枝 | `adoptAttr`, `importAttr`, `cloneAttr`, `cloneAttrIn` | `admissible_adoptAttr`, `admissible_importAttr`, `admissible_cloneAttr`, `cloneAttrIn_spec` | `adopt-node-keeps-an-attribute-on-its-element`, `attr-values-and-copies` | — | 済（element から外さない。browser は外す） |
+| set an existing attribute value（`value`・`nodeValue`・`textContent` の setter） | 1-2, 5（3-4 は Trusted Types なので非対象） | `setAttrValue` | `admissible_setAttrValue` | `attr-values-and-copies` | — | 済 |
+| `Attr` の `parentNode`・`getRootNode`・`isConnected`・`hasChildNodes`・`nodeName` ほか | §4.4 の各 getter | `attrParentNode`, `attrGetRootNode`, `attrQueryValue` | — | `attr-is-a-node-outside-the-tree` | — | 済 |
+| `compareDocumentPosition` の step 3-5（`Attr`） | 3-9 | `compareDocumentPositionRef` | `compareDocumentPositionRef_nodes`, `compareDocumentPositionRef_self`, `compareDocumentPositionRef_disconnected_consistent` | `attr-position-follows-its-element` | — | 済 |
+| `contains` / `isEqualNode` / namespace の探索に `Attr` | contains / equals の `Attr` の枝 / locate a namespace の `Attr` の枝 | `nodeContainsRef`, `nodeRefEquals`, `attrLookupNamespaceURI`, `attrLookupPrefix`, `attrIsDefaultNamespace` | `nodeContainsRef_attr_attr`, `nodeContainsRef_node_attr` | `attr-position-follows-its-element` | — | 済 |
+| `appendChild` の親か子に `Attr` | ensure pre-insertion validity 1・4 | `appendChildRef` | `appendChildRef_attr_fails`, `admissible_appendChildRef` | `attr-cannot-be-a-child`, `attr-cannot-have-children` | — | 済 |
 
 ## normative branch の網羅（roadmap §11.3）
 
@@ -353,7 +360,7 @@ node document が copy になるのは `append` の中の adopt による。
 | --- | --- | --- |
 | Shadow DOM（shadow-including root / slot） | 未対応 | roadmap の対象外。`move` step 1 は shadow-including root ではなく root で近似している |
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
-| `Attr` の node としての性質 | 部分対応 | model の attribute は element の状態で node tree に入らない（parent も node document も持たない）。`createAttribute` / `getAttributeNode` / `setAttributeNode` / `removeAttributeNode` / `removeNamedItem` と同一性（`AttrId`）は扱う |
+| `Attr` の node としての性質 | 部分対応 | model の attribute は element の状態で node tree に入らない。node document（`Attr.ownerDocument`）、parent が null であること、root が自分であること、`compareDocumentPosition` の step 3-5、value の setter、clone / import / adopt、子を持てないことは扱う（`Dom/Attribute/AsNode.lean`）。`Attr` を target にした event の配送と、`insertBefore` などの child 側に `Attr` を渡す形は扱わない |
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | roadmap §13.1。長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |

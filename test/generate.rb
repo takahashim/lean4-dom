@@ -43,7 +43,15 @@ module Generate
            createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
            setAttributeNode removeAttributeNode removeNamedItem
            querySelector querySelectorAll matches closest
-           getElementById getElementsByClassName getElementsByName].freeze
+           getElementById getElementsByClassName getElementsByName
+           attrQuery setAttrValue attrRef].freeze
+
+  # `Attr` を `Node` として扱う操作（`Dom/Attribute/AsNode.lean`）。`attrRef` は生成器の内部名で、
+  # `Node` を受ける既存の操作の引数に `{"attr": id}` を入れたものを作る。
+  ATTR_AS_NODE_OPS = %w[attrQuery setAttrValue attrRef].freeze
+  ATTR_QUERIES = %w[ownerDocument parentNode parentElement ownerElement getRootNode nodeName
+                    nodeValue textContent isConnected hasChildNodes firstChild].freeze
+  ATTR_SETTERS = %w[value nodeValue textContent].freeze
 
   # selector を取る操作（§4.2.6 / §4.8）。
   SELECTOR_PARENT_OPS = %w[querySelector querySelectorAll].freeze
@@ -406,6 +414,7 @@ module Generate
     if ATTR_CREATE_OPS.include?(op) || ATTR_ELEMENT_OPS.include?(op)
       return attr_node_operation(rng, ids, op, kinds, attr_ids, attr_ok)
     end
+    return attr_as_node_operation(rng, ids, op, kinds, attr_ids, attr_ok) if ATTR_AS_NODE_OPS.include?(op)
     if SELECTOR_OPS.include?(op)
       key = SELECTOR_ELEMENT_OPS.include?(op) ? "element" : "node"
       return { "op" => op, key => ids.sample(random: rng), "selectors" => random_selector(rng) }
@@ -664,6 +673,60 @@ module Generate
 
       { "op" => op, "element" => els.sample(random: rng), "attr" => attr_ids.sample(random: rng) }
     end
+  end
+
+  # `Attr` を `Node` として扱う操作。`Attr` の id が読めるときだけ作る。
+  #
+  # `cloneNode` と `importNode` に `Attr` を渡すと detach された `Attr` が一つできる（id は次の番号）。
+  # node は作らないので、node の id は動かない。`appendChild` は必ず `HierarchyRequestError` で
+  # scenario が止まるので、まれにだけ出す。
+  def attr_as_node_operation(rng, ids, op, kinds, attr_ids, attr_ok)
+    return nil unless attr_ok && !attr_ids.empty?
+
+    attr = -> { { "attr" => attr_ids.sample(random: rng) } }
+    ref = -> { rng.rand < 0.5 ? attr.call : ids.sample(random: rng) }
+    docs = ids.select { |i| kinds[i] == "document" }
+    case op
+    when "attrQuery"
+      { "op" => op, "attr" => attr_ids.sample(random: rng), "query" => ATTR_QUERIES.sample(random: rng) }
+    when "setAttrValue"
+      { "op" => op, "attr" => attr_ids.sample(random: rng), "value" => ATTR_VALUES.sample(random: rng),
+        "via" => ATTR_SETTERS.sample(random: rng) }
+    else
+      case rng.rand(10)
+      when 0, 1, 2
+        { "op" => %w[compareDocumentPosition nodeContains isEqualNode].sample(random: rng),
+          "node" => attr.call, "other" => ref.call }
+      when 3
+        { "op" => %w[compareDocumentPosition nodeContains isEqualNode].sample(random: rng),
+          "node" => ids.sample(random: rng), "other" => attr.call }
+      when 4
+        { "op" => %w[getRootNode getTextContent getNodeValue].sample(random: rng), "node" => attr.call }
+      when 5
+        { "op" => "lookupNamespaceURI", "node" => attr.call, "prefix" => ["xml", nil, "x"].sample(random: rng) }
+      when 6
+        return nil if docs.empty?
+
+        { "op" => "adoptNode", "document" => docs.sample(random: rng), "node" => attr.call }
+      when 7
+        return nil if docs.empty?
+
+        { "op" => "importNode", "document" => docs.sample(random: rng), "node" => attr.call, "deep" => false }
+      when 8
+        { "op" => "cloneNode", "node" => attr.call, "deep" => rng.rand < 0.5 }
+      else
+        return nil if rng.rand < 0.8
+
+        rng.rand < 0.5 ? { "op" => "appendChild", "parent" => ids.sample(random: rng), "node" => attr.call }
+                       : { "op" => "appendChild", "parent" => attr.call, "node" => ids.sample(random: rng) }
+      end
+    end
+  end
+
+  # `Node` を受ける引数に `Attr` を入れた操作か。
+  def attr_as_node_op?(op)
+    %w[attrQuery setAttrValue].include?(op["op"]) ||
+      %w[node other parent].any? { |k| op[k].is_a?(Hash) }
   end
 
   # 作った node の kind。`scenario` が id を追うのに使う。
@@ -959,6 +1022,15 @@ module Generate
                             walker_count, listener_count, kinds: kinds, can_create: can_create,
                             attr_ids: attr_ids, attr_ok: attr_ok)
       next if op.nil?
+      if attr_as_node_op?(op)
+        # 受け手が `Attr` のこともあるので kind の絞り込みはしない。
+        operations << op
+        if %w[cloneNode importNode].include?(op["op"])
+          attr_ids << attr_next
+          attr_next += 1
+        end
+        next
+      end
       if EVENT_OPS.include?(op["op"])
         # 受け手は EventTarget なので kind の絞り込みは要らない。
         operations << op

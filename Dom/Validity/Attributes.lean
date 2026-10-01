@@ -204,14 +204,22 @@ theorem AttributesValid.map {t t' : Tree} (hs : ShapePreserving t t') (h : Attri
   refine ⟨?_, ?_, ?_⟩ <;> intro n d hd
   · obtain ⟨d₀, hd₀, hk, ha, _⟩ := hs.exists_get? hd
     intro hne
-    rw [← ha]
-    exact h.onlyElements n d₀ hd₀ (by rw [hk]; exact hne)
+    have h0 := h.onlyElements n d₀ hd₀ (by rw [hk]; exact hne)
+    rw [h0, List.map_nil] at ha
+    exact List.map_eq_nil_iff.mp ha.symm
   · obtain ⟨d₀, hd₀, _, ha, _⟩ := hs.exists_get? hd
-    rw [← ha]
+    have hkey : ∀ l : List Attr, l.map Attr.key = (l.map Attr.dropDoc).map Attr.key := by
+      intro l; rw [List.map_map]; rfl
+    rw [hkey, ← ha, ← hkey]
     exact h.keysNodup n d₀ hd₀
   · obtain ⟨d₀, hd₀, _, ha, _⟩ := hs.exists_get? hd
-    rw [← ha]
-    exact h.prefixHasNamespace n d₀ hd₀
+    intro a hmem hp
+    have hm : a.dropDoc ∈ d₀.attributes.map Attr.dropDoc := by
+      rw [ha]; exact List.mem_map_of_mem hmem
+    obtain ⟨b, hb, hba⟩ := List.mem_map.mp hm
+    have hp' : b.prefix.isSome := by rw [← Attr.dropDoc_prefix b, hba]; simpa using hp
+    have := h.prefixHasNamespace n d₀ hd₀ b hb hp'
+    rw [← Attr.dropDoc_namespace a, ← hba]; simpa using this
 
 
 /-! ## attribute list を差し替える側 -/
@@ -343,7 +351,7 @@ theorem attributesValid_erase {t : Tree} {n : NodeId} {d : NodeData} {p : Attr �
 
 @[simp] theorem appendAttribute_tree (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr) :
     (appendAttribute s element d a).tree =
-      setAttributes s.tree element d (d.attributes ++ [a]) := by
+      setAttributes s.tree element d (d.attributes ++ [{ a with ownerDocument := d.ownerDocument }]) := by
   unfold appendAttribute; simp
 
 @[simp] theorem appendAttribute_ranges (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr) :
@@ -561,7 +569,8 @@ theorem attrOpResult_toggleAttribute {s s' : DOMState} {element : NodeId} {qn : 
           · have : s' = s := congrArg Prod.fst (Except.ok.inj hr).symm
             rw [this]; exact AttrOpResult.refl _
           · have : s' = appendAttribute s element d
-                { id := freshStateAttrId s, localName := attrNameFor s.tree d qn } :=
+                { id := freshStateAttrId s, localName := attrNameFor s.tree d qn,
+                  ownerDocument := d.ownerDocument } :=
               congrArg Prod.fst (Except.ok.inj hr).symm
             rw [this]
             refine attrOpResult_append hd hk' ?_ (by simp)

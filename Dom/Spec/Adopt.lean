@@ -18,11 +18,13 @@ open Dom
 §4.5 adopt の step 3。
 
 `node` の inclusive descendant だけ node document が `doc` になり、他は変わらない。
+element なら attribute list の各 attribute の node document も `doc` になる（step 3.3.1）。
 -/
 structure DocumentAssigned (t t' : Tree) (node doc : NodeId) : Prop where
-  /-- 部分木の中は node document が変わる。 -/
+  /-- 部分木の中は node document が変わる。attribute の node document も変わる。 -/
   inside : ∀ (m : NodeId) (d : NodeData), t.get? m = some d → InclusiveDescendant t m node →
-    t'.get? m = some { d with ownerDocument := doc }
+    t'.get? m = some { d with ownerDocument := doc,
+                              attributes := d.attributes.map fun a => { a with ownerDocument := doc } }
   /-- 外は何も変わらない。 -/
   outside : ∀ m : NodeId, ¬ InclusiveDescendant t m node → t'.get? m = t.get? m
 

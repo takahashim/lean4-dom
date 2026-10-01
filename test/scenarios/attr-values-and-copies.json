@@ -1,0 +1,147 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#set-an-existing-attribute-value",
+    "algorithm": [
+      "set an existing attribute value",
+      "clone a single node",
+      "importNode(node, options)"
+    ],
+    "steps": "Attr の value・nodeValue・textContent の setter は set an existing attribute value を呼ぶ（element があれば change an attribute）。clone は namespace・prefix・local name・value を写し、node document は document、element は null",
+    "note": "attribute 3 は createAttribute で作る detach された Attr。4 は 2 の clone、5 は 1 を document 4 に import したもの。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span",
+      "attributes": []
+    },
+    {
+      "id": 4,
+      "kind": "document"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "setAttrValue",
+      "attr": 1,
+      "value": "x",
+      "via": "nodeValue"
+    },
+    {
+      "op": "setAttrValue",
+      "attr": 2,
+      "value": "y",
+      "via": "textContent"
+    },
+    {
+      "op": "createAttribute",
+      "document": 0,
+      "name": "c"
+    },
+    {
+      "op": "setAttrValue",
+      "attr": 3,
+      "value": "z",
+      "via": "value"
+    },
+    {
+      "op": "cloneNode",
+      "node": {
+        "attr": 2
+      },
+      "deep": true
+    },
+    {
+      "op": "attrQuery",
+      "attr": 4,
+      "query": "ownerElement"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 4,
+      "query": "ownerDocument"
+    },
+    {
+      "op": "isEqualNode",
+      "node": {
+        "attr": 2
+      },
+      "other": {
+        "attr": 4
+      }
+    },
+    {
+      "op": "importNode",
+      "document": 4,
+      "node": {
+        "attr": 1
+      },
+      "deep": false
+    },
+    {
+      "op": "attrQuery",
+      "attr": 5,
+      "query": "ownerDocument"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 5,
+      "query": "ownerElement"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": {
+        "attr": 3
+      },
+      "prefix": "xml"
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": {
+        "attr": 3
+      },
+      "other": {
+        "attr": 1
+      }
+    }
+  ]
+}

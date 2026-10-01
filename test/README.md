@@ -255,6 +255,14 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `getAttributeNodeNS` | `element`, `namespace`（null 可）, `name` |
 | `setAttributeNode` / `removeAttributeNode` | `element`, `attr`（attribute の id） |
 | `removeNamedItem` | `element`, `name` |
+| `attrQuery` | `attr`, `query`（`ownerDocument`・`parentNode`・`parentElement`・`ownerElement`・`getRootNode`・`nodeName`・`nodeValue`・`textContent`・`isConnected`・`hasChildNodes`・`firstChild`） |
+| `setAttrValue` | `attr`, `value`, `via`（`value`・`nodeValue`・`textContent` のどの setter を使うか） |
+
+`Node` を受ける引数（`compareDocumentPosition`・`nodeContains`・`isEqualNode` の `node` と `other`、
+`getRootNode`・`getTextContent`・`getNodeValue`・`lookupNamespaceURI`・`lookupPrefix`・`isDefaultNamespace`・
+`cloneNode` の `node`、`importNode`・`adoptNode` の `node`、`appendChild` の `parent` と `node`）には、
+node の id の代わりに `{"attr": id}` を書いて `Attr` を渡せる（`Dom/Attribute/AsNode.lean`）。
+`Attr` を `adoptNode` して element から外れた（外す実装がある）`Attr` は、runner が `detachedAttrs` に入れる。
 
 ### 作った attribute の id
 
@@ -267,7 +275,8 @@ runner も同じ規則で振る（`refresh_attr_ids` / `refreshAttrIds`）。
 
 `Attr` object の同一性で引くので、`setAttribute` が既にある attribute を書き換えたのか
 作り直したのかが観測できる。clone した element の attribute は原本とは別のものなので、
-id も違う。
+id も違う。`cloneNode` と `importNode` に `Attr` を渡して作った `Attr` も同じ規則で振り、
+`detachedAttrs` に入る。
 
 ### 作った node の id
 

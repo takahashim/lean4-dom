@@ -103,6 +103,9 @@ import Dom.Observation
 import Dom.Selector.Match
 import Dom.Selector.Api
 import Dom.Query.Lookup
+import Dom.Attribute.AsNode
+import Dom.Validity.AttrAsNode
+import Dom.Properties.AttrAsNode
 import Dom.Properties.Selector
 import Dom.Spec.Selector
 import Dom.Spec.SelectorMatch

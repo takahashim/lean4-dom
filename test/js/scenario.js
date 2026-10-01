@@ -375,6 +375,18 @@ function snapshot(ctx) {
 
 function returnValueSnapshot(idOf, attrOf, op, returned) {
   const name = op.op;
+  // `Attr` を返しうる op（`getRootNode`・`cloneNode`・`importNode`・`adoptNode` に `Attr` を渡したとき）。
+  if (returned?.nodeType === 2 &&
+      (NODE_RETURNING_OPS.includes(name) || ATTR_RETURNING_OPS.includes(name) ||
+       name === "attrQuery" || name === "adoptNode" || name === "importNode")) {
+    return { kind: "attr", attr: attrOf(returned) };
+  }
+  if (name === "attrQuery") {
+    const kind = ATTR_QUERY_KIND[op.query];
+    if (kind === "node") return { kind: "node", node: returned === null || returned === undefined ? null : idOf(returned) };
+    if (kind === "boolean") return { kind: "boolean", value: !!returned };
+    return { kind: "string", value: returned === null || returned === undefined ? null : String(returned) };
+  }
   if (NODE_RETURNING_OPS.includes(name)) {
     return { kind: "node", node: returned === null || returned === undefined ? null : idOf(returned) };
   }
@@ -450,6 +462,46 @@ function need(value, what) {
   return value;
 }
 
+/** `Node` を受ける field が `{"attr": id}`（`Attr`）か。 */
+function isAttrRef(v) {
+  return v !== null && typeof v === "object" && "attr" in v;
+}
+
+/** `Node` を受ける field を object にする。数なら node、`{"attr": id}` なら `Attr`。 */
+function resolveRef(ctx, v) {
+  if (isAttrRef(v)) return need(attrById(ctx, v.attr), "missing attr");
+  return need(ctx.objects.get(v), "missing node");
+}
+
+/** 引数の `Attr` が element から外れていたら、detach された list に入れる。 */
+function trackDetached(ctx, a) {
+  if (a?.nodeType === 2 && !a.ownerElement && !ctx.detached.includes(a)) ctx.detached.push(a);
+}
+
+/**
+ * `Attr` を `Node` として読む `attrQuery`。model の `AttrQuery` と同じ名前の IDL attribute を読む。
+ * `getRootNode` だけは method である。
+ */
+function applyAttrQuery(ctx, op) {
+  const a = need(attrById(ctx, op.attr), "missing attr");
+  if (op.query === "getRootNode") {
+    if (typeof a.getRootNode !== "function") throw new Unsupported("getRootNode");
+    return a.getRootNode();
+  }
+  if (op.query === "hasChildNodes") {
+    if (typeof a.hasChildNodes !== "function") throw new Unsupported("hasChildNodes");
+    return a.hasChildNodes();
+  }
+  if (!(op.query in a)) throw new Unsupported(op.query);
+  return a[op.query];
+}
+
+const ATTR_QUERY_KIND = {
+  ownerDocument: "node", parentNode: "node", parentElement: "node", ownerElement: "node",
+  firstChild: "node", getRootNode: "node", nodeName: "string", nodeValue: "string",
+  textContent: "string", isConnected: "boolean", hasChildNodes: "boolean"
+};
+
 function observeOptions(spec) {
   const o = {
     childList: !!spec.childList,
@@ -494,7 +546,8 @@ function applyRangeOp(ctx, op) {
 }
 
 function applyQueryOp(ctx, op) {
-  const receiver = need(ctx.objects.get("element" in op ? op.element : op.node), "missing node");
+  const receiver = "element" in op
+    ? need(ctx.objects.get(op.element), "missing node") : resolveRef(ctx, op.node);
   const name = QUERY_JS_NAME[op.op];
   if (QUERY_GETTERS.includes(op.op)) {
     if (!(name in receiver)) throw new Unsupported(name);
@@ -520,7 +573,7 @@ function applyQueryOp(ctx, op) {
   if (typeof receiver[name] !== "function") throw new Unsupported(name);
   switch (op.op) {
     case "compareDocumentPosition": case "nodeContains": case "isEqualNode":
-      return receiver[name](need(ctx.objects.get(op.other), "missing node"));
+      return receiver[name](resolveRef(ctx, op.other));
     case "getRootNode": case "getAttributeNames": return receiver[name]();
     case "substringData": return receiver[name](op.offset, op.count);
     case "getAttribute": case "hasAttribute": return receiver[name](op.name);
@@ -613,13 +666,22 @@ function apply(ctx, op) {
     case "notify":
       // 配送順は notify set の並びで決まる。こちら側の queue からは復元できない。
       throw new Unsupported("MutationObserver の配送順");
+    case "attrQuery": return applyAttrQuery(ctx, op);
+    case "setAttrValue": {
+      // `Attr.value`・`nodeValue`・`textContent` の setter。どれも "set an existing attribute value"。
+      const a = need(attrById(ctx, op.attr), "missing attr");
+      const via = op.via ?? "value";
+      if (!(via in a)) throw new Unsupported(via);
+      a[via] = String(op.value ?? "");
+      return undefined;
+    }
     case "createElement": case "createElementNS": case "createTextNode":
     case "createComment": case "createDocumentFragment":
     case "importNode": case "adoptNode": {
       const doc = need(objects.get(op.document), "missing node");
       if (typeof doc[OP_METHOD[op.op]] !== "function") throw new Unsupported(op.op);
       const src = (op.op === "importNode" || op.op === "adoptNode")
-        ? need(objects.get(op.node), "missing node")
+        ? resolveRef(ctx, op.node)
         : null;
       let made;
       switch (op.op) {
@@ -632,6 +694,13 @@ function apply(ctx, op) {
         case "importNode": made = doc.importNode(src, !!op.deep); break;
         default: made = doc.adoptNode(src); break;
       }
+      if (made?.nodeType === 2) {
+        // `Attr` の import は detach された `Attr` を作る。adopt は element から外れたときだけ list に入れる
+        // （仕様の本文は外さないが、外す実装がある）。
+        if (op.op === "importNode") ctx.detached.push(made);
+        else trackDetached(ctx, made);
+        return made;
+      }
       // adoptNode は node を作らない。渡した node がそのまま返るので id は既にある。
       if (op.op !== "adoptNode") registerSubtree(ctx, made);
       return made;
@@ -641,12 +710,20 @@ function apply(ctx, op) {
     case "removeNamedItem":
       return applyAttrNode(ctx, op);
     case "cloneNode": {
-      const src = need(objects.get(op.node), "missing node");
+      const src = resolveRef(ctx, op.node);
       if (typeof src.cloneNode !== "function") throw new Unsupported("cloneNode");
       const copy = src.cloneNode(!!op.deep);
+      if (copy?.nodeType === 2) { ctx.detached.push(copy); return copy; }
       registerSubtree(ctx, copy);
       return copy;
     }
+    case "appendChild":
+      if (isAttrRef(op.parent) || isAttrRef(op.node)) {
+        const parent = resolveRef(ctx, op.parent);
+        if (typeof parent.appendChild !== "function") throw new Unsupported("appendChild");
+        return parent.appendChild(resolveRef(ctx, op.node));
+      }
+      break;
     case "dispatchEvent": {
       const target = need(objects.get(op.target), "missing node");
       const event = new ctx.win.Event(String(op.type),

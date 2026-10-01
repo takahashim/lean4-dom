@@ -72,7 +72,7 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         attributes :=
           if s.kind == .element then
             s.attributes.zipIdx.map fun (a, i) =>
-              Attr.normalized { a with id := ⟨attrOffset specs s.id + i + 1⟩ }
+              Attr.normalized { a with id := ⟨attrOffset specs s.id + i + 1⟩, ownerDocument := ⟨owner⟩ }
           else []
         -- namespace / prefix / local name を持つのは Element だけである。
         -- 省略時は Dommy の `createElement("div")` に合わせる。
@@ -183,6 +183,26 @@ def createdAttr? (r : Except DOMException (Option AttrId × DOMState)) : ReturnV
   match r with
   | .error _ => .unit
   | .ok (a, _) => .attr a
+
+/-- `Attr` に対して読む `Node` の attribute の値（`Dom/Attribute/AsNode.lean`）。 -/
+def attrQueryValue (s : DOMState) (a : AttrId) : AttrQuery → ReturnValue
+  | .ownerDocument => .node ((findAttr s a).map (·.1.ownerDocument))
+  | .parentNode => .node (attrParentNode s a)
+  -- parent が無いので parent element も無い。
+  | .parentElement => .node none
+  | .ownerElement => .node (attrOwnerElement s a)
+  | .getRootNode =>
+    match attrGetRootNode s a with
+    | .attr r => .attr (some r)
+    | .node n => .node (some n)
+  | .nodeName => .str ((findAttr s a).map (·.1.qualifiedName))
+  | .nodeValue => .str ((findAttr s a).map (·.1.value))
+  | .textContent => .str ((findAttr s a).map (·.1.value))
+  -- shadow-including root は自分自身で、document ではない。
+  | .isConnected => .bool false
+  -- 子を持たない。
+  | .hasChildNodes => .bool false
+  | .firstChild => .node none
 
 /-- `Attr` と状態を返す操作を、状態だけを返す形にする。 -/
 def dropAttr (r : Except DOMException (AttrId × DOMState)) : Except DOMException DOMState :=
@@ -369,6 +389,22 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .lookupNamespaceURI n p => .str (lookupNamespaceURI s.tree ⟨n⟩ p)
   | .lookupPrefix n ns => .str (lookupPrefix s.tree ⟨n⟩ ns)
   | .isDefaultNamespace n ns => .bool (isDefaultNamespace s.tree ⟨n⟩ ns)
+  | .attrQuery a q => attrQueryValue s ⟨a⟩ q
+  | .compareDocumentPositionRef n o => .int (compareDocumentPositionRef s n.toRef o.toRef)
+  | .nodeContainsRef n o => .bool (nodeContainsRef s n.toRef o.toRef)
+  | .isEqualNodeRef n o => .bool (nodeRefEquals s n.toRef o.toRef)
+  -- どちらも node のときだけ成功し、入れた node を返す。
+  | .appendChildRef _ n =>
+    match n with
+    | .node n => .node (some ⟨n⟩)
+    | .attr _ => .unit
+  | .adoptAttr d a => createdAttr (adoptAttr s ⟨d⟩ ⟨a⟩)
+  | .importAttr d a => createdAttr (importAttr s ⟨d⟩ ⟨a⟩)
+  | .cloneAttr a => createdAttr (cloneAttr s ⟨a⟩)
+  | .setAttrValue _ _ _ => .unit
+  | .attrLookupNamespaceURI a p => .str (attrLookupNamespaceURI s ⟨a⟩ p)
+  | .attrLookupPrefix a ns => .str (attrLookupPrefix s ⟨a⟩ ns)
+  | .attrIsDefaultNamespace a ns => .bool (attrIsDefaultNamespace s ⟨a⟩ ns)
   | .addEventListener _ _ _ _ _ => .unit
   | .removeEventListener _ _ _ _ => .unit
   | .dispatchEvent t ty b c =>
@@ -422,6 +458,10 @@ def invokedBy (s : DOMState) : Operation → List Invocation
 -/
 def requireNodes (s : DOMState) (ns : List NodeId) : Except DOMException DOMState :=
   if ns.all fun n => (s.tree.get? n).isSome then .ok s else .error .notFoundError
+
+/-- `requireNodes` の `Attr` も受ける版。 -/
+def requireRefs (s : DOMState) (rs : List NodeRef) : Except DOMException DOMState :=
+  if rs.all (·.exists s) then .ok s else .error .notFoundError
 
 /--
 WebIDL の non-nullable な `Node` 引数を受け取る。
@@ -494,6 +534,18 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .lookupNamespaceURI n _ => requireNodes s [⟨n⟩]
   | .lookupPrefix n _ => requireNodes s [⟨n⟩]
   | .isDefaultNamespace n _ => requireNodes s [⟨n⟩]
+  | .attrQuery a _ => requireRefs s [.attr ⟨a⟩]
+  | .compareDocumentPositionRef n o => requireRefs s [n.toRef, o.toRef]
+  | .nodeContainsRef n o => requireRefs s [n.toRef, o.toRef]
+  | .isEqualNodeRef n o => requireRefs s [n.toRef, o.toRef]
+  | .appendChildRef p n => appendChildRef s p.toRef n.toRef
+  | .adoptAttr d a => dropAttr (adoptAttr s ⟨d⟩ ⟨a⟩)
+  | .importAttr d a => dropAttr (importAttr s ⟨d⟩ ⟨a⟩)
+  | .cloneAttr a => dropAttr (cloneAttr s ⟨a⟩)
+  | .setAttrValue a v _ => setAttrValue s ⟨a⟩ v
+  | .attrLookupNamespaceURI a _ => requireRefs s [.attr ⟨a⟩]
+  | .attrLookupPrefix a _ => requireRefs s [.attr ⟨a⟩]
+  | .attrIsDefaultNamespace a _ => requireRefs s [.attr ⟨a⟩]
   | .addEventListener t ty src cap once => addEventListener s ⟨t⟩ ty src cap once
   | .removeEventListener t ty cb cap => removeEventListener s ⟨t⟩ ty cb cap
   | .dispatchEvent t ty b c => (dispatchEvent s ⟨t⟩ ty b c).map (·.1)

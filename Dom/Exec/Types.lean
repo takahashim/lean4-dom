@@ -2,6 +2,7 @@ import Dom.Mutation.Api
 import Dom.Mutation.Import
 import Dom.Attribute.Node
 import Dom.Attribute.Algorithms
+import Dom.Attribute.AsNode
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.Traversal.TreeWalker
@@ -52,6 +53,38 @@ structure NodeSpec where
   -/
   mode : DocumentMode := .noQuirks
 deriving Repr
+
+/-- `Node` を受ける引数。JSON では node の id（数）か `{"attr": id}`。 -/
+inductive RefArg where
+  | node (n : Nat)
+  | attr (a : Nat)
+deriving Repr, DecidableEq
+
+def RefArg.toRef : RefArg → NodeRef
+  | .node n => .node ⟨n⟩
+  | .attr a => .attr ⟨a⟩
+
+/-- `Attr` に対して読む `Node` の attribute。 -/
+inductive AttrQuery where
+  | ownerDocument
+  | parentNode
+  | parentElement
+  | ownerElement
+  | getRootNode
+  | nodeName
+  | nodeValue
+  | textContent
+  | isConnected
+  | hasChildNodes
+  | firstChild
+deriving Repr, DecidableEq
+
+/-- `Attr` の value を書く setter。どれも "set an existing attribute value" を呼ぶ。 -/
+inductive AttrSetter where
+  | value
+  | nodeValue
+  | textContent
+deriving Repr, DecidableEq
 
 /-- scenario が並べる操作。Phase 3 までの public API に対応する。 -/
 inductive Operation where
@@ -193,6 +226,24 @@ inductive Operation where
   | getElementById (node : Nat) (elementId : String)
   | getElementsByClassName (node : Nat) (classNames : String)
   | getElementsByName (node : Nat) (elementName : String)
+  /--
+  `Attr` を `Node` として扱う操作（§4.4・§4.5・§4.9、`Dom/Attribute/AsNode.lean`）。
+
+  JSON では既存の op 名のまま、`Node` を受ける field に `{"attr": id}` を書くとこちらになる。
+  `attrQuery` と `setAttrValue` だけは専用の op 名である。
+  -/
+  | attrQuery (attr : Nat) (query : AttrQuery)
+  | compareDocumentPositionRef (node other : RefArg)
+  | nodeContainsRef (node other : RefArg)
+  | isEqualNodeRef (node other : RefArg)
+  | appendChildRef (parent node : RefArg)
+  | adoptAttr (document attr : Nat)
+  | importAttr (document attr : Nat)
+  | cloneAttr (attr : Nat)
+  | setAttrValue (attr : Nat) (value : String) (via : AttrSetter)
+  | attrLookupNamespaceURI (attr : Nat) («prefix» : Option String)
+  | attrLookupPrefix (attr : Nat) («namespace» : Option String)
+  | attrIsDefaultNamespace (attr : Nat) («namespace» : Option String)
   /-- microtask checkpoint。"notify mutation observers" を走らせる。 -/
   | notify
 deriving Repr

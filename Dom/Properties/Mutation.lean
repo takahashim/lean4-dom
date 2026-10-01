@@ -494,7 +494,7 @@ variable {t : Tree} {n doc : NodeId}
 
 theorem get?_setOwnerDocument_of_mem {m : NodeId} {d : NodeData}
     (hm : m ∈ preorder t n) (hd : t.get? m = some d) :
-    (setOwnerDocument t n doc).get? m = some { d with ownerDocument := doc } := by
+    (setOwnerDocument t n doc).get? m = some (d.withOwnerDocument doc) := by
   rw [get?_setOwnerDocument, hd]
   simp [hm]
 

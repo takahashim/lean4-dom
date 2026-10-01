@@ -1,0 +1,171 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#dom-node-comparedocumentposition",
+    "algorithm": [
+      "compareDocumentPosition(other)",
+      "contains(other)",
+      "equals",
+      "locate a namespace"
+    ],
+    "steps": "compareDocumentPosition は step 3-4 で Attr を element に置き換える。同じ element の attribute どうしは attribute list の順（IMPLEMENTATION_SPECIFIC 付き）、attribute は element に含まれ、element の子より前に来る。contains は inclusive descendant だけ、Attr の equals は namespace・local name・value、locate a namespace は element で探す",
+    "note": "attribute 1 と 2 は div（node 2）の a と b。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span",
+      "attributes": []
+    },
+    {
+      "id": 4,
+      "kind": "document"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "compareDocumentPosition",
+      "node": 2,
+      "other": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": {
+        "attr": 1
+      },
+      "other": 2
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": {
+        "attr": 1
+      },
+      "other": {
+        "attr": 2
+      }
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": {
+        "attr": 2
+      },
+      "other": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": {
+        "attr": 1
+      },
+      "other": 3
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 3,
+      "other": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": {
+        "attr": 1
+      },
+      "other": 1
+    },
+    {
+      "op": "compareDocumentPosition",
+      "node": 1,
+      "other": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "nodeContains",
+      "node": 2,
+      "other": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "nodeContains",
+      "node": {
+        "attr": 1
+      },
+      "other": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "nodeContains",
+      "node": {
+        "attr": 1
+      },
+      "other": 2
+    },
+    {
+      "op": "isEqualNode",
+      "node": {
+        "attr": 1
+      },
+      "other": {
+        "attr": 2
+      }
+    },
+    {
+      "op": "isEqualNode",
+      "node": {
+        "attr": 1
+      },
+      "other": 2
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": {
+        "attr": 1
+      },
+      "prefix": "xml"
+    }
+  ]
+}

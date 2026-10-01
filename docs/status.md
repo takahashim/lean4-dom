@@ -3517,7 +3517,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-47 の索引
+## findings 12-51 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3583,6 +3583,10 @@ jsdom の findings（19・20・24・25・27-29・33-36・40・42-47）は pin �
 | 45 | Dommy / jsdom | `getElementsByName()` が HTML でない element（SVG の `rect` など）も返す | `get-elements-by-name-finds-only-html-elements` |
 | 46 | jsdom | document の doctype を外すと mode が quirks に変わり、class を ASCII case-insensitive に比べる | `class-names-keep-case-without-quirks` |
 | 47 | jsdom | quirks mode で id selector を case-insensitive に比べない／class を ASCII でなく Unicode で畳む（`.ä` が `Ä` に当たる） | `quirks-mode-folds-class-and-id` |
+| 48 | Chromium / Firefox / WebKit | element に付いた `Attr` を `adoptNode` すると element から外す（本文は外さない。同じ document への adopt でも外す） | `adopt-node-keeps-an-attribute-on-its-element` |
+| 49 | jsdom | `Attr` が絡む `compareDocumentPosition` が step 3-4 を走らない（自分自身と 34、element と 0、element の子と逆向き） | `attr-position-follows-its-element` |
+| 50 | Dommy | `adoptNode(attr)` が null を返して何もしない／`Attr` が絡む `compareDocumentPosition` が常に DISCONNECTED／detach された `Attr` の node document が append で更新されず、属性から外したものは null になる | `adopt-node-keeps-an-attribute-on-its-element`, `attr-position-follows-its-element`, `adopting-an-element-moves-its-attributes` |
+| 51 | Dommy | `Attr` が `Node` の member（`parentNode`・`isConnected`・`hasChildNodes`・`childNodes`・`cloneNode`・`appendChild` ほか）を持たない | `attr-is-a-node-outside-the-tree`, `attr-values-and-copies`, `attr-cannot-have-children` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5516,6 +5520,54 @@ nightly の生成 scenario に `--quirks-prob 0.3` を付けた。Dommy `bc883f1
 逆に `.ä` と `getElementsByClassName("ä")` は `class=Ä` に当たる（ASCII ではなく Unicode で畳んでいる）。
 本文はどちらも「ASCII case-insensitive」である。
 
+## `Attr` を `Node` として扱う
+
+仕様の `Attr` は `Node` を継承する。model の attribute は element の状態のまま（node tree に入らない）だが、
+`Attr` が node として持つ性質を足した（`Dom/Attribute/AsNode.lean`）。
+
+**node document。** `Attr` に `ownerDocument` を持たせた。"create an attribute" は受け手の document、
+"append an attribute" step 3 と "replace an attribute" step 4 は element の node document にする。adopt の step 3.3.1
+（element の attribute list の各 attribute）は `NodeData.withOwnerDocument` で行い、関係 `DocumentAssigned` にも書き足した。
+木の surgery が保つ部分（`NodeData.shape`）からは attribute の node document を落とした。`AttributesValid` は鍵・
+prefix・namespace しか見ないので、保存の証明は `dropDoc` を挟むだけで通った。
+
+**`Node` の method。**
+
+| 性質 | model |
+| --- | --- |
+| parent は null、root は自分自身、子を持たず connected でない | `attrParentNode`, `attrGetRootNode`, `attrQueryValue` |
+| `nodeName` は qualified name、`nodeValue`・`textContent` は value | `attrQueryValue` |
+| setter は "set an existing attribute value"（element があれば "change an attribute"） | `setAttrValue` |
+| `compareDocumentPosition` の step 3-5（`Attr` を element に置き換え、同じ element の attribute は attribute list の順） | `compareDocumentPositionRef` |
+| `contains`・`isEqualNode`・namespace の探索 | `nodeContainsRef`, `nodeRefEquals`, `attrLookupNamespaceURI` ほか |
+| `cloneNode`・`importNode`（detach された copy）・`adoptNode` | `cloneAttr`, `importAttr`, `adoptAttr` |
+| `appendChild` の親か子にすると `HierarchyRequestError` | `appendChildRef` |
+
+定理は `Dom/Properties/AttrAsNode.lean` にある。`compareDocumentPositionRef_nodes`（node どうしでは元の定義と同じ）、
+`compareDocumentPositionRef_disconnected_consistent`（step 5 の一貫性）、`appendChildRef_attr_fails`、`cloneAttrIn_spec`。
+状態を変える四つは `AttrOpResult` に乗るので admissibility を保つ（`Dom/Validity/AttrAsNode.lean`）。
+
+**harness。** `Node` を受ける引数に `{"attr": id}` を書けるようにし、専用の op として `attrQuery` と `setAttrValue` を
+足した。生成器は `attrQuery`・`setAttrValue`・`attrRef`（既存の op の引数に `Attr` を入れる）を出す。
+
+**findings 48-51。** 固定 scenario を 7 本足した。
+
+| scenario | Dommy `dd6bcbc` | jsdom 30.1.1 | Chromium 153 |
+| --- | --- | --- | --- |
+| `attr-is-a-node-outside-the-tree` | skip（`parentNode` が無い、51） | 一致 | 一致 |
+| `attr-position-follows-its-element` | 不一致（50） | 不一致（49） | 一致 |
+| `attr-values-and-copies` | skip（`cloneNode` が無い、51） | 一致 | 一致 |
+| `adopt-node-keeps-an-attribute-on-its-element` | 不一致（50） | 一致 | 不一致（48） |
+| `adopting-an-element-moves-its-attributes` | 不一致（50） | 一致 | 一致 |
+| `attr-cannot-be-a-child` | 一致 | 一致 | 一致 |
+| `attr-cannot-have-children` | skip（`appendChild` が無い、51） | 一致 | 一致 |
+
+48 は本文と browser 三つが揃って割れる形である。adopt の step 2 は「parent があれば remove」で、`Attr` は parent を
+持たないので element から外れない。DOM4 には「`Attr` なら owner element から外す」step があり、browser はそれを
+保っている（jsdom は本文どおり）。findings 19・20 と同じく、仕様の側に問う値打ちがある。model は本文どおりに書いた。
+手で当てたところ、Firefox は `Attr` を付けた element を別の document へ adopt しても、`Attr` の `ownerDocument` が
+古いままだった（adopt step 3.3.1）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
@@ -5524,9 +5576,8 @@ nightly の生成 scenario に `--quirks-prob 0.3` を付けた。Dommy `bc883f1
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
   model の骨格（`Tree` と `WellFormed`）から広げることになる。
   MutationObserver と違って既存の定理の多くに影響する。
-* `Attr` の node としての性質（parent、node document、tree order に現れること）。
-  `Attr` を渡す API と identity は §「`Attr` を node として渡す API を入れた」で入れたが、
-  model の attribute は element の状態のままである。
+* `Attr` を target にした event の配送と、`insertBefore` などの child 側に `Attr` を渡す形
+  （§「`Attr` を `Node` として扱う」）。
 * `createProcessingInstruction` と `createCDATASection`。前者の target は Name production を
   参照しており、model はその production を持たない。
 * style attribute と CSS の宣言（CSSOM の `CSSStyleDeclaration`）。DOM の木の上の仕様ではない。

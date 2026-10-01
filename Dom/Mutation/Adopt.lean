@@ -22,11 +22,11 @@ DOM Standard §4.5 adopt の step 3（"set node's node document to document"）�
 def setOwnerDocument (t : Tree) (n doc : NodeId) : Tree :=
   { nodes :=
       t.nodes.mapValues fun m d =>
-        if m ∈ preorder t n then { d with ownerDocument := doc } else d }
+        if m ∈ preorder t n then d.withOwnerDocument doc else d }
 
 theorem get?_setOwnerDocument (t : Tree) (n doc m : NodeId) :
     (setOwnerDocument t n doc).get? m =
-      (t.get? m).map fun d => if m ∈ preorder t n then { d with ownerDocument := doc } else d :=
+      (t.get? m).map fun d => if m ∈ preorder t n then d.withOwnerDocument doc else d :=
   NodeStore.get?_mapValues t.nodes _ m
 
 end Dom

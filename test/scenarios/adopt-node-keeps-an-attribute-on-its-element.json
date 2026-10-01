@@ -1,0 +1,86 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-adopt",
+    "algorithm": [
+      "adoptNode(node)",
+      "adopt",
+      "append an attribute"
+    ],
+    "steps": "adopt の step 2 は parent があるときだけ remove する。Attr は parent を持たないので element から外れず、step 3 で node document だけが変わる。element を adopt すると attribute list の各 attribute の node document も変わる",
+    "note": "本文どおりに読むと attribute 1 は div に付いたまま node document が 4 になる。Chromium・Firefox・WebKit は element から外す（DOM4 の振る舞い）。jsdom は本文どおり。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span",
+      "attributes": []
+    },
+    {
+      "id": 4,
+      "kind": "document"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "adoptNode",
+      "document": 4,
+      "node": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "ownerDocument"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "ownerElement"
+    },
+    {
+      "op": "getAttribute",
+      "element": 2,
+      "name": "a"
+    }
+  ]
+}

@@ -213,10 +213,12 @@ def changeAttribute (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr) 
 /--
 DOM Standard §4.9 "append an attribute"。
 
-step 2-3（attribute の element と node document）は model が attribute を
-element の状態として持つので自動的に満たされる。
+step 2（attribute の element）は model が attribute を element の状態として持つので
+自動的に満たされる。step 3 で attribute の node document を element のものにする。
 -/
-def appendAttribute (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr) : DOMState :=
+def appendAttribute (s : DOMState) (element : NodeId) (d : NodeData) (a₀ : Attr) : DOMState :=
+  -- step 3：attribute の node document を element のものにする。
+  let a := { a₀ with ownerDocument := d.ownerDocument }
   let t := setAttributes s.tree element d (d.attributes ++ [a])
   handleAttributeChanges { s with tree := t } element a none
 
@@ -252,7 +254,8 @@ def setAttributeValue (s : DOMState) (element : NodeId) (localName value : Strin
       | none =>
         .ok (appendAttribute s element d
           { id := freshStateAttrId s, «namespace» := normalizeNamespace «namespace»,
-            «prefix» := «prefix», localName := localName, value := value })
+            «prefix» := «prefix», localName := localName, value := value,
+            ownerDocument := d.ownerDocument })
       | some a => .ok (changeAttribute s element d a value)
 
 /-! ## `Element` の method -/
@@ -280,7 +283,7 @@ def setAttribute (s : DOMState) (element : NodeId) (qualifiedName value : String
         | none =>
           .ok (appendAttribute s element d
             { id := freshStateAttrId s, localName := attrNameFor s.tree d qualifiedName,
-              value := value })
+              value := value, ownerDocument := d.ownerDocument })
 
 /-- DOM Standard §4.9 `Element.setAttributeNS(namespace, qualifiedName, value)`。 -/
 def setAttributeNS (s : DOMState) (element : NodeId) («namespace» : Option String)
@@ -339,7 +342,8 @@ def toggleAttribute (s : DOMState) (element : NodeId) (qualifiedName : String)
           else
             .ok (appendAttribute s element d
               { id := freshStateAttrId s,
-                localName := attrNameFor s.tree d qualifiedName }, true)
+                localName := attrNameFor s.tree d qualifiedName,
+                ownerDocument := d.ownerDocument }, true)
         -- step 5-6
         | some a =>
           if force == some true then .ok (s, true)

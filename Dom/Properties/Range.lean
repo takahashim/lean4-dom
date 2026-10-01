@@ -245,7 +245,7 @@ theorem ValidBoundaryPoint.setOwnerDocument {t : Tree} {n doc : NodeId} {bp : Bo
   obtain ⟨d, hd, hoff⟩ := h
   rw [ValidBoundaryPoint, get?_setOwnerDocument, hd]
   by_cases hm : bp.node ∈ preorder t n
-  · exact ⟨{ d with ownerDocument := doc }, by simp [hm], by simpa [NodeData.length] using hoff⟩
+  · exact ⟨d.withOwnerDocument doc, by simp [hm], by simpa [NodeData.length] using hoff⟩
   · exact ⟨d, by simp [hm], hoff⟩
 
 /-- `insertAt` は node の length を減らさないので boundary point の validity を保つ。 -/
@@ -427,7 +427,7 @@ theorem boundaryValidUpTo_setOwnerDocument {t : Tree} {n doc parent : NodeId} {s
       d'.length = d.length := by
     rw [get?_setOwnerDocument, hd]
     by_cases hm : bp.node ∈ preorder t n
-    · exact ⟨{ d with ownerDocument := doc }, by simp [hm], rfl⟩
+    · exact ⟨d.withOwnerDocument doc, by simp [hm], rfl⟩
     · exact ⟨d, by simp [hm], rfl⟩
   exact ⟨d', hd', by rw [hlen]; exact hoff⟩
 

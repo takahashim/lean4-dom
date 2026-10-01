@@ -387,6 +387,11 @@ selector を使わない `getElementsByClassName()` と `getElementsByName()` �
 後者は「namespace の無い `name` が一致する descendant の HTML element」である。`getElementById()` は
 当たるものを返し（`getElementById_eq_some`）、当たるものが無いときだけ null を返す（`getElementById_eq_none_iff`）。
 
+`Attr` を `Node` として渡す `compareDocumentPosition` は、node どうしなら元の定義と同じで
+（`compareDocumentPositionRef_nodes`）、element の無い `Attr` が絡めば向きを入れ替えると PRECEDING と
+FOLLOWING が入れ替わる（`compareDocumentPositionRef_disconnected_consistent`、step 5 の「一貫していること」）。
+`Attr` は子にも親にもなれない（`appendChildRef_attr_fails`）。
+
 ## 17. scoping root が見えるのは `:scope` からだけ
 
 | 定理 | module |

@@ -1,0 +1,109 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-node-adopt",
+    "algorithm": [
+      "adopt",
+      "append an attribute",
+      "remove an attribute"
+    ],
+    "steps": "element を別の document へ adopt すると、attribute list の各 attribute の node document も変わる。setAttributeNode は node document を element のものにし、removeAttributeNode は変えない",
+    "note": "attribute 3 は document 4 で作り、div（document 0）に付けると node document が 0 になる。外しても 0 のまま。付け直して div ごと document 4 へ移すと 4 になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span",
+      "attributes": []
+    },
+    {
+      "id": 4,
+      "kind": "document"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createAttribute",
+      "document": 4,
+      "name": "c"
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 2,
+      "attr": 3
+    },
+    {
+      "op": "attrQuery",
+      "attr": 3,
+      "query": "ownerDocument"
+    },
+    {
+      "op": "removeAttributeNode",
+      "element": 2,
+      "attr": 3
+    },
+    {
+      "op": "attrQuery",
+      "attr": 3,
+      "query": "ownerDocument"
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 2,
+      "attr": 3
+    },
+    {
+      "op": "adoptNode",
+      "document": 4,
+      "node": 2
+    },
+    {
+      "op": "attrQuery",
+      "attr": 3,
+      "query": "ownerDocument"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "ownerDocument"
+    }
+  ]
+}

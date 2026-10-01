@@ -107,7 +107,7 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
       nd₁.data = nd.data ∧ nd₁.children = [] ∧ nd₁.parent = none := by
     rcases hs₁ with he | he
     · exact ⟨nd, by rw [he]; simpa [liveRangeInsertAdjust_tree] using hnd, rfl, rfl, hch, hp⟩
-    · refine ⟨{ nd with ownerDocument := pd.ownerDocument }, ?_, rfl, rfl, hch, hp⟩
+    · refine ⟨nd.withOwnerDocument pd.ownerDocument, ?_, NodeData.withOwnerDocument_shape _ _, rfl, hch, hp⟩
       rw [he, get?_setOwnerDocument_of_mem ?_ (by simpa [liveRangeInsertAdjust_tree] using hnd)]
       rw [liveRangeInsertAdjust_tree, mem_preorder_iff hwf hnd]
       exact Or.inl rfl

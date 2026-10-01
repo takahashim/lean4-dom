@@ -1066,6 +1066,21 @@ open Dom.Audit
   Dom.Spec.matchSimple_iff_spec
   Dom.Spec.mem_matchTree_iff_spec
 
+-- `Attr` を `Node` として扱う method
+#audit_axioms
+  Dom.compareDocumentPositionRef_nodes
+  Dom.compareDocumentPositionRef_self
+  Dom.compareDocumentPositionRef_disconnected_consistent
+  Dom.appendChildRef_attr_fails
+  Dom.nodeContainsRef_attr_attr
+  Dom.cloneAttrIn_spec
+  Dom.attrOpResult_modifyAttr
+  Dom.admissible_adoptAttr
+  Dom.admissible_importAttr
+  Dom.admissible_cloneAttr
+  Dom.admissible_setAttrValue
+  Dom.admissible_appendChildRef
+
 -- id・class・name で引く method の関係仕様
 #audit_axioms
   Dom.Spec.mem_orderedSetParse_iff

@@ -441,7 +441,7 @@ theorem quirksFold_eq_iff (t : Tree) (d : NodeData) (a b : String) :
   cases inQuirksModeOf t d with
   | false => simp [quirksFold, String.toList_inj]
   | true =>
-    simp only [quirksFold, if_true, beq_iff_eq, true_and, Bool.true_eq_false, not_true_eq_false,
+    simp only [quirksFold, if_true, beq_iff_eq, true_and, not_true_eq_false,
       false_and, or_false, asciiLowercase]
     exact ⟨fun h => by rw [h], fun h => by simpa using congrArg String.toList h⟩
 

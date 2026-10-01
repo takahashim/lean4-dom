@@ -6,6 +6,7 @@ import Dom.Validity.Walkers
 import Dom.Validity.Events
 import Dom.Validity.Clone
 import Dom.Validity.AttrNode
+import Dom.Validity.AttrAsNode
 import Dom.Properties.Import
 
 /-!
@@ -50,6 +51,13 @@ theorem admissible_stepIterator {s : DOMState} {i : Nat}
       · exact h.observerRegistrations
 
 /-- 値を返すだけの操作は状態を変えない。 -/
+theorem admissible_requireRefs {s s' : DOMState} {rs : List NodeRef}
+    (h : AdmissibleDOMState s) (hr : requireRefs s rs = .ok s') : AdmissibleDOMState s' := by
+  unfold requireRefs at hr
+  split at hr
+  · rw [← Except.ok.inj hr]; exact h
+  · simp at hr
+
 theorem admissible_requireNodes {s s' : DOMState} {ns : List NodeId}
     (h : AdmissibleDOMState s) (hr : requireNodes s ns = .ok s') : AdmissibleDOMState s' := by
   unfold requireNodes at hr
@@ -250,6 +258,24 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | lookupNamespaceURI n p => exact admissible_requireNodes h hop
   | lookupPrefix n ns => exact admissible_requireNodes h hop
   | isDefaultNamespace n ns => exact admissible_requireNodes h hop
+  | attrQuery a q => exact admissible_requireRefs h hop
+  | compareDocumentPositionRef n o => exact admissible_requireRefs h hop
+  | nodeContainsRef n o => exact admissible_requireRefs h hop
+  | isEqualNodeRef n o => exact admissible_requireRefs h hop
+  | appendChildRef p n => exact admissible_appendChildRef h hop
+  | adoptAttr d a =>
+    obtain ⟨r, hr⟩ := dropAttr_ok hop
+    exact admissible_adoptAttr h hr
+  | importAttr d a =>
+    obtain ⟨r, hr⟩ := dropAttr_ok hop
+    exact admissible_importAttr h hr
+  | cloneAttr a =>
+    obtain ⟨r, hr⟩ := dropAttr_ok hop
+    exact admissible_cloneAttr h hr
+  | setAttrValue a v via => exact admissible_setAttrValue h hop
+  | attrLookupNamespaceURI a p => exact admissible_requireRefs h hop
+  | attrLookupPrefix a ns => exact admissible_requireRefs h hop
+  | attrIsDefaultNamespace a ns => exact admissible_requireRefs h hop
   | addEventListener t ty src cap once => exact admissible_addEventListener h hop
   | removeEventListener t ty cb cap => exact admissible_removeEventListener h hop
   | dispatchEvent t ty b c =>

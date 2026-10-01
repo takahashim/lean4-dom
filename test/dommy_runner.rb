@@ -302,8 +302,30 @@ module DommyRunner
   ATTR_RETURNING_OPS = %w[createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
                           setAttributeNode removeAttributeNode removeNamedItem].freeze
 
+  # `attrQuery` の戻り値の種類。
+  ATTR_QUERY_KIND = {
+    "ownerDocument" => "node", "parentNode" => "node", "parentElement" => "node",
+    "ownerElement" => "node", "firstChild" => "node", "getRootNode" => "node",
+    "nodeName" => "string", "nodeValue" => "string", "textContent" => "string",
+    "isConnected" => "boolean", "hasChildNodes" => "boolean"
+  }.freeze
+
+  def attr_object?(obj)
+    obj.is_a?(Dommy::Attr)
+  end
+
   def return_value_snapshot(ctx, op, returned)
     objects = ctx[:objects]
+    # `Attr` を `Node` として渡した op は `Attr` を返しうる（getRootNode・cloneNode・importNode・adoptNode）。
+    return { "kind" => "attr", "attr" => ctx[:attr_ids][returned] } if attr_object?(returned)
+
+    if op["op"] == "attrQuery"
+      return case ATTR_QUERY_KIND.fetch(op["query"])
+             when "node" then { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
+             when "boolean" then { "kind" => "boolean", "value" => !!returned }
+             else { "kind" => "string", "value" => returned.nil? ? nil : returned.to_s }
+             end
+    end
     case op["op"]
     when *NODE_RETURNING_OPS
       { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
@@ -847,6 +869,38 @@ module DommyRunner
     nil
   end
 
+  # `Node` を受ける field が `{"attr": id}`（`Attr`）か。
+  def attr_ref?(value)
+    value.is_a?(Hash) && value.key?("attr")
+  end
+
+  # `Node` を受ける field を object にする。数なら node、`{"attr": id}` なら `Attr`。
+  def resolve_ref(ctx, value)
+    obj = attr_ref?(value) ? find_attr(ctx, value["attr"]) : ctx[:objects][value]
+    raise NotImplementedError, attr_ref?(value) ? "missing attr" : "missing node" if obj.nil?
+
+    obj
+  end
+
+  # 引数の `Attr` が element から外れていたら、detach された list に入れる。
+  def track_detached(ctx, attr)
+    return unless attr_object?(attr) && attr.owner_element.nil?
+    return if ctx[:detached].any? { |x| x.equal?(attr) }
+
+    ctx[:detached] << attr
+  end
+
+  # `Attr` を `Node` として読む `attrQuery`。
+  def apply_attr_query(ctx, op)
+    a = find_attr(ctx, op["attr"])
+    raise NotImplementedError, "missing attr" if a.nil?
+
+    case op["query"]
+    when "getRootNode", "hasChildNodes" then js_call(a, op["query"], [])
+    else js_get(a, op["query"])
+    end
+  end
+
   def apply(objects, op, iterators = [], ctx = {})
     case op["op"]
     when "iteratorNext", "iteratorPrevious"
@@ -872,16 +926,35 @@ module DommyRunner
       return obs.__js_call__("takeRecords", [])
     when "notify"
       return run_microtask_checkpoint(ctx[:documents] || {})
+    when "attrQuery"
+      return apply_attr_query(ctx, op)
+    when "setAttrValue"
+      # `Attr.value`・`nodeValue`・`textContent` の setter。どれも "set an existing attribute value"。
+      a = find_attr(ctx, op["attr"])
+      raise NotImplementedError, "missing attr" if a.nil?
+
+      via = op["via"] || "value"
+      setter = "#{via.gsub(/([A-Z])/) { "_#{Regexp.last_match(1).downcase}" }}="
+      if a.respond_to?(setter)
+        a.public_send(setter, op["value"].to_s)
+      elsif !a.respond_to?(:__js_set__) || a.__js_set__(via, op["value"].to_s) == Dommy::Bridge::UNHANDLED
+        raise NotImplementedError, via
+      end
+      return nil
+    when "appendChild"
+      if attr_ref?(op["parent"]) || attr_ref?(op["node"])
+        parent = resolve_ref(ctx, op["parent"])
+        raise NotImplementedError, "appendChild" unless parent.respond_to?(:append_child)
+
+        return parent.append_child(resolve_ref(ctx, op["node"]))
+      end
     when *CREATE_OPS
       doc = objects[op["document"]]
       raise NotImplementedError, "missing node" if doc.nil?
       raise NotImplementedError, op["op"] unless doc.respond_to?(OP_METHOD.fetch(op["op"]))
 
       src = nil
-      if %w[importNode adoptNode].include?(op["op"])
-        src = objects[op["node"]]
-        raise NotImplementedError, "missing node" if src.nil?
-      end
+      src = resolve_ref(ctx, op["node"]) if %w[importNode adoptNode].include?(op["op"])
       node =
         case op["op"]
         when "createElement" then doc.create_element(op["localName"].to_s)
@@ -892,17 +965,26 @@ module DommyRunner
         when "importNode" then doc.import_node(src, op["deep"] ? true : false)
         when "adoptNode" then doc.adopt_node(src)
         end
+      if attr_object?(node)
+        # `Attr` の import は detach された `Attr` を作る。adopt は element から外れたときだけ list に入れる
+        # （仕様の本文は外さないが、外す実装がある）。
+        op["op"] == "importNode" ? ctx[:detached] << node : track_detached(ctx, node)
+        return node
+      end
       # adoptNode は node を作らない。渡した node がそのまま返るので id は既にある。
       register_subtree(ctx, node) unless op["op"] == "adoptNode"
       return node
     when *ATTR_NODE_OPS
       return apply_attr_node(ctx, op)
     when "cloneNode"
-      src = objects[op["node"]]
-      raise NotImplementedError, "missing node" if src.nil?
+      src = resolve_ref(ctx, op["node"])
       raise NotImplementedError, op["op"] unless src.respond_to?(:clone_node)
 
       copy = src.clone_node(op["deep"] ? true : false)
+      if attr_object?(copy)
+        ctx[:detached] << copy
+        return copy
+      end
       register_subtree(ctx, copy)
       return copy
     end
@@ -935,7 +1017,7 @@ module DommyRunner
     end
 
     if QUERY_OPS.include?(op["op"])
-      receiver = objects[op.key?("element") ? op["element"] : op["node"]]
+      receiver = op.key?("element") ? objects[op["element"]] : resolve_ref(ctx, op["node"])
       raise NotImplementedError, "missing node" if receiver.nil?
 
       name = QUERY_JS_NAME.fetch(op["op"])
@@ -958,10 +1040,7 @@ module DommyRunner
 
       return case op["op"]
              when "compareDocumentPosition", "nodeContains", "isEqualNode"
-               other = objects[op["other"]]
-               raise NotImplementedError, "missing node" if other.nil?
-
-               js_call(receiver, name, [other])
+               js_call(receiver, name, [resolve_ref(ctx, op["other"])])
              when "getRootNode" then js_call(receiver, name, [])
              when "substringData" then js_call(receiver, name, [op["offset"], op["count"]])
              when "getAttribute", "hasAttribute" then js_call(receiver, name, [op["name"]])

@@ -1,0 +1,123 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#interface-attr",
+    "algorithm": [
+      "Attr",
+      "compareDocumentPosition(other)",
+      "contains(other)",
+      "getRootNode(options)"
+    ],
+    "steps": "Attr は Node だが木に入らないので parent は null、root は自分自身、子を持たず、connected でない。node document は element のもの。nodeName は qualified name、nodeValue と textContent は value",
+    "note": "attribute 1 と 2 は div（node 2）の a と b。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span",
+      "attributes": []
+    },
+    {
+      "id": 4,
+      "kind": "document"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "ownerDocument"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "ownerElement"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "nodeName"
+    },
+    {
+      "op": "getNodeValue",
+      "node": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "getTextContent",
+      "node": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "getRootNode",
+      "node": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "parentNode"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "parentElement"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "isConnected"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "hasChildNodes"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "firstChild"
+    }
+  ]
+}

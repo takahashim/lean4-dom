@@ -33,8 +33,8 @@ theorem attrOpResult_removeDetached (s : DOMState) (aid : AttrId) :
   ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, id⟩
 
 /-- `createAttribute` は detach された list に足すだけである。 -/
-theorem attrOpResult_createAttributeIn (s : DOMState) (ns pfx : Option String) (ln : String) :
-    AttrOpResult s (createAttributeIn s ns pfx ln).2 :=
+theorem attrOpResult_createAttributeIn (s : DOMState) (doc : NodeId) (ns pfx : Option String)
+    (ln : String) : AttrOpResult s (createAttributeIn s doc ns pfx ln).2 :=
   ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, id⟩
 
 /-! ## "replace an attribute" -/
@@ -42,7 +42,8 @@ theorem attrOpResult_createAttributeIn (s : DOMState) (ns pfx : Option String) (
 @[simp] theorem replaceAttributeWith_tree (s : DOMState) (element : NodeId) (d : NodeData)
     (old new : Attr) : (replaceAttributeWith s element d old new).tree =
       setAttributes s.tree element d
-        (updateFirst (fun b => b.key == old.key) (fun _ => new) d.attributes) := by
+        (updateFirst (fun b => b.key == old.key) (fun _ => { new with ownerDocument := d.ownerDocument })
+          d.attributes) := by
   unfold replaceAttributeWith; simp
 
 @[simp] theorem replaceAttributeWith_ranges (s : DOMState) (element : NodeId) (d : NodeData)
@@ -151,7 +152,7 @@ theorem attrOpResult_createAttribute {s s' : DOMState} {doc : NodeId} {ln : Stri
   · next dd hreq =>
     split at hr
     · simp at hr
-    · have he : (createAttributeIn s none none _).2 = s' := congrArg Prod.snd (Except.ok.inj hr)
+    · have he : (createAttributeIn s doc none none _).2 = s' := congrArg Prod.snd (Except.ok.inj hr)
       rw [← he]
       exact attrOpResult_createAttributeIn ..
 
@@ -166,7 +167,7 @@ theorem attrOpResult_createAttributeNS {s s' : DOMState} {doc : NodeId} {ns : Op
     | error e => rw [hval] at hr; simp at hr
     | ok r =>
       rw [hval] at hr
-      have he : (createAttributeIn s r.1 r.2.1 r.2.2).2 = s' :=
+      have he : (createAttributeIn s doc r.1 r.2.1 r.2.2).2 = s' :=
         congrArg Prod.snd (Except.ok.inj hr)
       rw [← he]
       exact attrOpResult_createAttributeIn ..

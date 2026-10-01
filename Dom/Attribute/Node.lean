@@ -18,8 +18,8 @@ model の attribute は element の状態のままだが、**同一性は `AttrI
   するだけで object は残るが、それを指す参照がどこにも無いので観測できない。
 
 `setAttributeNodeNS` は仕様上 `setAttributeNode` と step が同一なので、別に置かない。
-attribute の node document は model に無いので、"replace an attribute" の step 4 と
-"append an attribute" の step 3 は空になる。
+attribute の node document は `Attr.ownerDocument` で持ち、"replace an attribute" の step 4 と
+"append an attribute" の step 3 が element のものに書き換える。
 -/
 
 namespace Dom
@@ -68,13 +68,13 @@ def removeDetached (s : DOMState) (aid : AttrId) : DOMState :=
 /--
 DOM Standard §4.9 "create an attribute"。
 
-element を持たない新しい `Attr` を作る。node document は model に無い。
+element を持たない新しい `Attr` を作る。node document は受け手の document `doc` である。
 -/
-def createAttributeIn (s : DOMState) («namespace» «prefix» : Option String) (localName : String) :
-    AttrId × DOMState :=
+def createAttributeIn (s : DOMState) (doc : NodeId) («namespace» «prefix» : Option String)
+    (localName : String) : AttrId × DOMState :=
   let a : Attr := Attr.normalized
     { id := freshStateAttrId s, «namespace» := «namespace», «prefix» := «prefix»,
-      localName := localName }
+      localName := localName, ownerDocument := doc }
   (a.id, { s with detachedAttrs := s.detachedAttrs ++ [a] })
 
 /-- DOM Standard §4.5 `Document.createAttribute(localName)`。 -/
@@ -87,7 +87,7 @@ def createAttribute (s : DOMState) (doc : NodeId) (localName : String) :
     if !isValidAttributeLocalName localName then .error .invalidCharacterError
     else
       -- step 2
-      .ok (createAttributeIn s none none
+      .ok (createAttributeIn s doc none none
         (if dd.isHTMLDocument then asciiLowercase localName else localName))
 
 /-- DOM Standard §4.5 `Document.createAttributeNS(namespace, qualifiedName)`。 -/
@@ -98,7 +98,7 @@ def createAttributeNS (s : DOMState) (doc : NodeId) («namespace» : Option Stri
   | .ok _ =>
     match validateAndExtractAttribute «namespace» qualifiedName with
     | .error e => .error e
-    | .ok (ns, pfx, ln) => .ok (createAttributeIn s ns pfx ln)
+    | .ok (ns, pfx, ln) => .ok (createAttributeIn s doc ns pfx ln)
 
 /-! ## `Element` の method -/
 
@@ -130,8 +130,10 @@ DOM Standard §4.9 "replace an attribute"。
 -/
 def replaceAttributeWith (s : DOMState) (element : NodeId) (d : NodeData) (old new : Attr) :
     DOMState :=
+  -- step 4：新しい attribute の node document を element のものにする。
   let t := setAttributes s.tree element d
-    (updateFirst (fun b => b.key == old.key) (fun _ => new) d.attributes)
+    (updateFirst (fun b => b.key == old.key) (fun _ => { new with ownerDocument := d.ownerDocument })
+      d.attributes)
   handleAttributeChanges { s with tree := t, detachedAttrs := s.detachedAttrs ++ [old] }
     element old (some old.value)
 

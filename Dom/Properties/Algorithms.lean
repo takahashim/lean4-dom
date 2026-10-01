@@ -55,11 +55,12 @@ theorem kind {t t' : Tree} (h : ShapePreserving t t') (m : NodeId) :
   rw [map_shape_field _ (fun _ => rfl) (t'.get? m), h m,
     ← map_shape_field _ (fun _ => rfl) (t.get? m)]
 
-/-- attribute list だけを取り出す。 -/
+/-- attribute list だけを取り出す。adopt が attribute の node document を変えるので、それは落とす。 -/
 theorem attributes {t t' : Tree} (h : ShapePreserving t t') (m : NodeId) :
-    (t'.get? m).map (·.attributes) = (t.get? m).map (·.attributes) := by
-  rw [map_shape_field _ (fun _ => rfl) (t'.get? m), h m,
-    ← map_shape_field _ (fun _ => rfl) (t.get? m)]
+    (t'.get? m).map (·.attributes.map Attr.dropDoc) = (t.get? m).map (·.attributes.map Attr.dropDoc) := by
+  have hf : ∀ d : NodeData, d.shape.attributes.map Attr.dropDoc = d.attributes.map Attr.dropDoc := by
+    intro d; simp only [NodeData.shape_attributes, List.map_map]; rfl
+  rw [map_shape_field _ hf (t'.get? m), h m, ← map_shape_field _ hf (t.get? m)]
 
 /--
 変更後に node があるなら変更前にもあり、
@@ -67,8 +68,8 @@ parent・children・node document・data を除く部分は同じである。
 -/
 theorem exists_get? {t t' : Tree} (h : ShapePreserving t t') {m : NodeId} {d : NodeData}
     (hd : t'.get? m = some d) :
-    ∃ d₀, t.get? m = some d₀ ∧ d₀.kind = d.kind ∧ d₀.attributes = d.attributes ∧
-      d₀.shape = d.shape := by
+    ∃ d₀, t.get? m = some d₀ ∧ d₀.kind = d.kind ∧
+      d₀.attributes.map Attr.dropDoc = d.attributes.map Attr.dropDoc ∧ d₀.shape = d.shape := by
   have hm := h m
   rw [hd] at hm
   cases hd₀ : t.get? m with

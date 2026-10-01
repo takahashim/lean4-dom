@@ -21,6 +21,7 @@ theorem documentAssigned_setOwnerDocument {t : Tree} (hwf : WellFormed t) {node 
     rw [get?_setOwnerDocument, hm]
     simp only [Option.map_some, Option.some.injEq]
     rw [if_pos ((mem_preorder_iff hwf hn m).mpr hdesc)]
+    rfl
   · intro m hdesc
     rw [get?_setOwnerDocument]
     cases hq : t.get? m with

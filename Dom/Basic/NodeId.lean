@@ -124,9 +124,11 @@ node tree に入らない（parent を持てず tree order にも現れない）
 * `prefix?` — 仕様の namespace prefix。qualified name の計算にだけ使う。
 * `localName` — 仕様の local name。mutation record の `attributeName` はこれである。
 * `value` — 仕様の value。
-
-仕様の node document は持たない。model の attribute は node tree に入らないので、
-その node document は観測できない。
+* `ownerDocument` — 仕様の node document（`Attr` も node なので持つ）。"create an attribute" は
+  受け手の document、"append an attribute" と "replace an attribute" は element の node document、
+  adopt は element の attribute ごとと、`Attr` を直に渡されたときに書き換える。
+  element に付いている間も element の node document と一致するとは限らない
+  （`adoptNode(attr)` は element から外さずに node document だけを変える）。
 -/
 structure Attr where
   id : AttrId
@@ -134,6 +136,7 @@ structure Attr where
   «prefix» : Option String := none
   localName : String
   value : String := ""
+  ownerDocument : NodeId
 deriving DecidableEq, Repr, Inhabited
 
 namespace Attr
@@ -152,11 +155,41 @@ def key (a : Attr) : Option String × String := (a.namespace, a.localName)
 
 clone は attribute を写すが、copy の `Attr` は原本とは別のものである（仕様の
 "clone a single node" step 2.1 が attribute ごとに clone を作る）。
-「id 以外は同じ」を言うのにこれを使う。
+「id と node document 以外は同じ」を言うのにこれを使う（import した copy は node document も違う）。
 -/
-def anon (a : Attr) : Attr := { a with id := ⟨0⟩ }
+def anon (a : Attr) : Attr := { a with id := ⟨0⟩, ownerDocument := ⟨0⟩ }
 
 @[simp] theorem anon_key (a : Attr) : a.anon.key = a.key := rfl
+
+/-- node document だけを付け替えた attribute。adopt が element の attribute ごとに行う。 -/
+def withOwnerDocument (a : Attr) (doc : NodeId) : Attr := { a with ownerDocument := doc }
+
+/-- node document を落とした attribute。木の surgery が保つのはこの部分である。 -/
+def dropDoc (a : Attr) : Attr := a.withOwnerDocument ⟨0⟩
+
+@[simp] theorem withOwnerDocument_id (a : Attr) (doc : NodeId) : (a.withOwnerDocument doc).id = a.id := rfl
+@[simp] theorem withOwnerDocument_key (a : Attr) (doc : NodeId) : (a.withOwnerDocument doc).key = a.key := rfl
+@[simp] theorem withOwnerDocument_localName (a : Attr) (doc : NodeId) :
+    (a.withOwnerDocument doc).localName = a.localName := rfl
+@[simp] theorem withOwnerDocument_namespace (a : Attr) (doc : NodeId) :
+    (a.withOwnerDocument doc).namespace = a.namespace := rfl
+@[simp] theorem withOwnerDocument_prefix (a : Attr) (doc : NodeId) :
+    (a.withOwnerDocument doc).prefix = a.prefix := rfl
+@[simp] theorem withOwnerDocument_value (a : Attr) (doc : NodeId) :
+    (a.withOwnerDocument doc).value = a.value := rfl
+@[simp] theorem withOwnerDocument_ownerDocument (a : Attr) (doc : NodeId) :
+    (a.withOwnerDocument doc).ownerDocument = doc := rfl
+@[simp] theorem withOwnerDocument_anon (a : Attr) (doc : NodeId) :
+    (a.withOwnerDocument doc).anon = a.anon := rfl
+@[simp] theorem withOwnerDocument_dropDoc (a : Attr) (doc : NodeId) :
+    (a.withOwnerDocument doc).dropDoc = a.dropDoc := rfl
+@[simp] theorem dropDoc_key (a : Attr) : a.dropDoc.key = a.key := rfl
+@[simp] theorem dropDoc_id (a : Attr) : a.dropDoc.id = a.id := rfl
+@[simp] theorem dropDoc_value (a : Attr) : a.dropDoc.value = a.value := rfl
+@[simp] theorem dropDoc_localName (a : Attr) : a.dropDoc.localName = a.localName := rfl
+@[simp] theorem dropDoc_namespace (a : Attr) : a.dropDoc.namespace = a.namespace := rfl
+@[simp] theorem dropDoc_prefix (a : Attr) : a.dropDoc.prefix = a.prefix := rfl
+@[simp] theorem dropDoc_anon (a : Attr) : a.dropDoc.anon = a.anon := rfl
 
 end Attr
 
@@ -211,17 +244,53 @@ namespace NodeData
 木の surgery が触らない部分。
 
 `detach` / `insertAt` / `setOwnerDocument` / `withData` はどれも
-parent・children・node document・data しか変えないので、それを落とした残りは保たれる。
+parent・children・node document（element の attribute の node document を含む）・data しか
+変えないので、それを落とした残りは保たれる。
 `ShapePreserving`（`Dom/Properties/Algorithms.lean`）がこの保存を表す。
 
 落とす側を並べてあるので、`NodeData` に field が増えても自動的に保存の対象に入る。
 -/
 def shape (d : NodeData) : NodeData :=
-  { d with parent := none, children := [], ownerDocument := ⟨0⟩, data := "" }
+  { d with parent := none, children := [], ownerDocument := ⟨0⟩, data := "",
+           attributes := d.attributes.map Attr.dropDoc }
 
 @[simp] theorem shape_kind (d : NodeData) : d.shape.kind = d.kind := rfl
 
-@[simp] theorem shape_attributes (d : NodeData) : d.shape.attributes = d.attributes := rfl
+@[simp] theorem shape_attributes (d : NodeData) :
+    d.shape.attributes = d.attributes.map Attr.dropDoc := rfl
+
+/--
+DOM §4.5 adopt step 3 が一つの node に行うこと。node document を `doc` にし、
+element なら attribute list の各 attribute の node document も `doc` にする。
+-/
+def withOwnerDocument (d : NodeData) (doc : NodeId) : NodeData :=
+  { d with ownerDocument := doc, attributes := d.attributes.map (·.withOwnerDocument doc) }
+
+@[simp] theorem withOwnerDocument_ownerDocument (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).ownerDocument = doc := rfl
+@[simp] theorem withOwnerDocument_kind (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).kind = d.kind := rfl
+@[simp] theorem withOwnerDocument_parent (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).parent = d.parent := rfl
+@[simp] theorem withOwnerDocument_children (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).children = d.children := rfl
+@[simp] theorem withOwnerDocument_data (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).data = d.data := rfl
+@[simp] theorem withOwnerDocument_attributes (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).attributes = d.attributes.map (·.withOwnerDocument doc) := rfl
+@[simp] theorem withOwnerDocument_namespace (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).namespace = d.namespace := rfl
+@[simp] theorem withOwnerDocument_prefix (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).prefix = d.prefix := rfl
+@[simp] theorem withOwnerDocument_localName (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).localName = d.localName := rfl
+@[simp] theorem withOwnerDocument_isHTMLDocument (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).isHTMLDocument = d.isHTMLDocument := rfl
+@[simp] theorem withOwnerDocument_mode (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).mode = d.mode := rfl
+@[simp] theorem withOwnerDocument_shape (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).shape = d.shape := by
+  simp [shape, withOwnerDocument, List.map_map, Function.comp_def]
 
 /-- `shape` から attribute の同一性も落としたもの。clone の「同じ形」はこれで見る。 -/
 def shapeAnon (d : NodeData) : NodeData :=

@@ -67,7 +67,7 @@ theorem append_fresh_isOk {s : DOMState} {node parent : NodeId} {nd : NodeData}
       simp at hanc
     rcases hcase with rfl | rfl
     · exact ⟨nd, pd, hnd, hpd, hp, hch, hwf, fun _ _ h => h⟩
-    · refine ⟨{ nd with ownerDocument := pd.ownerDocument }, pd, ?_, ?_, hp, hch, ?_, ?_⟩
+    · refine ⟨nd.withOwnerDocument pd.ownerDocument, pd, ?_, ?_, hp, hch, ?_, ?_⟩
       · exact get?_setOwnerDocument_of_mem (mem_preorder_self hwf hnd) hnd
       · rw [DOMState.withTree_tree, get?_setOwnerDocument_of_not_mem hpmem]
         exact hpd

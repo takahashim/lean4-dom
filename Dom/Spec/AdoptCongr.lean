@@ -127,7 +127,7 @@ theorem documentAssigned_wellFormed (hwf : WellFormed t) {nd : NodeData}
     | some d₀ =>
       obtain ⟨dd, hdd, hk⟩ := hdoc
       by_cases hm : InclusiveDescendant t n node
-      · have : u.get? n = some { d₀ with ownerDocument := doc } := h.inside n d₀ hdt hm
+      · have : u.get? n = some (d₀.withOwnerDocument doc) := h.inside n d₀ hdt hm
         rw [this] at hd
         cases hd
         exact hdocu doc dd hdd hk

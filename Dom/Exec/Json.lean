@@ -90,6 +90,18 @@ private def natField (j : Json) (k : String) : Except String Nat :=
   | none => .error s!"必須の field `{k}` がない"
   | some v => v.getNat?
 
+/-- `Node` を受ける field。数なら node、`{"attr": id}` なら `Attr`。 -/
+private def refField (j : Json) (k : String) : Except String RefArg :=
+  match field? j k with
+  | none => .error s!"必須の field `{k}` がない"
+  | some v =>
+    match v.getNat? with
+    | .ok n => .ok (.node n)
+    | .error _ =>
+      match v.getObjVal? "attr" with
+      | .ok a => (a.getNat?).map .attr
+      | .error _ => .error ("field `" ++ k ++ "` は node の id か {\"attr\": id} でなければならない")
+
 private def natField? (j : Json) (k : String) : Except String (Option Nat) :=
   match field? j k with
   | none => .ok none
@@ -135,7 +147,9 @@ private def strListField? (j : Json) (k : String) : Except String (Option (List 
 list 順**に振り直す（`numberAttributes`）ので、ここでは仮に 0 を置く。
 -/
 def attrOfJson (j : Json) : Except String Attr := do
+  -- node document は loader が element（detach された `Attr` なら既定の document）から決める。
   return { id := ⟨0⟩
+           ownerDocument := ⟨0⟩
            «namespace» := ← strField? j "namespace"
            «prefix» := ← strField? j "prefix"
            localName := ← strField j "localName" ""
@@ -181,7 +195,10 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
 def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""
   match op with
-  | "appendChild" => return .appendChild (← natField j "parent") (← natField j "node")
+  | "appendChild" =>
+    match ← refField j "parent", ← refField j "node" with
+    | .node p, .node n => return .appendChild p n
+    | p, n => return .appendChildRef p n
   | "insertBefore" =>
     return .insertBefore (← natField j "parent") (← natField j "node") (← natField? j "child")
   | "replaceChild" =>
@@ -217,11 +234,17 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .createComment (← natField j "document") (← strField j "data" "")
   | "createDocumentFragment" => return .createDocumentFragment (← natField j "document")
   | "cloneNode" =>
-    return .cloneNode (← natField j "node") ((← boolField? j "deep").getD false)
+    match ← refField j "node" with
+    | .node n => return .cloneNode n ((← boolField? j "deep").getD false)
+    | .attr a => return .cloneAttr a
   | "importNode" =>
-    return .importNode (← natField j "document") (← natField j "node")
-      ((← boolField? j "deep").getD false)
-  | "adoptNode" => return .adoptNode (← natField j "document") (← natField j "node")
+    match ← refField j "node" with
+    | .node n => return .importNode (← natField j "document") n ((← boolField? j "deep").getD false)
+    | .attr a => return .importAttr (← natField j "document") a
+  | "adoptNode" =>
+    match ← refField j "node" with
+    | .node n => return .adoptNode (← natField j "document") n
+    | .attr a => return .adoptAttr (← natField j "document") a
   | "createAttribute" =>
     return .createAttribute (← natField j "document") (← strField j "name" "")
   | "createAttributeNS" =>
@@ -277,12 +300,51 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "walkerNextNode" => return .walkerMove (← natField j "walker") .nextNode
   | "rangeToString" => return .rangeToString (← natField j "range")
   | "compareDocumentPosition" =>
-    return .compareDocumentPosition (← natField j "node") (← natField j "other")
-  | "nodeContains" => return .nodeContains (← natField j "node") (← natField j "other")
-  | "getRootNode" => return .getRootNode (← natField j "node")
-  | "isEqualNode" => return .isEqualNode (← natField j "node") (← natField j "other")
-  | "getTextContent" => return .getTextContent (← natField j "node")
-  | "getNodeValue" => return .getNodeValue (← natField j "node")
+    match ← refField j "node", ← refField j "other" with
+    | .node n, .node o => return .compareDocumentPosition n o
+    | n, o => return .compareDocumentPositionRef n o
+  | "nodeContains" =>
+    match ← refField j "node", ← refField j "other" with
+    | .node n, .node o => return .nodeContains n o
+    | n, o => return .nodeContainsRef n o
+  | "getRootNode" =>
+    match ← refField j "node" with
+    | .node n => return .getRootNode n
+    | .attr a => return .attrQuery a .getRootNode
+  | "isEqualNode" =>
+    match ← refField j "node", ← refField j "other" with
+    | .node n, .node o => return .isEqualNode n o
+    | n, o => return .isEqualNodeRef n o
+  | "getTextContent" =>
+    match ← refField j "node" with
+    | .node n => return .getTextContent n
+    | .attr a => return .attrQuery a .textContent
+  | "getNodeValue" =>
+    match ← refField j "node" with
+    | .node n => return .getNodeValue n
+    | .attr a => return .attrQuery a .nodeValue
+  | "attrQuery" =>
+    let q ← match ← strField j "query" "" with
+      | "ownerDocument" => pure AttrQuery.ownerDocument
+      | "parentNode" => pure .parentNode
+      | "parentElement" => pure .parentElement
+      | "ownerElement" => pure .ownerElement
+      | "getRootNode" => pure .getRootNode
+      | "nodeName" => pure .nodeName
+      | "nodeValue" => pure .nodeValue
+      | "textContent" => pure .textContent
+      | "isConnected" => pure .isConnected
+      | "hasChildNodes" => pure .hasChildNodes
+      | "firstChild" => pure .firstChild
+      | other => throw s!"未知の attrQuery `{other}`"
+    return .attrQuery (← natField j "attr") q
+  | "setAttrValue" =>
+    let via ← match ← strField j "via" "value" with
+      | "value" => pure AttrSetter.value
+      | "nodeValue" => pure .nodeValue
+      | "textContent" => pure .textContent
+      | other => throw s!"未知の setter `{other}`"
+    return .setAttrValue (← natField j "attr") (← strField j "value" "") via
   | "substringData" =>
     return .substringData (← natField j "node") (← natField j "offset") (← natField j "count")
   | "getAttribute" => return .getAttribute (← natField j "element") (← strField j "name" "")
@@ -300,10 +362,17 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "getElementsByName" =>
     return .getElementsByName (← natField j "node") (← strField j "elementName" "")
   | "lookupNamespaceURI" =>
-    return .lookupNamespaceURI (← natField j "node") (← strField? j "prefix")
-  | "lookupPrefix" => return .lookupPrefix (← natField j "node") (← strField? j "namespace")
+    match ← refField j "node" with
+    | .node n => return .lookupNamespaceURI n (← strField? j "prefix")
+    | .attr a => return .attrLookupNamespaceURI a (← strField? j "prefix")
+  | "lookupPrefix" =>
+    match ← refField j "node" with
+    | .node n => return .lookupPrefix n (← strField? j "namespace")
+    | .attr a => return .attrLookupPrefix a (← strField? j "namespace")
   | "isDefaultNamespace" =>
-    return .isDefaultNamespace (← natField j "node") (← strField? j "namespace")
+    match ← refField j "node" with
+    | .node n => return .isDefaultNamespace n (← strField? j "namespace")
+    | .attr a => return .attrIsDefaultNamespace a (← strField? j "namespace")
   | "addEventListener" =>
     return .addEventListener (← natField j "target") (← strField j "type" "")
       (← natField j "source") ((← boolField? j "capture").getD false)
