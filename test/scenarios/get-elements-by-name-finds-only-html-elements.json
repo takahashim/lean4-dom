@@ -1,0 +1,65 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://html.spec.whatwg.org/multipage/dom.html#dom-document-getelementsbyname",
+    "algorithm": [
+      "getElementsByName"
+    ],
+    "steps": "document の中の HTML element のうち、name attribute の値が一致するもの",
+    "note": "SVG の rect は name attribute を持っていても HTML element ではないので返らない。findings 45。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "name",
+          "value": "n"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "rect",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "name",
+          "value": "n"
+        }
+      ],
+      "namespace": "http://www.w3.org/2000/svg"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getElementsByName",
+      "node": 0,
+      "elementName": "n"
+    }
+  ]
+}

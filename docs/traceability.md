@@ -392,6 +392,9 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | scoped selector（subject だけが scope 内） | Selectors §4.4 | `matchTree` | `mem_matchTree_iff` | `only-the-subject-must-be-in-scope`, `query-selector-on-detached-and-fragment` | 済 |
 | `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | `matchesSelector_eq`, `closest_spec`, `closest_first`, `closest_eq_none_iff`, `closest_self`, `mem_matchTree_iff_matches` | `matches-and-closest-walk-up` | 済 |
 | `:scope` が scoping root を表すこと | Selectors §8.2 | `Simple.scope` | `scope_irrelevant`, `matchSelList_scope_irrelevant` | `scope-pseudo-is-the-scoping-root`, `scope-pseudo-is-the-document-element`, `scope-pseudo-virtual-root-is-featureless` | 済 |
+| `getElementById(elementId)` | DOM §4.2.4 | `getElementById`, `elementIdOf`（`Dom/Query/Lookup.lean`） | `getElementById_eq_some`, `getElementById_eq_none_iff`, `getElementById_error_iff`, `elementIdOf_eq_some_iff`（`Dom/Spec/Lookup.lean`） | `lookups-compare-attribute-values` | 済（tree order で最初であることは `List.find?` そのもの） |
+| `getElementsByClassName(classNames)` / ordered set parser | DOM §4.5・§4.9・§2.3 | `getElementsByClassName`, `orderedSetParse`, `elementClassesOf` | `mem_getElementsByClassName_iff`, `mem_orderedSetParse_iff`, `mem_elementClassesOf_iff` | `lookups-compare-attribute-values`, `class-names-keep-case-without-quirks` | 部分（quirks mode は対象外） |
+| `getElementsByName(elementName)` | HTML §3.1.5 | `getElementsByName` | `mem_getElementsByName_iff` | `lookups-compare-attribute-values`, `get-elements-by-name-finds-only-html-elements` | 済 |
 
 ## `cloneNode` / `adoptNode` の全域性
 

@@ -3,6 +3,7 @@ import Dom.Validity.State
 import Dom.CharacterData.Normalize
 import Dom.Range.Api
 import Dom.Selector.Api
+import Dom.Query.Lookup
 
 /-!
 # 操作列の評価
@@ -352,6 +353,18 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     match closest s.tree sel ⟨e⟩ with
     | .error _ => .unit
     | .ok r => .node r
+  | .getElementById n i =>
+    match getElementById s.tree ⟨n⟩ i with
+    | .error _ => .unit
+    | .ok r => .node r
+  | .getElementsByClassName n c =>
+    match getElementsByClassName s.tree ⟨n⟩ c with
+    | .error _ => .unit
+    | .ok l => .nodes l
+  | .getElementsByName n m =>
+    match getElementsByName s.tree ⟨n⟩ m with
+    | .error _ => .unit
+    | .ok l => .nodes l
   | .lookupNamespaceURI n p => .str (lookupNamespaceURI s.tree ⟨n⟩ p)
   | .lookupPrefix n ns => .str (lookupPrefix s.tree ⟨n⟩ ns)
   | .isDefaultNamespace n ns => .bool (isDefaultNamespace s.tree ⟨n⟩ ns)
@@ -474,6 +487,9 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .querySelectorAll n sel => (querySelectorAll s.tree sel ⟨n⟩).map fun _ => s
   | .matchesSelector e sel => (matchesSelector s.tree sel ⟨e⟩).map fun _ => s
   | .closest e sel => (closest s.tree sel ⟨e⟩).map fun _ => s
+  | .getElementById n i => (getElementById s.tree ⟨n⟩ i).map fun _ => s
+  | .getElementsByClassName n c => (getElementsByClassName s.tree ⟨n⟩ c).map fun _ => s
+  | .getElementsByName n m => (getElementsByName s.tree ⟨n⟩ m).map fun _ => s
   | .lookupNamespaceURI n _ => requireNodes s [⟨n⟩]
   | .lookupPrefix n _ => requireNodes s [⟨n⟩]
   | .isDefaultNamespace n _ => requireNodes s [⟨n⟩]

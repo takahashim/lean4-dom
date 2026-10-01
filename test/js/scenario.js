@@ -84,7 +84,15 @@ const QUERY_JS_NAME = {
   lookupNamespaceURI: "lookupNamespaceURI", lookupPrefix: "lookupPrefix",
   isDefaultNamespace: "isDefaultNamespace",
   querySelector: "querySelector", querySelectorAll: "querySelectorAll",
-  matches: "matches", closest: "closest"
+  matches: "matches", closest: "closest",
+  getElementById: "getElementById", getElementsByClassName: "getElementsByClassName",
+  getElementsByName: "getElementsByName"
+};
+// id・class・name で引く method。引数の field と、method を持つ nodeType。
+const LOOKUP_OPS = {
+  getElementById: ["elementId", [9, 11]],
+  getElementsByClassName: ["classNames", [1, 9]],
+  getElementsByName: ["elementName", [9]]
 };
 // selector を取る method。receiver の種別が合わなければ TypeError になる。
 const SELECTOR_OPS = ["querySelector", "querySelectorAll", "matches", "closest"];
@@ -109,7 +117,7 @@ const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
   "iteratorNext", "iteratorPrevious", "getRootNode", ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
-  "querySelector", "closest"];
+  "querySelector", "closest", "getElementById"];
 const ATTR_RETURNING_OPS = ATTR_NODE_OPS;
 
 /* ------------------------------------------------------------------ 初期状態 */
@@ -364,7 +372,7 @@ function returnValueSnapshot(idOf, attrOf, op, returned) {
     case "dispatchEvent": case "nodeContains": case "isEqualNode": case "hasAttribute":
     case "isDefaultNamespace": case "matches":
       return { kind: "boolean", value: !!returned };
-    case "querySelectorAll":
+    case "querySelectorAll": case "getElementsByClassName": case "getElementsByName":
       return { kind: "nodes", nodes: [...(returned ?? [])].map(idOf) };
     case "rangeCompareBoundaryPoints": case "rangeComparePoint": case "compareDocumentPosition":
       return { kind: "number", value: Number(returned) | 0 };
@@ -488,6 +496,12 @@ function applyQueryOp(ctx, op) {
     }
     if (typeof receiver[name] !== "function") throw new Unsupported(name);
     return receiver[name](op.selectors);
+  }
+  if (op.op in LOOKUP_OPS) {
+    const [field, kinds] = LOOKUP_OPS[op.op];
+    if (!kinds.includes(receiver.nodeType)) throw new TypeError(`${name} is not a function`);
+    if (typeof receiver[name] !== "function") throw new Unsupported(name);
+    return receiver[name](String(op[field] ?? ""));
   }
   if (typeof receiver[name] !== "function") throw new Unsupported(name);
   switch (op.op) {

@@ -102,9 +102,11 @@ import Dom.Properties.Witness
 import Dom.Observation
 import Dom.Selector.Match
 import Dom.Selector.Api
+import Dom.Query.Lookup
 import Dom.Properties.Selector
 import Dom.Spec.Selector
 import Dom.Spec.SelectorMatch
+import Dom.Spec.Lookup
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

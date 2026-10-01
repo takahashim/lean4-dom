@@ -42,12 +42,28 @@ module Generate
            createDocumentFragment cloneNode importNode adoptNode
            createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
            setAttributeNode removeAttributeNode removeNamedItem
-           querySelector querySelectorAll matches closest].freeze
+           querySelector querySelectorAll matches closest
+           getElementById getElementsByClassName getElementsByName].freeze
 
   # selector を取る操作（§4.2.6 / §4.8）。
   SELECTOR_PARENT_OPS = %w[querySelector querySelectorAll].freeze
   SELECTOR_ELEMENT_OPS = %w[matches closest].freeze
   SELECTOR_OPS = (SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS).freeze
+
+  # id・class・name で element を引く操作（DOM §4.2.4・§4.5・§4.9、HTML §3.1.5）と、その引数。
+  # 受け手の種別は model が検査するので、どの node にも投げる。
+  LOOKUP_OPS = {
+    "getElementById" => "elementId",
+    "getElementsByClassName" => "classNames",
+    "getElementsByName" => "elementName"
+  }.freeze
+  # 引数の候補。木の attribute 値（`ATTR_VALUES`）に当たるものと、当たらないものを混ぜる。
+  # class は ordered set parser を通るので、空白の並び・重複・大文字を入れる。
+  LOOKUP_VALUES = {
+    "elementId" => ["vv", "1", "u v", "", "u", "VV", "x"],
+    "classNames" => ["vv", "u", "v", "u v", " v\tu ", "u u", "", "  ", "VV", "1", "x"],
+    "elementName" => ["vv", "1", "u v", "", "x"]
+  }.freeze
 
   # 受け手が Document である操作（§4.5）。
   DOCUMENT_OPS = %w[createElement createElementNS createTextNode createComment
@@ -104,7 +120,7 @@ module Generate
   # そうしないと `attributeFilter` も「同じ鍵への二度目の書き込み」も当たらない。
   # `class` と `id` を入れてあるのは、class selector と id selector が
   # 生成された木に当たるようにするためである。
-  ATTR_NAMES = %w[a b data-x class id].freeze
+  ATTR_NAMES = %w[a b data-x class id name].freeze
   # 操作が渡す名前には大文字を混ぜる。HTML namespace の element が HTML document に
   # あるときだけ ASCII lowercase されるので、そこで挙動が分かれる。
   ATTR_OP_NAMES = (ATTR_NAMES + %w[A data-X]).freeze
@@ -178,10 +194,11 @@ module Generate
   end
 
   SPEC_OPS = {
-    "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS + SELECTOR_PARENT_OPS,
-    "documentFragment" => NODE_OPS + PARENT_NODE_OPS + SELECTOR_PARENT_OPS,
+    "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS + SELECTOR_PARENT_OPS +
+                  %w[getElementById getElementsByClassName getElementsByName],
+    "documentFragment" => NODE_OPS + PARENT_NODE_OPS + SELECTOR_PARENT_OPS + %w[getElementById],
     "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS +
-                 SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS,
+                 SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS + %w[getElementsByClassName],
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -384,6 +401,10 @@ module Generate
     if SELECTOR_OPS.include?(op)
       key = SELECTOR_ELEMENT_OPS.include?(op) ? "element" : "node"
       return { "op" => op, key => ids.sample(random: rng), "selectors" => random_selector(rng) }
+    end
+    if (field = LOOKUP_OPS[op])
+      return { "op" => op, "node" => ids.sample(random: rng),
+               field => LOOKUP_VALUES.fetch(field).sample(random: rng) }
     end
     if DOCUMENT_OPS.include?(op) || op == "cloneNode"
       return node_creating_operation(rng, ids, op, kinds, can_create)
@@ -654,6 +675,7 @@ module Generate
 
   def receiver_id(op)
     return op["node"] if SELECTOR_PARENT_OPS.include?(op["op"])
+    return op["node"] if LOOKUP_OPS.key?(op["op"])
     return op["element"] if SELECTOR_ELEMENT_OPS.include?(op["op"])
     return op["element"] if ATTR_ELEMENT_OPS.include?(op["op"])
     return op["document"] if DOCUMENT_OPS.include?(op["op"])

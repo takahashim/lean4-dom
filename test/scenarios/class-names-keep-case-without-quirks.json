@@ -1,0 +1,70 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-document-mode",
+    "algorithm": [
+      "list of elements with class names",
+      "match a selector against an element"
+    ],
+    "steps": "document の mode は作られたときに決まり、既定は no-quirks。doctype を外しても変わらない。no-quirks の文書では class を identical に比べる",
+    "note": "harness は document の子（doctype を含む）を外してから木を組む。jsdom はそこで mode を quirks に変え、class を ASCII case-insensitive に比べてしまう。findings 46。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": "a"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".a"
+    }
+  ]
+}

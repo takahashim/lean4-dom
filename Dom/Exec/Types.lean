@@ -181,6 +181,13 @@ inductive Operation where
   | querySelectorAll (node : Nat) (selectors : String)
   | matchesSelector (element : Nat) (selectors : String)
   | closest (element : Nat) (selectors : String)
+  /--
+  id・class・name で element を引く method（DOM §4.2.4・§4.5・§4.9、HTML §3.1.5）。
+  受け手の種別が合わなければ WebIDL の `TypeError` になる。
+  -/
+  | getElementById (node : Nat) (elementId : String)
+  | getElementsByClassName (node : Nat) (classNames : String)
+  | getElementsByName (node : Nat) (elementName : String)
   /-- microtask checkpoint。"notify mutation observers" を走らせる。 -/
   | notify
 deriving Repr

@@ -1,0 +1,209 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-getelementsbyclassname",
+    "algorithm": [
+      "get an element by ID",
+      "list of elements with class names",
+      "getElementsByName"
+    ],
+    "steps": "getElementById は descendant のうち ID が一致する最初の element（空の id は ID にならない）。getElementsByClassName は ordered set parser で読んだ class をすべて持つ descendant（空なら空）。getElementsByName は name attribute（namespace 無し）の値が一致する element。受け手の種別が違えば TypeError",
+    "note": "Document と DocumentFragment に getElementById、Document と Element に getElementsByClassName、Document に getElementsByName がある。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "x"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a b"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "name",
+          "value": "n"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "x"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "b  a a"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": ""
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "A"
+        },
+        {
+          "namespace": "http://example.com/ns",
+          "prefix": "z",
+          "localName": "name",
+          "value": "m"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "b"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "name",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 7,
+      "kind": "element",
+      "parent": 6,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "x"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getElementById",
+      "node": 0,
+      "elementId": "x"
+    },
+    {
+      "op": "getElementById",
+      "node": 0,
+      "elementId": ""
+    },
+    {
+      "op": "getElementById",
+      "node": 6,
+      "elementId": "x"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": " b\ta  a "
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": "  "
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 2,
+      "classNames": "a"
+    },
+    {
+      "op": "getElementsByName",
+      "node": 0,
+      "elementName": "n"
+    },
+    {
+      "op": "getElementsByName",
+      "node": 0,
+      "elementName": "m"
+    },
+    {
+      "op": "getElementsByName",
+      "node": 0,
+      "elementName": ""
+    },
+    {
+      "op": "getElementById",
+      "node": 2,
+      "elementId": "x"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 6,
+      "classNames": "a"
+    },
+    {
+      "op": "getElementsByName",
+      "node": 6,
+      "elementName": "n"
+    }
+  ]
+}

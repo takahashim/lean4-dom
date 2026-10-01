@@ -3699,7 +3699,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-44 の索引
+## findings 12-46 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3752,6 +3752,8 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 | 42 | Dommy / jsdom | An+B を生の文字列の正規表現で見るので、comment（Dommy）と escape（両方）を扱えない | `anb-comments-are-not-tokens`, `anb-escapes-are-decoded` |
 | 43 | Dommy / jsdom | attribute の modifier を ident として読まない／接する二つの delim の間の comment を通さない | `tokens-between-attribute-and-prefix-parts` |
 | 44 | Dommy / jsdom | attribute selector が一つの値しか見ない（Dommy）、`i` flag を Unicode で畳む（両方）、`~=` を VT でも区切る（Dommy） | `any-namespace-attribute-tests-every-attribute`, `attribute-name-and-value-follow-ascii-rules` |
+| 45 | Dommy / jsdom | `getElementsByName()` が HTML でない element（SVG の `rect` など）も返す | `get-elements-by-name-finds-only-html-elements` |
+| 46 | jsdom | document の doctype を外すと mode が quirks に変わり、class を ASCII case-insensitive に比べる | `class-names-keep-case-without-quirks` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5599,6 +5601,44 @@ simple の照合全体を一つの関係として `Dom/Spec/SelectorMatch.lean` 
 文法は model の範囲（namespace prefix は `*|` だけ、pseudo-element は無い、pseudo-class は表にあるもの）に合わせて
 ある。書く途中で `scan` と本文の食い違いは見つからなかった。これで Selectors 側は、tokenizer・文法・照合の三段が
 すべて関係意味論と結ばれた。
+
+## id・class・name で引く method を harness に足した
+
+selector の外で element を引く三つの method を model と差分テストに加えた。どれも attribute の値を直接比べる。
+
+| method | 受け手 | model |
+| --- | --- | --- |
+| `getElementById()` | Document・DocumentFragment（DOM §4.2.4） | descendant の element のうち ID（namespace の無い `id`、空なら無い）が一致する最初のもの |
+| `getElementsByClassName()` | Document・Element（DOM §4.5・§4.9） | ordered set parser で読んだ語をすべて classes に持つ descendant。語が無ければ空 |
+| `getElementsByName()` | Document（HTML §3.1.5） | HTML element のうち、namespace の無い `name` の値が一致するもの |
+
+受け手の種別が違えば TypeError（WebIDL）。木を変えないので、戻り値だけを観測する（`admissible_mapConst`）。
+model は quirks mode を持たないので、文書は常に no-quirks として class を identical に比べる。
+
+**関係仕様。** `Dom/Spec/Lookup.lean` に、実行関数の道具を使わずに `HasId`・`HasClass`・`ClassToken`・
+`PlainAttrValue` で書いた。`mem_getElementsByClassName_iff` と `mem_getElementsByName_iff` は結果の
+membership、`getElementById_eq_some` / `_eq_none_iff` / `_error_iff` は返す element・null・TypeError の条件を
+言う。前提は `WellFormed` と `AttributesValid` である。
+
+**生成器。** 三つの op を足し、値の語彙を、生成する attribute（`id`・`class`・`name` を加えた）の値と
+重なるように選んだ。class には空白の並び・tab・重複・大文字を入れてある。
+
+**findings 45・46。**
+
+| 形 | 本文 | model | Dommy | jsdom |
+| --- | --- | --- | --- | --- |
+| `getElementsByName("n")`（`<p name=n>` と SVG の `<rect name=n>`） | `p` だけ（"HTML elements"） | `p` だけ | 両方 | 両方 |
+| doctype を外した文書で `getElementsByClassName("a")`（`class=A` と `class=a`） | `a` だけ（mode は作られたときに決まる） | `a` だけ | `a` だけ | 両方（`compatMode` が `BackCompat` に変わる） |
+
+46 は harness が document の子（doctype を含む）を外してから木を組むので出る。jsdom は mode を今の doctype から
+計算し直しているらしく、`querySelectorAll(".a")` も同じく両方を返す。
+
+固定 scenario を 3 本足した（`lookups-compare-attribute-values` と上の二つ）。Dommy の修正 branch（`8dcc4d2`）
+では 45 の 1 本だけが割れ、ほかの固定 scenario は変わらない。生成 scenario（lookup だけを 6 手、seed 1-4 × 300）
+の不一致も、Dommy では 45、jsdom では 45 と 46 だけだった。
+
+style attribute（CSS の宣言）は model の外のままにした。CSS Syntax の宣言の構文と CSSOM の
+`CSSStyleDeclaration` が要り、DOM の木の上の仕様ではないためである。
 
 ## 未着手
 

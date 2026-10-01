@@ -244,6 +244,9 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | querySelectorAll n sel => exact admissible_mapConst h hop
   | matchesSelector e sel => exact admissible_mapConst h hop
   | closest e sel => exact admissible_mapConst h hop
+  | getElementById n i => exact admissible_mapConst h hop
+  | getElementsByClassName n c => exact admissible_mapConst h hop
+  | getElementsByName n m => exact admissible_mapConst h hop
   | lookupNamespaceURI n p => exact admissible_requireNodes h hop
   | lookupPrefix n ns => exact admissible_requireNodes h hop
   | isDefaultNamespace n ns => exact admissible_requireNodes h hop

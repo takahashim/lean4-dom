@@ -1063,6 +1063,17 @@ open Dom.Audit
   Dom.Spec.matchSimple_iff_spec
   Dom.Spec.mem_matchTree_iff_spec
 
+-- id・class・name で引く method の関係仕様
+#audit_axioms
+  Dom.Spec.mem_orderedSetParse_iff
+  Dom.Spec.elementIdOf_eq_some_iff
+  Dom.Spec.mem_elementClassesOf_iff
+  Dom.Spec.getElementById_eq_some
+  Dom.Spec.getElementById_eq_none_iff
+  Dom.Spec.getElementById_error_iff
+  Dom.Spec.mem_getElementsByClassName_iff
+  Dom.Spec.mem_getElementsByName_iff
+
 -- selector の構文の関係仕様（部分）
 #audit_axioms
   Selectors.Spec.attrFlag_spec

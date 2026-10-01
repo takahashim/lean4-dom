@@ -288,6 +288,12 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .querySelectorAll (← natField j "node") (← strField j "selectors" "")
   | "matches" => return .matchesSelector (← natField j "element") (← strField j "selectors" "")
   | "closest" => return .closest (← natField j "element") (← strField j "selectors" "")
+  | "getElementById" =>
+    return .getElementById (← natField j "node") (← strField j "elementId" "")
+  | "getElementsByClassName" =>
+    return .getElementsByClassName (← natField j "node") (← strField j "classNames" "")
+  | "getElementsByName" =>
+    return .getElementsByName (← natField j "node") (← strField j "elementName" "")
   | "lookupNamespaceURI" =>
     return .lookupNamespaceURI (← natField j "node") (← strField? j "prefix")
   | "lookupPrefix" => return .lookupPrefix (← natField j "node") (← strField? j "namespace")

@@ -96,7 +96,16 @@ module DommyRunner
                  getTextContent getNodeValue substringData
                  getAttribute hasAttribute getAttributeNames
                  lookupNamespaceURI lookupPrefix isDefaultNamespace
-                 querySelector querySelectorAll matches closest].freeze
+                 querySelector querySelectorAll matches closest
+                 getElementById getElementsByClassName getElementsByName].freeze
+
+  # id・class・name で引く method と、それを持つ node の種別（nodeType）。
+  # 種別が合わなければ実装と同じく TypeError にする。
+  LOOKUP_OPS = {
+    "getElementById" => ["elementId", [9, 11]],
+    "getElementsByClassName" => ["classNames", [1, 9]],
+    "getElementsByName" => ["elementName", [9]]
+  }.freeze
 
   # selector を取る method（§4.2.6 / §4.8）。受け手の種別が合わなければ TypeError。
   SELECTOR_OPS = %w[querySelector querySelectorAll matches closest].freeze
@@ -122,7 +131,10 @@ module DommyRunner
     "querySelector" => "querySelector",
     "querySelectorAll" => "querySelectorAll",
     "matches" => "matches",
-    "closest" => "closest"
+    "closest" => "closest",
+    "getElementById" => "getElementById",
+    "getElementsByClassName" => "getElementsByClassName",
+    "getElementsByName" => "getElementsByName"
   }.freeze
 
   # attribute の getter として読むもの（method ではなく IDL attribute）。
@@ -271,7 +283,7 @@ module DommyRunner
                           walkerPreviousNode walkerNextNode
                           createElement createElementNS createTextNode createComment
                           createDocumentFragment cloneNode importNode adoptNode
-                          querySelector closest].freeze
+                          querySelector closest getElementById].freeze
 
   # `Attr` を返す操作。
   ATTR_RETURNING_OPS = %w[createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
@@ -292,7 +304,7 @@ module DommyRunner
       { "kind" => "boolean", "value" => !!returned }
     when "nodeContains", "isEqualNode", "hasAttribute", "isDefaultNamespace", "matches"
       { "kind" => "boolean", "value" => !!returned }
-    when "querySelectorAll"
+    when "querySelectorAll", "getElementsByClassName", "getElementsByName"
       { "kind" => "nodes", "nodes" => (returned || []).to_a.map { |n| node_id(objects, n) } }
     when "getTextContent", "getNodeValue", "substringData", "getAttribute", "rangeToString",
          "lookupNamespaceURI", "lookupPrefix"
@@ -922,6 +934,13 @@ module DommyRunner
         raise TypeError, "#{name} is not a function" unless kinds.include?(node_type_of(receiver))
 
         return js_call(receiver, name, [op["selectors"]])
+      end
+
+      if (lookup = LOOKUP_OPS[op["op"]])
+        field, kinds = lookup
+        raise TypeError, "#{name} is not a function" unless kinds.include?(node_type_of(receiver))
+
+        return js_call(receiver, name, [op[field].to_s])
       end
 
       return case op["op"]
