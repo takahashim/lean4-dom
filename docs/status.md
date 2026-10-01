@@ -5309,8 +5309,8 @@ maximal subpart ごとに一つ出す。decoder をその state machine に書�
 
 | file | 内容 |
 | --- | --- |
-| `Infra/Spec/Utf8Decode.lean` | 関係 `Chunk`（先頭の maximal subpart 一つ）と `Decodes`（入力全体） |
-| `Infra/Spec/Utf8DecodeSound.lean` | `utf8Decode_spec`：`utf8Decode` は `Decodes` を満たす |
+| `Infra/Spec/Utf8Decode.lean` | 関係 `Chunk`（先頭の maximal subpart 一つ）と `Decodes`（入力全体）。正しい列が出す code point は decoder の bit 演算ではなく算術で書く |
+| `Infra/Spec/Utf8DecodeSound.lean` | `utf8Decode_spec`：`utf8Decode` は `Decodes` を満たす。`assemble2`-`4`：decoder の bit 演算が仕様の算術どおりの code point を作り、それが必ず scalar value になる（`charOfScalar` の fallback に落ちない） |
 | `Infra/Spec/Utf8DecodeDeterministic.lean` | `Decodes.deterministic` と `Decodes.eq_utf8Decode_iff` |
 
 詳細は `docs/url-status.md` の同名の節にある。

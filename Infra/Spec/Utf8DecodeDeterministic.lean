@@ -15,11 +15,14 @@ open Infra
 /-- 同じ byte 列から出る `Chunk` の結果は一意である。 -/
 theorem Chunk.deterministic {bs : Bytes} {c1 c2 : Char} {bs1 bs2 : Bytes}
     (h1 : Chunk bs c1 bs1) (h2 : Chunk bs c2 bs2) : c1 = c2 ∧ bs1 = bs2 := by
+  -- `ContinuationValue` は開かない。omega は atom のまま扱え、開くと `simp at *` が止まらない。
   cases h1 <;> cases h2 <;>
-    simp only [IsAscii, IsLead2, IsLead3, IsLead4, FirstCont3, FirstCont4] at * <;>
+    simp only [IsAscii, IsLead2, IsLead3, IsLead4, FirstCont3, FirstCont4,
+      IsContinuation] at * <;>
     first
-      | exact ⟨rfl, rfl⟩
-      | omega
+      | exact ⟨rfl, trivial⟩
+      | exact ⟨Char.toNat_inj.mp (by omega), trivial⟩
+      | exact ⟨trivial, trivial⟩
       | (exfalso; omega)
       | (simp_all; omega)
       | simp_all

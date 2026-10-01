@@ -807,6 +807,9 @@ open Dom.Audit
   Infra.Spec.utf8Decode_spec
   Infra.Spec.firstCont3_iff
   Infra.Spec.firstCont4_iff
+  Infra.Spec.assemble2
+  Infra.Spec.assemble3
+  Infra.Spec.assemble4
   Infra.Spec.Chunk.deterministic
   Infra.Spec.Decodes.deterministic
   Infra.Spec.Decodes.eq_utf8Decode_iff

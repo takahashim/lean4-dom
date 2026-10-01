@@ -74,7 +74,7 @@ replacement character を出す。先頭 byte の形で続く byte 数を決め�
 continuation が欠けている・形が違うなら、そこまでを 1 個にしてその byte を読み直す。
 
 boundary が overlong・surrogate・範囲外をすべて捉えるので、組み立てた code point は
-必ず Unicode scalar value になる。
+必ず Unicode scalar value になる（`Infra.Spec.assemble3` / `assemble4`）。
 -/
 def utf8Decode : Bytes → List Char
   | [] => []
