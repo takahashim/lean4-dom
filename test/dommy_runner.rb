@@ -944,9 +944,8 @@ module DommyRunner
     when "appendChild"
       if attr_ref?(op["parent"]) || attr_ref?(op["node"])
         parent = resolve_ref(ctx, op["parent"])
-        raise NotImplementedError, "appendChild" unless parent.respond_to?(:append_child)
-
-        return parent.append_child(resolve_ref(ctx, op["node"]))
+        # `Attr` は `appendChild` を bridge（`__js_call__`）にだけ持つ。
+        return js_call(parent, "appendChild", [resolve_ref(ctx, op["node"])])
       end
     when *CREATE_OPS
       doc = objects[op["document"]]
@@ -978,9 +977,8 @@ module DommyRunner
       return apply_attr_node(ctx, op)
     when "cloneNode"
       src = resolve_ref(ctx, op["node"])
-      raise NotImplementedError, op["op"] unless src.respond_to?(:clone_node)
-
-      copy = src.clone_node(op["deep"] ? true : false)
+      # `Attr` は `cloneNode` を bridge（`__js_call__`）にだけ持つ。
+      copy = js_call(src, "cloneNode", [op["deep"] ? true : false])
       if attr_object?(copy)
         ctx[:detached] << copy
         return copy

@@ -3585,8 +3585,8 @@ jsdom の findings（19・20・24・25・27-29・33-36・40・42-47）は pin �
 | 47 | jsdom | quirks mode で id selector を case-insensitive に比べない／class を ASCII でなく Unicode で畳む（`.ä` が `Ä` に当たる） | `quirks-mode-folds-class-and-id` |
 | 48 | Chromium / Firefox / WebKit | element に付いた `Attr` を `adoptNode` すると element から外す（本文は外さない。同じ document への adopt でも外す） | `adopt-node-keeps-an-attribute-on-its-element` |
 | 49 | jsdom | `Attr` が絡む `compareDocumentPosition` が step 3-4 を走らない（自分自身と 34、element と 0、element の子と逆向き） | `attr-position-follows-its-element` |
-| 50 | Dommy | `adoptNode(attr)` が null を返して何もしない／`Attr` が絡む `compareDocumentPosition` が常に DISCONNECTED／detach された `Attr` の node document が append で更新されず、属性から外したものは null になる | `adopt-node-keeps-an-attribute-on-its-element`, `attr-position-follows-its-element`, `adopting-an-element-moves-its-attributes` |
-| 51 | Dommy | `Attr` が `Node` の member（`parentNode`・`isConnected`・`hasChildNodes`・`childNodes`・`cloneNode`・`appendChild` ほか）を持たない | `attr-is-a-node-outside-the-tree`, `attr-values-and-copies`, `attr-cannot-have-children` |
+| 50 | Dommy | `adoptNode(attr)` が null を返して何もしない／`Attr` が絡む `compareDocumentPosition` が常に DISCONNECTED／detach された `Attr` の node document が append で更新されず、属性から外したものは null になる（§「findings 50・51 の詳細」） | `adopt-node-keeps-an-attribute-on-its-element`, `attr-position-follows-its-element`, `adopting-an-element-moves-its-attributes`, `removed-attribute-keeps-its-node-document` |
+| 51 | Dommy | `Attr` が木の位置を表す `Node` の getter（`parentNode`・`parentElement`・`isConnected`・`childNodes`・`firstChild`・`lastChild`・`previousSibling`・`nextSibling`）を持たない（同上） | `attr-is-a-node-outside-the-tree` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5550,23 +5550,88 @@ prefix・namespace しか見ないので、保存の証明は `dropDoc` を挟�
 **harness。** `Node` を受ける引数に `{"attr": id}` を書けるようにし、専用の op として `attrQuery` と `setAttrValue` を
 足した。生成器は `attrQuery`・`setAttrValue`・`attrRef`（既存の op の引数に `Attr` を入れる）を出す。
 
-**findings 48-51。** 固定 scenario を 7 本足した。
+**findings 48-51。** 固定 scenario を 8 本足した。
 
 | scenario | Dommy `dd6bcbc` | jsdom 30.1.1 | Chromium 153 |
 | --- | --- | --- | --- |
 | `attr-is-a-node-outside-the-tree` | skip（`parentNode` が無い、51） | 一致 | 一致 |
 | `attr-position-follows-its-element` | 不一致（50） | 不一致（49） | 一致 |
-| `attr-values-and-copies` | skip（`cloneNode` が無い、51） | 一致 | 一致 |
+| `attr-values-and-copies` | 一致 | 一致 | 一致 |
 | `adopt-node-keeps-an-attribute-on-its-element` | 不一致（50） | 一致 | 不一致（48） |
 | `adopting-an-element-moves-its-attributes` | 不一致（50） | 一致 | 一致 |
+| `removed-attribute-keeps-its-node-document` | 不一致（50） | 一致 | 一致 |
 | `attr-cannot-be-a-child` | 一致 | 一致 | 一致 |
-| `attr-cannot-have-children` | skip（`appendChild` が無い、51） | 一致 | 一致 |
+| `attr-cannot-have-children` | 一致 | 一致 | 一致 |
 
 48 は本文と browser 三つが揃って割れる形である。adopt の step 2 は「parent があれば remove」で、`Attr` は parent を
 持たないので element から外れない。DOM4 には「`Attr` なら owner element から外す」step があり、browser はそれを
 保っている（jsdom は本文どおり）。findings 19・20 と同じく、仕様の側に問う値打ちがある。model は本文どおりに書いた。
 手で当てたところ、Firefox は `Attr` を付けた element を別の document へ adopt しても、`Attr` の `ownerDocument` が
 古いままだった（adopt step 3.3.1）。
+
+### findings 50・51 の詳細（Dommy）
+
+Dommy の main（`dd6bcbc`）で見た。行番号は `gems/dommy/lib/dommy/` からの相対である。
+
+`Dommy::Attr`（`attr.rb`）は element に付いている間は `@owner` から value と node document を引き、外れている
+間は `@detached_value` と `@document` を使う。`Node` の method の一部は Ruby のメソッドではなく bridge
+（`js_methods` と `__js_call__`、`__js_get__`）にだけある。
+
+**50-1：`adoptNode(attr)` が null を返し、何も変えない。**
+
+* 本文：`adoptNode` step 3 で "adopt" し、step 4 で node を返す。"adopt" は step 2 の remove が parent の
+  あるときだけで（`Attr` は parent を持たない）、step 3 で node document が違えば `Attr` 自身の node document を
+  変える。element からは外さない。
+* Dommy：`internal/node_adopter.rb:36` の `return nil unless node.respond_to?(:__dommy_backend_node__)`。`Attr` は
+  backend node を持たないので、ここで nil を返して抜ける。
+* 直し方：`Attr` を先に分岐し、`@document` を受け手の document にして `Attr` を返す。本文どおりなら element に
+  付いたままにする（browser は外す。findings 48）。外す側に合わせるかは、仕様の側の決着を待つ判断になる。
+* scenario：`adopt-node-keeps-an-attribute-on-its-element` の step 0（`{"kind":"node","node":null}` が返る）。
+
+**50-2：`Attr` が絡む `compareDocumentPosition` が常に DISCONNECTED。**
+
+* 本文：§4.4 `compareDocumentPosition` step 3-4 は `Attr` を element に置き換える。同じ element の attribute
+  どうしは attribute list の順で IMPLEMENTATION_SPECIFIC + PRECEDING / FOLLOWING（step 4.2）。element から見た
+  自分の attribute は CONTAINED_BY + FOLLOWING（20）、attribute から見た element は CONTAINS + PRECEDING（10）、
+  attribute は element の子より前に来る（step 8 の注）。
+* Dommy：`Attr` は `Node#compare_document_position`（`node.rb:348`）をそのまま使う。`compare_backend_node` が
+  `Attr` に nil を返すので、`disconnected_position` に落ちて 33・35・37 を返す。
+* 直し方：step 2-4 を `compare_backend_node` の前に置く。`Attr` なら `owner_element` に置き換えて attr1 / attr2 を
+  覚え、同じ element なら attribute list の順で返す。step 6-7 の条件に attr1 / attr2 を足す。
+* scenario：`attr-position-follows-its-element`（14 step。step 0 で 20 のところ 33 が返る）。
+
+**50-3：外れている `Attr` の node document。**
+
+* 本文：node document が変わるのは "create an attribute"（受け手）、"append an attribute" step 3 と
+  "replace an attribute" step 4（element のもの）、"adopt" の step 3 だけである。"remove an attribute" は element を
+  null にするだけで、node document は変えない。
+* Dommy：`attr.rb:66` の `owner_document` は、外れていれば `@document` を返す。
+  * element が parser や `setAttribute` で持っている attribute の `Attr`（`attr.rb:233` の `attr_for`）は
+    `document:` を渡さずに作るので、`removeAttributeNode` で外すと `ownerDocument` が null になる。
+  * `createAttribute` で作った `Attr` は作った document を `@document` に持つが、`__internal_attach__`
+    （`attr.rb:183`）が更新しないので、別の document の element に付けて外すと作った document に戻る。
+* 直し方：`__internal_attach__` で `@document = element.document` にする（append / replace step）。
+  `__internal_detach__` の前にも `@document` を element の document で埋める。element を adopt したときに、
+  付いている `Attr` の `@document` も合わせる（adopt step 3.3.1）。
+* scenario：`removed-attribute-keeps-its-node-document` の step 2（null が返る）、
+  `adopting-an-element-moves-its-attributes` の step 4（0 のところ 4 が返る）。
+
+**51：木の位置を表す getter が無い。**
+
+* 本文：§4.4。`Attr` は parent を持たない（`parentNode`・`parentElement` は null）、子を持たない（`childNodes` は
+  空の `NodeList`、`firstChild`・`lastChild` は null）、sibling も無い（`previousSibling`・`nextSibling` は null）。
+  shadow-including root が document でないので `isConnected` は false。
+* Dommy：`Attr` にこれらの Ruby メソッドが無く、`__js_get__`（`attr.rb` の `case key`）も `Bridge::ABSENT` を返す。
+  `hasChildNodes`・`cloneNode`・`appendChild`（`HierarchyRequestError`）は `__js_call__` にあり、本文どおりに動く。
+* 直し方：`__js_get__` に 8 つを足す（どれも定数）。
+* scenario：`attr-is-a-node-outside-the-tree` の step 6 以降（`parentNode` で止まるので、それより後の step は
+  比べられていない）。
+
+最初の報告では 51 に `cloneNode`・`appendChild`・`hasChildNodes` も挙げていたが、runner が Ruby のメソッドしか
+見ていなかったためで、Dommy の欠落ではなかった。runner は bridge も使うように直した。
+
+固定 scenario は Dommy の main で 171 ok / 3 skip / 3 known / 4 mismatch で、mismatch の 4 本と
+`attr-is-a-node-outside-the-tree` の skip がこの二つである。
 
 ## 未着手
 

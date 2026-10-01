@@ -10,7 +10,7 @@
     "commit": "bc883f134fcedc67e8f3afab4b8cb4662d8b8fbd",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "main（`bc883f1`、2026-10-01、PR #67 の merge）を指す。`makiri >= 0.12.0` を要求する。固定 scenario は 168 ok / 2 skip / 3 known / 0 mismatch で、生成 scenario も 3 matrix × seed 1-10 がすべて 0 mismatch（`--quirks-prob 0.3` を付けても同じ）。その後 `Attr` を `Node` として扱う固定 scenario を 7 本足したので、Dommy の main（`dd6bcbc`）では 169 ok / 5 skip / 3 known / 3 mismatch になる（findings 50・51）。findings 12-17 は Dommy の `4e7c840`、selector の 21-24・26・29-32 は `a0d8736` と `38cbc5a`、37-44 と getElementsByName の 45 は PR #67（branch `fix/css-escape-edge-cases`）で直った。名前検査（`createElement`/`toggleAttribute`）は makiri 0.11 の DOM 名規則と Dommy 側の例外翻訳で直った。3 known は仕様側が未決着の 19・20（`known-divergences.yml`）。"
+    "_note": "main（`bc883f1`、2026-10-01、PR #67 の merge）を指す。`makiri >= 0.12.0` を要求する。固定 scenario は 168 ok / 2 skip / 3 known / 0 mismatch で、生成 scenario も 3 matrix × seed 1-10 がすべて 0 mismatch（`--quirks-prob 0.3` を付けても同じ）。その後 `Attr` を `Node` として扱う固定 scenario を 8 本足したので、Dommy の main（`dd6bcbc`）では 171 ok / 3 skip / 3 known / 4 mismatch になる（findings 50・51）。findings 12-17 は Dommy の `4e7c840`、selector の 21-24・26・29-32 は `a0d8736` と `38cbc5a`、37-44 と getElementsByName の 45 は PR #67（branch `fix/css-escape-edge-cases`）で直った。名前検査（`createElement`/`toggleAttribute`）は makiri 0.11 の DOM 名規則と Dommy 側の例外翻訳で直った。3 known は仕様側が未決着の 19・20（`known-divergences.yml`）。"
   },
   "makiri": {
     "source": "rubygems",
