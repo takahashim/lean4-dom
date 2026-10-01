@@ -1,0 +1,86 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#attrnmsp",
+    "algorithm": [
+      "match a selector against an element"
+    ],
+    "steps": "`[*|att]` は namespace を問わず **すべての** attribute を見る。同じ local name の attribute が namespace 違いで複数あれば、値の照合はそのどれかに当たればよい",
+    "note": "model の誤り（最初の一つだけを見ていた）。Dommy は namespace の無い attribute だけを見る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": "http://example.com/ns",
+          "prefix": "x",
+          "localName": "a",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "prefix": "x",
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "2"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[*|a='2']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[*|a='1']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[*|a^='2']"
+    }
+  ]
+}

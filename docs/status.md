@@ -3699,7 +3699,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-43 の索引
+## findings 12-44 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3751,6 +3751,7 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 | 41 | Dommy | 関数の引数の `)` と `,` を文字で探すので、escape・comment・string の中身を構造と取り違える | `functional-argument-is-split-on-tokens` |
 | 42 | Dommy / jsdom | An+B を生の文字列の正規表現で見るので、comment（Dommy）と escape（両方）を扱えない | `anb-comments-are-not-tokens`, `anb-escapes-are-decoded` |
 | 43 | Dommy / jsdom | attribute の modifier を ident として読まない／接する二つの delim の間の comment を通さない | `tokens-between-attribute-and-prefix-parts` |
+| 44 | Dommy / jsdom | attribute selector が一つの値しか見ない（Dommy）、`i` flag を Unicode で畳む（両方）、`~=` を VT でも区切る（Dommy） | `any-namespace-attribute-tests-every-attribute`, `attribute-name-and-value-follow-ascii-rules` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -3771,7 +3772,7 @@ happy-dom はこのほかにも `[*|a]`・大文字の `I` flag・escape の照�
 どれも `docs/threats-to-validity.md` §5 の意味での「実装の穴」であって、
 model の読みを揺らす材料にはならない。
 
-model 側の誤りも四つ出た。どれも直してある。
+model 側の誤りも五つ出た。どれも直してある。
 
 | 見つけ方 | 内容 | scenario |
 | --- | --- | --- |
@@ -3779,6 +3780,7 @@ model 側の誤りも四つ出た。どれも直してある。
 | 生成 scenario | 閉じ括弧が無い入力を失敗にしていた | `unclosed-block-is-closed-at-eof` |
 | 仕様の読み直し | `:has()` の入れ子を通していた | `has-cannot-be-nested` |
 | 仕様の読み直し | `:has()` の空の引数を通していた | `has-argument-cannot-be-empty` |
+| 関係を書く途中 | `[*|att=v]` が同名の attribute の最初の一つしか見ていなかった | `any-namespace-attribute-tests-every-attribute` |
 
 ## Selectors（CSS Selectors Level 4）
 
@@ -5511,6 +5513,33 @@ model が無いので findings の番号は振らず、DOM・CSSOM の定義（�
 この branch の Dommy に当てると、固定 scenario は **161 ok / 2 skip / 3 known / 0 mismatch**、
 手で当てた 171 本も（範囲外の `:lang()`・`:dir()`・`::before` の 3 本を除いて）すべて一致し、生成 scenario（selector の操作に絞った seed 1-6 × 300 本、
 既定の設定の seed 1-3 × 100 本）も不一致は無い。Dommy 自身の test は 4,649 runs で失敗 0。
+
+## attribute selector の照合：model の誤りと findings 44
+
+照合全体の関係意味論を書く準備で、attribute selector の仕様（Selectors §6.3・§6.4）を読み直して見つけた。
+
+**model の誤り。** `matchSimple` は `[name]` の条件を満たす attribute を `find?` で一つだけ取り、その値だけを
+照合していた。§6.4 の `[*|att]` は「namespace を問わず attribute 名に当たる」ので、`att="1"` と `x:att="2"` を
+持つ element は `[*|att="2"]` に当たる。最初の一つ（`att="1"`）だけを見る model は当たらないと答えていた。
+`d.attributes.any` で条件を満たす attribute のどれかが値の照合に通ることにし、`selectorAttr`（`find?`）を
+`selectorAttrOk`（一つの attribute についての判定）に置き換えた。定理は `matchSimple_attr_iff` で、右辺は
+「条件を満たす attribute が存在し、その値が §6.3 の関係を満たす」である。素の `[att]` と id・class は
+`AttributesValid.keysNodup`（namespace と local name の組が一意）があるので、一つしか無く影響しない。
+
+**findings 44。** 同じ観点で Dommy と jsdom を突くと、次の形が割れた。
+
+| 形 | 本文 | model | Dommy | jsdom |
+| --- | --- | --- | --- | --- |
+| `[*|a='2']`（`a="1"` と `x:a="2"`） | 当たる | 当たる（直したあと） | namespace の無い方だけ見て当たらない | 当たる |
+| `[a='2']`（namespace 付きで prefix の無い `a="2"`） | 当たらない | 当たらない | qualified name で引くので当たる | 当たる（findings 24） |
+| `[b~=y]`（値が `x<VT>y`） | 当たらない（VT は ASCII whitespace でない） | 当たらない | Ruby の `\s` で区切るので当たる | 当たらない |
+| `[c='<KELVIN SIGN>' i]`（値が `K`） | 当たらない（`i` は ASCII の範囲だけ） | 当たらない | Unicode の lowercase で当たる | 当たる |
+
+Dommy は `fix/css-escape-edge-cases` に一つ足して直した（`e2f7bb8`）。条件を満たす attribute の値をすべて集めて
+どれかが通れば当たりとし、`i` は `downcase(:ascii)`、`~=` は ASCII whitespace で区切る。
+
+固定 scenario を 2 本足した。pin した Dommy では両方割れる（mismatch は 10 本）。修正 branch では
+固定 scenario が 163 ok / 2 skip / 3 known / 0 mismatch になる。
 
 ## 未着手
 

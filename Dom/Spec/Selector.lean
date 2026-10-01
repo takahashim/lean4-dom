@@ -1034,25 +1034,42 @@ theorem attrNameInSelector_spec (t : Tree) (d : NodeData) (name : String) (a : A
       · simp [hns, hh]
   · simp [hns]
 
-/-- **`[att]` が返すのは、仕様の条件を満たす attribute である。** -/
-theorem selectorAttr_some {t : Tree} {d : NodeData} {anyNs : Bool} {name : String} {a : Attr}
-    (h : selectorAttr t d anyNs name = some a) :
-    a ∈ d.attributes ∧ SelectorAttrMatches t d anyNs name a := by
-  unfold selectorAttr at h
-  obtain ⟨hp, _⟩ := List.find?_eq_some_iff_append.mp h
-  simp only [Bool.and_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none] at hp
-  exact ⟨List.mem_of_find?_eq_some h,
-    (attrNameInSelector_spec t d name a).mp hp.1, hp.2⟩
+/-- **`selectorAttrOk` は仕様の名前と namespace の条件をちょうど表す。** -/
+theorem selectorAttrOk_iff {t : Tree} {d : NodeData} {anyNs : Bool} {name : String} {a : Attr} :
+    selectorAttrOk t d anyNs name a = true ↔ SelectorAttrMatches t d anyNs name a := by
+  unfold selectorAttrOk SelectorAttrMatches
+  simp only [Bool.and_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none]
+  rw [attrNameInSelector_spec t d name a]
 
-/-- **`[att]` が何も返さないなら、条件を満たす attribute は無い。** -/
-theorem selectorAttr_none {t : Tree} {d : NodeData} {anyNs : Bool} {name : String}
-    (h : selectorAttr t d anyNs name = none) :
-    ∀ a ∈ d.attributes, ¬ SelectorAttrMatches t d anyNs name a := by
-  unfold selectorAttr at h
-  intro a ha hmatch
-  have := List.find?_eq_none.mp h a ha
-  simp only [Bool.and_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none, not_and] at this
-  exact this ((attrNameInSelector_spec t d name a).mpr hmatch.1) hmatch.2
+/--
+**attribute selector は、条件を満たす attribute の**どれか**が値の照合に通ることにちょうど当たる。**
+
+`[*|att=val]` は namespace 違いの同名の attribute をすべて見る（§6.4）。最初の一つだけを
+見るのでは、`att="1"` と `x:att="2"` を持つ element が `[*|att="2"]` に当たらなくなる。
+-/
+theorem matchSimple_attr_iff {ctx : MatchCtx} {n : NodeId} {d : NodeData}
+    (hd : ctx.tree.get? n = some d) (hel : d.kind = NodeKind.element)
+    (name : String) (anyNs : Bool) (test : Option AttrTest) :
+    matchSimple ctx (.attr name anyNs test) n = true ↔
+      ∃ a ∈ d.attributes, SelectorAttrMatches ctx.tree d anyNs name a ∧
+        match test with
+        | none => True
+        | some tst => AttrOpHolds tst.op (caseFold tst.case a.value.toList)
+            (caseFold tst.case tst.value.toList) := by
+  have hne : (d.kind != NodeKind.element) = false := by simp [hel]
+  rw [matchSimple, hd]
+  simp only [hne, Bool.false_eq_true, if_false, List.any_eq_true, Bool.and_eq_true]
+  constructor
+  · rintro ⟨a, ha, hok, htest⟩
+    refine ⟨a, ha, selectorAttrOk_iff.mp hok, ?_⟩
+    cases test with
+    | none => trivial
+    | some tst => exact (attrTestHolds_iff tst a.value).mp htest
+  · rintro ⟨a, ha, hok, htest⟩
+    refine ⟨a, ha, selectorAttrOk_iff.mpr hok, ?_⟩
+    cases test with
+    | none => rfl
+    | some tst => exact (attrTestHolds_iff tst a.value).mpr htest
 
 /-- **class と id は namespace を持たない attribute を見る。** -/
 theorem plainAttr_some {d : NodeData} {name v : String} (h : plainAttr d name = some v) :
@@ -1078,25 +1095,6 @@ theorem plainAttr_none {d : NodeData} {name : String} (h : plainAttr d name = no
     exact this hm.1 hm.2
 
 /-! ### 存在との同値（利用側のためのまとめ） -/
-
-/--
-**`[att]` が当たる attribute があることと、`selectorAttr` が返すことは同値である。**
-
-健全性（`selectorAttr_some`）と不在（`selectorAttr_none`）を一つにしたもの。
-使う側はこちらだけで済む。
--/
-theorem selectorAttr_isSome_iff {t : Tree} {d : NodeData} {anyNs : Bool} {name : String} :
-    (selectorAttr t d anyNs name).isSome = true ↔
-      ∃ a ∈ d.attributes, SelectorAttrMatches t d anyNs name a := by
-  constructor
-  · intro h
-    obtain ⟨a, ha⟩ := Option.isSome_iff_exists.mp h
-    obtain ⟨hmem, hmatch⟩ := selectorAttr_some ha
-    exact ⟨a, hmem, hmatch⟩
-  · rintro ⟨a, hmem, hmatch⟩
-    cases hs : selectorAttr t d anyNs name with
-    | none => exact absurd hmatch (selectorAttr_none hs a hmem)
-    | some b => simp
 
 /-- **class / id も同じ形でまとめる。** -/
 theorem plainAttr_isSome_iff {d : NodeData} {name : String} :

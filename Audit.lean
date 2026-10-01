@@ -239,7 +239,6 @@ open Dom.Audit
   Dom.mem_splitWs_iff
   Dom.Spec.wordIn_append_ws
   Dom.Spec.wordIn_of_no_ws
-  Dom.Spec.selectorAttr_isSome_iff
   Dom.Spec.plainAttr_isSome_iff
   Dom.Spec.any_isAsciiWhitespace_caseFold
   Infra.isAsciiWhitespace_asciiLowerChar
@@ -1048,8 +1047,8 @@ open Dom.Audit
   Dom.Spec.get?_root
   Dom.Spec.matchSimple_has_iff
   Dom.Spec.attrNameInSelector_spec
-  Dom.Spec.selectorAttr_some
-  Dom.Spec.selectorAttr_none
+  Dom.Spec.selectorAttrOk_iff
+  Dom.Spec.matchSimple_attr_iff
   Dom.Spec.plainAttr_some
   Dom.Spec.plainAttr_none
 

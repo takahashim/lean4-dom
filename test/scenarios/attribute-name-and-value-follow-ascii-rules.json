@@ -1,0 +1,99 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#attribute-case",
+    "algorithm": [
+      "match a selector against an element"
+    ],
+    "steps": "素の `[att]` は namespace の無い attribute だけを local name で見る。`i` flag は ASCII の範囲だけで大文字小文字を畳み、`~=` は ASCII whitespace（VT を含まない）で区切る",
+    "note": "findings 44。Dommy は qualified name で引き、`i` を Unicode の lowercase で畳み、`~=` を VT でも区切る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "prefix": null,
+          "localName": "a",
+          "value": "2"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "x\u000by"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "c",
+          "value": "K"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='1']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='2']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[b~=y]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[c='K' i]"
+    }
+  ]
+}

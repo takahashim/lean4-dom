@@ -115,10 +115,15 @@ def attrNameInSelector (t : Tree) (d : NodeData) (name : String) : String :=
   if d.namespace == some htmlNamespace && isHTMLDocumentOf t d then asciiLowercase name
   else name
 
-/-- `[name]` が指す attribute。 -/
-def selectorAttr (t : Tree) (d : NodeData) (anyNs : Bool) (name : String) : Option Attr :=
-  let nm := attrNameInSelector t d name
-  d.attributes.find? (fun a => a.localName == nm && (anyNs || a.namespace.isNone))
+/--
+attribute `a` が `[name]`（`anyNs` なら `[*|name]`）の名前と namespace の条件を満たすか。
+
+§6.4 の `[*|att]` は namespace を問わずに **すべての** attribute を見るので、
+同じ local name の attribute が namespace 違いで複数あれば、値の照合はそのどれかに当たればよい。
+最初の一つだけを見てはいけない。
+-/
+def selectorAttrOk (t : Tree) (d : NodeData) (anyNs : Bool) (name : String) (a : Attr) : Bool :=
+  a.localName == attrNameInSelector t d name && (anyNs || a.namespace.isNone)
 
 /-- 素の attribute 名（`class` や `id`）。namespace は持たない。 -/
 def plainAttr (d : NodeData) (name : String) : Option String :=
@@ -352,12 +357,11 @@ def matchSimple (ctx : MatchCtx) (s : Simple) (n : NodeId) : Bool :=
         | none => false
         | some av => (splitWsAux [] av.toList).any (fun w => w == v.toList)
       | .attr name anyNs test =>
-        match selectorAttr ctx.tree d anyNs name with
-        | none => false
-        | some a =>
-          match test with
-          | none => true
-          | some tst => attrTestHolds tst a.value
+        d.attributes.any (fun a =>
+          selectorAttrOk ctx.tree d anyNs name a &&
+            match test with
+            | none => true
+            | some tst => attrTestHolds tst a.value)
       | .root =>
         match parentOf ctx.tree n with
         | none => false
