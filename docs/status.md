@@ -5466,6 +5466,9 @@ membership、`getElementById_eq_some` / `_eq_none_iff` / `_error_iff` は返す 
 PR #67 とともに merge された（§「findings 12-46 の索引」）。生成 scenario（lookup だけを 6 手、seed 1-4 × 300）
 の不一致も、Dommy では 45、jsdom では 45 と 46 だけだった。
 
+Chromium（Playwright 1.63 の 153.0.8010.12）は固定 scenario 3 本とも、lookup だけの生成 scenario
+（seed 1-2 × 200）もすべて model と一致した。45 も 46 も、browser は本文どおりに振る舞う。
+
 style attribute（CSS の宣言）は model の外のままにした。CSS Syntax の宣言の構文と CSSOM の
 `CSSStyleDeclaration` が要り、DOM の木の上の仕様ではないためである。
 
