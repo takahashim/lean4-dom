@@ -277,9 +277,14 @@ module Generate
     end
   end
 
-  def build_tree(rng, node_count, doctype_prob: 0.0)
+  # `quirks_prob` は document を quirks（8 割）か limited-quirks（2 割）にする確率。
+  # 0 のときは乱数を引かないので、既存の seed が作る scenario は変わらない。
+  def build_tree(rng, node_count, doctype_prob: 0.0, quirks_prob: 0.0)
     b = Builder.new(rng)
     doc = b.add("document")
+    if quirks_prob.positive? && rng.rand < quirks_prob
+      b.nodes.last["mode"] = rng.rand < 0.8 ? "quirks" : "limited-quirks"
+    end
     b.add("documentType", parent: doc) if rng.rand < doctype_prob
     root = (b.add("element", parent: doc) if rng.rand < 0.9)
     # 木から切り離された DocumentFragment と、その子。
@@ -325,11 +330,14 @@ module Generate
   # tokenizer の分岐（`Selectors/Spec/Token.lean` の規則）に届くように、escape・comment・
   # 数値の書き方・非 ASCII・CR/FF を混ぜてある。findings 21・26・30 で外していた
   # `#1`・`.--foo`・comment は Dommy `a0d8736` で直ったので戻した。
-  # 大文字を混ぜるのは、type selector の大文字小文字が namespace で分かれるからである。
+  # 大文字を混ぜるのは、type selector の大文字小文字が namespace で分かれるからであり、
+  # class と id の大文字小文字が document の mode で分かれるからである。
   # HTML namespace の element が HTML document にあるときだけ、selector 側を lowercase する。
   SELECTOR_TYPES = ["div", "span", "p", "rect", "*", "DIV", "RECT", "Span"].freeze
   SELECTOR_SUBCLASS = [
     ".vv", ".u", ".v", "#vv",
+    # quirks mode の document では class と id を ASCII case-insensitive に比べる。
+    ".VV", "#VV", ".Vv",
     # escape（§4.3.7）。`\76` は `v` なので `.\76 v` は `.vv` と同じものを指す。
     # hex digit は 6 桁まで、続く whitespace は一つだけ（tab も）読む。
     ".\\76 v", "#\\76 v", "[\\61]", ".\\000076v", ".\\76\tv", ".\\v\\v",
@@ -927,8 +935,8 @@ module Generate
   # Dommy が実装していない (kind, op) の組を避けたいときに渡す。
   def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0,
                range_count: 2, iterator_count: 1, observer_count: 0, walker_count: 0,
-               listener_count: 0)
-    nodes = build_tree(rng, node_count, doctype_prob: doctype_prob)
+               listener_count: 0, quirks_prob: 0.0)
+    nodes = build_tree(rng, node_count, doctype_prob: doctype_prob, quirks_prob: quirks_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
     # 作った node に付く id を追う。model の `freshId` と同じ規則である。
@@ -1013,7 +1021,7 @@ end
 
 if $PROGRAM_NAME == __FILE__
   require "optparse"
-  opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0,
+  opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0, quirks: 0.0,
            ranges: 2, iterators: 1, observers: 0, walkers: 1, listeners: 0 }
   OptionParser.new do |o|
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
@@ -1021,6 +1029,7 @@ if $PROGRAM_NAME == __FILE__
     o.on("--ops N", Integer) { |v| opts[:ops] = v }
     o.on("--move") { opts[:move] = true }
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
+    o.on("--quirks-prob F", Float) { |v| opts[:quirks] = v }
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
     o.on("--observers N", Integer) { |v| opts[:observers] = v }
@@ -1033,6 +1042,7 @@ if $PROGRAM_NAME == __FILE__
     Generate.scenario(rng, node_count: opts[:nodes], op_count: opts[:ops], ops: ops,
                            doctype_prob: opts[:doctype], range_count: opts[:ranges],
                            iterator_count: opts[:iterators], observer_count: opts[:observers],
-                           walker_count: opts[:walkers], listener_count: opts[:listeners])
+                           walker_count: opts[:walkers], listener_count: opts[:listeners],
+                           quirks_prob: opts[:quirks])
   )
 end

@@ -16,7 +16,9 @@ scoping root（`:scope`）と `:has()` の anchor を持つ。
 * **`[attr=value]` の既定の大文字小文字は常に区別する。** HTML が定める
   「大文字小文字を区別しない attribute」の一覧は model の対象外である。
   `i` / `s` flag は仕様どおりに効く。
-* **quirks mode を持たない。** class と id は常に大文字小文字を区別する。
+* **quirks mode は class と id の比較にだけ効く。** element の node document が quirks mode なら
+  class selector と id selector を ASCII case-insensitive に比べる（HTML §"Case-sensitivity of selectors"）。
+  limited-quirks mode は no-quirks mode と同じに扱う。
 -/
 
 namespace Dom
@@ -115,6 +117,16 @@ def emptyOk (t : Tree) (c : NodeId) : Bool :=
     | .text => d.data.toList.all isAsciiWhitespace
     | .cdataSection => d.data.toList.all isAsciiWhitespace
     | _ => false
+
+/-- `d` の node document が quirks mode か。 -/
+def inQuirksModeOf (t : Tree) (d : NodeData) : Bool :=
+  match t.get? d.ownerDocument with
+  | none => false
+  | some doc => doc.mode == .quirks
+
+/-- quirks mode なら ASCII lowercase し、そうでなければそのまま返す。class と id の比較に使う。 -/
+def quirksFold (q : Bool) (l : List Char) : List Char :=
+  if q then l.map asciiLowerChar else l
 
 /-- selector の中の attribute 名を、element に合わせて正規化する。 -/
 def attrNameInSelector (t : Tree) (d : NodeData) (name : String) : String :=
@@ -357,11 +369,15 @@ def matchSimple (ctx : MatchCtx) (s : Simple) (n : NodeId) : Bool :=
       | .id v =>
         match plainAttr d "id" with
         | none => false
-        | some av => av == v
+        | some av =>
+          let q := inQuirksModeOf ctx.tree d
+          quirksFold q av.toList == quirksFold q v.toList
       | .cls v =>
         match plainAttr d "class" with
         | none => false
-        | some av => (splitWsAux [] av.toList).any (fun w => w == v.toList)
+        | some av =>
+          let q := inQuirksModeOf ctx.tree d
+          (splitWsAux [] av.toList).any (fun w => quirksFold q w == quirksFold q v.toList)
       | .attr name anyNs test =>
         d.attributes.any (fun a =>
           selectorAttrOk ctx.tree d anyNs name a &&

@@ -46,6 +46,11 @@ structure NodeSpec where
   localName : Option String := none
   /-- Document の type が "html" か。省略すると true（Dommy の `Window` の document）。 -/
   isHTMLDocument : Option Bool := none
+  /--
+  Document の mode。JSON では `"no-quirks"`・`"quirks"`・`"limited-quirks"`。
+  省略すると no-quirks（`createHTMLDocument` などで作った document と同じ）。
+  -/
+  mode : DocumentMode := .noQuirks
 deriving Repr
 
 /-- scenario が並べる操作。Phase 3 までの public API に対応する。 -/

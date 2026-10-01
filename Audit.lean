@@ -1056,6 +1056,9 @@ open Dom.Audit
   Dom.Spec.structural_generic
   Dom.Spec.plainAttr_eq_some_iff
   Dom.Spec.classWord_iff
+  Dom.Spec.inQuirksModeOf_iff
+  Dom.Spec.quirksFold_eq_iff
+  Dom.Spec.classWordIn_iff
   Dom.Spec.mem_combCandidates_iff
   Dom.Spec.match_iff_bounded
   Dom.Spec.matchSelList_iff_spec

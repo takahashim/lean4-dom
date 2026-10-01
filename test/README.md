@@ -201,6 +201,11 @@ Dommy を読み込んでいない process の仕事にしてある。
   HTML namespace の `div` になる（Dommy の `createElement("div")` に合わせてある）。
   document の `isHTMLDocument` は省略すると true。
   attribute 名を ASCII lowercase するかどうかがこの二つで決まる。
+* document の `mode` は `"no-quirks"`（省略時）・`"quirks"`・`"limited-quirks"`。
+  runner は quirks と limited-quirks の document を HTML parser（Dommy は backend の parser、
+  JS は `DOMParser`）に doctype を読ませて作り、子を外してから使う。
+  quirks mode では class selector・id selector・`getElementsByClassName()` の比較が
+  ASCII case-insensitive になる。生成 scenario では `--quirks-prob F` で混ぜる（既定は 0）。
 * element の `attributes` は
   `{"namespace": null, "prefix": null, "localName": "a", "value": "1"}` の list。
   Element 以外に置いても無視される。

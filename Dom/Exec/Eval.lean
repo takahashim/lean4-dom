@@ -81,7 +81,8 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         «prefix» := if s.kind == .element then s.prefix else none
         localName := if s.kind == .element then s.localName.getD "div" else ""
         -- Document の type。省略時は Dommy の `Window` の document に合わせて HTML document。
-        isHTMLDocument := s.kind == .document && s.isHTMLDocument.getD true })
+        isHTMLDocument := s.kind == .document && s.isHTMLDocument.getD true
+        mode := if s.kind == .document then s.mode else .noQuirks })
   let entries ← specs.mapM entry
   let t : Tree := { nodes := entries.foldl (fun st p => st.insert p.1 p.2) NodeStore.empty }
   unless t.checkWellFormed do

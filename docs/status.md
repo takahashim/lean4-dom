@@ -3517,7 +3517,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-46 の索引
+## findings 12-47 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3542,7 +3542,7 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 18（segfault）は `test/crashers/` にあって固定 scenario の外である。2026-10-01 に macOS 上で
 `4d4f2c1` と `bc883f1`（どちらも makiri 0.12.0）に当てたところ、落ちずに model と一致した
 （見つけたときは Linux の makiri 0.8.0）。
-jsdom の findings（19・20・24・25・27-29・33-36・40・42-46）は pin と関係が無く、
+jsdom の findings（19・20・24・25・27-29・33-36・40・42-47）は pin と関係が無く、
 30.1.1 で確かめたのは 40 以降だけである。
 
 | # | 実装 | 内容 | scenario |
@@ -3582,6 +3582,7 @@ jsdom の findings（19・20・24・25・27-29・33-36・40・42-46）は pin �
 | 44 | Dommy / jsdom | attribute selector が一つの値しか見ない（Dommy）、`i` flag を Unicode で畳む（両方）、`~=` を VT でも区切る（Dommy） | `any-namespace-attribute-tests-every-attribute`, `attribute-name-and-value-follow-ascii-rules` |
 | 45 | Dommy / jsdom | `getElementsByName()` が HTML でない element（SVG の `rect` など）も返す | `get-elements-by-name-finds-only-html-elements` |
 | 46 | jsdom | document の doctype を外すと mode が quirks に変わり、class を ASCII case-insensitive に比べる | `class-names-keep-case-without-quirks` |
+| 47 | jsdom | quirks mode で id selector を case-insensitive に比べない／class を ASCII でなく Unicode で畳む（`.ä` が `Ä` に当たる） | `quirks-mode-folds-class-and-id` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5472,6 +5473,49 @@ Chromium（Playwright 1.63 の 153.0.8010.12）は固定 scenario 3 本とも、
 style attribute（CSS の宣言）は model の外のままにした。CSS Syntax の宣言の構文と CSSOM の
 `CSSStyleDeclaration` が要り、DOM の木の上の仕様ではないためである。
 
+## document の mode（quirks mode）
+
+`NodeData` に DOM §4.5 の mode（`DocumentMode`：no-quirks・quirks・limited-quirks）を足した。
+Document 以外では no-quirks で、新しく作る document（`createHTMLDocument` ほか）も no-quirks で生まれる。
+`cloneNode` は `NodeData` をそのまま写すので、copy は元の mode を持つ（DOM "clone a single node" は document の mode を写す）。
+mutation の関係（`TreeRemoved`・`TreeInserted` の `sameData`）には「mode は変わらない」を足した。
+
+効くのは次の三つだけで、どれも element の（`getElementsByClassName()` は受け手の）node document の mode を見る。
+
+| 比較 | 本文 | model |
+| --- | --- | --- |
+| class selector・id selector | HTML §"Case-sensitivity of selectors" | `matchSimple` の `.cls`・`.id` の枝が `quirksFold` で ASCII lowercase してから比べる |
+| `getElementsByClassName()` | DOM "list of elements with class names" | 同じく `quirksFold` |
+| `getElementById()` | DOM §4.2.4（ID の比較は常に case-sensitive） | 変えない |
+
+limited-quirks mode はこれらに効かないので、no-quirks mode と同じに扱う。adopt で element の node document が
+変われば比較の mode も変わる。
+
+**関係仕様。** `Dom/Spec/SelectorMatch.lean` に `InQuirksMode`（node document の mode が quirks）と
+`ClassIdMatches`（quirks なら `asciiLowercase` が等しい、そうでなければ等しい）を足し、`SimpleMatches` の
+`#id` を「id 属性の値と `ClassIdMatches`」、`.cls` を「class 属性の空白区切りの語のどれかと `ClassIdMatches`」に
+書き換えた。`matchSelList_iff_spec` ほかの一致の定理はそのまま通った（`quirksFold_eq_iff`・`classWordIn_iff` を足した）。
+`mem_getElementsByClassName_iff` も `ClassIdMatches` で言い直した。
+
+**harness。** scenario の document に `"mode"` を書けるようにした。runner は quirks と limited-quirks の document を
+HTML parser に doctype を読ませて作る（Dommy は `Dommy::Backend.parse` から `Window` を、JS は `DOMParser`）。
+生成器は `--quirks-prob F` で document の mode を混ぜ（0 なら乱数を引かない）、selector の語彙に `.VV`・`#VV`・`.Vv` を足した。
+
+**結果。** 固定 scenario を 2 本足した（`quirks-mode-folds-class-and-id`、`quirks-mode-belongs-to-the-node-document`）。
+
+| 実装 | 固定 2 本 | 生成（`--quirks-prob 0.5`〜`0.6`） |
+| --- | --- | --- |
+| Dommy（`bc883f1`） | 一致 | 一般の op で seed 1-3 × 200、selector・lookup に絞って seed 1-3 × 200、すべて一致 |
+| Chromium 153 | 一致 | selector・lookup に絞って seed 1-2 × 200。不一致は SVG の `RECT` が type selector に当たる既存の形だけ |
+| jsdom 30.1.1 | 不一致（下の 47 と 46） | 既知の findings だけ |
+
+nightly の生成 scenario に `--quirks-prob 0.3` を付けた。Dommy `bc883f1` では 3 matrix × seed 1-10 がすべて一致し、
+固定 scenario は 168 ok / 2 skip / 3 known / 0 mismatch である。
+
+**findings 47（jsdom）。** quirks mode の document で、`#xY` が `id=Xy` に当たらない（id selector を畳まない）。
+逆に `.ä` と `getElementsByClassName("ä")` は `class=Ä` に当たる（ASCII ではなく Unicode で畳んでいる）。
+本文はどちらも「ASCII case-insensitive」である。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
@@ -5485,6 +5529,4 @@ style attribute（CSS の宣言）は model の外のままにした。CSS Synta
   model の attribute は element の状態のままである。
 * `createProcessingInstruction` と `createCDATASection`。前者の target は Name production を
   参照しており、model はその production を持たない。
-* document の mode（quirks / limited-quirks）。model の文書は常に no-quirks で、
-  `getElementsByClassName()` と class・id selector の大文字小文字はそれに従う。
 * style attribute と CSS の宣言（CSSOM の `CSSStyleDeclaration`）。DOM の木の上の仕様ではない。

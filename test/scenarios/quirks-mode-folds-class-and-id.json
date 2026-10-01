@@ -1,0 +1,219 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://html.spec.whatwg.org/multipage/semantics-other.html#case-sensitivity-of-selectors",
+    "algorithm": [
+      "Case-sensitivity of selectors",
+      "list of elements with class names",
+      "get an element by ID"
+    ],
+    "steps": "quirks mode の document では class selector・id selector・getElementsByClassName の比較が ASCII case-insensitive になる。no-quirks と limited-quirks では identical。getElementById は mode に依らず identical",
+    "note": "document 0 は quirks、5 は no-quirks、8 は limited-quirks。ASCII case-insensitive なので `ä` は `Ä` に、`k` は KELVIN SIGN に当たらない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document",
+      "mode": "quirks"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "Aa B"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "Xy"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "aa"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "Ä K"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "document"
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 5,
+      "localName": "html",
+      "attributes": [],
+      "ownerDocument": 5
+    },
+    {
+      "id": 7,
+      "kind": "element",
+      "parent": 6,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "Aa"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "Xy"
+        }
+      ],
+      "ownerDocument": 5
+    },
+    {
+      "id": 8,
+      "kind": "document",
+      "mode": "limited-quirks"
+    },
+    {
+      "id": 9,
+      "kind": "element",
+      "parent": 8,
+      "localName": "html",
+      "attributes": [],
+      "ownerDocument": 8
+    },
+    {
+      "id": 10,
+      "kind": "element",
+      "parent": 9,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "Aa"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "id",
+          "value": "Xy"
+        }
+      ],
+      "ownerDocument": 8
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": "aA"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": "aa b"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 1,
+      "classNames": "AA"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": "ä"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": "k"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".AA"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "#xY"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".ä, .k"
+    },
+    {
+      "op": "matches",
+      "element": 2,
+      "selectors": ".b#XY"
+    },
+    {
+      "op": "getElementById",
+      "node": 0,
+      "elementId": "xy"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 5,
+      "classNames": "aa"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 5,
+      "selectors": ".aa, #xy"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 8,
+      "classNames": "aa"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 8,
+      "selectors": ".aa, #xy"
+    }
+  ]
+}

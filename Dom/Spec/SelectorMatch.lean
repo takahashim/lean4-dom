@@ -25,7 +25,8 @@ attribute の演算子、`:nth-*()` の位置、type selector、`:root`、`:empt
 | selector | 関係 |
 | --- | --- |
 | combinator | `Combines`：`E F` は ancestor、`E > F` は parent、`E ~ F` と `E + F` は element の並びでの前後 |
-| `.cls` | class 属性の値に、空白で区切られた語として現れる（`ClassToken`） |
+| `.cls` | class 属性の値に、空白で区切られた語として現れる（`ClassToken`）。quirks mode なら ASCII case-insensitive に比べる（`ClassIdMatches`） |
+| `#id` | id 属性の値と、quirks mode なら ASCII case-insensitive に、そうでなければ identical に一致する |
 | `:first-child` ほか | 前（後）に element の sibling（同じ type のもの）が無い |
 | `:nth-*()` | 前（後）にあって数える対象になる element の数に 1 を足したものが `An+B` の index（`NthCount`） |
 | featureless な node | `:scope` だけが当たる |
@@ -49,6 +50,17 @@ def PlainAttrValue (d : NodeData) (name v : String) : Prop :=
 /-- §6.6 の class selector。class 属性の値に、空白で区切られた語として `v` が現れる。 -/
 def ClassToken (classes v : String) : Prop :=
   v.toList ≠ [] ∧ NoWhitespace v.toList ∧ WordIn classes.toList v.toList
+
+/-- element の node document が quirks mode である（DOM §4.5 の mode）。 -/
+def InQuirksMode (t : Tree) (d : NodeData) : Prop :=
+  ∃ doc, t.get? d.ownerDocument = some doc ∧ doc.mode = .quirks
+
+/--
+HTML §"Case-sensitivity of selectors"。class selector と id selector は、element の document が
+quirks mode なら ASCII case-insensitive に、そうでなければ identical に比べる。
+-/
+def ClassIdMatches (t : Tree) (d : NodeData) (a b : String) : Prop :=
+  (InQuirksMode t d ∧ asciiLowercase a = asciiLowercase b) ∨ (¬ InQuirksMode t d ∧ a = b)
 
 /-- §6.3 の値の照合。値を持たない `[att]` は名前だけで当たる。 -/
 def AttrTestOk (test : Option AttrTest) (value : String) : Prop :=
@@ -112,8 +124,8 @@ def SimpleMatches (ctx : MatchCtx) (s : Simple) (n : NodeId) : Prop :=
       match s with
       | .typeSel name => TypeSelectorMatches ctx.tree d name
       | .univ => True
-      | .id v => PlainAttrValue d "id" v
-      | .cls v => ∃ av, PlainAttrValue d "class" av ∧ ClassToken av v
+      | .id v => ∃ av, PlainAttrValue d "id" av ∧ ClassIdMatches ctx.tree d av v
+      | .cls v => ∃ av, PlainAttrValue d "class" av ∧ ∃ w, ClassToken av w ∧ ClassIdMatches ctx.tree d w v
       | .attr name anyNs test =>
         ∃ a ∈ d.attributes, SelectorAttrMatches ctx.tree d anyNs name a ∧ AttrTestOk test a.value
       | .root => IsDocumentRoot ctx.tree n
@@ -415,6 +427,41 @@ theorem classWord_iff (av v : String) :
     exact ⟨v.toList, (mem_splitWs_iff av.toList.length av.toList (Nat.le_refl _) _ hne hnw).mpr hword,
       by simp⟩
 
+theorem inQuirksModeOf_iff (t : Tree) (d : NodeData) :
+    inQuirksModeOf t d = true ↔ InQuirksMode t d := by
+  unfold inQuirksModeOf InQuirksMode
+  cases t.get? d.ownerDocument <;> simp
+
+/-- **quirks mode に合わせた比較は、`ClassIdMatches` にちょうど当たる。** -/
+theorem quirksFold_eq_iff (t : Tree) (d : NodeData) (a b : String) :
+    (quirksFold (inQuirksModeOf t d) a.toList == quirksFold (inQuirksModeOf t d) b.toList) = true ↔
+      ClassIdMatches t d a b := by
+  unfold ClassIdMatches
+  rw [← inQuirksModeOf_iff]
+  cases inQuirksModeOf t d with
+  | false => simp [quirksFold, String.toList_inj]
+  | true =>
+    simp only [quirksFold, if_true, beq_iff_eq, true_and, Bool.true_eq_false, not_true_eq_false,
+      false_and, or_false, asciiLowercase]
+    exact ⟨fun h => by rw [h], fun h => by simpa using congrArg String.toList h⟩
+
+/-- **class selector は、空白区切りの語のどれかと quirks mode に合わせて一致する。** -/
+theorem classWordIn_iff (t : Tree) (d : NodeData) (av v : String) :
+    (splitWsAux [] av.toList).any (fun w =>
+        quirksFold (inQuirksModeOf t d) w == quirksFold (inQuirksModeOf t d) v.toList) = true ↔
+      ∃ w, ClassToken av w ∧ ClassIdMatches t d w v := by
+  rw [List.any_eq_true]
+  constructor
+  · rintro ⟨x, hx, heq⟩
+    refine ⟨String.ofList x, (classWord_iff av _).mp ?_, (quirksFold_eq_iff t d _ _).mp ?_⟩
+    · exact List.any_eq_true.mpr ⟨x, hx, by simp⟩
+    · simpa using heq
+  · rintro ⟨w, hw, hm⟩
+    obtain ⟨x, hx, hxw⟩ := List.any_eq_true.mp ((classWord_iff av w).mpr hw)
+    have hxw : x = w.toList := by simpa using hxw
+    subst hxw
+    exact ⟨w.toList, hx, (quirksFold_eq_iff t d _ _).mpr hm⟩
+
 /-! ## combinator -/
 
 theorem mem_elementChildren_facts {t : Tree} (hwf : WellFormed t) {n q : NodeId}
@@ -545,8 +592,19 @@ theorem match_iff_bounded {t : Tree} (hwf : WellFormed t)
           | univ => rw [matchSimple, hget]; simp [hne]
           | id v =>
             rw [matchSimple, hget]; simp only [hne, Bool.false_eq_true, if_false]
-            rw [← plainAttr_eq_some_iff (hkeys' n d hget)]
-            cases plainAttr d "id" <;> simp
+            cases hpa : plainAttr d "id" with
+            | none =>
+              simp only [Bool.false_eq_true, false_iff, not_exists, not_and]
+              intro av hav; rw [← plainAttr_eq_some_iff (hkeys' n d hget)] at hav
+              rw [hpa] at hav; cases hav
+            | some av =>
+              simp only
+              rw [quirksFold_eq_iff]
+              constructor
+              · intro h; exact ⟨av, (plainAttr_eq_some_iff (hkeys' n d hget) _ _).mp hpa, h⟩
+              · rintro ⟨av', hav', h⟩
+                rw [← plainAttr_eq_some_iff (hkeys' n d hget), hpa] at hav'
+                cases hav'; exact h
           | cls v =>
             rw [matchSimple, hget]; simp only [hne, Bool.false_eq_true, if_false]
             cases hpa : plainAttr d "class" with
@@ -556,7 +614,7 @@ theorem match_iff_bounded {t : Tree} (hwf : WellFormed t)
               rw [hpa] at hav; cases hav
             | some av =>
               simp only
-              rw [classWord_iff]
+              rw [classWordIn_iff]
               constructor
               · intro h; exact ⟨av, (plainAttr_eq_some_iff (hkeys' n d hget) _ _).mp hpa, h⟩
               · rintro ⟨av', hav', h⟩

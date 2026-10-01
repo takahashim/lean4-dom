@@ -166,7 +166,7 @@ jobs:
             ruby test/difftest.rb --no-fixed --count 100 --seed "$seed" \
               --nodes ${{ matrix.nodes }} --ops ${{ matrix.ops }} \
               --ranges ${{ matrix.ranges }} --iterators ${{ matrix.iterators }} \
-              --observers ${{ matrix.observers }} --move || status=1
+              --observers ${{ matrix.observers }} --quirks-prob 0.3 --move || status=1
           done
           exit "$status"
 

@@ -167,8 +167,21 @@ module DommyRunner
     # `implementation.create_document(nil, nil, nil)` なら最初から空だが、
     # そちらは XML document になり `documentFragment.appendChild` が
     # `Makiri::Error` になるため使えない。
-    def new_empty_document
-      win = Dommy::Window.new
+    #
+    # quirks / limited-quirks の document は HTML parser でしか作れないので、doctype を
+    # 読ませた backend の document から `Window` を作る（mode は parse のときに決まる）。
+    MODE_SOURCE = {
+      "quirks" => "",
+      "limited-quirks" =>
+        '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">'
+    }.freeze
+
+    def new_empty_document(mode = "no-quirks")
+      win = if MODE_SOURCE.key?(mode)
+              Dommy::Window.new(nil, backend_doc: Dommy::Backend.parse(MODE_SOURCE[mode]))
+            else
+              Dommy::Window.new
+            end
       doc = win.document
       doc.child_nodes.to_a.each { |n| n.remove if n.respond_to?(:remove) }
       doc
@@ -216,7 +229,7 @@ module DommyRunner
           raise "node #{id}: 非 HTML document はこの harness では作れない"
         end
 
-        doc = new_empty_document
+        doc = new_empty_document(spec["mode"] || "no-quirks")
         @documents[id] = doc
         @objects[id] = doc
         return

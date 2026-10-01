@@ -12,6 +12,7 @@ import Dom.Query.Lookup
 | `HasId` | DOM §4.9 の element の ID。namespace の無い `id` attribute の値で、空でない |
 | `HasClass` | DOM §4.9 の element の classes。`class` attribute の値に空白区切りの語として現れる |
 | `ClassToken s c` | ordered set parser が `s` から読む語に `c` がある（`Dom/Spec/SelectorMatch.lean`） |
+| `ClassIdMatches` | quirks mode なら ASCII case-insensitive、そうでなければ identical（同上） |
 
 `getElementById()` が tree order で **最初の** element を返すことは `List.find?` そのものなので、
 ここでは当たるものを返すこと（`getElementById_eq_some`）と、無ければ null（`getElementById_eq_none_iff`）
@@ -143,14 +144,16 @@ theorem getElementById_error_iff {t : Tree} {node : NodeId} {i : String} {d : No
 
 /--
 **Document か Element なら、`classNames` の語をすべて classes に持つ descendant の element を返す。**
-語が一つも無ければ何も返さない。
+語が一つも無ければ何も返さない。語と class の比較は、受け手の node document が quirks mode なら
+ASCII case-insensitive である（`ClassIdMatches`）。
 -/
 theorem mem_getElementsByClassName_iff {t : Tree} (hwf : WellFormed t) (hav : AttributesValid t)
     {node : NodeId} {s : String} {d : NodeData} (hn : t.get? node = some d)
     (hk : d.kind = .document ∨ d.kind = .element) :
     ∃ l, getElementsByClassName t node s = .ok l ∧ ∀ e, e ∈ l ↔
       Descendant t e node ∧ isElementNode t e = true ∧
-        (∃ c, ClassToken s c) ∧ ∀ c, ClassToken s c → HasClass t e c := by
+        (∃ c, ClassToken s c) ∧
+          ∀ c, ClassToken s c → ∃ c', HasClass t e c' ∧ ClassIdMatches t d c' c := by
   have hreq : requireDocumentOrElement t node = .ok () := by
     unfold requireDocumentOrElement
     rcases hk with hk | hk <;> simp [hn, hk]
@@ -164,7 +167,10 @@ theorem mem_getElementsByClassName_iff {t : Tree} (hwf : WellFormed t) (hav : At
     cases hc
   · refine ⟨_, by simp [hemp]; rfl, fun e => ?_⟩
     rw [List.mem_filter, mem_descendantElements_iff hwf hn, List.all_eq_true]
-    simp only [decide_eq_true_iff, mem_elementClassesOf_iff hav, mem_orderedSetParse_iff]
+    have hq : receiverInQuirksMode t node = inQuirksModeOf t d := by
+      simp [receiverInQuirksMode, hn]
+    simp only [hq, List.any_eq_true, quirksFold_eq_iff, mem_elementClassesOf_iff hav,
+      mem_orderedSetParse_iff]
     constructor
     · rintro ⟨⟨hd, hel⟩, hall⟩
       obtain ⟨c, hc⟩ := List.exists_mem_of_ne_nil _ (by simpa using hemp)

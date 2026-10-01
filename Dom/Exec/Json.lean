@@ -170,8 +170,13 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
   let «prefix» ← strField? j "prefix"
   let localName ← strField? j "localName"
   let isHTMLDocument ← boolField? j "isHTMLDocument"
+  let mode ← match ← strField? j "mode" with
+    | none | some "no-quirks" => pure DocumentMode.noQuirks
+    | some "quirks" => pure .quirks
+    | some "limited-quirks" => pure .limitedQuirks
+    | some m => .error s!"未知の mode `{m}`（node {id}）"
   return { id, kind, parent, ownerDocument, data, attributes,
-           «namespace», «prefix», localName, isHTMLDocument }
+           «namespace», «prefix», localName, isHTMLDocument, mode }
 
 def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""

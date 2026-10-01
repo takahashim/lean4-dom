@@ -100,12 +100,12 @@ structure TreeInserted (t t' : Tree) (parent node : NodeId) (child : Option Node
   otherChildren : ∀ m, m ≠ parent → childrenOf t' m = childrenOf t m
   /-- node は増えも減りもしない。 -/
   sameNodes : ∀ m, (t'.get? m).isSome = (t.get? m).isSome
-  /-- 各 node の持ち物（kind・data・attribute・名前・node document）は変わらない。 -/
+  /-- 各 node の持ち物（kind・data・attribute・名前・node document・document の type と mode）は変わらない。 -/
   sameData : ∀ (m : NodeId) (d d' : NodeData), t.get? m = some d → t'.get? m = some d' →
     d'.kind = d.kind ∧ d'.data = d.data ∧ d'.attributes = d.attributes ∧
       d'.ownerDocument = d.ownerDocument ∧ d'.namespace = d.namespace ∧
       d'.prefix = d.prefix ∧ d'.localName = d.localName ∧
-      d'.isHTMLDocument = d.isHTMLDocument
+      d'.isHTMLDocument = d.isHTMLDocument ∧ d'.mode = d.mode
 
 /-- 仕様の step 7。各 node を adopt してから木に入れる。 -/
 inductive InsertedEach (parent : NodeId) (child : Option NodeId) (doc : NodeId) :

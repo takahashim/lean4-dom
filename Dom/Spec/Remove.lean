@@ -160,12 +160,12 @@ structure TreeRemoved (t t' : Tree) (node parent : NodeId) : Prop where
   otherChildren : ∀ m, m ≠ parent → childrenOf t' m = childrenOf t m
   /-- node は増えも減りもしない。 -/
   sameNodes : ∀ m, (t'.get? m).isSome = (t.get? m).isSome
-  /-- 各 node の持ち物（kind・data・attribute・名前・node document）は変わらない。 -/
+  /-- 各 node の持ち物（kind・data・attribute・名前・node document・document の type と mode）は変わらない。 -/
   sameData : ∀ m d d', t.get? m = some d → t'.get? m = some d' →
     d'.kind = d.kind ∧ d'.data = d.data ∧ d'.attributes = d.attributes ∧
       d'.ownerDocument = d.ownerDocument ∧ d'.namespace = d.namespace ∧
       d'.prefix = d.prefix ∧ d'.localName = d.localName ∧
-      d'.isHTMLDocument = d.isHTMLDocument
+      d'.isHTMLDocument = d.isHTMLDocument ∧ d'.mode = d.mode
 
 /-! ## step 20：transient registered observer -/
 

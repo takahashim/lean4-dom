@@ -58,6 +58,8 @@ selector は CSS 全体の一部なので、どこまでを model に入れる�
 `test/scenarios/unsupported-pseudo-class-inside-is.json` がそこを見ている。
 * **namespace prefix `ns|E`**。DOM Standard は `ParentNode` の API に namespace を
   「加えない」と明言しており、prefix を宣言する手段が無い。よって常に parse に失敗する。
-* **quirks mode**。model の document は quirks mode を持たない。
+* **quirks mode は class と id にだけ効く**。HTML §"Case-sensitivity of selectors" のとおり、
+  element の node document が quirks mode なら class selector と id selector を ASCII
+  case-insensitive に比べる。limited-quirks mode は no-quirks mode と同じである。
 
 `tokenize` が仕様と違えてある点は `Selectors/Token.lean` 冒頭に列挙してある。

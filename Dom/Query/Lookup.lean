@@ -11,11 +11,12 @@ import Dom.Mutation.Create
 木も live object も変えないので、どれも `Tree` の上の純関数である。差分テストでは操作の
 戻り値としてだけ観測する。返す collection は live だが、操作した時点の中身を比べれば足りる。
 
-## model が持たないもの
+## quirks mode
 
-* **quirks mode を持たない。** `getElementsByClassName()` は quirks mode の文書では class を
-  ASCII case-insensitive に比べるが、model の文書は常に no-quirks として扱う
-  （`Dom/Selector/Match.lean` と同じ）。
+`getElementsByClassName()` は、受け手の node document が quirks mode なら class を
+ASCII case-insensitive に比べる。`getElementById()` は mode に依らず identical に比べる
+（DOM は ID の比較を case-sensitive と定め、quirks mode の扱いを持つのは selector と
+class の一覧だけである）。
 -/
 
 namespace Dom
@@ -74,9 +75,16 @@ def elementClassesOf (t : Tree) (e : NodeId) : List String :=
     | some v => orderedSetParse v
     | none => []
 
+/-- 受け手 `node` の node document が quirks mode か。 -/
+def receiverInQuirksMode (t : Tree) (node : NodeId) : Bool :=
+  match t.get? node with
+  | none => false
+  | some d => inQuirksModeOf t d
+
 /--
 DOM "list of elements with class names"。`classNames` を ordered set parser で読み、空なら空。
-そうでなければ、descendant のうち、そのすべての class を持つ element。
+そうでなければ、descendant のうち、そのすべての class を持つ element。受け手の node document が
+quirks mode なら、class の比較は ASCII case-insensitive である。
 -/
 def getElementsByClassName (t : Tree) (node : NodeId) (classNames : String) :
     Except DOMException (List NodeId) :=
@@ -84,9 +92,11 @@ def getElementsByClassName (t : Tree) (node : NodeId) (classNames : String) :
   | .error e => .error e
   | .ok _ =>
     let classes := orderedSetParse classNames
+    let q := receiverInQuirksMode t node
     if classes.isEmpty then .ok []
     else .ok ((descendantElements t node).filter (fun e =>
-      classes.all (fun c => (elementClassesOf t e).contains c)))
+      classes.all (fun c => (elementClassesOf t e).any (fun c' =>
+        quirksFold q c'.toList == quirksFold q c.toList))))
 
 /-! ## `getElementsByName()` -/
 

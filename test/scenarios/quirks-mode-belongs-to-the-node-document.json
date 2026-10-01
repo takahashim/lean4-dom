@@ -1,0 +1,110 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://dom.spec.whatwg.org/#concept-document-mode",
+    "algorithm": [
+      "Case-sensitivity of selectors",
+      "clone a single node",
+      "adopt"
+    ],
+    "steps": "class と id の比較の mode は element の node document のもの。adopt で node document が変われば比較も変わる。document を clone すると copy は元の mode を持つ",
+    "note": "no-quirks の document の `class=Aa` は `.aa` に当たらないが、quirks の document へ移すと当たる。quirks の document を clone した copy も quirks である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document",
+      "mode": "quirks"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "aa"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "document"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 3,
+      "localName": "html",
+      "attributes": [],
+      "ownerDocument": 3
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 4,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "Aa"
+        }
+      ],
+      "ownerDocument": 3
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 3,
+      "selectors": ".aa"
+    },
+    {
+      "op": "appendChild",
+      "parent": 1,
+      "node": 5
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".aa"
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 0,
+      "classNames": "AA"
+    },
+    {
+      "op": "cloneNode",
+      "node": 0,
+      "deep": true
+    },
+    {
+      "op": "getElementsByClassName",
+      "node": 6,
+      "classNames": "AA"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 6,
+      "selectors": ".AA"
+    }
+  ]
+}

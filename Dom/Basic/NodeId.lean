@@ -161,6 +161,16 @@ def anon (a : Attr) : Attr := { a with id := ⟨0⟩ }
 end Attr
 
 /--
+DOM §4.5 の document の mode。HTML parser が doctype から決め、それ以外の document は
+no-quirks で生まれる。一度決まれば doctype を変えても変わらない。clone は元の mode を写す。
+-/
+inductive DocumentMode where
+  | noQuirks
+  | quirks
+  | limitedQuirks
+deriving DecidableEq, Repr, Inhabited
+
+/--
 一つの node が持つ状態。
 
 * `kind` — 仕様の node type。Phase 1 と 2 では参照しないが、Phase 3 の
@@ -177,6 +187,9 @@ end Attr
   Document 以外では `false` とする。
   attribute 名を ASCII lowercase するかどうかがこれと element の namespace で決まる
   （"get an attribute by name" step 1、`setAttribute` step 2）。
+* `mode` — 仕様 §4.5 Document の mode。Document 以外では `noQuirks` とする。
+  quirks mode の document では class と id の比較が ASCII case-insensitive になる
+  （HTML §"Case-sensitivity of selectors"、DOM "list of elements with class names"）。
 -/
 structure NodeData where
   kind : NodeKind
@@ -189,6 +202,7 @@ structure NodeData where
   «prefix» : Option String := none
   localName : String := ""
   isHTMLDocument : Bool := false
+  mode : DocumentMode := .noQuirks
 deriving DecidableEq, Repr, Inhabited
 
 namespace NodeData

@@ -382,7 +382,8 @@ theorem mem_matchTree_iff (hwf : WellFormed t) {node : NodeId} {d : NodeData}
 
 selector を使わない `getElementsByClassName()` と `getElementsByName()` も、結果の membership を仕様の語彙で
 言ってある（`Dom/Spec/Lookup.lean` の `mem_getElementsByClassName_iff`・`mem_getElementsByName_iff`）。
-前者は「ordered set parser が読む語が一つ以上あり、そのすべてを classes に持つ descendant の element」、
+前者は「ordered set parser が読む語が一つ以上あり、そのすべてを classes に持つ descendant の element」
+（受け手の document が quirks mode なら語と class を ASCII case-insensitive に比べる）、
 後者は「namespace の無い `name` が一致する descendant の HTML element」である。`getElementById()` は
 当たるものを返し（`getElementById_eq_some`）、当たるものが無いときだけ null を返す（`getElementById_eq_none_iff`）。
 

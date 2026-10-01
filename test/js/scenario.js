@@ -25,12 +25,26 @@ class Unsupported extends Error {}
  * 「window の document でしか正しく動かない口」を持っていることがあるからで
  * （happy-dom の `createTextNode` は node document を window の document に
  * してしまう）、scenario の大半は document 一つなので、それで測れる幅が広がる。
+ *
+ * quirks / limited-quirks の document は HTML parser でしか作れないので、`DOMParser` に
+ * doctype を読ませて作る（mode は parse のときに決まり、doctype を外しても変わらない）。
  */
+const MODE_SOURCE = {
+  quirks: "",
+  "limited-quirks":
+    '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">',
+};
+
 function makeDocumentFactory(win) {
   let first = true;
-  return () => {
-    const doc = first ? win.document : win.document.implementation.createHTMLDocument("");
-    first = false;
+  return (mode) => {
+    let doc;
+    if (mode in MODE_SOURCE) {
+      doc = new win.DOMParser().parseFromString(MODE_SOURCE[mode], "text/html");
+    } else {
+      doc = first ? win.document : win.document.implementation.createHTMLDocument("");
+      first = false;
+    }
     // `n.remove()` ではなく `removeChild` を使う。ChildNode mixin を
     // DocumentType に付けていない実装があるので、そこで落ちないようにする。
     for (const n of [...doc.childNodes]) doc.removeChild(n);
@@ -156,7 +170,7 @@ class Builder {
   create(spec, defaultDocId) {
     const data = String(spec.data ?? "");
     if (spec.kind === "document") {
-      const doc = this.newDocument();
+      const doc = this.newDocument(spec.mode ?? "no-quirks");
       this.documents.set(spec.id, doc);
       this.objects.set(spec.id, doc);
       return;
