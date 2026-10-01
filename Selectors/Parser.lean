@@ -472,6 +472,9 @@ def parseSelector (input : String) : Option SelectorList :=
 できない（`native_decide` は使わない方針）。そこで grammar の要になる四点について、
 `scan` の構造に対する定理として書く。差分テストの固定 scenario
 （`has-cannot-be-nested` ほか）と対になっている。
+
+受理と拒否の全体は `Selectors/Spec/ScanSound.lean` の `parseSelector_spec` が、
+状態を持たない文法（`Selectors/Spec/Scan.lean`）との一致として言う。
 -/
 
 /-- **`:has()` の中に `:has()` は書けない（Selectors Level 4 §14.10）。** -/

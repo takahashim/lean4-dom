@@ -5567,6 +5567,39 @@ simple の照合全体を一つの関係として `Dom/Spec/SelectorMatch.lean` 
   していた（`takeWhile` が `n` を見つけずに列全体を返す）。API からは届かない形（subject が parent を持つ非 element）だが、
   sibling の関係は element の並びの上にあるので、候補を空にした。差分テストの結果は変わらない。
 
+## selector の文法の関係意味論（`scan`）
+
+`Selectors/Parser.lean` の `scan` は component 列を一度だけ左から読む状態機械で、組み立て中の compound（`parts`）、
+その左側（`cur`）、保留中の combinator（`pend`）を持ち回る。同じ受理・拒否を、状態を持たない文法として
+`Selectors/Spec/Scan.lean` に書き、`scan` がそれにちょうど一致することを示した。
+
+| 関係 | 本文 |
+| --- | --- |
+| `SelListRel` | top-level の `,` で項目に分け、strict なら全項目、forgiving なら読める項目だけを並べる（§18.1） |
+| `ItemRel` / `TailRel` | `<compound-selector> [<combinator>? <compound-selector>]*`。separator は空白の並びか、空白を挟んでよい `>` `+` `~`。relative selector は先頭の combinator を許し、左に anchor を置く |
+| `CompoundRel` / `SubclassesRel` / `PieceRel` | type selector が高々一つ先頭に来て、id・class・attribute（既存の `AttrBlockSyntax`）・pseudo-class が続く。`:is()` `:where()` `:not()` `:has()` `:nth-*()` は中の selector list へ再帰する |
+
+| 定理 | 内容 |
+| --- | --- |
+| `scan_spec` | `scan cfg (initSt cfg []) cs = some l ↔ SelListRel cfg cs l` |
+| `parseSelector_spec` | `parseSelector input = some l ↔ ParsesTo input l` |
+| `parseSelector_none_iff` | SyntaxError になるのは、文法に当たる読み方が無いときだけ |
+
+証明は三段に分けた（`Selectors/Spec/ScanStep.lean` と `Selectors/Spec/ScanSound.lean`）。
+
+1. **compound 一つ。** 読める subclass selector なら `scan` はそれを `parts` に積み（`scan_piece`）、読めなければ
+   この項目を諦める（`scan_noPiece`、forgiving なら次の `,` から読み直す）。compound 全体でも同じ
+   （`scan_compound` / `scan_compound_fail`）。`*` の先読み（`*|E` / `*|*`）もここで扱う。
+2. **項目一つ。** `scan` の状態（`cur` と `pend`）ごとに、残りが満たすべき文法を `Res` として書き、空白・
+   combinator・終わり・compound の一歩ごとに `scan` と `Res` が同じように進むことを、残りの長さについての
+   帰納法で示した（`item_main`）。
+3. **selector list。** `,` で分けた項目を順に読む（`scan_items`）。中の selector list は component 列の大きさに
+   ついての帰納法で扱う（`innerOk_all`）。
+
+文法は model の範囲（namespace prefix は `*|` だけ、pseudo-element は無い、pseudo-class は表にあるもの）に合わせて
+ある。書く途中で `scan` と本文の食い違いは見つからなかった。これで Selectors 側は、tokenizer・文法・照合の三段が
+すべて関係意味論と結ばれた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

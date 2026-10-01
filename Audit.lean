@@ -1127,6 +1127,17 @@ open Dom.Audit
   Selectors.Spec.tokenize_spec
   Selectors.Spec.Tokenizes.deterministic
   Selectors.Spec.TokenizesInput.iff_tokenize
+  Selectors.Spec.scan_piece
+  Selectors.Spec.scan_noPiece
+  Selectors.Spec.scan_compound
+  Selectors.Spec.scan_compound_fail
+  Selectors.Spec.item_main
+  Selectors.Spec.scan_items
+  Selectors.Spec.selListRel_iff
+  Selectors.Spec.innerOk_all
+  Selectors.Spec.scan_spec
+  Selectors.Spec.parseSelector_spec
+  Selectors.Spec.parseSelector_none_iff
 
 -- selector の API が満たすこと
 #audit_axioms

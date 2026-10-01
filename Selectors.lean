@@ -9,3 +9,6 @@ import Selectors.Spec.AnB
 import Selectors.Spec.Token
 import Selectors.Spec.TokenSound
 import Selectors.Spec.TokenDeterministic
+import Selectors.Spec.Scan
+import Selectors.Spec.ScanStep
+import Selectors.Spec.ScanSound

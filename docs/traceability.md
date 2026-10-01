@@ -375,7 +375,7 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | --- | --- | --- | --- | --- | --- |
 | tokenization | CSS Syntax §3.3・§4 | `tokenize`（`Selectors/Token.lean`） | `tokenAt_le`, `nextToken_lt`（停止性）、`TokenizesInput.iff_tokenize` ほか（関係意味論、`Selectors/Spec/Token*.lean`） | `escapes-in-selectors`, `escape-out-of-range-is-replacement`, `string-backslash-newline-continues` ほか | 済（url-token / unicode-range-token は対象外） |
 | consume a list of component values | CSS Syntax §5.4.6 | `toComponents`（`Selectors/Component.lean`） | `splitBlock_size` | `unclosed-block-is-closed-at-eof` | 済 |
-| `parse a selector` | Selectors §19.1 | `parseSelector`（`Selectors/Parser.lean`） | `dropToComma_size`, `splitAtOf_size`（停止性） | `universal-selector-takes-subclasses`, `id-selector-needs-an-identifier` | 部分（namespace prefix と pseudo-element は対象外） |
+| `parse a selector` | Selectors §19.1 | `parseSelector`（`Selectors/Parser.lean`） | `dropToComma_size`, `splitAtOf_size`（停止性）、`parseSelector_spec`, `scan_spec`（関係意味論、`Selectors/Spec/Scan*.lean`） | `universal-selector-takes-subclasses`, `id-selector-needs-an-identifier` | 部分（namespace prefix と pseudo-element は対象外） |
 | `<a-n-plus-b>` の構文 | CSS Syntax §9.2 | `parseAnB` | — | `structural-pseudo-classes-count-elements` | 済 |
 | `<a-n-plus-b>` が表す index | CSS Syntax §9.1 | `anbMatches` | `anbMatches_iff`（関係意味論） | `nth-child-with-negative-coefficient` | 済 |
 | match a selector against an element | Selectors §17.1 | `matchSelList`（`Dom/Selector/Match.lean`） | `sSize_lt_cpSize`, `cxSize_lt_lSize`（停止性）、`matchSelList_iff_spec`, `matchSimple_iff_spec`, `mem_matchTree_iff_spec`（関係意味論、`Dom/Spec/SelectorMatch.lean`） | `structural-pseudo-classes-count-elements` | 部分（状態の pseudo-class は対象外） |
