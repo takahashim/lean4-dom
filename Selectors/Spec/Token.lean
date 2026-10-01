@@ -326,4 +326,117 @@ def IdentLikeTok (input : List Char) (t : Token) (rest : List Char) : Prop :=
     ((r = '(' :: rest ∧ t = Token.function (String.ofList s)) ∨
      (r[0]? ≠ some '(' ∧ t = Token.ident (String.ofList s) ∧ rest = r))
 
+/-! ## token を一つ読む（§4.3.1 "consume a token"）
+
+`TokenAt c rest t out`：comment を読み飛ばしたあと一文字 `c` を読み、後ろが `rest` のとき、
+token `t` を作って残りが `out`。規則は本文の switch の分岐に一対一で対応する。
+
+本文との差：`unicode ranges allowed` は常に false なので、`U`/`u` は ident-start code point の
+分岐に入る。入力が尽きたとき（EOF token）は `Tokenizes` の側で扱う。
+-/
+
+/-- 一文字がそのまま token になる code point。 -/
+inductive Punct : Char → Token → Prop where
+  | lparen : Punct '(' Token.lparen
+  | rparen : Punct ')' Token.rparen
+  | comma : Punct ',' Token.comma
+  | colon : Punct ':' Token.colon
+  | semicolon : Punct ';' Token.semicolon
+  | lbracket : Punct '[' Token.lbracket
+  | rbracket : Punct ']' Token.rbracket
+  | lbrace : Punct '{' Token.lbrace
+  | rbrace : Punct '}' Token.rbrace
+
+/-- `rest` の先頭の whitespace を続く限り読むと残りが `out`。 -/
+def WhitespaceRun (rest out : List Char) : Prop :=
+  ∃ ws, rest = ws ++ out ∧ (∀ w ∈ ws, Whitespace w) ∧ ∀ x, out[0]? = some x → ¬ Whitespace x
+
+/-- switch のどの名前付きの分岐にも当たらない code point（本文の "anything else"）。 -/
+def OtherCp (c : Char) : Prop :=
+  ¬ Whitespace c ∧ ¬ Digit c ∧ ¬ IdentStartCp c ∧
+    c ∉ ['"', '#', '\'', '(', ')', '+', ',', '-', '.', ':', ';', '<', '@', '[', '\\', ']', '{', '}']
+
+inductive TokenAt : Char → List Char → Token → List Char → Prop where
+  /-- whitespace：続く whitespace をすべて読む。 -/
+  | whitespace {c : Char} {rest out : List Char} (hc : Whitespace c) (hw : WhitespaceRun rest out) :
+      TokenAt c rest Token.whitespace out
+  /-- `"` と `'`：string token。 -/
+  | string {c : Char} {rest out : List Char} {t : Token} (hc : c = '"' ∨ c = '\'')
+      (hs : StringTok c rest t out) :
+      TokenAt c rest t out
+  /-- `#` に ident code point か valid escape が続く：hash token。type flag は §4.3.9 で決める。 -/
+  | hash {rest s out : List Char} {isId : Bool}
+      (h : (∃ x, rest[0]? = some x ∧ IdentCp x) ∨ StartsValidEscape rest)
+      (hid : isId = true ↔ StartsIdent rest) (hs : IdentSeq rest s out) :
+      TokenAt '#' rest (Token.hash (String.ofList s) isId) out
+  /-- `#` のそれ以外：delim。 -/
+  | hashDelim {rest : List Char}
+      (h : ¬ ((∃ x, rest[0]? = some x ∧ IdentCp x) ∨ StartsValidEscape rest)) :
+      TokenAt '#' rest (Token.delim '#') rest
+  /-- 一文字の token。 -/
+  | punct {c : Char} {rest : List Char} {t : Token} (h : Punct c t) : TokenAt c rest t rest
+  /-- `+`・`-`・`.` が number を始める：numeric token。 -/
+  | numericSign {c : Char} {rest out : List Char} {t : Token} (hc : c = '+' ∨ c = '-' ∨ c = '.')
+      (hn : StartsNumber (c :: rest)) (ht : NumericTok (c :: rest) t out) :
+      TokenAt c rest t out
+  /-- `+` と `.` のそれ以外：delim。 -/
+  | signDelim {c : Char} {rest : List Char} (hc : c = '+' ∨ c = '.')
+      (hn : ¬ StartsNumber (c :: rest)) :
+      TokenAt c rest (Token.delim c) rest
+  /-- `-` に `->` が続く：CDC token。 -/
+  | cdc {out : List Char} (hn : ¬ StartsNumber ('-' :: '-' :: '>' :: out)) :
+      TokenAt '-' ('-' :: '>' :: out) Token.cdc out
+  /-- `-` が ident sequence を始める：ident-like token。 -/
+  | hyphenIdent {rest out : List Char} {t : Token} (hn : ¬ StartsNumber ('-' :: rest))
+      (hc : ¬ ∃ r, rest = '-' :: '>' :: r) (hi : StartsIdent ('-' :: rest))
+      (ht : IdentLikeTok ('-' :: rest) t out) :
+      TokenAt '-' rest t out
+  /-- `-` のそれ以外：delim。 -/
+  | hyphenDelim {rest : List Char} (hn : ¬ StartsNumber ('-' :: rest))
+      (hc : ¬ ∃ r, rest = '-' :: '>' :: r) (hi : ¬ StartsIdent ('-' :: rest)) :
+      TokenAt '-' rest (Token.delim '-') rest
+  /-- `<` に `!--` が続く：CDO token。 -/
+  | cdo {out : List Char} : TokenAt '<' ('!' :: '-' :: '-' :: out) Token.cdo out
+  /-- `<` のそれ以外：delim。 -/
+  | ltDelim {rest : List Char} (h : ¬ ∃ r, rest = '!' :: '-' :: '-' :: r) :
+      TokenAt '<' rest (Token.delim '<') rest
+  /-- `@` が ident sequence を始める：at-keyword token。 -/
+  | atKeyword {rest s out : List Char} (hi : StartsIdent rest) (hs : IdentSeq rest s out) :
+      TokenAt '@' rest (Token.atKeyword (String.ofList s)) out
+  /-- `@` のそれ以外：delim。 -/
+  | atDelim {rest : List Char} (hi : ¬ StartsIdent rest) :
+      TokenAt '@' rest (Token.delim '@') rest
+  /-- `\` が valid escape：ident-like token。 -/
+  | backslashIdent {rest out : List Char} {t : Token} (hv : StartsValidEscape ('\\' :: rest))
+      (ht : IdentLikeTok ('\\' :: rest) t out) :
+      TokenAt '\\' rest t out
+  /-- `\` のそれ以外（parse error）：delim。 -/
+  | backslashDelim {rest : List Char} (hv : ¬ StartsValidEscape ('\\' :: rest)) :
+      TokenAt '\\' rest (Token.delim '\\') rest
+  /-- digit：numeric token。 -/
+  | digit {c : Char} {rest out : List Char} {t : Token} (hc : Digit c)
+      (ht : NumericTok (c :: rest) t out) :
+      TokenAt c rest t out
+  /-- ident-start code point：ident-like token。 -/
+  | identStart {c : Char} {rest out : List Char} {t : Token} (hc : IdentStartCp c)
+      (ht : IdentLikeTok (c :: rest) t out) :
+      TokenAt c rest t out
+  /-- anything else：delim。 -/
+  | other {c : Char} {rest : List Char} (hc : OtherCp c) : TokenAt c rest (Token.delim c) rest
+
+/-! ## token 列（§4） -/
+
+/-- `Tokenizes l ts`：前処理済みの `l` を、comment を挟みながら token に切ると `ts`。 -/
+inductive Tokenizes : List Char → List Token → Prop where
+  /-- comment を読み飛ばすと入力が尽きる。 -/
+  | eof {l : List Char} (h : Comments l []) : Tokenizes l []
+  /-- comment を読み飛ばし、一文字読んで token を一つ作る。 -/
+  | step {l rest out : List Char} {c : Char} {t : Token} {ts : List Token}
+      (hc : Comments l (c :: rest)) (ht : TokenAt c rest t out) (ih : Tokenizes out ts) :
+      Tokenizes l (t :: ts)
+
+/-- 文字列 `input` を tokenize すると `ts`。前処理（§3.3）から始める。 -/
+def TokenizesInput (input : String) (ts : List Token) : Prop :=
+  ∃ l, Preprocessed input.toList l ∧ Tokenizes l ts
+
 end Selectors.Spec

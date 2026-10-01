@@ -1108,6 +1108,15 @@ open Dom.Audit
   Selectors.Spec.consumeIdentLike_spec
   Selectors.Spec.IdentLikeTok.deterministic
   Selectors.Spec.IdentLikeTok.iff_consumeIdentLike
+  Selectors.Spec.simpleToken_iff
+  Selectors.Spec.skipWhitespace_spec
+  Selectors.Spec.tokenAt_spec
+  Selectors.Spec.TokenAt.complete
+  Selectors.Spec.TokenAt.deterministic
+  Selectors.Spec.TokenAt.iff_tokenAt
+  Selectors.Spec.tokenize_spec
+  Selectors.Spec.Tokenizes.deterministic
+  Selectors.Spec.TokenizesInput.iff_tokenize
 
 -- selector の API が満たすこと
 #audit_axioms

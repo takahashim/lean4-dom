@@ -5353,6 +5353,61 @@ makiri `0.12.0` へ上げて緑になった。
 そのままである。あれは scenario の名前で引くので、名前がランダムな生成 scenario には
 当たらない（digest も node id を含むので当たらない）。
 
+## CSS tokenizer の関係意味論
+
+`Selectors/Token.lean`（CSS Syntax Level 3 §3.3・§4）に関係仕様を付けた。
+Dommy の selector の findings は 11 件中 7 件（21・23・26・29-32）が tokenizer の段で
+割れていたのに、tokenizer は Selectors でいちばん大きい file で、関係が一つも無かった。
+差分テストで tokenizer に起因する不一致が出たとき、本文のどの分岐で割れたかを
+名指しできるようにするのが目的である。
+
+| file | 内容 |
+| --- | --- |
+| `Selectors/Spec/Token.lean` | 関係。本文のアルゴリズムごとに一つ、分岐ごとに一つの規則 |
+| `Selectors/Spec/TokenSound.lean` | 実行関数が関係を満たす（`tokenize_spec` ほか） |
+| `Selectors/Spec/TokenDeterministic.lean` | 関係が一意で、実行関数を特徴づける（`TokenizesInput.iff_tokenize` ほか） |
+
+関係は `Selectors/Token.lean` の関数を呼ばない。code point の分類も `Infra.Ascii` ではなく
+§4.2 の定義から書き写した。`Token.lean` から使うのは型 `Token` / `Num` だけである。
+
+| 関係 | 本文 | 実行関数 |
+| --- | --- | --- |
+| `Preprocessed` | §3.3 filter code points | `filterCodePoints` |
+| `Digit` `HexDigit` `IdentStartCp` `IdentCp` `NonAsciiIdentCp` `Whitespace` | §4.2 | `isAsciiDigit` ほか（`↔`） |
+| `ValidEscape` `WouldStartIdent` `WouldStartNumber` | §4.3.8–§4.3.10 | `startsValidEscape` ほか（`↔`） |
+| `Escape`（`HexNumber` `EscapedValue`） | §4.3.7 | `consumeEscape` |
+| `IdentSeq` | §4.3.12 | `consumeIdentSeq` |
+| `StringRun` / `StringTok` | §4.3.5 | `stringAux` |
+| `Comments`（`CommentBody`） | §4.3.2 | `skipComments` |
+| `Number`（`SignPart` `DigitRun` `FractionPart` `ExponentPart` `DecimalNumber`） | §4.3.13 | `consumeNumber` |
+| `NumericTok` / `IdentLikeTok` | §4.3.3 / §4.3.4 | `consumeNumericToken` / `consumeIdentLike` |
+| `TokenAt`（`Punct` `WhitespaceRun` `OtherCp`） | §4.3.1 の switch | `tokenAt` |
+| `Tokenizes` / `TokenizesInput` | §4 | `tokenize` |
+
+「最初の `*/` まで」（`CommentBody`）や「digit が続く限り」（`DigitRun`）のような最長一致は、
+走査を写さずに「分け方と、その後ろが続かないこと」として書いてある。
+`TokenAt` は規則が 19 あるので、一意性は規則の組ごとの排他ではなく、各規則から `tokenAt` の値を
+直接計算する `TokenAt.complete` から出した。
+
+本文との差は `Token.lean` 冒頭と同じで、関係の側にも書いてある。
+`<url-token>` と unicode-range を作らない、surrogate の前処理が無い、
+number は整数のときだけ本文どおりの値を持つ、percentage token が type flag を持つ、の四つである。
+
+### 副産物
+
+* `Token.lean` の § 番号が pin した版とずれていた。`startsValidEscape` は §4.3.8（§4.3.10 と書いていた）、
+  `startsIdentSeq` は §4.3.9（§4.3.11）、`startsNumber` は §4.3.10（§4.3.12）。
+  本文 §「findings 26」の §4.3.11 も §4.3.9 に直した。
+* 関係を書く途中で、model の tokenizer に本文との食い違いは見つからなかった。
+
+### 残り
+
+* **生成器が tokenizer の大半に届いていない。** `test/generate.rb` の selector は固定の語彙から
+  組み立てるので、escape は `.\76 v` など 3 つだけで、comment・`#1`・`.--foo`・string の escape と
+  改行・指数表記・NULL・CR/FF・非 ASCII を作らない。comment・`#1`・`.--foo` は findings 30・21・26 に
+  必ず当たるので外してあったが、Dommy `a0d8736` で直ったので戻せる。
+* 差分テストの出力に、どの規則で割れたかを自動で出す仕組みは無い。名指しは人が関係を読んで行う。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

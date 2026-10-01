@@ -5,6 +5,9 @@ import Infra.Ascii
 
 selector を読むのに要る範囲の tokenizer。版は `docs/selectors-spec-version.md` に固定してある。
 
+関係仕様は `Selectors/Spec/Token.lean` にあり、`Selectors/Spec/TokenDeterministic.lean` の
+`TokenizesInput.iff_tokenize` がこの tokenizer を特徴づける。
+
 ## 仕様との差
 
 * **`<url-token>` と `<bad-url-token>` を作らない。** `url(` は普通の function-token として

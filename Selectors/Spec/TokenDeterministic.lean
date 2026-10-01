@@ -10,7 +10,7 @@ import Selectors.Spec.TokenSound
 
 namespace Selectors.Spec
 
-open Selectors
+open Selectors Infra
 
 /-- `Preprocessed` は結果を一意に決める。 -/
 theorem Preprocessed.deterministic : ∀ {l o1 o2 : List Char},
@@ -441,5 +441,242 @@ theorem StringTok.iff_stringAux {e : Char} {l : List Char} {t : Token} {r : List
 theorem Comments.iff_skipComments {l o : List Char} : Comments l o ↔ o = skipComments l :=
   ⟨fun h => Comments.deterministic h (skipComments_spec l),
    fun h => h ▸ skipComments_spec l⟩
+
+/-! ## token を一つ読む
+
+`TokenAt` は規則が多いので、組ごとの排他ではなく、各規則から `tokenAt` の値を直接計算する
+（`TokenAt.complete`）。一意性はそこから従う。
+-/
+
+theorem WhitespaceRun.deterministic {l o1 o2 : List Char}
+    (h1 : WhitespaceRun l o1) (h2 : WhitespaceRun l o2) : o1 = o2 := by
+  obtain ⟨ws1, hs1, ha1, hm1⟩ := h1
+  obtain ⟨ws2, hs2, ha2, hm2⟩ := h2
+  have h := hs1.symm.trans hs2
+  rcases List.append_eq_append_iff.mp h with ⟨a', h2', h1'⟩ | ⟨c', h1'', h2'⟩
+  · match a', h2', h1' with
+    | [], _, h1' => simpa using h1'
+    | x :: _, h2', h1' => exact absurd (ha2 x (by simp [h2'])) (hm1 x (by simp [h1']))
+  · match c', h1'', h2' with
+    | [], _, h2' => simpa using h2'.symm
+    | x :: _, h1'', h2' => exact absurd (ha1 x (by simp [h1''])) (hm2 x (by simp [h2']))
+
+set_option linter.unusedSimpArgs false in
+theorem tokenAt_of_digit {c : Char} {rest : List Char} (hc : Digit c) :
+    tokenAt c rest = consumeNumericToken (c :: rest) := by
+  unfold Digit at hc
+  have n0 : c ≠ '\t' := by intro h; subst h; simp at hc
+  have n1 : c ≠ '\n' := by intro h; subst h; simp at hc
+  have n2 : c ≠ ' ' := by intro h; subst h; simp at hc
+  have n3 : c ≠ '"' := by intro h; subst h; simp at hc
+  have n4 : c ≠ '\'' := by intro h; subst h; simp at hc
+  have n5 : c ≠ ',' := by intro h; subst h; simp at hc
+  have n6 : c ≠ ':' := by intro h; subst h; simp at hc
+  have n7 : c ≠ ';' := by intro h; subst h; simp at hc
+  have n8 : c ≠ '(' := by intro h; subst h; simp at hc
+  have n9 : c ≠ ')' := by intro h; subst h; simp at hc
+  have n10 : c ≠ '[' := by intro h; subst h; simp at hc
+  have n11 : c ≠ ']' := by intro h; subst h; simp at hc
+  have n12 : c ≠ '{' := by intro h; subst h; simp at hc
+  have n13 : c ≠ '}' := by intro h; subst h; simp at hc
+  have n14 : c ≠ '#' := by intro h; subst h; simp at hc
+  have n15 : c ≠ '+' := by intro h; subst h; simp at hc
+  have n16 : c ≠ '.' := by intro h; subst h; simp at hc
+  have n17 : c ≠ '-' := by intro h; subst h; simp at hc
+  have n18 : c ≠ '<' := by intro h; subst h; simp at hc
+  have n19 : c ≠ '@' := by intro h; subst h; simp at hc
+  have n20 : c ≠ '\\' := by intro h; subst h; simp at hc
+  have hd : isAsciiDigit c = true := (isAsciiDigit_iff c).mpr hc
+  simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, hd]
+
+set_option linter.unusedSimpArgs false in
+theorem tokenAt_of_identStart {c : Char} {rest : List Char} (hc : IdentStartCp c) :
+    tokenAt c rest = consumeIdentLike (c :: rest) := by
+  unfold IdentStartCp Letter NonAsciiIdentCp at hc
+  dsimp only at hc
+  have n0 : c ≠ '\t' := by intro h; subst h; simp at hc
+  have n1 : c ≠ '\n' := by intro h; subst h; simp at hc
+  have n2 : c ≠ ' ' := by intro h; subst h; simp at hc
+  have n3 : c ≠ '"' := by intro h; subst h; simp at hc
+  have n4 : c ≠ '\'' := by intro h; subst h; simp at hc
+  have n5 : c ≠ ',' := by intro h; subst h; simp at hc
+  have n6 : c ≠ ':' := by intro h; subst h; simp at hc
+  have n7 : c ≠ ';' := by intro h; subst h; simp at hc
+  have n8 : c ≠ '(' := by intro h; subst h; simp at hc
+  have n9 : c ≠ ')' := by intro h; subst h; simp at hc
+  have n10 : c ≠ '[' := by intro h; subst h; simp at hc
+  have n11 : c ≠ ']' := by intro h; subst h; simp at hc
+  have n12 : c ≠ '{' := by intro h; subst h; simp at hc
+  have n13 : c ≠ '}' := by intro h; subst h; simp at hc
+  have n14 : c ≠ '#' := by intro h; subst h; simp at hc
+  have n15 : c ≠ '+' := by intro h; subst h; simp at hc
+  have n16 : c ≠ '.' := by intro h; subst h; simp at hc
+  have n17 : c ≠ '-' := by intro h; subst h; simp at hc
+  have n18 : c ≠ '<' := by intro h; subst h; simp at hc
+  have n19 : c ≠ '@' := by intro h; subst h; simp at hc
+  have n20 : c ≠ '\\' := by intro h; subst h; simp at hc
+  have hd : isAsciiDigit c = false := by
+    rw [Bool.eq_false_iff]; intro h
+    have := (isAsciiDigit_iff c).mp h; unfold Digit at this
+    rcases hc with hc | hc | rfl
+    · omega
+    · omega
+    · simp at this
+  have hi : isIdentStart c = true := (isIdentStart_iff c).mpr hc
+  simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, hd, hi]
+
+set_option linter.unusedSimpArgs false in
+theorem tokenAt_of_other {c : Char} {rest : List Char} (hc : OtherCp c) :
+    tokenAt c rest = (Token.delim c, rest) := by
+  obtain ⟨hw, hd, hi, hl⟩ := hc
+  simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at hl
+  unfold Whitespace Newline at hw
+  simp only [not_or] at hw
+  have hd' : isAsciiDigit c = false := by
+    rw [Bool.eq_false_iff]; exact fun h => hd ((isAsciiDigit_iff c).mp h)
+  have hi' : isIdentStart c = false := by
+    rw [Bool.eq_false_iff]; exact fun h => hi ((isIdentStart_iff c).mp h)
+  simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hd', hi', hw, hl]
+
+set_option linter.unusedSimpArgs false in
+/-- **`TokenAt` が成り立つなら、`tokenAt` はその token と残りを返す。** -/
+theorem TokenAt.complete {c : Char} {rest out : List Char} {t : Token}
+    (h : TokenAt c rest t out) : (t, out) = tokenAt c rest := by
+  cases h with
+  | whitespace hc hw =>
+    rw [tokenAt, if_pos ((isWhitespace_iff c).mpr hc)]
+    rw [WhitespaceRun.deterministic hw (skipWhitespace_spec rest)]
+  | string hc hs =>
+    have := StringTok.iff_stringAux.mp hs
+    rcases hc with rfl | rfl <;> simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash] <;> exact this
+  | hash hcond hid hs =>
+    have hseq := IdentSeq.iff_consumeIdentSeq.mp hs
+    obtain rfl : _ = (consumeIdentSeq rest).1 := congrArg Prod.fst hseq
+    obtain rfl : _ = (consumeIdentSeq rest).2 := congrArg Prod.snd hseq
+    have hb : ((rest.head?.map isIdentChar).getD false || startsValidEscape rest) = true :=
+      (hashCond_iff rest).mpr hcond
+    have hid' : startsIdentSeq rest = _ := Bool.eq_iff_iff.mpr ((startsIdentSeq_iff rest).trans hid.symm)
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hb, hid']
+  | hashDelim hcond =>
+    have hb : ((rest.head?.map isIdentChar).getD false || startsValidEscape rest) = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hcond ((hashCond_iff rest).mp h)
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hb]
+  | punct hp =>
+    cases hp <;> simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash]
+  | numericSign hc hn ht =>
+    have hn' := (startsNumber_iff _).mpr hn
+    have := NumericTok.iff_consumeNumericToken.mp ht
+    rcases hc with rfl | rfl | rfl <;> simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hn'] <;> exact this
+  | signDelim hc hn =>
+    have hn' : startsNumber (c :: rest) = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hn ((startsNumber_iff _).mp h)
+    rcases hc with rfl | rfl <;> simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hn']
+  | cdc hn =>
+    have hn' : startsNumber ('-' :: '-' :: '>' :: out) = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hn ((startsNumber_iff _).mp h)
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hn', startsCdc, ch_gt]
+  | hyphenIdent hn hc hi ht =>
+    have hn' : startsNumber ('-' :: rest) = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hn ((startsNumber_iff _).mp h)
+    have hc' : startsCdc rest = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hc ((startsCdc_iff rest).mp h)
+    have hi' := (startsIdentSeq_iff _).mpr hi
+    have := IdentLikeTok.iff_consumeIdentLike.mp ht
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hn', hc', hi']; exact this
+  | hyphenDelim hn hc hi =>
+    have hn' : startsNumber ('-' :: rest) = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hn ((startsNumber_iff _).mp h)
+    have hc' : startsCdc rest = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hc ((startsCdc_iff rest).mp h)
+    have hi' : startsIdentSeq ('-' :: rest) = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hi ((startsIdentSeq_iff _).mp h)
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hn', hc', hi']
+  | cdo => simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, startsCdo, ch_bang]
+  | ltDelim hc =>
+    have hc' : startsCdo rest = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hc ((startsCdo_iff rest).mp h)
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hc']
+  | atKeyword hi hs =>
+    have hseq := IdentSeq.iff_consumeIdentSeq.mp hs
+    obtain rfl : _ = (consumeIdentSeq rest).1 := congrArg Prod.fst hseq
+    obtain rfl : _ = (consumeIdentSeq rest).2 := congrArg Prod.snd hseq
+    have hi' := (startsIdentSeq_iff _).mpr hi
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hi']
+  | atDelim hi =>
+    have hi' : startsIdentSeq rest = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hi ((startsIdentSeq_iff _).mp h)
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hi']
+  | backslashIdent hv ht =>
+    have hv' := (startsValidEscape_iff _).mpr hv
+    have := IdentLikeTok.iff_consumeIdentLike.mp ht
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hv']; exact this
+  | backslashDelim hv =>
+    have hv' : startsValidEscape ('\\' :: rest) = false := by
+      rw [Bool.eq_false_iff]; exact fun h => hv ((startsValidEscape_iff _).mp h)
+    simp [tokenAt, isWhitespace, simpleToken, ch_lf, ch_tab, ch_space, ch_quote, ch_apos, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at, ch_backslash, hv']
+  | digit hc ht =>
+    rw [tokenAt_of_digit hc]; exact NumericTok.iff_consumeNumericToken.mp ht
+  | identStart hc ht =>
+    rw [tokenAt_of_identStart hc]; exact IdentLikeTok.iff_consumeIdentLike.mp ht
+  | other hc => rw [tokenAt_of_other hc]
+
+/-- `TokenAt` は結果を一意に決める。 -/
+theorem TokenAt.deterministic {c : Char} {rest o1 o2 : List Char} {t1 t2 : Token}
+    (h1 : TokenAt c rest t1 o1) (h2 : TokenAt c rest t2 o2) : t1 = t2 ∧ o1 = o2 := by
+  have := h1.complete.trans h2.complete.symm
+  simp only [Prod.mk.injEq] at this
+  exact this
+
+/-- **token を一つ読む関係と `tokenAt` は一致する。** -/
+theorem TokenAt.iff_tokenAt {c : Char} {rest out : List Char} {t : Token} :
+    TokenAt c rest t out ↔ (t, out) = tokenAt c rest := by
+  constructor
+  · exact TokenAt.complete
+  · intro h
+    have := tokenAt_spec c rest
+    rw [← h] at this
+    exact this
+
+/-! ## token 列 -/
+
+theorem Tokenizes.tokenizeAux_eq {l : List Char} {ts : List Token} (h : Tokenizes l ts) :
+    ∀ acc, tokenizeAux acc l = acc.reverse ++ ts := by
+  induction h with
+  | eof hc =>
+    intro acc
+    have hs := Comments.iff_skipComments.mp hc
+    rw [tokenizeAux]; split
+    · simp
+    · next heq => unfold nextToken at heq; rw [← hs] at heq; cases heq
+  | step hc ht ih1 ih =>
+    intro acc
+    rename_i l rest out c t ts
+    have hs := Comments.iff_skipComments.mp hc
+    have hn : nextToken l = some (t, out) := by
+      unfold nextToken; rw [← hs]; exact congrArg some ht.complete.symm
+    rw [tokenizeAux]; split
+    · next heq => rw [hn] at heq; cases heq
+    · next t' r' heq =>
+      rw [hn] at heq; cases heq
+      rw [ih]; simp
+
+/-- `Tokenizes` は結果を一意に決める。 -/
+theorem Tokenizes.deterministic {l : List Char} {ts1 ts2 : List Token}
+    (h1 : Tokenizes l ts1) (h2 : Tokenizes l ts2) : ts1 = ts2 := by
+  have e1 := h1.tokenizeAux_eq []
+  have e2 := h2.tokenizeAux_eq []
+  simpa using e1.symm.trans e2
+
+/-- **tokenizer の関係と `tokenize` は一致する。** -/
+theorem TokenizesInput.iff_tokenize {input : String} {ts : List Token} :
+    TokenizesInput input ts ↔ ts = tokenize input := by
+  constructor
+  · rintro ⟨l, hp, ht⟩
+    have hl := Preprocessed.eq_filterCodePoints_iff.mp hp
+    subst hl
+    have := ht.tokenizeAux_eq []
+    simp only [List.reverse_nil, List.nil_append] at this
+    unfold tokenize; rw [this]
+  · rintro rfl; exact tokenize_spec input
 
 end Selectors.Spec

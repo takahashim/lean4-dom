@@ -28,6 +28,21 @@ theorem ch_upper_e : CH_UPPER_E = 'E' := by decide
 theorem ch_lower_e : CH_LOWER_E = 'e' := by decide
 theorem ch_percent : CH_PERCENT = '%' := by decide
 theorem ch_lparen : CH_LPAREN = '(' := by decide
+theorem ch_comma : CH_COMMA = ',' := by decide
+theorem ch_colon : CH_COLON = ':' := by decide
+theorem ch_semicolon : CH_SEMICOLON = ';' := by decide
+theorem ch_rparen : CH_RPAREN = ')' := by decide
+theorem ch_lbracket : CH_LBRACKET = '[' := by decide
+theorem ch_rbracket : CH_RBRACKET = ']' := by decide
+theorem ch_lbrace : CH_LBRACE = '{' := by decide
+theorem ch_rbrace : CH_RBRACE = '}' := by decide
+theorem ch_quote : CH_QUOTE = '"' := by decide
+theorem ch_apos : CH_APOS = '\'' := by decide
+theorem ch_hash : CH_HASH = '#' := by decide
+theorem ch_lt : CH_LT = '<' := by decide
+theorem ch_at : CH_AT = '@' := by decide
+theorem ch_gt : CH_GT = '>' := by decide
+theorem ch_bang : CH_BANG = '!' := by decide
 
 theorem not_identStart_hyphen : ¬ IdentStartCp '-' := by
   simp [IdentStartCp, Letter, NonAsciiIdentCp]
@@ -659,5 +674,205 @@ theorem consumeIdentLike_spec (l : List Char) :
     · intro h; apply hp; cases r <;> simp_all [ch_lparen]
     · simp only [consumeIdentLike, hr]; simp [hp]
     · simp only [consumeIdentLike, hr]; simp [hp]
+
+/-! ## token を一つ読む -/
+
+theorem skipWhitespace_spec : ∀ l : List Char, WhitespaceRun l (skipWhitespace l)
+  | [] => ⟨[], by simp [skipWhitespace], by simp, by simp [skipWhitespace]⟩
+  | c :: rest => by
+    by_cases hc : isWhitespace c = true
+    · obtain ⟨ws, h1, h2, h3⟩ := skipWhitespace_spec rest
+      refine ⟨c :: ws, ?_, ?_, ?_⟩
+      · rw [skipWhitespace, if_pos hc]; simp [← h1]
+      · intro w hw; simp at hw
+        rcases hw with rfl | hw
+        · exact (isWhitespace_iff _).mp hc
+        · exact h2 w hw
+      · rw [skipWhitespace, if_pos hc]; exact h3
+    · refine ⟨[], by rw [skipWhitespace, if_neg hc]; simp, by simp, ?_⟩
+      rw [skipWhitespace, if_neg hc]
+      intro x hx; simp at hx; subst hx
+      exact fun h => hc ((isWhitespace_iff _).mpr h)
+
+
+set_option linter.unusedSimpArgs false in
+theorem simpleToken_iff (c : Char) (t : Token) : simpleToken c = some t ↔ Punct c t := by
+  constructor
+  · intro h
+    by_cases h0 : c = ','
+    · subst h0; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .comma
+    by_cases h1 : c = ':'
+    · subst h1; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .colon
+    by_cases h2 : c = ';'
+    · subst h2; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .semicolon
+    by_cases h3 : c = '('
+    · subst h3; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .lparen
+    by_cases h4 : c = ')'
+    · subst h4; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .rparen
+    by_cases h5 : c = '['
+    · subst h5; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .lbracket
+    by_cases h6 : c = ']'
+    · subst h6; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .rbracket
+    by_cases h7 : c = '{'
+    · subst h7; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .lbrace
+    by_cases h8 : c = '}'
+    · subst h8; simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace] at h; subst h; exact .rbrace
+    simp [simpleToken, ch_comma, ch_colon, ch_semicolon, ch_lparen, ch_rparen, ch_lbracket, ch_rbracket, ch_lbrace, ch_rbrace, h0, h1, h2, h3, h4, h5, h6, h7, h8] at h
+  · intro h; cases h <;> rfl
+
+
+theorem startsCdc_iff (l : List Char) : startsCdc l = true ↔ ∃ r, l = '-' :: '>' :: r := by
+  match l with
+  | [] => simp [startsCdc]
+  | [x] => simp [startsCdc]
+  | x :: y :: r => simp [startsCdc, ch_hyphen, ch_gt]
+
+theorem startsCdo_iff (l : List Char) : startsCdo l = true ↔ ∃ r, l = '!' :: '-' :: '-' :: r := by
+  match l with
+  | [] => simp [startsCdo]
+  | [x] => simp [startsCdo]
+  | [x, y] => simp [startsCdo]
+  | x :: y :: z :: r => simp [startsCdo, ch_hyphen, ch_bang, and_assoc]
+
+theorem hashCond_iff (rest : List Char) :
+    ((rest.head?.map isIdentChar).getD false || startsValidEscape rest) = true ↔
+      ((∃ x, rest[0]? = some x ∧ IdentCp x) ∨ StartsValidEscape rest) := by
+  rw [Bool.or_eq_true, startsValidEscape_iff]
+  cases rest <;> simp [isIdentChar_iff]
+
+/-- **`tokenAt` は `TokenAt` を満たす。** -/
+theorem tokenAt_spec (c : Char) (rest : List Char) :
+    TokenAt c rest (tokenAt c rest).1 (tokenAt c rest).2 := by
+  rw [tokenAt]
+  split
+  · next hw => exact .whitespace ((isWhitespace_iff c).mp hw) (skipWhitespace_spec rest)
+  next hw =>
+  split
+  · next hq =>
+    have : c = '"' ∨ c = '\'' := by simpa [ch_quote, ch_apos] using hq
+    exact .string this (stringAux_tok_spec c rest)
+  next hq =>
+  split
+  · next t ht => exact .punct ((simpleToken_iff c t).mp ht)
+  next hnone =>
+  have hp : ∀ t, ¬ Punct c t := fun t h => by
+    rw [(simpleToken_iff c t).mpr h] at hnone; simp at hnone
+  split
+  · next hh =>
+    have : c = '#' := by simpa [ch_hash] using hh
+    subst this
+    split
+    · next hcond =>
+      exact .hash ((hashCond_iff rest).mp hcond) (startsIdentSeq_iff rest)
+        (consumeIdentSeq_spec rest)
+    · next hcond => exact .hashDelim (fun h => hcond ((hashCond_iff rest).mpr h))
+  next hh =>
+  split
+  · next hpd =>
+    have hpd' : c = '+' ∨ c = '.' := by simpa [ch_plus, ch_dot] using hpd
+    split
+    · next hn =>
+      exact .numericSign (by rcases hpd' with h | h <;> simp [h]) ((startsNumber_iff _).mp hn)
+        (consumeNumericToken_spec _)
+    · next hn => exact .signDelim hpd' (fun h => hn ((startsNumber_iff _).mpr h))
+  next hpd =>
+  split
+  · next hy =>
+    have : c = '-' := by simpa [ch_hyphen] using hy
+    subst this
+    split
+    · next hn =>
+      exact .numericSign (by simp) ((startsNumber_iff _).mp hn) (consumeNumericToken_spec _)
+    · next hn =>
+      have hn' : ¬ StartsNumber ('-' :: rest) := fun h => hn ((startsNumber_iff _).mpr h)
+      split
+      · next hcdc =>
+        obtain ⟨r, rfl⟩ := (startsCdc_iff rest).mp hcdc
+        exact .cdc hn'
+      · next hcdc =>
+        have hc' : ¬ ∃ r, rest = '-' :: '>' :: r := fun h => hcdc ((startsCdc_iff rest).mpr h)
+        split
+        · next hi =>
+          exact .hyphenIdent hn' hc' ((startsIdentSeq_iff _).mp hi) (consumeIdentLike_spec _)
+        · next hi => exact .hyphenDelim hn' hc' (fun h => hi ((startsIdentSeq_iff _).mpr h))
+  next hy =>
+  split
+  · next hl =>
+    have : c = '<' := by simpa [ch_lt] using hl
+    subst this
+    split
+    · next hcdo =>
+      obtain ⟨r, rfl⟩ := (startsCdo_iff rest).mp hcdo
+      exact .cdo
+    · next hcdo => exact .ltDelim (fun h => hcdo ((startsCdo_iff rest).mpr h))
+  next hl =>
+  split
+  · next ha =>
+    have : c = '@' := by simpa [ch_at] using ha
+    subst this
+    split
+    · next hi => exact .atKeyword ((startsIdentSeq_iff _).mp hi) (consumeIdentSeq_spec rest)
+    · next hi => exact .atDelim (fun h => hi ((startsIdentSeq_iff _).mpr h))
+  next ha =>
+  split
+  · next hb =>
+    have : c = '\\' := by simpa [ch_backslash] using hb
+    subst this
+    split
+    · next hv => exact .backslashIdent ((startsValidEscape_iff _).mp hv) (consumeIdentLike_spec _)
+    · next hv => exact .backslashDelim (fun h => hv ((startsValidEscape_iff _).mpr h))
+  next hb =>
+  split
+  · next hd => exact .digit ((isAsciiDigit_iff c).mp hd) (consumeNumericToken_spec _)
+  next hd =>
+  split
+  · next hi => exact .identStart ((isIdentStart_iff c).mp hi) (consumeIdentLike_spec _)
+  next hi =>
+  refine .other ⟨fun h => hw ((isWhitespace_iff c).mpr h),
+    fun h => hd ((isAsciiDigit_iff c).mpr h), fun h => hi ((isIdentStart_iff c).mpr h), ?_⟩
+  simp only [ch_quote, ch_apos, ch_hash, ch_plus, ch_dot, ch_hyphen, ch_lt, ch_at,
+    ch_backslash, Bool.or_eq_true, beq_iff_eq, not_or] at hq hh hpd hy hl ha hb
+  simp only [List.mem_cons, List.not_mem_nil, or_false, not_or]
+  refine ⟨hq.1, hh, hq.2, fun h => by subst h; exact hp _ Punct.lparen, fun h => by subst h; exact hp _ Punct.rparen, hpd.1,
+    fun h => by subst h; exact hp _ Punct.comma, hy, hpd.2, fun h => by subst h; exact hp _ Punct.colon,
+    fun h => by subst h; exact hp _ Punct.semicolon, hl, ha, fun h => by subst h; exact hp _ Punct.lbracket, hb,
+    fun h => by subst h; exact hp _ Punct.rbracket, fun h => by subst h; exact hp _ Punct.lbrace, fun h => by subst h; exact hp _ Punct.rbrace⟩
+
+/-! ## token 列 -/
+
+theorem tokenizeAux_spec (acc : List Token) (l : List Char) :
+    ∃ ts, tokenizeAux acc l = acc.reverse ++ ts ∧ Tokenizes l ts := by
+  induction acc, l using tokenizeAux.induct with
+  | case1 acc l h =>
+    refine ⟨[], ?_, ?_⟩
+    · rw [tokenizeAux]; split
+      · simp
+      · next heq => rw [h] at heq; cases heq
+    · unfold nextToken at h
+      split at h
+      · next hs => exact .eof (hs ▸ skipComments_spec l)
+      · cases h
+  | case2 acc l t r h ih =>
+    obtain ⟨ts, h1, h2⟩ := ih
+    refine ⟨t :: ts, ?_, ?_⟩
+    · rw [tokenizeAux]; split
+      · next heq => rw [h] at heq; cases heq
+      · next t' r' heq =>
+        rw [h] at heq; cases heq
+        rw [h1]; simp
+    · unfold nextToken at h
+      split at h
+      · cases h
+      · next c rest hs =>
+        simp only [Option.some.injEq] at h
+        have ht := tokenAt_spec c rest
+        rw [h] at ht
+        exact .step (hs ▸ skipComments_spec l) ht h2
+
+/-- **`tokenize` は `TokenizesInput` を満たす。** -/
+theorem tokenize_spec (input : String) : TokenizesInput input (tokenize input) := by
+  obtain ⟨ts, h1, h2⟩ := tokenizeAux_spec [] (filterCodePoints input.toList)
+  refine ⟨filterCodePoints input.toList, filterCodePoints_spec _, ?_⟩
+  unfold tokenize; rw [h1]; simpa using h2
 
 end Selectors.Spec
