@@ -246,6 +246,159 @@ theorem Comments.deterministic {l o1 o2 : List Char}
       subst this
       exact ih h2
 
+/-! ## number -/
+
+
+theorem DecimalNumber.deterministic_aux {a b : List Char} {v1 v2 : Nat}
+    (h1 : DecimalNumber a v1) (h2 : DecimalNumber b v2) (hab : a = b) : v1 = v2 := by
+  induction h1 generalizing b v2 with
+  | nil =>
+    cases h2 with
+    | nil => rfl
+    | snoc d h => simp at hab
+  | snoc d h ih =>
+    cases h2 with
+    | nil => simp at hab
+    | snoc d' h' =>
+      obtain ⟨hds, hd⟩ := List.append_inj' hab rfl
+      simp at hd
+      subst hd
+      rw [ih h' hds]
+
+theorem DecimalNumber.deterministic {ds : List Char} {v1 v2 : Nat}
+    (h1 : DecimalNumber ds v1) (h2 : DecimalNumber ds v2) : v1 = v2 :=
+  DecimalNumber.deterministic_aux h1 h2 rfl
+
+theorem DigitRun.deterministic {l ds1 ds2 r1 r2 : List Char}
+    (h1 : DigitRun l ds1 r1) (h2 : DigitRun l ds2 r2) : ds1 = ds2 ∧ r1 = r2 := by
+  obtain ⟨hs1, ha1, hm1⟩ := h1
+  obtain ⟨hs2, ha2, hm2⟩ := h2
+  have h := hs1.symm.trans hs2
+  have hds : ds1 = ds2 := by
+    rcases List.append_eq_append_iff.mp h with ⟨a', h2', h1'⟩ | ⟨c', h1'', h2'⟩
+    · match a', h2', h1' with
+      | [], h2', _ => simp [h2']
+      | x :: _, h2', h1' =>
+        exact absurd ⟨x, by simp [h1'], ha2 x (by simp [h2'])⟩ hm1
+    · match c', h1'', h2' with
+      | [], h1'', _ => simp [h1'']
+      | x :: _, h1'', h2' =>
+        exact absurd ⟨x, by simp [h2'], ha1 x (by simp [h1''])⟩ hm2
+  subst hds
+  exact ⟨rfl, List.append_cancel_left h⟩
+
+theorem SignPart.deterministic {l r1 r2 : List Char} {s1 s2 : Option Char}
+    (h1 : SignPart l s1 r1) (h2 : SignPart l s2 r2) : s1 = s2 ∧ r1 = r2 := by
+  rcases h1 with ⟨c, rfl, hc, rfl⟩ | ⟨hp, hm, rfl, rfl⟩ <;>
+    rcases h2 with ⟨c', h', hc', rfl⟩ | ⟨hp', hm', rfl, rfl⟩
+  · simp at h'; obtain ⟨rfl, rfl⟩ := h'; exact ⟨rfl, rfl⟩
+  · rcases hc with rfl | rfl <;> simp_all
+  · subst h'; rcases hc' with rfl | rfl <;> simp_all
+  · exact ⟨rfl, rfl⟩
+
+theorem FractionPart.deterministic {l r1 r2 : List Char} {f1 f2 : Bool}
+    (h1 : FractionPart l f1 r1) (h2 : FractionPart l f2 r2) : f1 = f2 ∧ r1 = r2 := by
+  rcases h1 with ⟨r, ds, hs, hl, hd, rfl⟩ | ⟨hs, rfl, rfl⟩ <;>
+    rcases h2 with ⟨r', ds', hs', hl', hd', rfl⟩ | ⟨hs', rfl, rfl⟩
+  · rw [hl] at hl'; simp at hl'; subst hl'
+    exact ⟨rfl, (DigitRun.deterministic hd hd').2⟩
+  · exact absurd hs hs'
+  · exact absurd hs' hs
+  · exact ⟨rfl, rfl⟩
+
+theorem ExponentPart.deterministic {l r1 r2 : List Char} {e1 e2 : Bool}
+    (h1 : ExponentPart l e1 r1) (h2 : ExponentPart l e2 r2) : e1 = e2 ∧ r1 = r2 := by
+  rcases h1 with ⟨e, r, r', ds, hs, hl, hsg, hd, rfl⟩ | ⟨hs, rfl, rfl⟩ <;>
+    rcases h2 with ⟨e', q, q', ds', hs', hl', hsg', hd', rfl⟩ | ⟨hs', rfl, rfl⟩
+  · rw [hl] at hl'; simp at hl'; obtain ⟨rfl, rfl⟩ := hl'
+    have hr : r' = q' := by
+      rcases hsg with ⟨h, rfl⟩ | ⟨hp, hm, rfl⟩ <;> rcases hsg' with ⟨h', rfl⟩ | ⟨hp', hm', rfl⟩
+      · rfl
+      · rcases h with h | h <;> simp_all
+      · rcases h' with h | h <;> simp_all
+      · rfl
+    subst hr
+    exact ⟨rfl, (DigitRun.deterministic hd hd').2⟩
+  · exact absurd hs hs'
+  · exact absurd hs' hs
+  · exact ⟨rfl, rfl⟩
+
+theorem Number.deterministic {l r1 r2 : List Char} {n1 n2 : Num}
+    (h1 : Number l n1 r1) (h2 : Number l n2 r2) : n1 = n2 ∧ r1 = r2 := by
+  obtain ⟨s, a1, ds, a2, f, a3, e, v, hs, hd, hf, he, hv, rfl⟩ := h1
+  obtain ⟨s', b1, ds', b2, f', b3, e', v', hs', hd', hf', he', hv', rfl⟩ := h2
+  obtain ⟨rfl, rfl⟩ := SignPart.deterministic hs hs'
+  obtain ⟨rfl, rfl⟩ := DigitRun.deterministic hd hd'
+  obtain ⟨rfl, rfl⟩ := FractionPart.deterministic hf hf'
+  obtain ⟨rfl, rfl⟩ := ExponentPart.deterministic he he'
+  obtain rfl := DecimalNumber.deterministic hv hv'
+  exact ⟨rfl, rfl⟩
+
+/-! ## numeric token・ident-like token -/
+
+theorem NumericTok.deterministic {l r1 r2 : List Char} {t1 t2 : Token}
+    (h1 : NumericTok l t1 r1) (h2 : NumericTok l t2 r2) : t1 = t2 ∧ r1 = r2 := by
+  obtain ⟨n, r, hn, h1⟩ := h1
+  obtain ⟨n', r', hn', h2⟩ := h2
+  obtain ⟨rfl, rfl⟩ := Number.deterministic hn hn'
+  rcases h1 with ⟨hi, u, hu, rfl⟩ | ⟨hi, hr, rfl⟩ | ⟨hi, hp, rfl, rfl⟩ <;>
+    rcases h2 with ⟨hi', u', hu', rfl⟩ | ⟨hi', hr', rfl⟩ | ⟨hi', hp', rfl, rfl⟩
+  · obtain ⟨rfl, rfl⟩ := IdentSeq.deterministic hu hu'; exact ⟨rfl, rfl⟩
+  all_goals first
+    | exact absurd hi hi'
+    | exact absurd hi' hi
+    | (rw [hr] at hr'; simp at hr'; exact ⟨rfl, hr'⟩)
+    | (rw [hr] at hp'; simp at hp')
+    | (rw [hr'] at hp; simp at hp)
+    | exact ⟨rfl, rfl⟩
+
+theorem IdentLikeTok.deterministic {l r1 r2 : List Char} {t1 t2 : Token}
+    (h1 : IdentLikeTok l t1 r1) (h2 : IdentLikeTok l t2 r2) : t1 = t2 ∧ r1 = r2 := by
+  obtain ⟨s, r, hs, h1⟩ := h1
+  obtain ⟨s', r', hs', h2⟩ := h2
+  obtain ⟨rfl, rfl⟩ := IdentSeq.deterministic hs hs'
+  rcases h1 with ⟨hr, rfl⟩ | ⟨hp, rfl, rfl⟩ <;> rcases h2 with ⟨hr', rfl⟩ | ⟨hp', rfl, rfl⟩
+  · rw [hr] at hr'; simp at hr'; exact ⟨rfl, hr'⟩
+  · rw [hr] at hp'; simp at hp'
+  · rw [hr'] at hp; simp at hp
+  · exact ⟨rfl, rfl⟩
+
+/-- **number の関係と `consumeNumber` は一致する。** -/
+theorem Number.iff_consumeNumber {l : List Char} {n : Num} {r : List Char} :
+    Number l n r ↔ (n, r) = consumeNumber l := by
+  constructor
+  · intro h
+    obtain ⟨rfl, rfl⟩ := Number.deterministic h (consumeNumber_spec l)
+    rfl
+  · intro h
+    have := consumeNumber_spec l
+    rw [← h] at this
+    exact this
+
+/-- **numeric token の関係と `consumeNumericToken` は一致する。** -/
+theorem NumericTok.iff_consumeNumericToken {l : List Char} {t : Token} {r : List Char} :
+    NumericTok l t r ↔ (t, r) = consumeNumericToken l := by
+  constructor
+  · intro h
+    obtain ⟨rfl, rfl⟩ := NumericTok.deterministic h (consumeNumericToken_spec l)
+    rfl
+  · intro h
+    have := consumeNumericToken_spec l
+    rw [← h] at this
+    exact this
+
+/-- **ident-like token の関係と `consumeIdentLike` は一致する。** -/
+theorem IdentLikeTok.iff_consumeIdentLike {l : List Char} {t : Token} {r : List Char} :
+    IdentLikeTok l t r ↔ (t, r) = consumeIdentLike l := by
+  constructor
+  · intro h
+    obtain ⟨rfl, rfl⟩ := IdentLikeTok.deterministic h (consumeIdentLike_spec l)
+    rfl
+  · intro h
+    have := consumeIdentLike_spec l
+    rw [← h] at this
+    exact this
+
 /-! ## 実行関数との一致 -/
 
 /-- **escape の関係と `consumeEscape` は一致する。** -/

@@ -1094,6 +1094,20 @@ open Dom.Audit
   Selectors.Spec.skipComments_spec
   Selectors.Spec.Comments.deterministic
   Selectors.Spec.Comments.iff_skipComments
+  Selectors.Spec.digitsToNat_spec
+  Selectors.Spec.takeDigits_spec
+  Selectors.Spec.takeSign_spec
+  Selectors.Spec.takeFraction_spec
+  Selectors.Spec.takeExponent_spec
+  Selectors.Spec.consumeNumber_spec
+  Selectors.Spec.Number.deterministic
+  Selectors.Spec.Number.iff_consumeNumber
+  Selectors.Spec.consumeNumericToken_spec
+  Selectors.Spec.NumericTok.deterministic
+  Selectors.Spec.NumericTok.iff_consumeNumericToken
+  Selectors.Spec.consumeIdentLike_spec
+  Selectors.Spec.IdentLikeTok.deterministic
+  Selectors.Spec.IdentLikeTok.iff_consumeIdentLike
 
 -- selector の API が満たすこと
 #audit_axioms

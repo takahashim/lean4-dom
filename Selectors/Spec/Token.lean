@@ -21,6 +21,9 @@ token の型 `Token` / `Num` だけである。code point の分類も
 ## 本文との差（`Selectors/Token.lean` 冒頭と同じ）
 
 * surrogate を U+FFFD にする前処理は無い。Lean の `Char` は surrogate を持てない。
+* `<url-token>` を作らない（§4.3.4 の `url(` の分岐が無い）。
+* number は整数のときだけ本文どおりの値を持つ（§4.3.13）。
+* percentage token が type flag を持つ（§4.3.3）。
 -/
 
 namespace Selectors.Spec
@@ -245,5 +248,82 @@ inductive Comments : List Char → List Char → Prop where
   /-- comment を一つ読み、本文の "Return to the start of this step" に戻る。 -/
   | comment {rest rest' out : List Char} (hb : CommentBody rest rest') (ih : Comments rest' out) :
       Comments ('/' :: '*' :: rest) out
+
+/-! ## number（§4.3.13 "consume a number"）
+
+本文は number part と exponent part を組み立てて十進の値を作る。model は
+**整数のときだけ値を持つ**（`Selectors/Token.lean` 冒頭の差）。ここでも `value` は
+符号と整数部の digit から作る。type flag が "integer" なら本文の値と一致し、
+"number" なら本文の値とは違うが、`<an+b>` は整数しか受け付けないので使われない。
+-/
+
+/-- `DecimalNumber ds v`：digit の並び `ds` を十進として読んだ値が `v`。 -/
+inductive DecimalNumber : List Char → Nat → Prop where
+  | nil : DecimalNumber [] 0
+  | snoc {ds : List Char} {v : Nat} (d : Char) (h : DecimalNumber ds v) :
+      DecimalNumber (ds ++ [d]) (v * 10 + (d.toNat - 0x30))
+
+/-- `DigitRun input ds rest`：`input` の先頭から digit を続く限り読むと `ds`、残りが `rest`。 -/
+def DigitRun (input ds rest : List Char) : Prop :=
+  input = ds ++ rest ∧ (∀ d ∈ ds, Digit d) ∧ ¬ DigitAt rest[0]?
+
+/-- 符号。`+` か `-` なら読んで sign character にする。 -/
+def SignPart (input : List Char) (sign : Option Char) (rest : List Char) : Prop :=
+  (∃ c, input = c :: rest ∧ (c = '+' ∨ c = '-') ∧ sign = some c) ∨
+  (input[0]? ≠ some '+' ∧ input[0]? ≠ some '-' ∧ sign = none ∧ rest = input)
+
+/-- 小数部が始まる：`.` に digit が続く。 -/
+def FractionStart (l : List Char) : Prop := l[0]? = some '.' ∧ DigitAt l[1]?
+
+/-- 小数部。始まるなら `.` と digit の並びを読み、type を "number" にする。 -/
+def FractionPart (input : List Char) (frac : Bool) (rest : List Char) : Prop :=
+  (∃ r ds, FractionStart input ∧ input = '.' :: r ∧ DigitRun r ds rest ∧ frac = true) ∨
+  (¬ FractionStart input ∧ frac = false ∧ rest = input)
+
+/-- 指数部が始まる：`E`/`e` に、（`+`/`-` を挟んで）digit が続く。 -/
+def ExponentStart (l : List Char) : Prop :=
+  (l[0]? = some 'E' ∨ l[0]? = some 'e') ∧
+    (DigitAt l[1]? ∨ ((l[1]? = some '+' ∨ l[1]? = some '-') ∧ DigitAt l[2]?))
+
+/-- 指数部。始まるなら `E`/`e`、符号、digit の並びを読み、type を "number" にする。 -/
+def ExponentPart (input : List Char) (expo : Bool) (rest : List Char) : Prop :=
+  (∃ e r r' ds, ExponentStart input ∧ input = e :: r ∧
+    (((r[0]? = some '+' ∨ r[0]? = some '-') ∧ r' = r.tail) ∨
+      (r[0]? ≠ some '+' ∧ r[0]? ≠ some '-' ∧ r' = r)) ∧
+    DigitRun r' ds rest ∧ expo = true) ∨
+  (¬ ExponentStart input ∧ expo = false ∧ rest = input)
+
+/-- `Number input n rest`：§4.3.13 の手順を順に踏むと `n`、残りが `rest`。 -/
+def Number (input : List Char) (n : Num) (rest : List Char) : Prop :=
+  ∃ sign s1 ds s2 frac s3 expo v,
+    SignPart input sign s1 ∧ DigitRun s1 ds s2 ∧ FractionPart s2 frac s3 ∧
+    ExponentPart s3 expo rest ∧ DecimalNumber ds v ∧
+    n = { isInteger := !frac && !expo,
+          value := if sign = some '-' then -(v : Int) else (v : Int),
+          sign := sign }
+
+/-! ## numeric token・ident-like token（§4.3.3・§4.3.4） -/
+
+/--
+§4.3.3 "consume a numeric token"。
+
+本文との差：本文の percentage token は type flag を持たないが、model は number の
+`Num` をそのまま持たせる。selector で percentage token が意味を持つ場所は無い。
+-/
+def NumericTok (input : List Char) (t : Token) (rest : List Char) : Prop :=
+  ∃ n r, Number input n r ∧
+    ((StartsIdent r ∧ ∃ u, IdentSeq r u rest ∧ t = Token.dimension n (String.ofList u)) ∨
+     (¬ StartsIdent r ∧ r = '%' :: rest ∧ t = Token.percentage n) ∨
+     (¬ StartsIdent r ∧ r[0]? ≠ some '%' ∧ t = Token.number n ∧ rest = r))
+
+/--
+§4.3.4 "consume an ident-like token"。
+
+本文との差：`url(` を特別扱いしない（`<url-token>` を作らない）。`url(` は function token になる。
+-/
+def IdentLikeTok (input : List Char) (t : Token) (rest : List Char) : Prop :=
+  ∃ s r, IdentSeq input s r ∧
+    ((r = '(' :: rest ∧ t = Token.function (String.ofList s)) ∨
+     (r[0]? ≠ some '(' ∧ t = Token.ident (String.ofList s) ∧ rest = r))
 
 end Selectors.Spec

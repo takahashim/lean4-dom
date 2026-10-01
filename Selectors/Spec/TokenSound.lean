@@ -22,6 +22,12 @@ theorem ch_space : CH_SPACE = ' ' := by decide
 theorem ch_backslash : CH_BACKSLASH = '\\' := by decide
 theorem ch_star : CH_STAR = '*' := by decide
 theorem ch_slash : CH_SLASH = '/' := by decide
+theorem ch_plus : CH_PLUS = '+' := by decide
+theorem ch_dot : CH_DOT = '.' := by decide
+theorem ch_upper_e : CH_UPPER_E = 'E' := by decide
+theorem ch_lower_e : CH_LOWER_E = 'e' := by decide
+theorem ch_percent : CH_PERCENT = '%' := by decide
+theorem ch_lparen : CH_LPAREN = '(' := by decide
 
 theorem not_identStart_hyphen : ¬ IdentStartCp '-' := by
   simp [IdentStartCp, Letter, NonAsciiIdentCp]
@@ -455,5 +461,203 @@ theorem skipComments_spec (l : List Char) : Comments l (skipComments l) := by
     rw [skipComments, if_neg h]
     simp only [Bool.and_eq_true, beq_iff_eq, ch_star, ch_slash] at h
     exact .done (fun r hr => by simp at hr; exact h ⟨hr.1, hr.2.1⟩)
+
+/-! ## number -/
+
+theorem decimalNumber_foldl : ∀ (l ds : List Char) (v : Nat), DecimalNumber ds v →
+    DecimalNumber (ds ++ l) (l.foldl (fun acc c => acc * 10 + (c.toNat - 0x30)) v)
+  | [], ds, v, h => by simpa using h
+  | d :: l, ds, v, h => by
+    have := decimalNumber_foldl l (ds ++ [d]) _ (DecimalNumber.snoc d h)
+    simpa [List.foldl_cons] using this
+
+theorem digitsToNat_spec (ds : List Char) : DecimalNumber ds (digitsToNat ds) := by
+  simpa [digitsToNat] using decimalNumber_foldl ds [] 0 .nil
+
+theorem digitAt_iff (o : Option Char) :
+    (o.map isAsciiDigit).getD false = true ↔ DigitAt o := by
+  cases o <;> simp [DigitAt, isAsciiDigit_iff]
+
+theorem digitsAux_spec : ∀ (acc l : List Char),
+    (digitsAux acc l).1 = acc.reverse ++ (takeDigits l).1 ∧
+      DigitRun l (takeDigits l).1 (takeDigits l).2 ∧ (digitsAux acc l).2 = (takeDigits l).2
+  | acc, [] => by simp [digitsAux, takeDigits, DigitRun, DigitAt]
+  | acc, c :: rest => by
+    by_cases hc : isAsciiDigit c = true
+    · obtain ⟨h1, h2, h3⟩ := digitsAux_spec (c :: acc) rest
+      obtain ⟨h1', -, h3'⟩ := digitsAux_spec [c] rest
+      have hd1 : (digitsAux acc (c :: rest)).1 = (digitsAux (c :: acc) rest).1 := by
+        rw [digitsAux, if_pos hc]
+      have ht1 : (takeDigits (c :: rest)).1 = (digitsAux [c] rest).1 := by
+        simp only [takeDigits]; rw [digitsAux, if_pos hc]
+      have hd2 : (digitsAux acc (c :: rest)).2 = (digitsAux (c :: acc) rest).2 := by
+        rw [digitsAux, if_pos hc]
+      have ht2 : (takeDigits (c :: rest)).2 = (digitsAux [c] rest).2 := by
+        simp only [takeDigits]; rw [digitsAux, if_pos hc]
+      obtain ⟨hs, ha, hm⟩ := h2
+      refine ⟨by rw [hd1, ht1, h1, h1']; simp, ⟨?_, ?_, ?_⟩, by rw [hd2, ht2, h3, h3']⟩
+      · rw [ht1, ht2, h1', h3']
+        simp only [List.reverse_cons, List.reverse_nil, List.nil_append,
+          List.cons_append]
+        exact congrArg _ hs
+      · rw [ht1, h1']; intro d hd; simp at hd
+        rcases hd with rfl | hd
+        · exact (isAsciiDigit_iff _).mp hc
+        · exact ha d hd
+      · rw [ht2, h3']; exact hm
+    · have hn : ¬ DigitAt (c :: rest)[0]? := by
+        rintro ⟨d, hd, hdd⟩; simp at hd; subst hd; exact hc ((isAsciiDigit_iff _).mpr hdd)
+      simp [digitsAux, takeDigits, hc, DigitRun]
+      exact hn
+
+theorem takeDigits_spec (l : List Char) : DigitRun l (takeDigits l).1 (takeDigits l).2 :=
+  (digitsAux_spec [] l).2.1
+
+theorem takeSign_spec (l : List Char) : SignPart l (takeSign l).1 (takeSign l).2 := by
+  match l with
+  | [] => exact Or.inr ⟨by simp, by simp, rfl, rfl⟩
+  | c :: rest =>
+    by_cases hs : (c == CH_PLUS || c == CH_HYPHEN) = true
+    · rw [takeSign, if_pos hs]
+      have : c = '+' ∨ c = '-' := by simpa [ch_plus, ch_hyphen] using hs
+      exact Or.inl ⟨c, rfl, this, rfl⟩
+    · rw [takeSign, if_neg hs]
+      have : c ≠ '+' ∧ c ≠ '-' := by simpa [ch_plus, ch_hyphen] using hs
+      exact Or.inr ⟨by simpa using this.1, by simpa using this.2, rfl, rfl⟩
+
+theorem takeFraction_spec (l : List Char) :
+    FractionPart l (takeFraction l).1 (takeFraction l).2 := by
+  match l with
+  | c :: d :: rest =>
+    by_cases h : (c == CH_DOT && isAsciiDigit d) = true
+    · rw [takeFraction, if_pos h]
+      simp only [Bool.and_eq_true, beq_iff_eq, ch_dot] at h
+      obtain ⟨rfl, hd⟩ := h
+      refine Or.inl ⟨d :: rest, (takeDigits (d :: rest)).1,
+        ⟨by simp, ⟨d, by simp, (isAsciiDigit_iff _).mp hd⟩⟩, rfl, ?_, rfl⟩
+      exact takeDigits_spec _
+    · rw [takeFraction, if_neg h]
+      refine Or.inr ⟨?_, rfl, rfl⟩
+      rintro ⟨h1, ⟨x, hx, hxd⟩⟩
+      simp at h1 hx; subst h1 hx
+      exact h (by simp [ch_dot, (isAsciiDigit_iff _).mpr hxd])
+  | [] => exact Or.inr ⟨by simp [FractionStart], rfl, rfl⟩
+  | [c] => exact Or.inr ⟨by simp [FractionStart, DigitAt], rfl, rfl⟩
+
+theorem takeExponent_spec (l : List Char) :
+    ExponentPart l (takeExponent l).1 (takeExponent l).2 := by
+  match l with
+  | [] => exact Or.inr ⟨by simp [ExponentStart], rfl, rfl⟩
+  | c :: rest =>
+    by_cases he : (c == CH_UPPER_E || c == CH_LOWER_E) = true
+    · have he' : c = 'E' ∨ c = 'e' := by simpa [ch_upper_e, ch_lower_e] using he
+      have hstart0 : (c :: rest)[0]? = some 'E' ∨ (c :: rest)[0]? = some 'e' := by
+        rcases he' with rfl | rfl <;> simp
+      by_cases hd : (rest.head?.map isAsciiDigit).getD false = true
+      · rw [takeExponent, if_pos he, if_pos hd]
+        have hd' : DigitAt rest[0]? := by
+          rw [← digitAt_iff]; cases rest <;> simp_all
+        have hns : rest[0]? ≠ some '+' ∧ rest[0]? ≠ some '-' := by
+          obtain ⟨x, hx, hxd⟩ := hd'
+          rw [hx]; constructor <;> intro h <;> simp at h <;> subst h <;>
+            simp [Digit] at hxd
+        exact Or.inl ⟨c, rest, rest, (takeDigits rest).1,
+          ⟨hstart0, Or.inl (by simpa using hd')⟩, rfl, Or.inr ⟨hns.1, hns.2, rfl⟩,
+          takeDigits_spec rest, rfl⟩
+      · by_cases hs : ((rest.head?.map (fun d => d == CH_PLUS || d == CH_HYPHEN)).getD false
+            && (rest.tail.head?.map isAsciiDigit).getD false) = true
+        · rw [takeExponent, if_pos he, if_neg hd, if_pos hs]
+          simp only [Bool.and_eq_true] at hs
+          obtain ⟨hs1, hs2⟩ := hs
+          have hsg : rest[0]? = some '+' ∨ rest[0]? = some '-' := by
+            cases rest <;> simp_all [ch_plus, ch_hyphen]
+          have hd2 : DigitAt rest[1]? := by
+            rw [← digitAt_iff]; cases rest with
+            | nil => simp at hs1
+            | cons x t => cases t <;> simp_all
+          exact Or.inl ⟨c, rest, rest.tail, (takeDigits rest.tail).1,
+            ⟨hstart0, Or.inr ⟨by simpa using hsg, by simpa using hd2⟩⟩, rfl,
+            Or.inl ⟨hsg, rfl⟩, takeDigits_spec _, rfl⟩
+        · rw [takeExponent, if_pos he, if_neg hd, if_neg hs]
+          refine Or.inr ⟨?_, rfl, rfl⟩
+          rintro ⟨-, h | ⟨hsg, hd2⟩⟩
+          · apply hd; rw [digitAt_iff]; cases rest <;> simp_all
+          · apply hs
+            cases rest with
+            | nil => simp at hsg
+            | cons x t =>
+              cases t with
+              | nil => simp [DigitAt] at hd2
+              | cons y u =>
+                simp at hsg hd2 ⊢
+                refine ⟨by rcases hsg with rfl | rfl <;> simp [ch_plus, ch_hyphen], ?_⟩
+                exact (isAsciiDigit_iff _).mpr (by obtain ⟨z, hz, hzd⟩ := hd2; cases hz; exact hzd)
+    · rw [takeExponent, if_neg he]
+      refine Or.inr ⟨?_, rfl, rfl⟩
+      rintro ⟨h, -⟩
+      apply he
+      rcases h with h | h <;> simp at h <;> subst h <;> simp [ch_upper_e, ch_lower_e]
+
+/-- **`consumeNumber` は `Number` を満たす。** -/
+theorem consumeNumber_spec (l : List Char) :
+    Number l (consumeNumber l).1 (consumeNumber l).2 := by
+  refine ⟨(takeSign l).1, (takeSign l).2, (takeDigits (takeSign l).2).1,
+    (takeDigits (takeSign l).2).2, (takeFraction (takeDigits (takeSign l).2).2).1,
+    (takeFraction (takeDigits (takeSign l).2).2).2,
+    (takeExponent (takeFraction (takeDigits (takeSign l).2).2).2).1,
+    digitsToNat (takeDigits (takeSign l).2).1,
+    takeSign_spec l, takeDigits_spec _, takeFraction_spec _, takeExponent_spec _,
+    digitsToNat_spec _, ?_⟩
+  simp only [consumeNumber, ch_hyphen]
+  congr 1
+  by_cases h : (takeSign l).1 = some '-' <;> simp [h]
+
+/-! ## numeric token・ident-like token -/
+
+/-- **`consumeNumericToken` は `NumericTok` を満たす。** -/
+theorem consumeNumericToken_spec (l : List Char) :
+    NumericTok l (consumeNumericToken l).1 (consumeNumericToken l).2 := by
+  refine ⟨(consumeNumber l).1, (consumeNumber l).2, consumeNumber_spec l, ?_⟩
+  generalize hr : (consumeNumber l).2 = r
+  by_cases hi : startsIdentSeq r = true
+  · left
+    refine ⟨(startsIdentSeq_iff r).mp hi, (consumeIdentSeq r).1, ?_, ?_⟩
+    · simp only [consumeNumericToken, hr, hi, if_true]; exact consumeIdentSeq_spec r
+    · simp [consumeNumericToken, hr, hi]
+  · have hi' : ¬ StartsIdent r := fun h => hi ((startsIdentSeq_iff r).mpr h)
+    by_cases hp : (r.head?.map (fun c => c == CH_PERCENT)).getD false = true
+    · right; left
+      match r, hp with
+      | x :: t, hp =>
+        have hx : x = '%' := by simpa [ch_percent] using hp
+        subst hx
+        refine ⟨hi', ?_, ?_⟩
+        · simp [consumeNumericToken, hr, hi, ch_percent]
+        · simp [consumeNumericToken, hr, hi, ch_percent]
+    · right; right
+      refine ⟨hi', ?_, ?_, ?_⟩
+      · intro h; apply hp; cases r <;> simp_all [ch_percent]
+      · simp only [consumeNumericToken, hr]; simp [hi, hp]
+      · simp only [consumeNumericToken, hr]; simp [hi, hp]
+
+/-- **`consumeIdentLike` は `IdentLikeTok` を満たす。** -/
+theorem consumeIdentLike_spec (l : List Char) :
+    IdentLikeTok l (consumeIdentLike l).1 (consumeIdentLike l).2 := by
+  refine ⟨(consumeIdentSeq l).1, (consumeIdentSeq l).2, consumeIdentSeq_spec l, ?_⟩
+  generalize hr : (consumeIdentSeq l).2 = r
+  by_cases hp : (r.head?.map (fun c => c == CH_LPAREN)).getD false = true
+  · left
+    match r, hp with
+    | x :: t, hp =>
+      have hx : x = '(' := by simpa [ch_lparen] using hp
+      subst hx
+      refine ⟨?_, ?_⟩
+      · simp [consumeIdentLike, hr, ch_lparen]
+      · simp [consumeIdentLike, hr, ch_lparen]
+  · right
+    refine ⟨?_, ?_, ?_⟩
+    · intro h; apply hp; cases r <;> simp_all [ch_lparen]
+    · simp only [consumeIdentLike, hr]; simp [hp]
+    · simp only [consumeIdentLike, hr]; simp [hp]
 
 end Selectors.Spec
