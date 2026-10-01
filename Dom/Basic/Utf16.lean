@@ -26,12 +26,21 @@ scalar 境界であることは求めていない。数値として持ち回る�
 
 namespace Dom.Utf16
 
-/-- 一つの code point が占める UTF-16 code unit 数。BMP なら 1、それ以外は surrogate pair で 2。 -/
-def unitsOf (c : Char) : Nat := (Infra.codeUnits c).length
+/--
+一つの code point が占める UTF-16 code unit 数。BMP なら 1、それ以外は surrogate pair で 2。
 
-theorem unitsOf_pos (c : Char) : 0 < unitsOf c := by
+offset と長さの計算のたびに文字ごとに呼ばれるので、code unit の列は作らずに数だけ返す。
+`Infra.codeUnits` と食い違わないことは `unitsOf_eq_length_codeUnits` が押さえる。
+-/
+def unitsOf (c : Char) : Nat := if c.toNat ≥ 0x10000 then 2 else 1
+
+theorem unitsOf_eq_length_codeUnits (c : Char) : unitsOf c = (Infra.codeUnits c).length := by
   unfold unitsOf Infra.codeUnits
-  split <;> simp
+  by_cases h : c.toNat < 0x10000
+  · rw [if_neg (by omega), if_pos h]; rfl
+  · rw [if_pos (by omega), if_neg h]; rfl
+
+theorem unitsOf_pos (c : Char) : 0 < unitsOf c := by unfold unitsOf; split <;> omega
 
 /-- `List Char` の UTF-16 code unit 数。 -/
 def lengthOfList : List Char → Nat
@@ -119,9 +128,8 @@ theorem lengthOfList_eq_length_of_bmp : ∀ {l : List Char},
   | [], _ => rfl
   | c :: rest, h => by
     have hc : unitsOf c = 1 := by
-      unfold unitsOf Infra.codeUnits
-      rw [if_pos (by have := h c List.mem_cons_self; omega)]
-      simp
+      unfold unitsOf
+      rw [if_neg (by have := h c List.mem_cons_self; omega)]
     show unitsOf c + lengthOfList rest = rest.length + 1
     rw [hc, lengthOfList_eq_length_of_bmp (fun x hx => h x (List.mem_cons_of_mem _ hx))]
     omega
