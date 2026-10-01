@@ -3531,16 +3531,16 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 * 22・24：`38cbc5a`（type selector の大文字小文字と、attribute selector の namespace）
 * 19・20：仕様側が未決着なので `known-divergences.yml` に入れた（固定 scenario の 3 known）
 
-その後に出た 37-46 の状態（2026-10-01、固定 scenario 173 本）。
+その後に出た 37-45 も、Dommy の PR #67（branch `fix/css-escape-edge-cases`、merge commit `bc883f1`）で
+すべて閉じた。pin をそこへ上げた（2026-10-01）。
 
-* 37-44：Dommy の branch `fix/css-escape-edge-cases`（`8dcc4d2`、未 merge）で直してある。
-  pin のままでは 37-39・41-44 の 10 本が割れる。
-* 45：Dommy では未修正。pin でも上の branch でも割れる。
-* 結果、固定 scenario は pin で 155 ok / 2 skip / 3 known / 11 mismatch、
-  branch で 165 ok / 2 skip / 3 known / 1 mismatch（45）である。
+* 37-44：CSS Syntax の escape・string・comment の扱いと attribute selector の照合
+* 45：`1877e5c`（"Find only HTML elements in getElementsByName"）
+* 結果、固定 scenario 171 本は 166 ok / 2 skip / 3 known / 0 mismatch、生成 scenario も
+  nightly と同じ 3 matrix × seed 1-10 がすべて 0 mismatch である。
 
 18（segfault）は `test/crashers/` にあって固定 scenario の外である。2026-10-01 に macOS 上で
-pin（`4d4f2c1`）と makiri 0.12.0 に当てたところ、落ちずに model と一致した
+`4d4f2c1` と `bc883f1`（どちらも makiri 0.12.0）に当てたところ、落ちずに model と一致した
 （見つけたときは Linux の makiri 0.8.0）。
 jsdom の findings（19・20・24・25・27-29・33-36・40・42-46）は pin と関係が無く、
 30.1.1 で確かめたのは 40 以降だけである。
@@ -5304,7 +5304,7 @@ model の形式化の範囲外なので findings ではない。
 
 ### Dommy 側の修正
 
-`~/git/dommy` の branch `fix/css-escape-edge-cases`（未 push）に 37・38・39・41・42 を一つずつ直した commit を置いた。
+`~/git/dommy` の branch `fix/css-escape-edge-cases`（当時は未 push、後に PR #67 で merge）に 37・38・39・41・42 を一つずつ直した commit を置いた。
 41 は escape・string・comment を一つの単位として飛ばす `Parser.atom_end` を二つの走査で使い、42 は引数を
 An+B に要る範囲で tokenize してから §9.2 の文法を token の上で照合する。それぞれ Dommy の
 `test/internal/test_selector_parser.rb` に test を足し、修正を外すと落ちることを確かめた。
@@ -5461,8 +5461,9 @@ membership、`getElementById_eq_some` / `_eq_none_iff` / `_error_iff` は返す 
 46 は harness が document の子（doctype を含む）を外してから木を組むので出る。jsdom は mode を今の doctype から
 計算し直しているらしく、`querySelectorAll(".a")` も同じく両方を返す。
 
-固定 scenario を 3 本足した（`lookups-compare-attribute-values` と上の二つ）。Dommy の修正 branch（`8dcc4d2`）
-では 45 の 1 本だけが割れ、ほかの固定 scenario は変わらない。生成 scenario（lookup だけを 6 手、seed 1-4 × 300）
+固定 scenario を 3 本足した（`lookups-compare-attribute-values` と上の二つ）。当時の Dommy の修正 branch（`8dcc4d2`）
+では 45 の 1 本だけが割れ、ほかの固定 scenario は変わらなかった。45 はその後 Dommy の `1877e5c` で直り、
+PR #67 とともに merge された（§「findings 12-46 の索引」）。生成 scenario（lookup だけを 6 手、seed 1-4 × 300）
 の不一致も、Dommy では 45、jsdom では 45 と 46 だけだった。
 
 style attribute（CSS の宣言）は model の外のままにした。CSS Syntax の宣言の構文と CSSOM の
