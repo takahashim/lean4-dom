@@ -334,129 +334,6 @@ seed 7、80 本、1 本あたり操作 8 個で、**mismatch 19 / match 36 / uns
 `--all-ops` は仕様上の全 API を生成するので unsupported が増え、
 そのぶん比較まで進む本数が減る。不一致の内訳は既定と同じく 1 番である。
 
-## `moveBefore()` の扱い（PLAN §6.2 の宿題）
-
-仕様本文を確認した結果、**model に含めた**。確認した内容は次のとおり。
-
-* 現行の Living Standard には `ParentNode.moveBefore(node, child)` と、
-  対応する **`move` algorithm**（§4.2.3）が step 付きで本文に入っている。
-  PLAN §6.2 の「仕様本文で step を確認できていない」という保留は解消した。
-* `move` は **live range pre-remove steps（step 10）と NodeIterator pre-remove steps（step 11）、
-  および挿入側の live range offset 調整（step 16）を走らせる**。
-  走らせないのは removing steps と insertion steps だけで、
-  これらは他仕様のための拡張点なので本 model の対象外である。
-  したがって木・Range・NodeIterator に射影した観測結果は remove と insert の合成と一致する。
-* `move` は **node document を付け替えない**。step 1 が
-  「newParent の root と node の root が同じ」ことを要求するためである。
-  そのため一致するのは `insert`（adopt を含む）ではなく primitive の `insertAt` との合成になる。
-  これを `move_eq_remove_insertAt` として証明した。
-* validity の検査は `ensure pre-insert validity` とは別物で、step 1-6 の独自のものである
-  （同じ root、inclusive ancestor でない、child の parent、node は Element か CharacterData、
-  Text を document に入れない、document の子の element/doctype 制約）。
-* step 8 の「Assert: oldParent is non-null」は step 1 と step 2 から従う。
-  parent を持たない node は自分自身が root なので、step 1 を通るには newParent の root と
-  一致する必要があり、そのとき step 2 に引っかかる。
-  model では到達しない分岐として `hierarchyRequestError` を返している。
-
-## PLAN §6 の見直しで分かったこと
-
-* **`ensure pre-insert validity` の引数が計画時点と違う。**
-  現行の仕様は `childrenToExclude` を取る形で、`replace` が « child » を渡す。
-  以前の版で `replace` の側に inline で書かれていた例外条件がここにまとめられている。
-  model はこの形に合わせた。
-* **Phase 5 に向けた注意：`insert` と `move` で live range 調整の順序が違う。**
-  `insert` は step 5（child の index を使った offset 調整）を step 7 の adopt → remove の
-  **前** に走らせるが、`move` は step 16 の調整を step 14 の removal の **後** に走らせる。
-  oldParent と newParent が同じときは child の index が両者で変わるので、
-  Range の観測結果が変わりうる。Phase 5 で hook に中身を入れるときは、
-  この順序をそのまま model に反映する必要がある。
-  現在の hook はいずれも恒等関数なので、Phase 3 の範囲では差が出ない。
-* **`replaceWith` の step 5 の検査は本 model では常に真になる。**
-  仕様が「this's parent is parent」を確かめるのは step 4 の
-  "converting nodes into a node" が `this` を `node` の中へ移しうるためだが、
-  本 model は node を生成しないのでこの経路が無い。
-* **可変長引数の API は「まとめた後の node」を受け取る形にした。**
-  `before` / `after` / `replaceWith` / `replaceChildren` は
-  "converting nodes into a node" で DocumentFragment を生成するが、
-  本 model は node を生成しないので、生成済みの node を引数に取る。
-
-## Phase 4（Dommy との differential testing）— 一巡した
-
-`PLAN.md` §7 の仕組みを用意し、実際に Dommy と突き合わせて不一致を検出した。
-
-### 実装したもの
-
-| file | 役割 |
-| --- | --- |
-| `Dom/Exec/Types.lean` | scenario の型（操作列と step の結果）。JSON を知らない |
-| `Dom/Exec/Eval.lean` | 初期状態の構築と操作列の評価。JSON を知らない |
-| `Dom/Exec/Json.lean` | scenario の JSON 入出力（§7.1, §7.2） |
-| `Dom/Exec/Scenario.lean` | 上の二つをつないで scenario 一つを走らせる入口 |
-| `Main.lean` | `dom-model SCENARIO.json` と `dom-model --batch DIR` |
-| `test/dommy_runner.rb` | Dommy 側の評価。`--capabilities` で実装状況も出す |
-| `test/compare.rb` | 出力の比較（parent / children / tree order / 例外） |
-| `test/generate.rb` | scenario の乱数生成（§7.3） |
-| `test/difftest.rb` | driver。生成・評価・比較・最小化 |
-| `test/scenarios/*.json` | 固定 scenario |
-
-使い方は `test/README.md` にまとめた。
-
-JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使う。
-`Lean` への依存は `Dom/Exec/Json.lean` 一つに閉じており、`Dom.lean` からも `Dom/Properties/` からも
-import しないので、証明側の build には影響しない。
-
-Lean 側は各 step の後で `checkWellFormed` を走らせ、
-invariant が破れていれば出力に `invariantViolation` を足す（PLAN §3.5）。
-これまでの実行で一度も立っていない。
-
-### Dommy 側で見つかった不一致
-
-生成 scenario 80 本（seed 7、1 本あたり操作 8 個）で 22 本が不一致になり、
-すべて 1〜2 操作まで最小化できた。原因は次の 4 種類である。
-代表例を `test/scenarios/` に固定 scenario として残した。
-
-1. **`before()` / `after()` / `replaceWith()` / `replaceChildren()` が
-   ensure pre-insert validity を通っていない。**
-   `appendChild` / `insertBefore` / `replaceChild` は正しく検査するのに、
-   ChildNode と ParentNode の便利 method は検査を迂回する。結果として
-   * 仕様が禁じる木を作れてしまう
-     （`element.after(text)` で Text が Document の子になる。
-     `childnode-after-bypasses-validity.json`、`replacewith-bypasses-validity.json`）
-   * backend の `Makiri::Error` がそのまま外に出る
-     （`text.before(自分の parent)`。`childnode-before-leaks-backend-error.json`、
-     `replacechildren-bypasses-validity.json`）
-
-   これは `memo.md` §7 が想定していた「どの API から始めても検査が迂回されない」
-   という性質が破れている例である。
-   model 側では public API がすべて `ensurePreInsertionValidity` を通る構造になっており、
-   その保存は `Dom/Properties/Algorithms.lean` で証明してある。
-2. **空の Document への `appendChild(doctype)` が何もしない。**
-   例外も投げず、doctype は子にならず parent も付かない。
-   仕様では valid なので子になるべきである。
-   `doctype-append-to-empty-document.json`
-3. **XML document（`implementation.createDocument(null, null, null)`）の
-   DocumentFragment に `appendChild` すると `Makiri::Error` になる。**
-   HTML document の fragment なら通る。
-   runner はこれを避けて、HTML document の子を外して空にしたものを使っている。
-4. **API の実装漏れ。** `dommy_runner.rb --capabilities` で一覧できる。
-
-   | kind | 仕様にあって Dommy に無いもの |
-   | --- | --- |
-   | `Document` | insertBefore, replaceChild, removeChild, replaceChildren, before, after, replaceWith, remove |
-   | `Element` | replaceWith |
-   | CharacterData と DocumentType | childNodes（空の NodeList を返すべき）、および node tree を変える method 全般 |
-   | `DocumentFragment` | （ChildNode の method は仕様上も無いので問題なし） |
-   | すべて | moveBefore |
-
-   `Document` に `node_type` が無い、`DocumentType` に `node_name` が無いなど、
-   Node interface の属性にも欠けがある。
-
-### 現状の一致状況
-
-上の 4 種類を避けた範囲（Dommy が実装している (kind, 操作) の組だけを生成し、
-doctype を初期状態に置かない）では、生成 scenario は一致する。
-`--all-ops` や `--doctype-prob 0.5` を付けると、上の不一致が再現する。
-
 ## Phase 5（Range）— 一巡した
 
 `PLAN.md` §8 の定義・調整・証明・differential testing を実装した。
@@ -2376,69 +2253,6 @@ phase の順序・`once`・二つの stop・`preventDefault`・配送中の追�
 **すべて findings 11（target が Text / Comment / PI）**だった。
 直るまで、event を混ぜた生成 scenario はこの原因で赤が出続ける。
 
-## event の配送（§2.7 / §2.9）
-
-model が一行も触れていなかった最大の塊である。Dommy は `event.rb` に 2000 行持っていて
-WPT も通しているのに、oracle が無かった。
-
-### callback をどう扱うか
-
-listener の callback は `NodeFilter` と同じく model の外である。
-ただし **呼ばれた順序は観測できる**ので、scenario 側で listener に
-「決まった副作用」（`ListenerAction`）を宣言させることにした。
-
-* `stopPropagation` / `stopImmediatePropagation` / `preventDefault`
-* `removeListener`（配送中に他の listener を外す）
-* `addListener`（配送中に listener を足す）
-
-観測は「呼ばれた listener の列」（`invocations`、callback 番号・currentTarget・eventPhase）と
-`dispatchEvent` の戻り値である。listener list そのものは Dommy が外から見せないので、
-**配送を二度行って差を見る**形にしてある（`once` や配送中の削除はこれで見える）。
-
-### model の範囲
-
-shadow tree が無いので retargeting も slot も composed path も要らず、
-event path は target から根までの祖先列そのものになる。
-`Window` が無いので Document の "get the parent" は null、
-activation behavior（`click` の既定動作）は HTML 側の hook なので扱わない。
-`isTrusted` は常に false なので、invoke の step 10（legacy な type の付け替え）も起きない。
-
-### 保存は「listener list しか変わらない」に尽きる
-
-`listeners` は `walkers` と同じく `AdmissibleDOMState` の成分ではない。
-木の形とは独立で、木を変える algorithm はこれを触らないからである
-（node が木から外れても listener はその node に付いたまま、というのが仕様の挙動）。
-配送の側は `ListenersOnly`（listener list 以外は同じ）を
-`innerInvoke` → `invokeItem` → `runPass` → `dispatchEvent` と積み上げて示し、
-そこから admissibility を出した（`docs/theorems.md` の 12）。
-
-### 見つかったこと：CharacterData を target にすると event path が壊れる（findings 11）
-
-dispatch の step 5.9.6 は「parent が Window であるか、**target の root が parent の
-shadow-including inclusive ancestor** であるなら、shadow-adjusted target が null の item を積む」
-と言う。そうでない場合（= shadow の境界を越えた場合）だけ、その parent を新しい target にする。
-
-Dommy の `root_of(node)` は `node.root_node` を、**その method を持つ node にだけ**尋ねる。
-`root_node` は Element と Document にはあるが `CharacterData` には無いので、
-Text / Comment / ProcessingInstruction を target にすると root が nil になり、
-検査が常に false になって**祖先が次々と「新しい target」として積まれる**。結果として
-
-* 祖先の listener の `eventPhase` が CAPTURING / BUBBLING ではなく **AT_TARGET** になる、
-* `bubbles` が false でも祖先の listener が呼ばれる、
-* `event.target` が配送の途中で祖先に**すり替わる**（document の listener から見ても）。
-
-target が Element なら正しい。`event-dispatch-at-character-data-target` がこれを固定した
-最小の scenario である。
-
-### 差分テスト
-
-固定 scenario は 97 本になり、一致 85・skip 4・不一致 8・model 固有 2 である。
-event の四本のうち赤は findings 11 の一本だけで、
-phase の順序・`once`・二つの stop・`preventDefault`・配送中の追加と削除はすべて一致した。
-生成 scenario は seed 111 / 112 / 113（計 200 本）で不一致 5、
-**すべて findings 11（target が Text / Comment / PI）**だった。
-直るまで、event を混ぜた生成 scenario はこの原因で赤が出続ける。
-
 ## 関係意味論の層を作り始めた（`remove`）
 
 これまで本 model は **実行関数そのものを意味論**としてきた。
@@ -3317,6 +3131,9 @@ Document の制約もそのまま満たす）が、その証明はまだ無い�
 `NodeIterator` が動かないことも述べていない。`insert` は iterator を触らないが、
 その形の補題が無い。
 
+（`cloneNode` が失敗しないことは §「`cloneNode` が失敗しないことを示した」で、差分テストは
+§「node 生成を差分テストに出した」と §「生成 scenario にも node 生成を出した」で入れた。）
+
 ### 次
 
 `importNode` / `adoptNode`（roadmap §8.5）。
@@ -3519,7 +3336,7 @@ kind 列そのものだからである。
 ### まだ無いもの
 
 `adoptNode` が失敗しないことは示していない。`adopt` の中の `remove` が成功することを
-言う必要があり、そちらは別の連鎖である。
+言う必要があり、そちらは別の連鎖である。（後に §「`adoptNode` は妥当な木の上では失敗しない」で示した。）
 
 ### 次
 
@@ -3572,6 +3389,7 @@ local name の attribute になる。qualified name 一つに潰れている。j
 `Attr` を node として渡す API — `createAttribute` / `createAttributeNS` /
 `getAttributeNode` / `setAttributeNode` / `removeAttributeNode` / `NamedNodeMap` /
 `InUseAttributeError`。これが roadmap §8.6 の本体で、次に入れる。
+（次の §「`Attr` を node として渡す API を入れた」で入れた。）
 
 Dommy はこれらを identity 付きで実装している（`NamedNodeMap` が `[namespace, localName]` を
 鍵に `Attr` object を cache する）。欠けているのは `setAttributeNodeNS` だけで、
@@ -3713,9 +3531,19 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 * 22・24：`38cbc5a`（type selector の大文字小文字と、attribute selector の namespace）
 * 19・20：仕様側が未決着なので `known-divergences.yml` に入れた（固定 scenario の 3 known）
 
-18（segfault）は `test/crashers/` にあって固定 scenario の外なので、この pin で
-直ったかは確かめていない。jsdom の findings（19・20・24・25・27-29・33-36）は
-この pin と関係が無く、状態を確かめ直していない。
+その後に出た 37-46 の状態（2026-10-01、固定 scenario 173 本）。
+
+* 37-44：Dommy の branch `fix/css-escape-edge-cases`（`8dcc4d2`、未 merge）で直してある。
+  pin のままでは 37-39・41-44 の 10 本が割れる。
+* 45：Dommy では未修正。pin でも上の branch でも割れる。
+* 結果、固定 scenario は pin で 155 ok / 2 skip / 3 known / 11 mismatch、
+  branch で 165 ok / 2 skip / 3 known / 1 mismatch（45）である。
+
+18（segfault）は `test/crashers/` にあって固定 scenario の外である。2026-10-01 に macOS 上で
+pin（`4d4f2c1`）と makiri 0.12.0 に当てたところ、落ちずに model と一致した
+（見つけたときは Linux の makiri 0.8.0）。
+jsdom の findings（19・20・24・25・27-29・33-36・40・42-46）は pin と関係が無く、
+30.1.1 で確かめたのは 40 以降だけである。
 
 | # | 実装 | 内容 | scenario |
 | --- | --- | --- | --- |
@@ -3725,7 +3553,7 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 | 15 | Dommy | `document.cloneNode(deep)` が html/head/body を増やす | `clone-document-copies-only-its-children` |
 | 16 | Dommy | import が attribute の namespace を落とす | `import-node-keeps-attribute-namespace` |
 | 17 | Dommy | `removeAttributeNode` が element を検査しない | `remove-attribute-node-checks-the-element` |
-| 18 | Dommy | `Range.insertNode` の後の `textContent` で segfault | `test/crashers/` |
+| 18 | Dommy | `Range.insertNode` の後の `textContent` で segfault（2026-10-01 の pin と makiri 0.12.0 では再現しない） | `test/crashers/` |
 | 19 | Dommy / jsdom | `:empty` が空白だけの text を許さない（仕様側も自分の適合テストと矛盾したまま。§「findings 19・20 の見直し」） | `empty-pseudo-allows-white-space` |
 | 20 | Dommy / jsdom | virtual scoping root（DocumentFragment・Document）が combinator の左に来ない（同上） | `scope-pseudo-is-the-document-element`, `scope-pseudo-virtual-root-is-featureless` |
 | 21 | Dommy | `#1` が id selector として通る | `id-selector-needs-an-identifier` |
@@ -4290,7 +4118,7 @@ model が評価を断っていた。difftest はこれを `ERROR` として報�
 こちらは `MISMATCH` だけを数えていたので見落としていた。木を直したところ、
 上の findings 23 が出た。**`ERROR` も数える。**
 
-### 差分テストの現状
+### 差分テストの現状（selector の API を入れた 2026-09-16 時点）
 
 固定 scenario 108 本のうち、Dommy に対しては findings 12-17 と 19-21、
 jsdom に対しては normalize / observer の既知の不一致と findings 19-20 だけが赤い。
@@ -4616,7 +4444,7 @@ harness の入口で、`runOperations_no_violation` が別の形で覆ってい�
 `blob` は path を URL として読み直すので、`u.host` が null でも読み直した先の host から
 tuple origin が出る。**定理を書こうとして初めて気づいた仕様の枝**である。
 
-## いまの残り
+## 当時の残り（2026-09-16 時点）
 
 定理に一度も現れない `def` は 208 → 158（全 857）。定理の総数は 2168。
 
@@ -5648,8 +5476,11 @@ style attribute（CSS の宣言）は model の外のままにした。CSS Synta
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、
   model の骨格（`Tree` と `WellFormed`）から広げることになる。
   MutationObserver と違って既存の定理の多くに影響する。
-* `Attr` を node として扱う API（`setAttributeNode`, `attributes` の `NamedNodeMap`、
-  それに伴う "set an attribute" と "replace an attribute"、`InUseAttributeError`）。
-  model の attribute は element の状態なので、node として観測できない。
-  `InUseAttributeError` は attribute の object identity で決まるが、
-  identity は roadmap §13.3 で対象外としている。
+* `Attr` の node としての性質（parent、node document、tree order に現れること）。
+  `Attr` を渡す API と identity は §「`Attr` を node として渡す API を入れた」で入れたが、
+  model の attribute は element の状態のままである。
+* `createProcessingInstruction` と `createCDATASection`。前者の target は Name production を
+  参照しており、model はその production を持たない。
+* document の mode（quirks / limited-quirks）。model の文書は常に no-quirks で、
+  `getElementsByClassName()` と class・id selector の大文字小文字はそれに従う。
+* style attribute と CSS の宣言（CSSOM の `CSSStyleDeclaration`）。DOM の木の上の仕様ではない。

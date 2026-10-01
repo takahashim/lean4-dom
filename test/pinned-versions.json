@@ -10,7 +10,7 @@
     "commit": "4d4f2c188134012ad6a60fa0d2e8c2b5d1e00c19",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "main（`4d4f2c1` = v0.14.0、2026-10-01）を指す。`makiri >= 0.12.0` を要求する。固定 scenario は 152 ok / 2 skip / 3 known / 0 mismatch で、生成 scenario も 3 matrix × seed 1-10 がすべて 0 mismatch（nightly が緑になった）。findings 12-17 の importNode / cloneNode / removeAttributeNode 系は Dommy 側の `4e7c840` で、selector の 21-24・26・29-32 は `a0d8736` と `38cbc5a` で、名前検査（`createElement`/`toggleAttribute`）は makiri 0.11 の DOM 名規則と Dommy 側の例外翻訳で直った。3 known は仕様側が未決着の 19・20（`known-divergences.yml`）。その後 findings 37-44 の固定 scenario を足したので、この pin では 37-39・41-44 の 10 本が mismatch になる（Dommy の branch `fix/css-escape-edge-cases` で直してある）。lookup の三つの method を足した findings 45 の 1 本は、その branch でも割れる。"
+    "_note": "main（`4d4f2c1` = v0.14.0、2026-10-01）を指す。`makiri >= 0.12.0` を要求する。固定 scenario は 152 ok / 2 skip / 3 known / 0 mismatch で、生成 scenario も 3 matrix × seed 1-10 がすべて 0 mismatch（nightly が緑になった）。findings 12-17 の importNode / cloneNode / removeAttributeNode 系は Dommy 側の `4e7c840` で、selector の 21-24・26・29-32 は `a0d8736` と `38cbc5a` で、名前検査（`createElement`/`toggleAttribute`）は makiri 0.11 の DOM 名規則と Dommy 側の例外翻訳で直った。3 known は仕様側が未決着の 19・20（`known-divergences.yml`）。その後 findings 37-45 の固定 scenario を足したので、この pin では 155 ok / 2 skip / 3 known / 11 mismatch になる。37-39・41-44 の 10 本は Dommy の branch `fix/css-escape-edge-cases` で直してあり、findings 45 の 1 本はその branch でも割れる。"
   },
   "makiri": {
     "source": "rubygems",
