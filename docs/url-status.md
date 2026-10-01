@@ -871,16 +871,30 @@ def RunIH (base : Option Url) (r n : Nat) : Prop :=
 ただし探索の単位が state ごとに小さくなったので、
 `Url/Invariant.lean` でやっていた case 番号の直書きは要らなくなった。
 
+## 不正な UTF-8 の復号を Encoding Standard に揃えた
+
+`Infra.utf8Decode` は不正な byte 一つごとに U+FFFD を一つ出して次の byte から
+読み直していた。Encoding Standard の UTF-8 decoder は **maximal subpart** ごとに
+U+FFFD を一つ出す。途中で切れた 3 byte・4 byte の列は一つの誤りで、
+E0・ED・F0・F4 の先頭 byte では一つめの continuation byte を下限・上限と比べてから
+残りを読む。いまの `utf8Decode` はこの state machine に従う。
+
+URL で効くのは、host parser の `percentDecodeToString`（`Url/Host.lean`）と
+`application/x-www-form-urlencoded` の parser（`Url/Urlencoded.lean`）である。
+正しく符号化された入力では何も変わらず、出力が変わるのは不正な列だけである。
+たとえば `%E0%A0A` は以前 `[U+FFFD, U+FFFD, 'A']` だったが、いまは `[U+FFFD, 'A']` になる。
+
+復元規則は `Infra/Spec/Utf8Decode.lean` に関係 `Chunk` / `Decodes` として書いた。
+`utf8Decode_spec` は `utf8Decode` がそれを満たすこと、`Decodes.eq_utf8Decode_iff` は
+それが唯一の解であることを言う。正しく符号化された入力の往復は前と同じく
+`Infra/Utf8Roundtrip.lean` にある。
+
 ## 未着手
 
 * **UTS #46 の写像表・NFC・Bidi。** 規定データなので `IdnaTable` の仮定に押し込み、
   実行時の fixture から与える。`Resolved` は `checkResolved` が実行時に検査する。
   `outOfModel` の印が付いた code point（結合クラス ≠ 0、NFC_QC ≠ Yes、
   Bidi_Class ∈ {R, AL, AN}、Hangul、deviation）を含む domain は `none` を返す。
-* **不正な byte 列に対する復元規則。** `Infra/Utf8Roundtrip.lean` が言うのは
-  正しく符号化された入力の往復だけで、Encoding Standard が定める U+FFFD の
-  置き方（不完全な列、範囲外、surrogate、overlong）は証明の外にある。
-  実行時には `utf8Decode` がそれを行うが、定理は付いていない。
 * **encoding override。** HTML 由来の legacy 引数。UTF-8 に固定している。
   34 の索引に 91,504 項目あり、UTS #46 の表と同じ理由で入れていない。
   影響するのは query の符号化だけで、WPT の機械可読の表には `encoding` 欄が無い。

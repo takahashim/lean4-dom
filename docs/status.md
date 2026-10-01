@@ -3701,8 +3701,21 @@ nightly は既知の不一致でも赤のままにする方針である
 
 ## findings 12-36 の索引
 
-Selectors の形式化のあいだに出た findings。どれも固定 scenario を赤のままにしてある
-（不一致を expected に落とすと直ったことに気付けなくなる）。
+Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
+気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
+expected に落としたのは、仕様の側が揺れている 19・20 だけである（`test/known-divergences.yml`）。
+
+Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてすべて閉じた
+（§「nightly の差分テストが緑になった」）。
+
+* 12-17：`4e7c840`（clone / import が interface・namespace・attribute を保つ）
+* 21・23・26・29-32：`a0d8736`（selector を CSS Syntax の tokenizer どおりに読む）
+* 22・24：`38cbc5a`（type selector の大文字小文字と、attribute selector の namespace）
+* 19・20：仕様側が未決着なので `known-divergences.yml` に入れた（固定 scenario の 3 known）
+
+18（segfault）は `test/crashers/` にあって固定 scenario の外なので、この pin で
+直ったかは確かめていない。jsdom の findings（19・20・24・25・27-29・33-36）は
+この pin と関係が無く、状態を確かめ直していない。
 
 | # | 実装 | 内容 | scenario |
 | --- | --- | --- | --- |
@@ -4765,6 +4778,7 @@ NFC・Bidi・Joiner の code point は誤って扱うのではなく `none` を�
 往復定理にある。ただしそこが言うのは**正しく符号化された入力の往復**だけで、
 不正な byte 列に対する Encoding Standard の復元規則（U+FFFD の置き方）は
 証明の外にある。ここは残りとして記録した。
+（後に閉じた。§「不正な UTF-8 の復号を Encoding Standard に揃えた」）
 
 ## 差分テストが偽の不一致を作っていた（JS runner の window 使い回し）
 
@@ -5283,6 +5297,24 @@ fragment 自身もそうなるので、validity の step 2 がそれを弾いて
 `insertSpec_deterministic` が引数で受け取っていた `hacyc` を、
 API の水準では validity から出せるようになった。
 
+## 不正な UTF-8 の復号を Encoding Standard に揃えた
+
+`Infra.utf8Decode` は不正な byte 一つごとに U+FFFD を出していたが、Encoding Standard は
+maximal subpart ごとに一つ出す。decoder をその state machine に書き直したので、
+**不正な列に対する出力が変わった**。URL では host parser と
+`application/x-www-form-urlencoded` の parser に効く。たとえば `%E0%A0A` は
+`[U+FFFD, U+FFFD, 'A']` から `[U+FFFD, 'A']` になった。正しく符号化された入力の出力は変わらない。
+
+前に残りとして記録した復元規則の証明も入れた。
+
+| file | 内容 |
+| --- | --- |
+| `Infra/Spec/Utf8Decode.lean` | 関係 `Chunk`（先頭の maximal subpart 一つ）と `Decodes`（入力全体） |
+| `Infra/Spec/Utf8DecodeSound.lean` | `utf8Decode_spec`：`utf8Decode` は `Decodes` を満たす |
+| `Infra/Spec/Utf8DecodeDeterministic.lean` | `Decodes.deterministic` と `Decodes.eq_utf8Decode_iff` |
+
+詳細は `docs/url-status.md` の同名の節にある。
+
 ## nightly の差分テストが緑になった
 
 `Differential` workflow（nightly）は 2026-09-13 から 09-29 まで毎晩赤だった。
@@ -5297,6 +5329,10 @@ makiri `0.12.0` へ上げて緑になった。
 
 * findings 12-17（`importNode` / `cloneNode` / `removeAttributeNode`）は Dommy 側の
   `4e7c840`（"clone a node into the interface, namespace and attributes it had"）で直った。
+* selector の findings のうち Dommy 側の 21-24・26・29-32 は、Dommy の
+  `a0d8736`（CSS Syntax の tokenizer どおりに読む）と `38cbc5a`（type selector の
+  大文字小文字、attribute selector の namespace）で直った。19・20 は仕様側が未決着なので
+  `known-divergences.yml` に入れてあり、これが固定 scenario の 3 known である。
 * 名前検査は makiri 0.11 が DOM の `valid element local name`（と valid attribute
   local name）を入れて `createElement` / `toggleAttribute` が不正な名前（`a/b`, `a=b`）
   を弾くようになり、Dommy はバックエンドの `ArgumentError` を
