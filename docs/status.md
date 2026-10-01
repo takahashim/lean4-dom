@@ -5647,15 +5647,15 @@ quirks mode の document が作れないと `quirks-mode-*` の 2 本が偽の�
 `DOMParser` の document が quirks でなければ iframe の document に `document.write` で読ませて作る（三つの browser とも
 `BackCompat` になり、子を外しても変わらない）。
 
-**固定 scenario 180 本**（§「`Attr` を `Node` として扱う」の 7 本を含む）。
+**固定 scenario 181 本**（§「`Attr` を `Node` として扱う」の 8 本を含む）。
 
 | browser | ok | skip | known | mismatch |
 | --- | --- | --- | --- | --- |
-| Chromium 153 | 150 | 18 | 12 | 0 |
-| Firefox 155 | 146 | 18 | 16 | 0 |
-| WebKit 26.6 | 145 | 24 | 11 | 0 |
+| Chromium 153 | 151 | 18 | 12 | 0 |
+| Firefox 155 | 147 | 18 | 16 | 0 |
+| WebKit 26.6 | 146 | 24 | 11 | 0 |
 
-`Attr` の 7 本は、三つとも `adopt-node-keeps-an-attribute-on-its-element` が割れ（findings 48）、Firefox だけ
+`Attr` の 8 本は、三つとも `adopt-node-keeps-an-attribute-on-its-element` が割れ（findings 48）、Firefox だけ
 `adopting-an-element-moves-its-attributes` も割れる（findings 52）。どちらも known-divergences に入れた。
 
 skip の 18 本は三つとも MutationObserver の配送順（JS からは復元できない）と model の対象外の 2 本である。WebKit は
