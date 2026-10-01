@@ -78,6 +78,9 @@ ancestor 側は element でない node も返す。scoping root が `Document` �
 `DocumentFragment` のとき、仕様はそれを「root element の parent としてふるまう
 featureless な node」として扱い、`:scope > .foo` が通るようにしているためである
 （§4.4）。featureless なので、`matchSimple` はそこで `:scope` しか通さない。
+
+sibling の combinator は element の並びの上の関係なので、右側（`n`）が element でなければ
+候補は無い。element でない `n` は element の並びに現れないからである。
 -/
 def combCandidates (t : Tree) (comb : Combinator) (n : NodeId) : List NodeId :=
   match comb with
@@ -90,13 +93,16 @@ def combCandidates (t : Tree) (comb : Combinator) (n : NodeId) : List NodeId :=
     match parentOf t n with
     | none => []
     | some p =>
-      match ((elementChildrenOf t p).takeWhile (fun m => m != n)).getLast? with
-      | none => []
-      | some m => [m]
+      if isElementNode t n then
+        match ((elementChildrenOf t p).takeWhile (fun m => m != n)).getLast? with
+        | none => []
+        | some m => [m]
+      else []
   | .subsequentSibling =>
     match parentOf t n with
     | none => []
-    | some p => (elementChildrenOf t p).takeWhile (fun m => m != n)
+    | some p =>
+      if isElementNode t n then (elementChildrenOf t p).takeWhile (fun m => m != n) else []
 
 /-- `:empty` を壊さない子か。comment と PI、それに空白だけの text は数えない。 -/
 def emptyOk (t : Tree) (c : NodeId) : Bool :=

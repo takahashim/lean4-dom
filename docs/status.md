@@ -5541,6 +5541,32 @@ Dommy は `fix/css-escape-edge-cases` に一つ足して直した（`e2f7bb8`）
 固定 scenario を 2 本足した。pin した Dommy では両方割れる（mismatch は 10 本）。修正 branch では
 固定 scenario が 163 ok / 2 skip / 3 known / 0 mismatch になる。
 
+## selector の照合の関係意味論（全体）
+
+`Dom/Spec/Selector.lean` は照合を部品ごとに仕様と結んでいた。それを組み上げて、selector list・complex・compound・
+simple の照合全体を一つの関係として `Dom/Spec/SelectorMatch.lean` に書き、実行関数がそれにちょうど一致することを示した。
+
+| 定理 | 内容 |
+| --- | --- |
+| `matchSelList_iff_spec` | `matchSelList ctx l n = true ↔ SelectorListMatches ctx l n` |
+| `matchComplex_iff_spec` / `matchSimple_iff_spec` | complex・simple の段の同じ一致 |
+| `mem_matchTree_iff_spec` | `querySelectorAll()` が返すのは、scoping root の descendant である element のうち関係で当たるもの |
+
+関係は照合の道具（`combCandidates`・`elementSiblings`・`indexOfNode`・`splitWsAux`・`attrTestHolds`）を呼ばず、
+仕様の語彙で書いた。combinator は `Ancestor`・parent・element の並びでの前後（`Combines`）、`.cls` は空白区切りの語
+（`ClassToken`）、`:first-child` ほかは「前（後）に element の sibling が無い」、`:nth-*()` は「前（後）にあって数える
+対象になる element の数に 1 を足したものが `An+B` の index」（`NthCount`）である。`:not()` を含むので帰納的な関係では
+なく、selector の大きさに沿った再帰で定義した Prop にし、証明も大きさについての帰納法で四つの段を同時に示した。
+前提は `WellFormed` と `AttributesValid`（id と class は namespace の無い一つの attribute を見るので、組の一意性が要る）。
+
+### 途中で直したもの
+
+* **model の誤り。** `[*|att=v]` が同名の attribute の最初の一つしか見ていなかった（§「attribute selector の照合：
+  model の誤りと findings 44」）。
+* **実行側の端の挙動。** sibling の combinator は、右側の node が element でないときも parent の element の子をすべて候補に
+  していた（`takeWhile` が `n` を見つけずに列全体を返す）。API からは届かない形（subject が parent を持つ非 element）だが、
+  sibling の関係は element の並びの上にあるので、候補を空にした。差分テストの結果は変わらない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

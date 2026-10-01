@@ -373,13 +373,13 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 
 | Algorithm | 仕様 | Evaluator | Contracts | Scenario | Status |
 | --- | --- | --- | --- | --- | --- |
-| tokenization | CSS Syntax §4 | `tokenize`（`Selectors/Token.lean`） | `tokenAt_le`, `nextToken_lt`（停止性） | — | 済（url-token / unicode-range-token は対象外） |
+| tokenization | CSS Syntax §3.3・§4 | `tokenize`（`Selectors/Token.lean`） | `tokenAt_le`, `nextToken_lt`（停止性）、`TokenizesInput.iff_tokenize` ほか（関係意味論、`Selectors/Spec/Token*.lean`） | `escapes-in-selectors`, `escape-out-of-range-is-replacement`, `string-backslash-newline-continues` ほか | 済（url-token / unicode-range-token は対象外） |
 | consume a list of component values | CSS Syntax §5.4.6 | `toComponents`（`Selectors/Component.lean`） | `splitBlock_size` | `unclosed-block-is-closed-at-eof` | 済 |
 | `parse a selector` | Selectors §19.1 | `parseSelector`（`Selectors/Parser.lean`） | `dropToComma_size`, `splitAtOf_size`（停止性） | `universal-selector-takes-subclasses`, `id-selector-needs-an-identifier` | 部分（namespace prefix と pseudo-element は対象外） |
 | `<a-n-plus-b>` の構文 | CSS Syntax §9.2 | `parseAnB` | — | `structural-pseudo-classes-count-elements` | 済 |
 | `<a-n-plus-b>` が表す index | CSS Syntax §9.1 | `anbMatches` | `anbMatches_iff`（関係意味論） | `nth-child-with-negative-coefficient` | 済 |
-| match a selector against an element | Selectors §17.1 | `matchSelList`（`Dom/Selector/Match.lean`） | `sSize_lt_cpSize`, `cxSize_lt_lSize`（停止性） | `structural-pseudo-classes-count-elements` | 部分（状態の pseudo-class は対象外） |
-| combinator が結ぶ element | Selectors §16 | `combCandidates` | `mem_combCandidates_descendant` 〜 `_nextSibling`（関係意味論） | `sibling-combinators-pick-the-right-neighbour` | 済 |
+| match a selector against an element | Selectors §17.1 | `matchSelList`（`Dom/Selector/Match.lean`） | `sSize_lt_cpSize`, `cxSize_lt_lSize`（停止性）、`matchSelList_iff_spec`, `matchSimple_iff_spec`, `mem_matchTree_iff_spec`（関係意味論、`Dom/Spec/SelectorMatch.lean`） | `structural-pseudo-classes-count-elements` | 部分（状態の pseudo-class は対象外） |
+| combinator が結ぶ element | Selectors §16 | `combCandidates` | `mem_combCandidates_descendant` 〜 `_nextSibling`, `mem_combCandidates_iff`（関係意味論） | `sibling-combinators-pick-the-right-neighbour` | 済 |
 | attribute selector の値の照合 | Selectors §6.3 | `attrTestHolds` | `attrTestHolds_iff`, `includes_empty_never`, `includes_whitespace_never` | `attribute-selectors-compare-values`, `attribute-includes-needs-a-whole-word` | 済（`~=` の語境界は定理にしていない） |
 | type selector の大文字小文字 | Selectors §6.1 | `typeHolds` | `typeHolds_iff` | `type-selector-case-follows-namespace` | 済 |
 | `:root` / `:empty` | Selectors §14.1・§14.2 | `matchSimple` の枝、`emptyOk` | `matchSimple_root_iff`, `emptyOk_iff`, `matchSimple_empty_iff` | `structural-pseudo-classes-count-elements`, `empty-pseudo-allows-white-space` | 済 |

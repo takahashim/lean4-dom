@@ -71,6 +71,7 @@ step 2（ASCII lowercase）と step 4（HTML namespace）が効かない側（XM
 | `insertAt` の guard が仕様より厳しい | 仕様は「`child` は `parent` の子」を `pre-insert` の validity（step 3）に置き、`move` の側には置いていない。model は primitive 側に置くので、`move` を `child = node` で呼ぶと仕様（先頭に入れる）と違って `notFoundError` になる。**差が観測できないことは散文ではなく検査で押さえてある**——`Dom.moveBefore_reference_ne` と `ruby test/callsites.rb`（`move` を呼ぶ実行定義は `moveBefore` だけ） |
 | UTF-8 の復元規則は手で書いた関係との一致である | 不正な byte 列への U+FFFD の置き方（maximal subpart ごとに一つ）は `Infra/Spec/Utf8Decode.lean` の `Chunk` / `Decodes` に書き、`utf8Decode_spec` と `Decodes.eq_utf8Decode_iff` で `utf8Decode` がそれに一致することを示した。ただし `Chunk` を Encoding Standard の state machine と突き合わせたのは手作業で、WPT の `encoding/` は当てていない |
 | CSS tokenizer は手で書いた関係との一致である | `Selectors/Spec/Token.lean` の関係を CSS Syntax §3.3・§4 から書き写し、`TokenizesInput.iff_tokenize` で `tokenize` がそれに一致することを示した。関係と本文の突き合わせは手作業で、WPT の `css/css-syntax/` は当てていない。生成器の selector は固定の語彙から組み立てるので、escape や comment の組み合わせは語彙にある形に限られる |
+| selector の照合は手で書いた関係との一致である | `Dom/Spec/SelectorMatch.lean` の `SelectorListMatches` ほかを Selectors §3・§6・§14・§16・§17 から書き写し、`matchSelList_iff_spec` で `matchSelList` がそれに一致することを示した。前提は `WellFormed` と `AttributesValid`（attribute の組の一意性）である。関係と本文の突き合わせは手作業で、状態の pseudo-class（`:hover` ほか）は対象外のまま |
 
 ## 5. 「実装の不一致」の判定
 

@@ -104,6 +104,7 @@ import Dom.Selector.Match
 import Dom.Selector.Api
 import Dom.Properties.Selector
 import Dom.Spec.Selector
+import Dom.Spec.SelectorMatch
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

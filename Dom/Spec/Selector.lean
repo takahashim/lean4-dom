@@ -190,7 +190,7 @@ theorem mem_combCandidates_subsequentSibling {t : Tree} (hwf : WellFormed t) {n 
   obtain ⟨pre, post, hsplit, hnotin⟩ :=
     List.eq_append_cons_of_mem (mem_elementChildrenOf hwf hp hn)
   have hcand : combCandidates t .subsequentSibling n = pre := by
-    simp only [combCandidates, hp]
+    simp only [combCandidates, hp, hn, if_true]
     exact takeWhile_eq_of_split hwf hsplit
   rw [hcand]
   constructor
@@ -221,7 +221,7 @@ theorem mem_combCandidates_nextSibling {t : Tree} (hwf : WellFormed t) {n p : No
     takeWhile_eq_of_split hwf hsplit
   have hcand : ∀ x, x ∈ combCandidates t .nextSibling n ↔ pre.getLast? = some x := by
     intro x
-    simp only [combCandidates, hp, hpre]
+    simp only [combCandidates, hp, hn, if_true, hpre]
     cases hg : pre.getLast? with
     | none => simp
     | some m => simp [eq_comm]

@@ -1051,6 +1051,17 @@ open Dom.Audit
   Dom.Spec.matchSimple_attr_iff
   Dom.Spec.plainAttr_some
   Dom.Spec.plainAttr_none
+  Dom.Spec.elementSiblings_split
+  Dom.Spec.nth_generic
+  Dom.Spec.structural_generic
+  Dom.Spec.plainAttr_eq_some_iff
+  Dom.Spec.classWord_iff
+  Dom.Spec.mem_combCandidates_iff
+  Dom.Spec.match_iff_bounded
+  Dom.Spec.matchSelList_iff_spec
+  Dom.Spec.matchComplex_iff_spec
+  Dom.Spec.matchSimple_iff_spec
+  Dom.Spec.mem_matchTree_iff_spec
 
 -- selector の構文の関係仕様（部分）
 #audit_axioms
