@@ -159,8 +159,8 @@ theorem adjustNodePointer_spec {t : Tree} {root tbr p node : NodeId} {before : B
 
 /-! ## remove と iterator -/
 
-theorem remove_iterators {s s' : DOMState} {n p : NodeId} {b : Bool}
-    (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
+theorem remove_iterators {s s' : DOMState} {n : NodeId} {b : Bool}
+    (h : remove s n b = .ok s') :
     s'.iterators = s.iterators.map fun it =>
       if ownerDocumentOf s.tree it.root == ownerDocumentOf s.tree n then
         iteratorPreRemoveOne s.tree n it
@@ -230,7 +230,7 @@ theorem remove_preserves_iterators_valid {s s' : DOMState} {n p : NodeId} {b : B
     (h : remove s n b = .ok s') : IteratorsValid s' := by
   have hd := (remove_ok h).2
   intro it hit
-  rw [remove_iterators hp h] at hit
+  rw [remove_iterators h] at hit
   obtain ⟨it₀, hit₀, hie⟩ := List.mem_map.mp hit
   rw [← hie]
   by_cases hsame : (ownerDocumentOf s.tree it₀.root == ownerDocumentOf s.tree n) = true
@@ -260,7 +260,7 @@ theorem remove_iterators_leave_subtree {s s' : DOMState} {n p : NodeId}
       isInclusiveAncestorOf s.tree n it.root = false →
         isInclusiveAncestorOf s.tree n it.reference = false := by
   intro it hit hroot
-  rw [remove_iterators hp h] at hit
+  rw [remove_iterators h] at hit
   obtain ⟨it₀, hit₀, hie⟩ := List.mem_map.mp hit
   by_cases hsame : (ownerDocumentOf s.tree it₀.root == ownerDocumentOf s.tree n) = true
   · rw [← hie, if_pos hsame] at hroot ⊢

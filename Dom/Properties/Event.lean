@@ -206,8 +206,7 @@ theorem innerInvoke_skip (capturing : Bool) (cur : NodeId) :
       · exact innerInvoke_skip capturing cur rest s e log hrest
       · next hkeep =>
         have htype : l.removed = false ∧ l.type = e.type := by
-          simp only [Bool.or_eq_true, Bool.not_eq_eq_eq_not, bne_iff_ne, ne_eq,
-            Decidable.not_not] at hkeep
+          simp only [Bool.or_eq_true, bne_iff_ne, ne_eq] at hkeep
           constructor
           · cases hr : l.removed with
             | false => rfl
@@ -300,7 +299,7 @@ theorem removeListenerAt_removed (s : DOMState) (i : Nat) (l : EventListener)
     (removeListenerAt s i).listeners[i]? = some { l with removed := true } := by
   unfold removeListenerAt
   rw [h]
-  simp only [List.getElem?_set, if_pos, if_true]
+  simp only [List.getElem?_set, if_pos]
   rw [if_pos (by
     rcases Nat.lt_or_ge i s.listeners.length with hlt | hge
     · exact hlt

@@ -67,8 +67,7 @@ theorem not_child (h : AddsNode t t' n d) (hwf : WellFormed t) (hc : d.children 
     simp at hnd
 
 /-- 新しい辺は無いので、ancestor 関係は変わらない。 -/
-theorem ancestor_of (h : AddsNode t t' n d) (hwf : WellFormed t) (hc : d.children = [])
-    (hp : d.parent = none) {a m : NodeId} (ha : Ancestor t' a m) : Ancestor t a m := by
+theorem ancestor_of (h : AddsNode t t' n d) (hp : d.parent = none) {a m : NodeId} (ha : Ancestor t' a m) : Ancestor t a m := by
   have key : ∀ x y : NodeId, parentOf t' x = some y → parentOf t x = some y := by
     intro x y hx
     by_cases hxn : x = n

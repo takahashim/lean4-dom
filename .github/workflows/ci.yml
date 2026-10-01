@@ -18,8 +18,12 @@ jobs:
           ./elan-init -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
+      # warning も失敗にする。未使用の仮定は定理を不必要に弱くするので、
+      # linter の指摘を残さない。
       - name: Build
-        run: lake build 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          lake build --wfail 2>&1 | tee build.log
 
       # roadmap §11.1: `sorry` が残っていないことを CI で確認する。
       # `lake build` は `sorry` を warning として報告するので、それを error として扱う。
