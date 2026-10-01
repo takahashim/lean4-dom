@@ -396,3 +396,37 @@
     積まない。Chromium と WebKit はこの scenario の配送順を harness で比べられない（skip）。
     https://dom.spec.whatwg.org/#concept-node-remove
     https://dom.spec.whatwg.org/#queue-a-mutation-record
+
+- impl: chromium
+  scenario: adopt-node-keeps-an-attribute-on-its-element
+  digest: f268e9ea83298341
+  reason: &adopt_attr |
+    findings 48。DOM §4.5 "adopt" の step 2 は「parent が非 null なら remove」で、`Attr` は parent を
+    持たないので element から外れない。step 3 は node document が違うときだけ `Attr` 自身の node
+    document を書き換える。本文どおりなら element に付いた `Attr` は付いたままで、同じ document への
+    adopt では何も変わらない。三つの browser は element から外す（DOM4 にあった「`Attr` なら owner
+    element から外す」step を保っている）。jsdom は本文どおり。三つが揃って本文と違うので、
+    findings 19・20 と同じく仕様の側に問う値打ちがある。
+    https://dom.spec.whatwg.org/#concept-node-adopt
+
+- impl: firefox
+  scenario: adopt-node-keeps-an-attribute-on-its-element
+  digest: 22dc17aa4b80b631
+  reason: *adopt_attr
+
+- impl: webkit
+  scenario: adopt-node-keeps-an-attribute-on-its-element
+  digest: ddb27e78f7f22639
+  reason: *adopt_attr
+
+- impl: firefox
+  scenario: adopting-an-element-moves-its-attributes
+  digest: ee570cd63951802e
+  reason: |
+    findings 52。DOM §4.5 "adopt" の step 3.3.1 は、adopt する element の attribute list の各
+    attribute の node document を新しい document にする。Firefox は element を adopt しても、
+    その前に取り出してあった `Attr` object の `ownerDocument` が古い document のままである
+    （adopt のあとで `getAttributeNode` し直したものは新しい document を返す）。`setAttribute` で
+    付けたもの、`setAttributeNode` で付けたもの、`appendChild` で別の document へ移したものの
+    どれでも起きる。Chromium と WebKit は本文どおり。
+    https://dom.spec.whatwg.org/#concept-node-adopt

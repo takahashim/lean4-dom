@@ -3517,7 +3517,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-51 の索引
+## findings 12-52 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3587,6 +3587,7 @@ jsdom の findings（19・20・24・25・27-29・33-36・40・42-47）は pin �
 | 49 | jsdom | `Attr` が絡む `compareDocumentPosition` が step 3-4 を走らない（自分自身と 34、element と 0、element の子と逆向き） | `attr-position-follows-its-element` |
 | 50 | Dommy | `adoptNode(attr)` が null を返して何もしない／`Attr` が絡む `compareDocumentPosition` が常に DISCONNECTED／detach された `Attr` の node document が append で更新されず、属性から外したものは null になる（§「findings 50・51 の詳細」） | `adopt-node-keeps-an-attribute-on-its-element`, `attr-position-follows-its-element`, `adopting-an-element-moves-its-attributes`, `removed-attribute-keeps-its-node-document` |
 | 51 | Dommy | `Attr` が木の位置を表す `Node` の getter（`parentNode`・`parentElement`・`isConnected`・`childNodes`・`firstChild`・`lastChild`・`previousSibling`・`nextSibling`）を持たない（同上） | `attr-is-a-node-outside-the-tree` |
+| 52 | Firefox | element を adopt しても、前に取り出してあった `Attr` の `ownerDocument` が古い document のまま（adopt step 3.3.1） | `adopting-an-element-moves-its-attributes` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5566,8 +5567,9 @@ prefix・namespace しか見ないので、保存の証明は `dropDoc` を挟�
 48 は本文と browser 三つが揃って割れる形である。adopt の step 2 は「parent があれば remove」で、`Attr` は parent を
 持たないので element から外れない。DOM4 には「`Attr` なら owner element から外す」step があり、browser はそれを
 保っている（jsdom は本文どおり）。findings 19・20 と同じく、仕様の側に問う値打ちがある。model は本文どおりに書いた。
-手で当てたところ、Firefox は `Attr` を付けた element を別の document へ adopt しても、`Attr` の `ownerDocument` が
-古いままだった（adopt step 3.3.1）。
+Firefox は `Attr` を付けた element を別の document へ adopt しても、その前に取り出してあった `Attr` の
+`ownerDocument` が古いままである（findings 52、adopt step 3.3.1）。adopt のあとで `getAttributeNode` し直した
+ものは新しい document を返す。
 
 ### findings 50・51 の詳細（Dommy）
 
@@ -5645,13 +5647,16 @@ quirks mode の document が作れないと `quirks-mode-*` の 2 本が偽の�
 `DOMParser` の document が quirks でなければ iframe の document に `document.write` で読ませて作る（三つの browser とも
 `BackCompat` になり、子を外しても変わらない）。
 
-**固定 scenario 173 本。**
+**固定 scenario 180 本**（§「`Attr` を `Node` として扱う」の 7 本を含む）。
 
 | browser | ok | skip | known | mismatch |
 | --- | --- | --- | --- | --- |
-| Chromium 153 | 144 | 18 | 11 | 0 |
-| Firefox 155 | 141 | 18 | 14 | 0 |
-| WebKit 26.6 | 139 | 24 | 10 | 0 |
+| Chromium 153 | 150 | 18 | 12 | 0 |
+| Firefox 155 | 146 | 18 | 16 | 0 |
+| WebKit 26.6 | 145 | 24 | 11 | 0 |
+
+`Attr` の 7 本は、三つとも `adopt-node-keeps-an-attribute-on-its-element` が割れ（findings 48）、Firefox だけ
+`adopting-an-element-moves-its-attributes` も割れる（findings 52）。どちらも known-divergences に入れた。
 
 skip の 18 本は三つとも MutationObserver の配送順（JS からは復元できない）と model の対象外の 2 本である。WebKit は
 `moveBefore` を持たないので、さらに 6 本が skip になる。
