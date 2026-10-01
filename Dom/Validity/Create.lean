@@ -127,7 +127,7 @@ theorem structurallyValid (h : AddsNode s.tree s'.tree n d) (hd : FreshNodeData 
     · rw [hd.children]; simp
     · exact hwf.children_nodup m md hmd'
   · -- acyclic
-    exact fun m hm => hwf.acyclic m (h.ancestor_of hwf hd.children hd.parent hm)
+    exact fun m hm => hwf.acyclic m (h.ancestor_of hd.parent hm)
   · -- ownerDocument_is_document
     intro m md hmd
     rcases h.get?_cases hmd with ⟨rfl, rfl⟩ | hmd'

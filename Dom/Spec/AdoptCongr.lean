@@ -28,7 +28,7 @@ variable {t tb u ub : Tree} {s sb : DOMState} {node doc : NodeId}
 /-! ## step 3：node document の付け替え -/
 
 /-- 部分木の外にあるか、部分木の中で node document だけが差し替わるか、どちらかである。 -/
-theorem documentAssigned_data {nd : NodeData} (hnd : t.get? node = some nd)
+theorem documentAssigned_data
     (h : DocumentAssigned t u node doc) {m : NodeId} {d : NodeData} (hd : t.get? m = some d) :
     ∃ d', u.get? m = some d' ∧ d'.kind = d.kind ∧ d'.parent = d.parent ∧
       d'.children = d.children := by
@@ -52,7 +52,7 @@ theorem documentAssigned_parentOf {nd : NodeData} (hnd : t.get? node = some nd)
   | none => rw [parentOf_eq_none_of_get?_eq_none (documentAssigned_none hnd h hd),
       parentOf_eq_none_of_get?_eq_none hd]
   | some d =>
-    obtain ⟨d', hd', -, hpar, -⟩ := documentAssigned_data hnd h hd
+    obtain ⟨d', hd', -, hpar, -⟩ := documentAssigned_data h hd
     rw [parentOf_of_get? hd, parentOf_of_get? hd', hpar]
 
 theorem documentAssigned_childrenOf {nd : NodeData} (hnd : t.get? node = some nd)
@@ -61,7 +61,7 @@ theorem documentAssigned_childrenOf {nd : NodeData} (hnd : t.get? node = some nd
   | none => rw [childrenOf_eq_nil_of_get?_eq_none (documentAssigned_none hnd h hd),
       childrenOf_eq_nil_of_get?_eq_none hd]
   | some d =>
-    obtain ⟨d', hd', -, -, hch⟩ := documentAssigned_data hnd h hd
+    obtain ⟨d', hd', -, -, hch⟩ := documentAssigned_data h hd
     rw [childrenOf_eq hd', childrenOf_eq hd, hch]
 
 /--
@@ -90,7 +90,7 @@ theorem documentAssigned_wellFormed (hwf : WellFormed t) {nd : NodeData}
   have hdocu : ∀ (m : NodeId) (d : NodeData), t.get? m = some d → d.kind = .document →
       ∃ d', u.get? m = some d' ∧ d'.kind = .document := by
     intro m d hd hk
-    obtain ⟨d', hd', hk', -⟩ := documentAssigned_data hnd h hd
+    obtain ⟨d', hd', hk', -⟩ := documentAssigned_data h hd
     exact ⟨d', hd', by rw [hk', hk]⟩
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro p pd hpd c hc
@@ -103,7 +103,7 @@ theorem documentAssigned_wellFormed (hwf : WellFormed t) {nd : NodeData}
       rw [← hpar c, parentOf_of_get? hcd]; exact hcdp
     have hmem : c ∈ childrenOf t p := mem_childrenOf_of_parentOf hwf hcp
     obtain ⟨pd, hpdt, -⟩ := exists_data_of_mem_childrenOf hmem
-    obtain ⟨pd', hpd', -, -, -⟩ := documentAssigned_data hnd h hpdt
+    obtain ⟨pd', hpd', -, -, -⟩ := documentAssigned_data h hpdt
     exact ⟨pd', hpd', by rw [← childrenOf_eq hpd', hch p]; exact hmem⟩
   · intro n d hd
     cases hdt : t.get? n with
@@ -184,7 +184,7 @@ theorem adoptStep3_facts {s₁ out : DOMState} {od : NodeId} {nd₁ : NodeData}
     obtain ⟨hda, -⟩ := h
     refine ⟨documentAssigned_parentOf hnd₁ hda, fun d hd => ?_⟩
     obtain ⟨dd, hdd', hk⟩ := hd
-    obtain ⟨dd', hdd'', hk', -⟩ := documentAssigned_data hnd₁ hda hdd'
+    obtain ⟨dd', hdd'', hk', -⟩ := documentAssigned_data hda hdd'
     exact ⟨dd', hdd'', by rw [hk', hk]⟩
 
 /-- **`adopt` の後、node は parent を持たない**（step 2）。 -/
@@ -331,7 +331,7 @@ theorem adoptSpec_selfData (hwf : WellFormed s.tree) {out : DOMState}
     exact ⟨nd₁, hnd₁, hk₁, hch₁⟩
   · rw [if_neg hdd] at hst3
     obtain ⟨hda, -⟩ := hst3
-    obtain ⟨nd', hnd', hk', -, hch'⟩ := documentAssigned_data hnd₁ hda hnd₁
+    obtain ⟨nd', hnd', hk', -, hch'⟩ := documentAssigned_data hda hnd₁
     exact ⟨nd', hnd', by rw [hk', hk₁], by rw [hch', hch₁]⟩
 
 

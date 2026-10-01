@@ -88,12 +88,12 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
   obtain ⟨pd, s₁, hpd, ha, hi, hr⟩ := insert_single hnd (by simpa using hk) h
   -- adopt は node の node document を変えるだけである。
   have hpn : parentOf (liveRangeInsertAdjust s parent none 1).tree node = none := by
-    simp [liveRangeInsertAdjust_tree, parentOf_eq, hnd, hp]
+    simp [parentOf_eq, hnd, hp]
   obtain ⟨hr₁, hs₁⟩ := adopt_of_no_parent hpn ha
   have hother : ∀ m, m ≠ node → s₁.tree.get? m = s.tree.get? m := by
     intro m hm
     rcases hs₁ with he | he
-    · rw [he]; simp [liveRangeInsertAdjust_tree]
+    · rw [he]; simp
     · rw [he]
       have : m ∉ preorder (liveRangeInsertAdjust s parent none 1).tree node := by
         rw [liveRangeInsertAdjust_tree]
@@ -102,7 +102,7 @@ theorem append_fresh {s s' : DOMState} {node parent : NodeId} {nd : NodeData}
         · exact hm rfl
         · exact not_ancestor_of_children_nil hwf hnd hch m hanc
       rw [get?_setOwnerDocument_of_not_mem this]
-      simp [liveRangeInsertAdjust_tree]
+      simp
   have hnode₁ : ∃ nd₁, s₁.tree.get? node = some nd₁ ∧ nd₁.shape = nd.shape ∧
       nd₁.data = nd.data ∧ nd₁.children = [] ∧ nd₁.parent = none := by
     rcases hs₁ with he | he

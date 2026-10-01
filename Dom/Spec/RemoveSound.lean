@@ -263,7 +263,7 @@ theorem interestedIn_childList_bridge {s s₁ : DOMState} {n p : NodeId} (hwf : 
 
 /-- 一つの observer が受け取る record は、interested なら一つ、そうでなければ無い。 -/
 theorem records_after_queue {s₂ s₃ : DOMState} {rec : MutationRecord} {mo : Nat}
-    {o o' : ObserverState} (hrec : rec.type = RecordType.childList)
+    {o o' : ObserverState}
     (hov : rec.oldValue = none)
     (hq : s₃ = queueMutationRecord s₂ rec none)
     (ho : s₂.observers[mo]? = some o) (ho' : s₃.observers[mo]? = some o') :
@@ -342,7 +342,7 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
     · rw [queueMutationRecord_observers_length, hlen₂]
     · intro mo o o' ho ho'
       obtain ⟨o₂, ho₂, hrec₂⟩ := hget₂ mo o ho
-      have := records_after_queue (mo := mo) rfl rfl rfl ho₂ ho'
+      have := records_after_queue (mo := mo) rfl rfl ho₂ ho'
       constructor
       · intro hint
         rw [this.1 ((hbridge mo).mpr hint), hrec₂]
@@ -490,7 +490,6 @@ theorem pointerAdjusted_adjustNodePointer {t : Tree} (hwf : WellFormed t) {root 
         hR ((isInclusiveAncestorOf_iff hwf n root).mpr hc)
       cases hb : before with
       | true =>
-        simp only [if_pos rfl]
         cases hf : firstFollowingOutside t root n with
         | some next =>
           exact PointerAdjusted.forward hAnc hRoot (firstFollowingOutside_spec hwf hn hf)
@@ -526,7 +525,7 @@ theorem remove_sound_iterator {s s' : DOMState} {n p : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     IteratorAdjusted s s' n := by
   obtain ⟨nd, hnd, -⟩ := parentOf_eq_some hp
-  have hit := remove_iterators hp h
+  have hit := remove_iterators h
   constructor
   · rw [hit]; exact List.length_map ..
   · intro i it it' hi hi'

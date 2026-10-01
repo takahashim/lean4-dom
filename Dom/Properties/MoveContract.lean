@@ -169,7 +169,7 @@ theorem moveBefore_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree)
   have href := moveBefore_reference_ne hwf node child
   unfold moveBefore
   simp only [hpd, hk, Bool.not_eq_true']
-  rw [if_neg (by simp [hk])]
+  rw [if_neg (by simp)]
   constructor
   · rintro ⟨s', h⟩
     exact move_moveValidity h

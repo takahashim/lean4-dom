@@ -169,7 +169,7 @@ theorem length_filter_map {α β : Type _} (f : α → β) (p : β → Bool) :
   | [] => rfl
   | x :: rest => by
     by_cases h : p (f x) <;>
-      simp [List.filter_cons, h, length_filter_map f p rest]
+      simp [h, length_filter_map f p rest]
 
 theorem exists_split_of_map_eq {α β : Type _} (f : α → β) :
     ∀ (l : List α) (A B : List β), l.map f = A ++ B →
@@ -330,7 +330,7 @@ theorem cloneAppend_validity {t₀ t : Tree} {p n copy : NodeId} {rest : List No
     (hwf : WellFormed t) (h : AppendableInto t₀ t (n :: rest) p)
     (ht0n : t₀.get? n = some d)
     (hcd : t.get? copy = some cd) (hck : cd.kind = d.kind)
-    (hcp : cd.parent = none) (hcch : cd.children = []) (hcnep : copy ≠ p)
+    (hcch : cd.children = []) (hcnep : copy ≠ p)
     (hnk : d.kind ≠ NodeKind.document) (hnf : d.kind ≠ NodeKind.documentFragment) :
     ensurePreInsertionValidity t copy p none [] = .ok () := by
   obtain ⟨pd, hpd⟩ := h.present
@@ -430,7 +430,7 @@ theorem cloneMany_isOk (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
               pd'.kind = pd.kind) := by
         cases hpar : parent with
         | none =>
-          refine ⟨(cloneSingle s d doc).2, by simp [cloneAppend, hpar],
+          refine ⟨(cloneSingle s d doc).2, by simp [cloneAppend],
             fun m md hm _ => hA.get?_of hm, ⟨_, hA.created, rfl, rfl⟩, ?_⟩
           intro p hp; simp at hp
         | some p =>
@@ -443,13 +443,13 @@ theorem cloneMany_isOk (fuel : Nat) : ∀ (t₀ : Tree) (s : DOMState) (l : List
             rw [← he, hcopyFresh] at hpd
             simp at hpd
           obtain ⟨hnkd, hnfd⟩ := hA'.kinds n (List.mem_cons_self ..) d ht0n
-          have hvalid := cloneAppend_validity hv₁.wellFormed hA₁ ht0n hA.created rfl rfl rfl
+          have hvalid := cloneAppend_validity hv₁.wellFormed hA₁ ht0n hA.created rfl rfl
             hcnep hnkd hnfd
           obtain ⟨s₂, h2⟩ :=
             append_fresh_isOk hv₁.wellFormed hA.created rfl rfl hnfd hvalid
           obtain ⟨hfr, hnode, hpp, -⟩ :=
             append_fresh hv₁.wellFormed hA.created rfl rfl hnfd h2
-          refine ⟨s₂, by simp [cloneAppend, hpar, h2], ?_, ?_, ?_⟩
+          refine ⟨s₂, by simp [cloneAppend, h2], ?_, ?_, ?_⟩
           · intro m md hm hmp
             exact hfr m md (hA.get?_of hm) (hA.ne_of_mem hm) (hmp p rfl)
           · obtain ⟨nd', hnd', hsh, -, hch'⟩ := hnode

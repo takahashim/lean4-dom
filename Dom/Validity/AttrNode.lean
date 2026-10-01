@@ -172,7 +172,7 @@ theorem attrOpResult_createAttributeNS {s s' : DOMState} {doc : NodeId} {ns : Op
       exact attrOpResult_createAttributeIn ..
 
 theorem attrOpResult_setAttributeNode {s s' : DOMState} {element : NodeId} {aid : AttrId}
-    {ret : Option AttrId} (h : AttributesValid s.tree)
+    {ret : Option AttrId}
     (hr : setAttributeNode s element aid = .ok (ret, s')) : AttrOpResult s s' := by
   unfold setAttributeNode at hr
   split at hr
@@ -248,7 +248,7 @@ theorem admissible_createAttributeNS {s s' : DOMState} {doc : NodeId} {ns : Opti
 theorem admissible_setAttributeNode {s s' : DOMState} {element : NodeId} {aid : AttrId}
     {ret : Option AttrId} (h : AdmissibleDOMState s)
     (hr : setAttributeNode s element aid = .ok (ret, s')) : AdmissibleDOMState s' :=
-  admissible_of_attrOp h (attrOpResult_setAttributeNode h.attributes hr)
+  admissible_of_attrOp h (attrOpResult_setAttributeNode hr)
 
 theorem admissible_removeAttributeNode {s s' : DOMState} {element : NodeId} {aid ret : AttrId}
     (h : AdmissibleDOMState s) (hr : removeAttributeNode s element aid = .ok (ret, s')) :

@@ -807,9 +807,9 @@ theorem exists_get?_detach {t t' : Tree} {n : NodeId} (hd : detach t n = .ok t')
     (liveRangePreRemoveBP t n p i bp).node =
       if isInclusiveAncestorOf t n bp.node then p else bp.node := by
   cases hin : isInclusiveAncestorOf t n bp.node with
-  | true => rw [liveRangePreRemoveBP_pos hin, if_pos (by simp [hin])]
+  | true => rw [liveRangePreRemoveBP_pos hin, if_pos (by simp)]
   | false =>
-    rw [liveRangePreRemoveBP_neg hin, rangeShiftAfterRemove_node, if_neg (by simp [hin])]
+    rw [liveRangePreRemoveBP_neg hin, rangeShiftAfterRemove_node, if_neg (by simp)]
 
 /-- 外す node の root は旧 parent の root。 -/
 theorem root_eq_of_parentOf (hwf : WellFormed t) (hpar : parentOf t n = some p) :
