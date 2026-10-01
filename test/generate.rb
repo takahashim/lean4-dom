@@ -300,17 +300,27 @@ module Generate
   # 生成器が作る木に当たるものを選んでいる。type は `element_identity` の local name、
   # attribute は `ATTR_NAMES` と `ATTR_VALUES` から取る。
   #
-  # `:empty`・`:scope`・`#1`・`.--foo` は入れない。どれも実装側との既知の食い違い
-  # （`docs/status.md` の findings 19・20・21・26）に必ず当たるので、
-  # 生成器が新しいものを見つける邪魔になる。comment も findings 30 があるので入れない。
+  # `:empty`・`:scope` は入れない。実装側との既知の食い違い（`docs/status.md` の
+  # findings 19・20）に必ず当たるので、生成器が新しいものを見つける邪魔になる。
+  # 同じ理由で、findings 37-39 の形（範囲外の escape、string の中の逆斜線と改行・EOF、
+  # 逆斜線と改行）も入れない。固定 scenario で見ている。
+  #
+  # tokenizer の分岐（`Selectors/Spec/Token.lean` の規則）に届くように、escape・comment・
+  # 数値の書き方・非 ASCII・CR/FF を混ぜてある。findings 21・26・30 で外していた
+  # `#1`・`.--foo`・comment は Dommy `a0d8736` で直ったので戻した。
   # 大文字を混ぜるのは、type selector の大文字小文字が namespace で分かれるからである。
   # HTML namespace の element が HTML document にあるときだけ、selector 側を lowercase する。
   SELECTOR_TYPES = ["div", "span", "p", "rect", "*", "DIV", "RECT", "Span"].freeze
   SELECTOR_SUBCLASS = [
     ".vv", ".u", ".v", "#vv",
-    # escape。`\76` は `v` なので `.\76 v` は `.vv` と同じものを指す。
-    # 生成器はこれ以外に逆斜線を作らないので、tokenizer の escape はここでだけ撫でられる。
-    ".\\76 v", "#\\76 v", "[\\61]",
+    # escape（§4.3.7）。`\76` は `v` なので `.\76 v` は `.vv` と同じものを指す。
+    # hex digit は 6 桁まで、続く whitespace は一つだけ（tab も）読む。
+    ".\\76 v", "#\\76 v", "[\\61]", ".\\000076v", ".\\76\tv", ".\\v\\v",
+    "[a='\\31 ']", "[a=\"\\76v\"]", "[class~=\\75]",
+    # ident sequence（§4.3.9・§4.3.12）。`--` で始まる ident、非 ASCII。
+    ".--foo", "#--x", ".é", ".\\E9", ".·x",
+    # string の中の改行の継続は findings 38 なので入れず、ふつうの string だけ。
+    "[a=\"1\"]", "[a='u v']",
     "[a]", "[b]", "[data-x]", "[a='1']", "[a='']", "[class~=u]", "[data-x^=v]",
     "[data-x$=v]", "[data-x*=v]", "[a='1' i]", "[A=VV i]", "[class|=u]",
     "[class~='u v']", "[class~='']", "[class^='']", "[class$=v]", "[class*=' ']",
@@ -321,17 +331,26 @@ module Generate
     # A が負の形。`n` が非負に限るので「先頭から幾つ」を表す。
     ":nth-child(-n+2)", ":nth-last-child(-n+2)", ":nth-of-type(-n+1)",
     ":nth-child(-2n+4)", ":nth-child(3n-1)",
+    # number（§4.3.13）。符号付きの整数、大文字の `N`、空白の入る位置。
+    ":nth-child(+2n+1)", ":nth-child(2N+1)", ":nth-child( 2n + 1 )", ":nth-child(+3)",
+    ":nth-child(-n- 1)", ":nth-child(n- 1)",
     ":is(div, span)", ":where(p)", ":not(p)", ":not(.vv, #vv)",
     ":has(span)", ":has(> p)", ":has(+ p)", ":has(~ span)", "[*|a]", "[*|class]"
   ].freeze
-  SELECTOR_COMBINATORS = [" ", " > ", " + ", " ~ "].freeze
+  # comment（§4.3.2）は whitespace の隣に置く。`div/* c */p` は jsdom の findings 33 に当たる。
+  # CR・FF・CRLF は前処理（§3.3）で LF になる。
+  SELECTOR_COMBINATORS = [" ", " > ", " + ", " ~ ", " /* c */ ", " /**/> ", "\f", " \r\n~ "].freeze
   # 読めない selector。`SyntaxError` を撫でる。
   #
   # `::before` のような pseudo-element は入れない。仕様では構文として正しく、
   # `querySelector()` が当てないだけなのだが、model は形式化の範囲から外して
   # parse に失敗させている（`docs/selectors-spec-version.md`）。
   SELECTOR_INVALID = ["", "(", "div >", "p!", ":unknown-thing", "ns|E",
-                      ":nth-child()", "[a=]"].freeze
+                      ":nth-child()", "[a=]",
+                      # tokenizer の段で決まる失敗。hash の type flag（§4.3.1）、
+                      # 整数でない number（§4.3.13）、ident を始めない `-`（§4.3.9）、CDO/CDC。
+                      "#1", "#-1", ":nth-child(1e1)", ":nth-child(1.5)", ":nth-child(10%)",
+                      ".-1", "<!--", "-->", "@x", "[a='1\n']", "/**/"].freeze
 
   # compound selector 一つ。
   def random_compound(rng)
