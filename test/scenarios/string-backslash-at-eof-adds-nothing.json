@@ -1,0 +1,65 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-string-token",
+    "algorithm": [
+      "consume a string token",
+      "consume a simple block"
+    ],
+    "steps": "string の中の U+005C の次が EOF なら何もしない。続く EOF で string token を返し、開いた `[` は EOF で閉じる",
+    "note": "`[a='x\\` は `[a='x']` と同じ。ident の中の逆斜線と EOF（§4.3.7 で U+FFFD）とは扱いが違う。findings 38。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "x"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "x�"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='x\\"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#starts-with-a-valid-escape",
+    "algorithm": [
+      "check if two code points are a valid escape",
+      "consume an ident sequence"
+    ],
+    "steps": "U+005C の次が newline なら valid escape ではない。ident sequence はそこで終わり、逆斜線は delim token になる",
+    "note": "`.a\\<LF>b` は class selector の後ろに delim が残るので SyntaxError。`-\\<LF>` は ident sequence を始めない。findings 39。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "a\nb"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "-\na"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".a\\\nb"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".-\\\na"
+    }
+  ]
+}

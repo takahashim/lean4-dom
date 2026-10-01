@@ -1,0 +1,61 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-string-token",
+    "algorithm": [
+      "consume a string token",
+      "filter code points"
+    ],
+    "steps": "string の中の U+005C に newline が続けば newline を読み飛ばす（値には何も足さない）。前処理で CR・FF・CRLF は LF になる",
+    "note": "`'x\\<LF>y'` の値は `xy` である。findings 38。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "xy"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='x\\\ny']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='x\\\r\ny']"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='x\\\fy']"
+    }
+  ]
+}

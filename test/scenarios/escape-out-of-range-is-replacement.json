@@ -1,0 +1,74 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-escaped-code-point",
+    "algorithm": [
+      "consume an escaped code point"
+    ],
+    "steps": "hex digit の値が 0・surrogate・U+10FFFF 超のいずれかなら U+FFFD REPLACEMENT CHARACTER を返す",
+    "note": "`.\\D800`（surrogate）も `.\\110000`（最大値超）も U+FFFD を class 名に持つ element に当たる。findings 37。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "�"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "�"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".\\D800"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ".\\110000"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='\\DFFF']"
+    }
+  ]
+}

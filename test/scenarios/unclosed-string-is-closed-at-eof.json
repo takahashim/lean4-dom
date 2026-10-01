@@ -1,0 +1,56 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-string-token",
+    "algorithm": [
+      "consume a string token",
+      "consume a simple block"
+    ],
+    "steps": "string token の途中で EOF なら（parse error だが）その時点の値で string token を返す。開いた `[` も EOF で閉じる",
+    "note": "`[a=\"x` と `[a='x` はどちらも `[a='x']` と同じ。引用符の種類で扱いは変わらない。findings 40（jsdom は `'` のときだけ SyntaxError）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "x"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a=\"x"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='x"
+    }
+  ]
+}

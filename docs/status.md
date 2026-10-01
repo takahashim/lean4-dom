@@ -3699,7 +3699,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-36 の索引
+## findings 12-40 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3744,6 +3744,10 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 | 34 | jsdom | element に対する scoped query が compound 三つ以上で当たらない | `only-the-subject-must-be-in-scope` |
 | 35 | jsdom | 空の DocumentFragment では selector を parse しない | `selector-is-parsed-before-matching` |
 | 36 | jsdom | `attributeFilter` が namespace 付きの attribute を素通しする | `observer-attribute-filter-skips-namespaced` |
+| 37 | Dommy | surrogate・U+10FFFF 超の escape が U+FFFD にならず `RangeError` | `escape-out-of-range-is-replacement` |
+| 38 | Dommy | string の中の逆斜線と改行が継続にならない／逆斜線と EOF が U+FFFD を足す | `string-backslash-newline-continues`, `string-backslash-at-eof-adds-nothing` |
+| 39 | Dommy | 逆斜線と改行を valid escape として読む | `backslash-newline-is-not-an-escape` |
+| 40 | jsdom | `'` で開いたまま EOF になった string が SyntaxError（`"` なら通る） | `unclosed-string-is-closed-at-eof` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5402,11 +5406,45 @@ number は整数のときだけ本文どおりの値を持つ、percentage token
 
 ### 残り
 
-* **生成器が tokenizer の大半に届いていない。** `test/generate.rb` の selector は固定の語彙から
-  組み立てるので、escape は `.\76 v` など 3 つだけで、comment・`#1`・`.--foo`・string の escape と
-  改行・指数表記・NULL・CR/FF・非 ASCII を作らない。comment・`#1`・`.--foo` は findings 30・21・26 に
-  必ず当たるので外してあったが、Dommy `a0d8736` で直ったので戻せる。
+* ~~生成器が tokenizer の大半に届いていない。~~ 語彙を広げた（次節）。
 * 差分テストの出力に、どの規則で割れたかを自動で出す仕組みは無い。名指しは人が関係を読んで行う。
+
+## tokenizer の関係から出た findings 37-40
+
+関係を書いた tokenizer の規則のうち、生成器が一度も作らない分岐を手で突いた。
+selector 一つにつき scenario 一つ（`compare.rb` は最初に割れた step で打ち切るので）、
+88 本を model と Dommy（pin した `4d4f2c1`）に当てて 20 本が割れ、三つの原因に分かれた。
+どれも Dommy 自身の selector parser（`gems/dommy/lib/dommy/internal/selector_parser.rb`）にあり、
+makiri ではない。
+
+| # | 規則 | 本文 | Dommy |
+| --- | --- | --- | --- |
+| 37 | `EscapedValue.replacement`（§4.3.7） | 0・surrogate・U+10FFFF 超は U+FFFD | `decode_css_identifier` が 0 だけを U+FFFD にし、残りを `Integer#chr` に渡して `RangeError`。class・id・attribute 値・`:not()` の中のどこでも落ちる |
+| 38 | `StringRun.backslashNewline` / `backslashEof`（§4.3.5） | string の中の逆斜線と改行は読み飛ばす。逆斜線と EOF は何もしない | `consume_string!` が ident 用の escape 復号をそのまま使うので、改行を値に足し、EOF では U+FFFD を足す。`[a='x\` が `a="x\uFFFD"` に当たるのがその証拠 |
+| 39 | `ValidEscape`（§4.3.8）を `IdentSeq` と `WouldStartIdent` から使う | 逆斜線に改行が続けば escape ではない | ident の途中と `-\` の先頭判定で改行を確かめていない。`.a\<LF>b` と `.-\<LF>a` を通す |
+
+前処理（§3.3）は Dommy も正しい。CR・FF・CRLF を含む形が割れたのは、前処理のあとで 38・39 に当たるからである。
+
+**model の読みの裏付け。** jsdom 30.1.1 にも同じ scenario を当てると、37-39 の形はすべて model と一致した。
+逆に jsdom だけが割れる形が一つ出た（findings 40）。`[a='x` は SyntaxError だが `[a="x` は通る。
+本文の string token は引用符の種類で扱いを変えないので、jsdom の不具合である。
+
+### 生成器の語彙を広げた
+
+`test/generate.rb` の selector の語彙に、tokenizer の規則に届く形を足した。escape（6 桁の hex、tab を読む、
+hex でない文字の escape、string と attribute 値の中の escape）、`--` で始まる ident、非 ASCII、comment を挟む
+combinator、FF・CRLF の combinator、符号付きや大文字 `N` の An+B、tokenizer の段で決まる失敗
+（`#1`、`#-1`、`1e1`、`1.5`、`10%`、`.-1`、CDO/CDC、at-keyword、改行の入った string、comment だけ）である。
+findings 21・26・30 で外していた `#1`・`.--foo`・comment は戻した。37-39 の形は入れていない
+（必ず当たるので探索の邪魔になる。固定 scenario で見ている）。
+
+selector の操作だけに絞って seed 1-6 × 300 本を回すと、生成された selector 10,800 個のうち
+escape を含むものが 3,475、comment が 2,673、CR/FF が 2,428、非 ASCII が 863 で、
+**1,800 本すべて一致した**。既定の設定（seed 1-5 × 100 本、`--ranges 4 --iterators 2 --observers 3 --move`）も
+不一致は無い。
+
+固定 scenario は 37-40 の 5 本を足して、Dommy では 152 ok / 2 skip / 3 known / **4 mismatch**（37-39）になる。
+不一致を expected に落とさない方針なので、nightly の固定 scenario は Dommy が直すまで赤になる。
 
 ## 未着手
 
