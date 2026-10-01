@@ -48,14 +48,6 @@ theorem continuationBits_ofNat {v : Nat} (hv : v < 64) :
 
 /-! ## `Char` の往復 -/
 
-/-- `Char` の値は必ず scalar value の範囲にある。 -/
-theorem isScalarValue_toNat (c : Char) : isScalarValue c.toNat = true := by
-  have hv : c.toNat < 0xD800 ∨ (0xDFFF < c.toNat ∧ c.toNat < 0x110000) := c.valid
-  unfold isScalarValue
-  rcases hv with h | h
-  · simp [h]
-  · simp [h.1, h.2]
-
 /-- `Char` の値は必ず scalar value なので、番号から作り直すと元に戻る。 -/
 theorem charOfScalar_toNat (c : Char) : charOfScalar c.toNat = c := by
   unfold charOfScalar

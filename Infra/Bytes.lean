@@ -44,6 +44,14 @@ def replacementChar : Char := ⟨0xFFFD, by decide⟩
 /-- code point の値が Unicode scalar value の範囲にあるか。 -/
 def isScalarValue (n : Nat) : Bool := n < 0xD800 || (0xDFFF < n && n < 0x110000)
 
+/-- `Char` の値は必ず scalar value の範囲にある。 -/
+theorem isScalarValue_toNat (c : Char) : isScalarValue c.toNat = true := by
+  have hv : c.toNat < 0xD800 ∨ (0xDFFF < c.toNat ∧ c.toNat < 0x110000) := c.valid
+  unfold isScalarValue
+  rcases hv with h | h
+  · simp [h]
+  · simp [h.1, h.2]
+
 /--
 code point の値から `Char` を作る。surrogate と範囲外は replacement character にする。
 

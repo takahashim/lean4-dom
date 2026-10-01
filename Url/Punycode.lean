@@ -1,4 +1,4 @@
-import Infra.Ascii
+import Infra.Bytes
 
 /-!
 # Punycode（RFC 3492）
@@ -226,7 +226,7 @@ def decodeLoop (bias n i : Nat) (out : List Char) : List Char → Option (List C
       let numpoints := out.length + 1
       let n' := n + i' / numpoints
       let pos := i' % numpoints
-      if n' < 0xD800 || (0xDFFF < n' && n' < 0x110000) then
+      if Infra.isScalarValue n' then
         decodeLoop (adapt (i' - i) numpoints (i == 0)) n' (pos + 1)
           (out.insertIdx pos (Char.ofNat n')) rem
       else none
@@ -515,7 +515,7 @@ theorem encodeDigits_ne_nil (bias k q : Nat) : encodeDigits bias k q ≠ [] := b
 `n = m` で、その場合は `(m - n) * N = 0` なので同じ式で表せる。
 -/
 theorem decode_emit (n m : Nat) (hnm : n ≤ m)
-    (hm : m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000))
+    (hm : Infra.isScalarValue m = true)
     (A B : List Char) (i d bi : Nat) (E : List Char)
     (hlen : A.length + (m - n) * (A.length + B.length + 1) = i + d) :
     decodeLoop bi n i (A ++ B) (encodeDigits bi 36 d ++ E)
@@ -546,11 +546,7 @@ theorem decode_emit (n m : Nat) (hnm : n ≤ m)
     have hmod : (i + d) % ((A ++ B).length + 1) = A.length := by
       rw [hnp, ← hlen, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hAlt]
     simp only [hdiv, hmod, show n + (m - n) = m by omega]
-    have hvalid : (decide (m < 55296) || decide (57343 < m) && decide (m < 1114112)) = true := by
-      rcases hm with hv | ⟨hv1, hv2⟩
-      · simp [hv]
-      · simp [hv1, hv2]
-    rw [if_pos hvalid]
+    rw [if_pos hm]
     rw [show i + d - i = d by omega, hnp, insertIdx_append]
 
 /--
@@ -596,7 +592,7 @@ structure PassInv (b m : Nat) (suf : List Char) (st : PassState) : Prop where
   bLe : b ≤ st.hh
 
 /-- **走査 1 回分の双模倣。** -/
-theorem decode_scan (b m : Nat) (hm : m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000)) :
+theorem decode_scan (b m : Nat) (hm : Infra.isScalarValue m = true) :
     ∀ (suf : List Char) (st : PassState) (rest : List Char),
       PassInv b m suf st →
       decodeLoop st.bias st.n st.i (st.A ++ st.B)
@@ -921,7 +917,7 @@ structure OuterInv (b : Nat) (input : List Char) (todo : List Nat)
   ge : ∀ m ∈ todo, nEnc ≤ m
   sorted : StrictSorted todo
   /-- `todo` の code point は妥当な scalar value。 -/
-  valid : ∀ m ∈ todo, m < 0xD800 ∨ (0xDFFF < m ∧ m < 0x110000)
+  valid : ∀ m ∈ todo, Infra.isScalarValue m = true
   hEq : h = (input.filter (fun c => decide (c.toNat < nEnc))).length
   /-- pass の境目で保たれるもの。 -/
   delta : i + dlt = (nEnc - nDec) * (h + 1)
@@ -1273,10 +1269,6 @@ theorem strictSorted_sortedDistinct : ∀ (l : List Nat), StrictSorted (sortedDi
   | nil => simp [sortedDistinct, StrictSorted]
   | cons a t ih => rw [sortedDistinct]; exact strictSorted_insertSorted a _ ih
 
-/-- `Char` の番号は妥当な scalar value である。 -/
-theorem char_valid (c : Char) : c.toNat < 0xD800 ∨ (0xDFFF < c.toNat ∧ c.toNat < 0x110000) := by
-  exact c.valid
-
 /-- **Punycode の往復。** 符号化して復号すると元に戻る。 -/
 theorem decode_encode (input : List Char) : decode (encode input) = some input := by
   unfold decode
@@ -1308,5 +1300,5 @@ theorem decode_encode (input : List Char) : decode (encode input) = some input :
   · intro x hx
     obtain ⟨c, _, hcx⟩ := List.mem_map.mp ((mem_sortedDistinct _ _).mp hx)
     rw [← hcx]
-    exact char_valid c
+    exact Infra.isScalarValue_toNat c
 end Url.Punycode

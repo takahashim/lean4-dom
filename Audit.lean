@@ -765,7 +765,7 @@ open Dom.Audit
   Url.Punycode.mem_sortedDistinct
   Url.Punycode.strictSorted_insertSorted
   Url.Punycode.strictSorted_sortedDistinct
-  Url.Punycode.char_valid
+  Infra.isScalarValue_toNat
   Url.Punycode.decode_encode
 
 -- UTS #46 ToASCII（表は仮定 `IdnaTable.Resolved` に押し込んである）
