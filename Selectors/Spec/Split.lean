@@ -14,9 +14,6 @@ namespace Selectors.Spec
 
 open Selectors
 
-theorem bool_eq_false_of_ne_true {b : Bool} (h : ¬ b = true) : b = false := by
-  cases b <;> simp_all
-
 /-! ## `dropToComma` -/
 
 /-- `l` を最初の `,` まで（その `,` も含めて）捨てた残り。`r` はその残り。 -/
@@ -50,12 +47,12 @@ theorem dropsToComma_of_dropToComma : ∀ (l r : List Component),
         · rw [hl]; rfl
         · intro x hx
           rcases List.mem_cons.mp hx with rfl | hx
-          · exact bool_eq_false_of_ne_true hc
+          · exact eq_false_of_ne_true hc
           · exact hno x hx
       · refine Or.inr ⟨?_, hr⟩
         intro x hx
         rcases List.mem_cons.mp hx with rfl | hx
-        · exact bool_eq_false_of_ne_true hc
+        · exact eq_false_of_ne_true hc
         · exact hno x hx
 
 theorem dropToComma_of_dropsToComma : ∀ (pre post : List Component),
@@ -107,7 +104,7 @@ theorem splitAtOf_some_of : ∀ (l a b : List Component), splitAtOf l = some (a,
         · rw [hm]; rfl
         · intro x hx
           rcases List.mem_cons.mp hx with rfl | hx
-          · exact bool_eq_false_of_ne_true hc
+          · exact eq_false_of_ne_true hc
           · exact hno x hx
       · simp at h
 
