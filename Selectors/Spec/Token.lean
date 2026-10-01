@@ -1,4 +1,5 @@
 import Infra.Ascii
+import Selectors.Token
 
 /-!
 # CSS tokenizer の関係仕様（CSS Syntax Level 3 §3.3・§4）
@@ -10,7 +11,8 @@ import Infra.Ascii
 不一致が出たとき、どの § のどの分岐で割れたかを名指しできるようにするためである。
 
 使ってよいのは code point の数値範囲と list の添字だけで、`Selectors/Token.lean` の
-関数（`isIdentStart`・`startsValidEscape` など）は呼ばない。code point の分類も
+関数（`isIdentStart`・`startsValidEscape` など）は呼ばない。`Selectors/Token.lean` から使うのは
+token の型 `Token` / `Num` だけである。code point の分類も
 `Infra.Ascii` ではなく CSS Syntax §4.2 の定義から書き写す。
 
 `Selectors/Spec/TokenSound.lean` で実行関数がこれを満たすことを、
@@ -120,5 +122,128 @@ def StartsIdent (l : List Char) : Prop := WouldStartIdent l[0]? l[1]? l[2]?
 
 /-- 入力の流れの先頭が number を始める。 -/
 def StartsNumber (l : List Char) : Prop := WouldStartNumber l[0]? l[1]? l[2]?
+
+/-! ## escape（§4.3.7 "consume an escaped code point"） -/
+
+/-- hex digit が表す値。 -/
+def HexDigitValue (c : Char) : Nat :=
+  if 0x30 ≤ c.toNat ∧ c.toNat ≤ 0x39 then c.toNat - 0x30
+  else if 0x41 ≤ c.toNat ∧ c.toNat ≤ 0x46 then c.toNat - 0x41 + 10
+  else c.toNat - 0x61 + 10
+
+/-- `HexNumber ds v`：hex digit の並び `ds` を 16 進として読んだ値が `v`（上の桁から読む）。 -/
+inductive HexNumber : List Char → Nat → Prop where
+  | nil : HexNumber [] 0
+  | snoc {ds : List Char} {v : Nat} (d : Char) (h : HexNumber ds v) :
+      HexNumber (ds ++ [d]) (v * 16 + HexDigitValue d)
+
+/--
+`EscapedValue v c`：escape の 16 進の値 `v` が表す code point が `c`。
+0・surrogate・最大値 U+10FFFF を超える値は U+FFFD。
+-/
+inductive EscapedValue : Nat → Char → Prop where
+  | replacement {v : Nat} (h : v = 0 ∨ (0xD800 ≤ v ∧ v ≤ 0xDFFF) ∨ 0x10FFFF < v) :
+      EscapedValue v '\uFFFD'
+  | scalar {v : Nat} {c : Char} (h : ¬ (v = 0 ∨ (0xD800 ≤ v ∧ v ≤ 0xDFFF) ∨ 0x10FFFF < v))
+      (hc : c.toNat = v) :
+      EscapedValue v c
+
+/--
+`Escape input c rest`：逆斜線の後ろの `input` から escape を一つ読むと `c` になり、残りが `rest`。
+
+hex digit は 1〜6 個を最長一致で読み、直後の whitespace を一つだけ一緒に読む。
+-/
+inductive Escape : List Char → Char → List Char → Prop where
+  /-- hex digit の並び。後ろに whitespace があれば一つ読む。 -/
+  | hex {input ds rest rest' : List Char} {v : Nat} {c : Char}
+      (hsplit : input = ds ++ rest) (hne : ds ≠ []) (hlen : ds.length ≤ 6) (hall : ∀ d ∈ ds, HexDigit d)
+      (hmax : ds.length = 6 ∨ ∀ d, rest[0]? = some d → ¬ HexDigit d)
+      (hws : (∃ w, rest = w :: rest' ∧ Whitespace w) ∨
+        ((∀ w, rest[0]? = some w → ¬ Whitespace w) ∧ rest' = rest))
+      (hv : HexNumber ds v) (hc : EscapedValue v c) :
+      Escape input c rest'
+  /-- 入力が尽きた。U+FFFD。 -/
+  | eof : Escape [] '\uFFFD' []
+  /-- hex digit でない code point はそれ自身。 -/
+  | other {c : Char} {rest : List Char} (h : ¬ HexDigit c) : Escape (c :: rest) c rest
+
+/-! ## ident sequence（§4.3.12 "consume an ident sequence"） -/
+
+/--
+`IdentSeq input result rest`：`input` から ident sequence を最長に読むと `result`、残りが `rest`。
+
+先頭の検査（§4.3.9）はしない。本文と同じく、呼び出す側の責任である。
+-/
+inductive IdentSeq : List Char → List Char → List Char → Prop where
+  /-- ident code point を足す。 -/
+  | cp {c : Char} {rest r out : List Char} (h : IdentCp c) (ih : IdentSeq rest r out) :
+      IdentSeq (c :: rest) (c :: r) out
+  /-- valid escape なら escape を読んで足す。逆斜線は ident code point ではない。 -/
+  | escape {rest rest' r out : List Char} {e : Char}
+      (hv : StartsValidEscape ('\\' :: rest)) (he : Escape rest e rest')
+      (ih : IdentSeq rest' r out) :
+      IdentSeq ('\\' :: rest) (e :: r) out
+  /-- どちらでもなければ止まる。入力が尽きた場合も含む。 -/
+  | stop {l : List Char} (hc : ∀ c, l[0]? = some c → ¬ IdentCp c)
+      (he : ¬ StartsValidEscape l) :
+      IdentSeq l [] l
+
+/-! ## string token（§4.3.5 "consume a string token"） -/
+
+/--
+`StringRun e input value bad rest`：開き引用符の後ろの `input` を、終わりの code point `e` まで読む。
+`value` は値、`bad` は `<bad-string-token>` になったか、`rest` は残り。
+
+本文の分岐の順序どおり、終わりの code point の判定が先に来る。他の規則はすべて `c ≠ e` を持つ。
+-/
+inductive StringRun (e : Char) : List Char → List Char → Bool → List Char → Prop where
+  /-- 終わりの code point。 -/
+  | close {rest : List Char} : StringRun e (e :: rest) [] false rest
+  /-- 入力が尽きた（parse error）。それまでの値で string token になる。 -/
+  | eof : StringRun e [] [] false []
+  /-- 改行（parse error）。改行は読み直しに残し、bad-string token になる。 -/
+  | newline {rest : List Char} (he : '\n' ≠ e) :
+      StringRun e ('\n' :: rest) [] true ('\n' :: rest)
+  /-- 逆斜線で入力が尽きた。何もしない。 -/
+  | backslashEof (he : '\\' ≠ e) : StringRun e ['\\'] [] false []
+  /-- 逆斜線と改行は読み飛ばす（行の継続）。 -/
+  | backslashNewline {rest v : List Char} {b : Bool} {out : List Char} (he : '\\' ≠ e)
+      (ih : StringRun e rest v b out) :
+      StringRun e ('\\' :: '\n' :: rest) v b out
+  /-- 逆斜線のあとが改行でなければ escape。 -/
+  | backslashEscape {d : Char} {rest rest' v : List Char} {x : Char} {b : Bool} {out : List Char}
+      (he : '\\' ≠ e) (hd : d ≠ '\n') (hx : Escape (d :: rest) x rest')
+      (ih : StringRun e rest' v b out) :
+      StringRun e ('\\' :: d :: rest) (x :: v) b out
+  /-- それ以外は値に足す。 -/
+  | other {c : Char} {rest v : List Char} {b : Bool} {out : List Char}
+      (he : c ≠ e) (hn : c ≠ '\n') (hb : c ≠ '\\') (ih : StringRun e rest v b out) :
+      StringRun e (c :: rest) (c :: v) b out
+
+/-- `StringTok e input t rest`：string token を読むと `t`、残りが `rest`。 -/
+def StringTok (e : Char) (input : List Char) (t : Token) (rest : List Char) : Prop :=
+  ∃ v b, StringRun e input v b rest ∧
+    t = if b then Token.badString else Token.string (String.ofList v)
+
+/-! ## comment（§4.3.2 "consume comments"） -/
+
+/-- `s` の中に `*/` が現れない。 -/
+def NoCommentEnd (s : List Char) : Prop := ∀ x y, s ≠ x ++ '*' :: '/' :: y
+
+/--
+`CommentBody input rest`：`/*` の後ろから、最初の `*/` まで（それも含めて）読むと残りが `rest`。
+`*/` が無ければ入力の終わりまで読む（parse error）。
+-/
+def CommentBody (input rest : List Char) : Prop :=
+  (∃ pre, input = pre ++ '*' :: '/' :: rest ∧ NoCommentEnd pre) ∨
+  (NoCommentEnd input ∧ rest = [])
+
+/-- `Comments input rest`：先頭の comment をすべて読み飛ばすと残りが `rest`。 -/
+inductive Comments : List Char → List Char → Prop where
+  /-- `/*` で始まらなければ何もしない。 -/
+  | done {l : List Char} (h : ∀ r, l ≠ '/' :: '*' :: r) : Comments l l
+  /-- comment を一つ読み、本文の "Return to the start of this step" に戻る。 -/
+  | comment {rest rest' out : List Char} (hb : CommentBody rest rest') (ih : Comments rest' out) :
+      Comments ('/' :: '*' :: rest) out
 
 end Selectors.Spec

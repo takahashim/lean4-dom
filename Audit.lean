@@ -1080,6 +1080,20 @@ open Dom.Audit
   Selectors.Spec.startsValidEscape_iff
   Selectors.Spec.startsIdentSeq_iff
   Selectors.Spec.startsNumber_iff
+  Selectors.Spec.hexNumber_spec
+  Selectors.Spec.escapedCodePoint_spec
+  Selectors.Spec.consumeEscape_spec
+  Selectors.Spec.Escape.deterministic
+  Selectors.Spec.Escape.iff_consumeEscape
+  Selectors.Spec.consumeIdentSeq_spec
+  Selectors.Spec.IdentSeq.deterministic
+  Selectors.Spec.IdentSeq.iff_consumeIdentSeq
+  Selectors.Spec.stringAux_tok_spec
+  Selectors.Spec.StringTok.deterministic
+  Selectors.Spec.StringTok.iff_stringAux
+  Selectors.Spec.skipComments_spec
+  Selectors.Spec.Comments.deterministic
+  Selectors.Spec.Comments.iff_skipComments
 
 -- selector の API が満たすこと
 #audit_axioms
