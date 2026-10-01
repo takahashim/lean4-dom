@@ -1,0 +1,85 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#attribute-case",
+    "algorithm": [
+      "consume comments",
+      "consume an ident-like token",
+      "parse a selector"
+    ],
+    "steps": "attribute の modifier は ident token なので escape を復号した値で比べる。matcher（`~=` ほか）と namespace prefix（`*|`）の二つの delim token の間に whitespace は置けないが、comment は token を作らないので置ける",
+    "note": "`[a='X' \\\\69]`（`\\\\69` は `i`）、`[a='X' i/**/]`、`[class~/**/=u]`、`*/**/|p`、`[*/**/|a]` はどれも読める。findings 43。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html",
+      "attributes": []
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "x"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "u v"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": []
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='X' i/**/]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[a='X' \\69]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[class~/**/=u]"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "*/**/|p"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": "[*/**/|a]"
+    }
+  ]
+}

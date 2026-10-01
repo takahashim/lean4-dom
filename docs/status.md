@@ -3699,7 +3699,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-42 の索引
+## findings 12-43 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3750,6 +3750,7 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 | 40 | jsdom | `'` で開いたまま EOF になった string が SyntaxError（`"` なら通る） | `unclosed-string-is-closed-at-eof` |
 | 41 | Dommy | 関数の引数の `)` と `,` を文字で探すので、escape・comment・string の中身を構造と取り違える | `functional-argument-is-split-on-tokens` |
 | 42 | Dommy / jsdom | An+B を生の文字列の正規表現で見るので、comment（Dommy）と escape（両方）を扱えない | `anb-comments-are-not-tokens`, `anb-escapes-are-decoded` |
+| 43 | Dommy / jsdom | attribute の modifier を ident として読まない／接する二つの delim の間の comment を通さない | `tokens-between-attribute-and-prefix-parts` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5466,7 +5467,8 @@ model の形式化の範囲外なので findings ではない。
   dimension token」と定義しており、token の値は escape を復号したものなので、model は本文の字義に従っている。
   二つの実装が揃って model と違うのは、どちらも正規表現で読んでいるからである。
 
-固定 scenario は 3 本足した。pin した Dommy ではこれも割れるので、mismatch は 7 本になる。
+固定 scenario は 3 本足した。pin した Dommy ではこれも割れるので、mismatch は 7 本になる
+（43 を足して 8 本）。
 
 ### Dommy 側の修正
 
@@ -5475,9 +5477,40 @@ model の形式化の範囲外なので findings ではない。
 An+B に要る範囲で tokenize してから §9.2 の文法を token の上で照合する。それぞれ Dommy の
 `test/internal/test_selector_parser.rb` に test を足し、修正を外すと落ちることを確かめた。
 
-この branch の Dommy に当てると、固定 scenario は **160 ok / 2 skip / 3 known / 0 mismatch**、
-手で当てた 129 本も（範囲外の 2 本を除いて）すべて一致し、生成 scenario（selector の操作に絞った seed 1-6 × 300 本、
-既定の設定の seed 1-3 × 100 本）も不一致は無い。Dommy 自身の test は 4,641 runs で失敗 0。
+### 同じ形の見落としを洗った：findings 43 と model の外の三件
+
+41・42 と同じ「token ではなく文字で読む」形を Dommy 全体で探した。
+
+**selector parser の残り（findings 43）。** ident の位置の escape と comment を 42 本当て、二つの形が割れた。
+attribute の modifier を一文字だけ読んで直後に空白か `]` を求めていたので、escape した `[a='x' \69]`
+（`\69` は `i`）と後ろに comment のある `[a='x' i/**/]` が SyntaxError になる。もう一つは、接していなければ
+ならない二つの delim token（matcher の `~=` ほか、namespace prefix の `*|`）の間の comment で、
+`[a~/**/=x]`・`*/**/|div`・`[*/**/|a]` を通さない。本文は「token の間に whitespace を置かない」と言い、
+comment は token でも whitespace でもないので、model は通す。jsdom も escape と comment の形を通さない
+（42 の escape と同じく、両実装が揃って字義から外れている）。pseudo-class 名や関数名の escape
+（`:\6E ot(p)`）は Dommy も一致した。
+
+**model の外で見つけたもの。** 差分テストの harness が扱わない API と CSS 宣言にも同じ形があった。
+model が無いので findings の番号は振らず、DOM・CSSOM の定義（属性値の一致、宣言の token 列）から
+期待値を決めて Dommy を直接呼んで確かめた。
+
+* `Element#getElementsByClassName` と `getElementsByName` が引数を selector 文字列に連結して makiri に
+  渡していた（`.1`・`[name='a'b']` で例外、`a.b`・`a\b` で 0 件）。`getElementById` は `CSS.escape` を通すので
+  NUL を含む id を探せなかった。`CSS.escape("-")` は CSSOM の「`-` だけなら escape する」が無かった。
+* `style` 属性と CSSOM の宣言ブロックを `split(";")` と最初の `:` で切っていたので、string・`url()`・`{}`・comment の
+  中の `;` `:` で宣言が壊れていた（`color: red /* ; color: blue */` の color が `blue */` になる）。var() の探索も
+  文字で行っていて、string の中の `var(` を置換し、fallback の中の comment を computed value に残していた。
+
+### Dommy 側の修正（続き）
+
+`fix/css-escape-edge-cases` に三つ足した。43 は modifier を `consume_ident!` で読み、接する delim の間では comment だけを
+読み飛ばす。API は属性値を直接比べる（`getElementById` は NUL を含むときだけ）。宣言は escape・string・comment を
+一つの単位として飛ばす `Internal::CssSource` を新設し、selector parser の走査、宣言ブロック、var() の置換の三つが
+同じ答えを使うようにした。branch は 37-39・41-43 と model の外の二件で計 8 commit である。
+
+この branch の Dommy に当てると、固定 scenario は **161 ok / 2 skip / 3 known / 0 mismatch**、
+手で当てた 171 本も（範囲外の `:lang()`・`:dir()`・`::before` の 3 本を除いて）すべて一致し、生成 scenario（selector の操作に絞った seed 1-6 × 300 本、
+既定の設定の seed 1-3 × 100 本）も不一致は無い。Dommy 自身の test は 4,649 runs で失敗 0。
 
 ## 未着手
 
