@@ -560,6 +560,41 @@ def runUrlencodedBatch (path : String) : IO UInt32 := do
   IO.println (Json.arr out).compress
   return 0
 
+/-! ## URL parser の差分テスト -/
+
+/--
+`URL(input, base)` の結果を、差分テストで比べる形の JSON にする。失敗なら null、
+成功なら IDL attribute（`href` から `hash` まで）と origin。
+-/
+def parseResultJson (input : String) (base : Option String) (idna : Option (Array IdnaRange)) :
+    Json :=
+  match parseUrl input base (toAsciiOf idna) with
+  | none => Json.null
+  | some u =>
+    Json.mkObj ((attrNames.map fun n => (n, Json.str ((u.getAttr n).getD ""))) ++
+      [("origin", Json.str (originSerializer (Url.origin u)))])
+
+/--
+`--parse-batch FILE [UTS46]`：`[{"input": ..., "base": ...}, ...]` を読み、各 case の
+`parseResultJson` を並べた配列を一行の JSON で出す。`test/url_diff.rb` が実装と突き合わせる。
+-/
+def runParseBatch (path : String) (tablePath : Option String) : IO UInt32 := do
+  let idna ← match tablePath with
+    | none => pure none
+    | some t => loadIdnaTable t (verbose := false)
+  if tablePath.isSome && idna.isNone then return 1
+  let text ← IO.FS.readFile path
+  let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
+  let .ok arr := json.getArr? | do IO.eprintln s!"{path}: 配列ではない"; return 1
+  let mut out : Array Json := #[]
+  for j in arr do
+    let .ok input := (j.getObjValD "input").getStr?
+      | do IO.eprintln s!"{path}: input が文字列でない"; return 1
+    let base := ((j.getObjValD "base").getStr?).toOption
+    out := out.push (parseResultJson input base idna)
+  IO.println (Json.arr out).compress
+  return 0
+
 def main (args : List String) : IO UInt32 := do
   match args with
   | ["--wpt", path] => do
@@ -579,6 +614,8 @@ def main (args : List String) : IO UInt32 := do
   | ["--punycode", path] => runPunycode path
   | ["--urlencoded"] => runUrlencoded
   | ["--urlencoded-batch", path] => runUrlencodedBatch path
+  | ["--parse-batch", path] => runParseBatch path none
+  | ["--parse-batch", path, tablePath] => runParseBatch path (some tablePath)
   | "--parse" :: input :: rest =>
     match parseArgs rest with
     | some (base, table) => runParse input base table
@@ -587,6 +624,6 @@ def main (args : List String) : IO UInt32 := do
 where
   usage : IO UInt32 := do
     IO.println ("usage: url-model --wpt FILE [UTS46] | --setters FILE [UTS46] | --searchparams FILE | " ++
-      "--punycode FILE | --urlencoded | --urlencoded-batch FILE | " ++
+      "--punycode FILE | --urlencoded | --urlencoded-batch FILE | --parse-batch FILE [UTS46] | " ++
       "--parse INPUT [--base BASE] [--idna UTS46]")
     return 1

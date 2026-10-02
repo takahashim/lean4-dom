@@ -28,6 +28,7 @@ jobs:
           echo "dommy_path=$(jq -r .dommy.path test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
           echo "makiri=$(jq -r .makiri.version test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
           echo "ruby=$(jq -r .ruby test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "whatwg_url=$(jq -r '.["whatwg-url"].version' test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Dommy
         uses: actions/checkout@v7
@@ -62,11 +63,20 @@ jobs:
           EOF
           cd difftest && bundle install
 
-      # URL Standard §5.1 の urlencoded parser。DOM の scenario とは別の driver である。
+      # URL Standard の parser。DOM の scenario とは別の driver である。
+      # Dommy は path 指定の gem なので、bundle exec で読み込む。
+      - name: URL parser
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+        run: |
+          npm install --silent --prefix "$RUNNER_TEMP/wu" "whatwg-url@${{ steps.pins.outputs.whatwg_url }}"
+          bundle exec ruby test/url_diff.rb --count 3000 --seed 1 \
+            --js "whatwg-url=$RUNNER_TEMP/wu/node_modules/whatwg-url/index.js"
+
       - name: Urlencoded parser
         env:
           BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
-        run: ruby test/urlencoded_diff.rb --count 5000 --seed 1
+        run: bundle exec ruby test/urlencoded_diff.rb --count 5000 --seed 1
 
       - name: Fixed scenarios
         env:

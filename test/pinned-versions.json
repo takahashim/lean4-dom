@@ -17,6 +17,10 @@
     "version": "0.12.1",
     "_note": "RubyGems の公開版を使う。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。固定した Dommy の gemspec が `>= 0.12.1` を要求するので、ここを下げると CI の bundle install が解決できない。"
   },
+  "whatwg-url": {
+    "version": "17.1.2",
+    "_note": "URL の差分テスト（test/url_diff.rb）の相手。URL Standard の参照実装で、npm から入れる。2026-10-03 に Dommy 715fa7b と並べて、model と全件一致した。"
+  },
   "ruby": "3.4",
   "lean": "leanprover/lean4:v4.33.1"
 }
