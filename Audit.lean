@@ -1185,3 +1185,18 @@ open Dom.Audit
   Dom.matchSelList_scope_irrelevant
   Dom.matchesSelector_eq
   Dom.mem_matchTree_iff_matches
+
+-- "validate and extract" が返す名前の組
+#audit_axioms
+  Dom.namespaceWellFormedB_iff
+  Dom.validateAndExtractError_wellFormed
+  Dom.validateAndExtractAttribute_wellFormed
+  Dom.validateAndExtractElement_wellFormed
+
+-- 名前空間の探索：自分の prefix は往復し、一般には往復せず、step 2 と step 4 は名前が整えば一致する
+#audit_axioms
+  Dom.lookupNamespaceURI_own_prefix
+  Dom.lookupPrefix_own_namespace
+  Dom.lookupNamespaceURI_lookupPrefix_own
+  Dom.lookup_round_trip_fails
+  Dom.find?_xmlnsDecl_eq

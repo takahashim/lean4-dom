@@ -1,0 +1,75 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "locate a namespace",
+      "locate a namespace prefix"
+    ],
+    "steps": "locate a namespace 3-4 / locate a namespace prefix 1-2",
+    "note": "lookupPrefix と lookupNamespaceURI は互いの逆ではない。node 1 は自分の prefix a を urn:x に、属性 xmlns:a で urn:y に結ぶ。lookupPrefix(urn:y) は step 1 を外れて step 2 の属性から a を返すが、lookupNamespaceURI(a) は step 3 で自分の namespace urn:x を返す。node 2 は祖先の a:（urn:x）を xmlns:a=urn:w で上書きしているので、lookupPrefix(urn:x) は祖先から a を返し、lookupNamespaceURI(a) は自分の属性から urn:w を返す。Lean 側は lookup_round_trip_fails。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "namespace": "urn:x",
+      "prefix": "a",
+      "localName": "e",
+      "attributes": [
+        {
+          "namespace": "http://www.w3.org/2000/xmlns/",
+          "prefix": "xmlns",
+          "localName": "a",
+          "value": "urn:y"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "namespace": "urn:z",
+      "localName": "inner",
+      "attributes": [
+        {
+          "namespace": "http://www.w3.org/2000/xmlns/",
+          "prefix": "xmlns",
+          "localName": "a",
+          "value": "urn:w"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "lookupPrefix",
+      "node": 1,
+      "namespace": "urn:y"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 1,
+      "prefix": "a"
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 2,
+      "namespace": "urn:x"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 2,
+      "prefix": "a"
+    }
+  ]
+}

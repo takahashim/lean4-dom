@@ -110,6 +110,7 @@ import Dom.Properties.Selector
 import Dom.Spec.Selector
 import Dom.Spec.SelectorMatch
 import Dom.Spec.Lookup
+import Dom.Properties.NamespaceLookup
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

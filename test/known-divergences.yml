@@ -430,3 +430,15 @@
     付けたもの、`setAttributeNode` で付けたもの、`appendChild` で別の document へ移したものの
     どれでも起きる。Chromium と WebKit は本文どおり。
     https://dom.spec.whatwg.org/#concept-node-adopt
+
+- impl: firefox
+  scenario: namespace-lookup-is-not-a-round-trip
+  digest: 2559aeee0cbb4cf9
+  reason: |
+    DOM §4.4 "locate a namespace" の element の枝は、step 3（element 自身の namespace と prefix）が
+    step 4（`xmlns:` 属性）より先である。node 1 は自分の prefix `a` を `urn:x` に結びつつ、属性
+    `xmlns:a="urn:y"` も持つので、`lookupNamespaceURI("a")` は `urn:x` を返す。Firefox は属性を先に見て
+    `urn:y` を返す。"locate a namespace prefix" も step 1（element 自身の namespace と prefix）を
+    祖先で行わず、node 2 からの `lookupPrefix("urn:x")` が null になる。Chromium・WebKit・Dommy は本文どおり。
+    `namespace-lookup-chain` と同じ系統で、prefix が非 null の側に出たもの。
+    https://dom.spec.whatwg.org/#locate-a-namespace

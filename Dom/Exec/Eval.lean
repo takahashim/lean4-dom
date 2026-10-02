@@ -95,9 +95,18 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         throw s!"node {spec.id} の local name が valid element local name でない"
       if spec.prefix.isSome && (spec.namespace.orElse (fun _ => some htmlNamespace)).isNone then
         throw s!"node {spec.id} は prefix を持つのに namespace が無い"
+      -- "validate and extract" の step 8-11（`NamespaceWellFormed`）。
+      unless namespaceWellFormedB (spec.namespace.orElse (fun _ => some htmlNamespace)) spec.prefix
+          (spec.localName.getD "div") do
+        throw s!"node {spec.id} の namespace と prefix が validate and extract の step 8-11 を満たさない"
     else
       unless spec.namespace.isNone && spec.prefix.isNone && spec.localName.isNone do
         throw s!"node {spec.id} は Element でないので namespace / prefix / local name を持てない"
+  -- attribute の名前も同じ（`setAttributeNS` / `createAttributeNS` が作れる形に限る）。
+  for (n, d) in entries do
+    for a in d.attributes do
+      unless namespaceWellFormedB a.namespace a.prefix a.localName do
+        throw s!"node {n.id} の attribute {a.qualifiedName} の namespace と prefix が validate and extract の step 8-11 を満たさない"
   return t
 
 /-! ## 操作の適用 -/
