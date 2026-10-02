@@ -1186,6 +1186,22 @@ open Dom.Audit
   Dom.matchesSelector_eq
   Dom.mem_matchTree_iff_matches
 
+-- null namespace の attribute だけを見る読み方と、namespace 付きの attribute を書く操作
+#audit_axioms
+  Dom.preorderFuel_eq_preorder
+  Dom.preorder_of_attributesOnly
+  Dom.plainAttr_nullNsView
+  Dom.getAttributeValue_nullNsView
+  Dom.SameNullNsView.getElementById
+  Dom.SameNullNsView.getElementsByClassName
+  Dom.SameNullNsView.getElementsByName
+  Dom.SameNullNsView.getReflected
+  Dom.SameNullNsView.classListContains
+  Dom.SameNullNsView.childrenNamedItem
+  Dom.setAttributeNS_sameNullNsView
+  Dom.removeAttributeNS_sameNullNsView
+  Dom.setAttributeNS_getElementById
+
 -- "validate and extract" が返す名前の組
 #audit_axioms
   Dom.namespaceWellFormedB_iff

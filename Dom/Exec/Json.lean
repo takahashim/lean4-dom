@@ -397,6 +397,41 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "toggleAttribute" =>
     return .toggleAttribute (← natField j "element") (← strField j "name" "")
       (← boolField? j "force")
+  | "getReflected" =>
+    let p ← strField j "property" ""
+    match reflectSpec p with
+    | some r => return .getReflected (← natField j "element") p r
+    | none => throw s!"model が持たない reflect `{p}`"
+  | "setReflected" =>
+    let p ← strField j "property" ""
+    match reflectSpec p with
+    | some r =>
+      match r.kind with
+      | .string => return .setReflected (← natField j "element") p r (← strField j "value" "")
+      | .boolean =>
+        match ← boolField? j "value" with
+        | some b => return .setReflectedBool (← natField j "element") p r b
+        | none => throw s!"boolean の reflect `{p}` には boolean の value が要る"
+    | none => throw s!"model が持たない reflect `{p}`"
+  | "datasetGet" => return .datasetGet (← natField j "element") (← strField j "name" "")
+  | "datasetSet" =>
+    return .datasetSet (← natField j "element") (← strField j "name" "") (← strField j "value" "")
+  | "datasetDelete" => return .datasetDelete (← natField j "element") (← strField j "name" "")
+  | "datasetKeys" => return .datasetKeys (← natField j "element")
+  | "classListAdd" =>
+    return .classListAdd (← natField j "element") ((← strListField? j "tokens").getD [])
+  | "classListRemove" =>
+    return .classListRemove (← natField j "element") ((← strListField? j "tokens").getD [])
+  | "classListToggle" =>
+    return .classListToggle (← natField j "element") (← strField j "token" "")
+      (← boolField? j "force")
+  | "classListReplace" =>
+    return .classListReplace (← natField j "element") (← strField j "token" "")
+      (← strField j "newToken" "")
+  | "classListContains" =>
+    return .classListContains (← natField j "element") (← strField j "token" "")
+  | "childrenNamedItem" =>
+    return .childrenNamedItem (← natField j "node") (← strField j "key" "")
   | "observe" =>
     return .observe (← natField j "observer") (← natField j "target") (← observerInitOfJson j)
   | "disconnect" => return .disconnect (← natField j "observer")

@@ -110,6 +110,9 @@ import Dom.Properties.Selector
 import Dom.Spec.Selector
 import Dom.Spec.SelectorMatch
 import Dom.Spec.Lookup
+import Dom.Attribute.Reflect
+import Dom.Validity.Reflect
+import Dom.Properties.NullNamespace
 import Dom.Properties.NamespaceLookup
 
 /-!

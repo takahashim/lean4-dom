@@ -8,6 +8,7 @@ import Dom.Validity.Clone
 import Dom.Validity.AttrNode
 import Dom.Validity.AttrAsNode
 import Dom.Properties.Import
+import Dom.Validity.Reflect
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -302,6 +303,35 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
       have : s₁ = s' := by simpa using hop
       subst this
       exact admissible_toggleAttribute h he
+  | getReflected e p r => exact admissible_mapConst h hop
+  | setReflected e p r v => exact admissible_setReflectedProp h hop
+  | setReflectedBool e p r b => exact admissible_setReflectedBool h hop
+  | datasetGet e n => exact admissible_mapConst h hop
+  | datasetSet e n v => exact admissible_datasetSet h hop
+  | datasetDelete e n => exact admissible_datasetDelete h hop
+  | datasetKeys e => exact admissible_mapConst h hop
+  | classListAdd e ts => exact admissible_classListAdd h hop
+  | classListRemove e ts => exact admissible_classListRemove h hop
+  | classListToggle e tok f =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · next res he =>
+      obtain ⟨s₁, b⟩ := res
+      have : s₁ = s' := by simpa using hop
+      subst this
+      exact admissible_classListToggle h he
+  | classListReplace e tok nt =>
+    simp only [applyOperation, Except.map] at hop
+    split at hop
+    · simp at hop
+    · next res he =>
+      obtain ⟨s₁, b⟩ := res
+      have : s₁ = s' := by simpa using hop
+      subst this
+      exact admissible_classListReplace h he
+  | classListContains e tok => exact admissible_mapConst h hop
+  | childrenNamedItem n k => exact admissible_mapConst h hop
   | observe mo target opts => exact admissible_observe h hop
   | disconnect mo =>
     rw [← Except.ok.inj hop]

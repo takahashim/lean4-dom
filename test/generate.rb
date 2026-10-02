@@ -44,6 +44,9 @@ module Generate
            setAttributeNode removeAttributeNode removeNamedItem
            querySelector querySelectorAll matches closest
            getElementById getElementsByClassName getElementsByName
+           getReflected setReflected classListAdd classListRemove classListToggle
+           classListReplace classListContains childrenNamedItem
+           datasetGet datasetSet datasetDelete datasetKeys
            attrQuery setAttrValue attrRef].freeze
 
   # `Attr` を `Node` として扱う操作（`Dom/Attribute/AsNode.lean`）。`attrRef` は生成器の内部名で、
@@ -92,7 +95,9 @@ module Generate
   # `setAttributeNode` と `removeAttributeNode` は attribute を作りも消しもしない
   # （detach された側へ移すだけ）ので、ここには入らない。
   ATTR_UNSAFE_OPS = %w[setAttribute setAttributeNS toggleAttribute removeAttribute
-                       removeAttributeNS cloneNode importNode].freeze
+                       removeAttributeNS cloneNode importNode
+                       setReflected classListAdd classListRemove classListToggle
+                       classListReplace datasetSet datasetDelete].freeze
 
   # node を作る操作。生成器は「作った node にどの id が付くか」を追う必要がある。
   #
@@ -123,6 +128,24 @@ module Generate
                           substringData].freeze
   ATTRIBUTE_OPS = %w[setAttribute setAttributeNS removeAttribute removeAttributeNS
                      toggleAttribute getAttribute hasAttribute getAttributeNames].freeze
+
+  # §4.9 の reflect、§7.1 の `classList`。namespace が null の attribute だけを読み書きする。
+  # `setAttributeNS` が置く namespace 付きの同名 attribute（`ATTR_NAMESPACES`）と混ざる木で、
+  # 取り違えが出るかを見る。
+  REFLECT_ELEMENT_OPS = %w[getReflected setReflected classListAdd classListRemove
+                           classListToggle classListReplace classListContains
+                           datasetGet datasetSet datasetDelete datasetKeys].freeze
+  # `Dom/Attribute/Reflect.lean` の `reflectSpec`。SVG の element は HTML の property を持たないので、
+  # そこに当たった step は実装側で「比べられない」になる。
+  REFLECTED_PROPERTIES = %w[id className slot title lang accessKey inert autofocus].freeze
+  BOOLEAN_REFLECTED = %w[inert autofocus].freeze
+  # `dataset` の名前。`x` は `data-x`、`X` は `data--x`（`ATTR_OP_NAMES` の `data-X` は SVG の element では
+  # 大文字のまま残り、名前の一覧から外れる）、`a-b` は setter の SyntaxError を撫でる。
+  DATASET_NAMES = ["x", "X", "fooBar", "a-b", "", "a-B"].freeze
+  # token。大文字・重複・既にあるもの（`ATTR_VALUES` の `vv`・`u`・`v`）を混ぜる。
+  # 空文字列と空白入りは SyntaxError / InvalidCharacterError を撫でる。
+  CLASS_TOKENS = %w[u v vv w U].freeze
+  BAD_CLASS_TOKENS = ["", "a b"].freeze
 
   # attribute の local name は少ない候補から選ぶ。
   # そうしないと `attributeFilter` も「同じ鍵への二度目の書き込み」も当たらない。
@@ -203,10 +226,12 @@ module Generate
 
   SPEC_OPS = {
     "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS + SELECTOR_PARENT_OPS +
-                  %w[getElementById getElementsByClassName getElementsByName],
-    "documentFragment" => NODE_OPS + PARENT_NODE_OPS + SELECTOR_PARENT_OPS + %w[getElementById],
+                  %w[getElementById getElementsByClassName getElementsByName childrenNamedItem],
+    "documentFragment" => NODE_OPS + PARENT_NODE_OPS + SELECTOR_PARENT_OPS +
+                          %w[getElementById childrenNamedItem],
     "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS +
-                 SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS + %w[getElementsByClassName],
+                 SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS + REFLECT_ELEMENT_OPS +
+                 %w[getElementsByClassName childrenNamedItem],
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -271,8 +296,9 @@ module Generate
   #
   # 鍵の一意性は `AttributesValid` が要求するので、local name を重複させない。
   # prefix を付ける場合は namespace も付ける（同じく `AttributesValid`）。
-  def initial_attributes(rng)
-    return [] if rng.rand < 0.6
+  def initial_attributes(rng, ns_decoy_prob = 0.0)
+    decoy = ns_decoy_prob.positive? && rng.rand < ns_decoy_prob ? [namespaced_decoy(rng)] : []
+    return decoy if rng.rand < 0.6
 
     ATTR_NAMES.sample(1 + rng.rand(2), random: rng).map do |name|
       if rng.rand < 0.25
@@ -282,12 +308,24 @@ module Generate
         { "namespace" => nil, "prefix" => nil, "localName" => name,
           "value" => ATTR_VALUES.sample(random: rng) }
       end
-    end
+    end + decoy
+  end
+
+  # namespace 付きで **prefix の無い** attribute。qualified name が `id` などと同じになるので、
+  # reflect や `classList` が qualified name や local name で引いていると取り違える。
+  # null namespace の同名 attribute と鍵は別なので、両方あってもよい。
+  NS_DECOY_NAMES = %w[id class name slot data-x title lang inert].freeze
+
+  def namespaced_decoy(rng)
+    { "namespace" => "http://example.com/ns", "prefix" => nil,
+      "localName" => NS_DECOY_NAMES.sample(random: rng), "value" => ATTR_VALUES.sample(random: rng) }
   end
 
   # `quirks_prob` は document を quirks（8 割）か limited-quirks（2 割）にする確率。
   # 0 のときは乱数を引かないので、既存の seed が作る scenario は変わらない。
-  def build_tree(rng, node_count, doctype_prob: 0.0, quirks_prob: 0.0)
+  #
+  # `ns_decoy_prob` は element に `namespaced_decoy` を一つ足す確率。0 なら乱数を引かない。
+  def build_tree(rng, node_count, doctype_prob: 0.0, quirks_prob: 0.0, ns_decoy_prob: 0.0)
     b = Builder.new(rng)
     doc = b.add("document")
     if quirks_prob.positive? && rng.rand < quirks_prob
@@ -320,7 +358,7 @@ module Generate
       next unless spec["kind"] == "element"
 
       spec.merge!(element_identity(rng))
-      spec["attributes"] = initial_attributes(rng)
+      spec["attributes"] = initial_attributes(rng, ns_decoy_prob)
     end
     b.nodes
   end
@@ -555,6 +593,34 @@ module Generate
     when "moveBefore"
       { "op" => op, "parent" => pick.call, "node" => maybe.call,
         "child" => rng.rand < 0.5 ? nil : maybe.call }
+    when "getReflected"
+      { "op" => op, "element" => pick.call, "property" => REFLECTED_PROPERTIES.sample(random: rng) }
+    when "setReflected"
+      prop = REFLECTED_PROPERTIES.sample(random: rng)
+      value = BOOLEAN_REFLECTED.include?(prop) ? rng.rand < 0.5 : (ATTR_VALUES + ["u u", " w "]).sample(random: rng)
+      { "op" => op, "element" => pick.call, "property" => prop, "value" => value }
+    when "datasetGet", "datasetDelete"
+      { "op" => op, "element" => pick.call, "name" => DATASET_NAMES.sample(random: rng) }
+    when "datasetSet"
+      { "op" => op, "element" => pick.call, "name" => DATASET_NAMES.sample(random: rng),
+        "value" => ATTR_VALUES.sample(random: rng) }
+    when "datasetKeys" then { "op" => op, "element" => pick.call }
+    when "classListAdd", "classListRemove"
+      pool = rng.rand < INVALID_NAME_PROB ? CLASS_TOKENS + BAD_CLASS_TOKENS : CLASS_TOKENS
+      { "op" => op, "element" => pick.call,
+        "tokens" => Array.new(rng.rand(3)) { pool.sample(random: rng) } }
+    when "classListToggle"
+      pool = rng.rand < INVALID_NAME_PROB ? BAD_CLASS_TOKENS : CLASS_TOKENS
+      { "op" => op, "element" => pick.call, "token" => pool.sample(random: rng),
+        "force" => [nil, true, false].sample(random: rng) }
+    when "classListReplace"
+      pool = rng.rand < INVALID_NAME_PROB ? CLASS_TOKENS + BAD_CLASS_TOKENS : CLASS_TOKENS
+      { "op" => op, "element" => pick.call, "token" => pool.sample(random: rng),
+        "newToken" => pool.sample(random: rng) }
+    when "classListContains"
+      { "op" => op, "element" => pick.call, "token" => (CLASS_TOKENS + [""]).sample(random: rng) }
+    when "childrenNamedItem"
+      { "op" => op, "node" => pick.call, "key" => (ATTR_VALUES + ["x"]).sample(random: rng) }
     end
   end
 
@@ -754,6 +820,8 @@ module Generate
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
     return op["node"] if NODE_RECEIVER_OPS.include?(op["op"])
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
+    return op["element"] if REFLECT_ELEMENT_OPS.include?(op["op"])
+    return op["node"] if op["op"] == "childrenNamedItem"
 
     op.key?("target") ? op["target"] : op["parent"]
   end
@@ -998,8 +1066,9 @@ module Generate
   # Dommy が実装していない (kind, op) の組を避けたいときに渡す。
   def scenario(rng, node_count: 8, op_count: 8, ops: OPS, allow: nil, doctype_prob: 0.0,
                range_count: 2, iterator_count: 1, observer_count: 0, walker_count: 0,
-               listener_count: 0, quirks_prob: 0.0)
-    nodes = build_tree(rng, node_count, doctype_prob: doctype_prob, quirks_prob: quirks_prob)
+               listener_count: 0, quirks_prob: 0.0, ns_decoy_prob: 0.0)
+    nodes = build_tree(rng, node_count, doctype_prob: doctype_prob, quirks_prob: quirks_prob,
+                                        ns_decoy_prob: ns_decoy_prob)
     ids = nodes.map { |n| n["id"] }
     kinds = nodes.to_h { |n| [n["id"], n["kind"]] }
     # 作った node に付く id を追う。model の `freshId` と同じ規則である。
@@ -1094,7 +1163,7 @@ end
 if $PROGRAM_NAME == __FILE__
   require "optparse"
   opts = { seed: Random.new_seed, nodes: 8, ops: 8, move: false, doctype: 0.0, quirks: 0.0,
-           ranges: 2, iterators: 1, observers: 0, walkers: 1, listeners: 0 }
+           ranges: 2, iterators: 1, observers: 0, walkers: 1, listeners: 0, ns_decoy: 0.0 }
   OptionParser.new do |o|
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
     o.on("--nodes N", Integer) { |v| opts[:nodes] = v }
@@ -1102,6 +1171,7 @@ if $PROGRAM_NAME == __FILE__
     o.on("--move") { opts[:move] = true }
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
     o.on("--quirks-prob F", Float) { |v| opts[:quirks] = v }
+    o.on("--ns-decoy-prob F", Float) { |v| opts[:ns_decoy] = v }
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
     o.on("--observers N", Integer) { |v| opts[:observers] = v }
@@ -1115,6 +1185,6 @@ if $PROGRAM_NAME == __FILE__
                            doctype_prob: opts[:doctype], range_count: opts[:ranges],
                            iterator_count: opts[:iterators], observer_count: opts[:observers],
                            walker_count: opts[:walkers], listener_count: opts[:listeners],
-                           quirks_prob: opts[:quirks])
+                           quirks_prob: opts[:quirks], ns_decoy_prob: opts[:ns_decoy])
   )
 end

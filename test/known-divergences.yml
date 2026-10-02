@@ -442,3 +442,68 @@
     祖先で行わず、node 2 からの `lookupPrefix("urn:x")` が null になる。Chromium・WebKit・Dommy は本文どおり。
     `namespace-lookup-chain` と同じ系統で、prefix が非 null の側に出たもの。
     https://dom.spec.whatwg.org/#locate-a-namespace
+
+- impl: chromium
+  scenario: class-list-add-nothing-creates-no-attribute
+  digest: afc1236f437927dd
+  reason: |
+    DOM §7.1 の update steps step 1 は「class attribute が無く token set が空なら何もし
+    ない」。Chromium は token の無い `add()` で空の class attribute を作る。WPT（`dom/node
+    s/Element-classlist.html`）はこの場合を試していない。Firefox も同じ。
+
+- impl: firefox
+  scenario: class-list-add-nothing-creates-no-attribute
+  digest: ee2797e70d02b427
+  reason: |
+    DOM §7.1 の update steps step 1 は「class attribute が無く token set が空なら何もし
+    ない」。Firefox は token の無い `add()` で空の class attribute を作る。WPT はこの場合を試してい
+    ない。Chromium も同じ。
+
+- impl: chromium
+  scenario: dataset-reads-by-qualified-name
+  digest: 8f00fd35e80d75cc
+  reason: |
+    HTML §3.2.6.8 の name-value pairs は名前（qualified name）が `data-` で始まる att
+    ribute から作る。Chromium は local name で見るので、prefix 付きの `p:data-b` も `b` とし
+    て列挙する。本文が namespace と prefix をどう扱うつもりかは明示されておらず、どの browser も本文の字面どおりでは
+    ない（docs/status.md）。
+
+- impl: webkit
+  scenario: dataset-reads-by-qualified-name
+  digest: 7bd8f5822963c0cc
+  reason: |
+    HTML §3.2.6.8 の name-value pairs は名前（qualified name）が `data-` で始まる att
+    ribute から作る。WebKit は local name で見るので、prefix 付きの `p:data-b` も `b` として列
+    挙する。Chromium と同じ。
+
+- impl: firefox
+  scenario: dataset-reads-by-qualified-name
+  digest: 191c24adaeb0be4b
+  reason: |
+    HTML §3.2.6.8 の name-value pairs は名前（qualified name）が `data-` で始まる att
+    ribute から作り、namespace を見ない。Firefox は namespace が null の attribute だけを見
+    るので、prefix の無い namespace 付きの `data-a` を列挙しない。
+
+- impl: chromium
+  scenario: dataset-writes-the-null-namespace-attribute
+  digest: 742ce0b19d04da29
+  reason: |
+    HTML §3.2.6.8 の setter の最後は set an attribute value（namespace は null）。C
+    hromium は qualified name で探して、prefix の無い namespace 付きの `data-a` を書き換える
+    。Firefox は本文どおり null namespace に append する。
+
+- impl: webkit
+  scenario: dataset-writes-the-null-namespace-attribute
+  digest: ca5dbc3fab9c3e4a
+  reason: |
+    HTML §3.2.6.8 の setter の最後は set an attribute value（namespace は null）。W
+    ebKit は qualified name で探して、prefix の無い namespace 付きの `data-a` を書き換える。C
+    hromium と同じ。
+
+- impl: firefox
+  scenario: dataset-deletes-by-qualified-name
+  digest: d2591bc27515e0ee
+  reason: |
+    HTML §3.2.6.8 の deleter は remove an attribute by name（qualified name の
+    最初の一致）。Firefox は namespace が null の `data-a` を消し、先にある namespace 付きの `d
+    ata-a` を残す。

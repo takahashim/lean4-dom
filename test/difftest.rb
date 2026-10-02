@@ -389,7 +389,7 @@ if $PROGRAM_NAME == __FILE__
   # 操作の意味論の比較ができなくなる。
   opts = { count: 50, seed: Random.new_seed, nodes: 8, ops: 6,
            move: false, all: false, fixed_only: false, no_fixed: false, doctype: 0.0, quirks: 0.0,
-           ranges: 2, iterators: 1, observers: 0, walkers: 1, listeners: 0 }
+           ranges: 2, iterators: 1, observers: 0, walkers: 1, listeners: 0, ns_decoy: 0.0 }
   OptionParser.new do |o|
     o.on("--count N", Integer) { |v| opts[:count] = v }
     o.on("--seed N", Integer) { |v| opts[:seed] = v }
@@ -404,6 +404,9 @@ if $PROGRAM_NAME == __FILE__
     o.on("--doctype-prob F", Float) { |v| opts[:doctype] = v }
     # document を quirks / limited-quirks にする確率。既定は 0。
     o.on("--quirks-prob F", Float) { |v| opts[:quirks] = v }
+    # element に namespace 付きで prefix の無い `id` / `class` / `name` / `slot` を一つ足す確率。
+    # reflect・`classList`・`namedItem` が null namespace の attribute だけを見るかを撫でる。既定は 0。
+    o.on("--ns-decoy-prob F", Float) { |v| opts[:ns_decoy] = v }
     o.on("--ranges N", Integer) { |v| opts[:ranges] = v }
     o.on("--iterators N", Integer) { |v| opts[:iterators] = v }
     o.on("--observers N", Integer) { |v| opts[:observers] = v }
@@ -474,7 +477,8 @@ if $PROGRAM_NAME == __FILE__
                              ops: ops, allow: allow, doctype_prob: opts[:doctype],
                              range_count: opts[:ranges], iterator_count: opts[:iterators],
                              observer_count: opts[:observers], walker_count: opts[:walkers],
-                             listener_count: opts[:listeners], quirks_prob: opts[:quirks])
+                             listener_count: opts[:listeners], quirks_prob: opts[:quirks],
+                             ns_decoy_prob: opts[:ns_decoy])
     end
     puts "生成 scenario（seed=#{opts[:seed]}, count=#{opts[:count]}）:"
     stats = Hash.new(0)

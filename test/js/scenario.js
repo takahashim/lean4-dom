@@ -127,6 +127,12 @@ const SELECTOR_ELEMENT_OPS = ["matches", "closest"];
 const QUERY_OPS = Object.keys(QUERY_JS_NAME);
 const QUERY_GETTERS = ["getTextContent", "getNodeValue"];
 
+// §4.9 の reflect（`id` / `className` / `slot`）、§7.1 の `classList`、
+// §4.2.10.1 の `children.namedItem`。どれも namespace が null の attribute を読み書きする。
+const REFLECT_OPS = ["getReflected", "setReflected", "classListAdd", "classListRemove",
+  "classListToggle", "classListReplace", "classListContains", "childrenNamedItem",
+  "datasetGet", "datasetSet", "datasetDelete", "datasetKeys"];
+
 const WALKER_OPS = ["walkerParentNode", "walkerFirstChild", "walkerLastChild",
   "walkerPreviousSibling", "walkerNextSibling", "walkerPreviousNode", "walkerNextNode"];
 const WALKER_METHOD = {
@@ -410,7 +416,17 @@ function returnValueSnapshot(idOf, attrOf, op, returned) {
     case "toggleAttribute": case "rangeIsPointInRange": case "rangeIntersectsNode":
     case "dispatchEvent": case "nodeContains": case "isEqualNode": case "hasAttribute":
     case "isDefaultNamespace": case "matches":
+    case "classListToggle": case "classListReplace": case "classListContains":
       return { kind: "boolean", value: !!returned };
+    case "childrenNamedItem":
+      return { kind: "node", node: returned === null || returned === undefined ? null : idOf(returned) };
+    case "getReflected":
+      if (typeof returned === "boolean") return { kind: "boolean", value: returned };
+      return { kind: "string", value: returned === null || returned === undefined ? null : String(returned) };
+    case "datasetGet":
+      return { kind: "string", value: returned === null || returned === undefined ? null : String(returned) };
+    case "datasetKeys":
+      return { kind: "strings", value: [...(returned ?? [])].map(String) };
     case "querySelectorAll": case "getElementsByClassName": case "getElementsByName":
       return { kind: "nodes", nodes: [...(returned ?? [])].map(idOf) };
     case "rangeCompareBoundaryPoints": case "rangeComparePoint": case "compareDocumentPosition":
@@ -592,6 +608,45 @@ function applyQueryOp(ctx, op) {
     case "getAttribute": case "hasAttribute": return receiver[name](op.name);
     case "lookupNamespaceURI": return receiver[name](op.prefix ?? null);
     case "lookupPrefix": case "isDefaultNamespace": return receiver[name](op.namespace ?? null);
+  }
+}
+
+function applyReflectOp(ctx, op) {
+  const receiver = need(ctx.objects.get("element" in op ? op.element : op.node), "missing node");
+  switch (op.op) {
+    case "getReflected":
+      if (!(op.property in receiver)) throw new Unsupported(op.property);
+      return receiver[op.property];
+    case "setReflected":
+      if (!(op.property in receiver)) throw new Unsupported(op.property);
+      receiver[op.property] = typeof op.value === "boolean" ? op.value : String(op.value ?? "");
+      return undefined;
+    case "datasetGet": case "datasetSet": case "datasetDelete": case "datasetKeys": {
+      const map = receiver.dataset;
+      if (!map) throw new Unsupported("dataset");
+      const name = String(op.name ?? "");
+      if (op.op === "datasetGet") return map[name];
+      if (op.op === "datasetSet") { map[name] = String(op.value ?? ""); return undefined; }
+      if (op.op === "datasetDelete") { delete map[name]; return undefined; }
+      return Object.keys(map);
+    }
+    case "childrenNamedItem":
+      if (!receiver.children || typeof receiver.children.namedItem !== "function") {
+        throw new Unsupported("children.namedItem");
+      }
+      return receiver.children.namedItem(String(op.key ?? ""));
+  }
+  const list = receiver.classList;
+  if (!list) throw new Unsupported("classList");
+  switch (op.op) {
+    case "classListAdd": return list.add(...(op.tokens ?? []).map(String));
+    case "classListRemove": return list.remove(...(op.tokens ?? []).map(String));
+    case "classListToggle":
+      return "force" in op && op.force !== null
+        ? list.toggle(String(op.token ?? ""), op.force)
+        : list.toggle(String(op.token ?? ""));
+    case "classListReplace": return list.replace(String(op.token ?? ""), String(op.newToken ?? ""));
+    case "classListContains": return list.contains(String(op.token ?? ""));
   }
 }
 
@@ -779,6 +834,7 @@ function apply(ctx, op) {
       case "deleteData": return node.deleteData(op.offset, op.count);
     }
   }
+  if (REFLECT_OPS.includes(op.op)) return applyReflectOp(ctx, op);
   if (ATTRIBUTE_OPS.includes(op.op)) {
     const el = need(objects.get(op.element), "missing node");
     const m = OP_METHOD[op.op];
@@ -1116,6 +1172,8 @@ function capabilities(win) {
         ops.push(q);
       }
     }
+    if ("classList" in node) ops.push(...REFLECT_OPS);
+    else if ("children" in node) ops.push("childrenNamedItem");
     out[kind] = ops;
   }
   return out;

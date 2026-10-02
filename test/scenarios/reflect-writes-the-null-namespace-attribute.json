@@ -1,0 +1,76 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "set an attribute value",
+      "reflect"
+    ],
+    "steps": "Element.id / className / slot の setter",
+    "note": "setter は namespace も prefix も null の attribute に書く。namespace 付きの同名 attribute は書き換えず、null namespace のものを新しく append する。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "id",
+          "value": "ns"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "class",
+          "value": "ns"
+        },
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "slot",
+          "value": "ns"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "setReflected",
+      "element": 1,
+      "property": "id",
+      "value": "w"
+    },
+    {
+      "op": "setReflected",
+      "element": 2,
+      "property": "className",
+      "value": "w"
+    },
+    {
+      "op": "setReflected",
+      "element": 2,
+      "property": "slot",
+      "value": "w"
+    },
+    {
+      "op": "getReflected",
+      "element": 1,
+      "property": "id"
+    }
+  ]
+}

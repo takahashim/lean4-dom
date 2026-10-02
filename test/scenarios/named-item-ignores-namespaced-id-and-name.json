@@ -1,0 +1,73 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "HTMLCollection.namedItem"
+    ],
+    "steps": "namedItem 1-2",
+    "note": "ID も name も namespace が null の attribute で決まる。namespace 付きの id・name を持つ前の二つは当たらず、三つ目が返る。key が空なら null。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "id",
+          "value": "k"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "name",
+          "value": "k"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "localName": "name",
+          "value": "k"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "childrenNamedItem",
+      "node": 1,
+      "key": "k"
+    },
+    {
+      "op": "childrenNamedItem",
+      "node": 1,
+      "key": ""
+    }
+  ]
+}

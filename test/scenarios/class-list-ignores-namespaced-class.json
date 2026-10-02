@@ -1,0 +1,85 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "DOMTokenList",
+      "update steps"
+    ],
+    "steps": "add 1-3 / toggle 1-4 / replace 1-6 / contains",
+    "note": "classList の token set は namespace が null の class attribute から読み、update steps も null namespace に書く。namespace 付きの class は見ない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "class",
+          "value": "a b"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "class",
+          "value": "a"
+        },
+        {
+          "localName": "class",
+          "value": "x"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "classListContains",
+      "element": 1,
+      "token": "a"
+    },
+    {
+      "op": "classListAdd",
+      "element": 1,
+      "tokens": [
+        "c"
+      ]
+    },
+    {
+      "op": "classListToggle",
+      "element": 2,
+      "token": "a"
+    },
+    {
+      "op": "classListReplace",
+      "element": 2,
+      "token": "x",
+      "newToken": "y"
+    },
+    {
+      "op": "classListContains",
+      "element": 2,
+      "token": "y"
+    },
+    {
+      "op": "classListContains",
+      "element": 2,
+      "token": "a"
+    }
+  ]
+}

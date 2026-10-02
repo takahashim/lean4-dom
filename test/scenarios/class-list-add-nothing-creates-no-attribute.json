@@ -1,0 +1,56 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "DOMTokenList",
+      "update steps"
+    ],
+    "steps": "update steps 1",
+    "note": "class attribute が無く token set が空なら update steps は何もしない。add() に token を渡さなくても attribute は作られない。WPT はこの場合を試していない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "classListAdd",
+      "element": 2,
+      "tokens": []
+    },
+    {
+      "op": "classListRemove",
+      "element": 2,
+      "tokens": [
+        "a"
+      ]
+    },
+    {
+      "op": "classListToggle",
+      "element": 2,
+      "token": "a",
+      "force": false
+    },
+    {
+      "op": "getAttributeNames",
+      "element": 2
+    }
+  ]
+}
