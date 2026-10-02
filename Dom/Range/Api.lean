@@ -289,7 +289,8 @@ def rangeDeleteContents (s : DOMState) (i : Nat) : Except DOMException DOMState 
 DOM Standard §5.5 `Range.insertNode(node)`。
 
 step 7（start node が Text なら offset で split する）は Text を分割して node を作るので、
-model の対象外である。start node が Text の場合は `outsideModel` を返す。
+model の対象外である。start node が Text（CDATASection を含む）の場合は、step 6 の
+validity を検査した後で `outsideModel` を返す。
 ただし step 1 の「parent の無い Text」は先に検査するので、そちらは `HierarchyRequestError` になる。
 
 step 10-11 の newOffset は「入った node の最後の次」に等しい。
@@ -306,11 +307,18 @@ def rangeInsertNode (s : DOMState) (i : Nat) (node : NodeId) : Except DOMExcepti
     | some ds =>
       -- step 1
       if ds.kind == .processingInstruction || ds.kind == .comment ||
-          (ds.kind == .text && (parentOf s.tree r.start.node).isNone) ||
+          (ds.kind.isText && (parentOf s.tree r.start.node).isNone) ||
           r.start.node == node then
         .error .hierarchyRequestError
-      -- step 3 と step 7（split text）
-      else if ds.kind == .text then .error .outsideModel
+      -- step 3-7。Text なら reference node は start node、parent はその parent で、
+      -- step 6 の validity を通れば step 7 の split に進む。
+      else if ds.kind.isText then
+        match parentOf s.tree r.start.node with
+        | none => .error .hierarchyRequestError
+        | some p =>
+          match ensurePreInsertionValidity s.tree node p (some r.start.node) [] with
+          | .error e => .error e
+          | .ok () => .error .outsideModel
       else
         -- step 4-5。start node は Text ではないので parent は start node 自身である。
         let referenceNode := ds.children[r.start.offset]?

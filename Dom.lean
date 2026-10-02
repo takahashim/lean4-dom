@@ -124,6 +124,10 @@ import Dom.Spec.RangeQuery
 import Dom.Spec.RangeDelete
 import Dom.Spec.RangeDeleteSound
 import Dom.Spec.RangeDeleteCongr
+import Dom.Spec.InsertChildren
+import Dom.Spec.RangeInsert
+import Dom.Spec.RangeInsertSound
+import Dom.Spec.RangeInsertCongr
 import Dom.Attribute.Reflect
 import Dom.Validity.Reflect
 import Dom.Properties.NullNamespace
