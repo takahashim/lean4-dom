@@ -62,6 +62,12 @@ jobs:
           EOF
           cd difftest && bundle install
 
+      # URL Standard §5.1 の urlencoded parser。DOM の scenario とは別の driver である。
+      - name: Urlencoded parser
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+        run: ruby test/urlencoded_diff.rb --count 5000 --seed 1
+
       - name: Fixed scenarios
         env:
           BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile

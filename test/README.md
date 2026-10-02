@@ -166,6 +166,7 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `compare.rb` | 出力の比較。`compare.rb DIR` 単体でも使える |
 | `generate.rb` | scenario の乱数生成 |
 | `scenarios/*.json` | 固定 scenario（回帰用） |
+| `urlencoded_diff.rb` | URL Standard §5.1 の urlencoded parser の差分（下の「urlencoded parser」） |
 
 ## scenario の形式
 
@@ -385,6 +386,25 @@ Dommy の checkout と native gem の build が要るので、`lake build` の C
 
 不一致が出ると最小化した scenario が `test/scenarios/failing-*.json` に書かれ、
 artifact として上がる。内容を確認したうえで固定 scenario に昇格させる。
+
+## urlencoded parser
+
+`test/urlencoded_diff.rb` は、URL Standard §5.1 の application/x-www-form-urlencoded parser を
+model と Dommy で突き合わせる。scenario の形式は使わず、文字列の列をまとめて両方に通す。
+
+* model：`url-model --urlencoded-batch FILE`（`parseUrlencodedString`）。関係仕様との一致は
+  `Url/Spec/Urlencoded.lean` の `parseUrlencoded_iff` が証明している。
+* Dommy：`Dommy::URLSearchParams` の文字列の parse。公開の constructor は先頭の `?` を一つ落とすが、
+  それは `URLSearchParams` の constructor の手順なので、owner 付きで作って §5.1 だけを比べる。
+
+入力は固定の 45 件（区切り、`+`、percent-decode、不正な UTF-8 の列、BOM）と、乱数で作った列である。
+
+```sh
+lake build url-model
+BUNDLE_GEMFILE=/path/to/Gemfile bundle exec ruby test/urlencoded_diff.rb --count 20000 --seed 1
+```
+
+CI の `deterministic` job は seed 1 で 5,000 件を流す。
 
 ## 名前空間の囮の sweep
 

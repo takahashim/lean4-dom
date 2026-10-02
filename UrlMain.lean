@@ -542,6 +542,24 @@ def runParse (input : String) (base tablePath : Option String) : IO UInt32 := do
   IO.println (j.render)
   return if u.isSome then 0 else 1
 
+/-! ## urlencoded の差分テスト -/
+
+/--
+`--urlencoded-batch FILE`：JSON の文字列の配列を読み、各文字列を §5.1 の parser に通した結果を
+`[[name, value], ...]` の配列として一行の JSON で出す。`test/urlencoded_diff.rb` が Dommy と突き合わせる。
+-/
+def runUrlencodedBatch (path : String) : IO UInt32 := do
+  let text ← IO.FS.readFile path
+  let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
+  let .ok arr := json.getArr? | do IO.eprintln s!"{path}: 配列ではない"; return 1
+  let mut out : Array Json := #[]
+  for j in arr do
+    let .ok input := j.getStr? | do IO.eprintln s!"{path}: 文字列でない要素がある"; return 1
+    let pairs := parseUrlencodedString input
+    out := out.push (Json.arr (pairs.map fun (n, v) => Json.arr #[Json.str n, Json.str v]).toArray)
+  IO.println (Json.arr out).compress
+  return 0
+
 def main (args : List String) : IO UInt32 := do
   match args with
   | ["--wpt", path] => do
@@ -560,6 +578,7 @@ def main (args : List String) : IO UInt32 := do
   | ["--searchparams", path] => runSearchParams path
   | ["--punycode", path] => runPunycode path
   | ["--urlencoded"] => runUrlencoded
+  | ["--urlencoded-batch", path] => runUrlencodedBatch path
   | "--parse" :: input :: rest =>
     match parseArgs rest with
     | some (base, table) => runParse input base table
@@ -568,5 +587,6 @@ def main (args : List String) : IO UInt32 := do
 where
   usage : IO UInt32 := do
     IO.println ("usage: url-model --wpt FILE [UTS46] | --setters FILE [UTS46] | --searchparams FILE | " ++
-      "--punycode FILE | --urlencoded | --parse INPUT [--base BASE] [--idna UTS46]")
+      "--punycode FILE | --urlencoded | --urlencoded-batch FILE | " ++
+      "--parse INPUT [--base BASE] [--idna UTS46]")
     return 1

@@ -79,7 +79,7 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
 | --- | --- | --- | --- | --- | --- |
 | urlencoded percent-encode set | §1.3 | `urlencodedSet` | `urlencodedEncode_no_separator` | 固定 case | 済 |
-| urlencoded parser | §5.1 1-4 | `parseUrlencoded`, `splitAmp`, `splitFirstEq`, `plusToSpace` | — | 固定 case（13 件） | 済（encoding は UTF-8 固定） |
+| urlencoded parser | §5.1 1-4 | `parseUrlencoded`, `parsePiece`, `splitAmp`, `splitFirstEq`, `plusToSpace` | **`parseUrlencoded_iff`（関係 `FormParses` にちょうど一致。`Url/Spec/Urlencoded.lean`）** | 固定 case（13 件） | 済（encoding は UTF-8 固定） |
 | urlencoded serializer | §5.2 1-4 | `serializeUrlencoded`, `urlencodedEncode`, `intercalateChars` | `urlencodedEncode_no_separator`、`parse_serialize`（**parse との往復**） | 固定 case（往復 13 件） | 済 |
 
 ## §6.1 `URL` の IDL 属性

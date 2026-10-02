@@ -360,11 +360,7 @@ theorem partBytes_no_amp (t : String × String) :
 
 /-- 一組ぶんの byte 列を読み戻すと元の組に戻る。 -/
 theorem parse_partBytes (t : String × String) :
-    (if (asciiBytes (partChars t)).isEmpty then none
-      else
-        let (name, value) := splitFirstEq (asciiBytes (partChars t))
-        let dec := fun (x : Bytes) => utf8DecodeString (percentDecodeBytes (plusToSpace x))
-        some (dec name, dec value)) = some t := by
+    parsePiece (asciiBytes (partChars t)) = some t := by
   have hsplit : asciiBytes (partChars t)
       = asciiBytes (urlencodedEncode t.1) ++ UInt8.ofNat 0x3D
         :: asciiBytes (urlencodedEncode t.2) := by
@@ -373,17 +369,13 @@ theorem parse_partBytes (t : String × String) :
   have hne : ∀ b ∈ asciiBytes (urlencodedEncode t.1), ¬(b.toNat == 0x3D) = true :=
     asciiBytes_ne _ '=' (urlencodedEncode_ascii _)
       (fun c hc => (urlencodedEncode_no_separator _ c hc).2)
+  unfold parsePiece
   rw [hsplit, splitFirstEq_append _ _ hne]
   simp only [decodeComponent]
   rw [if_neg (by cases h : asciiBytes (urlencodedEncode t.1) <;> simp)]
 
 theorem filterMap_parts : ∀ (ts : List (String × String)),
-    (ts.map (fun u => asciiBytes (partChars u))).filterMap
-      (fun bs => if bs.isEmpty then none
-        else
-          let (name, value) := splitFirstEq bs
-          let dec := fun (x : Bytes) => utf8DecodeString (percentDecodeBytes (plusToSpace x))
-          some (dec name, dec value)) = ts
+    (ts.map (fun u => asciiBytes (partChars u))).filterMap parsePiece = ts
   | [] => rfl
   | u :: us => by
     rw [List.map_cons, List.filterMap_cons, parse_partBytes u, filterMap_parts us]
