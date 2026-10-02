@@ -11,7 +11,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
   `wpt-set` は `test/url/wpt-setters.json`、
   `wpt-sort` は `test/url/wpt-searchparams-sort.json`、
   `rfc3492` は `test/url/rfc3492-punycode.json` の中の case、
-  `dommy` は Dommy の実装との突き合わせ。
+  `dommy` は実装との突き合わせ（`test/url_diff.rb`。basic URL parser 全体を通して、
+  Dommy と whatwg-url と比べる。§5.1 は `test/urlencoded_diff.rb`）。
 * **Status** — 済 / 部分 / 対象外。
 
 ## §1.3 percent-encoding

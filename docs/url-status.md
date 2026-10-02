@@ -498,8 +498,35 @@ searchparams: 一致 26 / 不一致 0
 BMP の外の code point は surrogate pair になるので、U+E000 以上の BMP 文字より前に来る。
 WPT の `ﬃ&🌈` がこれを見分ける case で、code point 順に実装すると落ちる。
 
-IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
-host の 2 件が IDNA の境界で、それ以外は一致した。
+### 実装との突き合わせ
+
+`test/url_diff.rb` が `URL(input, base)` を model と実装で突き合わせる（使い方は `test/README.md`）。
+入力は WPT の 820 件、その変形、部品から組み立てた URL（base 付きを含む）で、
+seed 2 の 10,660 件のうち model が成功するのは 7,055 件である。比べるのは失敗するかどうかと、
+IDL attribute 十個と origin である。
+
+2026-10-03 に、seed 1-4（約 3.5 万件）で次の結果になった。
+
+| 実装 | 結果 |
+| --- | --- |
+| Dommy `715fa7b` | 全件一致 |
+| whatwg-url 17.1.2（URL Standard の参照実装） | 全件一致 |
+| Node 23.11.1 の組み込み URL（Ada 3.2.1） | seed 1 の 3,777 件のうち 95 件で割れる |
+
+Node の 95 件は、どれも model・whatwg-url・Dommy の三つが同じ側にいる。形は四つである。
+
+| 件数 | 形 | 本文 |
+| --- | --- | --- |
+| 57 | opaque path の base（`mailto:x`、`about:blank`）に `/` で始まる参照を解決してしまう | §4.4 no scheme state：base が opaque path を持ち、`#` でなければ失敗 |
+| 26 | opaque path の末尾の空白を、`?` や `#` の前でも `%20` にしない | §4.4 opaque path state |
+| 8 | ASCII の `xn--` label（`a.b.c.xn--pokxncvks`）を失敗にする | §3.3 domain to ASCII（WPT の case） |
+| 4 | path の `^` を percent-encode しない、`..` の後の空の segment を落とす | §1.3 path percent-encode set、§4.4 path state |
+
+どれも URL Standard の比較的新しい改訂か WPT の case で、Ada がこの版ではまだ追いついていない形である。
+model の読み違いを疑う材料にはならないので、Node は CI の相手に入れていない。
+
+以前は IPv4（10 件）、IPv6（15 件）、host（15 件）を Dommy とその場で突き合わせただけで、
+再現する手段が無かった（host の 2 件が IDNA の境界で割れた）。
 
 §5.1 の urlencoded parser は `test/urlencoded_diff.rb` で Dommy と突き合わせている。
 固定の 45 件（区切り、`+`、percent-decode、不正な UTF-8 の列、BOM）と乱数の入力で、

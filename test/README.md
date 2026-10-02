@@ -166,6 +166,7 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `compare.rb` | 出力の比較。`compare.rb DIR` 単体でも使える |
 | `generate.rb` | scenario の乱数生成 |
 | `scenarios/*.json` | 固定 scenario（回帰用） |
+| `url_diff.rb` / `url_js.mjs` | URL Standard の basic URL parser の差分（下の「URL parser」） |
 | `urlencoded_diff.rb` | URL Standard §5.1 の urlencoded parser の差分（下の「urlencoded parser」） |
 
 ## scenario の形式
@@ -386,6 +387,31 @@ Dommy の checkout と native gem の build が要るので、`lake build` の C
 
 不一致が出ると最小化した scenario が `test/scenarios/failing-*.json` に書かれ、
 artifact として上がる。内容を確認したうえで固定 scenario に昇格させる。
+
+## URL parser
+
+`test/url_diff.rb` は、`URL(input, base)` を model と実装で突き合わせる。比べるのは失敗するかどうかと、
+成功したときの IDL attribute（`href` から `hash` まで）と origin である。
+
+* model：`url-model --parse-batch FILE test/url/uts46-table.json`（`parseUrl`）。
+* Dommy：`Dommy::URL.parse(input, base)`。
+* JS：`test/url_js.mjs` を通す。`--js node`（Node の組み込みの URL、Ada）、
+  `--js whatwg-url=PATH`（URL Standard の参照実装）、`--js jsdom=PATH`（jsdom の `window.URL`）。
+
+入力は WPT の表（`test/url/wpt-ascii.json`）の 820 件、その変形（区切りや空白を一つ二つ足す・消す・置き換える）、
+部品（scheme、`/` と `\` の並び、userinfo、IPv4・IPv6・domain・opaque host、port、`.` と `..` と drive letter を
+含む path、query、fragment）から組み立てた URL で、base は無いか、special・非 special・`file:`・opaque path のどれか。
+非 ASCII の domain を含むので、model には UTS #46 の表を渡す。
+
+```sh
+lake build url-model
+npm install --prefix /tmp/wu whatwg-url@17.1.2
+BUNDLE_GEMFILE=/path/to/Gemfile bundle exec ruby test/url_diff.rb --count 10000 --seed 1 \
+  --js whatwg-url=/tmp/wu/node_modules/whatwg-url/index.js --js node
+```
+
+割れた case は全実装の結果を並べて出す。一致は多数決ではなく、どちらが仕様どおりかは本文で決める。
+CI の `deterministic` job は Dommy と whatwg-url で seed 1 の 3,000 件を流す。
 
 ## urlencoded parser
 
