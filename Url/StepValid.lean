@@ -23,6 +23,77 @@ def RunIH (base : Option Url) (r n : Nat) : Prop :=
     (stateRank st < r ∨ (stateRank st = r ∧ input.length < n)) →
     PInv base st ctx → ValidUrl u
 
+/--
+state を `st` から `st'` へ移すときに、state に依存する `PInv` の成分が移ること。
+
+「`st'` で前提が立つなら `st` でも立つ」成分（`usesBasePath` ほか）と、
+「`st` で結論が立つなら `st'` でも立つ」成分（`mayOpaque` と `mayCred`）、
+それに state を名指しする成分（relative slash と port）を一つの真偽値にまとめた。
+具体的な state の組では `decide` で決まる。
+-/
+def StateMono (st st' : PState) : Bool :=
+  (!usesBasePath st' || usesBasePath st) &&
+  (!notFileState st' || notFileState st) &&
+  (!fileState st' || fileState st) &&
+  (!hostNull st' || hostNull st) &&
+  (!freshHost st' || freshHost st) &&
+  (!freshCred st' || freshCred st) &&
+  (!freshPort st' || freshPort st) &&
+  (!mayOpaque st || mayOpaque st') &&
+  (!mayCred st || mayCred st') &&
+  (st' != .relativeSlash || st == .relativeSlash) &&
+  (st' != .port || st == .port)
+
+/--
+**URL record を変えない遷移では `PInv` が移る。**
+
+state machine の遷移の多くは、state と buffer だけを変えて URL record をそのまま渡す。
+そのとき URL record についての成分は元のまま成り立ち、state に依存する成分は
+`StateMono` から、buffer の成分は `hbuf` から出る。
+-/
+theorem PInv.transfer {base : Option Url} {st st' : PState} {ctx ctx' : PCtx}
+    (h : PInv base st ctx) (hurl : ctx'.url = ctx.url) (hover : ctx'.over = ctx.over)
+    (hmono : StateMono st st' = true)
+    (hbuf : looseBuffer st' = false → noSlash ctx'.buffer = true) : PInv base st' ctx' := by
+  simp only [StateMono, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', bne_iff_ne,
+    ne_eq, beq_iff_eq] at hmono
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hub, hnf⟩, hfs⟩, hhn⟩, hfh⟩, hfc⟩, hfp⟩, hmo⟩, hmc⟩, hrs⟩, hpt⟩ := hmono
+  have imp {p q : Bool} (hpq : p = false ∨ q = true) (hp : p = true) : q = true := by
+    rcases hpq with h' | h' <;> simp_all
+  have stEq {s : PState} (hs : ¬st' = s ∨ st = s) (h' : st' = s) : st = s :=
+    hs.resolve_left (· h')
+  refine
+    { noOverride := by rw [hover]; exact h.noOverride
+      baseValid := h.baseValid
+      basePathList := fun hu => h.basePathList (imp hub hu)
+      baseNotFile := fun hu => h.baseNotFile (imp hub hu)
+      baseSchemeEq := fun hs b hb => by
+        rw [hurl]; exact h.baseSchemeEq (stEq hrs hs) b hb
+      specialHasList := by rw [hurl]; exact h.specialHasList
+      nullHostNoPort := by rw [hurl]; exact h.nullHostNoPort
+      opaqueNoCredentials := by rw [hurl]; exact h.opaqueNoCredentials
+      opaqueNoPort := by rw [hurl]; exact h.opaqueNoPort
+      opaqueNoHost := by rw [hurl]; exact h.opaqueNoHost
+      portRange := by rw [hurl]; exact h.portRange
+      fileNoCredentials := by rw [hurl]; exact h.fileNoCredentials
+      fileNoPort := by rw [hurl]; exact h.fileNoPort
+      hostKind := by rw [hurl]; exact h.hostKind
+      pathSegs := by rw [hurl]; exact h.pathSegs
+      emptyHostNoPort := by rw [hurl]; exact h.emptyHostNoPort
+      notFile := fun hn => by rw [hurl]; exact h.notFile (imp hnf hn)
+      fileScheme := fun hn => by rw [hurl]; exact h.fileScheme (imp hfs hn)
+      portHostNotEmpty := fun hs => by
+        rw [hurl]; exact h.portHostNotEmpty (stEq hpt hs)
+      bufferNoSlash := hbuf
+      opaqueState := fun ho => imp hmo (h.opaqueState (by rw [← hurl]; exact ho))
+      credState := fun hh hc => imp hmc (h.credState (by rw [← hurl]; exact hh)
+        (by rw [← hurl]; exact hc))
+      portHost := fun hs => by rw [hurl]; exact h.portHost (stEq hpt hs)
+      schemeNoHost := fun hn => by rw [hurl]; exact h.schemeNoHost (imp hhn hn)
+      schemeEmpty := fun hn => by rw [hurl]; exact h.schemeEmpty (imp hfh hn)
+      freshState := fun hn => by rw [hurl]; exact h.freshState (imp hfc hn)
+      freshPortState := fun hn => by rw [hurl]; exact h.freshPortState (imp hfp hn) }
+
 /-!
 ### `userinfoStep` 一歩分
 
@@ -85,35 +156,65 @@ local macro "url_simp_scheme" : tactic =>
        pathSegsOk_fileBasePath, pathSegsOk_fileSlashDrive,
        isSpecialScheme, defaultPort])
 
+/--
+`h` の型が `run … = _` であることを、定義を展開せずに確かめる。
+
+`url_close` は分岐の形（失敗、終端、再帰）を書かずに選択肢を順に試すので、
+再帰の選択肢を先に試すと、失敗の枝（`.error _ = .ok u`）で `refine` が
+`run` を展開して単一化しようとし、止まらなくなる。その前にここで弾く。
+-/
+local macro "url_guard_run " h:ident : tactic =>
+  `(tactic| guard_hyp $h:ident :~ run _ _ _ _ = _)
+
+/-- 再帰の測度が減ること。 -/
+local macro "url_measure " hlen:ident : tactic =>
+  `(tactic| first
+    | exact Or.inl (by decide)
+    | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
+    | exact Or.inr ⟨by decide, by simp [stateRank] at *; omega⟩
+    | (simp only [stateRank] at *; omega))
+
+/--
+一つの分岐を閉じる。選択肢は安いものから並べてある。
+
+1. URL record を変えない再帰。`PInv.transfer` で `PInv` を移す。URL record が同じことは
+   定義を展開せずに確かめる（`pathStepUrl` などを展開して比べると止まらない）。
+2. port state から path start state への移送。`portDone` を挟むので専用の補題が要る。
+3. URL record を変える再帰。`PInv` の成分を一つずつ `simp_all` で示す。
+4. 終端。`.ok X` を返すので `ValidUrl X` を示す。
+5. 失敗の枝。`fail` や `schemeOverride` を開くと `heq` が矛盾する。
+-/
 local macro "url_close " ih:ident hinv:ident hlen:ident u:ident heq:ident : tactic =>
   `(tactic| first
-    -- 失敗の枝。`fail` や `schemeOverride` を開くと `heq` が矛盾する。
-    | (url_simp_state; done)
-    | (url_simp_url; done)
-    | (url_simp_scheme; done)
-    -- 終端。`.ok X` を返すので `ValidUrl X` を示す。
+    | (url_guard_run $heq
+       refine $ih _ _ _ $u $heq ?_ (($hinv).transfer (by with_reducible rfl) (by with_reducible rfl) (by decide) ?_)
+       · url_measure $hlen
+       · first
+         | (intro h; exact absurd h (by decide))
+         | (intro _; exact ($hinv).bufferNoSlash (by decide))
+         | (intro _; rfl)
+         | (url_simp_state; done) | (url_simp_scheme; done))
+    | (url_guard_run $heq
+       refine $ih _ _ _ $u $heq ?_ (($hinv).portStep ?_)
+       · first
+         | exact Or.inl (by decide)
+         | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
+       · first | assumption | (url_simp_state; done) | (url_simp_scheme; done))
+    | (url_guard_run $heq
+       refine $ih _ _ _ $u $heq ?_ ?_
+       · url_measure $hlen
+       · constructor <;>
+           first | (with_reducible assumption) | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done))
     | (injection $heq with hu
        subst hu
        first
          | exact ($hinv).valid (by decide)
          | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)
          | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ <;>
-             first | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)))
-    -- port state から path start state への移送。`portDone` を挟むので専用の補題が要る。
-    | (refine $ih _ _ _ $u $heq ?_ (($hinv).portStep ?_)
-       · first
-         | exact Or.inl (by decide)
-         | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
-       · first | assumption | (url_simp_state; done) | (url_simp_scheme; done))
-    -- 再帰。測度が減ることと `PInv` が保たれることを示す。
-    | (refine $ih _ _ _ $u $heq ?_ ?_
-       · first
-         | exact Or.inl (by decide)
-         | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
-         | exact Or.inr ⟨by decide, by simp [stateRank] at *; omega⟩
-         | (simp only [stateRank] at *; omega)
-       · constructor <;>
-           first | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)))
+             first | (with_reducible assumption) | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)))
+    | (url_simp_state; done)
+    | (url_simp_url; done)
+    | (url_simp_scheme; done))
 
 theorem step_schemeStart_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hlen : rest.length + (if c.isSome then 1 else 0) = input.length)
