@@ -34,14 +34,14 @@ Lean の `DOMState` と Ruby 側の内部表現が同じである必要は無い
 ## 比較しない
 
 * store の表現（entry の並び、id の割り当て方）。`observe` は id の昇順に正規化する。
-* object identity のうち wrapper そのもの（roadmap §13.3）。node を返す method の
+* object identity のうち wrapper そのもの。node を返す method の
   戻り値は `NodeId` で比べるので、「返ってきたのは渡した node そのものか」
   （`adoptNode` が copy を作らないことなど）は観測できる。
   実装が同じ node に別の wrapper を返すと id が引けず、不一致として出る。
 * `Attr` を node として直接触る API（`createAttribute`・`setAttributeNode`・`NamedNodeMap`）。
   attribute の **同一性**は `AttrId` で比べるが、`Attr` を受け渡す口はまだ model に無い。
 * 文字列の内部表現。`data` は Lean の `String` として比べる。UTF-16 の code unit 境界は
-  扱わない（roadmap §13.1）。
+  扱わない。
 * `Attr` node としての attribute。model の attribute は element の状態であり
   node tree には入らないので、`NamedNodeMap` や `Attr` の同一性は観測できない。
 * MutationObserver の callback そのもの。配送された record の列だけを見る。

@@ -2,7 +2,7 @@
 
 ## Phase 1（tree model）— 完了
 
-`PLAN.md` §4 の定義と theorem をすべて実装し、`sorry` なしで build が通る。
+木の定義と、それについて立てた theorem をすべて実装し、`sorry` なしで build が通る。
 `lake exe dom-model` で小さな木に対する走査が動く。
 
 ### 実装した定義
@@ -17,9 +17,9 @@
 
 ### 証明した theorem（`Dom/Properties/Tree.lean`）
 
-PLAN §4.2 の各項目との対応は次のとおり。
+目標にした性質との対応は次のとおり。
 
-| PLAN §4.2 | theorem |
+| 性質 | theorem |
 | --- | --- |
 | `WellFormed` から parent の一意性が導ける | `unique_parent` |
 | `root` は fuel が store の要素数以上なら停止して結果を返す | `rootFuel_parent_eq_none` |
@@ -41,17 +41,17 @@ Phase 2 以降で再利用する補題として、次のものも用意した。
 - `depth_lt_size` / `depth_parent` — 深さの性質
 - `exists_data_root` / `exists_data_of_parentOf` — root と parent が木に含まれること
 
-## PLAN からの変更点
+## 当初の設計からの変更点
 
-- **`NodeStore` の表現**（PLAN §3.1）。PLAN は `Std.HashMap NodeId NodeData` を挙げているが、
+- **`NodeStore` の表現**。当初は `Std.HashMap NodeId NodeData` を想定していたが、
   実際には association list で実装した。Phase 1 の成果物は証明であり、
   必要な補題（`get?_insert_ne` など）を外部 library の API 名に依存せず自前で証明できるほうが
   toolchain 更新に強いためである。
-  PLAN が意図したとおり、model と theorem は `Store.lean` の interface だけを通して store に触れるので、
+  model と theorem は `Store.lean` の interface だけを通して store に触れるように作ってあるので、
   `Std.HashMap` へ差し替える場合も同じ statement の補題を用意すれば済む。
-- **依存 library**（PLAN §2.1）。`Batteries` は導入していない。
+- **依存 library**。当初は `Batteries` を使う想定だったが、導入していない。
   Phase 1 で必要だった補題は Lean core と `Dom/Util/List.lean` の自前の補題で足りた。
-- **追加した定義**。PLAN §4.1 に無いが、証明の都合で `ancestorChain` と `depth` を導入した。
+- **追加した定義**。証明の都合で `ancestorChain` と `depth` を導入した。
   `depth` は `preorder` の正しさを well-founded な減少量で示すために使う。
   `Sibling` は仕様上の概念なので併せて定義した。
 - **`NodeId` の `Repr`**。derive せず、識別子の数値だけを表示する instance を手で定義した。
@@ -59,7 +59,7 @@ Phase 2 以降で再利用する補題として、次のものも用意した。
 
 ## Phase 2（primitive mutation）— 完了
 
-`PLAN.md` §5 の定義と theorem を実装し、`sorry` なしで build が通る。
+木を直接変える primitive と、その theorem を実装し、`sorry` なしで build が通る。
 
 ### 実装した定義
 
@@ -74,7 +74,7 @@ Phase 2 以降で再利用する補題として、次のものも用意した。
 
 ### 証明した theorem（`Dom/Properties/Mutation.lean`）
 
-PLAN §5.2 が要求する三種類を、三つの primitive すべてについて証明した。
+preservation・effect・frame の三種類を、三つの primitive すべてについて証明した。
 
 | | preservation | effect | frame |
 | --- | --- | --- | --- |
@@ -82,8 +82,8 @@ PLAN §5.2 が要求する三種類を、三つの primitive すべてについ�
 | `insertAt` | `insertAt_preserves_wellformed` | `insertAt_parentOf`, `insertAt_childrenOf`, `insertAt_children_split` | `insertAt_frame` |
 | `setOwnerDocument` | `setOwnerDocument_preserves_wellformed` | `ownerDocumentOf_setOwnerDocument` | `get?_setOwnerDocument_of_not_mem` |
 
-PLAN §5.3 の完了条件である `detach_preserves_wellformed` と
-`insertAt_preserves_wellformed`（`memo.md` の最小 milestone）を含む。
+最初の milestone にした `detach_preserves_wellformed` と
+`insertAt_preserves_wellformed` を含む。
 いずれも `propext` / `Classical.choice` / `Quot.sound` 以外の axiom に依存しない。
 
 Phase 3 で使う補題として次のものも用意した。
@@ -95,12 +95,12 @@ Phase 3 で使う補題として次のものも用意した。
 - `ancestor_of_parentOf_insert` — parent の辺を一本足したときの ancestor 関係
 - `get?_detachFrom` / `get?_insertAtIn` / `get?_setOwnerDocument` — 結果の `get?` の完全な場合分け
 
-## PLAN §5 の見直し（PLAN §14 の指示による）
+## primitive の設計の見直し
 
-実際に定義と証明を書いた結果、PLAN §5 について次のことが分かった。
+実際に定義と証明を書いた結果、primitive の当初の設計について次のことが分かった。
 
 - **`insertAt` の前提条件 4 は invariant のためではない。**
-  PLAN §5.1 は四つの前提条件を挙げているが、そのうち
+  当初の設計は四つの前提条件を挙げていたが、そのうち
   「child が指定されていれば parent の子である」は well-formedness の保存には要らなかった。
   `insertBefore` は child が見つからなければ末尾に挿入するので、
   検査を省いても木は well-formed のままである。
@@ -109,20 +109,20 @@ Phase 3 で使う補題として次のものも用意した。
   Phase 3 で `preInsert` を組み立てるとき、この検査が
   `ensurePreInsertionValidity` と二重にならないか確認する必要がある。
 - **`setOwnerDocument` には前提が要る。**
-  PLAN §5.1 はこの primitive を無条件の `Tree → Tree` としているが、
+  当初はこの primitive を無条件の `Tree → Tree` としていたが、
   `WellFormed` の `ownerDocument_is_document` を保つには
   「付け替え先 `doc` が document node として木に存在する」という前提が要る。
   Phase 3 の `adopt` では呼び出し側でこれを保証する。
 - **`WellFormed` の前二条件は一つの同値にまとめられる。**
   `parent_child` と `child_parent` は
   「`parentOf t c = some p ↔ c ∈ childrenOf t p`」と等価である（`mem_childrenOf_iff`, `wellFormed_of`）。
-  PLAN §3.3 の形はそのまま残したうえで、preservation の証明はこの同値を通す。
+  `WellFormed` の形はそのまま残したうえで、preservation の証明はこの同値を通す。
   三つの primitive すべてでこの形が効いた。
 - **`Ancestor` の決定手続きが Phase 2 の時点で必要になった。**
   `insertAt` の前提条件 3（node が parent の inclusive ancestor でない）を計算するため、
   `isAncestorOf` / `isInclusiveAncestorOf` を追加し、
   健全性と完全性（`isAncestorOf_iff`, `isInclusiveAncestorOf_iff`）を示した。
-  PLAN §4.1 には無い定義だが、Phase 3 の `ensurePreInsertionValidity` でも使う。
+  Phase 3 の `ensurePreInsertionValidity` でも使う。
 - **children からの除去は `List.erase` ではなく `removeAll` を使った。**
   `List.erase` は最初の一つしか除かないため、重複が無いことを仮定しないと
   「除去後に含まれない」が言えない。すべて除く `removeAll` にすると無条件で言えて証明が短くなる。
@@ -130,7 +130,7 @@ Phase 3 で使う補題として次のものも用意した。
 
 ## Phase 3（WHATWG の mutation algorithm）— 完了
 
-`PLAN.md` §6 の algorithm と theorem を実装し、`sorry` なしで build が通る。
+DOM Standard §4.2.3 の algorithm と theorem を実装し、`sorry` なしで build が通る。
 仕様は `docs/spec-version.md` の版の本文から step を写した。
 
 ### 実装した定義
@@ -147,37 +147,37 @@ Phase 3 で使う補題として次のものも用意した。
 | `appendChild`, `insertBefore`, `replaceChild`, `removeChild`, `replaceChildren`, `before`, `after`, `replaceWith`, `nodeRemove`, `moveBefore` | `Dom/Mutation/Api.lean` |
 
 public API はすべて §4.2.3 の algorithm の薄い wrapper であり、
-primitive（`detach`, `insertAt`）を直接呼ばない（PLAN §6.1）。
+primitive（`detach`, `insertAt`）を直接呼ばない。
 
 ### 証明した theorem（`Dom/Properties/Algorithms.lean`）
 
-PLAN §6.3 との対応は次のとおり。
+目標にした性質との対応は次のとおり。
 
-| PLAN §6.3 | theorem |
+| 性質 | theorem |
 | --- | --- |
 | 各 algorithm の preservation | `remove_`, `adopt_`, `insert_`, `preInsert_`, `append_`, `preRemove_`, `replace_`, `replaceAll_`, `move_` + `*_preserves_wellformed`、および public API 10 個ぶん |
 | `ensurePreInsertionValidity` が ok なら `insertAt` の前提条件が成り立つ | `ensurePreInsertionValidity_ok`, `insertAt_isOk_of_validity` |
 | `insert` の後、node は child の直前にある | `insert_children_split`, `insert_parentOf` |
 | `remove` の後、node は parent を持たず旧 parent の children に現れない | `remove_parentOf`, `remove_not_mem_childrenOf` |
 | 既存 node の `insert` と `remove` ∘ `insert` の同値 | `insert_factors_through_remove` |
-| PLAN §6.2 の `move_equivalent_to_remove_insert` | `move_eq_remove_insertAt`, `moveBefore_eq_remove_insertAt`, `move_childrenOf` |
+| `move_equivalent_to_remove_insert`（move は remove と insert の合成に等しい） | `move_eq_remove_insertAt`, `moveBefore_eq_remove_insertAt`, `move_childrenOf` |
 
 補助として `KindPreserving` / `IsDocument` を導入した。
 `adopt` の preservation には「付け替え先が document node である」ことが要るので、
 この前提を algorithm の合成の間じゅう持ち回るために使う。
 
-`lake exe dom-model` で PLAN §6.4 の完了条件を実際に確認できる。
+`lake exe dom-model` で、DocumentFragment の insert と Document の子の制約が例外込みで動くことを確認できる。
 DocumentFragment の展開、および Document の子に対する制約
 （element は高々一つ、doctype は高々一つ、doctype より前に element を置けない、Text は不可）が
 例外の種類込みで仕様どおりに動く。
 
-## `moveBefore()` の扱い（PLAN §6.2 の宿題）
+## `moveBefore()` の扱い
 
 仕様本文を確認した結果、**model に含めた**。確認した内容は次のとおり。
 
 * 現行の Living Standard には `ParentNode.moveBefore(node, child)` と、
   対応する **`move` algorithm**（§4.2.3）が step 付きで本文に入っている。
-  PLAN §6.2 の「仕様本文で step を確認できていない」という保留は解消した。
+  計画の時点で保留にしていた「仕様本文で step を確認できていない」は解消した。
 * `move` は **live range pre-remove steps（step 10）と NodeIterator pre-remove steps（step 11）、
   および挿入側の live range offset 調整（step 16）を走らせる**。
   走らせないのは removing steps と insertion steps だけで、
@@ -195,7 +195,7 @@ DocumentFragment の展開、および Document の子に対する制約
   一致する必要があり、そのとき step 2 に引っかかる。
   model では到達しない分岐として `hierarchyRequestError` を返している。
 
-## PLAN §6 の見直しで分かったこと
+## mutation algorithm の設計の見直しで分かったこと
 
 * **`ensure pre-insert validity` の引数が計画時点と違う。**
   現行の仕様は `childrenToExclude` を取る形で、`replace` が « child » を渡す。
@@ -219,7 +219,7 @@ DocumentFragment の展開、および Document の子に対する制約
 
 ## Phase 4（Dommy との differential testing）— 一巡した
 
-`PLAN.md` §7 の仕組みを用意し、実際に Dommy と突き合わせて不一致を検出した。
+differential testing の仕組みを用意し、実際に Dommy と突き合わせて不一致を検出した。
 
 ### 実装したもの
 
@@ -243,7 +243,7 @@ JSON の parse と serialize には toolchain 同梱の `Lean.Data.Json` を使�
 import しないので、証明側の build には影響しない。
 
 Lean 側は各 step の後で `checkWellFormed` を走らせ、
-invariant が破れていれば出力に `invariantViolation` を足す（PLAN §3.5）。
+invariant が破れていれば出力に `invariantViolation` を足す（`checkWellFormed_iff` があるので実行時に検査できる）。
 これまでの実行で一度も立っていない。
 
 ### 突き合わせた相手
@@ -276,7 +276,7 @@ Dommy は `DOMImplementation#createDocumentType` で node-backed でない
      （`text.before(自分の parent)`。`childnode-before-leaks-backend-error.json`、
      `replacechildren-bypasses-validity.json`）
 
-   これは `memo.md` §7 が想定していた「どの API から始めても検査が迂回されない」
+   これは「どの API から始めても検査が迂回されない」
    という性質が破れている例である。
    model 側では public API がすべて `ensurePreInsertionValidity` を通る構造になっており、
    その保存は `Dom/Properties/Algorithms.lean` で証明してある。
@@ -336,11 +336,11 @@ seed 7、80 本、1 本あたり操作 8 個で、**mismatch 19 / match 36 / uns
 
 ## Phase 5（Range）— 一巡した
 
-`PLAN.md` §8 の定義・調整・証明・differential testing を実装した。
+Range の定義・調整・証明・differential testing を実装した。
 
 ### `DOMState` への持ち上げ
 
-PLAN §8.1 に従い、状態を `DOMState`（tree + ranges + iterators）にした。
+状態を `DOMState`（tree + ranges + iterators）にした。
 Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）は木だけを変えるので
 `Tree` の上に残し、§4.2.3 の algorithm と public API を `DOMState` に持ち上げた。
 Phase 1・2 の定理はそのままで、Phase 3 の定理は結論を `s'.tree` について述べる形に直した。
@@ -360,7 +360,7 @@ Range に追随するようになった。
 
 ### 証明した theorem（`Dom/Properties/Range.lean`）
 
-| PLAN §8.3 | theorem |
+| 性質 | theorem |
 | --- | --- |
 | `remove_preserves_ranges_valid`（両端が木の中にある部分） | `remove_preserves_endpoints` |
 | 削除された node を端点に持つ range は操作後に存在しない | `remove_leaves_subtree`, `move_leaves_subtree` |
@@ -406,7 +406,7 @@ Phase 4 で見つかった 4 種類に加えて次が見つかった（Dommy `fd
 
 ## Phase 6（NodeIterator）— 一巡した
 
-`PLAN.md` §9 の定義・調整・証明・differential testing を実装した。
+NodeIterator の定義・調整・証明・differential testing を実装した。
 
 ### 実装した定義（`Dom/Traversal/NodeIterator.lean`）
 
@@ -417,7 +417,7 @@ Phase 4 で見つかった 4 種類に加えて次が見つかった（Dommy `fd
 | `adjustNodePointer` | "adjust a node pointer" |
 | `iteratorPreRemoveOne`, `iteratorPreRemove` | "NodeIterator pre-remove steps"（remove step 4 / move step 11） |
 | `nextNode`, `previousNode` | `nextNode()` / `previousNode()` |
-| `ValidIterator`, `IteratorsValid`, `checkIteratorsValid` | PLAN §9.2 |
+| `ValidIterator`, `IteratorsValid`, `checkIteratorsValid` | reference が木にあり、root の inclusive descendant であること |
 
 Phase 3 で恒等関数の hook として置いてあった `iteratorPreRemove` にそのまま中身が入った。
 Range のときと同様、algorithm と public API のコードは変えていない。
@@ -432,7 +432,7 @@ filter が無ければ 1 周で決まるので `nextNode` / `previousNode` は�
 
 ### 証明した theorem（`Dom/Properties/Iterator.lean`）
 
-| PLAN §9.2 | theorem |
+| 性質 | theorem |
 | --- | --- |
 | `IteratorsValid`（reference が木にあり root の inclusive descendant） | `ValidIterator` の定義と `checkIteratorsValid` |
 | `remove_preserves_iterators_valid` | 同名 |
@@ -473,7 +473,7 @@ runner は `__js_get__` へ fallback するようにしてある。
 
 ## Phase 7（CharacterData）— 一巡した
 
-`PLAN.md` §10 の定義・証明・differential testing を実装した。
+CharacterData の定義・証明・differential testing を実装した。
 
 ### 実装した定義（`Dom/CharacterData/ReplaceData.lean`）
 
@@ -499,7 +499,7 @@ astral 面の文字（surrogate pair）まで扱うには、`NodeData.length` �
 
 ### 証明した theorem（`Dom/Properties/CharacterData.lean`）
 
-| PLAN §10.2 | theorem |
+| 性質 | theorem |
 | --- | --- |
 | `replaceData_preserves_wellformed` | 同名。`data` しか変えないので木の構造は変わらない（`wellFormed_withData`） |
 | `replaceData_preserves_ranges_valid`（両端が木の中にある部分） | `replaceData_preserves_endpoints` |
@@ -523,9 +523,9 @@ step 8-11 の三つの場合をどれも `omega` で片づけられる。
 いずれも Dommy と一致した。生成 scenario でも CharacterData 由来の不一致は出ていない。
 **Dommy の CharacterData は仕様どおりに動いている。**
 
-## PLAN の第3の成功条件
+## Range の validity という成功条件
 
-`memo.md` §17 の第3の成功条件は
+計画の段階で立てた成功条件の三つ目は
 「mutation の任意の組み合わせの後でも Range boundary points が valid であることを証明する」である。
 
 現時点で証明できているのは、`ValidBoundaryPoint`（node が木にあり offset が length 以下）の
@@ -1056,7 +1056,7 @@ pin は main（`875d653`）。固定 scenario 99 本＋生成 40 本で
 
 ## Phase 8：MutationObserver の record（一巡した）
 
-`PLAN.md` §11 の判断材料は「Phase 4-7 の不一致の傾向」である。
+MutationObserver に進むかの判断材料は「Phase 4-7 の不一致の傾向」とした。
 そこまでに見つかった 12 件はすべて tree mutation と Range で、
 **record の内容と積む位置は同じ「step の順序」の材料** だった。
 Dommy の直前の commit 二つ（`8c6d030`, `a06fd1e`）も normalize の record の話であり、
@@ -1135,10 +1135,9 @@ model も配送を扱わないので、これで両側が揃う。
 
 修正後、`--observers 3 --move` で seed 6 個 × 各 50 scenario、不一致ゼロ。
 
-## Phase A：admissibility（三つの木の層は全 algorithm で完了）
+## admissibility（三つの木の層は全 algorithm で完了）
 
-`notes/research-foundation-roadmap.md` §4 の `AdmissibleDOMState` を、
-状態の invariant として立てて algorithm ごとに保存を証明した。
+`AdmissibleDOMState` を状態の invariant として立てて algorithm ごとに保存を証明した。
 
 ### 立てた層
 
@@ -1185,7 +1184,7 @@ reference child が `child` のあった位置の直後に来ること
   `move` algorithm の step 1-6 は newParent が children を持てるかを検査しない。
   これは `moveBefore` が `ParentNode` の method であることによる IDL 側の制約である。
   model は任意の node id を受け取れたので、Text node の中に element を move できた。
-* **roadmap §4 の `AdmissibleDOMState` は不足していた**。
+* **最初に立てた `AdmissibleDOMState` は不足していた**。
   「doctype の parent は Document」を入れないと `insert` で閉じない。
   `StructurallyValid` に足した。
 
@@ -1197,7 +1196,7 @@ reference child が `child` のあった位置の直後に来ること
 （range 4 / iterator 2 / observer 3 / `moveBefore` あり）はすべて通り、
 どの step でも invariant 違反は出ない。
 
-### 六成分すべての保存（Phase A 完了）
+### 六成分すべての保存
 
 木の三層に加えて、残り三つも algorithm ごとに示した。
 
@@ -1232,9 +1231,9 @@ doctype は element ではないので、step 9 と step 10-11 の検査はそ�
 `invariantViolation` が出たら model の algorithm ではなく
 harness の側（初期状態の構築や操作の割り当て）を疑えばよい、と形式的に言えるようになった。
 
-## §7 の主定理と §8 の negative result
+## 操作列に対する主定理と `BoundaryLE` の negative result
 
-`notes/research-foundation-roadmap.md` §7 と §8 に挙がっていた定理を入れた。
+操作列に対する主定理と、`BoundaryLE` の negative result を定理として入れた。
 
 ### §7（`Dom/Exec/Invariant.lean`）
 
@@ -1282,7 +1281,7 @@ node 自身はその位置より前に入るので、start と end が逆転す�
 
 同じ例の JSON 版が `test/scenarios/range-order-broken-by-insert.json` である。
 
-## 観測モデル（roadmap §9）
+## 観測モデル
 
 差分テストで **何を比べるか** を Lean 側の型で固定した（`Dom/Observation.lean`）。
 
@@ -1349,7 +1348,7 @@ seed あたり 100 本で比較できる scenario が 36-47 本から 89-95 本�
 
 修正後、seed 10 個 × 各 100 本（range 4 / iterator 2 / observer 3 / `moveBefore` あり）で不一致ゼロ。
 
-## 契約の棚卸し（roadmap §6）
+## 契約の棚卸し
 
 五種類の契約について、中心 algorithm ごとの現状を並べる。
 `—` は「この algorithm では意味を持たない」、空欄は未着手である。
@@ -1365,7 +1364,7 @@ seed あたり 100 本で比較できる scenario が 36-47 本から 89-95 本�
 
 `*_succeeds_iff` を `insert` / `replace` / `move` に置いていないのは、
 `ensure pre-insertion validity` と `move` の step 1-6 をそのまま命題に写すだけになり、
-研究上の内容が増えないためである（roadmap §6 の但し書き）。
+研究上の内容が増えないためである。
 代わりに **検査の順序** を残した。複数の違反が同時にあるときにどれが先に返るかは観測可能で、
 Dommy で実際に不一致が見つかった箇所でもある。
 
@@ -1383,9 +1382,9 @@ public API 側は preservation と委譲を置いた（`Dom/Properties/Contract.
 `replaceChildren(null)` の委譲は definitional なので `rfl` で済む。
 `remove()` と `moveBefore` は分岐があるので、その条件付きで述べてある。
 
-## Phase C / D の足回り
+## 仕様との対応と再現性の足回り
 
-### 仕様トレーサビリティ（roadmap §10）
+### 仕様トレーサビリティ
 
 `docs/traceability.md` を用意した。
 各 algorithm について、WHATWG の step 要約・実行関数・契約・固定 scenario・
@@ -1397,7 +1396,7 @@ Dommy 側の WPT 由来 test を一行に並べてある。
 UTF-16 の code unit 境界、node 生成と可変長引数変換、object identity、NodeIterator の filter、
 そして WebIDL の TypeError である。
 
-### normative branch の網羅（roadmap §11.3）
+### normative branch の網羅
 
 scenario の件数ではなく **分岐の網羅** を指標にした。
 `ensure pre-insert validity` の全分岐（step 1-11 と element / doctype の挿入検査）と、
@@ -1405,13 +1404,13 @@ scenario の件数ではなく **分岐の網羅** を指標にした。
 固定 scenario は 13 本から 35 本になり、Dommy との比較は全件一致である
 （`move-receiver-must-be-parentnode` は model 固有の近似なので比較対象外）。
 
-### 期待結果の根拠（roadmap §12）
+### 期待結果の根拠
 
 各固定 scenario に `_basis` を足した。
 仕様由来か定理由来かの別、参照する `dom.bs` commit、algorithm 名と step、一行の理由である。
 根拠が無いと、scenario が落ち始めたときにどちらが仕様と違うのか判定できない。
 
-### CI（roadmap §11.1-11.3）
+### CI
 
 証明の層（`ci.yml`）は次を実行する。
 
@@ -1428,7 +1427,7 @@ axiom に依存する定理があると elaboration に失敗する。`sorryAx` 
 nightly で設定三通り × seed 10 個を走らせ、最小化した反例を artifact に上げる。
 固定する version は `test/pinned-versions.json` にまとめた。
 
-## MutationObserver の配送（roadmap の「未着手」の一つ）
+## MutationObserver の配送
 
 Phase 8 は record を積むところで止めていた。配送側（§4.3 の
 "queue a mutation observer microtask" と "notify mutation observers"、
@@ -1517,7 +1516,7 @@ Dommy 側の修正を stash して A/B を取り、順序の不一致が本物�
 生成 scenario 1600 本（seed 8 個 × 200 本、`--observers 3`）で不一致ゼロ。
 残りは `unsupported`、すなわち scenario が作っていない node id を harness が断ったものである。
 
-## MutationObserver の attribute（roadmap の「未着手」の残り）
+## MutationObserver の attribute
 
 `attributes` / `attributeOldValue` / `attributeFilter` を扱うには model に attribute が要る。
 `NodeData` に attribute list を足し、§4.9 の algorithm と §1.3 の名前検査を入れた。
@@ -1720,7 +1719,7 @@ Document の type（HTML document かどうか）を足して、この近似を�
 
 element の名前の妥当性（Element だけが名前を持つ、valid element local name である、
 prefix があるなら namespace もある）は loader が検査する。
-`AdmissibleDOMState` の成分にはしていない。node 生成は model の対象外（roadmap §13.2）で、
+`AdmissibleDOMState` の成分にはしていない。この時点では node を作る操作が model に無く、
 これを崩せる algorithm が無いためである。
 
 観測には namespace / prefix / local name / `tagName` を加えた。
@@ -1927,7 +1926,7 @@ oracle の無い塊として一番大きい。boundary point を動かす method
 
 対象は `setStart` / `setEnd` / `setStartBefore` ほか四つ / `collapse` /
 `selectNode` / `selectNodeContents` / `isPointInRange` / `intersectsNode` である。
-`extractContents` ほかは node を生むので roadmap §13.2 の対象外である。
+`extractContents` ほかは node を生むので model の対象外である。
 `deleteContents` / `insertNode` / `compareBoundaryPoints` / `comparePoint` は
 この節の時点では未着手で、下の「木を変える側と比べる側」で入れた。
 
@@ -1975,7 +1974,7 @@ parent の無い node は boundary point を決められないので、仕様は
 boundary point を動かす側に続けて、残りの四つを入れた。
 `compareBoundaryPoints` / `comparePoint` は値を返すだけ、
 `deleteContents` / `insertNode` は木を変える。
-`extractContents` ほかは node を生むので roadmap §13.2 の対象外のままである。
+`extractContents` ほかは node を生むので model の対象外のままである。
 
 ### `deleteContents`
 
@@ -1993,7 +1992,7 @@ step 5-6 が新しい boundary point を決め、step 7-9 が
 ### `insertNode`
 
 step 7（start node が Text なら offset で split する）は node を作るので
-roadmap §13.2 の対象外で、その場合は `__outsideModel__` を返す
+model の対象外で、その場合は `__outsideModel__` を返す
 （`range-insert-node-into-text-is-outside-model`）。
 ただし step 1 の検査はその前に置くので、
 `HierarchyRequestError` になる場合はちゃんと例外になる。
@@ -2469,7 +2468,7 @@ parent がある node にしか呼ばないので、成功条件は step 1 だ�
 呼び出し側（pre-insert）にある。関係にその前提を足すか、
 `preInsert` の側で言うかは別途決める。
 
-これで roadmap の Phase 1 完了条件（関係が実行関数に依存しない・soundness・
+これで関係意味論に求めた条件（関係が実行関数に依存しない・soundness・
 一意性または completeness・`docs/traceability.md` の列）は `remove` と `insert` について揃った。
 
 ## `replace` の関係と、仕様の assertion が要求する不変量
@@ -3020,7 +3019,7 @@ normalize とは形が違う。あちらは engine が揃っていて仕様の�
 もう一つ、`replacechildren-bypasses-validity` で Chromium が通してしまう
 （model は `HierarchyRequestError`）。これも未調査である。
 
-## node を作れるようにした（roadmap Phase 6）
+## node を作れるようにした
 
 model はこれまで node を作らず、初期状態として与えられた木を動かすだけだった。
 §4.5 の factory を六つ入れた。
@@ -3030,7 +3029,7 @@ model はこれまで node を作らず、初期状態として与えられた�
 
 ### 新しい id は状態ではなく木から導く
 
-roadmap は `DOMState` に allocator（`nextNodeId`）を足す案だったが、
+当初は `DOMState` に allocator（`nextNodeId`）を足す案だったが、
 **store にある id の最大より一つ大きいもの**を使う形にした。
 こうすると「新しい」ことが `AdmissibleDOMState` の不変条件ではなく
 store についての定理（`freshId_get?_eq_none`）になり、成分を増やさずに済む。
@@ -3046,7 +3045,7 @@ store についての定理（`freshId_get?_eq_none`）になり、成分を増�
 data の条件は `FreshNodeData`（parent も children も attribute も無い・
 Document でない・node document は Document）に集約した。
 
-そこから roadmap §8.3 が求めるものが出る。
+そこから、node を作る操作に求める性質が出る。
 
 * freshness と new node exists — `AddsNode` の二つの field
 * new node is detached — `parentOf_self` と `not_child`
@@ -3064,12 +3063,12 @@ children に限った版（`documentChildrenOk_congr_of_children`）を別に置
 `createProcessingInstruction` と `createCDATASection`。前者の target は仕様が
 Name production を参照しており、model はその production を持たない。
 
-## clone を入れた（roadmap §8.4）
+## clone を入れた
 
 §4.4 の `cloneNode(deep)` と、その土台の "clone a single node"。
-roadmap が求めた二つ、**identity は違う**と**観測できる形は同じ**を分けて証明した。
+clone に求める二つ、**identity は違う**と**観測できる形は同じ**を分けて証明した。
 
-| roadmap §8.4 | theorem |
+| 性質 | theorem |
 | --- | --- |
 | clone ≠ original | `cloneNode_ne`（`cloneNode_fresh` 経由） |
 | observable subtree contents are equivalent | `cloneNode_cloneOf` |
@@ -3136,9 +3135,9 @@ Document の制約もそのまま満たす）が、その証明はまだ無い�
 
 ### 次
 
-`importNode` / `adoptNode`（roadmap §8.5）。
+`importNode` / `adoptNode`。
 
-## import と adopt を入れた（roadmap §8.5）
+## import と adopt を入れた
 
 §4.5 の `importNode(node, options)` と `adoptNode(node)`。
 どちらも「別の document にある node をこの document で使えるようにする」ものだが、
@@ -3340,9 +3339,9 @@ kind 列そのものだからである。
 
 ### 次
 
-roadmap §8.6 の `Attr` identity。
+`Attr` の identity。
 
-## attribute に同一性を与えた（roadmap §8.6 の一歩目）
+## attribute に同一性を与えた
 
 仕様の `Attr` は node で、`getAttributeNode` が同じ attribute に同じ object を返す。
 model の attribute は element の状態（`NodeData.attributes : List Attr`）なので、
@@ -3388,7 +3387,7 @@ local name の attribute になる。qualified name 一つに潰れている。j
 
 `Attr` を node として渡す API — `createAttribute` / `createAttributeNS` /
 `getAttributeNode` / `setAttributeNode` / `removeAttributeNode` / `NamedNodeMap` /
-`InUseAttributeError`。これが roadmap §8.6 の本体で、次に入れる。
+`InUseAttributeError`。これが `Attr` の identity の本体で、次に入れる。
 （次の §「`Attr` を node として渡す API を入れた」で入れた。）
 
 Dommy はこれらを identity 付きで実装している（`NamedNodeMap` が `[namespace, localName]` を
@@ -3400,11 +3399,11 @@ jsdom と happy-dom は両方持っている。
 
 `Attr` を node として渡す API を model に入れる。
 
-## `Attr` を node として渡す API を入れた（roadmap §8.6 完了）
+## `Attr` を node として渡す API を入れた
 
 `createAttribute` / `createAttributeNS` / `getAttributeNode` / `getAttributeNodeNS` /
 `setAttributeNode` / `removeAttributeNode` / `NamedNodeMap.removeNamedItem`、
-それに `InUseAttributeError`。これで roadmap（`notes/` の Phase 6）は全部終わった。
+それに `InUseAttributeError`。これで node と `Attr` を作る側は一通り揃った。
 
 ### 状態に足したのは一つだけ
 
@@ -3462,7 +3461,7 @@ model の attribute は element の状態のままである。
 
 ### 次
 
-roadmap は終わったので、次は Selectors（`querySelector` / `querySelectorAll` /
+次は Selectors（`querySelector` / `querySelectorAll` /
 `matches` / `closest`）の形式化に移る。
 
 ## 生成 scenario の最小化を広げた
@@ -4419,9 +4418,8 @@ harness の入口で、`runOperations_no_violation` が別の形で覆ってい�
 `notes/` は gitignore されているのに、Lean の doc comment 19 箇所から参照していた。
 `docs/status.md` / `docs/theorems.md` の該当節に置き換えた。
 
-`PLAN.md`（29 file）と `memo.md`（8 file）はコミットされていないので、
-同じく読者からは見えない。こちらは節番号が doc 全体で一貫した label として
-使われているため、まだ触っていない。
+計画の文書も `notes/` にあって読者からは見えない。`docs/` の側からは参照しない
+（Lean の doc comment の節番号による参照は、まだ残っている）。
 
 ## 薄かった module に契約を入れた
 

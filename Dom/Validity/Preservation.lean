@@ -3,7 +3,7 @@ import Dom.Validity.Derived
 /-!
 # primitive による admissibility の保存
 
-`docs/status.md` の「Phase A：admissibility」の後半。
+`docs/status.md` の「admissibility」の後半。
 まず Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）について
 `StructurallyValid` と `NodeDocumentsValid` の保存を示す。
 

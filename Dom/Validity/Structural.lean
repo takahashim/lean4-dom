@@ -6,7 +6,7 @@ import Dom.Properties.Tree
 `WellFormed`（parent と children の整合、children の重複禁止、非循環性、
 node document が Document であること）に、**kind から来る構造制約** を重ねる。
 
-`docs/status.md` の「Phase A：admissibility」が立てた層の `StructurallyValid` である。
+`docs/status.md` の「admissibility」が立てた層の `StructurallyValid` である。
 `WellFormed` は一般的な木の整合性なのでそのまま残し、
 DOM 固有の妥当性はこの層から上に足していく。
 -/

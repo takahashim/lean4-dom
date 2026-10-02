@@ -3,7 +3,7 @@ import Dom.Validity.Iterators
 /-!
 # observer registration の妥当性の保存
 
-`docs/status.md` の「Phase A：admissibility」のうち、
+`docs/status.md` の「admissibility」のうち、
 `AdmissibleDOMState.observerRegistrations` の成分。
 
 registration が増えるのは `remove` の step 20（transient registered observer）だけである。

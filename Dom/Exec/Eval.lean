@@ -87,8 +87,8 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
   let t : Tree := { nodes := entries.foldl (fun st p => st.insert p.1 p.2) NodeStore.empty }
   unless t.checkWellFormed do
     throw "初期状態が WellFormed を満たしていない"
-  -- element の名前の妥当性。node 生成は model の対象外（roadmap §13.2）なので、
-  -- これを崩せる algorithm は無く、`AdmissibleDOMState` の成分にはしていない。
+  -- element の名前の妥当性。element を作る操作（`createElement` / `createElementNS` / clone）は
+  -- 名前を検査するか写すだけなので、これを崩せる algorithm は無く、`AdmissibleDOMState` の成分にはしていない。
   for spec in specs do
     if spec.kind == .element then
       unless isValidElementLocalName (spec.localName.getD "div") do
@@ -136,7 +136,7 @@ def stepIterator (s : DOMState) (i : Nat)
 要求するのは **admissible な状態**（`AdmissibleDOMState`）であることである。
 range については両端が木の中にあることだけを見る。
 順序（`BoundaryLE`）は仕様の invariant ではないので要求しない
-（`docs/status.md` の「Phase A：admissibility」。反例探索のために loader は
+（`docs/status.md` の「admissibility」。反例探索のために loader は
 admissible な状態を広く受理してよい）。
 
 ただし differential testing に使う scenario は、Dommy 側が

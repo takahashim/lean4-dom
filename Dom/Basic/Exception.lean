@@ -39,7 +39,7 @@ inductive DOMException where
   model の対象外。**仕様の例外ではない。**
 
   `DOMString` は UTF-16 の code unit 列なので surrogate pair を割った切り出しも定義されるが、
-  Lean の `Char` は surrogate を含まないので `String` では表せない（roadmap §13.1）。
+  Lean の `Char` は surrogate を含まないので `String` では表せない。
   その切り出しを求められた操作はこれを返す。
 
   名前を `__` で始めてあるのは、仕様の例外名と衝突させないためである。

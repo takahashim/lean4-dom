@@ -381,7 +381,7 @@ open Dom.Audit
   Dom.Spec.characterDataRecordQueued_of_queue
   Dom.Spec.treeRecordQueued_of_queue
 
--- §16 の live object をまとめた形
+-- live object をまとめた形
 #audit_axioms
   Dom.remove_preserves_live_objects
   Dom.insert_preserves_endpoints

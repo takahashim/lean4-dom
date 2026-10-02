@@ -16,7 +16,7 @@ Lean の `String` は `Char`（surrogate を除いた Unicode scalar value）の
 長さと offset は code unit で数え、切断は scalar 境界でだけ定義する。
 境界でない切断を求められた操作は `DOMException.outsideModel` を返す。
 これは **仕様の例外ではなく model の対象外を表す印** であり、
-差分テストはその step 以降を比較しない（roadmap §13.1）。
+差分テストはその step 以降を比較しない。
 
 boundary point が pair の途中を指すこと自体は扱える。
 仕様の boundary point は offset が node の長さ以下であることしか要求しておらず、

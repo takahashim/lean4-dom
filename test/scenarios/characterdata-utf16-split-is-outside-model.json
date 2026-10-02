@@ -7,7 +7,7 @@
       "replace data"
     ],
     "steps": "replace data 5-7",
-    "note": "model の対象外を固定する scenario。roadmap §13.1。"
+    "note": "model の対象外を固定する scenario。surrogate pair を割る切り出しは Lean の Char で表せない。"
   },
   "nodes": [
     {
