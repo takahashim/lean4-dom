@@ -117,7 +117,7 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
         if !checkValidUrl u then
           invalid := invalid + 1
           IO.println s!"INVALID input={repr c.input} base={repr c.base} -> {urlSerializer u}"
-        -- §4.1 のうち証明に上げていない条件。交差検証として実行時に見る。
+        -- §4.1 の残りの条件（`basicUrlParse_strict`）。交差検証として実行時にも見る。
         if !checkStrictUrl u then
           invalid := invalid + 1
           IO.println s!"STRICT input={repr c.input} base={repr c.base} -> {urlSerializer u}"
@@ -234,6 +234,7 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
           if !checkValidUrl u then
             invalid := invalid + 1
             IO.println s!"INVALID setter={c.setter} href={repr c.href} value={repr c.newValue}"
+          -- §4.1 の残りの条件も保つ（`setAttr_strict`。href は既定の ToASCII のとき）。
           if !checkStrictUrl u then
             invalid := invalid + 1
             IO.println s!"STRICT setter={c.setter} href={repr c.href} value={repr c.newValue}"

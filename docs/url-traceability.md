@@ -58,7 +58,7 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
 | --- | --- | --- | --- | --- | --- |
-| URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl` | `checkValidUrl_iff`（決定可能性）、`basicUrlParse_valid` / `parseUrl_valid`（parse が保つ） | wpt, wpt-set | 済 |
+| URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl`, `checkStrictUrl` | `checkValidUrl_iff` / `checkStrictUrl_iff`（決定可能性）、`basicUrlParse_valid` / `parseUrl_valid`（parse が保つ）、`basicUrlParse_strict` / `setAttr_strict`（§4.1 の残りの三条件も parse と setter が保つ） | wpt, wpt-set | 済 |
 | special scheme と既定の port | §4.2 | `isSpecialScheme`, `defaultPort` | `isSpecialScheme_of_defaultPort` | wpt | 済 |
 | URL path serializer | §4.3 | `pathSerializer` | — | wpt | 済 |
 | URL serializer | §4.3 1-7 | `urlSerializer` | `roundtrip_canonical`（canonical な record は parse し直すと戻る）、`basicUrlParse_canonical` / `parseUrl_canonical`（parse の結果は canonical）、`parse_image`（parse の像は `ValidUrl ∧ canonicalUrl`）、`parse_serialize_of_parse` | wpt | 済 |

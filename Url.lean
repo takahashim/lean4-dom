@@ -21,6 +21,7 @@ import Url.CanonicalInv
 import Url.CanonicalParts
 import Url.StepCanonical
 import Url.ParseImage
+import Url.StrictValid
 import Url.Ipv6Roundtrip
 import Url.SearchParams
 import Url.Spec.Failure

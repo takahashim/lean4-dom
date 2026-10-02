@@ -309,9 +309,9 @@ opaque path を作るのは scheme state の一分岐だけで、そこでは ho
 この条件が無いと「opaque path かつ host が非空」という
 parse では作れない record が反例になる。
 
-**入れていない §4.1 の条件が二つある。** どちらも parser も setter も作れないが、
-不変条件にするには足場が要る。`Url/Strict.lean` の `checkStrictUrl` が
-WPT と setter の全 case で実行時に検査していて、
+**入れていない §4.1 の条件が二つある。** どちらも parser も setter も作れない。
+`PInv` の不変条件にするには足場が要るので、ここには入れず、`Url/StrictValid.lean` の `StrictUrl` として
+別に立てて証明した（parse は `basicUrlParse_strict`、setter は `setAttr_strict`）。
 `Url/RecordExamples.lean` に反例を置いてある。
 
 * 「host が**空**なら **credentials** は持てない」。成り立つ根拠は authority state の
