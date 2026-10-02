@@ -476,6 +476,26 @@ WPT の `ﬃ&🌈` がこれを見分ける case で、code point 順に実装�
 IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
 host の 2 件が IDNA の境界で、それ以外は一致した。
 
+### 一つの URL を見る
+
+`lake exe url-model --parse INPUT [--base BASE] [--idna UTS46]` は `URL(input, base)` を model で
+評価し、結果を JSON で出す。IDL attribute（`href` から `hash` まで）と origin に加えて、
+URL record そのもの（host の種類、port、path が opaque か segment の列か、query と fragment が
+null か空文字列か）と、record が `checkValidUrl`・`checkStrictUrl`・`canonicalUrl` を満たすかを並べる。
+失敗したら `"failure": true` を出して終了コード 1 で終わる。
+
+```
+$ lake exe url-model --parse "HTTP://EXAMPLE.com:80/a/./b/../c?q=1 2"
+{
+  "input": "HTTP://EXAMPLE.com:80/a/./b/../c?q=1 2",
+  "base": null,
+  "failure": false,
+  "href": "http://example.com/a/c?q=1%202",
+  ...
+```
+
+既定の ToASCII は ASCII の domain しか通さないので、`http://日本.jp/` は表を渡さないと失敗する。
+
 ## WPT が見つけた仕様の読み違い
 
 1. **"start over" は scheme state 限定。** 最初は「どこで失敗しても先頭からやり直す」に
