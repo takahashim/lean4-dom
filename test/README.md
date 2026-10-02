@@ -396,7 +396,10 @@ artifact として上がる。内容を確認したうえで固定 scenario に�
 * model：`url-model --parse-batch FILE test/url/uts46-table.json`（`parseUrl`）。
 * Dommy：`Dommy::URL.parse(input, base)`。
 * JS：`test/url_js.mjs` を通す。`--js node`（Node の組み込みの URL、Ada）、
-  `--js whatwg-url=PATH`（URL Standard の参照実装）、`--js jsdom=PATH`（jsdom の `window.URL`）。
+  `--js whatwg-url=PATH`（URL Standard の参照実装）、`--js jsdom=PATH`（jsdom の `window.URL`）、
+  `--js chromium` `--js firefox` `--js webkit`（Playwright の browser。`PLAYWRIGHT_PATH` は `browser_runner.mjs` と同じ）。
+* `--dump FILE` で case と全実装の結果を JSON に書き出す。割れ方の分類に使う。
+* `file:`（と中身が `file:` の `blob:`）の origin は実装依存なので比べない。
 
 入力は WPT の表（`test/url/wpt-ascii.json`）の 820 件、その変形（区切りや空白を一つ二つ足す・消す・置き換える）、
 部品（scheme、`/` と `\` の並び、userinfo、IPv4・IPv6・domain・opaque host、port、`.` と `..` と drive letter を
@@ -411,7 +414,8 @@ BUNDLE_GEMFILE=/path/to/Gemfile bundle exec ruby test/url_diff.rb --count 10000 
 ```
 
 割れた case は全実装の結果を並べて出す。一致は多数決ではなく、どちらが仕様どおりかは本文で決める。
-CI の `deterministic` job は Dommy と whatwg-url で seed 1 の 3,000 件を流す。
+CI の `deterministic` job は Dommy と whatwg-url で seed 1 の 3,000 件を流す。browser と Node は既知の不一致が
+多いので CI には入れていない（`docs/url-status.md` の「実装との突き合わせ」）。
 
 ## urlencoded parser
 

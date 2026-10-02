@@ -3,12 +3,12 @@
 # URL Standard の basic URL parser（`URL(input, base)`）を model と実装で突き合わせる。
 #
 # model の側は `url-model --parse-batch`（`parseUrl`）。実装は Dommy（`Dommy::URL.parse`）と、
-# `test/url_js.mjs` を通した JS の実装（Node の組み込みの URL = Ada、whatwg-url、jsdom）である。
+# `test/url_js.mjs` を通した JS の実装（Node の組み込みの URL = Ada、whatwg-url、jsdom、Playwright の browser）である。
 # 比べるのは失敗するかどうかと、成功したときの IDL attribute（href から hash まで）と origin。
 #
 #   lake build url-model
 #   BUNDLE_GEMFILE=/path/to/Gemfile bundle exec ruby test/url_diff.rb [--count N] [--seed N]
-#       [--js node] [--js whatwg-url=/path/to/whatwg-url/index.js] [--no-dommy]
+#       [--js node] [--js whatwg-url=/path/to/whatwg-url/index.js] [--js webkit] [--no-dommy] [--dump FILE]
 #
 # 入力は WPT の表（`test/url/wpt-ascii.json`）の全 case と、その変形、部品から組み立てた乱数の URL である。
 # 非 ASCII の domain を含むので、model には UTS #46 の表（`test/url/uts46-table.json`）を渡す。
@@ -26,13 +26,14 @@ IDNA = File.join(ROOT, "test/url/uts46-table.json")
 WPT = File.join(ROOT, "test/url/wpt-ascii.json")
 FIELDS = %w[href protocol username password host hostname port pathname search hash origin].freeze
 
-options = { count: 3000, seed: 1, show: 15, js: [], dommy: true }
+options = { count: 3000, seed: 1, show: 15, js: [], dommy: true, dump: nil }
 OptionParser.new do |o|
   o.on("--count N", Integer) { |v| options[:count] = v }
   o.on("--seed N", Integer) { |v| options[:seed] = v }
   o.on("--show N", Integer) { |v| options[:show] = v }
   o.on("--js SPEC", "node / whatwg-url=PATH / jsdom=PATH（何度でも）") { |v| options[:js] << v }
   o.on("--no-dommy") { options[:dommy] = false }
+  o.on("--dump FILE", "case と全実装の結果を JSON で書き出す") { |v| options[:dump] = v }
 end.parse!
 
 # ------------------------------------------------------------------ 入力の生成
@@ -122,6 +123,22 @@ if options[:dommy]
 end
 
 # ------------------------------------------------------------------ 比較
+
+# `file:` の origin は実装依存である（§4.7「読者への課題として残す。迷ったら opaque origin を返す」）。
+# model は opaque（"null"）にし、browser には "file://" を返すものがある。`blob:` の中身が `file:` の
+# ときも同じなので、この二つでは origin を比べない。
+def comparable(r)
+  return r unless r.is_a?(Hash)
+  return r unless r["href"].start_with?("file:", "blob:file:")
+
+  r.reject { |k, _| k == "origin" }
+end
+
+results.each_value { |rs| rs.map! { |r| comparable(r) } }
+
+if options[:dump]
+  File.write(options[:dump], JSON.generate({ "cases" => cases, "results" => results }))
+end
 
 impls = results.keys - ["model"]
 ok = results["model"].count { |r| !r.nil? }

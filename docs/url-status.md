@@ -505,13 +505,25 @@ WPT の `ﬃ&🌈` がこれを見分ける case で、code point 順に実装�
 seed 2 の 10,660 件のうち model が成功するのは 7,055 件である。比べるのは失敗するかどうかと、
 IDL attribute 十個と origin である。
 
-2026-10-03 に、seed 1-4（約 3.5 万件）で次の結果になった。
+2026-10-03 に、seed 1-4（約 3.5 万件）で次の結果になった。browser は seed 1-2（各 5,000 件の乱数と WPT）で測った。
 
 | 実装 | 結果 |
 | --- | --- |
 | Dommy `715fa7b` | 全件一致 |
 | whatwg-url 17.1.2（URL Standard の参照実装） | 全件一致 |
 | Node 23.11.1 の組み込み URL（Ada 3.2.1） | seed 1 の 3,777 件のうち 95 件で割れる |
+| WebKit 26.6（Playwright） | seed 1 の 5,750 件のうち 25 件。WPT の 820 件では割れない |
+| Firefox 155.0（Playwright） | 702 件。うち WPT の 70 件 |
+| Chromium 153（Playwright） | 665 件。うち WPT の 84 件 |
+
+`file:` の origin は比べない。§4.7 が「読者への課題として残す。迷ったら opaque origin を返す」としていて
+実装依存だからで、model は opaque（`"null"`）にし、WebKit と Chromium は `"file://"` を返す。
+`blob:` の中身が `file:` のときも同じである。
+
+**三つの browser が互いに一致したうえで model と違う case は一件も無かった。**
+割れた case では、どれも model・whatwg-url・Dommy の三つが同じ側にいる。
+Firefox と Chromium の不一致の多くは WPT の case でも割れる既知の形（`file:` の host、非 special な URL の
+query の `'`、drive letter の扱いなど）である。
 
 Node の 95 件は、どれも model・whatwg-url・Dommy の三つが同じ側にいる。形は四つである。
 
@@ -522,8 +534,18 @@ Node の 95 件は、どれも model・whatwg-url・Dommy の三つが同じ側�
 | 8 | ASCII の `xn--` label（`a.b.c.xn--pokxncvks`）を失敗にする | §3.3 domain to ASCII（WPT の case） |
 | 4 | path の `^` を percent-encode しない、`..` の後の空の segment を落とす | §1.3 path percent-encode set、§4.4 path state |
 
-どれも URL Standard の比較的新しい改訂か WPT の case で、Ada がこの版ではまだ追いついていない形である。
-model の読み違いを疑う材料にはならないので、Node は CI の相手に入れていない。
+opaque path の `%20` と path の `^` は URL Standard の比較的新しい改訂である。opaque path の base の扱いは
+以前からある規則なので、版の遅れではなく Ada の不具合かもしれない（新しい版では確かめていない）。
+どれも model の読み違いを疑う材料にはならないので、Node は CI の相手に入れていない。
+
+WebKit の 25 件は WPT の外にあり、三つの形に分かれる。どれも model・whatwg-url・Dommy が同じ側にいる。
+
+| 件数 | 形 | 本文 |
+| --- | --- | --- |
+| 21 | 非 special な URL で userinfo か port があり path が空のとき、`?` や `#` の前に `/` を足す（`x://u:p@localhost?a` が `x://u:p@localhost/?a`） | §4.4 path start state：非 special で `?` なら path は空のまま query へ |
+| 2 | `file:` で `..` が path を空にした後の `c|` を `c:` に直さない | §4.4 path state：scheme が `file` で path が空、buffer が Windows drive letter なら二文字目を `:` に |
+| 2 | `pathname` の getter が `.` で始まる segment の頭を落とす（`non-spec:/.path` の pathname が `path`。href は正しい） | §6.1 pathname getter は URL path serializer で、serializer が足す `/.` とは別 |
+
 
 以前は IPv4（10 件）、IPv6（15 件）、host（15 件）を Dommy とその場で突き合わせただけで、
 再現する手段が無かった（host の 2 件が IDNA の境界で割れた）。
