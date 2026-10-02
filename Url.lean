@@ -28,3 +28,4 @@ import Url.SearchParams
 import Url.Spec.Failure
 import Url.Spec.Relative
 import Url.Spec.Priority
+import Url.Spec.Urlencoded

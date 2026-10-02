@@ -375,6 +375,7 @@ DOM 側の `Dom/Spec/` に当たる層を、限定的にだが置いた。
 | `Url/Spec/Failure.lean` | 失敗条件。scheme の有無、opaque path の base、port の範囲 |
 | `Url/Spec/Relative.lean` | 相対 URL 解決。`#f` / `?q` / 空入力 |
 | `Url/Spec/Priority.lean` | 同じ文字に複数の条件が当たる場面で、どれが先か |
+| `Url/Spec/Urlencoded.lean` | §5.1 application/x-www-form-urlencoded parser の全体（下の「§5.1 の parser」） |
 
 ### なぜこの三つか
 
@@ -391,6 +392,28 @@ DOM 側の `Dom/Spec/` に当たる層を、限定的にだが置いた。
 「もっともらしい」結果が返るからである。`file` が special より先に判定されること、
 bracket の中の `:` が port の区切りにならないこと、Windows drive letter が host より
 先に見られることは、いずれも逆順でも動く形の parser が書けてしまう。
+
+### §5.1 の parser
+
+`parseUrlencoded` は byte 列を `&` で切り、各片を最初の `=` で分ける。切り分けは accumulator を持った
+走査で書いてある。`Url/Spec/Urlencoded.lean` は同じものを、走査を写さずに分け方の条件として書いた。
+
+| 関係 | 本文 |
+| --- | --- |
+| `SplitOnAmp` | step 1。片を `&` を挟んで並べると入力に戻り、どの片にも `&` が無い |
+| `NameValue` | step 3.2-3.3。片は「`=` を含まない name、`=`、value」と並ぶ。`=` が無ければ name は片全体、value は空 |
+| `FormTuples` | step 3.1・3.4-3.6。空の片は飛ばし、`+` を空白に直して percent-decode し、UTF-8 として読む |
+| `FormParses` | 全体。`SplitOnAmp` を満たす片の列があり、それが `FormTuples` で出力に写る |
+
+| 定理 | 言っていること |
+| --- | --- |
+| `parseUrlencoded_iff` | **`FormParses input out ↔ parseUrlencoded input = out`。** 入力に制限は無い |
+| `splitAmp_unique`, `splitFirstEq_unique` | 分け方は一通りしかない。関係が決定的なのはこのためである |
+| `FormParses.deterministic` | 関係を満たす出力は一つだけ |
+
+§5.1 は §4.4 と違って状態機械ではなく、「分けて、片ごとに読む」という短い手続きである。
+そのため関係は parser と同じ骨組みになり、違うのは切り分けを条件で述べたところだけである。
+§4.4 の parser についても同じこと（構造の違う仕様を書き、全入力で一致を示す）が残っている。
 
 ### 何を言っていないか
 

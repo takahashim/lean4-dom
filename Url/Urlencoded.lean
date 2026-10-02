@@ -117,14 +117,17 @@ where
 def plusToSpace (bs : Bytes) : Bytes :=
   bs.map fun b => if b.toNat == 0x2B then UInt8.ofNat 0x20 else b
 
+/-- §5.1 step 3 の一片分。空なら飛ばし（3.1）、最初の `=` で分けて（3.2-3.3）、読む（3.4-3.5）。 -/
+def parsePiece (bs : Bytes) : Option (String × String) :=
+  if bs.isEmpty then none
+  else
+    let (name, value) := splitFirstEq bs
+    let dec := fun (x : Bytes) => utf8DecodeString (percentDecodeBytes (plusToSpace x))
+    some (dec name, dec value)
+
 /-- URL Standard §5.1 application/x-www-form-urlencoded parser。 -/
 def parseUrlencoded (input : Bytes) : List (String × String) :=
-  (splitAmp input).filterMap fun bs =>
-    if bs.isEmpty then none
-    else
-      let (name, value) := splitFirstEq bs
-      let dec := fun (x : Bytes) => utf8DecodeString (percentDecodeBytes (plusToSpace x))
-      some (dec name, dec value)
+  (splitAmp input).filterMap parsePiece
 
 /-- 文字列を byte 列にしてから parse する。`URLSearchParams` の入口。 -/
 def parseUrlencodedString (s : String) : List (String × String) :=
