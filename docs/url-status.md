@@ -501,6 +501,12 @@ WPT の `ﬃ&🌈` がこれを見分ける case で、code point 順に実装�
 IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
 host の 2 件が IDNA の境界で、それ以外は一致した。
 
+§5.1 の urlencoded parser は `test/urlencoded_diff.rb` で Dommy と突き合わせている。
+固定の 45 件（区切り、`+`、percent-decode、不正な UTF-8 の列、BOM）と乱数の入力で、
+2026-10-03 に Dommy `715fa7b` に対して 5 seed・約 8.5 万件が一致した。
+不正な UTF-8 は両者とも Encoding Standard の maximal subpart ごとに U+FFFD を一つ出し
+（`%F0%80%80` は三つ）、先頭の BOM は落とさない（§5.1 は「UTF-8 decode without BOM」）。
+
 ### 一つの URL を見る
 
 `lake exe url-model --parse INPUT [--base BASE] [--idna UTS46]` は `URL(input, base)` を model で
