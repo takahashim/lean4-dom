@@ -141,9 +141,10 @@ theorem c0Set_of_alnum {c : Char} (h : isAsciiAlphanumeric c = true) : c0Control
 `canonicalUrl` の host の条件（`hostParser (hostSerializer h) = some h`）から、
 `roundtrip_canonical` が仮定に置いていた二つを出す。
 -/
-theorem hostReadable_of_canonical {sp : Bool} {h : Host}
+theorem hostReadable_of_canonical {f : List Char → Option String}
+    (hf : ∀ x a, f x = some a → a.any isForbiddenDomain = false) {sp : Bool} {h : Host}
     (hc : h = Host.empty ∨
-      hostParser asciiDomainToASCII (hostSerializer h).toList (!sp) = some h) :
+      hostParser f (hostSerializer h).toList (!sp) = some h) :
     hostReadable sp h ∧ ∀ c ∈ (hostSerializer h).toList, isC0ControlOrSpace c = false := by
   cases h with
   | empty =>
@@ -190,7 +191,7 @@ theorem hostReadable_of_canonical {sp : Bool} {h : Host}
     rcases hc with hx | hx
     · exact absurd hx (by simp)
     · obtain ⟨dom, hdom⟩ := hostParser_domain_eq hx
-      have h2 := asciiDomainToASCII_no_forbidden hdom
+      have h2 := hf _ _ hdom
       simp [String.any] at h2
       have hfd : ∀ c ∈ d.toList, isForbiddenDomain c = false := h2
       have hnf : ∀ c ∈ d.toList, isForbiddenHost c = false := by

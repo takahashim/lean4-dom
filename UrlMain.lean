@@ -81,7 +81,11 @@ def loadIdnaTable (path : String) : IO (Option (Array IdnaRange)) := do
   if !checkResolved rs then
     IO.eprintln s!"{path}: 写像先が valid でない項がある（IdnaTable.Resolved を満たさない）"
     return none
-  IO.println s!"UTS #46 の表: {rs.size} 範囲、昇順・非重複、Resolved を満たす"
+  -- `Resolved` と合わせて、`toASCII` が往復の条件 `ToAsciiOk` を満たす根拠になる（`toAsciiOk_ranges`）。
+  if !checkNoUpperValid rs then
+    IO.eprintln s!"{path}: ASCII の大文字に valid な項がある（IdnaTable.NoUpperValid を満たさない）"
+    return none
+  IO.println s!"UTS #46 の表: {rs.size} 範囲、昇順・非重複、Resolved と NoUpperValid を満たす"
   return some rs
 
 /-- 表があればそれを使う ToASCII、無ければ ASCII だけの既定。 -/
@@ -121,13 +125,13 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
         if !checkStrictUrl u then
           invalid := invalid + 1
           IO.println s!"STRICT input={repr c.input} base={repr c.base} -> {urlSerializer u}"
-        -- parser が返す record の形（`parse ∘ serialize` の仮定）。既定の ToASCII なら
-        -- `parseUrl_canonical` が言うが、UTS #46 の表を渡したときはこの検査だけが裏づけである。
+        -- parser が返す record の形（`parse ∘ serialize` の仮定）。`parseUrl_canonical` が言う
+        -- （表を渡したときも、読み込みの検査が `ToAsciiOk` を落とす。`toAsciiOk_ranges`）。
         if !canonicalUrl u (toAsciiOf idna) then
           invalid := invalid + 1
           IO.println s!"CANONICAL input={repr c.input} base={repr c.base} -> {urlSerializer u}"
         -- serialize して parse し直すと元の record に戻ること。
-        -- 既定の ToASCII なら `parseUrl_serialize` が言う。実装と証明が同じ定義を見ていることの検査として残す。
+        -- `parseUrl_serialize` が言う。実装と証明が同じ定義を見ていることの検査として残す。
         match parseUrl (urlSerializer u) none (toAsciiOf idna) with
         | none =>
           invalid := invalid + 1
@@ -234,7 +238,7 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
           if !checkValidUrl u then
             invalid := invalid + 1
             IO.println s!"INVALID setter={c.setter} href={repr c.href} value={repr c.newValue}"
-          -- §4.1 の残りの条件も保つ（`setAttr_strict`。href は既定の ToASCII のとき）。
+          -- §4.1 の残りの条件も保つ（`setAttr_strict`）。
           if !checkStrictUrl u then
             invalid := invalid + 1
             IO.println s!"STRICT setter={c.setter} href={repr c.href} value={repr c.newValue}"

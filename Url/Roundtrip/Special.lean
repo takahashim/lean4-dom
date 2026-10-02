@@ -201,7 +201,8 @@ def dotPrefix (segs : List String) : List Char :=
 先頭 segment が空で segment が二つ以上のときは serializer が `/.` を前置するが、
 parse がそれを single-dot segment として落とすので、そこも入っている。
 -/
-theorem roundtrip_path {s : String} {segs : List String} {q f : Option String}
+theorem roundtrip_path {toAscii : List Char → Option String}
+    {s : String} {segs : List String} {q f : Option String}
     {a : Char} {rest : List Char}
     (hs : s.toList = a :: rest) (ha : isAsciiLowerAlpha a = true)
     (hr : ∀ c ∈ rest, schemeChar c = true)
@@ -213,7 +214,7 @@ theorem roundtrip_path {s : String} {segs : List String} {q f : Option String}
     (hall : ∀ x ∈ segs, (∀ c ∈ x.toList, pathSet c = false ∧ ¬c = '/' ∧ ¬c = '?' ∧ ¬c = '#') ∧
       isSingleDot x.toList = false ∧ isDoubleDot x.toList = false) :
     basicUrlParse (urlSerializer
-        { scheme := s, path := .list segs, query := q, fragment := f }) none
+        { scheme := s, path := .list segs, query := q, fragment := f }) none toAscii
       = some { scheme := s, path := .list segs, query := q, fragment := f } := by
   have haa : isAsciiAlpha a = true := by
     simp only [isAsciiAlpha, Bool.or_eq_true]; exact Or.inr ha

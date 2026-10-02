@@ -88,23 +88,26 @@ theorem ipv6_of_hostParser {f : List Char → Option String} {buf : List Char} {
   exact ⟨ipv6Parser_length hs, ipv6Parser_lt hs⟩
 
 /-- **canonical な record は三条件を満たす。** -/
-theorem strictConds_of_canonical {u : Url} (hc : canonicalUrl u = true) : StrictConds u := by
+theorem strictConds_of_canonical {u : Url} {t : List Char → Option String}
+    (hc : canonicalUrl u t = true) : StrictConds u := by
   have p := canonical_parts hc
   refine ⟨p.emptyNoCred, p.specialHost, fun a ha => ?_⟩
   exact ipv6_of_hostParser (p.hostIdem _ ha (by simp)) a rfl
 
 /-- **parse が返す record は §4.1 の条件をすべて満たす。** -/
-theorem basicUrlParse_strict {input : String} {base : Option Url}
-    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b = true)
-    {u : Url} (h : basicUrlParse input base = some u) : StrictUrl u :=
+theorem basicUrlParse_strict {t : List Char → Option String} (htok : ToAsciiOk t)
+    {input : String} {base : Option Url}
+    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b t = true)
+    {u : Url} (h : basicUrlParse input base t = some u) : StrictUrl u :=
   { toValidUrl := basicUrlParse_valid hb h
-    toStrictConds := strictConds_of_canonical (basicUrlParse_canonical hb hbc h) }
+    toStrictConds := strictConds_of_canonical (basicUrlParse_canonical htok hb hbc h) }
 
 /-- `URL(url, base)` の入口についても同じ。 -/
-theorem parseUrl_strict {input : String} {base : Option String} {u : Url}
-    (h : parseUrl input base = some u) : StrictUrl u :=
+theorem parseUrl_strict {t : List Char → Option String} (htok : ToAsciiOk t)
+    {input : String} {base : Option String} {u : Url}
+    (h : parseUrl input base t = some u) : StrictUrl u :=
   { toValidUrl := parseUrl_valid h
-    toStrictConds := strictConds_of_canonical (parseUrl_canonical h) }
+    toStrictConds := strictConds_of_canonical (parseUrl_canonical htok h) }
 
 /-! ## setter の側
 
@@ -539,23 +542,24 @@ theorem setHash_strict {u : Url} (h : StrictConds u) (v : String) :
 /--
 **どの IDL setter も §4.1 の条件をすべて保つ。**
 
-`href` は parse し直すので `basicUrlParse_strict` に乗る。そちらは既定の ToASCII についての定理なので、
-ここも既定の ToASCII に限る（`Url/CanonicalInv.lean` の先頭を参照）。ほかの setter は ToASCII に依らない。
+`href` は parse し直すので `basicUrlParse_strict` に乗り、ToASCII に `ToAsciiOk` を要る。
+ほかの setter は ToASCII に依らない。
 -/
-theorem setAttr_strict {u : Url} (h : StrictUrl u) (name v : String) (u' : Url)
-    (hs : u.setAttr name v = some u') : StrictUrl u' := by
-  have hv : ValidUrl u' := setAttr_valid h.toValidUrl name v asciiDomainToASCII u' hs
+theorem setAttr_strict {t : List Char → Option String} (htok : ToAsciiOk t)
+    {u : Url} (h : StrictUrl u) (name v : String) (u' : Url)
+    (hs : u.setAttr name v t = some u') : StrictUrl u' := by
+  have hv : ValidUrl u' := setAttr_valid h.toValidUrl name v t u' hs
   refine { toValidUrl := hv, toStrictConds := ?_ }
   have hc := h.toStrictConds
   unfold Url.setAttr at hs
   split at hs
   · rw [← Option.some.inj hs]
     unfold Url.setHref
-    cases hp : basicUrlParse v none asciiDomainToASCII with
+    cases hp : basicUrlParse v none t with
     | none => simpa [hp] using hc
     | some w =>
       simp only [hp, Option.getD_some]
-      exact (basicUrlParse_strict (fun b hb => absurd hb (by simp))
+      exact (basicUrlParse_strict htok (fun b hb => absurd hb (by simp))
         (fun b hb => absurd hb (by simp)) hp).toStrictConds
   · rw [← Option.some.inj hs]; exact setProtocol_strict hc v
   · rw [← Option.some.inj hs]; exact setUsername_strict hc v

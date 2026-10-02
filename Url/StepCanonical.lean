@@ -47,15 +47,16 @@ theorem rest_getLast {c : Cp} {rest input : List Char} {d : Char} (hin : input =
   | some ch => subst hin; exact getLast?_cons_ne h
 
 /-- 帰納法の仮定。測度は `StepValid.lean` の `RunIH` と同じ。 -/
-def CRunIH (base : Option Url) (r n : Nat) : Prop :=
+def CRunIH (t : List Char → Option String) (base : Option Url) (r n : Nat) : Prop :=
   ∀ (st : PState) (input : List Char) (ctx : PCtx) (u : Url),
     run base st input ctx = .ok u →
     (stateRank st < r ∨ (stateRank st = r ∧ input.length < n)) →
-    CInv base st input ctx → canonicalUrl u = true
+    CInv t base st input ctx → canonicalUrl u t = true
 
 /-- fragment state の EOF にいると見なせる record は canonical である。 -/
-theorem canonical_of_frag {base : Option Url} {ctx : PCtx} {X : Url}
-    (h : CInv base .fragment [] { ctx with url := X, buffer := [] }) : canonicalUrl X = true := by
+theorem canonical_of_frag {t : List Char → Option String} {base : Option Url} {ctx : PCtx} {X : Url}
+    (h : CInv t base .fragment [] { ctx with url := X, buffer := [] }) :
+    canonicalUrl X t = true := by
   have h1 : hostOpen .fragment = false := rfl
   have h2 : schemeSet .fragment = true := rfl
   have h3 : termState .fragment = true := rfl
@@ -63,9 +64,10 @@ theorem canonical_of_frag {base : Option Url} {ctx : PCtx} {X : Url}
   simpa using this
 
 /-- `canonical_of_frag` の base を帰納法の仮定から決める。split が base を書き換えても使える。 -/
-theorem canonical_of_frag' {base : Option Url} {r n : Nat} (_ : CRunIH base r n) {ctx : PCtx}
-    {X : Url} (h : CInv base .fragment [] { ctx with url := X, buffer := [] }) :
-    canonicalUrl X = true :=
+theorem canonical_of_frag' {t : List Char → Option String} {base : Option Url} {r n : Nat}
+    (_ : CRunIH t base r n) {ctx : PCtx}
+    {X : Url} (h : CInv t base .fragment [] { ctx with url := X, buffer := [] }) :
+    canonicalUrl X t = true :=
   canonical_of_frag h
 
 local macro "cs_simp" : tactic =>
@@ -157,9 +159,9 @@ theorem portDone_toAscii {ctx ctx2 : PCtx} (h : portDone ctx = some ctx2) :
     · simp at h
     · rw [← Option.some.inj h]; rfl
 
-theorem CInv.portStep {base : Option Url} {input : List Char} {ctx ctx2 : PCtx}
-    (h : CInv base .port input ctx) (hp : portDone ctx = some ctx2) :
-    CInv base .pathStart input ctx2 := by
+theorem CInv.portStep {t : List Char → Option String} {base : Option Url} {input : List Char} {ctx ctx2 : PCtx}
+    (h : CInv t base .port input ctx) (hp : portDone ctx = some ctx2) :
+    CInv t base .pathStart input ctx2 := by
   have hpo := portDone_portOk hp h.portOk
   obtain ⟨p, hu, ho⟩ := portDone_spec hp
   have hb := portDone_buffer hp
@@ -206,8 +208,8 @@ path state の遷移は `pathStepUrl` を挟むので、simp に任せると重�
 -/
 
 /-- path state で segment を確定させた url の、path の条件。 -/
-theorem CInv.pathFacts {base : Option Url} {input : List Char} {ctx : PCtx}
-    (h : CInv base .path input ctx) (slash : Bool) :
+theorem CInv.pathFacts {t : List Char → Option String} {base : Option Url} {input : List Char} {ctx : PCtx}
+    (h : CInv t base .path input ctx) (slash : Bool) :
     pathCanon ctx.url.isSpecial (pathStepUrl ctx.url slash ctx.buffer).path = true ∧
       Url.driveOk ctx.url.scheme (pathStepUrl ctx.url slash ctx.buffer).path = true ∧
       (∀ o : String, (pathStepUrl ctx.url slash ctx.buffer).path = .opaque o →
@@ -230,9 +232,9 @@ local macro "cs_path" : tactic =>
         pathStepUrl_includesCredentials]; with_reducible assumption))
 
 /-- path state が `/` で segment を確定させて path state に戻る。 -/
-theorem CInv.pathNext {base : Option Url} {input : List Char} {ctx : PCtx}
-    (h : CInv base .path input ctx) (slash : Bool) (rest : List Char) :
-    CInv base .path rest { ctx with url := pathStepUrl ctx.url slash ctx.buffer, buffer := [] } := by
+theorem CInv.pathNext {t : List Char → Option String} {base : Option Url} {input : List Char} {ctx : PCtx}
+    (h : CInv t base .path input ctx) (slash : Bool) (rest : List Char) :
+    CInv t base .path rest { ctx with url := pathStepUrl ctx.url slash ctx.buffer, buffer := [] } := by
   obtain ⟨hP, hD, hT⟩ := h.pathFacts slash
   have hN : True := trivial
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
@@ -248,9 +250,9 @@ theorem CInv.pathNext {base : Option Url} {input : List Char} {ctx : PCtx}
     | (intro _ hp; exact absurd hp hN)
 
 /-- path state が `?` で segment を確定させて query state へ。 -/
-theorem CInv.pathQuery {base : Option Url} {input : List Char} {ctx : PCtx}
-    (h : CInv base .path input ctx) (rest : List Char) {slash : Bool} (hs : slash = false) :
-    CInv base .query rest
+theorem CInv.pathQuery {t : List Char → Option String} {base : Option Url} {input : List Char} {ctx : PCtx}
+    (h : CInv t base .path input ctx) (rest : List Char) {slash : Bool} (hs : slash = false) :
+    CInv t base .query rest
       { ctx with url := { (pathStepUrl ctx.url slash ctx.buffer) with query := some "" }, buffer := [] } := by
   subst hs
   obtain ⟨hP, hD, hT⟩ := h.pathFacts false
@@ -268,9 +270,9 @@ theorem CInv.pathQuery {base : Option Url} {input : List Char} {ctx : PCtx}
     | (intro _ hp; exact absurd hp hN)
 
 /-- path state が `#` で segment を確定させて fragment state へ。 -/
-theorem CInv.pathFragment {base : Option Url} {input : List Char} {ctx : PCtx}
-    (h : CInv base .path input ctx) (rest : List Char) {slash : Bool} (hs : slash = false) :
-    CInv base .fragment rest
+theorem CInv.pathFragment {t : List Char → Option String} {base : Option Url} {input : List Char} {ctx : PCtx}
+    (h : CInv t base .path input ctx) (rest : List Char) {slash : Bool} (hs : slash = false) :
+    CInv t base .fragment rest
       { ctx with
         url := { (pathStepUrl ctx.url slash ctx.buffer) with fragment := some "" }, buffer := [] } := by
   subst hs
@@ -289,9 +291,9 @@ theorem CInv.pathFragment {base : Option Url} {input : List Char} {ctx : PCtx}
     | (intro _ hp; exact absurd hp hN)
 
 /-- path state が EOF で segment を確定させて返す。 -/
-theorem CInv.pathEnd {base : Option Url} {input : List Char} {ctx : PCtx}
-    (h : CInv base .path input ctx) {slash : Bool} (hs : slash = false) :
-    canonicalUrl (pathStepUrl ctx.url slash ctx.buffer) = true := by
+theorem CInv.pathEnd {t : List Char → Option String} {base : Option Url} {input : List Char} {ctx : PCtx}
+    (h : CInv t base .path input ctx) {slash : Bool} (hs : slash = false) :
+    canonicalUrl (pathStepUrl ctx.url slash ctx.buffer) t = true := by
   subst hs
   obtain ⟨hP, hD, hT⟩ := h.pathFacts false
   have hN := pathStepUrl_ne_nil ctx.url ctx.buffer
@@ -309,11 +311,11 @@ theorem CInv.pathEnd {base : Option Url} {input : List Char} {ctx : PCtx}
     | (intro _ hp; exact absurd hp hN)
 
 /-- path state が区切りでない文字を encode して buffer に積む。 -/
-theorem CInv.pathPush {base : Option Url} {input rest : List Char} {ch : Char} {ctx : PCtx}
-    (h : CInv base .path input ctx) (hin : input = ch :: rest)
+theorem CInv.pathPush {t : List Char → Option String} {base : Option Url} {input rest : List Char} {ch : Char} {ctx : PCtx}
+    (h : CInv t base .path input ctx) (hin : input = ch :: rest)
     (hc : ¬(some ch == none || some ch == some '/' || (ctx.url.isSpecial && some ch == some '\\') ||
       (ctx.over.isNone && (some ch == some '?' || some ch == some '#'))) = true) :
-    CInv base .path rest { ctx with buffer := ctx.buffer ++ (encChar pathSet ch).toList } := by
+    CInv t base .path rest { ctx with buffer := ctx.buffer ++ (encChar pathSet ch).toList } := by
   have hb := h.pathBuf rfl
   have h1 : ¬ch = '/' := by intro he; subst he; simp at hc
   have h2 : ctx.url.isSpecial = true → ¬ch = '\\' := by
@@ -337,11 +339,12 @@ theorem CInv.pathPush {base : Option Url} {input rest : List Char} {ch : Char} {
 
 /-! ## state ごとの帰納段 -/
 
-theorem step_schemeStart_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_schemeStart_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .schemeStart) input.length)
-    (hinv : CInv base .schemeStart input ctx) :
-    ∀ u, step base .schemeStart c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .schemeStart) input.length)
+    (hinv : CInv t base .schemeStart input ctx) :
+    ∀ u, step base .schemeStart c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -352,11 +355,12 @@ theorem step_schemeStart_canon (base : Option Url) (c : Cp) (rest input : List C
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_scheme_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_scheme_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .scheme) input.length)
-    (hinv : CInv base .scheme input ctx) :
-    ∀ u, step base .scheme c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .scheme) input.length)
+    (hinv : CInv t base .scheme input ctx) :
+    ∀ u, step base .scheme c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -367,27 +371,12 @@ theorem step_scheme_canon (base : Option Url) (c : Cp) (rest input : List Char)
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_noScheme_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_noScheme_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .noScheme) input.length)
-    (hinv : CInv base .noScheme input ctx) :
-    ∀ u, step base .noScheme c rest input ctx = .ok u → canonicalUrl u = true := by
-  intro u heq
-  have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
-    hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
-    hhc, hnf, hpoa, hfsc⟩ := hinv
-  have hrest := fun (h : input.getLast? ≠ some ' ') => rest_getLast hin hrn h
-  cs_norm
-  cs_base base hbc hbv
-  simp only [step.eq_def] at heq
-  repeat' split at heq
-  all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
-
-theorem step_specialRelativeOrAuthority_canon (base : Option Url) (c : Cp) (rest input : List Char)
-    (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .specialRelativeOrAuthority) input.length)
-    (hinv : CInv base .specialRelativeOrAuthority input ctx) :
-    ∀ u, step base .specialRelativeOrAuthority c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .noScheme) input.length)
+    (hinv : CInv t base .noScheme input ctx) :
+    ∀ u, step base .noScheme c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -399,26 +388,12 @@ theorem step_specialRelativeOrAuthority_canon (base : Option Url) (c : Cp) (rest
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_pathOrAuthority_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_specialRelativeOrAuthority_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .pathOrAuthority) input.length)
-    (hinv : CInv base .pathOrAuthority input ctx) :
-    ∀ u, step base .pathOrAuthority c rest input ctx = .ok u → canonicalUrl u = true := by
-  intro u heq
-  have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
-    hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
-    hhc, hnf, hpoa, hfsc⟩ := hinv
-  have hrest := fun (h : input.getLast? ≠ some ' ') => rest_getLast hin hrn h
-  cs_norm
-  simp only [step.eq_def] at heq
-  repeat' split at heq
-  all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
-
-theorem step_relative_canon (base : Option Url) (c : Cp) (rest input : List Char)
-    (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .relative) input.length)
-    (hinv : CInv base .relative input ctx) :
-    ∀ u, step base .relative c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .specialRelativeOrAuthority) input.length)
+    (hinv : CInv t base .specialRelativeOrAuthority input ctx) :
+    ∀ u, step base .specialRelativeOrAuthority c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -430,11 +405,28 @@ theorem step_relative_canon (base : Option Url) (c : Cp) (rest input : List Char
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_relativeSlash_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_pathOrAuthority_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .relativeSlash) input.length)
-    (hinv : CInv base .relativeSlash input ctx) :
-    ∀ u, step base .relativeSlash c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .pathOrAuthority) input.length)
+    (hinv : CInv t base .pathOrAuthority input ctx) :
+    ∀ u, step base .pathOrAuthority c rest input ctx = .ok u → canonicalUrl u t = true := by
+  intro u heq
+  have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
+    hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
+    hhc, hnf, hpoa, hfsc⟩ := hinv
+  have hrest := fun (h : input.getLast? ≠ some ' ') => rest_getLast hin hrn h
+  cs_norm
+  simp only [step.eq_def] at heq
+  repeat' split at heq
+  all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
+
+theorem step_relative_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
+    (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
+    (ih : CRunIH t base (stateRank .relative) input.length)
+    (hinv : CInv t base .relative input ctx) :
+    ∀ u, step base .relative c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -446,11 +438,29 @@ theorem step_relativeSlash_canon (base : Option Url) (c : Cp) (rest input : List
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_specialAuthoritySlashes_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_relativeSlash_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .specialAuthoritySlashes) input.length)
-    (hinv : CInv base .specialAuthoritySlashes input ctx) :
-    ∀ u, step base .specialAuthoritySlashes c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .relativeSlash) input.length)
+    (hinv : CInv t base .relativeSlash input ctx) :
+    ∀ u, step base .relativeSlash c rest input ctx = .ok u → canonicalUrl u t = true := by
+  intro u heq
+  have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
+    hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
+    hhc, hnf, hpoa, hfsc⟩ := hinv
+  have hrest := fun (h : input.getLast? ≠ some ' ') => rest_getLast hin hrn h
+  cs_norm
+  cs_base base hbc hbv
+  simp only [step.eq_def] at heq
+  repeat' split at heq
+  all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
+
+theorem step_specialAuthoritySlashes_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
+    (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
+    (ih : CRunIH t base (stateRank .specialAuthoritySlashes) input.length)
+    (hinv : CInv t base .specialAuthoritySlashes input ctx) :
+    ∀ u, step base .specialAuthoritySlashes c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -461,11 +471,12 @@ theorem step_specialAuthoritySlashes_canon (base : Option Url) (c : Cp) (rest in
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_specialAuthorityIgnoreSlashes_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_specialAuthorityIgnoreSlashes_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .specialAuthorityIgnoreSlashes) input.length)
-    (hinv : CInv base .specialAuthorityIgnoreSlashes input ctx) :
-    ∀ u, step base .specialAuthorityIgnoreSlashes c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .specialAuthorityIgnoreSlashes) input.length)
+    (hinv : CInv t base .specialAuthorityIgnoreSlashes input ctx) :
+    ∀ u, step base .specialAuthorityIgnoreSlashes c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -476,11 +487,12 @@ theorem step_specialAuthorityIgnoreSlashes_canon (base : Option Url) (c : Cp) (r
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_authority_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_authority_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .authority) input.length)
-    (hinv : CInv base .authority input ctx) :
-    ∀ u, step base .authority c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .authority) input.length)
+    (hinv : CInv t base .authority input ctx) :
+    ∀ u, step base .authority c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -500,11 +512,12 @@ theorem step_authority_canon (base : Option Url) (c : Cp) (rest input : List Cha
        · exact hab c hc
        · simp only [List.mem_singleton] at hc; subst hc; simp_all)) (fail)
 
-theorem step_host_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_host_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .host) input.length)
-    (hinv : CInv base .host input ctx) :
-    ∀ u, step base .host c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .host) input.length)
+    (hinv : CInv t base .host input ctx) :
+    ∀ u, step base .host c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -515,14 +528,15 @@ theorem step_host_canon (base : Option Url) (c : Cp) (rest input : List Char)
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (first
     | (apply host_emptyNoCred hhc hin <;> assumption)
-    | (apply host_idem hta; assumption)
+    | (apply host_idem hta htok; assumption)
     | (apply host_some_ne_empty <;> assumption)) (fail)
 
-theorem step_port_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_port_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .port) input.length)
-    (hinv : CInv base .port input ctx) :
-    ∀ u, step base .port c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .port) input.length)
+    (hinv : CInv t base .port input ctx) :
+    ∀ u, step base .port c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -533,11 +547,12 @@ theorem step_port_canon (base : Option Url) (c : Cp) (rest input : List Char)
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_file_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_file_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .file) input.length)
-    (hinv : CInv base .file input ctx) :
-    ∀ u, step base .file c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .file) input.length)
+    (hinv : CInv t base .file input ctx) :
+    ∀ u, step base .file c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -549,11 +564,12 @@ theorem step_file_canon (base : Option Url) (c : Cp) (rest input : List Char)
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_fileSlash_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_fileSlash_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .fileSlash) input.length)
-    (hinv : CInv base .fileSlash input ctx) :
-    ∀ u, step base .fileSlash c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .fileSlash) input.length)
+    (hinv : CInv t base .fileSlash input ctx) :
+    ∀ u, step base .fileSlash c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -567,11 +583,12 @@ theorem step_fileSlash_canon (base : Option Url) (c : Cp) (rest input : List Cha
     | (apply pathCanon_fileSlashDrive <;> cs_simp)
     | (apply driveOk_fileSlashDrive; cs_simp)) (fail)
 
-theorem step_fileHost_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_fileHost_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .fileHost) input.length)
-    (hinv : CInv base .fileHost input ctx) :
-    ∀ u, step base .fileHost c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .fileHost) input.length)
+    (hinv : CInv t base .fileHost input ctx) :
+    ∀ u, step base .fileHost c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -581,16 +598,17 @@ theorem step_fileHost_canon (base : Option Url) (c : Cp) (rest input : List Char
   simp only [step.eq_def] at heq
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (first
-    | (apply fileHost_idem hta; assumption)
-    | (apply host_idem hta; assumption)
+    | (apply fileHost_idem hta htok; assumption)
+    | (apply host_idem hta htok; assumption)
     | (exact fileHost_notLocal)
     | (intro _; refine ⟨(pathBuf_of_drive ?_).1, fun _ => (pathBuf_of_drive ?_).2⟩ <;> simp_all)) (fail)
 
-theorem step_pathStart_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_pathStart_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .pathStart) input.length)
-    (hinv : CInv base .pathStart input ctx) :
-    ∀ u, step base .pathStart c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .pathStart) input.length)
+    (hinv : CInv t base .pathStart input ctx) :
+    ∀ u, step base .pathStart c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -601,11 +619,12 @@ theorem step_pathStart_canon (base : Option Url) (c : Cp) (rest input : List Cha
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq (fail) (fail)
 
-theorem step_path_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_path_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .path) input.length)
-    (hinv : CInv base .path input ctx) :
-    ∀ u, step base .path c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .path) input.length)
+    (hinv : CInv t base .path input ctx) :
+    ∀ u, step base .path c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -621,11 +640,12 @@ theorem step_path_canon (base : Option Url) (c : Cp) (rest input : List Char)
     | (apply CInv.pathFragment hinv; simp)
     | (apply CInv.pathPush hinv hin; assumption))
 
-theorem step_opaquePath_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_opaquePath_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .opaquePath) input.length)
-    (hinv : CInv base .opaquePath input ctx) :
-    ∀ u, step base .opaquePath c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .opaquePath) input.length)
+    (hinv : CInv t base .opaquePath input ctx) :
+    ∀ u, step base .opaquePath c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -639,11 +659,12 @@ theorem step_opaquePath_canon (base : Option Url) (c : Cp) (rest input : List Ch
     | (apply CInv.opaqueSpace hinv hin <;> assumption)
     | (apply CInv.opaqueEnc hinv hin <;> assumption))
 
-theorem step_query_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_query_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .query) input.length)
-    (hinv : CInv base .query input ctx) :
-    ∀ u, step base .query c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .query) input.length)
+    (hinv : CInv t base .query input ctx) :
+    ∀ u, step base .query c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -654,11 +675,12 @@ theorem step_query_canon (base : Option Url) (c : Cp) (rest input : List Char)
   repeat' split at heq
   all_goals cs_close hinv ctx hov hin ih u heq ((intro q hq; cases hq; exact queryOf_enc hqo)) (fail)
 
-theorem step_fragment_canon (base : Option Url) (c : Cp) (rest input : List Char)
+theorem step_fragment_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank .fragment) input.length)
-    (hinv : CInv base .fragment input ctx) :
-    ∀ u, step base .fragment c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank .fragment) input.length)
+    (hinv : CInv t base .fragment input ctx) :
+    ∀ u, step base .fragment c rest input ctx = .ok u → canonicalUrl u t = true := by
   intro u heq
   have ⟨hov, hta, hbv, hbc, hbnf, hbse, hse, hso, hsb, hhn, hpn, hcn, hpnil, hqn, hfn, hpo, huo,
     hpwo, hqo, hfo, hpao, htr, hoh, hie, hbe, hpb, hdo, htne, hhs, hsh, hhi, hnl, henc, haa, hab,
@@ -672,42 +694,44 @@ theorem step_fragment_canon (base : Option Url) (c : Cp) (rest input : List Char
 /-! ## 組み上げ -/
 
 /-- **`step` の一歩は `CInv` を保つ。** state ごとの定理を並べるだけ。 -/
-theorem step_canon (base : Option Url) (st : PState) (c : Cp) (rest input : List Char)
+theorem step_canon {t : List Char → Option String} (htok : ToAsciiOk t)
+    (base : Option Url) (st : PState) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hin : input = cpList c rest) (hrn : c = none → rest = [])
-    (ih : CRunIH base (stateRank st) input.length) (hinv : CInv base st input ctx) :
-    ∀ u, step base st c rest input ctx = .ok u → canonicalUrl u = true := by
+    (ih : CRunIH t base (stateRank st) input.length) (hinv : CInv t base st input ctx) :
+    ∀ u, step base st c rest input ctx = .ok u → canonicalUrl u t = true := by
   cases st
-  · exact step_schemeStart_canon base c rest input ctx hin hrn ih hinv
-  · exact step_scheme_canon base c rest input ctx hin hrn ih hinv
-  · exact step_noScheme_canon base c rest input ctx hin hrn ih hinv
-  · exact step_specialRelativeOrAuthority_canon base c rest input ctx hin hrn ih hinv
-  · exact step_pathOrAuthority_canon base c rest input ctx hin hrn ih hinv
-  · exact step_relative_canon base c rest input ctx hin hrn ih hinv
-  · exact step_relativeSlash_canon base c rest input ctx hin hrn ih hinv
-  · exact step_specialAuthoritySlashes_canon base c rest input ctx hin hrn ih hinv
-  · exact step_specialAuthorityIgnoreSlashes_canon base c rest input ctx hin hrn ih hinv
-  · exact step_authority_canon base c rest input ctx hin hrn ih hinv
-  · exact step_host_canon base c rest input ctx hin hrn ih hinv
-  · exact step_port_canon base c rest input ctx hin hrn ih hinv
-  · exact step_file_canon base c rest input ctx hin hrn ih hinv
-  · exact step_fileSlash_canon base c rest input ctx hin hrn ih hinv
-  · exact step_fileHost_canon base c rest input ctx hin hrn ih hinv
-  · exact step_pathStart_canon base c rest input ctx hin hrn ih hinv
-  · exact step_path_canon base c rest input ctx hin hrn ih hinv
-  · exact step_opaquePath_canon base c rest input ctx hin hrn ih hinv
-  · exact step_query_canon base c rest input ctx hin hrn ih hinv
-  · exact step_fragment_canon base c rest input ctx hin hrn ih hinv
+  · exact step_schemeStart_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_scheme_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_noScheme_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_specialRelativeOrAuthority_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_pathOrAuthority_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_relative_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_relativeSlash_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_specialAuthoritySlashes_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_specialAuthorityIgnoreSlashes_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_authority_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_host_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_port_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_file_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_fileSlash_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_fileHost_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_pathStart_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_path_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_opaquePath_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_query_canon htok base c rest input ctx hin hrn ih hinv
+  · exact step_fragment_canon htok base c rest input ctx hin hrn ih hinv
 
 /--
 **state machine は `CInv` を保つ。**
 
 `run_valid` と同じく `(stateRank st, input.length)` の辞書式についての帰納法。
 -/
-theorem run_canonical (base : Option Url) : ∀ (st : PState) (input : List Char) (ctx : PCtx),
-    CInv base st input ctx → ∀ u, run base st input ctx = .ok u → canonicalUrl u = true := by
+theorem run_canonical {t : List Char → Option String} (htok : ToAsciiOk t) (base : Option Url) :
+    ∀ (st : PState) (input : List Char) (ctx : PCtx),
+    CInv t base st input ctx → ∀ u, run base st input ctx = .ok u → canonicalUrl u t = true := by
   have H : ∀ r n (st : PState) (input : List Char), stateRank st = r → input.length = n →
-      ∀ ctx, CInv base st input ctx → ∀ u, run base st input ctx = .ok u →
-        canonicalUrl u = true := by
+      ∀ ctx, CInv t base st input ctx → ∀ u, run base st input ctx = .ok u →
+        canonicalUrl u t = true := by
     intro r
     induction r using Nat.strongRecOn with
     | _ r ihr =>
@@ -715,7 +739,7 @@ theorem run_canonical (base : Option Url) : ∀ (st : PState) (input : List Char
       induction n using Nat.strongRecOn with
       | _ n ihn =>
         intro st input hr hn ctx hinv u heq
-        have ih : CRunIH base (stateRank st) input.length := by
+        have ih : CRunIH t base (stateRank st) input.length := by
           intro st' input' ctx' u' heq' hlt hinv'
           rcases hlt with h | ⟨he, hl⟩
           · exact ihr (stateRank st') (hr ▸ h) input'.length st' input' rfl rfl ctx' hinv' u' heq'
@@ -723,38 +747,44 @@ theorem run_canonical (base : Option Url) : ∀ (st : PState) (input : List Char
         cases input with
         | nil =>
           rw [run.eq_def] at heq
-          exact step_canon base st none [] [] ctx rfl (fun _ => rfl) ih hinv u heq
-        | cons ch t =>
+          exact step_canon htok base st none [] [] ctx rfl (fun _ => rfl) ih hinv u heq
+        | cons ch tl =>
           rw [run.eq_def] at heq
-          exact step_canon base st (some ch) t (ch :: t) ctx rfl (fun h => by cases h) ih hinv u heq
+          exact step_canon htok base st (some ch) tl (ch :: tl) ctx rfl (fun h => by cases h) ih hinv u
+            heq
   intro st input ctx
   exact H _ _ st input rfl rfl ctx
 
 /--
 **basic URL parser が返す record は canonical である。**
 
+ToASCII は `ToAsciiOk` を満たすものなら一般でよい（既定の `asciiDomainToASCII` は `toAsciiOk_ascii`）。
 base を与えるなら、base も妥当で canonical であることを仮定する。
 `parseUrl` では base も parse で作るので、この仮定は外れる（`parseUrl_canonical`）。
 -/
-theorem basicUrlParse_canonical {input : String} {base : Option Url}
-    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b = true)
-    {u : Url} (h : basicUrlParse input base = some u) : canonicalUrl u = true :=
-  basicUrlParse_canonical_of_step (fun b st i c hi u' he => run_canonical b st i c hi u' he) hb hbc h
+theorem basicUrlParse_canonical {t : List Char → Option String} (htok : ToAsciiOk t)
+    {input : String} {base : Option Url}
+    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b t = true)
+    {u : Url} (h : basicUrlParse input base t = some u) : canonicalUrl u t = true :=
+  basicUrlParse_canonical_of_step (fun b st i c hi u' he => run_canonical htok b st i c hi u' he)
+    hb hbc h
 
 /-- `URL(url, base)` の入口についても同じ。 -/
-theorem parseUrl_canonical {input : String} {base : Option String} {u : Url}
-    (h : parseUrl input base = some u) : canonicalUrl u = true := by
+theorem parseUrl_canonical {t : List Char → Option String} (htok : ToAsciiOk t)
+    {input : String} {base : Option String} {u : Url}
+    (h : parseUrl input base t = some u) : canonicalUrl u t = true := by
   unfold parseUrl at h
   split at h
-  · exact basicUrlParse_canonical (fun b hb => absurd hb (by simp)) (fun b hb => absurd hb (by simp)) h
+  · exact basicUrlParse_canonical htok (fun b hb => absurd hb (by simp))
+      (fun b hb => absurd hb (by simp)) h
   · split at h
     · simp at h
     · next bu hbu =>
-      refine basicUrlParse_canonical (fun b hb => ?_) (fun b hb => ?_) h
+      refine basicUrlParse_canonical htok (fun b hb => ?_) (fun b hb => ?_) h
       · rw [← Option.some.inj hb]
         exact basicUrlParse_valid (fun b' hb' => absurd hb' (by simp)) hbu
       · rw [← Option.some.inj hb]
-        exact basicUrlParse_canonical (fun b' hb' => absurd hb' (by simp))
+        exact basicUrlParse_canonical htok (fun b' hb' => absurd hb' (by simp))
           (fun b' hb' => absurd hb' (by simp)) hbu
 
 end Url

@@ -91,7 +91,8 @@ theorem getLast?_mid (l1 : List Char) (c : Char) (l2 : List Char) :
 仮定はその経路を通る形であること、つまり `canonicalUrl` のうち
 scheme・opaque path・query・fragment に当たる分である。
 -/
-theorem roundtrip_opaque {s o : String} {q f : Option String} {a : Char} {rest : List Char}
+theorem roundtrip_opaque {toAscii : List Char → Option String}
+    {s o : String} {q f : Option String} {a : Char} {rest : List Char}
     (hs : s.toList = a :: rest) (ha : isAsciiLowerAlpha a = true)
     (hr : ∀ c ∈ rest, schemeChar c = true)
     (hlow : s.toList.map asciiLowerChar = s.toList)
@@ -102,7 +103,7 @@ theorem roundtrip_opaque {s o : String} {q f : Option String} {a : Char} {rest :
     (hqc : ∀ x, q = some x → ∀ c ∈ x.toList, querySet c = false)
     (hfc : ∀ x, f = some x → ∀ c ∈ x.toList, fragmentSet c = false) :
     basicUrlParse
-        (urlSerializer { scheme := s, path := .opaque o, query := q, fragment := f }) none
+        (urlSerializer { scheme := s, path := .opaque o, query := q, fragment := f }) none toAscii
       = some { scheme := s, path := .opaque o, query := q, fragment := f } := by
   have haa : isAsciiAlpha a = true := by
     simp only [isAsciiAlpha, Bool.or_eq_true]; exact Or.inr ha

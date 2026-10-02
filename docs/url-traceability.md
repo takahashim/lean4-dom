@@ -30,8 +30,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | host parser | 1-9 | `hostParser` | — | wpt, dommy | 済（ToASCII は引数） |
 | opaque-host parser | 1-4 | `opaqueHostParser` | `opaqueHostParser_no_forbidden` | wpt, dommy | 済 |
 | domain parser | 1-5 | `asciiDomainToASCII`（ASCII の近道）、`toASCII`（非 ASCII） | `asciiDomainToASCII_no_forbidden`, `asciiDomainToASCII_ne_empty`, `toASCII_no_forbidden`, `toASCII_ne_empty` | wpt, uts46-alabel, dommy | 済 |
-| ToASCII（UTS #46）の算法 | UTS #46 §4 | `toASCII`, `labelToASCII`, `mapAll` | `toASCII_ne_empty`, `toASCII_no_forbidden`, `mapAll_valid`, `mapAll_idempotent`, `labelToASCII_ascii` | wpt（表を渡して 820 件）, dommy | 済（表は `IdnaTable` の仮定） |
-| UTS #46 の写像表 | — | `tableOfRanges`（実行時 fixture、8,509 範囲） | `checkResolved_sound`（検査が通れば `Resolved`）、`findRange_mem` | dommy の `Internal::IDNA` | 対象外（規定データ。証明には現れない） |
+| ToASCII（UTS #46）の算法 | UTS #46 §4 | `toASCII`, `labelToASCII`, `mapAll` | `toASCII_ne_empty`, `toASCII_no_forbidden`, `mapAll_valid`, `mapAll_idempotent`, `labelToASCII_ascii`, `toAsciiOk_table`（往復の条件 `ToAsciiOk` を満たす） | wpt（表を渡して 820 件）, dommy | 済（表は `IdnaTable` の仮定） |
+| UTS #46 の写像表 | — | `tableOfRanges`（実行時 fixture、8,509 範囲） | `checkResolved_sound`（検査が通れば `Resolved`）、`checkNoUpperValid_sound`（ASCII の大文字は valid でない）、`findRange_mem` | dommy の `Internal::IDNA` | 対象外（規定データ。証明には現れない） |
 | NFC 正規化・Bidi 検査・Joining_Type | — | `IdnaTable.outOfModel` の印で弾く | — | — | 対象外（印の付いた domain は `none`） |
 | Punycode（RFC 3492） | RFC 3492 | `Punycode.encode`, `Punycode.decode` | **`decode_encode`（往復）**、`encode_ascii`、停止性（fuel なし） | rfc3492（19 件 × 両方向） | 済 |
 | forbidden host / domain code point | §1.3 | `isForbiddenHost`, `isForbiddenDomain` | 上記 | wpt | 済 |
@@ -61,7 +61,7 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl`, `checkStrictUrl` | `checkValidUrl_iff` / `checkStrictUrl_iff`（決定可能性）、`basicUrlParse_valid` / `parseUrl_valid`（parse が保つ）、`basicUrlParse_strict` / `setAttr_strict`（§4.1 の残りの三条件も parse と setter が保つ） | wpt, wpt-set | 済 |
 | special scheme と既定の port | §4.2 | `isSpecialScheme`, `defaultPort` | `isSpecialScheme_of_defaultPort` | wpt | 済 |
 | URL path serializer | §4.3 | `pathSerializer` | — | wpt | 済 |
-| URL serializer | §4.3 1-7 | `urlSerializer` | `roundtrip_canonical`（canonical な record は parse し直すと戻る）、`basicUrlParse_canonical` / `parseUrl_canonical`（parse の結果は canonical）、`parse_image`（parse の像は `ValidUrl ∧ canonicalUrl`）、`parse_serialize_of_parse` | wpt | 済 |
+| URL serializer | §4.3 1-7 | `urlSerializer` | `roundtrip_canonical_of`（canonical な record は parse し直すと戻る。ToASCII は一般）、`basicUrlParse_canonical` / `parseUrl_canonical`（parse の結果は canonical）、`parse_image`（parse の像は `ValidUrl ∧ canonicalUrl`）、`parse_serialize_of_parse` | wpt | 済 |
 | basic URL parser（全 state） | §4.4 1-3 | `run`, `step`, `basicUrlParse` | 停止性（`termination_by (stateRank st, 残りの文字数, 位相)`） | wpt | 済 |
 | state override（setter が使う入口） | §4.4 | `SOverride`, `basicUrlParseOverride`, `schemeOverride`, `fail` | — | wpt-set | 済 |
 | parse の途中の不変条件 | §4.1 / §4.4 | `PInv`, `mayOpaque`, `mayCred`, `usesBasePath`, `freshHost`, `freshCredPort` | `PInv_empty`（入口）、`PInv.valid`（出口）、`run_valid`（帰納段）、`shortenPath_spec`, `portDone_spec`, `userinfoFold_spec`, `pathStepUrl_spec`（遷移の成分保存） | — | 済 |
@@ -118,7 +118,7 @@ setter は `state override` 付きの basic URL parser を呼ぶだけなので�
 
 | 項目 | 扱い | 根拠 |
 | --- | --- | --- |
-| IDNA / UTS #46 の写像表・NFC・Bidi | 対象外 | 数千 code point の規定データ。規則から導けず、Lean の項として埋め込むとビルドが現実的でない。算法（`toASCII`）は Lean にあり、表は `IdnaTable` という仮定にして実行時の fixture から与える。仮定（`Resolved`）は `checkResolved` が実行時に検査する |
+| IDNA / UTS #46 の写像表・NFC・Bidi | 対象外 | 数千 code point の規定データ。規則から導けず、Lean の項として埋め込むとビルドが現実的でない。算法（`toASCII`）は Lean にあり、表は `IdnaTable` という仮定にして実行時の fixture から与える。仮定（`Resolved` と `NoUpperValid`）は `checkResolved` と `checkNoUpperValid` が実行時に検査する |
 | `URL` の constructor が投げる例外 | 対象外 | `TypeError`。model は `Option` で返す |
 | `Location` の setter | 対象外 | HTML 側の概念（navigate、cross-origin の検査）を含む。URL record に効く部分は `URL` の setter と同じ |
 | encoding override | 対象外 | HTML 由来の legacy 引数。UTF-8 に固定している |

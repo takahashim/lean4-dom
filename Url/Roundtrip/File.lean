@@ -133,9 +133,10 @@ theorem run_fileHost_pathStart (base : Option Url) (tail : List Char) (ctx : PCt
 
 host が空なら `file:///a`、あれば `file://h/a` の形である。
 -/
-theorem roundtrip_file {hst : Host} {segs : List String} {q f : Option String}
+theorem roundtrip_file {toAscii : List Char → Option String}
+    {hst : Host} {segs : List String} {q f : Option String}
     (hcan : hst = Host.empty ∨
-      hostParser asciiDomainToASCII (hostSerializer hst).toList false = some hst)
+      hostParser toAscii (hostSerializer hst).toList false = some hst)
     (hok : hostReadable true hst)
     (hnc : ∀ c ∈ (hostSerializer hst).toList, isC0ControlOrSpace c = false)
     (hdrv : isWindowsDrive (hostSerializer hst).toList = false)
@@ -152,7 +153,7 @@ theorem roundtrip_file {hst : Host} {segs : List String} {q f : Option String}
           host := some hst
           path := .list segs
           query := q
-          fragment := f }) none
+          fragment := f }) none toAscii
       = some
         { scheme := "file"
           host := some hst
@@ -232,7 +233,9 @@ theorem roundtrip_file {hst : Host} {segs : List String} {q f : Option String}
   rw [show ("file" : String).toList = 'f' :: ['i', 'l', 'e'] from rfl, List.cons_append]
   rw [run_schemeStart_step none _ 'f' _ (by decide)]
   rw [run_scheme_prefix none ['i', 'l', 'e'] _ _ (by decide)]
-  rw [run_scheme_file none _ _ rfl (by decide)]
+  rw [run_scheme_file none _ _ rfl (by
+    show String.ofList ([] ++ [asciiLowerChar 'f'] ++ List.map asciiLowerChar ['i', 'l', 'e']) = "file"
+    decide)]
   rw [show String.ofList ([] ++ [asciiLowerChar 'f'] ++ List.map asciiLowerChar ['i', 'l', 'e'])
       = "file" from by decide]
   rw [run_file_slash, run_fileSlash_slash]

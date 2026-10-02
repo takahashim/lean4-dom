@@ -48,6 +48,7 @@ model と実装のどちらが本文と違うかを決める第三の根拠が�
 | §4.4 parser の出力が canonical であること | `CInv`, `basicUrlParse_canonical` | `Url/CanonicalInv.lean`, `Url/CanonicalParts.lean`, `Url/StepCanonical.lean` |
 | §4.4 / §4.3 parse の像と往復 | `parse_image`, `parse_serialize_of_parse` | `Url/ParseImage.lean` |
 | §4.1 の残りの条件（parse と setter） | `StrictUrl`, `basicUrlParse_strict`, `setAttr_strict` | `Url/StrictValid.lean` |
+| 往復に要る ToASCII の条件 | `ToAsciiOk`, `toAsciiOk_ascii`, `toAsciiOk_ranges` | `Url/HostRoundtrip.lean`, `Url/IdnaOk.lean` |
 | §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean` |
 | UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
 | UTF-8 の往復 | `Infra.utf8Decode_encode` | `Infra/Utf8Roundtrip.lean` |
@@ -924,7 +925,7 @@ special な URL の host は null でない）が入っている。host の条�
 | --- | --- |
 | `checkStrictUrl_iff` | 実行時の検査 `checkStrictUrl` は `StrictConds` の決定手続きである |
 | `basicUrlParse_strict`, `parseUrl_strict` | **parse が返す record は §4.1 の条件をすべて満たす** |
-| `setAttr_strict` | **どの IDL setter も §4.1 の条件をすべて保つ**（`href` は既定の ToASCII のとき） |
+| `setAttr_strict` | **どの IDL setter も §4.1 の条件をすべて保つ** |
 | `run_host_strict`, `run_fileHost_strict`, `schemeOverride_strict` | host / file host / scheme state を override 付きで通しても保たれる |
 | `run_port_frame`, `run_path_frame`, `run_pathStart_frame` | port / path state は scheme・host・credentials を変えない（`Frame`） |
 
@@ -935,11 +936,30 @@ scheme state は special かどうかを変えられない（protocol setter の
 
 ### ToASCII
 
-`CInv` は ToASCII を既定の `asciiDomainToASCII` に固定している（field `toAsciiDef`）。
-host の条件が `hostParser_idem` に乗り、それが既定の ToASCII についての定理だからである。
-UTS #46 の表を渡したときは `--wpt` の実行時の検査だけになる。一般の ToASCII に広げるには、
-冪等性（`t x = some a → t a.toList = some a`）を仮定にして `hostParser_idem` の domain の分岐を
-一般化すればよいはずである。
+parse の像、往復、§4.1 の残りの条件の定理は、ToASCII を引数に取る。要るのは `ToAsciiOk`
+（`Url/HostRoundtrip.lean`）の三つの条件である。
+
+* 出力は空でない ASCII で、forbidden domain code point を含まない（domain parser の step 4-5）。
+* 出力に掛け直すとそのまま返る（冪等）。
+* 10 進と `.` の列（IPv4 address を serialize したもの）をそのまま返す。
+
+host parser の出力が serialize して読み直すと戻るには、これで足りる（`hostParser_idem_of`）。
+往復（`roundtrip_canonical_of`）だけなら一つ目の「forbidden domain code point を含まない」で足りる。
+`CInv` は ToASCII `t` で添字づけ、`ctx.toAscii = t` を field に持ち、`ToAsciiOk t` は帰納段に引数で渡す。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `toAsciiOk_ascii` | 既定の `asciiDomainToASCII` は条件を満たす |
+| `toAsciiOk_table` | **UTS #46 の表を渡した `toASCII t` も満たす。** 表が `Resolved` と `NoUpperValid`（ASCII の大文字は valid でない）を満たせば |
+| `toAsciiOk_ranges` | 表を読み込むときの二つの実行時検査（`checkResolved`、`checkNoUpperValid`）が通れば満たす |
+| `Punycode.encode_chars` | Punycode の出力は、入力の ASCII の文字か、区切りの `-` か、桁の文字（小文字） |
+| `labelToASCII_lower`, `toASCII_lower_ascii` | 表を渡した ToASCII の出力は小文字の ASCII である |
+
+表を渡した `toASCII` は ASCII だけの入力を `asciiDomainToASCII` に委ねているので、IPv4 の列は素通しで、
+冪等性は「出力が小文字の ASCII である」ことに帰着する。出力の label は、ASCII なら写像の結果
+（valid な code point）、そうでなければ `xn--` と Punycode の符号化で、Punycode の桁は小文字である。
+残るのは「写像の結果に ASCII の大文字が現れない」ことで、それが表の性質 `NoUpperValid` である。
+UTS #46 の表では ASCII の大文字は `mapped` なので成り立ち、`url-model` が表を読むときに検査する。
 
 ### 速さ
 

@@ -32,10 +32,10 @@ WPT の 820 件と、ランダムな入力 12 万件で違反は無かった。
 
 ## ToASCII
 
-いまは `ctx.toAscii = asciiDomainToASCII` に固定している（`toAsciiDef`）。
-host の条件は `hostParser_idem` に乗るが、それが既定の ToASCII についての定理だからである。
-一般の ToASCII に広げるには冪等性（`t x = some a → t a.toList = some a`）を
-仮定にすればよいはずで、その時はこの field を差し替える。
+`CInv` は ToASCII `t` で添字づけてある（field `toAsciiDef : ctx.toAscii = t`）。
+host の条件は `hostParser_idem_of` に乗り、それには `t` が `ToAsciiOk`（出力は ASCII で forbidden
+domain code point を含まない、冪等、IPv4 の列を素通しする）であることが要る。
+この仮定は不変条件の外に置き、帰納段に引数で渡す。
 -/
 
 namespace Url
@@ -134,15 +134,16 @@ parse の途中の `(state, 残りの入力, ctx)` が満たすべきこと。
 `canonicalUrl` の各条件を state に応じて緩めたものと、それを保つための足場からなる。
 `over = none` を要求しているので、`basicUrlParse` についての不変条件である。
 -/
-structure CInv (base : Option Url) (st : PState) (input : List Char) (ctx : PCtx) : Prop where
+structure CInv (t : List Char → Option String) (base : Option Url) (st : PState) (input : List Char)
+    (ctx : PCtx) : Prop where
   /-- state override は付いていない。 -/
   noOverride : ctx.over = none
-  /-- ToASCII は既定のもの（この file の先頭の説明を参照）。 -/
-  toAsciiDef : ctx.toAscii = asciiDomainToASCII
+  /-- ToASCII は `t` のまま変わらない（この file の先頭の説明を参照）。 -/
+  toAsciiDef : ctx.toAscii = t
   /-- base は妥当な URL record である。 -/
   baseValid : ∀ b, base = some b → ValidUrl b
   /-- base は canonical である。base から写す成分はこれで済む。 -/
-  baseCanon : ∀ b, base = some b → canonicalUrl b = true
+  baseCanon : ∀ b, base = some b → canonicalUrl b t = true
   /--
   base の成分を写す state に入るのは、base の scheme が `file` でないときだけ。
 
@@ -316,11 +317,11 @@ state が `ctx.url` をそのまま返すとき（opaque path / fragment state �
 special でない path start state の EOF）に使う。path が空でないことだけは
 state ごとに事情が違うので、仮定として受け取る。
 -/
-theorem CInv.canonical {base st input ctx} (h : CInv base st input ctx)
+theorem CInv.canonical {t base st input ctx} (h : CInv t base st input ctx)
     (ho : hostOpen st = false) (hin : st = .opaquePath → input = [])
     (hss : schemeSet st = true)
     (hpath : ctx.url.path = .list [] → ctx.url.host.isSome = true ∧ ctx.url.isSpecial = false) :
-    canonicalUrl ctx.url = true := by
+    canonicalUrl ctx.url t = true := by
   refine canonicalUrl_of (h.schemeOk hss) h.portOk h.usernameOk h.passwordOk h.queryOk
     h.fragmentOk h.pathOk ?_ ?_ ?_ (h.toAsciiDef ▸ h.hostIdem) h.notLocal h.driveOk
     (h.specialHost ho) h.emptyNoCred
@@ -396,11 +397,12 @@ theorem preprocess_getLast_ne_space (str : String) : (preprocess str).getLast? �
 空の URL record から始める二か所（scheme start state と、"start over" した後の
 no scheme state）は `CInv` を満たす。
 -/
-theorem CInv_empty {base : Option Url} {st : PState} {input : List Char}
-    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b = true)
+theorem CInv_empty {t : List Char → Option String} {base : Option Url} {st : PState}
+    {input : List Char}
+    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b t = true)
     (hst : st = .schemeStart ∨ st = .noScheme)
     (hin : inputEndState st = true → input.getLast? ≠ some ' ') :
-    CInv base st input { url := {} } := by
+    CInv t base st input { url := {}, toAscii := t } := by
   rcases hst with rfl | rfl <;>
   refine ⟨rfl, rfl, hb, hbc, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
     ?_, ?_, ?_, hin, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
@@ -408,14 +410,14 @@ theorem CInv_empty {base : Option Url} {st : PState} {input : List Char}
       pathFresh, pathCanon, Url.isSpecial, Url.includesCredentials, isSpecialScheme, defaultPort,
       encodedWith, emptyBuf, driveOk, termState, hostSet, notFileState, fileState]
 
-theorem CInv_schemeStart {base : Option Url} {str : String}
-    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b = true) :
-    CInv base .schemeStart (preprocess str) { url := {} } :=
+theorem CInv_schemeStart {t : List Char → Option String} {base : Option Url} {str : String}
+    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b t = true) :
+    CInv t base .schemeStart (preprocess str) { url := {}, toAscii := t } :=
   CInv_empty hb hbc (Or.inl rfl) (fun _ => preprocess_getLast_ne_space str)
 
-theorem CInv_noScheme {base : Option Url} {input : List Char}
-    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b = true) :
-    CInv base .noScheme input { url := {} } :=
+theorem CInv_noScheme {t : List Char → Option String} {base : Option Url} {input : List Char}
+    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b t = true) :
+    CInv t base .noScheme input { url := {}, toAscii := t } :=
   CInv_empty hb hbc (Or.inr rfl) (fun h => absurd h (by decide))
 
 /--
@@ -423,12 +425,12 @@ theorem CInv_noScheme {base : Option Url} {input : List Char}
 
 `basicUrlParse_valid_of_step` と同じ組み立てである。帰納段は後で `run_canonical` が与える。
 -/
-theorem basicUrlParse_canonical_of_step
+theorem basicUrlParse_canonical_of_step {t : List Char → Option String}
     (hstep : ∀ (base : Option Url) (st : PState) (input : List Char) (ctx : PCtx),
-      CInv base st input ctx → ∀ u, run base st input ctx = .ok u → canonicalUrl u = true)
+      CInv t base st input ctx → ∀ u, run base st input ctx = .ok u → canonicalUrl u t = true)
     {input : String} {base : Option Url}
-    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b = true)
-    {u : Url} (h : basicUrlParse input base = some u) : canonicalUrl u = true := by
+    (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b t = true)
+    {u : Url} (h : basicUrlParse input base t = some u) : canonicalUrl u t = true := by
   unfold basicUrlParse at h
   split at h
   · next u' he => exact Option.some.inj h ▸ hstep _ _ _ _ (CInv_schemeStart hb hbc) u' he

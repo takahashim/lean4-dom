@@ -126,10 +126,13 @@ theorem endsInANumber_serializer (addr : Nat) :
     | nil => exact absurd hx (toString_ne_nil _)
     | cons a b => rfl
 
-/-- **IPv4 host は serialize して host parser に通すと元に戻る。** -/
-theorem hostParser_ipv4 {addr : Nat} (h : addr < 4294967296) :
-    hostParser asciiDomainToASCII (hostSerializer (Host.ipv4 addr)).toList false
-      = some (Host.ipv4 addr) := by
+/--
+**IPv4 host は serialize して host parser に通すと元に戻る。** ToASCII は一般でよく、
+10 進と `.` の列をそのまま返すことだけを仮定する。
+-/
+theorem hostParser_ipv4_of {f : List Char → Option String} {addr : Nat} (h : addr < 4294967296)
+    (hf : f (ipv4Serializer addr).toList = some (ipv4Serializer addr)) :
+    hostParser f (hostSerializer (Host.ipv4 addr)).toList false = some (Host.ipv4 addr) := by
   have hfacts : ∀ c ∈ (ipv4Serializer addr).toList,
       c.toNat < 0x80 ∧ ¬c = '%' ∧ isAscii c = true ∧ asciiLowerChar c = c ∧
         isForbiddenDomain c = false ∧ ¬c = '[' :=
@@ -139,7 +142,7 @@ theorem hostParser_ipv4 {addr : Nat} (h : addr < 4294967296) :
     cases hx : (ipv4Serializer addr).toList with
     | nil => exact absurd hx hne
     | cons a b => rfl
-  show hostParser asciiDomainToASCII (ipv4Serializer addr).toList false = _
+  show hostParser f (ipv4Serializer addr).toList false = _
   unfold hostParser
   split
   · next rest heq =>
@@ -147,11 +150,23 @@ theorem hostParser_ipv4 {addr : Nat} (h : addr < 4294967296) :
     exact (hfacts '[' (by rw [heq]; simp)).2.2.2.2.2 rfl
   · simp only [Bool.false_eq_true, if_false, hemp]
     rw [percentDecodeToString_ascii (fun c hc => ⟨(hfacts c hc).1, (hfacts c hc).2.1⟩)]
-    rw [asciiDomainToASCII_id hne
-      (fun c hc => ⟨(hfacts c hc).2.2.1, (hfacts c hc).2.2.2.1, (hfacts c hc).2.2.2.2.1⟩)]
-    simp only [String.toList_ofList, endsInANumber_serializer, if_true]
+    rw [hf]
+    simp only [endsInANumber_serializer, if_true]
     rw [ipv4Parser_serializer h]
     rfl
+
+/-- 既定の ToASCII は 10 進と `.` の列をそのまま返す。 -/
+theorem asciiDomainToASCII_ipv4 (addr : Nat) :
+    asciiDomainToASCII (ipv4Serializer addr).toList = some (ipv4Serializer addr) := by
+  rw [asciiDomainToASCII_id (ipv4Serializer_ne_nil addr) (fun c hc =>
+    ⟨(ipv4Serializer_char_facts hc).2.2.1, (ipv4Serializer_char_facts hc).2.2.2.1,
+      (ipv4Serializer_char_facts hc).2.2.2.2.1⟩), String.ofList_toList]
+
+/-- **IPv4 host は serialize して host parser に通すと元に戻る。** -/
+theorem hostParser_ipv4 {addr : Nat} (h : addr < 4294967296) :
+    hostParser asciiDomainToASCII (hostSerializer (Host.ipv4 addr)).toList false
+      = some (Host.ipv4 addr) :=
+  hostParser_ipv4_of h (asciiDomainToASCII_ipv4 addr)
 
 /-- **percent-encode 済みの opaque host は、host parser を通すと元に戻る。** -/
 theorem hostParser_opaque_id {f : List Char → Option String} {o : String}
@@ -178,23 +193,28 @@ theorem hostParser_opaque_id {f : List Char → Option String} {o : String}
     simp only [hemp, Bool.false_eq_true, if_false]
     rw [utf8PercentEncode_id hc0, String.ofList_toList]
 
-/-- **canonical な domain は、host parser を通すと元に戻る。** -/
-theorem hostParser_domain_id {d : String} (hne : ¬d.toList = [])
-    (h : ∀ c ∈ d.toList, isAscii c = true ∧ asciiLowerChar c = c ∧ isForbiddenDomain c = false)
+/--
+**ToASCII がそのまま返す domain は、host parser を通すと元に戻る。**
+
+ASCII で forbidden domain code point を含まなければ、percent-decode も UTF-8 の読み直しも何もしない。
+-/
+theorem hostParser_domain_of {f : List Char → Option String} {d : String} (hne : ¬d.toList = [])
+    (h : ∀ c ∈ d.toList, isAscii c = true ∧ isForbiddenDomain c = false)
+    (hfd : f d.toList = some d)
     (hend : endsInANumber d.toList = false) :
-    hostParser asciiDomainToASCII d.toList false = some (Host.domain d) := by
+    hostParser f d.toList false = some (Host.domain d) := by
   have hemp : d.toList.isEmpty = false := by
     cases hx : d.toList with
     | nil => exact absurd hx hne
     | cons a b => rfl
   have hfh : ∀ c ∈ d.toList, isForbiddenHost c = false := by
     intro c hc
-    have h2 := (h c hc).2.2
+    have h2 := (h c hc).2
     simp only [isForbiddenDomain, Bool.or_eq_false_iff] at h2
     exact h2.1.1.1
   have hpct : ∀ c ∈ d.toList, c.toNat < 0x80 ∧ ¬c = '%' := by
     intro c hc
-    have h2 := (h c hc).2.2
+    have h2 := (h c hc).2
     simp only [isForbiddenDomain, Bool.or_eq_false_iff, beq_eq_false_iff_ne, ne_eq] at h2
     have ha := (h c hc).1
     simp only [isAscii, decide_eq_true_eq] at ha
@@ -207,10 +227,16 @@ theorem hostParser_domain_id {d : String} (hne : ¬d.toList = [])
     revert h2
     decide
   · simp only [Bool.false_eq_true, if_false, hemp]
-    rw [percentDecodeToString_ascii hpct]
-    rw [asciiDomainToASCII_id hne (fun c hc => ⟨(h c hc).1, (h c hc).2.1, (h c hc).2.2⟩)]
-    simp only [String.toList_ofList, hend, Bool.false_eq_true, if_false]
-    rw [String.ofList_toList]
+    rw [percentDecodeToString_ascii hpct, hfd]
+    simp only [hend, Bool.false_eq_true, if_false]
+
+/-- **canonical な domain は、host parser を通すと元に戻る。** -/
+theorem hostParser_domain_id {d : String} (hne : ¬d.toList = [])
+    (h : ∀ c ∈ d.toList, isAscii c = true ∧ asciiLowerChar c = c ∧ isForbiddenDomain c = false)
+    (hend : endsInANumber d.toList = false) :
+    hostParser asciiDomainToASCII d.toList false = some (Host.domain d) := by
+  refine hostParser_domain_of hne (fun c hc => ⟨(h c hc).1, (h c hc).2.2⟩) ?_ hend
+  rw [asciiDomainToASCII_id hne h, String.ofList_toList]
 
 /-- `1.2.3.4` は実際にこの形である。 -/
 example : hostParser asciiDomainToASCII (hostSerializer (Host.ipv4 16909060)).toList false
@@ -286,6 +312,33 @@ theorem asciiDomainToASCII_out {dom : List Char} {d : String}
           refine ⟨asciiLowerChar_ascii (hasc x (by simpa using hx)), asciiLowerChar_idem x, ?_⟩
           exact hfor2
   · simp at h
+
+/--
+**host parser が往復するために ToASCII に求めること。**
+
+URL Standard は ToASCII を UTS #46 に委ねていて、この model も引数で受け取る（`PCtx.toAscii`）。
+host parser の出力が serialize して読み直すと戻るには、ToASCII について次の三つで足りる。
+
+* 出力は空でない ASCII で、forbidden domain code point を含まない（domain parser の step 4-5 の検査）。
+  それなら読み直すときに percent-decode も UTF-8 の読み直しも何もしない。
+* 出力に掛け直すとそのまま返る（冪等性）。
+* 10 進と `.` の列（IPv4 address を serialize したもの）をそのまま返す。
+-/
+structure ToAsciiOk (f : List Char → Option String) : Prop where
+  out : ∀ x a, f x = some a →
+    ¬a.toList = [] ∧ ∀ c ∈ a.toList, isAscii c = true ∧ isForbiddenDomain c = false
+  idem : ∀ x a, f x = some a → f a.toList = some a
+  ipv4 : ∀ addr, f (ipv4Serializer addr).toList = some (ipv4Serializer addr)
+
+/-- **既定の ToASCII（ASCII だけの domain）は条件を満たす。** -/
+theorem toAsciiOk_ascii : ToAsciiOk asciiDomainToASCII where
+  out x a h := by
+    obtain ⟨hne, hall⟩ := asciiDomainToASCII_out h
+    exact ⟨hne, fun c hc => ⟨(hall c hc).1, (hall c hc).2.2⟩⟩
+  idem x a h := by
+    obtain ⟨hne, hall⟩ := asciiDomainToASCII_out h
+    rw [asciiDomainToASCII_id hne hall, String.ofList_toList]
+  ipv4 := asciiDomainToASCII_ipv4
 
 /-- IPv6 host が返るなら、bracket の中を IPv6 parser が読んでいる。 -/
 theorem hostParser_ipv6_eq {f : List Char → Option String} {input : List Char} {a : Ipv6}
@@ -427,9 +480,10 @@ theorem utf8PercentEncode_ne_nil {set : Char → Bool} :
 empty host は `canonicalUrl` でも除いてある（parser が直に書くもので、
 host parser の出力ではない）。
 -/
-theorem hostParser_idem {input : List Char} {h : Host} {b : Bool}
-    (hp : hostParser asciiDomainToASCII input b = some h) (hne : ¬h = Host.empty) :
-    hostParser asciiDomainToASCII (hostSerializer h).toList b = some h := by
+theorem hostParser_idem_of {f : List Char → Option String} (hf : ToAsciiOk f)
+    {input : List Char} {h : Host} {b : Bool}
+    (hp : hostParser f input b = some h) (hne : ¬h = Host.empty) :
+    hostParser f (hostSerializer h).toList b = some h := by
   cases h with
   | empty => exact absurd rfl hne
   | ipv6 a =>
@@ -438,12 +492,12 @@ theorem hostParser_idem {input : List Char} {h : Host} {b : Bool}
   | ipv4 addr =>
     obtain ⟨hb, s, hs⟩ := hostParser_ipv4_eq hp
     subst hb
-    exact hostParser_ipv4 (by have := ipv4Parser_lt hs; omega)
+    exact hostParser_ipv4_of (by have := ipv4Parser_lt hs; omega) (hf.ipv4 addr)
   | domain d =>
     obtain ⟨hb, ⟨dom, hdom⟩, hend⟩ := hostParser_domain_eq' hp
     subst hb
-    obtain ⟨hne2, hall⟩ := asciiDomainToASCII_out hdom
-    exact hostParser_domain_id hne2 hall hend
+    obtain ⟨hne2, hall⟩ := hf.out _ _ hdom
+    exact hostParser_domain_of hne2 hall (hf.idem _ _ hdom) hend
   | «opaque» o =>
     have hop : opaqueHostParser input = some (.opaque o) := hostParser_opaque_eq hp
     have hb : b = true := by
@@ -493,5 +547,11 @@ theorem hostParser_idem {input : List Char} {h : Host} {b : Bool}
       intro c hc
       rw [hshape] at hc
       exact utf8PercentEncode_out (by decide) (fun x hx => c0Set_of_alnum hx) c hc
+
+/-- 既定の ToASCII について。 -/
+theorem hostParser_idem {input : List Char} {h : Host} {b : Bool}
+    (hp : hostParser asciiDomainToASCII input b = some h) (hne : ¬h = Host.empty) :
+    hostParser asciiDomainToASCII (hostSerializer h).toList b = some h :=
+  hostParser_idem_of toAsciiOk_ascii hp hne
 
 end Url
