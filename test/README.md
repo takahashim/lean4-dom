@@ -385,3 +385,23 @@ Dommy の checkout と native gem の build が要るので、`lake build` の C
 
 不一致が出ると最小化した scenario が `test/scenarios/failing-*.json` に書かれ、
 artifact として上がる。内容を確認したうえで固定 scenario に昇格させる。
+
+## 名前空間の囮の sweep
+
+`test/js/decoy.js` は model を oracle にしない検査である。fixture（`test/decoy/fixture.html`）の element に
+namespace 付きの囮の attribute を置き（あるいは SVG・MathML・null namespace の element を足し）、その前後で
+読める値を全部読んで、変わったものを記録する。「変わってよいか」は三つの browser が揃っているかで決め、
+DOM の範囲は `Dom/Properties/NullNamespace.lean` の定理で裏を取る（`docs/status.md` の「名前空間の取り違え」）。
+
+```sh
+export PLAYWRIGHT_PATH=/path/to/node_modules/playwright
+node test/decoy_sweep.mjs --enumerate test/decoy/names.json    # getter の名前（commit 済み）
+for b in chromium firefox webkit; do BROWSER=$b node test/decoy_sweep.mjs test/decoy/names.json OUT/out-$b.json; done
+L=$PWD; O=$PWD/OUT
+(cd /path/to/dommy-js-quickjs && bundle exec ruby $L/test/decoy_dommy.rb $L/test/decoy/names.json $O/out-dommy.json)
+(cd /path/to/dommy-js-quickjs && bundle exec ruby $L/test/decoy_dommy.rb $L/test/decoy/names.json $O/out-dommy-ruby.json --ruby-path)
+ruby test/decoy_compare.rb OUT
+```
+
+三つ目の引数（`attr:` / `elem:` / `write:` / `frag:` など）を渡すと、その接頭辞の case だけを走らせる。
+`--ruby-path` は Dommy の JS 側の attribute snapshot を外して、reflect を必ず Ruby の getter に通す。
