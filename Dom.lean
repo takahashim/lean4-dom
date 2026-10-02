@@ -97,6 +97,11 @@ import Dom.Spec.Complete
 import Dom.Spec.Validity
 import Dom.Spec.ValidityOrder
 import Dom.Spec.Result
+import Dom.Spec.ReplaceDataCongr
+import Dom.Spec.Normalize
+import Dom.Spec.NormalizeSound
+import Dom.Spec.NormalizeCongr
+import Dom.Spec.NormalizeResult
 import Dom.Properties.Counterexample
 import Dom.Properties.Witness
 import Dom.Observation

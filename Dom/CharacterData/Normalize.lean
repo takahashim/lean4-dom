@@ -17,8 +17,8 @@ DOM Standard §4.4。`this` の descendant exclusive Text node を走査し、
 （Dommy の issue #24 に三つの engine で確かめた記録がある）。
 
 本 model は **engine 側の読み（兄弟ごと）** を採る。木と live range の最終状態は
-どちらの読みでも同じで、違うのは record の並びだけである
-（`normalizeBatch` と `normalize_batch_agrees` にその比較を置く）。
+どちらの読みでも同じで、違うのは record の並びだけである。
+関係意味論（`Dom/Spec/Normalize.lean`）も同じ読みで書く。
 
 ## 空の兄弟
 
@@ -82,51 +82,55 @@ def normalizeMergeOne (s : DOMState) (survivor sib : NodeId) : Except DOMExcepti
   | _, _, _, _ => .error .notFoundError
 
 /--
-survivor に続く exclusive Text の run を畳む。
+§4.4 の「contiguous exclusive Text nodes」のうち、`n` より後ろのもの。
 
-`cands` は tree order で並べた候補の残りで、返り値の第二成分は畳んだ個数である。
-Text node は子を持たないので、survivor の次の兄弟が exclusive Text なら
-それは候補列の次の要素にほかならない。
+`n` の次の兄弟から、exclusive Text が続くかぎり tree order で並べる。
+normalize は descendant を tree order で処理し、run の先頭が後ろを全部畳むので、
+処理する時点で `n` の前に exclusive Text の兄弟は残っていない。
 -/
-def normalizeRun (s : DOMState) (survivor : NodeId) :
-    List NodeId → Except DOMException (DOMState × Nat)
-  | [] => .ok (s, 0)
-  | sib :: rest =>
-    if nextSibling s.tree survivor = some sib then
-      match normalizeMergeOne s survivor sib with
-      | .error e => .error e
-      | .ok s' =>
-        match normalizeRun s' survivor rest with
-        | .error e => .error e
-        | .ok (s'', k) => .ok (s'', k + 1)
-    else .ok (s, 0)
+def followingTexts (t : Tree) (n : NodeId) : List NodeId :=
+  match parentOf t n with
+  | none => []
+  | some p =>
+    match ListUtil.splitAt? (childrenOf t p) n with
+    | none => []
+    | some (_, after) => after.takeWhile (isExclusiveText t)
 
 /--
-候補列を順に処理する。
+survivor に続く exclusive Text の兄弟 `sibs` を、tree order で一つずつ畳む（step 3-7）。
 
-長さ 0 のものは外し（step 2）、それ以外は run の先頭として畳む。
-先の run で畳まれて木から外れたものは飛ばす。
+兄弟ごとに data を足し、boundary point を渡し、外す（engine の読み）。
 -/
-def normalizeList (s : DOMState) : List NodeId → Except DOMException DOMState
+def normalizeRun (s : DOMState) (survivor : NodeId) :
+    List NodeId → Except DOMException DOMState
+  | [] => .ok s
+  | sib :: rest =>
+    match normalizeMergeOne s survivor sib with
+    | .error e => .error e
+    | .ok s' => normalizeRun s' survivor rest
+
+/--
+候補列（`this` の descendant exclusive Text node を tree order で並べたもの）を順に処理する。
+
+先の run で畳まれて `this` の descendant でなくなったものは飛ばす。
+残るものは、長さ 0 なら外し（step 2）、そうでなければ run の先頭として畳む。
+-/
+def normalizeList (s : DOMState) (this : NodeId) : List NodeId → Except DOMException DOMState
   | [] => .ok s
   | n :: rest =>
-    match s.tree.get? n, parentOf s.tree n with
-    | some d, some _ =>
-      if d.length = 0 then
-        match remove s n with
-        | .error e => .error e
-        | .ok s' => normalizeList s' rest
-      else
-        match normalizeRun s n rest with
-        | .error e => .error e
-        | .ok (s', k) => normalizeList s' (rest.drop k)
-    | _, _ => normalizeList s rest
-termination_by l => l.length
-decreasing_by
-  · simp_wf
-  · simp_wf
-    exact Nat.lt_succ_of_le (by simp)
-  · simp_wf
+    if isAncestorOf s.tree this n then
+      match s.tree.get? n with
+      | none => normalizeList s this rest
+      | some d =>
+        if d.length = 0 then
+          match remove s n with
+          | .error e => .error e
+          | .ok s' => normalizeList s' this rest
+        else
+          match normalizeRun s n (followingTexts s.tree n) with
+          | .error e => .error e
+          | .ok s' => normalizeList s' this rest
+    else normalizeList s this rest
 
 /--
 DOM Standard §4.4 `Node.normalize()`。
@@ -137,6 +141,6 @@ Text node に対して呼んでも何も起きない。
 def normalize (s : DOMState) (node : NodeId) : Except DOMException DOMState :=
   match s.tree.get? node with
   | none => .error .notFoundError
-  | some _ => normalizeList s (((preorder s.tree node).drop 1).filter (isExclusiveText s.tree))
+  | some _ => normalizeList s node (((preorder s.tree node).drop 1).filter (isExclusiveText s.tree))
 
 end Dom

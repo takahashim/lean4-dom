@@ -33,7 +33,8 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | insert | `Dom.Spec.InsertSpec` | `insert_sound` | `insertSpec_deterministic` / `insertSpec_congr` | `insert_complete` |
 | replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | `replaceSpec_deterministic` / `replaceSpec_congr` | `replace_complete` |
 | move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
-| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic`（congr は不要） | `replaceData_complete` |
+| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic` / `replaceDataSpec_congr` | `replaceData_complete` |
+| normalize（§4.4） | `Dom.Spec.NormalizeSpec` | `normalize_sound` | `normalizeSpec_deterministic` / `normalizedEach_congr` | `normalize_isOk`（`this` が木にあれば成功） |
 
 | ensure pre-insert validity | `Dom.Spec.PreInsertValidity` | `ensurePreInsertionValidity_spec`（仮定なし） | `preInsertValidity_deterministic` | `preInsertValidity_iff` |
 | move の pre-move validity（§4.2.4） | `Dom.Spec.MoveValidity` | `moveValidity_spec`（仮定なし） | `moveValidity_deterministic` | `moveValidity_iff` |
@@ -41,6 +42,7 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | remove（結果込み） | `Dom.Spec.RemoveResult` | `remove_result_sound` | `remove_result_deterministic` | `remove_result_complete` |
 | replace（結果込み） | `Dom.Spec.ReplaceResult` | `replace_result_sound` | `replace_result_deterministic` | `replace_result_complete` |
 | moveBefore（結果込み） | `Dom.Spec.MoveResult` | `move_result_sound` | `move_result_deterministic` | `move_result_complete` |
+| normalize（結果込み） | `Dom.Spec.NormalizeResult` | `normalize_result_sound` | `normalize_result_deterministic` | `normalize_result_complete` |
 
 定理はすべて `Dom.Spec` 名前空間にある。下四つは**例外まで含めた**関係で、
 soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。`replace` の
@@ -49,6 +51,11 @@ soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。`repla
 使い回せず、`Dom/Spec/MoveValidity.lean` に独立な `MoveValidity` を別に置いた。
 `moveBefore` は receiver 自身の失敗（木に無い・`ParentNode` でない）が二つある分、
 `MoveResult` の失敗側は三枝になる。
+
+`normalize` の関係（`Dom/Spec/Normalize.lean`）は、兄弟ごとに「data を足す・boundary point を
+渡す・外す」を繰り返す engine の読みで書く（record の並びがそれで決まる）。
+step 3 と step 7 の「contiguous exclusive Text nodes」は後ろ側だけを使う。
+tree order で処理すると、前側は処理の時点で残っていないからである。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`
@@ -96,7 +103,7 @@ soundness も component 単位で証明してある
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| normalize | 1 descendant exclusive Text を順に / 2 長さ 0 なら外す / 3-4 続く兄弟の data を足す / 5-6 live range の引き渡し / 7 兄弟を外す | `normalize`, `normalizeList`, `normalizeRun`, `normalizeMergeOne`, `normalizeMergeBP` | preservation `admissible_normalize`、`endpointsValid_normalizeMerge` | `normalize-merges-adjacent-text`, `normalize-record-order-per-sibling`, `normalize-empty-sibling-keeps-boundary`, `normalize-parent-boundary-moves-to-join`, `normalize-descends-into-subtree`, `normalize-moves-iterator-off-merged-text` | （Dommy に normalize の WPT 由来 test は無い） | 済（record は engine の読み） |
+| normalize | 1 descendant exclusive Text を順に / 2 長さ 0 なら外す / 3-4 続く兄弟の data を足す / 5-6 live range の引き渡し / 7 兄弟を外す | `normalize`, `normalizeList`, `normalizeRun`, `followingTexts`, `normalizeMergeOne`, `normalizeMergeBP` | relation `NormalizeResult`（兄弟ごとの読み）、success `normalize_isOk`、preservation `admissible_normalize`、`endpointsValid_normalizeMerge` | `normalize-merges-adjacent-text`, `normalize-record-order-per-sibling`, `normalize-empty-sibling-keeps-boundary`, `normalize-parent-boundary-moves-to-join`, `normalize-descends-into-subtree`, `normalize-moves-iterator-off-merged-text` | （Dommy に normalize の WPT 由来 test は無い） | 済（record は engine の読み） |
 
 ### normalize の分岐
 

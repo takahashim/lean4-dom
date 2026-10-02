@@ -100,38 +100,23 @@ theorem admissible_normalizeMergeOne {s s' : DOMState} {survivor sib : NodeId}
   · simp at hm
 
 /-- run を畳む step も admissibility を保つ。 -/
-theorem admissible_normalizeRun : ∀ (cands : List NodeId) {s s' : DOMState} {survivor : NodeId}
-    {k : Nat}, AdmissibleDOMState s → normalizeRun s survivor cands = .ok (s', k) →
-    AdmissibleDOMState s'
-  | [], s, s', survivor, k, h, hr => by
+theorem admissible_normalizeRun : ∀ (sibs : List NodeId) {s s' : DOMState} {survivor : NodeId},
+    AdmissibleDOMState s → normalizeRun s survivor sibs = .ok s' → AdmissibleDOMState s'
+  | [], s, s', survivor, h, hr => by
     rw [normalizeRun] at hr
-    simp only [Except.ok.injEq, Prod.mk.injEq] at hr
-    rw [← hr.1]
+    rw [← Except.ok.inj hr]
     exact h
-  | sib :: rest, s, s', survivor, k, h, hr => by
+  | sib :: rest, s, s', survivor, h, hr => by
     rw [normalizeRun] at hr
-    split at hr
-    · cases hm : normalizeMergeOne s survivor sib with
-      | error e => rw [hm] at hr; simp at hr
-      | ok s₁ =>
-        rw [hm] at hr
-        dsimp only at hr
-        cases hp : normalizeRun s₁ survivor rest with
-        | error e => rw [hp] at hr; simp at hr
-        | ok pair =>
-          rw [hp] at hr
-          obtain ⟨s₂, k₂⟩ := pair
-          dsimp only at hr
-          simp only [Except.ok.injEq, Prod.mk.injEq] at hr
-          rw [← hr.1]
-          exact admissible_normalizeRun rest (admissible_normalizeMergeOne h hm) hp
-    · simp only [Except.ok.injEq, Prod.mk.injEq] at hr
-      rw [← hr.1]
-      exact h
+    cases hm : normalizeMergeOne s survivor sib with
+    | error e => rw [hm] at hr; simp at hr
+    | ok s₁ =>
+      rw [hm] at hr
+      exact admissible_normalizeRun rest (admissible_normalizeMergeOne h hm) hr
 
 /-- 候補列の処理も admissibility を保つ。 -/
-theorem admissible_normalizeList : ∀ (cands : List NodeId) {s s' : DOMState},
-    AdmissibleDOMState s → normalizeList s cands = .ok s' → AdmissibleDOMState s'
+theorem admissible_normalizeList (this : NodeId) : ∀ (cands : List NodeId) {s s' : DOMState},
+    AdmissibleDOMState s → normalizeList s this cands = .ok s' → AdmissibleDOMState s'
   | [], s, s', h, hl => by
     rw [normalizeList] at hl
     rw [← Except.ok.inj hl]
@@ -140,26 +125,19 @@ theorem admissible_normalizeList : ∀ (cands : List NodeId) {s s' : DOMState},
     rw [normalizeList] at hl
     split at hl
     · split at hl
-      · cases hs : remove s n with
-        | error e => rw [hs] at hl; simp at hl
-        | ok s₁ =>
-          rw [hs] at hl
-          dsimp only at hl
-          exact admissible_normalizeList rest (admissible_remove h hs) hl
-      · cases hp : normalizeRun s n rest with
-        | error e => rw [hp] at hl; simp at hl
-        | ok pair =>
-          rw [hp] at hl
-          obtain ⟨s₁, k⟩ := pair
-          dsimp only at hl
-          exact admissible_normalizeList (rest.drop k) (admissible_normalizeRun rest h hp) hl
-    · exact admissible_normalizeList rest h hl
-termination_by cands => cands.length
-decreasing_by
-  all_goals simp_wf
-  all_goals first
-    | omega
-    | (simp only [List.length_drop]; omega)
+      · exact admissible_normalizeList this rest h hl
+      · split at hl
+        · cases hs : remove s n with
+          | error e => rw [hs] at hl; simp at hl
+          | ok s₁ =>
+            rw [hs] at hl
+            exact admissible_normalizeList this rest (admissible_remove h hs) hl
+        · cases hp : normalizeRun s n (followingTexts s.tree n) with
+          | error e => rw [hp] at hl; simp at hl
+          | ok s₁ =>
+            rw [hp] at hl
+            exact admissible_normalizeList this rest (admissible_normalizeRun _ h hp) hl
+    · exact admissible_normalizeList this rest h hl
 
 /-- **`normalize()` は admissibility を保つ。** -/
 theorem admissible_normalize {s s' : DOMState} {node : NodeId}
@@ -167,6 +145,6 @@ theorem admissible_normalize {s s' : DOMState} {node : NodeId}
   unfold normalize at hn
   split at hn
   · simp at hn
-  · exact admissible_normalizeList _ h hn
+  · exact admissible_normalizeList _ _ h hn
 
 end Dom
