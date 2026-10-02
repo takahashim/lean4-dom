@@ -1,4 +1,4 @@
-import Url.Invariant
+import Url.StepTransfer
 
 namespace Url
 
@@ -85,35 +85,103 @@ local macro "url_simp_scheme" : tactic =>
        pathSegsOk_fileBasePath, pathSegsOk_fileSlashDrive,
        isSpecialScheme, defaultPort])
 
+/--
+`h` の型が `run … = _` であることを、定義を展開せずに確かめる。
+
+`url_close` は分岐の形（失敗、終端、再帰）を書かずに選択肢を順に試すので、
+再帰の選択肢を先に試すと、失敗の枝（`.error _ = .ok u`）で `refine` が
+`run` を展開して単一化しようとし、止まらなくなる。その前にここで弾く。
+-/
+local macro "url_guard_run " h:ident : tactic =>
+  `(tactic| guard_hyp $h:ident :~ run _ _ _ _ = _)
+
+/-- 再帰の測度が減ること。 -/
+local macro "url_measure " hlen:ident : tactic =>
+  `(tactic| first
+    | exact Or.inl (by decide)
+    | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
+    | exact Or.inr ⟨by decide, by simp [stateRank] at *; omega⟩
+    | (simp only [stateRank] at *; omega))
+
+/-- 補題の副条件。移る先の state についての事実は `decide`、分岐の条件は仮定か `simp_all` で閉じる。 -/
+local macro "url_side " hinv:ident : tactic =>
+  `(tactic| first
+    | (intro h; exact absurd h (by decide))
+    | decide
+    | (with_reducible rfl)
+    | (with_reducible assumption)
+    | (intro _; exact ($hinv).bufferNoSlash (by decide))
+    | (simp only [UrlAuth, Prod.mk.injEq, shortenPath_scheme, shortenPath_username,
+        shortenPath_password, shortenPath_host, shortenPath_port, fileBasePath_scheme,
+        fileBasePath_username, fileBasePath_password, fileBasePath_host, fileBasePath_port,
+        fileSlashDrive_scheme, fileSlashDrive_username, fileSlashDrive_password,
+        fileSlashDrive_host, fileSlashDrive_port, and_self]; done)
+    | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done))
+
+/-- 遷移の種類ごとの補題で `PInv` を移す再帰。`pf` は `PInv` の証明で、副条件を `?_` に残してよい。 -/
+local macro "url_via " ih:ident hinv:ident hlen:ident u:ident heq:ident pf:term : tactic =>
+  `(tactic| (
+    url_guard_run $heq
+    refine $ih _ _ _ $u $heq ?_ $pf
+    · url_measure $hlen
+    all_goals url_side $hinv))
+
+/--
+一つの分岐を閉じる。選択肢は安いものから並べてある。
+
+1. URL record の `UrlCore` を変えない再帰。`PInv.transfer` で `PInv` を移す。`UrlCore` が同じことは
+   定義を展開せずに確かめる（`pathStepUrl` などを展開して比べると止まらない）。
+2. URL record を変える再帰のうち、`Url/StepTransfer.lean` に補題があるもの。
+3. port state から path start state への移送。`portDone` を挟むので専用の補題が要る。
+4. URL record を変える再帰の残り。`PInv` の成分を一つずつ `simp_all` で示す。
+   いま通るのは、host state の override の分岐（`noOverride` と矛盾して到達しない）だけである。
+5. 終端。`.ok X` を返すので `ValidUrl X` を示す。
+6. 失敗の枝。`fail` や `schemeOverride` を開くと `heq` が矛盾する。
+-/
 local macro "url_close " ih:ident hinv:ident hlen:ident u:ident heq:ident : tactic =>
   `(tactic| first
-    -- 失敗の枝。`fail` や `schemeOverride` を開くと `heq` が矛盾する。
-    | (url_simp_state; done)
-    | (url_simp_url; done)
-    | (url_simp_scheme; done)
-    -- 終端。`.ok X` を返すので `ValidUrl X` を示す。
+    | (url_guard_run $heq
+       refine $ih _ _ _ $u $heq ?_ (($hinv).transfer (by with_reducible rfl) (by with_reducible rfl) (by decide) ?_ ?_ ?_ ?_ ?_)
+       · url_measure $hlen
+       · url_side $hinv
+       · url_side $hinv
+       · url_side $hinv
+       · url_side $hinv
+       · first
+         | (intro h; exact absurd h (by decide))
+         | (intro _; exact ($hinv).bufferNoSlash (by decide))
+         | (intro _; rfl)
+         | (url_simp_state; done) | (url_simp_scheme; done))
+    | url_via $ih $hinv $hlen $u $heq (($hinv).setScheme (by decide) (by with_reducible rfl) rfl (by decide) ?_ ?_ ?_ ?_)
+    | url_via $ih $hinv $hlen $u $heq (($hinv).setSchemeOpaque (by with_reducible rfl) rfl rfl ?_)
+    | url_via $ih $hinv $hlen $u $heq (($hinv).pathStep (by with_reducible rfl) rfl (by decide) ?_)
+    | url_via $ih $hinv $hlen $u $heq (($hinv).opaqueAppend (by with_reducible rfl) rfl rfl)
+    | url_via $ih $hinv $hlen $u $heq (($hinv).fromBase ?_ rfl (by decide))
+    | url_via $ih $hinv $hlen $u $heq
+        (($hinv).setHost (by decide) (by with_reducible rfl) rfl (by decide) ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+    | url_via $ih $hinv $hlen $u $heq (($hinv).toPathOf (($hinv).baseValid _ rfl) ?_ ?_ ?_ rfl ?_)
+    | url_via $ih $hinv $hlen $u $heq (($hinv).userinfo (by with_reducible rfl) (by rfl) rfl)
+    | (url_guard_run $heq
+       refine $ih _ _ _ $u $heq ?_ (($hinv).portStep ?_)
+       · first
+         | exact Or.inl (by decide)
+         | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
+       · first | assumption | (url_simp_state; done) | (url_simp_scheme; done))
+    | (url_guard_run $heq
+       refine $ih _ _ _ $u $heq ?_ ?_
+       · url_measure $hlen
+       · constructor <;>
+           first | (with_reducible assumption) | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done))
     | (injection $heq with hu
        subst hu
        first
          | exact ($hinv).valid (by decide)
          | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)
          | (refine valid_of_inv ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ <;>
-             first | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)))
-    -- port state から path start state への移送。`portDone` を挟むので専用の補題が要る。
-    | (refine $ih _ _ _ $u $heq ?_ (($hinv).portStep ?_)
-       · first
-         | exact Or.inl (by decide)
-         | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
-       · first | assumption | (url_simp_state; done) | (url_simp_scheme; done))
-    -- 再帰。測度が減ることと `PInv` が保たれることを示す。
-    | (refine $ih _ _ _ $u $heq ?_ ?_
-       · first
-         | exact Or.inl (by decide)
-         | exact Or.inr ⟨by decide, by simp at $hlen:ident ⊢; omega⟩
-         | exact Or.inr ⟨by decide, by simp [stateRank] at *; omega⟩
-         | (simp only [stateRank] at *; omega)
-       · constructor <;>
-           first | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)))
+             first | (with_reducible assumption) | (url_simp_state; done) | (url_simp_url; done) | (url_simp_scheme; done)))
+    | (url_simp_state; done)
+    | (url_simp_url; done)
+    | (url_simp_scheme; done))
 
 theorem step_schemeStart_valid (base : Option Url) (c : Cp) (rest input : List Char)
     (ctx : PCtx) (hlen : rest.length + (if c.isSome then 1 else 0) = input.length)
