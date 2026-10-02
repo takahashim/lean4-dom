@@ -238,10 +238,11 @@ def deleteContentsNewBP (t : Tree) (r : RangeState) : BoundaryPoint :=
 /--
 DOM Standard §5.5 `Range.deleteContents()`。
 
-step 10 が置く boundary point が最終状態でも妥当であることは仕様の帰結だが、
-本 model ではまだ証明していない。妥当でなければ live range の調整が残した端点を使う
+step 10 が置く boundary point は、range が妥当（start と end が同じ木にあり、start が
+end の前か等しい）なら最終状態でも妥当である（`Dom.Spec.deleteContentsNewBP_valid`）。
+妥当でない range も admissible な状態には現れうるので、実行時の検査は残し、
+妥当でなければ live range の調整が残した端点を使う
 （そちらは `remove_preserves_endpoints` などで妥当である）。
-差分テストではこの枝に落ちたことは無い。
 -/
 def rangeDeleteContents (s : DOMState) (i : Nat) : Except DOMException DOMState :=
   match s.ranges[i]? with

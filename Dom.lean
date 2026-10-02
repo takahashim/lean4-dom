@@ -121,6 +121,9 @@ import Dom.Spec.SelectorMatch
 import Dom.Spec.Lookup
 import Dom.Spec.NodeQuery
 import Dom.Spec.RangeQuery
+import Dom.Spec.RangeDelete
+import Dom.Spec.RangeDeleteSound
+import Dom.Spec.RangeDeleteCongr
 import Dom.Attribute.Reflect
 import Dom.Validity.Reflect
 import Dom.Properties.NullNamespace
