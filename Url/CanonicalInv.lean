@@ -104,6 +104,11 @@ def hostSet : PState → Bool
 `canonicalUrl` の連言を、`CInv` の field として持ちやすい形に切り出したもの。
 -/
 
+/-- path segment の条件。encode 済みで、`.` でも `..` でもなく、special なら `\\` を含まない。 -/
+def segOk (special : Bool) (seg : String) : Bool :=
+  encodedWith pathSet seg && !isSingleDot seg.toList && !isDoubleDot seg.toList &&
+    (!special || seg.toList.all (fun c => c != '\\'))
+
 /--
 path の条件。`canonicalUrl` の path の連言から、opaque path の末尾の space を除いたもの。
 
@@ -113,10 +118,7 @@ def pathCanon (special : Bool) : Path → Bool
   | .opaque o =>
     encodedWith c0ControlSet o && o.toList.all (fun c => c != '?' && c != '#') &&
       !(o.toList.head? == some '/')
-  | .list segs =>
-    segs.all fun seg =>
-      encodedWith pathSet seg && !isSingleDot seg.toList && !isDoubleDot seg.toList &&
-        (!special || seg.toList.all (fun c => c != '\\'))
+  | .list segs => segs.all (segOk special)
 
 /-- file URL の先頭 segment が Windows drive letter なら正規化されている。 -/
 def driveOk (scheme : String) : Path → Bool
@@ -214,6 +216,10 @@ structure CInv (base : Option Url) (st : PState) (input : List Char) (ctx : PCtx
     ∃ ch t, input = ch :: t ∧ isTerminator ctx.url.isSpecial (some ch) = false
   /-- credentials や port を書く state へは、scheme が `file` では入らない。 -/
   notFile : notFileState st = true → ctx.url.scheme ≠ "file"
+  /-- path or authority state へは special でない scheme からしか来ない。 -/
+  pathOrAuthority : st = .pathOrAuthority → ctx.url.isSpecial = false
+  /-- file slash / file host state へは file state からしか来ない。 -/
+  fileScheme : fileState st = true → ctx.url.scheme = "file"
 
 /-! ## 出口 -/
 
@@ -397,10 +403,10 @@ theorem CInv_empty {base : Option Url} {st : PState} {input : List Char}
     CInv base st input { url := {} } := by
   rcases hst with rfl | rfl <;>
   refine ⟨rfl, rfl, hb, hbc, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, ?_, ?_, hin, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    ?_, ?_, ?_, hin, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp_all [usesBasePath, freshHost, schemeSet, hostOpen, earlyState, freshPort, freshCred,
       pathFresh, pathCanon, Url.isSpecial, Url.includesCredentials, isSpecialScheme, defaultPort,
-      encodedWith, emptyBuf, driveOk, termState, hostSet, notFileState]
+      encodedWith, emptyBuf, driveOk, termState, hostSet, notFileState, fileState]
 
 theorem CInv_schemeStart {base : Option Url} {str : String}
     (hb : ∀ b, base = some b → ValidUrl b) (hbc : ∀ b, base = some b → canonicalUrl b = true) :
