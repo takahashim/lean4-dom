@@ -19,7 +19,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read pinned versions
         id: pins
@@ -30,7 +30,7 @@ jobs:
           echo "ruby=$(jq -r .ruby test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Dommy
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: takahashim/dommy
           ref: ${{ steps.pins.outputs.dommy_commit }}
@@ -81,7 +81,7 @@ jobs:
       # 不一致が出たら、最小化した scenario が test/scenarios に書かれる。
       - name: Upload counterexamples
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: counterexamples
           path: test/scenarios/failing-*.json
@@ -99,7 +99,7 @@ jobs:
           - { nodes: 8, ops: 6, ranges: 4, iterators: 2, observers: 3 }
           - { nodes: 12, ops: 10, ranges: 4, iterators: 3, observers: 3 }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read pinned versions
         id: pins
@@ -110,7 +110,7 @@ jobs:
           echo "ruby=$(jq -r .ruby test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Dommy
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: takahashim/dommy
           ref: ${{ steps.pins.outputs.dommy_commit }}
@@ -170,7 +170,7 @@ jobs:
 
       - name: Upload counterexamples
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: counterexamples-${{ matrix.nodes }}-${{ matrix.ops }}
           path: test/scenarios/failing-*.json
