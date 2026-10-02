@@ -13,8 +13,9 @@ set_option maxHeartbeats 1000000
 /-! ## canonical form
 
 parser が返す record の形。これを満たさない record には `parse ∘ serialize` は成り立たない
-（上の表の三つがその例である）。`checkValidUrl` と同じく、まず boolean として書いて
-WPT の全 case で実行時に確かめる。証明はこれを仮定として進める。
+（上の表の三つがその例である）。`checkValidUrl` と同じく boolean として書き、WPT の全 case で
+実行時にも確かめている。往復の証明はこれを仮定として進め、parser の出力がこれを満たすことは
+`basicUrlParse_canonical`（`Url/StepCanonical.lean`）が言う。
 -/
 
 /-- scheme が parser の書く形か。先頭は ASCII 小文字 alpha、残りは alphanumeric か `+` `-` `.`。 -/

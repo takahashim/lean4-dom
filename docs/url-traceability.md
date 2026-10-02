@@ -61,7 +61,7 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | URL record と不変条件 | §4.1 | `Url`, `Path`, `checkValidUrl` | `checkValidUrl_iff`（決定可能性）、`basicUrlParse_valid` / `parseUrl_valid`（parse が保つ） | wpt, wpt-set | 済 |
 | special scheme と既定の port | §4.2 | `isSpecialScheme`, `defaultPort` | `isSpecialScheme_of_defaultPort` | wpt | 済 |
 | URL path serializer | §4.3 | `pathSerializer` | — | wpt | 済 |
-| URL serializer | §4.3 1-7 | `urlSerializer` | — | wpt | 済 |
+| URL serializer | §4.3 1-7 | `urlSerializer` | `roundtrip_canonical`（canonical な record は parse し直すと戻る）、`basicUrlParse_canonical` / `parseUrl_canonical`（parse の結果は canonical）、`parse_image`（parse の像は `ValidUrl ∧ canonicalUrl`）、`parse_serialize_of_parse` | wpt | 済 |
 | basic URL parser（全 state） | §4.4 1-3 | `run`, `step`, `basicUrlParse` | 停止性（`termination_by (stateRank st, 残りの文字数, 位相)`） | wpt | 済 |
 | state override（setter が使う入口） | §4.4 | `SOverride`, `basicUrlParseOverride`, `schemeOverride`, `fail` | — | wpt-set | 済 |
 | parse の途中の不変条件 | §4.1 / §4.4 | `PInv`, `mayOpaque`, `mayCred`, `usesBasePath`, `freshHost`, `freshCredPort` | `PInv_empty`（入口）、`PInv.valid`（出口）、`run_valid`（帰納段）、`shortenPath_spec`, `portDone_spec`, `userinfoFold_spec`, `pathStepUrl_spec`（遷移の成分保存） | — | 済 |
