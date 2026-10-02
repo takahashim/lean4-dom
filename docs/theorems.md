@@ -546,6 +546,102 @@ theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat
 
 この定理は、差分テストで順序を入れ替えても不一致が出ないことの説明になっている。
 
+## 20. namespace 付きの attribute は null namespace の読み方に効かない
+
+| 定理 | module |
+| --- | --- |
+| `Dom.setAttributeNS_sameNullNsView`, `Dom.removeAttributeNS_sameNullNsView` | `Dom/Properties/NullNamespace.lean` |
+| `Dom.SameNullNsView.getElementById` ほか（`getElementsByClassName`・`getElementsByName`・`getReflected`・`classListContains`・`childrenNamedItem`） | 同上 |
+| `Dom.preorder_of_attributesOnly`, `Dom.preorderFuel_eq_preorder` | 同上 |
+
+```lean
+def SameNullNsView (t t' : Tree) : Prop :=
+  ∀ m, (t'.get? m).map NodeData.nullNsView = (t.get? m).map NodeData.nullNsView
+
+theorem setAttributeNS_sameNullNsView (hns : normalizeNamespace ns ≠ none)
+    (h : setAttributeNS s e ns qn v = .ok s') : SameNullNsView s.tree s'.tree
+
+theorem SameNullNsView.getElementById (h : SameNullNsView t t') (hwf : WellFormed t)
+    (n : NodeId) (i : String) : getElementById t' n i = getElementById t n i
+```
+
+element の ID・classes・`getElementsByName()`・reflect・`classList`・`children.namedItem` は、
+attribute を「namespace が null で、その local name を持つもの」として読む。
+`nullNsView` は namespace 付きの attribute を落とした node data で、上の読み方はどれも
+これを通してしか attribute を見ない。namespace が null でない `setAttributeNS` /
+`removeAttributeNS` は `nullNsView` を変えないので、**namespace 付きの attribute を足しても
+消しても、これらの答えは変わらない**。実装がこれを破るなら、attribute を local name か
+qualified name で引いている（`docs/status.md` の「名前空間の取り違え」）。
+
+`getAttribute` / `setAttribute` は qualified name で引くので、この一覧に**入らない**。
+prefix の無い `setAttributeNS("urn:x", "id", …)` は `getAttribute("id")` に見える。
+
+list を返す method は `preorder` を通るが、`preorder` の fuel は store の entry 数で、
+attribute だけを差し替えた木でも同じとは限らない。そこで先に「well-formed な木では
+fuel が entry 数以上なら `preorderFuel` は変わらない」（`preorderFuel_eq_preorder`）を示し、
+`preorder` が parent と children だけで決まること（`preorder_of_attributesOnly`）を導いた。
+
+## 21. "validate and extract" が返す名前は step 8-11 を満たす
+
+| 定理 | module |
+| --- | --- |
+| `Dom.validateAndExtractAttribute_wellFormed`, `Dom.validateAndExtractElement_wellFormed` | `Dom/Attribute/Name.lean` |
+
+```lean
+structure NamespaceWellFormed (ns pfx : Option String) (localName : String) : Prop where
+  prefixHasNamespace : pfx.isSome = true → ns.isSome = true
+  xmlPrefix : pfx = some "xml" → ns = some xmlNamespace
+  xmlnsPrefix : pfx = some "xmlns" → ns = some xmlnsNamespace
+  xmlnsNamespace : ns = some xmlnsNamespace → pfx = none → localName = "xmlns"
+
+theorem validateAndExtractAttribute_wellFormed
+    (h : validateAndExtractAttribute ns qn = .ok (ns', pfx, ln)) :
+    ns' = normalizeNamespace ns ∧ NamespaceWellFormed ns' pfx ln ∧
+      (qn = "xmlns" → ns' = some xmlnsNamespace) ∧ isValidAttributeLocalName ln = true
+```
+
+step 10 の前半（qualified name が `xmlns` なら XMLNS namespace）は返り値の性質としては
+言えるが、`NamespaceWellFormed` には入れていない。`setAttribute("xmlns", …)` は
+"validate and extract" を通らずに namespace が null の `xmlns` を作るので、状態の性質ではない。
+step 11 のうち prefix がある場合は、`String.splitOn` を kernel で評価できず、
+「colon を含む qualified name は `xmlns` でない」を示せないので入れていない。
+
+loader は初期状態の element と attribute の名前をこれで検査する（`namespaceWellFormedB_iff`）。
+`AdmissibleDOMState` の成分にはしていない。detach された `Attr` には invariant が無く、
+全操作の保存を示し直す費用に見合わないためである。
+
+## 22. `lookupPrefix` と `lookupNamespaceURI` は互いの逆ではない
+
+| 定理 | module |
+| --- | --- |
+| `Dom.lookupNamespaceURI_lookupPrefix_own` | `Dom/Properties/NamespaceLookup.lean` |
+| `Dom.lookup_round_trip_fails`（negative result） | 同上 |
+| `Dom.find?_xmlnsDecl_eq` | 同上 |
+
+```lean
+theorem lookupNamespaceURI_lookupPrefix_own (hn : t.get? n = some d) (hk : d.kind = .element)
+    (hp : d.prefix = some p) (hp' : p ≠ "") (hns : d.namespace = some ns) (hns' : ns ≠ "")
+    (hw : NamespaceWellFormed d.namespace d.prefix d.localName) :
+    lookupPrefix t n (some ns) = some p ∧ lookupNamespaceURI t n (some p) = some ns
+
+theorem lookup_round_trip_fails :
+    ∃ t n d ns p, t.checkWellFormed = true ∧ t.get? n = some d ∧
+      namespaceWellFormedB d.namespace d.prefix d.localName = true ∧ … ∧
+      lookupPrefix t n (some ns) = some p ∧ lookupNamespaceURI t n (some p) ≠ some ns
+```
+
+element 自身の prefix は往復する。ただし `NamespaceWellFormed` が要る。prefix が `xml` /
+`xmlns` のとき "locate a namespace" は木を見ずに固定値を返すからである。
+
+一般には往復しない。反例は prefix `a` を `urn:x` に結びつつ、属性 `xmlns:a="urn:y"` を持つ
+element で、"locate a namespace prefix" は step 1 を外れて step 2 の属性から `a` を返し、
+"locate a namespace" は step 3 で自分の namespace を返す。固定 scenario
+`namespace-lookup-is-not-a-round-trip` が同じ例で、Chromium・WebKit・Dommy も同じ答えを返す。
+
+"locate a namespace prefix" の step 2 は属性の namespace を見ず、"locate a namespace" の step 4 は
+見る。`find?_xmlnsDecl_eq` は、属性の名前が `NamespaceWellFormed` を満たせば二つが同じ属性で
+止まることを言う。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

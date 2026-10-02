@@ -190,7 +190,7 @@ target から根までの祖先列そのものである。`Window` が無いの�
 | substring data / `substringData(offset, count)` | 1-4 | `substringData` | — | `characterdata-substring-data`, `-index-size` | `test_wpt_character_data.rb` | 済 |
 | `getAttribute` / `hasAttribute` / `getAttributeNames` | 1-2 ほか | `getAttribute`, `hasAttribute`, `getAttributeNames`, `attrNameFor` | — | `attribute-getters` | `test_wpt_attributes.rb` | 済 |
 | `Range` の stringifier | 1-6 | `rangeToString` | — | `range-to-string`, `-within-one-text` | `test_wpt_range_contents.rb` | 済 |
-| locate a namespace / `lookupNamespaceURI(prefix)` | Element 1-6 / Document 1-2 / lookupNamespaceURI 1-2 | `locateNamespace`, `locateNamespaceIn`, `elementChain` | — | `namespace-lookup-chain`, `namespace-lookup-edges` | `test_wpt_node_namespace.rb` | 済（Attr は対象外） |
+| locate a namespace / `lookupNamespaceURI(prefix)` | Element 1-6 / Document 1-2 / lookupNamespaceURI 1-2 | `locateNamespace`, `locateNamespaceIn`, `elementChain` | `lookupNamespaceURI_lookupPrefix_own`、`lookup_round_trip_fails`（negative）、`find?_xmlnsDecl_eq` | `namespace-lookup-chain`, `namespace-lookup-edges`, `namespace-lookup-is-not-a-round-trip` | `test_wpt_node_namespace.rb` | 済（Attr は対象外） |
 | locate a namespace prefix / `lookupPrefix(namespace)` | 1-4 / lookupPrefix 1-2 | `lookupPrefix`, `locateNamespacePrefixIn` | — | 同上 | 同上 | 済 |
 | `isDefaultNamespace(namespace)` | 1-3 | `isDefaultNamespace` | — | 同上 | 同上 | 済 |
 
@@ -242,7 +242,7 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | valid namespace prefix / valid attribute local name | §1.3 | `isValidNamespacePrefix`, `isValidAttributeLocalName` | — | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
-| validate and extract（"attribute"） | 1-12 | `validateAndExtractAttribute`, `validateAndExtractError` | `validateAndExtractAttribute_ok`（step 1 と step 8） | 同上 | 同上 | 済 |
+| validate and extract（"attribute" / "element"） | 1-12 | `validateAndExtractAttribute`, `validateAndExtractElement`, `validateAndExtractError` | `validateAndExtractAttribute_ok`（step 1 と step 8）、`validateAndExtractAttribute_wellFormed` と `validateAndExtractElement_wellFormed`（step 8-11、`NamespaceWellFormed`） | 同上 | 同上 | 済（step 11 の prefix がある側は性質に入れていない） |
 | get an attribute by name | 1-2 | `getAttributeByName`, `attrNameFor` | `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | valid element local name | §1.3 | `isValidElementLocalName` | — | （loader が検査する） | — | 済 |
 | `Element.tagName` | §4.8 | `tagName` | — | `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
@@ -270,6 +270,10 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | `compareDocumentPosition` の step 3-5（`Attr`） | 3-9 | `compareDocumentPositionRef` | `compareDocumentPositionRef_nodes`, `compareDocumentPositionRef_self`, `compareDocumentPositionRef_disconnected_consistent` | `attr-position-follows-its-element` | — | 済 |
 | `contains` / `isEqualNode` / namespace の探索に `Attr` | contains / equals の `Attr` の枝 / locate a namespace の `Attr` の枝 | `nodeContainsRef`, `nodeRefEquals`, `attrLookupNamespaceURI`, `attrLookupPrefix`, `attrIsDefaultNamespace` | `nodeContainsRef_attr_attr`, `nodeContainsRef_node_attr` | `attr-position-follows-its-element` | — | 済 |
 | `appendChild` の親か子に `Attr` | ensure pre-insertion validity 1・4 | `appendChildRef` | `appendChildRef_attr_fails`, `admissible_appendChildRef` | `attr-cannot-be-a-child`, `attr-cannot-have-children` | — | 済 |
+| reflect（`id` / `className` / `slot`、HTML の `title` / `lang` / `accessKey` / `inert` / `autofocus`） | DOM §4.9・HTML §2.6.1 の getter と setter（DOMString と boolean） | `reflectSpec`, `getReflectedProp`, `setReflectedProp`, `setReflectedBool` | `SameNullNsView.getReflected`、preservation `admissible_setReflectedProp`, `admissible_setReflectedBool` | `reflect-reads-the-null-namespace-attribute`, `reflect-writes-the-null-namespace-attribute` | — | 済（enumerated・URL・数値の reflect は対象外） |
+| `DOMTokenList`（`classList`） | §7.1 add 1-3 / remove 1-3 / toggle 1-4 / replace 1-6 / contains / update steps 1-2 | `classListAdd`, `classListRemove`, `classListToggle`, `classListReplace`, `classListContains`, `tokenListUpdate` | `SameNullNsView.classListContains`、preservation `admissible_classListAdd` ほか | `class-list-ignores-namespaced-class`, `class-list-add-nothing-creates-no-attribute` | — | 済（`value` と `supports` は対象外） |
+| `HTMLCollection.namedItem(key)`（`children`） | §4.2.10.1 1-2 | `childrenNamedItem` | `SameNullNsView.childrenNamedItem` | `named-item-ignores-namespaced-id-and-name` | — | 済 |
+| `dataset`（`DOMStringMap`） | HTML §3.2.6.8 name-value pairs 1-3 / setter 1-5 / deleter 1-3 | `datasetPairs`, `datasetGet`, `datasetKeys`, `datasetSet`, `datasetDelete` | preservation `admissible_datasetSet`, `admissible_datasetDelete` | `dataset-reads-by-qualified-name`, `dataset-writes-the-null-namespace-attribute`, `dataset-deletes-by-qualified-name` | — | 済（本文の字面どおり。どの browser も字面どおりではない） |
 
 ## normative branch の網羅（roadmap §11.3）
 
