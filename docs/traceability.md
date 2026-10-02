@@ -137,10 +137,10 @@ soundness も component 単位で証明してある
 | `collapse(toStart)` | 1-2 | `rangeCollapse` | preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
 | `selectNode(node)` | 1 parent / 2 null なら InvalidNodeTypeError / 3-5 両端 | `rangeSelectNode` | preservation `admissible_rangeSelectNode` | `range-select-node-and-contents`, `range-boundary-needs-parent` | 同上 | 済 |
 | `selectNodeContents(node)` | 1 doctype / 2-4 両端 | `rangeSelectNodeContents` | preservation `admissible_rangeSelectNodeContents` | 同上 | 同上 | 済 |
-| `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | — | `range-point-predicates` | 同上 | 済 |
-| `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | — | 同上 | 同上 | 済 |
-| `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | — | `range-compare-boundary-points` | 同上 | 済 |
-| `comparePoint(node, offset)` | 1 WrongDocumentError / 2 doctype / 3 offset / 4-6 位置 | `rangeComparePoint` | — | 同上 | 同上 | 済 |
+| `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | `Spec.rangeIsPointInRange_eq_iff`（`Dom/Spec/RangeQuery.lean`、例外込み） | `range-point-predicates` | 同上 | 済 |
+| `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | `Spec.rangeIntersectsNode_eq_iff`（同上） | 同上 | 同上 | 済 |
+| `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | `Spec.rangeCompareBoundaryPoints_eq_iff`（同上） | `range-compare-boundary-points` | 同上 | 済 |
+| `comparePoint(node, offset)` | 1 WrongDocumentError / 2 doctype / 3 offset / 4-6 位置 | `rangeComparePoint` | `Spec.rangeComparePoint_eq_iff`（同上） | 同上 | 同上 | 済 |
 
 ## §5.5 `Range` の API（木を変える側）
 
@@ -180,8 +180,8 @@ target から根までの祖先列そのものである。`Window` が無いの�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `compareDocumentPosition(other)` | 1, 6-10 | `compareDocumentPosition` | `compareDocumentPosition_disconnected_consistent` | `node-query-position-and-containment`, `compare-document-position-disconnected-is-consistent` | `test_wpt_node_edges.rb` | 済（attribute の step 3-5 は対象外） |
-| `contains(other)` / `getRootNode()` | — | `nodeContains`, `getRootNode` | — | `node-query-position-and-containment` | 同上 | 済（`composed` は対象外） |
+| `compareDocumentPosition(other)` | 1, 6-10 | `compareDocumentPosition` | `compareDocumentPosition_disconnected_consistent`, `Spec.compareDocumentPosition_spec`, `Spec.compareDocumentPosition_eq_iff`（`Dom/Spec/NodeQuery.lean`） | `node-query-position-and-containment`, `compare-document-position-disconnected-is-consistent` | `test_wpt_node_edges.rb` | 済（attribute の step 3-5 は対象外） |
+| `contains(other)` / `getRootNode()` | — | `nodeContains`, `getRootNode` | `Spec.nodeContains_eq_true_iff`, `Spec.getRootNode_eq_iff`（同上） | `node-query-position-and-containment` | 同上 | 済（`composed` は対象外） |
 | `equals` / `isEqualNode(other)` | equals | `nodeEquals`, `nodeOwnPropertiesEqual`, `attrEquals` | — | `node-query-is-equal-node` | 同上 | 済（DocumentType の name ほかは対象外） |
 | get text content / `textContent` getter | — | `getTextContent`, `descendantTextContent` | — | `node-query-text-content` | 同上 | 済（setter は node を作るので対象外） |
 | `nodeValue` getter | — | `getNodeValue` | — | 同上 | 同上 | 済 |
@@ -195,6 +195,8 @@ target から根までの祖先列そのものである。`Window` が無いの�
 `compareDocumentPosition` の step 6（同じ木にない）は PRECEDING と FOLLOWING の
 どちらを返すかを実装に任せている。差分テストはその二 bit を落として比べる
 （`test/compare.rb` の `normalize_returned`）。一貫性そのものは model 側の定理で見る。
+同じ木にある場合の値は `Spec.compareDocumentPosition_eq_iff` が §4.2 の語彙
+（`Ancestor` と構造で書いた tree order `PrecedesStruct`）だけで一意に決めている。
 
 ## §6.2 TreeWalker
 
