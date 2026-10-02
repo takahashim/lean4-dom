@@ -102,6 +102,10 @@ import Dom.Spec.Normalize
 import Dom.Spec.NormalizeSound
 import Dom.Spec.NormalizeCongr
 import Dom.Spec.NormalizeResult
+import Dom.Spec.CharacterDataResult
+import Dom.Spec.ChildNode
+import Dom.Spec.ReplaceAll
+import Dom.Spec.ReplaceAllSound
 import Dom.Properties.Counterexample
 import Dom.Properties.Witness
 import Dom.Observation

@@ -35,7 +35,7 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
 | replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic` / `replaceDataSpec_congr` | `replaceData_complete` |
 | normalize（§4.4） | `Dom.Spec.NormalizeSpec` | `normalize_sound` | `normalizeSpec_deterministic` / `normalizedEach_congr` | `normalize_isOk`（`this` が木にあれば成功） |
-
+| replace all | `Dom.Spec.ReplaceAllSpec` | `replaceAll_sound` | `replaceAllSpec_deterministic` | `replaceAll_isOk`（step 5 の事実があれば成功） |
 | ensure pre-insert validity | `Dom.Spec.PreInsertValidity` | `ensurePreInsertionValidity_spec`（仮定なし） | `preInsertValidity_deterministic` | `preInsertValidity_iff` |
 | move の pre-move validity（§4.2.4） | `Dom.Spec.MoveValidity` | `moveValidity_spec`（仮定なし） | `moveValidity_deterministic` | `moveValidity_iff` |
 | pre-insert（結果込み） | `Dom.Spec.PreInsertResult` | `preInsert_result_sound` | `preInsert_result_deterministic` | `preInsert_result_complete` |
@@ -43,8 +43,16 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | replace（結果込み） | `Dom.Spec.ReplaceResult` | `replace_result_sound` | `replace_result_deterministic` | `replace_result_complete` |
 | moveBefore（結果込み） | `Dom.Spec.MoveResult` | `move_result_sound` | `move_result_deterministic` | `move_result_complete` |
 | normalize（結果込み） | `Dom.Spec.NormalizeResult` | `normalize_result_sound` | `normalize_result_deterministic` | `normalize_result_complete` |
+| replaceChildren（結果込み、§4.2.6） | `Dom.Spec.ReplaceChildrenResult` | `replaceChildren_result_sound` | `replaceChildren_result_deterministic` | `replaceChildren_result_complete` |
+| before（結果込み、§4.2.9） | `Dom.Spec.BeforeResult`（`ViablePreviousSibling`） | `before_result_sound` | `before_result_deterministic` | `before_result_complete` |
+| after（結果込み、§4.2.9） | `Dom.Spec.AfterResult`（`ViableNextSibling`） | `after_result_sound` | `after_result_deterministic` | `after_result_complete` |
+| replaceWith（結果込み、§4.2.9） | `Dom.Spec.ReplaceWithResult` | `replaceWith_result_sound` | `replaceWith_result_deterministic` | `replaceWith_result_complete` |
+| `remove()`（結果込み、§4.2.9） | `Dom.Spec.NodeRemoveResult` | `nodeRemove_result_sound` | `nodeRemove_result_deterministic` | `nodeRemove_result_complete` |
+| replace data（結果込み） | `Dom.Spec.ReplaceDataResult` | `replaceData_result_sound` | `replaceData_result_deterministic` | `replaceData_result_complete` |
+| appendData / setData（結果込み） | `Dom.Spec.AppendDataResult` / `SetDataResult` | `appendData_result_sound` / `setData_result_sound` | `replaceData_result_deterministic` に帰着 | `appendData_result_complete` / `setData_result_complete` |
+| insertData / deleteData（結果込み） | `Dom.Spec.ReplaceDataResult`（引数を固定） | `insertData_result_sound` / `deleteData_result_sound` | 同上 | `insertData_result_complete` / `deleteData_result_complete` |
 
-定理はすべて `Dom.Spec` 名前空間にある。下四つは**例外まで含めた**関係で、
+定理はすべて `Dom.Spec` 名前空間にある。「結果込み」の行は**例外まで含めた**関係で、
 soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。`replace` の
 失敗側は `preInsert` と同じ `PreInsertValidity` を使い回す（`replace` の step 1 が
 `ensurePreInsertionValidity` そのものであるため）。`move` は条件の語彙が違うので
@@ -56,6 +64,13 @@ soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。`repla
 渡す・外す」を繰り返す engine の読みで書く（record の並びがそれで決まる）。
 step 3 と step 7 の「contiguous exclusive Text nodes」は後ろ側だけを使う。
 tree order で処理すると、前側は処理の時点で残っていないからである。
+
+`ChildNode` / `ParentNode` の method と `CharacterData` の method は、仕様が
+pre-insert・replace・remove・replace all・replace data への委譲として書いているので、
+委譲の前の手順（parent が無ければ何もしない、viable sibling、reference child、
+step 2 の validity）だけを仕様の語彙で書き、委譲先は上の関係をそのまま使う
+（`Dom/Spec/ChildNode.lean`、`Dom/Spec/ReplaceAllSound.lean`、`Dom/Spec/CharacterDataResult.lean`）。
+`replaceWith` の step 6（pre-insert に回る枝）は、model では step 4 の変換が木を変えないので通らない。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`
@@ -96,7 +111,7 @@ soundness も component 単位で証明してある
 | remove | 1-2 parent の assert / 3 live range の pre-remove / 4 NodeIterator の pre-remove / 14 children から外す / 20 transient observer / 21 record | `remove`, `detachWithLiveAdjust`, `detach` | preservation `admissible_remove`、success `remove_succeeds_iff`、exception `remove_error_iff`、effect `remove_parentOf` `remove_not_mem_childrenOf` `remove_ranges` `remove_iterators`、frame `detach_frame` | `basic-insert-remove`, `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_mutation_primitives.rb`, `test_wpt_transient_registered_observer.rb` | 済 |
 | pre-remove | 1 parent の一致 / 2 remove | `preRemove` | success `preRemove_succeeds_iff`、exception `preRemove_error_iff` `preRemove_error_notFound`、委譲 `removeChild_refines_preRemove` | `basic-insert-remove` | `test_wpt_node_methods_on_every_node.rb` | 済 |
 | replace | 1 validity(child を除外) / 2-3 reference child / 4 previousSibling / 6 adopt / 7 child を外す / 9 insert / 10 record | `replace` | success `replace_succeeds_iff`、exception `replace_error_iff`、preservation `admissible_replace`、exception `replace_cycle_precedes_notFound`、effect `replace_reference_head` | `replacewith-bypasses-validity` | `test_wpt_mutation_record_insertion_point.rb` | 済（success は未） |
-| replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
+| replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | relation `ReplaceAllSpec`、success `replaceAll_isOk`、preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
 | move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 10-11 pre-remove / 14 外す / 16 offset 調整 / 18 入れる / 23-24 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、success `moveBefore_succeeds_iff` `move_isOk_of_validity`、exception `moveBefore_error_iff` `moveBefore_error_receiver`、exception 順序 `moveValidity_step1`〜`_step4`、step 7-9 の assert `moveValidity_parentOf_isSome`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move` | `test_wpt_move_before.rb` | 済（success は未） |
 
 ## §4.4 `Node.normalize()`
@@ -122,7 +137,7 @@ soundness も component 単位で証明してある
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| replace data | 1-2 IndexSizeError / 3 count の切り詰め / 4 record / 5-7 data の差し替え / 8-11 live range の調整 | `replaceData` と `appendData` / `insertData` / `deleteData` / `setData` | preservation `admissible_replaceData` ほか四つ、effect `replaceData_ok` | `characterdata-index-size-and-clamp`, `characterdata-replace-data-ranges` | `test_wpt_character_data.rb` | 済（success と exception は未） |
+| replace data | 1-2 IndexSizeError / 3 count の切り詰め / 4 record / 5-7 data の差し替え / 8-11 live range の調整 | `replaceData` と `appendData` / `insertData` / `deleteData` / `setData` | relation `ReplaceDataResult`（success と exception を含む）、preservation `admissible_replaceData` ほか四つ、effect `replaceData_ok` | `characterdata-index-size-and-clamp`, `characterdata-replace-data-ranges` | `test_wpt_character_data.rb` | 済 |
 
 ## §5.5 live Range / §6.1 NodeIterator
 
