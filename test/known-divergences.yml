@@ -507,3 +507,23 @@
     HTML §3.2.6.8 の deleter は remove an attribute by name（qualified name の
     最初の一致）。Firefox は namespace が null の `data-a` を消し、先にある namespace 付きの `d
     ata-a` を残す。
+
+- impl: dommy
+  scenario: dataset-reads-by-qualified-name
+  digest: 97479f9164c013ef
+  reason: |
+    HTML §3.2.6.8 の name-value pairs は名前（qualified name）が `data-` で始まる att
+    ribute から作り、namespace を見ない。Dommy は namespace が null の attribute だけを見る
+    ので、prefix の無い namespace 付きの `data-a` を列挙しない。Firefox と同じ。
+    Dommy は 2026-10-02 の main（`715fa7b`）で HTML の algorithm が null namespace の attribute
+    だけを読むように揃えてからこの形になった（それまでは model と一致していた）。この行は
+    model だけが孤立している行で、本文が namespace 付きの attribute を想定していない可能性が
+    高い（docs/status.md §「`dataset` は本文の字面どおりの実装が無い」）。
+
+- impl: dommy
+  scenario: dataset-deletes-by-qualified-name
+  digest: e825d052508f8561
+  reason: |
+    HTML §3.2.6.8 の deleter は remove an attribute by name（qualified name の
+    最初の一致）。Dommy は namespace が null の `data-a` を消し、先にある namespace 付きの
+    `data-a` を残す。Firefox と同じ。上の entry と同じ変更でこの形になった。

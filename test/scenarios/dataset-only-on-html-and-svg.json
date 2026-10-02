@@ -1,0 +1,45 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/html/blob/6992cb519a02db34f653ddd54c50fad2565285f5/source",
+    "algorithm": [
+      "HTMLOrSVGElement"
+    ],
+    "steps": "interface mixin HTMLOrSVGElement の dataset",
+    "note": "dataset は HTMLOrSVGElement mixin の attribute で、HTMLElement と SVGElement が持つ（MathML Core の MathMLElement も持つが、model は MathML を扱っていない）。namespace が null の element は Element でしかないので dataset は undefined で、そこから名前を引くと TypeError になる。HTML namespace の element は持つ。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createElementNS",
+      "document": 0,
+      "namespace": null,
+      "name": "div"
+    },
+    {
+      "op": "datasetGet",
+      "element": 1,
+      "name": "fooBar"
+    },
+    {
+      "op": "createElementNS",
+      "document": 0,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "name": "div"
+    },
+    {
+      "op": "datasetGet",
+      "element": 2,
+      "name": "fooBar"
+    }
+  ]
+}
