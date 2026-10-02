@@ -45,6 +45,8 @@ model と実装のどちらが本文と違うかを決める第三の根拠が�
 | §6.1 `URL` の getter と setter | `Url.href` ほか、`Url.setProtocol` ほか | `Url/Api.lean` |
 | §4.4 parser が `ValidUrl` を保つこと | `PInv`, `basicUrlParse_valid` | `Url/Invariant.lean` |
 | §4.4 state machine の 1 歩 | `step_X_valid`（state ごと 20 個）, `step_valid`, `run_valid` | `Url/StepValid.lean` |
+| §4.4 parser の出力が canonical であること | `CInv`, `basicUrlParse_canonical` | `Url/CanonicalInv.lean`, `Url/CanonicalParts.lean`, `Url/StepCanonical.lean` |
+| §4.4 / §4.3 parse の像と往復 | `parse_image`, `parse_serialize_of_parse` | `Url/ParseImage.lean` |
 | §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean` |
 | UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
 | UTF-8 の往復 | `Infra.utf8Decode_encode` | `Infra/Utf8Roundtrip.lean` |
@@ -610,9 +612,10 @@ parse し直したときに読み直されるのは後半なので、性質は�
 | `pathFold_append` | segment を並べる畳み込みは前に付いた文字列をそのまま残す |
 | `pathSerializer_cons` | 先頭 segment の前に `/` が一つ入る |
 
-**`parse (serialize u) = u` は一部だけ証明した**（`Url/Roundtrip.lean`）。
-parse の結果については成り立ち、`--wpt` が毎回 573 件（parse に成功した分）で
-確かめている（不一致 0）。
+**parse の結果については `parse (serialize u) = u` を証明した**（`parse_serialize_of_parse`、
+`Url/ParseImage.lean`）。`ValidUrl` と `canonicalUrl` を満たす record についての往復（`roundtrip_canonical`、
+`Url/Roundtrip.lean`）と、parser の出力がその二つを満たすこと（`basicUrlParse_valid`、`basicUrlParse_canonical`）を
+合わせたものである。`--wpt` も毎回 573 件（parse に成功した分）で確かめている（不一致 0）。
 
 ### `ValidUrl` では足りない
 
@@ -662,7 +665,11 @@ Windows drive letter は、証明を書いていて足りないことに気づ�
 | `hostReadable_of_canonical` | canonical な host は serialize した文字列を host state が読み直せる（host の種類ごとに根拠が違う） |
 | `ipv4Serializer_chars`, `utf8PercentEncode_out` | IPv4 は 10 進と `.`、opaque host は percent-encode 済みなので C0 control が無い |
 | `portValue_toString` | **10 進で書いた数は読み直すと元に戻る**（`Nat.toDigitsCore` についての帰納法） |
-| `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定である |
+| `canonicalUrl` | parser が返す record の形。`parse ∘ serialize` の仮定で、parse の像の定義でもある（`parse_image`） |
+| `basicUrlParse_canonical`, `parseUrl_canonical` | **parse が成功したら結果は `canonicalUrl` を満たす**（`Url/StepCanonical.lean`） |
+| `parse_serialize_of_parse`, `parseUrl_serialize` | **parse した結果は、serialize して parse し直すと戻る** |
+| `parse_image`, `parseUrl_image` | **parse の像は `ValidUrl ∧ canonicalUrl` にちょうど一致する**。base を与えても像は広がらない |
+| `parse_serialize_parse` | `parse ∘ serialize ∘ parse = parse`（`Option` の上で） |
 | `preprocess_eq_self` | 前後の一文字が C0 control でも space でもなく、tab も newline も無ければ前処理は何もしない |
 | `run_scheme_prefix`, `run_scheme_opaque` | scheme state が buffer に積み、`:` で opaque path state へ渡す |
 | `run_opaquePath_chunk`, `run_opaquePath_question`, `run_opaquePath_hash`, `run_opaquePath_eof` | opaque path state の三種類（読み進む・区切り・終端） |
@@ -704,12 +711,10 @@ query と fragment は四つの経路のどれからも同じ `run_query_full` �
 四つで parser の経路は出揃い、`roundtrip_canonical` が `ValidUrl` と `canonicalUrl` から
 四つを選び分ける。**`parse ∘ serialize = id` はこの二つの述語だけを仮定に閉じた。**
 
-逆向き（parser の出力が必ず `canonicalUrl` を満たすこと）は、**host の条件だけ証明に上がった**。
-`hostParser_idem`（`Url/HostRoundtrip.lean`）が「host parser の出力は serialize して
-parse し直すと戻る」と言う。四種類の往復
+逆向き（parser の出力が必ず `canonicalUrl` を満たすこと）も証明した（`basicUrlParse_canonical`。
+§「parse の像」）。host の条件はそこで `hostParser_idem`（`Url/HostRoundtrip.lean`）を使う。
+「host parser の出力は serialize して parse し直すと戻る」という定理で、四種類の往復
 （IPv4・opaque host・domain・IPv6）へ host の種類ごとに振り分ける形である。
-残りの条件（scheme が小文字であること、各成分が percent-encode 済みであることなど）は
-実行時の検査のままで、`PInv` と同じ形の state 不変条件を新しく立てる必要がある。
 IPv6 は `Url/Ipv6Roundtrip.lean` の `ipv6Parser_serializer` に乗る。`::` の圧縮は
 address を 0 の並びで割り（`ipv6_run_decompose`）、serialize の形を四つの補題で決め、
 parser の側を `ipv6Loop_pieces` と `ipv6Loop_colon` で進める。最後の `ipv6Expand` の
@@ -870,6 +875,61 @@ def RunIH (base : Option Url) (r n : Nat) : Prop :=
 閉じている。どの case がどの枝で閉じるかは相変わらず探索である。
 ただし探索の単位が state ごとに小さくなったので、
 `Url/Invariant.lean` でやっていた case 番号の直書きは要らなくなった。
+
+## parse の像
+
+`roundtrip_canonical` の逆向き、**parser が返す record は `canonicalUrl` を満たす**ことを証明した
+（`basicUrlParse_canonical`、`parseUrl_canonical`）。`roundtrip_canonical` と合わせると、parse の像は
+`ValidUrl ∧ canonicalUrl` にちょうど一致する（`parse_image`）。
+
+`roundtrip_canonical` の `canonicalUrl` の仮定は外せない。`ValidUrl` だけを満たす record には往復が
+成り立たないからである（§「`ValidUrl` では足りない」）。外せるのは「parse の結果である」という仮定に
+置き換えたときで、それが `parse_serialize_of_parse` である。
+
+### 不変条件は入力を見る
+
+帰納法の形は `ValidUrl` の保存と同じで、state で添字づけた不変条件 `CInv` を 20 state の
+一歩ずつで保つ（`Url/StepCanonical.lean`）。違うのは、**`CInv` が残りの入力を引数に取る**ことである。
+`canonicalUrl` の条件のうち二つは、根拠が `ctx` ではなく入力にある。
+
+* **opaque path は space で終わらない。** opaque path state は、次の文字が `?` でも `#` でもなければ
+  space をそのまま積む。EOF の直前に space が来ないのは前処理が末尾を落とすからで
+  （`preprocess_getLast`）、opaque path state までは「入力の末尾は space でない」を持ち回る。
+* **host が空なら credentials は持てない。** authority state は `@` の後の buffer が空なら失敗し、
+  そうでなければ buffer を入力に戻して host state に読み直させる。host state から見ると、
+  根拠は「buffer が空のまま credentials があるなら、次の文字は terminator でない」という形で届く。
+
+`PInv` は拡張せず、`CInv` を独立に立てた。`PInv` から借りる事実（scheme がまだ空、
+file slash state の scheme は `file` など）は `CInv` に複製してある。
+
+field は証明の前に boolean にして、parser の途中状態すべてで検査した（WPT の 820 件と
+ランダムな入力 12 万件、違反 0）。それでも帰納段で二つ足りなかった。
+path or authority state は special でない（`pathOrAuthority`）と、file slash / file host state の
+scheme は `file`（`fileScheme`）である。どちらも真ではあるが、それを持ち回らないと次の state で
+言えなくなる。実行時の検査で分かるのは真であることだけで、帰納的であることは証明でしか分からない。
+
+### §4.1 の残りの条件
+
+`canonicalUrl` には `ValidUrl` に入れていない §4.1 の二条件（host が空なら credentials は持てない、
+special な URL の host は null でない）が入っている。host の条件から、IPv6 address が 8 piece で
+16 bit に収まることも出る。したがって `checkStrictUrl` の三条件は、**parser の出力については**
+`basicUrlParse_canonical` から出る。定理としてはまだ取り出していない。setter の側の保存も残っている。
+
+### ToASCII
+
+`CInv` は ToASCII を既定の `asciiDomainToASCII` に固定している（field `toAsciiDef`）。
+host の条件が `hostParser_idem` に乗り、それが既定の ToASCII についての定理だからである。
+UTS #46 の表を渡したときは `--wpt` の実行時の検査だけになる。一般の ToASCII に広げるには、
+冪等性（`t x = some a → t a.toList = some a`）を仮定にして `hostParser_idem` の domain の分岐を
+一般化すればよいはずである。
+
+### 速さ
+
+帰納段は field ごとに `with_reducible assumption` で閉じる。既定の透明度の `assumption` は、型の合わない
+仮定とも `canonicalUrl` のような大きな Bool 関数を展開して比べにいき、一つの補題に数分かかった
+（188 秒が 16 秒になった例がある）。仮定と goal の state の述語は先に畳んで形を揃えておく。
+`pathStepUrl`・`appendOpaque`・`portDone` を挟む遷移は、simp に任せず遷移ごとの補題にした。
+`Url/StepCanonical.lean` 全体で約 1 分である。
 
 ## 不正な UTF-8 の復号を Encoding Standard に揃えた
 

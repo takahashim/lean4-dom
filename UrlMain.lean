@@ -121,12 +121,13 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
         if !checkStrictUrl u then
           invalid := invalid + 1
           IO.println s!"STRICT input={repr c.input} base={repr c.base} -> {urlSerializer u}"
-        -- parser が返す record の形（`parse ∘ serialize` の仮定）。
+        -- parser が返す record の形（`parse ∘ serialize` の仮定）。既定の ToASCII なら
+        -- `parseUrl_canonical` が言うが、UTS #46 の表を渡したときはこの検査だけが裏づけである。
         if !canonicalUrl u (toAsciiOf idna) then
           invalid := invalid + 1
           IO.println s!"CANONICAL input={repr c.input} base={repr c.base} -> {urlSerializer u}"
         -- serialize して parse し直すと元の record に戻ること。
-        -- serializer には定理が無いので、ここが唯一の裏づけである。
+        -- 既定の ToASCII なら `parseUrl_serialize` が言う。実装と証明が同じ定義を見ていることの検査として残す。
         match parseUrl (urlSerializer u) none (toAsciiOf idna) with
         | none =>
           invalid := invalid + 1

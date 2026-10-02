@@ -20,6 +20,7 @@ import Url.HostRoundtrip
 import Url.CanonicalInv
 import Url.CanonicalParts
 import Url.StepCanonical
+import Url.ParseImage
 import Url.Ipv6Roundtrip
 import Url.SearchParams
 import Url.Spec.Failure
