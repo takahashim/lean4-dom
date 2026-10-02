@@ -6,7 +6,7 @@
       "insertNode"
     ],
     "steps": "insertNode 7",
-    "note": "start node が Text なら step 7 で split text が起きる。新しい node を作るので roadmap §13.2 の対象外であり、model は __outsideModel__ を返す。差分テストはこの step 以降を比べない。"
+    "note": "start node が Text なら step 7 で split text が起きる。新しい node を作るので model の対象外であり、model は __outsideModel__ を返す。差分テストはこの step 以降を比べない。"
   },
   "nodes": [
     {

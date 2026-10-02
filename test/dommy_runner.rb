@@ -1302,7 +1302,7 @@ module DommyRunner
                    "reason" => "#{e.class}: #{e.message}" }
         break
       rescue StandardError => e
-        # 失敗した操作は状態を変えてはならない（roadmap §9）。
+        # 失敗した操作は状態を変えてはならない。
         # 変えていないことを比べられるように、失敗した step でも観測を出す。
         recs = observers.empty? ? nil : queued_records(objects, observers)
         steps << snapshot(ctx, ranges, iterators, recs, walkers)

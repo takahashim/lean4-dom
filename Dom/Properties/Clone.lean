@@ -4,7 +4,7 @@ import Dom.Properties.Create
 /-!
 # clone した subtree の性質
 
-roadmap §8.4 が求める二つを示す。
+clone について、次の二つを示す。
 
 * **identity は違う。** copy は原本と別の `NodeId` を持つ（`cloneNode_ne`）。
 * **観測できる形は同じ。** copy の subtree は原本の subtree と、kind・data・
@@ -649,7 +649,7 @@ theorem cloneNodeIn_ownerDocument {s s' : DOMState} {n doc c : NodeId} {subtree 
 /--
 **clone は原本と同じ形である。**
 
-roadmap §8.4 の「structurally equivalent」。deep clone について、copy の subtree が
+deep clone について、copy の subtree が
 原本の subtree と kind・data・attribute・名前・children の並びまで一致する。
 -/
 theorem cloneNodeIn_cloneOf {s s' : DOMState} {n doc c : NodeId}
@@ -658,7 +658,7 @@ theorem cloneNodeIn_cloneOf {s s' : DOMState} {n doc c : NodeId}
   obtain ⟨-, -, -, -, hcl, -, -⟩ := cloneNodeIn_deep_spec hv hdoc h
   exact hcl
 
-/-- **clone は原本とは別の node である。** roadmap §8.4 の「identity is different」。 -/
+/-- **clone は原本とは別の node である。** -/
 theorem cloneNodeIn_ne {s s' : DOMState} {n doc c : NodeId} {subtree : Bool}
     (hv : AdmissibleDOMState s) (hdoc : IsDocument s.tree doc)
     (h : cloneNodeIn s n doc subtree = .ok (c, s')) : c ≠ n := by

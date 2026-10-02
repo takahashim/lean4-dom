@@ -7,7 +7,7 @@ import Dom.Observer.Record
 /-!
 # 状態の妥当性
 
-`docs/status.md` の「Phase A：admissibility」が立てた層の `AdmissibleDOMState`。
+`docs/status.md` の「admissibility」が立てた層の `AdmissibleDOMState`。
 
 対象範囲の **局所不変条件** をすべて満たすことを表す。
 公開 API から実際に構成できること（reachability）とは別物で、

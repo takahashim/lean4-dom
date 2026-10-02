@@ -6,7 +6,7 @@ import Dom.Properties.PreInsertValidity
 /-!
 # `AdmissibleDOMState` の保存
 
-`docs/status.md` の「Phase A：admissibility」の完了条件
+`docs/status.md` の「admissibility」の完了条件
 「全対象 operation の `preserves_admissible`」。
 
 七つの成分のうち木に関する三つ（`Dom/Validity/AlgorithmPreservation.lean`）、
@@ -624,7 +624,6 @@ theorem admissible_setData {s s' : DOMState} {n : NodeId} {data : String}
 /--
 `remove` は live Range と NodeIterator の妥当性を保つ。
 
-`docs/status.md` の「Phase A：admissibility」の `remove_preserves_live_objects`。
 pre-remove steps が両方を仕様どおり動かすことの帰結である。
 -/
 theorem remove_preserves_live_objects {s s' : DOMState} {n : NodeId} {b : Bool}
@@ -634,8 +633,6 @@ theorem remove_preserves_live_objects {s s' : DOMState} {n : NodeId} {b : Bool}
 
 /--
 `replace data` は live Range と NodeIterator の妥当性を保つ。
-
-§16 の `replaceData_preserves_live_object_validity`。
 -/
 theorem replaceData_preserves_live_object_validity {s s' : DOMState} {n : NodeId}
     {offset count : Nat} {data : String} (h : AdmissibleDOMState s)
@@ -646,7 +643,6 @@ theorem replaceData_preserves_live_object_validity {s s' : DOMState} {n : NodeId
 /--
 `move` を木・Range・Iterator に射影した結果は、`remove` してから `insertAt` したものと一致する。
 
-§16 の `move_matches_remove_insert_observation`。
 `move` は node document を付け替えないので、`insert`（adopt を含む）ではなく
 primitive の `insertAt` との一致になる。
 Range は挿入側の調整を、Iterator は `remove` の pre-remove steps だけを受ける。

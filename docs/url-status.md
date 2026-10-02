@@ -21,7 +21,7 @@ DOM 側（`docs/status.md`）と同じ repository に置き、`Infra` ライブ�
 
 三つ目が大きい。`urltestdata.json` は 893 件の
 `(input, base, 期待される各成分)` の表で、そのまま固定 scenario になる。
-roadmap §12 が言う「第三の根拠」が最初から手に入る。
+model と実装のどちらが本文と違うかを決める第三の根拠が、最初から手に入る。
 
 ## 実装したもの
 

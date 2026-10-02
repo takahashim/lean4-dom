@@ -1,7 +1,5 @@
 # 主定理の一覧
 
-`notes/research-foundation-roadmap.md` §16。
-
 木・Range・NodeIterator・CharacterData に分散した結果を、
 状態遷移系全体に関する少数の定理として並べる。
 依存する axiom は `Audit.lean` が CI で検査している。

@@ -57,7 +57,7 @@ theorem boundaryLECounterexample_step :
       = .ok boundaryLECounterexampleAfter := rfl
 
 /--
-§8 の negative result。
+`BoundaryLE` の negative result。
 
 **`insert` は live range の start ≤ end を保たない。**
 

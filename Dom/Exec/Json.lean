@@ -668,7 +668,7 @@ def returnValueJson : ReturnValue → Json
 
 `result` は `ok` / `exception` として並べる。
 JSON は `Observation` の serialize であり、
-比較の意味は「同じ `Observation` に落ちること」である（roadmap §9）。
+比較の意味は「同じ `Observation` に落ちること」である。
 -/
 def observationFields (o : Observation) : List (String × Json) :=
   let resultFields : List (String × Json) :=

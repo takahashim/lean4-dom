@@ -10,8 +10,7 @@ import Dom.Attribute.Name
 ## model が持たない持ち物
 
 `equals` は DocumentType の name / public ID / system ID と
-ProcessingInstruction の target を見るが、model の `NodeData` はどちらも持たない
-（roadmap §13.1）。harness はどちらも固定値（`"html"` と `"pi"`）で作るので、
+ProcessingInstruction の target を見るが、model の `NodeData` はどちらも持たない。harness はどちらも固定値（`"html"` と `"pi"`）で作るので、
 その二つの比較は常に真になり、判定は変わらない。
 -/
 
@@ -43,7 +42,7 @@ model は node id の順という全順序で決める。
 `Dom/Properties/NodeQuery.lean` の `compareDocumentPosition_disconnected_consistent` が
 その一貫性である。
 
-attribute は node ではないので step 3-5 は model の対象外である（roadmap §13.3）。
+attribute は node ではないので step 3-5 は model の対象外である（`Attr` を渡す形は `compareDocumentPositionRef`）。
 -/
 def compareDocumentPosition (t : Tree) (node other : NodeId) : Nat :=
   if node == other then 0
@@ -69,7 +68,7 @@ def nodeContains (t : Tree) (node other : NodeId) : Bool :=
 /--
 DOM Standard §4.4 `getRootNode(options)`。
 
-`composed` は shadow tree の話なので model の対象外（roadmap §13.4）。
+`composed` は shadow tree の話なので model の対象外である。
 -/
 def getRootNode (t : Tree) (n : NodeId) : NodeId := root t n
 

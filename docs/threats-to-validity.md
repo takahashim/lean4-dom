@@ -1,7 +1,5 @@
 # Threats to validity
 
-`notes/research-foundation-roadmap.md` §12 と §13。
-
 この形式化から何が言えて何が言えないかを、先に並べておく。
 
 ## 1. 形式化の対象が仕様と一致している保証は無い

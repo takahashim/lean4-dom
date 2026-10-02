@@ -8,15 +8,15 @@ import Dom.CharacterData.ReplaceData
 boundary point を動かす側の method。木を変えるもの（`deleteContents` ほか）は別に置く。
 
 model の range は `DOMState.ranges` の要素で、scenario が与えた順に番号で指す。
-`Range` object を作る API（`createRange` / `cloneRange`）は object を生むので
-roadmap §13.2 の対象外であり、ここでは既にある range を動かすだけである。
+`Range` object を作る API（`createRange` / `cloneRange`）は model に無いので、
+ここでは既にある range を動かすだけである。
 
 ## 仕様の要点
 
 "set the start" と "set the end" は、**新しい端点が反対の端より後ろ（前）なら
 反対の端もそこへ動かす**。root が違う場合も同じで、range 全体が新しい木へ移る。
 この正規化があるので `start ≤ end` は API 経由では保たれる。
-木の側の変更（`insert`）では保たれないことが §8 の negative result である。
+木の側の変更（`insert`）では保たれない（`Dom/Properties/Counterexample.lean`）。
 -/
 
 namespace Dom
@@ -287,8 +287,8 @@ def rangeDeleteContents (s : DOMState) (i : Nat) : Except DOMException DOMState 
 /--
 DOM Standard §5.5 `Range.insertNode(node)`。
 
-step 7（start node が Text なら offset で split する）は node を作るので
-roadmap §13.2 の対象外である。start node が Text の場合は `outsideModel` を返す。
+step 7（start node が Text なら offset で split する）は Text を分割して node を作るので、
+model の対象外である。start node が Text の場合は `outsideModel` を返す。
 ただし step 1 の「parent の無い Text」は先に検査するので、そちらは `HierarchyRequestError` になる。
 
 step 10-11 の newOffset は「入った node の最後の次」に等しい。

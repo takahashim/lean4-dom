@@ -397,7 +397,7 @@ theorem run_preserves_admissibility :
 
 `AdmissibleDOMState` が **局所不変条件の閉包**であるのに対し、
 こちらは **構成可能性**である。両者は別の概念なので混同しない
-（`docs/status.md` の「Phase A：admissibility」）。
+（`docs/status.md` の「admissibility」）。
 -/
 inductive ReachableFrom (initial : DOMState → Prop) : DOMState → Prop where
   | base {s : DOMState} : initial s → ReachableFrom initial s

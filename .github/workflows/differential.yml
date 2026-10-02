@@ -1,7 +1,5 @@
 name: Differential
 
-# roadmap §11.2 / §11.3。
-#
 # Dommy と makiri を固定した差分テスト。`lake build` の CI（ci.yml）とは分けてある。
 # Dommy の checkout と native gem の build が要るので、既定では走らせない。
 #

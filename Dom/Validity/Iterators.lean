@@ -3,7 +3,7 @@ import Dom.Validity.AlgorithmPreservation
 /-!
 # iterator の妥当性の保存
 
-`docs/status.md` の「Phase A：admissibility」のうち、
+`docs/status.md` の「admissibility」のうち、
 `AdmissibleDOMState.iterators` の成分を algorithm ごとに保存する部分。
 
 `remove` の pre-remove steps が iterator の reference を動かすので、

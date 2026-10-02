@@ -1,7 +1,5 @@
 # 仕様トレーサビリティ
 
-`notes/research-foundation-roadmap.md` §10。
-
 WHATWG DOM Standard の algorithm と、Lean の実行関数・契約・固定 scenario・
 Dommy 側の WPT 由来 test を結ぶ対応表である。
 
@@ -152,7 +150,7 @@ soundness も component 単位で証明してある
 | `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode` | preservation `admissible_rangeInsertNode`, `validBoundaryPoint_of_siblingBP` | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start`, `range-insert-node-null-leaves-text-alone` | 同上 | 済（step 7 の split text は対象外） |
 
 `extractContents` / `cloneContents` / `surroundContents` / `cloneRange` は node を生むので
-roadmap §13.2 の対象外である。`insertNode` の step 7（start node が Text なら split する）も
+Text を分割して node を作るので model の対象外である。`insertNode` の step 7（start node が Text なら split する）も
 同じ理由で対象外で、model は `__outsideModel__` を返す
 （`range-insert-node-into-text-is-outside-model`）。
 
@@ -216,7 +214,7 @@ FILTER_REJECT が出ないぶん、仕様の pointer 走査は
 | walker の保存 | — | `walkerStep` | `walkersValid_walkerStep`, `admissible_walkerStep` | — | — | 済 |
 
 `currentNode` の setter は scenario の初期状態（`walkers` の `current`）としてだけ使える。
-`TreeWalker` を作る API（`createTreeWalker`）は object を生むので roadmap §13.2 の対象外で、
+`TreeWalker` を作る API（`createTreeWalker`）は model に無いので、
 scenario が最初から walker を与える形にしてある。
 
 ## §4.3 MutationObserver
@@ -275,7 +273,7 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | `HTMLCollection.namedItem(key)`（`children`） | §4.2.10.1 1-2 | `childrenNamedItem` | `SameNullNsView.childrenNamedItem` | `named-item-ignores-namespaced-id-and-name` | — | 済 |
 | `dataset`（`DOMStringMap`） | HTML §3.2.6.8 name-value pairs 1-3 / setter 1-5 / deleter 1-3 | `datasetPairs`, `datasetGet`, `datasetKeys`, `datasetSet`, `datasetDelete` | preservation `admissible_datasetSet`, `admissible_datasetDelete` | `dataset-reads-by-qualified-name`, `dataset-writes-the-null-namespace-attribute`, `dataset-deletes-by-qualified-name` | — | 済（本文の字面どおり。どの browser も字面どおりではない） |
 
-## normative branch の網羅（roadmap §11.3）
+## normative branch の網羅
 
 scenario の **件数** ではなく、対象 algorithm の各 normative branch に
 固定 scenario があるかどうかを指標にする。
@@ -362,18 +360,18 @@ node document が copy になるのは `append` の中の adopt による。
 
 | 項目 | 扱い | 根拠 |
 | --- | --- | --- |
-| Shadow DOM（shadow-including root / slot） | 未対応 | roadmap の対象外。`move` step 1 は shadow-including root ではなく root で近似している |
+| Shadow DOM（shadow-including root / slot） | 未対応 | shadow tree を表す構造が model に無い。`move` step 1 は shadow-including root ではなく root で近似している |
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
 | `Attr` の node としての性質 | 部分対応 | model の attribute は element の状態で node tree に入らない。node document（`Attr.ownerDocument`）、parent が null であること、root が自分であること、`compareDocumentPosition` の step 3-5、value の setter、clone / import / adopt、子を持てないことは扱う（`Dom/Attribute/AsNode.lean`）。`Attr` を target にした event の配送と、`insertBefore` などの child 側に `Attr` を渡す形は扱わない |
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
-| UTF-16 の lone surrogate | 部分モデル | roadmap §13.1。長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |
-| node 生成と可変長引数の変換 | 部分対応 | roadmap §13.2。§4.5 の factory・§4.4 の `cloneNode`・§4.5 の `importNode` / `adoptNode` は model にあり、固定 scenario でも生成 scenario でも差分テストに出ている。生成側は必ず成功する形だけを作る。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
+| UTF-16 の lone surrogate | 部分モデル | 長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |
+| node 生成と可変長引数の変換 | 部分対応 | §4.5 の factory・§4.4 の `cloneNode`・§4.5 の `importNode` / `adoptNode` は model にあり、固定 scenario でも生成 scenario でも差分テストに出ている。生成側は必ず成功する形だけを作る。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
 | method の戻り値 | 済 | `returnValueOf`（`Dom/Exec/Eval.lean`）。`Node?` / boolean / record 列を kind つきで観測する。`undefined` と `null` は区別する |
-| wrapper の object identity | 対象外 | roadmap §13.3。model は node を生成しないので wrapper を作る API の同一性は観測できない。node を返す method の戻り値は `NodeId` で比べるので「返ってきたのは渡した node そのものか」は観測できる |
+| wrapper の object identity | 対象外 | model は wrapper を持たないので wrapper を作る API の同一性は観測できない。node を返す method の戻り値は `NodeId` で比べるので「返ってきたのは渡した node そのものか」は観測できる |
 | `normalize()` の record の並び | engine に合わせた | 仕様を字義どおり読むと run ごとに characterData が一つだが、Blink・WebCore・Gecko は兄弟ごとに積む。WPT が固定しているのは childList の側だけである。木と live range の最終状態はどちらの読みでも同じ |
 | `Attr` の identity | 対象外 | `setAttributeNode` / `NamedNodeMap` / `InUseAttributeError` が要求する。attribute は element の状態なので object にならない |
-| `NodeFilter` の callback | 対象外 | roadmap §13.4。callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
+| `NodeFilter` の callback | 対象外 | callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
 | WebIDL の TypeError | 近似 | `observe` の step 3-6、attribute の method の receiver が Element でない場合、`moveBefore` の receiver が ParentNode でない場合（`move-receiver-must-be-parentnode`）を `DOMException.typeError` で表す。名前は一致するが実際には `DOMException` ではない |
 
 ## §1.3 Selectors / §4.2.6 `ParentNode` / §4.8 `Element`
