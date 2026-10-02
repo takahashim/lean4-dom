@@ -97,6 +97,10 @@ import Dom.Spec.Complete
 import Dom.Spec.Validity
 import Dom.Spec.ValidityOrder
 import Dom.Spec.Result
+import Dom.Spec.CharacterDataResult
+import Dom.Spec.ChildNode
+import Dom.Spec.ReplaceAll
+import Dom.Spec.ReplaceAllSound
 import Dom.Properties.Counterexample
 import Dom.Properties.Witness
 import Dom.Observation
