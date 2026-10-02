@@ -3533,6 +3533,9 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 その後に出た 37-45 も、Dommy の PR #67（branch `fix/css-escape-edge-cases`、merge commit `bc883f1`）で
 すべて閉じた。pin をそこへ上げた（2026-10-01）。
 
+50・51・53-56 も Dommy の main（`715fa7b`、2026-10-02）で閉じた。pin をそこへ上げ、57 が新しく出た
+（§「pin を Dommy `715fa7b` に上げた」）。
+
 * 37-44：CSS Syntax の escape・string・comment の扱いと attribute selector の照合
 * 45：`1877e5c`（"Find only HTML elements in getElementsByName"）
 * 結果、固定 scenario 171 本は 166 ok / 2 skip / 3 known / 0 mismatch、生成 scenario も
@@ -3591,6 +3594,7 @@ jsdom の findings（19・20・24・25・27-29・33-36・40・42-47）は pin �
 | 54 | Dommy | reflect の setter が null namespace の attribute を作らず、prefix の無い namespace 付きの同名 attribute を書き換える（同上） | `reflect-writes-the-null-namespace-attribute` |
 | 55 | Dommy | `HTMLCollection.namedItem` が namespace 付きの `id`・`name` で当たる（同上） | `named-item-ignores-namespaced-id-and-name` |
 | 56 | Dommy | `dataset` の setter が prefix の無い namespace 付きの `data-*` を書き換える（同上） | `dataset-writes-the-null-namespace-attribute` |
+| 57 | Dommy | `dataset` が HTML でも SVG でもない element（namespace が null の `div` など）にもある（§「pin を Dommy `715fa7b` に上げた」） | `dataset-only-on-html-and-svg` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5576,6 +5580,8 @@ Firefox は `Attr` を付けた element を別の document へ adopt しても�
 
 ### findings 50・51 の詳細（Dommy）
 
+どちらも Dommy の main `715fa7b` で直った（§「pin を Dommy `715fa7b` に上げた」）。以下は見つけたときの記録である。
+
 Dommy の main（`dd6bcbc`）で見た。行番号は `gems/dommy/lib/dommy/` からの相対である。
 
 `Dommy::Attr`（`attr.rb`）は element に付いている間は `@owner` から value と node document を引き、外れている
@@ -5774,6 +5780,8 @@ local name" に落ちるので、admissibility の保存は `AttrOpResult` の�
 
 ### findings 53-56（Dommy）
 
+どれも Dommy の main `715fa7b` で直った（§「pin を Dommy `715fa7b` に上げた」）。
+
 53-55 は報告にあった形を model で裏付けたもの、56 は報告に無かった。どれも三つの browser は本文どおりで、
 WebKit と Chromium は 56 だけ Dommy と同じ側に外れる（下の表）。
 
@@ -5789,9 +5797,9 @@ WebKit と Chromium は 56 だけ Dommy と同じ側に外れる（下の表）�
 
 | 固定 scenario | 本文（model） | Dommy | Chromium | Firefox | WebKit |
 | --- | --- | --- | --- | --- | --- |
-| `dataset-reads-by-qualified-name`（qualified name で列挙。`p:data-b` は入らない） | ✓ | ✓ | local name で列挙 | null namespace だけ | local name で列挙 |
-| `dataset-writes-the-null-namespace-attribute` | ✓ | 56 | 囮を書き換える | ✓ | 囮を書き換える |
-| `dataset-deletes-by-qualified-name`（remove an attribute by name） | ✓ | ✓ | ✓ | null namespace を消す | ✓ |
+| `dataset-reads-by-qualified-name`（qualified name で列挙。`p:data-b` は入らない） | ✓ | null namespace だけ | local name で列挙 | null namespace だけ | local name で列挙 |
+| `dataset-writes-the-null-namespace-attribute` | ✓ | ✓ | 囮を書き換える | ✓ | 囮を書き換える |
+| `dataset-deletes-by-qualified-name`（remove an attribute by name） | ✓ | null namespace を消す | ✓ | null namespace を消す | ✓ |
 | `class-list-add-nothing-creates-no-attribute`（update steps step 1） | ✓ | ✓ | `class=""` を作る | `class=""` を作る | ✓ |
 
 HTML §3.2.6.8 の name-value pairs は「名前が `data-` で始まる content attribute」で、namespace に触れない。
@@ -5799,6 +5807,8 @@ model はこれを qualified name と読んだ。三つの browser はどれも�
 **model だけが孤立している行**で、`docs/threats-to-validity.md` §5 の言う読み違いを疑う場所である。
 本文が namespace 付きの属性を想定していない可能性が高く、whatwg/html に問う値打ちがある。
 browser の外れ方はすべて `test/known-divergences.yml` に入れた。
+Dommy の列は main `715fa7b` のもので、56 を直したときに読みと削除も null namespace に揃い、Firefox と同じ形になった
+（それまでは読みと削除が model と一致していた）。これも `known-divergences.yml` に入れた。
 `classList.add()` の空の場合は WPT（`dom/nodes/Element-classlist.html`）に case が無い。
 
 ### model の外で見つけたもの（静的な掃き出し）
@@ -5827,6 +5837,44 @@ QuickJS で再現を確かめた。model が無いので番号は振らない。
   findings が見込めないので、後回しにした。
 * **`:lang()`。** 同じく selector の文法の拡張が要る。
 * **`NamespaceWellFormed` の admissibility 成分化。** §「model に足したもの」と `docs/theorems.md` の 21。
+
+## pin を Dommy `715fa7b` に上げた
+
+2026-10-02 に `test/pinned-versions.json` を Dommy の main `715fa7b`（v0.14.0）と makiri `0.12.1` へ上げた。
+makiri は Dommy の gemspec が `>= 0.12.1` を要求するので一緒に上げた。
+
+**findings 50・51・53-56 は閉じた。** `Attr` を `Node` として扱う 8 本と、名前空間の取り違えの固定 scenario は
+すべて一致する。
+
+**`dataset` の読みと削除は Firefox と同じ形になった。** Dommy は 56 を直すときに、HTML の algorithm が
+読む attribute を null namespace のものに揃えた。その結果 `dataset-reads-by-qualified-name` と
+`dataset-deletes-by-qualified-name` が割れるようになった（読みは prefix の無い namespace 付きの `data-a` を列挙せず、
+削除は null namespace の `data-a` を消す）。この二行は §「`dataset` は本文の字面どおりの実装が無い」で
+model だけが孤立している行として挙げたもので、model の読みのほうが疑わしい。model は直さず、
+Firefox と同じ理由で `test/known-divergences.yml` に入れた。
+
+**findings 57：`dataset` が HTML でも SVG でもない element にもある。** nightly と同じ 3 matrix × seed 1-10
+（`--quirks-prob 0.3 --move`）を回すと、`(12,10,4,3,3)` の seed 5 で一件だけ割れた。最小化すると
+`createElementNS(null, "div")` で作った element の `dataset.fooBar` で、model は TypeError、Dommy は値を返す。
+`dataset` は HTML の `HTMLOrSVGElement` mixin の attribute で、`HTMLElement` と `SVGElement` が持つ。
+namespace が null の element は `Element` でしかないので `dataset` は undefined になり、そこから名前を引くと
+TypeError である。Dommy は `Element#dataset`（`element.rb`）をすべての element に持たせていて、これは 2026-05 の
+最初の commit からある。今回の pin で入ったものではなく、生成器が null namespace の element に `datasetGet` を
+当てる組み合わせを初めて引いた。§「名前空間の取り違え」の向き D（HTML namespace の element に限る処理を
+すべての element に当てる）と同じ形である。固定 scenario `dataset-only-on-html-and-svg` を足した。
+
+この調べで model 側の欠けも一つ分かった。MathML Core の `MathMLElement` も `HTMLOrSVGElement` を含むので
+MathML namespace の element も `dataset`（と同じ mixin の `autofocus` など）を持つが、model の
+`ReflectIface.htmlOrSvg` は HTML と SVG の namespace しか見ていない。model は MathML を扱っていないので、
+今のところ生成器も固定 scenario も MathML の element を作らず、比較には出ていない。
+
+結果は次のとおりである。
+
+* 固定 scenario：183 ok / 2 skip / 5 known / 1 mismatch（57）。5 known は 19・20 の 3 本と `dataset` の 2 本。
+* 生成 scenario：3 matrix × seed 1-10 で 57 の 1 件だけ。CI と同じ seed 1（`--ranges 4 --iterators 2
+  --observers 3 --move`）は 0 mismatch。
+
+方針どおり 57 は expected に落とさないので、Dommy が直すまで固定 scenario の job は赤になる。
 
 ## 未着手
 

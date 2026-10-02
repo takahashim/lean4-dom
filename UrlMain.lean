@@ -63,8 +63,8 @@ def idnaRangeOfJson (j : Json) : Except String IdnaRange := do
     return { lo, hi, status, oom := oom != 0, mapping }
   | _ => throw "範囲が 4 要素以上の配列ではない"
 
-/-- UTS #46 の表を読む。`Resolved` を実行時に確かめる。 -/
-def loadIdnaTable (path : String) : IO (Option (Array IdnaRange)) := do
+/-- UTS #46 の表を読む。`Resolved` と `NoUpperValid` を実行時に確かめる。 -/
+def loadIdnaTable (path : String) (verbose : Bool := true) : IO (Option (Array IdnaRange)) := do
   let text ← IO.FS.readFile path
   let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return none
   let .ok rangesJson := json.getObjVal? "ranges"
@@ -85,7 +85,8 @@ def loadIdnaTable (path : String) : IO (Option (Array IdnaRange)) := do
   if !checkNoUpperValid rs then
     IO.eprintln s!"{path}: ASCII の大文字に valid な項がある（IdnaTable.NoUpperValid を満たさない）"
     return none
-  IO.println s!"UTS #46 の表: {rs.size} 範囲、昇順・非重複、Resolved と NoUpperValid を満たす"
+  if verbose then
+    IO.println s!"UTS #46 の表: {rs.size} 範囲、昇順・非重複、Resolved と NoUpperValid を満たす"
   return some rs
 
 /-- 表があればそれを使う ToASCII、無ければ ASCII だけの既定。 -/
@@ -458,6 +459,89 @@ def runUrlencoded : IO UInt32 := do
   IO.println s!"urlencoded: 一致 {ok} / 不一致 {bad}"
   return if bad == 0 then 0 else 1
 
+/-! ## 一つの URL を parse する -/
+
+/--
+キーの順を保つ JSON。`Lean.Json` の object はキーを並べ替えるので、読む順に出したいここでは
+葉だけを `Json` にして、object は自前で並べる。
+-/
+inductive OJson where
+  | leaf (j : Json)
+  | obj (fields : List (String × OJson))
+
+partial def OJson.render (indent : String := "") : OJson → String
+  | .leaf j => j.compress
+  | .obj [] => "{}"
+  | .obj fs =>
+    let inner := indent ++ "  "
+    let lines := fs.map fun (k, v) => inner ++ (Json.str k).compress ++ ": " ++ v.render inner
+    "{\n" ++ ",\n".intercalate lines ++ "\n" ++ indent ++ "}"
+
+def ostr (s : String) : OJson := .leaf (Json.str s)
+
+def optStrJson : Option String → OJson
+  | none => .leaf Json.null
+  | some v => ostr v
+
+def hostJson : Host → OJson
+  | .domain d => .obj [("kind", ostr "domain"), ("value", ostr d)]
+  | .ipv4 a => .obj [("kind", ostr "ipv4"), ("value", ostr (ipv4Serializer a))]
+  | .ipv6 a => .obj [("kind", ostr "ipv6"), ("value", ostr (ipv6Serializer a))]
+  | .opaque o => .obj [("kind", ostr "opaque"), ("value", ostr o)]
+  | .empty => .obj [("kind", ostr "empty"), ("value", ostr "")]
+
+/-- URL record をそのまま JSON にする。null と空文字列を区別する。 -/
+def recordJson (u : Url) : OJson :=
+  .obj [
+    ("scheme", ostr u.scheme),
+    ("username", ostr u.username),
+    ("password", ostr u.password),
+    ("host", match u.host with | none => .leaf Json.null | some h => hostJson h),
+    ("port", match u.port with | none => .leaf Json.null | some p => .leaf (Json.num p)),
+    ("path", match u.path with
+      | .opaque o => .obj [("opaque", ostr o)]
+      | .list segs => .obj [("segments", .leaf (Json.arr (segs.map Json.str).toArray))]),
+    ("query", optStrJson u.query),
+    ("fragment", optStrJson u.fragment)]
+
+/--
+`URL(input, base)` の結果を JSON で返す。
+
+失敗したら `"failure": true`。成功したら IDL attribute（`href` ほか）、origin、
+URL record そのもの、それに record が満たす述語（`ValidUrl` ほか）を返す。
+-/
+def parseJson (input : String) (base : Option String) (idna : Option (Array IdnaRange)) :
+    Option Url × OJson :=
+  let head : List (String × OJson) := [("input", ostr input), ("base", optStrJson base)]
+  match parseUrl input base (toAsciiOf idna) with
+  | none => (none, .obj (head ++ [("failure", .leaf (Json.bool true))]))
+  | some u =>
+    (some u, .obj (head ++ [("failure", .leaf (Json.bool false))] ++
+      attrNames.map (fun n => (n, optStrJson (u.getAttr n))) ++
+      [("origin", ostr (originSerializer (Url.origin u))),
+       ("record", recordJson u),
+       ("checks", .obj [
+         ("validUrl", .leaf (Json.bool (checkValidUrl u))),
+         ("strict", .leaf (Json.bool (checkStrictUrl u))),
+         ("canonical", .leaf (Json.bool (canonicalUrl u (toAsciiOf idna))))])]))
+
+/-- `--parse INPUT [--base BASE] [--idna TABLE]` の残りの引数を読む。 -/
+def parseArgs : List String → Option (Option String × Option String)
+  | [] => some (none, none)
+  | "--base" :: b :: rest => (parseArgs rest).bind fun (_, t) => some (some b, t)
+  | "--idna" :: t :: rest => (parseArgs rest).bind fun (b, _) => some (b, some t)
+  | _ => none
+
+/-- 一つの URL を parse して JSON を出す。失敗したら終了コード 1（`URL.canParse` が false）。 -/
+def runParse (input : String) (base tablePath : Option String) : IO UInt32 := do
+  let idna ← match tablePath with
+    | none => pure none
+    | some path => loadIdnaTable path (verbose := false)
+  if tablePath.isSome && idna.isNone then return 1
+  let (u, j) := parseJson input base idna
+  IO.println (j.render)
+  return if u.isSome then 0 else 1
+
 def main (args : List String) : IO UInt32 := do
   match args with
   | ["--wpt", path] => do
@@ -476,6 +560,13 @@ def main (args : List String) : IO UInt32 := do
   | ["--searchparams", path] => runSearchParams path
   | ["--punycode", path] => runPunycode path
   | ["--urlencoded"] => runUrlencoded
-  | _ =>
-    IO.println "usage: url-model --wpt FILE [UTS46] | --setters FILE [UTS46] | --searchparams FILE | --punycode FILE | --urlencoded"
+  | "--parse" :: input :: rest =>
+    match parseArgs rest with
+    | some (base, table) => runParse input base table
+    | none => usage
+  | _ => usage
+where
+  usage : IO UInt32 := do
+    IO.println ("usage: url-model --wpt FILE [UTS46] | --setters FILE [UTS46] | --searchparams FILE | " ++
+      "--punycode FILE | --urlencoded | --parse INPUT [--base BASE] [--idna UTS46]")
     return 1

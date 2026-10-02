@@ -478,6 +478,26 @@ WPT の `ﬃ&🌈` がこれを見分ける case で、code point 順に実装�
 IPv4（10 件）、IPv6（15 件）、host（15 件）は Dommy の実装とも突き合わせた。
 host の 2 件が IDNA の境界で、それ以外は一致した。
 
+### 一つの URL を見る
+
+`lake exe url-model --parse INPUT [--base BASE] [--idna UTS46]` は `URL(input, base)` を model で
+評価し、結果を JSON で出す。IDL attribute（`href` から `hash` まで）と origin に加えて、
+URL record そのもの（host の種類、port、path が opaque か segment の列か、query と fragment が
+null か空文字列か）と、record が `checkValidUrl`・`checkStrictUrl`・`canonicalUrl` を満たすかを並べる。
+失敗したら `"failure": true` を出して終了コード 1 で終わる。
+
+```
+$ lake exe url-model --parse "HTTP://EXAMPLE.com:80/a/./b/../c?q=1 2"
+{
+  "input": "HTTP://EXAMPLE.com:80/a/./b/../c?q=1 2",
+  "base": null,
+  "failure": false,
+  "href": "http://example.com/a/c?q=1%202",
+  ...
+```
+
+既定の ToASCII は ASCII の domain しか通さないので、`http://日本.jp/` は表を渡さないと失敗する。
+
 ## WPT が見つけた仕様の読み違い
 
 1. **"start over" は scheme state 限定。** 最初は「どこで失敗しても先頭からやり直す」に
@@ -846,6 +866,46 @@ URL library 全体でも素から 42 秒（CPU 769%）である。
 
 `Url/Invariant.lean` には `PInv` とその足場だけが残り、0.36 秒で終わる。
 証明の中身（simp のやり方）は変えていない。変えたのは帰納法の回し方だけである。
+
+### 遷移ごとの補題で `PInv` を移す
+
+その後 `PInv` の成分が 27 まで増え、`Url/StepValid.lean` は手元の 8 コアで 180 秒
+（CPU 749 コア秒）、CI では 559 秒かかるようになっていた。ビルド全体の大半である。
+
+各 state の証明は `step` を分岐に割り、どの分岐にも同じ tactic（`url_close`）を当てていた。
+`url_close` は分岐が失敗・終端・再帰のどれかを書かずに、選択肢を順に試す。
+再帰の分岐では失敗用の `simp_all` を三通り空振りしてから、`PInv` の 27 成分を
+一つずつ `simp_all` で示していた。文脈には `PInv` を分解した仮定が 40 ほど載っている。
+
+遷移の種類ごとに `PInv` が移ることを一度だけ示す補題を立てた（`Url/StepTransfer.lean`）。
+
+| 補題 | 遷移 |
+| --- | --- |
+| `PInv.transfer` | URL record の `UrlCore`（scheme から path まで）を変えない。state と buffer だけ、または query と fragment だけを書く |
+| `PInv.transferPath` | path だけを書き換え、opaque かどうかを変えない |
+| `PInv.pathStep`, `PInv.opaqueAppend` | path state の segment の確定、opaque path への追記 |
+| `PInv.setScheme`, `PInv.setSchemeOpaque` | host も credentials も port も無い state から scheme を書く |
+| `PInv.setHost` | host を書く（file state では scheme も） |
+| `PInv.fromBase` | base の成分を写して query か fragment へ進む |
+| `PInv.toPathOf` | base の成分を写して path state へ進む |
+| `PInv.userinfo` | authority state が username と password を書く |
+
+state に依存する成分は、移る元と先の state だけで決まる真偽値（`StateMono` など）にまとめ、
+具体的な state の組では `decide` で閉じる。各分岐で残るのは、URL record の変わり方の照合と、
+分岐の条件から出る少数の副条件だけである。`url_close` も安い選択肢から試すように並べ替えた。
+
+途中で三か所、定義の展開で止まらなくなった。`refine` に失敗の枝（`.error _ = .ok u`）を渡すと
+`run` を展開して単一化しようとし、URL record の照合（`rfl`）や仮定での `assumption` は
+`pathStepUrl` を展開して比べようとする。前者は `guard_hyp heq :~ run _ _ _ _ = _` で形を先に確かめ、
+後者は `with_reducible` で展開を禁じた。
+
+| | 時間 | CPU |
+| --- | --- | --- |
+| 補題を立てる前 | 180s | 749 コア秒 |
+| 補題を立てた後 | **18s** | **58 コア秒** |
+
+補題が扱わないのは、host state の override の分岐（`noOverride` と矛盾して到達しない）だけで、
+そこは従来どおり成分を一つずつ示している。
 
 ### 測度は一つの自然数に潰せない
 

@@ -126,6 +126,10 @@ lake exe url-model --wpt test/url/wpt-ascii.json
 lake exe url-model --setters test/url/wpt-setters.json
 lake exe url-model --searchparams test/url/wpt-searchparams-sort.json
 
+# 一つの URL を parse して、IDL attribute・origin・URL record を JSON で出す
+# （失敗すると終了コード 1。非 ASCII の domain は --idna test/url/uts46-table.json が要る）
+lake exe url-model --parse "../x?y" --base "https://example.com/a/b"
+
 # 一つの scenario を評価して観測を JSON で出す
 lake exe dom-model test/scenarios/basic-insert-remove.json
 ```
