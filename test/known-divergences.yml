@@ -164,3 +164,346 @@
   scenario: scope-pseudo-is-the-document-element
   digest: c45edd043ff5a9e8
   reason: *scope_document_element
+
+- impl: chromium
+  scenario: empty-pseudo-allows-white-space
+  digest: bb9d018b014f7f5f
+  reason: *empty_whitespace
+
+- impl: chromium
+  scenario: scope-pseudo-virtual-root-is-featureless
+  digest: ff8e127934fe0e9f
+  reason: *scope_virtual_root
+
+- impl: chromium
+  scenario: scope-pseudo-is-the-document-element
+  digest: 816bd6428a0b0e1f
+  reason: *scope_document_element
+
+- impl: firefox
+  scenario: empty-pseudo-allows-white-space
+  digest: 78cf8eaf88a375dc
+  reason: *empty_whitespace
+
+- impl: firefox
+  scenario: scope-pseudo-virtual-root-is-featureless
+  digest: 20cb2e790cb47ae0
+  reason: *scope_virtual_root
+
+- impl: firefox
+  scenario: scope-pseudo-is-the-document-element
+  digest: 81d7f4ce0f49f271
+  reason: *scope_document_element
+
+- impl: webkit
+  scenario: empty-pseudo-allows-white-space
+  digest: 955486e5cd1e0659
+  reason: *empty_whitespace
+
+- impl: webkit
+  scenario: scope-pseudo-virtual-root-is-featureless
+  digest: 9be2d71cc45b6114
+  reason: *scope_virtual_root
+
+- impl: webkit
+  scenario: scope-pseudo-is-the-document-element
+  digest: ec0f345711a5ea46
+  reason: *scope_document_element
+
+- impl: chromium
+  scenario: non-ascii-ident-code-points-are-a-list
+  digest: 74f1a5d9174d5712
+  reason: &ident_code_points |
+    css-syntax-3 の non-ASCII ident code point は「U+0080 以上すべて」ではなく、HTML の
+    valid custom element name に合わせた一覧である（同仕様の changes に記載）。U+2603 SNOWMAN は
+    U+218F と U+2C00 の間なので入らず、`.☃` は SyntaxError になる（findings 29）。
+
+    Chromium・Firefox・WebKit はどれも旧い定義のまま `.☃` を通す。jsdom も同じ（findings 29）。
+    Dommy は `a0d8736` で一覧に揃えた。仕様の改訂に engine が追随していない形で、
+    model は pin した本文に従う。
+    https://drafts.csswg.org/css-syntax-3/#non-ascii-ident-code-point
+
+- impl: firefox
+  scenario: non-ascii-ident-code-points-are-a-list
+  digest: 5f26792b222c47a4
+  reason: *ident_code_points
+
+- impl: webkit
+  scenario: non-ascii-ident-code-points-are-a-list
+  digest: dc97cbd85feb9443
+  reason: *ident_code_points
+
+- impl: chromium
+  scenario: tokens-between-attribute-and-prefix-parts
+  digest: cd2b71b203660729
+  reason: &tokens_between_delims |
+    `[class~/**/=u]` の `~` と `=` は二つの delim token で、Selectors §18 の
+    `<attr-matcher>` は「token の間に whitespace を置かない」と言う。comment は CSS Syntax の
+    tokenizer が読み捨てるので token でも whitespace でもなく、model は通す（findings 43）。
+
+    Chromium・Firefox・WebKit はどれも SyntaxError にする。CSS 2.1 の tokenizer にあった
+    include-match token（`~=`）を一つの token として読み、間に comment があると別の
+    二つになる、という旧い読みのままと考えられる。jsdom も通さない（findings 43）。
+    Dommy は PR #67 で通すようにした。engine が揃って本文と違う形なので、
+    model の読みが怪しくないかは `docs/status.md` §「Firefox と WebKit を並べた」で見直した。
+    https://drafts.csswg.org/selectors-4/#attribute-selectors
+    https://drafts.csswg.org/css-syntax-3/#consume-comment
+
+- impl: firefox
+  scenario: tokens-between-attribute-and-prefix-parts
+  digest: 16cf705ead7bb310
+  reason: *tokens_between_delims
+
+- impl: webkit
+  scenario: tokens-between-attribute-and-prefix-parts
+  digest: f84206572720acd0
+  reason: *tokens_between_delims
+
+- impl: chromium
+  scenario: type-selector-case-follows-namespace
+  digest: 5b77e51b1523f02d
+  reason: |
+    HTML §4.16.2 "Case-sensitivity of selectors" は次のとおり。
+
+    > When comparing a CSS element type selector to the names of HTML elements in HTML
+    > documents, the CSS element type selector must first be converted to ASCII lowercase.
+    > The same selector when compared to other elements must be compared according to
+    > its original case.
+
+    selector を lowercase してから比べるのは HTML element だけで、SVG の `rect` とは
+    元の大文字小文字で比べるので `RECT` は当たらない。Chromium は HTML document の中なら
+    namespace に依らず type selector を case-insensitive に比べる。
+
+    | selector | Chromium 153 | Firefox 155 | WebKit 26.6 | 本文 |
+    | --- | --- | --- | --- | --- |
+    | `RECT` が SVG の `rect` に | 当たる | 当たらない | 当たらない | 当たらない |
+    | `rect` が script で作った SVG の `RECT` に | 当たる | 当たらない | 当たらない | 当たらない |
+    | `foreignobject` が `foreignObject` に | 当たる | 当たらない | 当たらない | 当たらない |
+    | `LINEARGRADIENT` が `linearGradient` に | 当たる | 当たらない | 当たらない | 当たらない |
+    https://html.spec.whatwg.org/multipage/semantics-other.html#case-sensitivity-of-selectors
+
+- impl: firefox
+  scenario: range-adjust-order-on-before
+  digest: 0b4025883851352d
+  reason: &insert_order_others |
+    上の chromium の entry（`range-adjust-order-on-before`）と同じ形。Firefox と WebKit も
+    removal の調整を先に走らせたかのように振る舞う。三つの browser が揃って WPT を通るのは、
+    WPT がこの場所（同じ parent の中で index が変わる移動）を試していないからである。
+    https://dom.spec.whatwg.org/#concept-node-insert
+
+- impl: firefox
+  scenario: range-adjust-order-on-move
+  digest: 0b4025883851352d
+  reason: *insert_order_others
+
+- impl: firefox
+  scenario: range-order-broken-by-insert
+  digest: 42750549eba9037b
+  reason: *insert_order_others
+
+- impl: webkit
+  scenario: range-adjust-order-on-before
+  digest: e70047fdcca27aea
+  reason: *insert_order_others
+
+- impl: webkit
+  scenario: range-adjust-order-on-move
+  digest: e70047fdcca27aea
+  reason: *insert_order_others
+
+- impl: webkit
+  scenario: range-order-broken-by-insert
+  digest: b2d916912d0fe0ad
+  reason: *insert_order_others
+
+- impl: webkit
+  scenario: range-delete-contents-across-nodes
+  digest: b086b73b2d171e9e
+  reason: |
+    上の chromium の entry と同じ形。WebKit も characterData の record を二つ先に積み、
+    そのあとで childList を二つ積む。仕様の step 6・7・8 の順なら characterData・childList・
+    childList・characterData である。
+    https://dom.spec.whatwg.org/#dom-range-deletecontents
+
+- impl: webkit
+  scenario: replacechildren-bypasses-validity
+  digest: 82ac712a4b9a9ab9
+  reason: |
+    上の chromium の entry と同じ形。`frag.replaceChildren(frag)` は "ensure pre-insertion
+    validity" の step 2（node が parent の host-including inclusive ancestor）で
+    HierarchyRequestError になるべきだが、WebKit は黙って通す。生成 scenario では
+    `comment.before(frag)`（comment が frag の子）も同じく通る。
+    https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
+
+- impl: firefox
+  scenario: range-insert-node-moves-preceding-sibling
+  digest: d14d5e7724639839
+  reason: |
+    §5.5 insertNode は step 9 で node を外し、step 10 で newOffset を数える。node が
+    同じ parent の前方にいれば外したあとで index が一つ詰まるので、collapsed な range の
+    end は一つ前になる。Firefox は外す前に数えたかのように end を一つ後ろにする
+    （Dommy の findings 8 と同じ形）。Chromium と WebKit は本文どおり。
+    https://dom.spec.whatwg.org/#dom-range-insertnode
+
+- impl: firefox
+  scenario: attribute-name-and-value-follow-ascii-rules
+  digest: 20cb2e790cb47ae0
+  reason: |
+    namespace の部分を持たない attribute selector `[a='1']` は namespace の無い attribute
+    だけを表す（CSS Namespaces §"Attribute selectors"、Selectors §6.4）。element が
+    namespace 付きの `a="2"` と namespace の無い `a="1"` を持つとき、`[a='1']` は当たる。
+    Firefox は local name が `a` の最初の attribute（namespace 付きのほう）だけを見て
+    当たらないと答える（`[*|a='1']` なら当たる）。Chromium と WebKit は本文どおり。
+    https://drafts.csswg.org/selectors-4/#attrnmsp
+
+- impl: firefox
+  scenario: lookups-compare-attribute-values
+  digest: 0a9e78d550bad576
+  reason: |
+    HTML の `getElementsByName(elementName)` は「name attribute の値が elementName と
+    identical な HTML element」を返す。空文字列も例外ではないので、`name=""` を持つ
+    element は `getElementsByName("")` に入る。Firefox は空文字列のとき何も返さない。
+    Chromium と WebKit は本文どおり。
+    https://html.spec.whatwg.org/multipage/dom.html#dom-document-getelementsbyname
+
+- impl: firefox
+  scenario: namespace-lookup-chain
+  digest: 5bacbc14785010f7
+  reason: &locate_namespace |
+    DOM §4.4 "locate a namespace" の element の枝は、step 3「namespace が非 null で prefix が
+    探している prefix なら namespace を返す」が step 4（`xmlns` 属性）より先である。prefix が
+    null の探索で、prefix を持たない HTML の element にたどり着けば、そこで HTML namespace が
+    返る。Firefox はこの step 3 を null の prefix について行わず、`xmlns` 属性だけを見て
+    遡る（属性が無ければ null）。`lookupNamespaceURI(null)`・`lookupNamespaceURI("")`・
+    `isDefaultNamespace()` が、Document・CharacterData の枝を通っても同じく割れる
+    （生成 scenario でも繰り返し出る）。Chromium と WebKit は本文どおり。
+    https://dom.spec.whatwg.org/#locate-a-namespace
+
+- impl: firefox
+  scenario: namespace-lookup-edges
+  digest: 5291e64cfea06251
+  reason: *locate_namespace
+
+- impl: firefox
+  scenario: transient-observer-chains-through-removals
+  digest: 5c6cf2c71f3298c4
+  reason: |
+    remove の step 20 が外した node に足す transient registered observer は、その node の
+    registered observer list の要素である。外した木の中からさらに node を外すと、
+    step 21 の "queue a tree mutation record" は parent の inclusive ancestor の list を
+    見るので、transient registered observer（options は元の registration のもの、subtree
+    は true）が interested observer になり record が積まれる。Firefox はこの record を
+    積まない。Chromium と WebKit はこの scenario の配送順を harness で比べられない（skip）。
+    https://dom.spec.whatwg.org/#concept-node-remove
+    https://dom.spec.whatwg.org/#queue-a-mutation-record
+
+- impl: chromium
+  scenario: adopt-node-keeps-an-attribute-on-its-element
+  digest: f268e9ea83298341
+  reason: &adopt_attr |
+    findings 48。DOM §4.5 "adopt" の step 2 は「parent が非 null なら remove」で、`Attr` は parent を
+    持たないので element から外れない。step 3 は node document が違うときだけ `Attr` 自身の node
+    document を書き換える。本文どおりなら element に付いた `Attr` は付いたままで、同じ document への
+    adopt では何も変わらない。三つの browser は element から外す（DOM4 にあった「`Attr` なら owner
+    element から外す」step を保っている）。jsdom は本文どおり。三つが揃って本文と違うので、
+    findings 19・20 と同じく仕様の側に問う値打ちがある。
+    https://dom.spec.whatwg.org/#concept-node-adopt
+
+- impl: firefox
+  scenario: adopt-node-keeps-an-attribute-on-its-element
+  digest: 22dc17aa4b80b631
+  reason: *adopt_attr
+
+- impl: webkit
+  scenario: adopt-node-keeps-an-attribute-on-its-element
+  digest: ddb27e78f7f22639
+  reason: *adopt_attr
+
+- impl: firefox
+  scenario: adopting-an-element-moves-its-attributes
+  digest: ee570cd63951802e
+  reason: |
+    findings 52。DOM §4.5 "adopt" の step 3.3.1 は、adopt する element の attribute list の各
+    attribute の node document を新しい document にする。Firefox は element を adopt しても、
+    その前に取り出してあった `Attr` object の `ownerDocument` が古い document のままである
+    （adopt のあとで `getAttributeNode` し直したものは新しい document を返す）。`setAttribute` で
+    付けたもの、`setAttributeNode` で付けたもの、`appendChild` で別の document へ移したものの
+    どれでも起きる。Chromium と WebKit は本文どおり。
+    https://dom.spec.whatwg.org/#concept-node-adopt
+
+- impl: firefox
+  scenario: namespace-lookup-is-not-a-round-trip
+  digest: 2559aeee0cbb4cf9
+  reason: |
+    DOM §4.4 "locate a namespace" の element の枝は、step 3（element 自身の namespace と prefix）が
+    step 4（`xmlns:` 属性）より先である。node 1 は自分の prefix `a` を `urn:x` に結びつつ、属性
+    `xmlns:a="urn:y"` も持つので、`lookupNamespaceURI("a")` は `urn:x` を返す。Firefox は属性を先に見て
+    `urn:y` を返す。"locate a namespace prefix" も step 1（element 自身の namespace と prefix）を
+    祖先で行わず、node 2 からの `lookupPrefix("urn:x")` が null になる。Chromium・WebKit・Dommy は本文どおり。
+    `namespace-lookup-chain` と同じ系統で、prefix が非 null の側に出たもの。
+    https://dom.spec.whatwg.org/#locate-a-namespace
+
+- impl: chromium
+  scenario: class-list-add-nothing-creates-no-attribute
+  digest: afc1236f437927dd
+  reason: |
+    DOM §7.1 の update steps step 1 は「class attribute が無く token set が空なら何もし
+    ない」。Chromium は token の無い `add()` で空の class attribute を作る。WPT（`dom/node
+    s/Element-classlist.html`）はこの場合を試していない。Firefox も同じ。
+
+- impl: firefox
+  scenario: class-list-add-nothing-creates-no-attribute
+  digest: ee2797e70d02b427
+  reason: |
+    DOM §7.1 の update steps step 1 は「class attribute が無く token set が空なら何もし
+    ない」。Firefox は token の無い `add()` で空の class attribute を作る。WPT はこの場合を試してい
+    ない。Chromium も同じ。
+
+- impl: chromium
+  scenario: dataset-reads-by-qualified-name
+  digest: 8f00fd35e80d75cc
+  reason: |
+    HTML §3.2.6.8 の name-value pairs は名前（qualified name）が `data-` で始まる att
+    ribute から作る。Chromium は local name で見るので、prefix 付きの `p:data-b` も `b` とし
+    て列挙する。本文が namespace と prefix をどう扱うつもりかは明示されておらず、どの browser も本文の字面どおりでは
+    ない（docs/status.md）。
+
+- impl: webkit
+  scenario: dataset-reads-by-qualified-name
+  digest: 7bd8f5822963c0cc
+  reason: |
+    HTML §3.2.6.8 の name-value pairs は名前（qualified name）が `data-` で始まる att
+    ribute から作る。WebKit は local name で見るので、prefix 付きの `p:data-b` も `b` として列
+    挙する。Chromium と同じ。
+
+- impl: firefox
+  scenario: dataset-reads-by-qualified-name
+  digest: 191c24adaeb0be4b
+  reason: |
+    HTML §3.2.6.8 の name-value pairs は名前（qualified name）が `data-` で始まる att
+    ribute から作り、namespace を見ない。Firefox は namespace が null の attribute だけを見
+    るので、prefix の無い namespace 付きの `data-a` を列挙しない。
+
+- impl: chromium
+  scenario: dataset-writes-the-null-namespace-attribute
+  digest: 742ce0b19d04da29
+  reason: |
+    HTML §3.2.6.8 の setter の最後は set an attribute value（namespace は null）。C
+    hromium は qualified name で探して、prefix の無い namespace 付きの `data-a` を書き換える
+    。Firefox は本文どおり null namespace に append する。
+
+- impl: webkit
+  scenario: dataset-writes-the-null-namespace-attribute
+  digest: ca5dbc3fab9c3e4a
+  reason: |
+    HTML §3.2.6.8 の setter の最後は set an attribute value（namespace は null）。W
+    ebKit は qualified name で探して、prefix の無い namespace 付きの `data-a` を書き換える。C
+    hromium と同じ。
+
+- impl: firefox
+  scenario: dataset-deletes-by-qualified-name
+  digest: d2591bc27515e0ee
+  reason: |
+    HTML §3.2.6.8 の deleter は remove an attribute by name（qualified name の
+    最初の一致）。Firefox は namespace が null の `data-a` を消し、先にある namespace 付きの `d
+    ata-a` を残す。

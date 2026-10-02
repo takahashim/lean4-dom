@@ -95,9 +95,18 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         throw s!"node {spec.id} の local name が valid element local name でない"
       if spec.prefix.isSome && (spec.namespace.orElse (fun _ => some htmlNamespace)).isNone then
         throw s!"node {spec.id} は prefix を持つのに namespace が無い"
+      -- "validate and extract" の step 8-11（`NamespaceWellFormed`）。
+      unless namespaceWellFormedB (spec.namespace.orElse (fun _ => some htmlNamespace)) spec.prefix
+          (spec.localName.getD "div") do
+        throw s!"node {spec.id} の namespace と prefix が validate and extract の step 8-11 を満たさない"
     else
       unless spec.namespace.isNone && spec.prefix.isNone && spec.localName.isNone do
         throw s!"node {spec.id} は Element でないので namespace / prefix / local name を持てない"
+  -- attribute の名前も同じ（`setAttributeNS` / `createAttributeNS` が作れる形に限る）。
+  for (n, d) in entries do
+    for a in d.attributes do
+      unless namespaceWellFormedB a.namespace a.prefix a.localName do
+        throw s!"node {n.id} の attribute {a.qualifiedName} の namespace と prefix が validate and extract の step 8-11 を満たさない"
   return t
 
 /-! ## 操作の適用 -/
@@ -270,6 +279,14 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     | .error _ => .unit
     | .ok (_, b) => .bool b
   | .takeRecords mo => .records (MutationObserver.takeRecords s mo).2
+  | .classListToggle e tok f =>
+    match classListToggle s ⟨e⟩ tok f with
+    | .error _ => .unit
+    | .ok (_, b) => .bool b
+  | .classListReplace e tok nt =>
+    match classListReplace s ⟨e⟩ tok nt with
+    | .error _ => .unit
+    | .ok (_, b) => .bool b
   -- 作る操作は、作った node を返す。id は `freshId`（操作前の木から決まる）である。
   | .createElement doc ln => createdNode (createElement s ⟨doc⟩ ln)
   | .createElementNS doc ns qn => createdNode (createElementNS s ⟨doc⟩ ns qn)
@@ -358,6 +375,27 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .getAttribute e q => .str (getAttribute s.tree ⟨e⟩ q)
   | .hasAttribute e q => .bool (hasAttribute s.tree ⟨e⟩ q)
   | .getAttributeNames e => .strs (getAttributeNames s.tree ⟨e⟩)
+  | .getReflected e _ r =>
+    match getReflectedProp s.tree ⟨e⟩ r with
+    | .error _ => .unit
+    | .ok (.inl v) => .str (some v)
+    | .ok (.inr b) => .bool b
+  | .datasetGet e n =>
+    match datasetGet s.tree ⟨e⟩ n with
+    | .error _ => .unit
+    | .ok v => .str v
+  | .datasetKeys e =>
+    match datasetKeys s.tree ⟨e⟩ with
+    | .error _ => .unit
+    | .ok l => .strs l
+  | .classListContains e tok =>
+    match classListContains s.tree ⟨e⟩ tok with
+    | .error _ => .unit
+    | .ok b => .bool b
+  | .childrenNamedItem n k =>
+    match childrenNamedItem s.tree ⟨n⟩ k with
+    | .error _ => .unit
+    | .ok r => .node r
   | .querySelector n sel =>
     match querySelector s.tree sel ⟨n⟩ with
     | .error _ => .unit
@@ -419,6 +457,12 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .setAttributeNS _ _ _ _ => .unit
   | .removeAttribute _ _ => .unit
   | .removeAttributeNS _ _ _ => .unit
+  | .setReflected _ _ _ _ => .unit
+  | .setReflectedBool _ _ _ _ => .unit
+  | .datasetSet _ _ _ => .unit
+  | .datasetDelete _ _ => .unit
+  | .classListAdd _ _ => .unit
+  | .classListRemove _ _ => .unit
   | .observe _ _ _ => .unit
   | .disconnect _ => .unit
   | .notify => .unit
@@ -554,6 +598,19 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .removeAttribute e qn => removeAttribute s ⟨e⟩ qn
   | .removeAttributeNS e ns ln => removeAttributeNS s ⟨e⟩ ns ln
   | .toggleAttribute e qn f => (toggleAttribute s ⟨e⟩ qn f).map Prod.fst
+  | .getReflected e _ r => (getReflectedProp s.tree ⟨e⟩ r).map fun _ => s
+  | .setReflected e _ r v => setReflectedProp s ⟨e⟩ r v
+  | .setReflectedBool e _ r b => setReflectedBool s ⟨e⟩ r b
+  | .datasetGet e n => (datasetGet s.tree ⟨e⟩ n).map fun _ => s
+  | .datasetSet e n v => datasetSet s ⟨e⟩ n v
+  | .datasetDelete e n => datasetDelete s ⟨e⟩ n
+  | .datasetKeys e => (datasetKeys s.tree ⟨e⟩).map fun _ => s
+  | .classListAdd e ts => classListAdd s ⟨e⟩ ts
+  | .classListRemove e ts => classListRemove s ⟨e⟩ ts
+  | .classListToggle e tok f => (classListToggle s ⟨e⟩ tok f).map Prod.fst
+  | .classListReplace e tok nt => (classListReplace s ⟨e⟩ tok nt).map Prod.fst
+  | .classListContains e tok => (classListContains s.tree ⟨e⟩ tok).map fun _ => s
+  | .childrenNamedItem n k => (childrenNamedItem s.tree ⟨n⟩ k).map fun _ => s
   | .observe mo target opts => MutationObserver.observe s mo ⟨target⟩ opts
   | .disconnect mo => .ok (MutationObserver.disconnect s mo)
   | .takeRecords mo => .ok (MutationObserver.takeRecords s mo).1

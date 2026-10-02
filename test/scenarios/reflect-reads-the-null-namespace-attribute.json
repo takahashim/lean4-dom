@@ -1,0 +1,92 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "get an attribute value",
+      "reflect"
+    ],
+    "steps": "Element.id / className / slot の getter",
+    "note": "reflect は namespace が null の attribute を読む。namespace 付きで prefix の無い同名の attribute は qualified name では一致するので getAttribute は拾うが、reflect は拾わない。null namespace のものが無ければ空文字列。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "id",
+          "value": "ns"
+        },
+        {
+          "localName": "id",
+          "value": "plain"
+        },
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "class",
+          "value": "ns"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "id",
+          "value": "ns"
+        },
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "slot",
+          "value": "ns"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getReflected",
+      "element": 1,
+      "property": "id"
+    },
+    {
+      "op": "getReflected",
+      "element": 1,
+      "property": "className"
+    },
+    {
+      "op": "getReflected",
+      "element": 2,
+      "property": "id"
+    },
+    {
+      "op": "getReflected",
+      "element": 2,
+      "property": "slot"
+    },
+    {
+      "op": "getAttribute",
+      "element": 1,
+      "name": "id"
+    },
+    {
+      "op": "getAttribute",
+      "element": 2,
+      "name": "id"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/html/blob/6992cb519a02db34f653ddd54c50fad2565285f5/source",
+    "algorithm": [
+      "DOMStringMap",
+      "delete an existing named property"
+    ],
+    "steps": "deleter 1-3",
+    "note": "deleter は remove an attribute by name（qualified name の最初の一致）なので、先にある namespace 付きの data-a を消し、null namespace の data-a は残る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "data-a",
+          "value": "ns"
+        },
+        {
+          "localName": "data-a",
+          "value": "plain"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "datasetDelete",
+      "element": 2,
+      "name": "a"
+    },
+    {
+      "op": "getAttributeNames",
+      "element": 2
+    },
+    {
+      "op": "datasetGet",
+      "element": 2,
+      "name": "a"
+    }
+  ]
+}

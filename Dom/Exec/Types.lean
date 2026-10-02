@@ -3,6 +3,7 @@ import Dom.Mutation.Import
 import Dom.Attribute.Node
 import Dom.Attribute.Algorithms
 import Dom.Attribute.AsNode
+import Dom.Attribute.Reflect
 import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.Traversal.TreeWalker
@@ -171,6 +172,26 @@ inductive Operation where
   | removeAttributeNS (element : Nat) («namespace» : Option String) (localName : String)
   /-- `Element.toggleAttribute(qualifiedName, force)`。 -/
   | toggleAttribute (element : Nat) (qualifiedName : String) (force : Option Bool)
+  /--
+  DOM §4.9・HTML §3.2.6 の reflect。`property` は IDL attribute の名前、`spec` は
+  reflect の表（`reflectSpec`）から引いたもの。
+  -/
+  | getReflected (element : Nat) («property» : String) (spec : ReflectSpec)
+  | setReflected (element : Nat) («property» : String) (spec : ReflectSpec) (value : String)
+  | setReflectedBool (element : Nat) («property» : String) (spec : ReflectSpec) (value : Bool)
+  /-- HTML §3.2.6.8 `dataset`（`DOMStringMap`）。 -/
+  | datasetGet (element : Nat) (name : String)
+  | datasetSet (element : Nat) (name value : String)
+  | datasetDelete (element : Nat) (name : String)
+  | datasetKeys (element : Nat)
+  /-- DOM §7.1 `DOMTokenList`（`Element.classList`）。 -/
+  | classListAdd (element : Nat) (tokens : List String)
+  | classListRemove (element : Nat) (tokens : List String)
+  | classListToggle (element : Nat) (token : String) (force : Option Bool)
+  | classListReplace (element : Nat) (token newToken : String)
+  | classListContains (element : Nat) (token : String)
+  /-- DOM §4.2.10.1 `HTMLCollection.namedItem(key)`。collection は `ParentNode.children`。 -/
+  | childrenNamedItem (node : Nat) (key : String)
   /-- `MutationObserver.observe(target, options)`。 -/
   | observe (observer : Nat) (target : Nat) (opts : MutationObserverInit)
   /-- `MutationObserver.disconnect()`。 -/

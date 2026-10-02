@@ -1,4 +1,4 @@
-// browser（Playwright の Chromium）用の scenario runner。
+// browser（Playwright の Chromium・Firefox・WebKit）用の scenario runner。
 //
 // lean4-dom の `lake exe dom-model` と同じ形式の JSON を書く。
 // 比較は test/compare.rb が行う。
@@ -17,6 +17,8 @@
 //
 // Playwright は `PLAYWRIGHT_PATH`、local な node_modules、global install の
 // 順に探す。browser は Playwright の既定の場所から取る。
+//
+// 動かす browser は環境変数 `BROWSER` で選ぶ（`chromium`・`firefox`・`webkit`、既定は `chromium`）。
 
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join, basename, dirname } from "node:path";
@@ -65,8 +67,12 @@ function isScenarioFile(path) {
 
 async function main() {
   const argv = process.argv.slice(2);
-  const { chromium } = loadPlaywright();
-  const browser = await chromium.launch();
+  const engine = process.env.BROWSER || "chromium";
+  if (!["chromium", "firefox", "webkit"].includes(engine)) {
+    console.error(`BROWSER は chromium・firefox・webkit のどれか（${engine}）`);
+    return 2;
+  }
+  const browser = await loadPlaywright()[engine].launch();
   try {
     if (argv[0] === "--capabilities") {
       const caps = await onPage(browser, (page) =>

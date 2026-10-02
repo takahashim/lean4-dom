@@ -3517,7 +3517,7 @@ range の両端の tree order が入れ替わる。文字列を縮めると offs
 nightly は既知の不一致でも赤のままにする方針である
 （不一致を expected に落とすと、直ったことに気付けなくなる）。
 
-## findings 12-51 の索引
+## findings 12-52 の索引
 
 Selectors の形式化のあいだに出た findings。不一致を expected に落とすと直ったことに
 気付けなくなるので、実装が直すまで固定 scenario を赤のままにしてきた。
@@ -3587,6 +3587,11 @@ jsdom の findings（19・20・24・25・27-29・33-36・40・42-47）は pin �
 | 49 | jsdom | `Attr` が絡む `compareDocumentPosition` が step 3-4 を走らない（自分自身と 34、element と 0、element の子と逆向き） | `attr-position-follows-its-element` |
 | 50 | Dommy | `adoptNode(attr)` が null を返して何もしない／`Attr` が絡む `compareDocumentPosition` が常に DISCONNECTED／detach された `Attr` の node document が append で更新されず、属性から外したものは null になる（§「findings 50・51 の詳細」） | `adopt-node-keeps-an-attribute-on-its-element`, `attr-position-follows-its-element`, `adopting-an-element-moves-its-attributes`, `removed-attribute-keeps-its-node-document` |
 | 51 | Dommy | `Attr` が木の位置を表す `Node` の getter（`parentNode`・`parentElement`・`isConnected`・`childNodes`・`firstChild`・`lastChild`・`previousSibling`・`nextSibling`）を持たない（同上） | `attr-is-a-node-outside-the-tree` |
+| 52 | Firefox | element を adopt しても、前に取り出してあった `Attr` の `ownerDocument` が古い document のまま（adopt step 3.3.1） | `adopting-an-element-moves-its-attributes` |
+| 53 | Dommy | reflect の getter（`id`・`className`・`slot`・`lang`・`title` ほか）が prefix の無い namespace 付きの同名 attribute を読む（§「名前空間の取り違え」） | `reflect-reads-the-null-namespace-attribute` |
+| 54 | Dommy | reflect の setter が null namespace の attribute を作らず、prefix の無い namespace 付きの同名 attribute を書き換える（同上） | `reflect-writes-the-null-namespace-attribute` |
+| 55 | Dommy | `HTMLCollection.namedItem` が namespace 付きの `id`・`name` で当たる（同上） | `named-item-ignores-namespaced-id-and-name` |
+| 56 | Dommy | `dataset` の setter が prefix の無い namespace 付きの `data-*` を書き換える（同上） | `dataset-writes-the-null-namespace-attribute` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5566,8 +5571,9 @@ prefix・namespace しか見ないので、保存の証明は `dropDoc` を挟�
 48 は本文と browser 三つが揃って割れる形である。adopt の step 2 は「parent があれば remove」で、`Attr` は parent を
 持たないので element から外れない。DOM4 には「`Attr` なら owner element から外す」step があり、browser はそれを
 保っている（jsdom は本文どおり）。findings 19・20 と同じく、仕様の側に問う値打ちがある。model は本文どおりに書いた。
-手で当てたところ、Firefox は `Attr` を付けた element を別の document へ adopt しても、`Attr` の `ownerDocument` が
-古いままだった（adopt step 3.3.1）。
+Firefox は `Attr` を付けた element を別の document へ adopt しても、その前に取り出してあった `Attr` の
+`ownerDocument` が古いままである（findings 52、adopt step 3.3.1）。adopt のあとで `getAttributeNode` し直した
+ものは新しい document を返す。
 
 ### findings 50・51 の詳細（Dommy）
 
@@ -5632,6 +5638,196 @@ Dommy の main（`dd6bcbc`）で見た。行番号は `gems/dommy/lib/dommy/` �
 
 固定 scenario は Dommy の main で 171 ok / 3 skip / 3 known / 4 mismatch で、mismatch の 4 本と
 `attr-is-a-node-outside-the-tree` の skip がこの二つである。
+## Firefox と WebKit を並べた
+
+`test/browser_runner.mjs` を環境変数 `BROWSER`（`chromium`・`firefox`・`webkit`、既定は `chromium`）で
+browser を選べるようにし、Playwright 1.63 の Firefox 155 と WebKit 26.6 を Chromium 153 の横に並べた。
+model・Dommy・jsdom と合わせて比べる列が五つになった。
+
+**harness の側で直したもの。** WebKit の `DOMParser` は doctype の無い HTML を読んでも no-quirks の document を
+返す（`compatMode` が `CSS1Compat`）。HTML の parser は "initial" insertion mode で doctype が無ければ quirks mode に
+するので、これは WebKit の `DOMParser` の外れ方だが、model の外（`DOMParser` は model に無い）なので記録はしない。
+quirks mode の document が作れないと `quirks-mode-*` の 2 本が偽の不一致になるので、`test/js/scenario.js` は
+`DOMParser` の document が quirks でなければ iframe の document に `document.write` で読ませて作る（三つの browser とも
+`BackCompat` になり、子を外しても変わらない）。
+
+**固定 scenario 181 本**（§「`Attr` を `Node` として扱う」の 8 本を含む）。
+
+| browser | ok | skip | known | mismatch |
+| --- | --- | --- | --- | --- |
+| Chromium 153 | 151 | 18 | 12 | 0 |
+| Firefox 155 | 147 | 18 | 16 | 0 |
+| WebKit 26.6 | 146 | 24 | 11 | 0 |
+
+`Attr` の 8 本は、三つとも `adopt-node-keeps-an-attribute-on-its-element` が割れ（findings 48）、Firefox だけ
+`adopting-an-element-moves-its-attributes` も割れる（findings 52）。どちらも known-divergences に入れた。
+
+skip の 18 本は三つとも MutationObserver の配送順（JS からは復元できない）と model の対象外の 2 本である。WebKit は
+`moveBefore` を持たないので、さらに 6 本が skip になる。
+
+**割れた形の分類。** どれも「engine が本文から離れていて、model が本文に従っている」と判断し、
+`test/known-divergences.yml` に入れた。
+
+| 形 | Chromium | Firefox | WebKit | 本文 |
+| --- | --- | --- | --- | --- |
+| `:empty` と空白だけの text（findings 19） | 割れる | 割れる | 割れる | 仕様側が未決着（既存の entry） |
+| virtual scoping root（findings 20、2 本） | 割れる | 割れる | 割れる | 同上 |
+| non-ASCII ident code point の一覧（findings 29） | `.☃` を通す | 通す | 通す | css-syntax-3 の一覧 |
+| `[class~/**/=u]`（findings 43） | SyntaxError | SyntaxError | SyntaxError | comment は token でも whitespace でもない |
+| type selector `RECT` と SVG の `rect` | 当たる | 当たらない | 当たらない | HTML §4.16.2 |
+| insert の live range 調整の順序（3 本） | 割れる（既存） | 割れる | 割れる | §4.2.3 step 5 が先 |
+| `deleteContents` の record の順序 | 割れる（既存） | skip | 割れる | §5.5 step 6・7・8 の順 |
+| `frag.replaceChildren(frag)` | 通す（既存） | 投げる | 通す | HierarchyRequestError |
+| `insertNode` の newOffset（node が前方の sibling） | 一致 | end が一つ後ろ | 一致 | §5.5 step 9 の後で数える |
+| `[a='1']` と namespace 付きの同名 attribute | 一致 | 当たらない | 一致 | namespace の無い attribute だけを見る |
+| `getElementsByName("")` | 一致 | 空を返す | 一致 | identical（空も例外でない） |
+| locate a namespace の step 3（prefix が null） | 一致 | `xmlns` 属性だけを見る（2 本） | 一致 | 自分の namespace を先に見る |
+| transient registered observer の連鎖 | skip | record を積まない | skip | list の要素なので interested |
+
+生成 scenario（既定の設定と `--quirks-prob 0.5` の seed 1-2 × 100、selector・lookup に絞った `--quirks-prob 0.6` の
+seed 3 × 200）でも、出たのは同じ形だけだった。Firefox では locate a namespace の形が `lookupNamespaceURI("")`
+（CharacterData から）や `isDefaultNamespace()`（Document から）でも繰り返し出て、`document.replaceChildren(element)`
+（既存の document element がある）を HierarchyRequestError にする（`replaceChildren` が自分の children を除外する
+whatwg/dom#1045 を入れていない）。WebKit では `comment.before(frag)`（comment が frag の子）を通す
+（`frag.replaceChildren(frag)` と同じ形）。生成 scenario は名前で引けないので、これらは記録に入らない。
+quirks mode の比較（class・id・`getElementsByClassName()`）は三つとも model と一致した。
+
+**model の読みを疑うべきところ。** 三つの browser が揃って model と違うのは、findings 19・20（仕様側が未決着で既に
+記録済み）と、29・43 の二つである。29 は css-syntax-3 が明示的に変えた定義で、changes にも載っているので本文の
+読みは揺れない。43 は Selectors §18 の「token の間に whitespace を置かない」と、CSS Syntax の「comment は token を
+作らない」を合わせた読みで、`~=` を一つの token として読んでいた CSS 2.1 の名残と考えられる。ただし三つの engine と
+jsdom が揃って SyntaxError にするので、WPT に `[a~/**/=x]` の case があるかを確かめ、無ければ csswg に問う値打ちがある。
+
+## 名前空間の取り違え（不干渉の sweep と model の拡張）
+
+Dommy で「namespace の無い属性を qualified name や local name で読み書きする」不具合が報告された
+（`id`・`className` の reflect、`dataset`、`:lang` ほか）。同じ形の、まだ見つかっていないものを探した。
+形は一つにまとめられる。**仕様が (namespace, local name) の組で同定しているものを、文字列の名前だけで
+同定している。** 向きは四つある。
+
+| 向き | 例 | 囮 |
+| --- | --- | --- |
+| A. null namespace を読むべきところで local name で引く | reflect | `setAttributeNS("urn:x-decoy", "p:id", …)` |
+| B. 同上、qualified name で引く | JS の attribute snapshot | `setAttributeNS("urn:x-decoy-b", "id", …)`（prefix 無し） |
+| C. XML namespace の `lang` を文字列 `xml:lang` で引く | `:lang` | `setAttribute("xml:lang", …)`（null namespace） |
+| D. HTML namespace の element に限る処理を local name で分岐する | `select.options` | SVG・MathML・null namespace・prefix 付き HTML の element |
+
+### 不干渉の sweep（`test/js/decoy.js`）
+
+oracle の op を一つずつ足すと、見つかるのは model に入れた API の不具合だけである。そこで
+**「囮を置いても、仕様上それを読んでよい API 以外の観測は変わらない」**を oracle にした。
+fixture（`test/decoy/fixture.html`）を読み、element の getter を全部読み、囮を一つ置いて読み直し、
+変わったものを記録する。比べる相手は囮を置く前の同じ実装なので、model の無い HTML の API にも当たる。
+
+* getter の名前は三つの browser の prototype chain から集めた和（`test/decoy/names.json`）。Dommy の
+  prototype は accessor を 40 個ほどしか持たず、残りは proxy が動的に引くので、列挙では集まらない。
+* Dommy は QuickJS（`dommy-js-quickjs`）で同じ script を走らせる（`test/decoy_dommy.rb`）。`--ruby-path` は
+  JS 側の attribute snapshot（`__rb_host_attrs`）を外して、reflect を必ず Ruby の getter に通す。
+* 書く側は、囮を置いたあと setter を一つずつ呼び、attribute list の差を記録する。
+* 「変わってよいか」は三つの browser が揃っているかで決める（`test/decoy_compare.rb`）。揃って変わるなら
+  許容、揃って変わらないのに Dommy だけ変わるなら候補である。DOM の範囲の許容は定理で裏を取った
+  （`docs/theorems.md` の 20）。
+* HTML の fragment parsing は model の外なので、断片を解釈する API（`innerHTML`・`insertAdjacentHTML`・
+  `outerHTML` の setter・`createContextualFragment`）の結果もここで browser と並べる。
+
+```sh
+PLAYWRIGHT_PATH=… node test/decoy_sweep.mjs --enumerate test/decoy/names.json   # 名前の一覧（済）
+BROWSER=chromium node test/decoy_sweep.mjs test/decoy/names.json OUT/out-chromium.json
+(cd ../dommy-js-quickjs && bundle exec ruby ../lean4-dom/test/decoy_dommy.rb ../lean4-dom/test/decoy/names.json OUT/out-dommy.json)
+ruby test/decoy_compare.rb OUT
+```
+
+**結果**（Dommy `b0ac16e`、Chromium 153・Firefox 155・WebKit 26.6、351 case と断片の解釈 16 case）。
+
+| 区分 | 種類 | 主なもの |
+| --- | --- | --- |
+| setter が囮を書き換える | 59 | `id`・`className`・`slot`・`lang`・`dir`・`hidden`・`role`・`aria*`・`style`・`dataset`・form の reflect 一式 |
+| Dommy だけ値が変わる（読む側） | 138 | 上の getter、`hidden`・`popover`・`:read-write`、`namedItem`、`form.elements`（namespace 付きの `form` で control が form から外れる）、`validity`・`willValidate` |
+| 囮の element（D） | 上に含む | SVG・MathML・null namespace の element が `select.options`・`map.areas`・`form.elements`・`document.anchors`・`embeds`・`:link`・`:disabled` に入る。prefix 付き HTML の `h:tr`・`h:option`・`h:details` が漏れる |
+| 断片の解釈 | 3 | `insertAdjacentHTML`・`outerHTML`・`createContextualFragment` が SVG・MathML の文脈を使わない（`innerHTML` は一致） |
+| 速い経路と Ruby の経路の差 | 0 | 両方とも qualified name で引くので、同じ形で外れる |
+
+向き A（prefix 付きの囮）と C（null namespace の `xml:lang`）では、Dommy の値は一つも変わらなかった。
+backend の `node["id"]` は local name ではなく **qualified name** で引くので、prefix 付きの囮は拾わない
+（`element.rb` の注釈は local name と書いているが、実際は違う）。外れるのは prefix の無い囮だけである。
+逆に `xml:lang`（XML namespace）を一度も見ないので、`:lang` は三つの browser が揃って変わるのに Dommy は
+変わらない。
+
+### model に足したもの
+
+| 仕様 | 定義 | 定理 |
+| --- | --- | --- |
+| DOM §4.9・HTML §2.6.1 の reflect（DOMString と boolean） | `reflectSpec`, `getReflectedProp`, `setReflectedProp`, `setReflectedBool` | `SameNullNsView.getReflected` |
+| DOM §7.1 `DOMTokenList`（`classList`） | `classListAdd` ほか、`tokenListUpdate` | `SameNullNsView.classListContains` |
+| DOM §4.2.10.1 `namedItem`（`children`） | `childrenNamedItem` | `SameNullNsView.childrenNamedItem` |
+| HTML §3.2.6.8 `dataset` | `datasetPairs`, `datasetGet`, `datasetKeys`, `datasetSet`, `datasetDelete` | — |
+| null namespace の読み方の frame | `NodeData.nullNsView`, `SameNullNsView` | `setAttributeNS_sameNullNsView` ほか（`docs/theorems.md` の 20） |
+| "validate and extract" の step 8-11 | `NamespaceWellFormed`, `namespaceWellFormedB` | `validateAndExtract*_wellFormed`（21）。loader が初期状態を検査する |
+| 名前空間の探索 | — | `lookupNamespaceURI_lookupPrefix_own`、`lookup_round_trip_fails`、`find?_xmlnsDecl_eq`（22） |
+
+reflect の setter は "set an attribute value"、boolean の false は "remove an attribute by namespace and
+local name" に落ちるので、admissibility の保存は `AttrOpResult` の既存の補題から出る
+（`Dom/Validity/Reflect.lean`）。
+
+生成器には `--ns-decoy-prob` を足した。element に prefix の無い namespace 付きの `id`・`class`・`name`・
+`slot`・`data-x`・`title`・`lang`・`inert` を一つ置く確率で、既定は 0（既存の seed は変わらない）。
+`--ns-decoy-prob 0.5` で reflect と `dataset` に絞ると、Dommy に対して 150 本中 13 本、200 本中 6 本が割れた。
+
+### findings 53-56（Dommy）
+
+53-55 は報告にあった形を model で裏付けたもの、56 は報告に無かった。どれも三つの browser は本文どおりで、
+WebKit と Chromium は 56 だけ Dommy と同じ側に外れる（下の表）。
+
+53. **reflect の getter が namespace 付きの attribute を読む。** prefix の無い `setAttributeNS("urn:x", "id", "z")`
+    があると、`id` は null namespace の `id` が無くても `"z"` を返し、あっても前に並ぶ方を返す。
+54. **reflect の setter が namespace 付きの attribute を書き換える。** `el.id = "w"` は null namespace の `id` を
+    append すべきところ、`urn:x` の `id` の値を変える。`classList` は #77 で直っていて一致した。
+55. **`namedItem` が namespace 付きの `id`・`name` で当たる。**
+56. **`dataset` の setter が namespace 付きの `data-*` を書き換える。** setter の最後は
+    "set an attribute value"（namespace は null）である。
+
+### `dataset` は本文の字面どおりの実装が無い
+
+| 固定 scenario | 本文（model） | Dommy | Chromium | Firefox | WebKit |
+| --- | --- | --- | --- | --- | --- |
+| `dataset-reads-by-qualified-name`（qualified name で列挙。`p:data-b` は入らない） | ✓ | ✓ | local name で列挙 | null namespace だけ | local name で列挙 |
+| `dataset-writes-the-null-namespace-attribute` | ✓ | 56 | 囮を書き換える | ✓ | 囮を書き換える |
+| `dataset-deletes-by-qualified-name`（remove an attribute by name） | ✓ | ✓ | ✓ | null namespace を消す | ✓ |
+| `class-list-add-nothing-creates-no-attribute`（update steps step 1） | ✓ | ✓ | `class=""` を作る | `class=""` を作る | ✓ |
+
+HTML §3.2.6.8 の name-value pairs は「名前が `data-` で始まる content attribute」で、namespace に触れない。
+model はこれを qualified name と読んだ。三つの browser はどれもこの読みと違い、しかも互いに違う。
+**model だけが孤立している行**で、`docs/threats-to-validity.md` §5 の言う読み違いを疑う場所である。
+本文が namespace 付きの属性を想定していない可能性が高く、whatwg/html に問う値打ちがある。
+browser の外れ方はすべて `test/known-divergences.yml` に入れた。
+`classList.add()` の空の場合は WPT（`dom/nodes/Element-classlist.html`）に case が無い。
+
+### model の外で見つけたもの（静的な掃き出し）
+
+Dommy の `get_attribute("…")`・`@__node__["…"]` の 178 箇所と、local name で分岐する 58 箇所を読み、
+QuickJS で再現を確かめた。model が無いので番号は振らない。期待値は HTML の定義から決めた。
+
+* **A・B**：form の reflect 一式・`required`/`readonly`/`disabled` の擬似クラス・form owner（`form` 属性）・
+  `FormData` と radio group（`name`）・`href` と `document.baseURI`（`<base>`）・`:target`・`:dir`・`slot` の割り当て・
+  `style` 属性と cascade の id/class bucket・inline の event handler・custom element の upgrade 時の
+  `attributeChangedCallback`・named access（`document.foo`・`form.foo`）。
+* **C**：`:lang` が XML namespace の `xml:lang` を見ず、MathML と null namespace の element の `lang` を見る。
+  SVG の `href` が `xlink:href` に戻らない。
+* **D**：form owner が null namespace の `form` を祖先として採る／XHTML document と prefix 付きの element で
+  `tagName == "INPUT"` 系の比較が外れる（`FormData`・`:checked`）／`table.rows` が `h:tr` を落とす／
+  `document.title` が null namespace の `title` を読む／null namespace の `base`・`style`・`template`・`slot`・
+  `datalist`・`output` が HTML の意味を持つ。
+* ほかに、`:defined` がどの element にも当たらない、`document.all` が無い、`:open` が SyntaxError、
+  SVG の `tabIndex` が文字列、`nonce` の setter が content attribute を書く、`form.encoding` が無い。
+
+### 着手しなかったもの
+
+* **selector の namespace prefix（`|E`・`|*`・`ns|E`）。** Dommy に当てたところ、`|div`・`|*`・`*|DIV`・`[|a]` と
+  `ns|div` の SyntaxError はどれも本文どおりだった（外れたのは WebKit の `|*` が空、Chromium の `DIV` が SVG と
+  null namespace の element に当たる二つ）。parser と `parseSelector_spec` の書き直しが要る割に Dommy の
+  findings が見込めないので、後回しにした。
+* **`:lang()`。** 同じく selector の文法の拡張が要る。
+* **`NamespaceWellFormed` の admissibility 成分化。** §「model に足したもの」と `docs/theorems.md` の 21。
 
 ## 未着手
 

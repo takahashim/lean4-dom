@@ -1,0 +1,70 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/html/blob/6992cb519a02db34f653ddd54c50fad2565285f5/source",
+    "algorithm": [
+      "DOMStringMap",
+      "get the name-value pairs"
+    ],
+    "steps": "name-value pairs 1-3",
+    "note": "name-value pairs は名前（qualified name）が data- で始まる content attribute から作り、namespace を見ない。prefix の無い namespace 付きの data-a は入り、p:data-b は名前が data- で始まらないので入らない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "attributes": [
+        {
+          "namespace": "http://example.com/ns",
+          "localName": "data-a",
+          "value": "ns"
+        },
+        {
+          "namespace": "http://example.com/ns",
+          "prefix": "p",
+          "localName": "data-b",
+          "value": "pfx"
+        },
+        {
+          "localName": "data-c",
+          "value": "plain"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "datasetKeys",
+      "element": 2
+    },
+    {
+      "op": "datasetGet",
+      "element": 2,
+      "name": "a"
+    },
+    {
+      "op": "datasetGet",
+      "element": 2,
+      "name": "b"
+    },
+    {
+      "op": "datasetGet",
+      "element": 2,
+      "name": "c"
+    }
+  ]
+}

@@ -26,7 +26,7 @@
 | --- | --- |
 | `dommy_runner.rb` | Dommy（Ruby） |
 | `js_runner.mjs` | jsdom / happy-dom（`--impl` で選ぶ） |
-| `browser_runner.mjs` | Playwright の Chromium |
+| `browser_runner.mjs` | Playwright の Chromium・Firefox・WebKit（`BROWSER` で選ぶ。既定は `chromium`） |
 
 `js_runner.mjs` の `--impl` は名前でも module の path でもよい。
 path を渡せば checkout した working tree をそのまま測れる。
@@ -75,7 +75,15 @@ model の `insertAt` は「`child` は `parent` の子」を primitive の前提
 当たらなくなり、ふつうの不一致として出る。消えた divergence も報告する。
 
 browser を動かすには Playwright が要る（`PLAYWRIGHT_PATH` か node_modules か
-global install から探す）。**browser は oracle ではない。** 並べる意味は、
+global install から探す）。browser は環境変数 `BROWSER`（`chromium`・`firefox`・`webkit`）で選び、
+`IMPL_NAME` も同じ名前にする（`known-divergences.yml` は `IMPL_NAME` で引く）。
+
+```sh
+BROWSER=firefox IMPL_NAME=firefox IMPL_CMD="node $PWD/test/browser_runner.mjs" \
+  ruby test/difftest.rb --fixed-only
+```
+
+**browser は oracle ではない。** 並べる意味は、
 実装が揃って model と違うときに「実装側の穴」と「model の読み違い」を
 分けられることにある。
 
@@ -203,7 +211,8 @@ Dommy を読み込んでいない process の仕事にしてある。
   attribute 名を ASCII lowercase するかどうかがこの二つで決まる。
 * document の `mode` は `"no-quirks"`（省略時）・`"quirks"`・`"limited-quirks"`。
   runner は quirks と limited-quirks の document を HTML parser（Dommy は backend の parser、
-  JS は `DOMParser`）に doctype を読ませて作り、子を外してから使う。
+  JS は `DOMParser`。WebKit の `DOMParser` は doctype が無くても no-quirks を返すので、そのときは
+  iframe の document に `document.write` で読ませる）に doctype を読ませて作り、子を外してから使う。
   quirks mode では class selector・id selector・`getElementsByClassName()` の比較が
   ASCII case-insensitive になる。生成 scenario では `--quirks-prob F` で混ぜる（既定は 0）。
 * element の `attributes` は
@@ -376,3 +385,23 @@ Dommy の checkout と native gem の build が要るので、`lake build` の C
 
 不一致が出ると最小化した scenario が `test/scenarios/failing-*.json` に書かれ、
 artifact として上がる。内容を確認したうえで固定 scenario に昇格させる。
+
+## 名前空間の囮の sweep
+
+`test/js/decoy.js` は model を oracle にしない検査である。fixture（`test/decoy/fixture.html`）の element に
+namespace 付きの囮の attribute を置き（あるいは SVG・MathML・null namespace の element を足し）、その前後で
+読める値を全部読んで、変わったものを記録する。「変わってよいか」は三つの browser が揃っているかで決め、
+DOM の範囲は `Dom/Properties/NullNamespace.lean` の定理で裏を取る（`docs/status.md` の「名前空間の取り違え」）。
+
+```sh
+export PLAYWRIGHT_PATH=/path/to/node_modules/playwright
+node test/decoy_sweep.mjs --enumerate test/decoy/names.json    # getter の名前（commit 済み）
+for b in chromium firefox webkit; do BROWSER=$b node test/decoy_sweep.mjs test/decoy/names.json OUT/out-$b.json; done
+L=$PWD; O=$PWD/OUT
+(cd /path/to/dommy-js-quickjs && bundle exec ruby $L/test/decoy_dommy.rb $L/test/decoy/names.json $O/out-dommy.json)
+(cd /path/to/dommy-js-quickjs && bundle exec ruby $L/test/decoy_dommy.rb $L/test/decoy/names.json $O/out-dommy-ruby.json --ruby-path)
+ruby test/decoy_compare.rb OUT
+```
+
+三つ目の引数（`attr:` / `elem:` / `write:` / `frag:` など）を渡すと、その接頭辞の case だけを走らせる。
+`--ruby-path` は Dommy の JS 側の attribute snapshot を外して、reflect を必ず Ruby の getter に通す。

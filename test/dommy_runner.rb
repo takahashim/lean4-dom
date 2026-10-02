@@ -152,6 +152,13 @@ module DommyRunner
   ATTRIBUTE_OPS = %w[setAttribute setAttributeNS removeAttribute removeAttributeNS
                      toggleAttribute].freeze
 
+  # §4.9 の reflect（`id` / `className` / `slot`）、§7.1 の `classList`、
+  # §4.2.10.1 の `children.namedItem`。どれも namespace が null の attribute を読み書きする。
+  # Ruby 側の名前が揃っていないので、bridge（`__js_get__` / `__js_set__` / `__js_call__`）を通す。
+  REFLECT_OPS = %w[getReflected setReflected classListAdd classListRemove classListToggle
+                   classListReplace classListContains childrenNamedItem
+                   datasetGet datasetSet datasetDelete datasetKeys].freeze
+
   # scenario の kind から Dommy の node を作る。
   class Builder
     def initialize(specs)
@@ -331,8 +338,22 @@ module DommyRunner
       { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
     when *ATTR_RETURNING_OPS
       { "kind" => "attr", "attr" => returned.nil? ? nil : ctx[:attr_ids][returned] }
-    when "toggleAttribute", "rangeIsPointInRange", "rangeIntersectsNode"
+    when "toggleAttribute", "rangeIsPointInRange", "rangeIntersectsNode",
+         "classListToggle", "classListReplace", "classListContains"
       { "kind" => "boolean", "value" => !!returned }
+    when "childrenNamedItem"
+      { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
+    when "getReflected"
+      if [true, false].include?(returned)
+        { "kind" => "boolean", "value" => returned }
+      else
+        { "kind" => "string", "value" => returned.nil? ? nil : returned.to_s }
+      end
+    when "datasetGet"
+      absent = returned.nil? || (defined?(Dommy::Bridge::ABSENT) && returned == Dommy::Bridge::ABSENT)
+      { "kind" => "string", "value" => absent ? nil : returned.to_s }
+    when "datasetKeys"
+      { "kind" => "strings", "value" => (returned || []).to_a.map(&:to_s) }
     when "rangeCompareBoundaryPoints", "rangeComparePoint", "compareDocumentPosition"
       { "kind" => "number", "value" => returned.to_i }
     when "dispatchEvent"
@@ -498,6 +519,42 @@ module DommyRunner
     raise NotImplementedError, name if defined?(Dommy::Bridge::ABSENT) && value == Dommy::Bridge::ABSENT
 
     value
+  end
+
+  # `DOMStringMap` の named property の getter / setter / deleter と、supported property names。
+  def dataset_op(map, op)
+    name = op["name"].to_s
+    case op["op"]
+    when "datasetGet"
+      raise NotImplementedError, "dataset get" unless map.respond_to?(:__js_get__)
+
+      map.__js_get__(name)
+    when "datasetSet"
+      raise NotImplementedError, "dataset set" unless map.respond_to?(:__js_set__)
+
+      map.__js_set__(name, op["value"].to_s)
+    when "datasetDelete"
+      raise NotImplementedError, "dataset delete" unless map.respond_to?(:__js_delete__)
+
+      map.__js_delete__(name)
+      nil
+    when "datasetKeys"
+      raise NotImplementedError, "dataset keys" unless map.respond_to?(:__js_named_props__)
+
+      map.__js_named_props__.uniq
+    end
+  end
+
+  # IDL attribute の setter を呼ぶ。
+  def js_set(obj, name, value)
+    snake = name.gsub(/([A-Z])/) { "_#{Regexp.last_match(1).downcase}" }
+    return obj.public_send("#{snake}=", value) if obj.respond_to?("#{snake}=")
+    raise NotImplementedError, name unless obj.respond_to?(:__js_set__)
+
+    result = obj.__js_set__(name, value)
+    raise NotImplementedError, name if defined?(Dommy::Bridge::UNHANDLED) && result == Dommy::Bridge::UNHANDLED
+
+    result
   end
 
   # bridge が公開している JS method か。
@@ -1113,6 +1170,38 @@ module DommyRunner
              when "setData" then node.data = op["data"].to_s
              end
     end
+    if REFLECT_OPS.include?(op["op"])
+      receiver = objects[op["element"] || op["node"]]
+      raise NotImplementedError, op["op"] if receiver.nil?
+
+      return case op["op"]
+             when "getReflected" then js_get(receiver, op["property"])
+             when "setReflected"
+               v = op["value"]
+               js_set(receiver, op["property"], [true, false].include?(v) ? v : v.to_s)
+             when "datasetGet", "datasetSet", "datasetDelete", "datasetKeys"
+               # `DOMStringMap` は名前付き property なので、Ruby の method ではなく bridge で触る。
+               map = js_get(receiver, "dataset")
+               raise NotImplementedError, "dataset" if map.nil?
+
+               dataset_op(map, op)
+             when "childrenNamedItem"
+               js_call(js_get(receiver, "children"), "namedItem", [op["key"].to_s])
+             else
+               list = js_get(receiver, "classList")
+               case op["op"]
+               when "classListAdd" then js_call(list, "add", (op["tokens"] || []).map(&:to_s))
+               when "classListRemove" then js_call(list, "remove", (op["tokens"] || []).map(&:to_s))
+               when "classListToggle"
+                 args = [op["token"].to_s]
+                 args << op["force"] if op.key?("force") && !op["force"].nil?
+                 js_call(list, "toggle", args)
+               when "classListReplace"
+                 js_call(list, "replace", [op["token"].to_s, op["newToken"].to_s])
+               when "classListContains" then js_call(list, "contains", [op["token"].to_s])
+               end
+             end
+    end
     if ATTRIBUTE_OPS.include?(op["op"])
       element = objects[op["element"]]
       method = OP_METHOD.fetch(op["op"])
@@ -1255,6 +1344,8 @@ module DommyRunner
       end
       ops = OP_METHOD.select { |_, m| node.respond_to?(m) }.keys
       ops += QUERY_OPS.select { |q| supports_query?(node, q) }
+      ops += REFLECT_OPS if node.respond_to?(:class_list)
+      ops << "childrenNamedItem" if node.respond_to?(:children) && !ops.include?("childrenNamedItem")
       [kind, ops]
     end.to_h
   end

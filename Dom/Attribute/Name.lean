@@ -129,6 +129,88 @@ theorem validateAndExtractError_prefix {valid : String → Bool}
     · rw [if_pos (by simp [hs])] at h
       simp at h
 
+/-!
+## step 8-11 が名前に課すもの
+
+"validate and extract" の step 8-11 を、返す (namespace, prefix, local name) の組の性質として書く。
+
+* prefix があるなら namespace もある（step 8）。
+* prefix が `xml` なら namespace は XML namespace（step 9）。
+* prefix が `xmlns` なら namespace は XMLNS namespace（step 10 の後半）。
+* namespace が XMLNS namespace で prefix が無いなら、local name は `xmlns`（step 11）。
+
+入れていないものが二つある。
+
+* step 10 の前半（qualified name が `xmlns` なら XMLNS namespace）。`setAttribute("xmlns", …)` は
+  "validate and extract" を通らず、namespace が null で local name が `xmlns` の attribute を作る。
+  これは仕様どおりで、状態の性質としては成り立たない。
+* step 11 のうち prefix がある場合（XMLNS namespace なら prefix は `xmlns`）。これを返り値の
+  性質として示すには「colon を含む qualified name は `xmlns` でない」が要るが、
+  `String.splitOn` は kernel で評価できず、model はその補題を持たない。
+-/
+
+/-- "validate and extract" の step 8-11 が保証する、namespace と prefix の対応。 -/
+structure NamespaceWellFormed («namespace» «prefix» : Option String) (localName : String) :
+    Prop where
+  prefixHasNamespace : «prefix».isSome = true → «namespace».isSome = true
+  xmlPrefix : «prefix» = some "xml" → «namespace» = some xmlNamespace
+  xmlnsPrefix : «prefix» = some "xmlns" → «namespace» = some xmlnsNamespace
+  xmlnsNamespace : «namespace» = some xmlnsNamespace → «prefix» = none → localName = "xmlns"
+
+/-- `NamespaceWellFormed` の検査。loader が初期状態に使う。 -/
+def namespaceWellFormedB («namespace» «prefix» : Option String) (localName : String) : Bool :=
+  decide ((«prefix».isSome = true → «namespace».isSome = true) ∧
+    («prefix» = some "xml" → «namespace» = some xmlNamespace) ∧
+    («prefix» = some "xmlns" → «namespace» = some xmlnsNamespace) ∧
+    («namespace» = some xmlnsNamespace → «prefix» = none → localName = "xmlns"))
+
+theorem namespaceWellFormedB_iff {«namespace» «prefix» : Option String} {localName : String} :
+    namespaceWellFormedB «namespace» «prefix» localName = true ↔
+      NamespaceWellFormed «namespace» «prefix» localName := by
+  unfold namespaceWellFormedB
+  rw [decide_eq_true_iff]
+  exact ⟨fun ⟨a, b, c, d⟩ => ⟨a, b, c, d⟩, fun h => ⟨h.1, h.2, h.3, h.4⟩⟩
+
+/--
+step 6-11 を通ったなら、名前の組は `NamespaceWellFormed` を満たし、
+qualified name が `xmlns` なら XMLNS namespace にある（step 10 の前半）。
+
+`hln` は「prefix が無ければ local name は qualified name そのもの」（step 3-4）。
+-/
+theorem validateAndExtractError_wellFormed {valid : String → Bool}
+    {«namespace» «prefix» : Option String} {localName qualifiedName : String}
+    (h : validateAndExtractError valid «namespace» «prefix» localName qualifiedName = none)
+    (hln : «prefix» = none → localName = qualifiedName) :
+    NamespaceWellFormed «namespace» «prefix» localName ∧
+      (qualifiedName = "xmlns" → «namespace» = some xmlnsNamespace) := by
+  unfold validateAndExtractError at h
+  split at h
+  · simp at h
+  · split at h
+    · simp at h
+    · rename_i h8
+      split at h
+      · simp at h
+      · rename_i h9
+        split at h
+        · simp at h
+        · rename_i h10
+          split at h
+          · simp at h
+          · rename_i h11
+            simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, bne_iff_ne, ne_eq,
+              Option.isNone_iff_eq_none, not_and, Classical.not_not] at h8 h9 h10 h11
+            refine ⟨⟨fun hs => ?_, fun hp => h9 hp, fun hp => h10 (Or.inr hp), fun hn hp => ?_⟩,
+              fun hq => h10 (Or.inl hq)⟩
+            · cases hns : «namespace» with
+              | some _ => rfl
+              | none => exact absurd hns (h8 hs)
+            · rw [hln hp]
+              apply Classical.byContradiction
+              intro hq
+              apply h11 hn
+              simp [hq, hp]
+
 /--
 DOM Standard §1.3 "validate and extract"、context は "attribute"。
 
@@ -196,5 +278,72 @@ theorem validateAndExtractAttribute_ok {«namespace» : Option String} {qualifie
         obtain ⟨e1, e2, _⟩ := he
         subst e1; subst e2
         exact ⟨rfl, fun hs => validateAndExtractError_prefix hnone hs⟩
+
+/-- step 3-4 で切り出した (prefix, local name) は、prefix が無ければ qualified name そのもの。 -/
+private theorem split_local {qualifiedName : String} {pfx : Option String} {localName : String}
+    (h : (match splitAtFirstColon qualifiedName with
+      | none => ((none : Option String), qualifiedName)
+      | some (p, l) => (some p, l)) = (pfx, localName)) :
+    pfx = none → localName = qualifiedName := by
+  intro hp
+  split at h
+  · exact ((Prod.mk.inj h).2).symm
+  · rw [hp] at h; simp at h
+
+/--
+**"validate and extract"（attribute）が返す名前の組は `NamespaceWellFormed` を満たす。**
+
+qualified name が `xmlns` なら XMLNS namespace にあることも言う（step 10 の前半）。
+-/
+theorem validateAndExtractAttribute_wellFormed {«namespace» : Option String}
+    {qualifiedName : String} {ns' pfx : Option String} {localName : String}
+    (h : validateAndExtractAttribute «namespace» qualifiedName = .ok (ns', pfx, localName)) :
+    ns' = normalizeNamespace «namespace» ∧ NamespaceWellFormed ns' pfx localName ∧
+      (qualifiedName = "xmlns" → ns' = some xmlnsNamespace) ∧
+      isValidAttributeLocalName localName = true := by
+  unfold validateAndExtractAttribute at h
+  split at h
+  next pfx₀ ln₀ hsplit =>
+    split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · next hnone =>
+        have he := Except.ok.inj h
+        simp only [Prod.mk.injEq] at he
+        obtain ⟨e1, e2, e3⟩ := he
+        subst e1; subst e2; subst e3
+        obtain ⟨hw, hx⟩ := validateAndExtractError_wellFormed hnone (split_local hsplit)
+        refine ⟨rfl, hw, hx, ?_⟩
+        unfold validateAndExtractError at hnone
+        split at hnone
+        · simp at hnone
+        · rename_i h6; simpa using h6
+
+/-- **"validate and extract"（element）も同じ。** local name の条件だけが違う。 -/
+theorem validateAndExtractElement_wellFormed {«namespace» : Option String}
+    {qualifiedName : String} {ns' pfx : Option String} {localName : String}
+    (h : validateAndExtractElement «namespace» qualifiedName = .ok (ns', pfx, localName)) :
+    ns' = normalizeNamespace «namespace» ∧ NamespaceWellFormed ns' pfx localName ∧
+      (qualifiedName = "xmlns" → ns' = some xmlnsNamespace) ∧
+      isValidElementLocalName localName = true := by
+  unfold validateAndExtractElement at h
+  split at h
+  next pfx₀ ln₀ hsplit =>
+    split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · next hnone =>
+        have he := Except.ok.inj h
+        simp only [Prod.mk.injEq] at he
+        obtain ⟨e1, e2, e3⟩ := he
+        subst e1; subst e2; subst e3
+        obtain ⟨hw, hx⟩ := validateAndExtractError_wellFormed hnone (split_local hsplit)
+        refine ⟨rfl, hw, hx, ?_⟩
+        unfold validateAndExtractError at hnone
+        split at hnone
+        · simp at hnone
+        · rename_i h6; simpa using h6
 
 end Dom
