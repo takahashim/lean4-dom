@@ -5,7 +5,10 @@ import Url.Record
 
 `ValidUrl` は URL Standard §4.1 が並べている条件の一部である。
 残りをここに boolean として書き、WPT と setter の全 case で実行時に検査する。
-証明に上げていないものを「無い」ことにしないための交差検証である。
+Prop の側は `Url/StrictValid.lean` の `StrictConds` で、`checkStrictUrl_iff` が両者の一致を言う。
+parse が返す record と setter を通した record がこれを満たすことは、そこで証明してある
+（`basicUrlParse_strict`、`setAttr_strict`）。実行時の検査は、実装と証明が同じ定義を見ていることの
+交差検証として残してある。
 
 なぜ入れていないかは `ValidUrl` の doc comment に書いてある。要点は二つ。
 
@@ -30,9 +33,9 @@ namespace Url
 /--
 IPv6 address が 8 piece で各 piece が 16 bit に収まること。
 
-どちらも parser については証明してある（`ipv6Parser_length`、`ipv6Parser_lt`）。
-残っているのは、URL record の host に入っている `Ipv6` がその parser の出力だという
-ところで、`hostParser` の spec が無いとつながらない。ここで実行時に見る。
+parser については `ipv6Parser_length` と `ipv6Parser_lt` が言う。URL record の host に入っている
+`Ipv6` がその parser の出力であることは、parse の側は `canonicalUrl` の host の条件から、
+setter の側は host state が host parser の出力を書くことから出る（`Url/StrictValid.lean`）。
 -/
 def ipv6Ok (u : Url) : Bool :=
   match u.host with

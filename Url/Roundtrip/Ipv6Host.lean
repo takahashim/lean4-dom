@@ -374,7 +374,8 @@ special かどうかを `sp` で持つので、`sc://h/a` も `http://h/a/b` も
 credentials も扱う。除いてあるのは `file:`、port、IPv6 host、
 それと host が空で path が空でない場合（serialize すると `//` が続いてしまう）である。
 -/
-theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : Option Nat}
+theorem roundtrip_host {toAscii : List Char → Option String}
+    {s user pass : String} {sp : Bool} {hst : Host} {port : Option Nat}
     {segs : List String} {q f : Option String} {a : Char} {rest : List Char}
     (hs : s.toList = a :: rest) (ha : isAsciiLowerAlpha a = true)
     (hr : ∀ c ∈ rest, schemeChar c = true)
@@ -382,7 +383,7 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : O
     (hsp : isSpecialScheme s = sp) (hfile : ¬s = "file")
     (hu : ∀ c ∈ user.toList, userinfoSet c = false)
     (hp : ∀ c ∈ pass.toList, userinfoSet c = false)
-    (hcan : hostParser asciiDomainToASCII (hostSerializer hst).toList (!sp) = some hst)
+    (hcan : hostParser toAscii (hostSerializer hst).toList (!sp) = some hst)
     (hok : hostReadable sp hst)
     (hnc : ∀ c ∈ (hostSerializer hst).toList, isC0ControlOrSpace c = false)
     (hhead : sp = true →
@@ -405,7 +406,7 @@ theorem roundtrip_host {s user pass : String} {sp : Bool} {hst : Host} {port : O
           port := port
           path := .list segs
           query := q
-          fragment := f }) none
+          fragment := f }) none toAscii
       = some
         { scheme := s
           username := user

@@ -459,7 +459,7 @@ base から成分を写す遷移では、base の `canonicalUrl` を `CInv` の 
 -/
 
 /-- `canonicalUrl` の成分。`canonicalUrl_of` の仮定と同じ形である。 -/
-structure CanonParts (u : Url) : Prop where
+structure CanonParts (u : Url) (t : List Char → Option String) : Prop where
   scheme : canonicalScheme u.scheme = true
   port : ∀ p, u.port = some p → defaultPort u.scheme ≠ some p
   username : encodedWith userinfoSet u.username = true
@@ -472,13 +472,14 @@ structure CanonParts (u : Url) : Prop where
   hostPath : u.host = none → u.path ≠ .list []
   specialPath : u.isSpecial = true → u.path ≠ .list []
   hostIdem : ∀ h, u.host = some h → h ≠ Host.empty →
-    hostParser asciiDomainToASCII (hostSerializer h).toList (!u.isSpecial) = some h
+    hostParser t (hostSerializer h).toList (!u.isSpecial) = some h
   notLocal : u.scheme = "file" → ∀ h, u.host = some h → hostSerializer h ≠ "localhost"
   drive : driveOk u.scheme u.path = true
   specialHost : u.isSpecial = true → u.host.isSome = true
   emptyNoCred : u.host = some Host.empty → u.includesCredentials = false
 
-theorem canonical_parts {u : Url} (hc : canonicalUrl u = true) : CanonParts u := by
+theorem canonical_parts {u : Url} {t : List Char → Option String} (hc : canonicalUrl u t = true) :
+    CanonParts u t := by
   simp only [canonicalUrl, Bool.and_eq_true] at hc
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c1, c2⟩, c3⟩, c4⟩, c5⟩, c6⟩, c7⟩, c8⟩, c9⟩, c10⟩, c11⟩, c12⟩, c13⟩, c14⟩ := hc
   refine ⟨c1, ?_, c3, c4, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -636,7 +637,7 @@ end
   · split <;> rfl
 
 /-- path が空なら、host を持つ非 special な URL である。 -/
-theorem CanonParts.pathNil {u : Url} (h : CanonParts u) :
+theorem CanonParts.pathNil {u : Url} {t : List Char → Option String} (h : CanonParts u t) :
     u.path = .list [] → u.host.isSome = true ∧ u.isSpecial = false := by
   intro hp
   refine ⟨?_, ?_⟩
@@ -648,13 +649,13 @@ theorem CanonParts.pathNil {u : Url} (h : CanonParts u) :
     | true => exact absurd hp (h.specialPath hs)
 
 /-- host state が書く host は、serialize して読み直すと戻る。 -/
-theorem host_idem {f : List Char → Option String} {buf : List Char} {b : Bool} {h : Host}
-    (hf : f = asciiDomainToASCII) (hp : hostParser f buf b = some h) :
+theorem host_idem {f t : List Char → Option String} {buf : List Char} {b : Bool} {h : Host}
+    (hf : f = t) (htok : ToAsciiOk t) (hp : hostParser f buf b = some h) :
     ∀ h', some h = some h' → h' ≠ Host.empty → hostParser f (hostSerializer h').toList b = some h' := by
   intro h' hh hne
   cases hh
   subst hf
-  exact hostParser_idem hp hne
+  exact hostParser_idem_of htok hp hne
 
 /-- 空でない buffer から host parser が empty host を返すことは無い。 -/
 theorem host_some_ne_empty {f : List Char → Option String} {buf : List Char} {b : Bool} {h : Host}
@@ -665,14 +666,14 @@ theorem host_some_ne_empty {f : List Char → Option String} {buf : List Char} {
   exact absurd (by rw [hostParser_empty hp]; rfl) hne
 
 /-- file host state が書く host（`localhost` は empty host に直す）も同じ。 -/
-theorem fileHost_idem {f : List Char → Option String} {buf : List Char} {b : Bool} {h : Host}
-    (hf : f = asciiDomainToASCII) (hp : hostParser f buf b = some h) :
+theorem fileHost_idem {f t : List Char → Option String} {buf : List Char} {b : Bool} {h : Host}
+    (hf : f = t) (htok : ToAsciiOk t) (hp : hostParser f buf b = some h) :
     ∀ h', some (if hostSerializer h == "localhost" then Host.empty else h) = some h' →
       h' ≠ Host.empty → hostParser f (hostSerializer h').toList b = some h' := by
   intro h' hh hne
   split at hh
   · cases hh; exact absurd rfl hne
-  · exact host_idem hf hp h' hh hne
+  · exact host_idem hf htok hp h' hh hne
 
 /-- file host state が書く host は `localhost` でない。 -/
 theorem fileHost_notLocal {P : Prop} {h : Host} :
@@ -747,14 +748,14 @@ theorem encodedWith_getD {set : Char → Bool} {o : Option String}
 `/` で始まるなら元の文字が `/` で、space で終わるなら次の文字が来ることを要求する。
 `appendOpaque` は path 以外を変えないので、残りの field はそのまま運べる。
 -/
-theorem CInv.opaqueAppend {base : Option Url} {input rest : List Char} {ch : Char} {ctx : PCtx}
-    {add : String} (h : CInv base .opaquePath input ctx) (hin : input = ch :: rest)
+theorem CInv.opaqueAppend {t : List Char → Option String} {base : Option Url} {input rest : List Char} {ch : Char} {ctx : PCtx}
+    {add : String} (h : CInv t base .opaquePath input ctx) (hin : input = ch :: rest)
     (henc : encodedWith c0ControlSet add = true)
     (hqh : ∀ c ∈ add.toList, c ≠ '?' ∧ c ≠ '#')
     (hne : add.toList ≠ [])
     (hhead : add.toList.head? = some '/' → ch = '/')
     (hlast : add.toList.getLast? = some ' ' → ∃ c t, rest = c :: t ∧ c ≠ '?' ∧ c ≠ '#') :
-    CInv base .opaquePath rest { ctx with url := appendOpaque ctx.url add } := by
+    CInv t base .opaquePath rest { ctx with url := appendOpaque ctx.url add } := by
   subst hin
   have hie := h.inputEnd rfl
   rcases appendOpaque_spec ctx.url add with hu | ⟨o, hp, hu⟩
@@ -851,10 +852,10 @@ theorem encChar_ne_nil (set : Char → Bool) (c : Char) : (encChar set c).toList
   · simp
 
 /-- opaque path state が `?` でも `#` でも space でもない文字を encode して積む。 -/
-theorem CInv.opaqueEnc {base : Option Url} {input rest : List Char} {ch : Char} {ctx : PCtx}
-    (h : CInv base .opaquePath input ctx) (hin : input = ch :: rest)
+theorem CInv.opaqueEnc {t : List Char → Option String} {base : Option Url} {input rest : List Char} {ch : Char} {ctx : PCtx}
+    (h : CInv t base .opaquePath input ctx) (hin : input = ch :: rest)
     (hs : ¬ch = ' ') (hq : ¬ch = '?') (hh : ¬ch = '#') :
-    CInv base .opaquePath rest { ctx with url := appendOpaque ctx.url (encChar c0ControlSet ch) } := by
+    CInv t base .opaquePath rest { ctx with url := appendOpaque ctx.url (encChar c0ControlSet ch) } := by
   refine h.opaqueAppend hin (encodedWith_encChar_c0 ch) ?_ (encChar_ne_nil _ ch) ?_ ?_
   · intro c hc
     exact ⟨encChar_avoid (by decide) (by decide) hq c hc, encChar_avoid (by decide) (by decide) hh c hc⟩
@@ -868,17 +869,17 @@ theorem CInv.opaqueEnc {base : Option Url} {input rest : List Char} {ch : Char} 
     exact absurd rfl (encChar_avoid (by decide) (by decide) hs ' ' hm)
 
 /-- opaque path state が space を `%20` にして積む（次が `?` か `#` のとき）。 -/
-theorem CInv.opaquePct {base : Option Url} {input rest : List Char} {ctx : PCtx}
-    (h : CInv base .opaquePath input ctx) (hin : input = ' ' :: rest) :
-    CInv base .opaquePath rest { ctx with url := appendOpaque ctx.url "%20" } :=
+theorem CInv.opaquePct {t : List Char → Option String} {base : Option Url} {input rest : List Char} {ctx : PCtx}
+    (h : CInv t base .opaquePath input ctx) (hin : input = ' ' :: rest) :
+    CInv t base .opaquePath rest { ctx with url := appendOpaque ctx.url "%20" } :=
   h.opaqueAppend hin (by decide) (by decide) (by decide) (by decide)
     (fun hl => absurd hl (by decide))
 
 /-- opaque path state が space をそのまま積む（次が `?` でも `#` でもないとき）。 -/
-theorem CInv.opaqueSpace {base : Option Url} {input rest : List Char} {ctx : PCtx}
-    (h : CInv base .opaquePath input ctx) (hin : input = ' ' :: rest)
+theorem CInv.opaqueSpace {t : List Char → Option String} {base : Option Url} {input rest : List Char} {ctx : PCtx}
+    (h : CInv t base .opaquePath input ctx) (hin : input = ' ' :: rest)
     (hq : ¬rest.head? = some '?') (hh : ¬rest.head? = some '#') :
-    CInv base .opaquePath rest { ctx with url := appendOpaque ctx.url " " } := by
+    CInv t base .opaquePath rest { ctx with url := appendOpaque ctx.url " " } := by
   refine h.opaqueAppend hin (by decide) (by decide) (by decide) (by decide) ?_
   intro _
   have hie := h.inputEnd rfl

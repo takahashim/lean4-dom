@@ -115,9 +115,14 @@ theorem ne_qh_of_pathSet {c : Char} (h : pathSet c = false) : ¬c = '?' ∧ ¬c 
 
 `ValidUrl`（§4.1 の不変条件）と `canonicalUrl`（parser の出力の形）だけを仮定する。
 path の形で四つの経路を選び分け、それぞれの仮定を二つの述語から出す。
+
+ToASCII は一般でよい。要るのは出力に forbidden domain code point が無いことだけで
+（host を serialize した文字列を host state が素通りするため）、domain parser の step 4-5 がそれを保証する。
 -/
-theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = true) :
-    basicUrlParse (urlSerializer u) none = some u := by
+theorem roundtrip_canonical_of {toAscii : List Char → Option String}
+    (hf : ∀ x a, toAscii x = some a → a.any isForbiddenDomain = false)
+    {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u toAscii = true) :
+    basicUrlParse (urlSerializer u) none toAscii = some u := by
   simp only [canonicalUrl, Bool.and_eq_true] at hc
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c1, c2⟩, c3⟩, c4⟩, c5⟩, c6⟩, c7⟩, c8⟩, c9⟩, c10⟩, c11⟩, c12⟩, c13⟩, c14⟩ := hc
   obtain ⟨a, rest, hs, ha, hr, hlow⟩ := canonicalScheme_shape c1
@@ -225,7 +230,7 @@ theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = t
           (ne_qh_of_pathSet (h1 c hc)).2⟩, h2, h3⟩
     | some hst =>
       have hcan : hst = Host.empty ∨
-          hostParser asciiDomainToASCII (hostSerializer hst).toList
+          hostParser toAscii (hostSerializer hst).toList
             (!Url.isSpecial ⟨sc, un, pw, some hst, po, Path.list segs, qu, fr⟩) = some hst := by
         cases hst with
         | empty => exact Or.inl rfl
@@ -233,7 +238,7 @@ theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = t
         | ipv4 x => exact Or.inr (by simpa using c10)
         | ipv6 x => exact Or.inr (by simpa using c10)
         | «opaque» o => exact Or.inr (by simpa using c10)
-      obtain ⟨hok, hnc⟩ := hostReadable_of_canonical hcan
+      obtain ⟨hok, hnc⟩ := hostReadable_of_canonical hf hcan
       by_cases hfile : sc = "file"
       · subst hfile
         have hcred := hv.fileNoCredentials rfl
@@ -329,7 +334,7 @@ theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = t
               rw [hx.1, hx.2] at h
               simp at h
           · exact h (hv.emptyHostNoPort (by rw [hE]))
-        have hcan' : hostParser asciiDomainToASCII (hostSerializer hst).toList
+        have hcan' : hostParser toAscii (hostSerializer hst).toList
             (!isSpecialScheme sc) = some hst := by
           rcases hcan with h | h
           · subst h
@@ -382,6 +387,13 @@ theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = t
           exact ⟨fun c hc => ⟨h1 c hc, isTerminator_false (h4 c hc)
             (ne_qh_of_pathSet (h1 c hc)).1 (ne_qh_of_pathSet (h1 c hc)).2
             (fun hsv => h5 hsv c hc)⟩, h2, h3⟩
+
+/--
+**canonical な record は、serialize して parse し直すと戻る。** 既定の ToASCII について。
+-/
+theorem roundtrip_canonical {u : Url} (hv : ValidUrl u) (hc : canonicalUrl u = true) :
+    basicUrlParse (urlSerializer u) none = some u :=
+  roundtrip_canonical_of (fun _ _ h => asciiDomainToASCII_no_forbidden h) hv hc
 
 /-- 二つの述語だけで往復が出る。`sc://h/a` はどちらも満たす。 -/
 example : basicUrlParse (urlSerializer

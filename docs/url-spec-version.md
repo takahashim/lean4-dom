@@ -48,6 +48,7 @@ Unicode の版を上げるときは四つを取り直して走らせ、
 `--wpt` と `--setters` を表付きで通してから上げる。
 
 表は証明の中には入れない。`Url/Idna.lean` の `IdnaTable` が interface で、
-`checkResolved` が読み込んだ表について `IdnaTable.Resolved`
-（mapped の写像先が再び mapped にならないこと）を実行時に確かめる。
+`checkResolved` と `checkNoUpperValid` が読み込んだ表について `IdnaTable.Resolved`
+（mapped の写像先が再び mapped にならないこと）と `IdnaTable.NoUpperValid`
+（ASCII の大文字は valid でないこと）を実行時に確かめる。
 `url-model --wpt FILE uts46-table.json` の形で渡す。

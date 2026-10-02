@@ -4415,7 +4415,8 @@ structure の field 経由で覆われているもの（`Url/Invariant.lean` の
 `WalkersValid` とずれていれば受理すべき状態を落とす。`checkValidWalker_iff` と
 `checkWalkersValid_iff` で埋めた。残る `checkScenario` / `checkScenarioString` は
 harness の入口で、`runOperations_no_violation` が別の形で覆っている。
-`checkStrictUrl` は Prop の決定手続きではなく、WPT と setter の実行時検査である。
+`checkStrictUrl` は Prop の決定手続きではなく、WPT と setter の実行時検査である
+（その後 `Url/StrictValid.lean` の `checkStrictUrl_iff` で `StrictConds` の決定手続きになった）。
 
 ## 読者から見えない参照を消した
 
