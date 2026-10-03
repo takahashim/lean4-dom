@@ -2,7 +2,8 @@
 //
 //   node test/url_js.mjs CASES.json IMPL...
 //
-// CASES.json は `[{"input": ..., "base": ...}, ...]`。IMPL は次のどれかで、実装ごとの結果を
+// CASES.json は `[{"input": ..., "base": ...}, ...]`。`"setter"` と `"value"` があれば、
+// parse した URL のその IDL attribute に value を代入してから読む。IMPL は次のどれかで、実装ごとの結果を
 // `{"<名前>": [結果, ...], ...}` として一行の JSON で出す。結果は失敗なら null、
 // 成功なら IDL attribute（href から hash まで）と origin。
 //
@@ -46,6 +47,7 @@ async function parseInBrowser(engine, cases) {
     return await page.evaluate(({ cases, fields }) => cases.map((c) => {
       try {
         const u = c.base === undefined || c.base === null ? new URL(c.input) : new URL(c.input, c.base);
+        if (c.setter) u[c.setter] = c.value;
         return Object.fromEntries(fields.map((f) => [f, String(u[f])]));
       } catch {
         return null;
@@ -78,6 +80,7 @@ async function openImplementation(spec) {
 function parseOne(URLClass, c) {
   try {
     const u = c.base === undefined || c.base === null ? new URLClass(c.input) : new URLClass(c.input, c.base);
+    if (c.setter) u[c.setter] = c.value;
     return Object.fromEntries(FIELDS.map((f) => [f, String(u[f])]));
   } catch {
     return null;

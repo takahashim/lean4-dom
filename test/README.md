@@ -417,6 +417,18 @@ BUNDLE_GEMFILE=/path/to/Gemfile bundle exec ruby test/url_diff.rb --count 10000 
 CI の `deterministic` job は Dommy と whatwg-url で seed 1 の 3,000 件を流す。browser と Node は既知の不一致が
 多いので CI には入れていない（`docs/url-status.md` の「実装との突き合わせ」）。
 
+`--setters` を付けると §6.1 の setter を突き合わせる。parse した URL の IDL attribute（`protocol` から `hash`
+まで）に値を代入してから、同じ IDL attribute と origin を比べる。入力は WPT の `setters_tests.json`
+（`test/url/wpt-setters.json`）の 257 件（`href` の setter は parse そのものなので外す）と、乱数の URL に
+setter ごとの値（区切り文字、percent、port の境界、`file:`、IPv6、IDNA など）とその変形を当てたものである。
+model は `--parse-batch` の case に `"setter"` と `"value"` を足したもの、JS は代入、Dommy は `#{setter}=` を使う。
+CI では parser と同じく Dommy と whatwg-url で seed 1 の 3,000 件を流す。
+
+```sh
+BUNDLE_GEMFILE=/path/to/Gemfile bundle exec ruby test/url_diff.rb --setters --count 8000 --seed 1 \
+  --js whatwg-url=/tmp/wu/node_modules/whatwg-url/index.js --js node
+```
+
 ## urlencoded parser
 
 `test/urlencoded_diff.rb` は、URL Standard §5.1 の application/x-www-form-urlencoded parser を

@@ -73,6 +73,14 @@ jobs:
           bundle exec ruby test/url_diff.rb --count 3000 --seed 1 \
             --js "whatwg-url=$RUNNER_TEMP/wu/node_modules/whatwg-url/index.js"
 
+      # §6.1 の setter。parse した URL の IDL attribute に値を代入してから比べる。
+      - name: URL setters
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+        run: |
+          bundle exec ruby test/url_diff.rb --setters --count 3000 --seed 1 \
+            --js "whatwg-url=$RUNNER_TEMP/wu/node_modules/whatwg-url/index.js"
+
       - name: Urlencoded parser
         env:
           BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
