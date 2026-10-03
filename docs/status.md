@@ -1247,6 +1247,24 @@ harness の側（初期状態の構築や操作の割り当て）を疑えばよ
 `ReachableFrom` は public API だけで構成できることを表す帰納的述語で、
 局所不変条件の閉包である `AdmissibleDOMState` とは別概念として分けてある。
 
+### attribute の id の一意性（`Dom/Exec/AttrIds.lean`）
+
+`Attr` の id は `stateMaxAttrId` より大きい新しい値で作られ、
+移動（`setAttributeNode` による detach・attach、`adoptNode`）では変わらない。
+これを不変条件 `AttrIdsUnique` として述べ、すべての操作が保つことを証明した
+（`attrIdsUnique_applyOperation` / `run_preserves_attrIdsUnique` / `reachable_attrIdsUnique`）。
+id を鍵に `Attr` を探す algorithm（`setAttributeNode` の置き換えや
+`removeAttributeNode`）を仕様の関係で特徴付けるときの前提になる。
+
+field `normalized`（attached な `Attr` の namespace が正規化済み）も同じ不変条件に入れてある。
+`setAttributeNode` は鍵を正規化してから既存の `Attr` を探すので、
+正規化されていない namespace を持つ `Attr` があると別の `Attr` と取り違えうる。
+loader（`buildTree`）が正規化するので、到達可能な状態では成り立つ。
+
+frame の補題は `Dom/Validity/AttrIds.lean`（木の構造を変える操作）・
+`AttrIdsOps.lean`（normalize・Range・observer・event）・
+`AttrIdsAttr.lean`（attribute の操作と node の生成・clone）に分けてある。
+
 ### §8（`Dom/Properties/Counterexample.lean`）
 
 `exists_insert_breaking_boundaryLE`。

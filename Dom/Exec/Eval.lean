@@ -4,6 +4,7 @@ import Dom.CharacterData.Normalize
 import Dom.Range.Api
 import Dom.Selector.Api
 import Dom.Query.Lookup
+import Dom.Validity.AttrIds
 
 /-!
 # 操作列の評価
@@ -173,6 +174,8 @@ def buildState (sc : Scenario) : Except String DOMState := do
     throw "初期状態の observer registration が木に無い node か範囲外の observer を指している"
   unless checkAttributesValid t do
     throw "初期状態の attribute list が妥当でない（Element 以外が持つ、鍵が重複、prefix に namespace が無い）"
+  unless checkAttrIdsUnique s do
+    throw "初期状態の attribute の id が重複している、または namespace が正規化されていない"
   return s
 
 /-- node と状態を返す操作の戻り値。失敗した step の戻り値は観測に出ない。 -/

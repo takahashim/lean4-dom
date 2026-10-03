@@ -86,6 +86,28 @@ theorem reachable_admissible {initial : DOMState → Prop}
 `AdmissibleDOMState` は局所不変条件の閉包、`ReachableFrom` は構成可能性であり、
 別の概念として分けてある。
 
+### attribute の id の一意性
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Exec.attrIdsUnique_applyOperation` | `Dom/Exec/AttrIds.lean` |
+| `Dom.Exec.run_preserves_attrIdsUnique` | `Dom/Exec/AttrIds.lean` |
+| `Dom.Exec.reachable_attrIdsUnique` | `Dom/Exec/AttrIds.lean` |
+| `Dom.attrIdsUnique_of_check` | `Dom/Validity/AttrIds.lean` |
+
+```lean
+theorem reachable_attrIdsUnique {initial : DOMState → Prop}
+    (hinit : ∀ s, initial s → AdmissibleDOMState s ∧ AttrIdsUnique s) {s : DOMState}
+    (hr : ReachableFrom initial s) : AdmissibleDOMState s ∧ AttrIdsUnique s
+```
+
+`AttrIdsUnique` は、`Attr` の id が element の中でも element の間でも、
+detached な `Attr` との間でも重ならず、attached な `Attr` の namespace が
+正規化済み（`""` を持たない）であることを言う。
+`AdmissibleDOMState` には入れず、別の不変条件として並べてある。
+loader は `checkAttrIdsUnique` で初期状態を検査し、
+`attrIdsUnique_of_check` がその検査の健全性である。
+
 ## 5. `remove` は live object を保つ
 
 | 定理 | module |

@@ -140,6 +140,10 @@ import Dom.Attribute.Reflect
 import Dom.Validity.Reflect
 import Dom.Properties.NullNamespace
 import Dom.Properties.NamespaceLookup
+import Dom.Validity.AttrIds
+import Dom.Validity.AttrIdsOps
+import Dom.Validity.AttrIdsAttr
+import Dom.Exec.AttrIds
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化
