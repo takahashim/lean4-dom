@@ -133,10 +133,19 @@ import Dom.Spec.EventSound
 import Dom.Spec.Attribute
 import Dom.Spec.AttributeSound
 import Dom.Spec.AttributeCongr
+import Dom.Spec.Observe
+import Dom.Spec.ObserveSound
+import Dom.Spec.RangeSet
 import Dom.Attribute.Reflect
 import Dom.Validity.Reflect
 import Dom.Properties.NullNamespace
 import Dom.Properties.NamespaceLookup
+import Dom.Validity.AttrIds
+import Dom.Validity.AttrIdsOps
+import Dom.Validity.AttrIdsAttr
+import Dom.Exec.AttrIds
+import Dom.Spec.AttributeNode
+import Dom.Spec.AttributeNodeSound
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化
