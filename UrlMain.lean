@@ -566,17 +566,24 @@ def runUrlencodedBatch (path : String) : IO UInt32 := do
 `URL(input, base)` の結果を、差分テストで比べる形の JSON にする。失敗なら null、
 成功なら IDL attribute（`href` から `hash` まで）と origin。
 -/
-def parseResultJson (input : String) (base : Option String) (idna : Option (Array IdnaRange)) :
-    Json :=
+def parseResultJson (input : String) (base : Option String) (idna : Option (Array IdnaRange))
+    (setter : Option (String × String) := none) : Json :=
   match parseUrl input base (toAsciiOf idna) with
   | none => Json.null
-  | some u =>
-    Json.mkObj ((attrNames.map fun n => (n, Json.str ((u.getAttr n).getD ""))) ++
-      [("origin", Json.str (originSerializer (Url.origin u)))])
+  | some u₀ =>
+    let u := match setter with
+      | none => some u₀
+      | some (name, v) => u₀.setAttr name v (toAsciiOf idna)
+    match u with
+    | none => Json.str "未知の setter"
+    | some u =>
+      Json.mkObj ((attrNames.map fun n => (n, Json.str ((u.getAttr n).getD ""))) ++
+        [("origin", Json.str (originSerializer (Url.origin u)))])
 
 /--
 `--parse-batch FILE [UTS46]`：`[{"input": ..., "base": ...}, ...]` を読み、各 case の
 `parseResultJson` を並べた配列を一行の JSON で出す。`test/url_diff.rb` が実装と突き合わせる。
+case に `"setter"` と `"value"` があれば、parse した URL にその IDL setter を当ててから出す。
 -/
 def runParseBatch (path : String) (tablePath : Option String) : IO UInt32 := do
   let idna ← match tablePath with
@@ -591,7 +598,10 @@ def runParseBatch (path : String) (tablePath : Option String) : IO UInt32 := do
     let .ok input := (j.getObjValD "input").getStr?
       | do IO.eprintln s!"{path}: input が文字列でない"; return 1
     let base := ((j.getObjValD "base").getStr?).toOption
-    out := out.push (parseResultJson input base idna)
+    let setter := match (j.getObjValD "setter").getStr?, (j.getObjValD "value").getStr? with
+      | .ok name, .ok v => some (name, v)
+      | _, _ => none
+    out := out.push (parseResultJson input base idna setter)
   IO.println (Json.arr out).compress
   return 0
 

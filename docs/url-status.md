@@ -547,6 +547,49 @@ WebKit の 25 件は WPT の外にあり、三つの形に分かれる。どれ�
 | 2 | `pathname` の getter が `.` で始まる segment の頭を落とす（`non-spec:/.path` の pathname が `path`。href は正しい） | §6.1 pathname getter は URL path serializer で、serializer が足す `/.` とは別 |
 
 
+#### setter
+
+`test/url_diff.rb --setters` が、parse した URL の IDL attribute に値を代入した後を model と実装で突き合わせる。
+入力は WPT の `setters_tests.json` の 257 件（`href` の setter を除く）と、乱数の URL に setter ごとの値と
+その変形を当てたものである。
+
+2026-10-03 に、seed 1-5（約 3.6 万件）で次の結果になった。browser は seed 1（5,041 件）で測った。
+
+| 実装 | 結果 |
+| --- | --- |
+| Dommy `f9114e5`（URL の部分は `715fa7b` と同じ） | 全件一致 |
+| whatwg-url 17.1.2 | 全件一致 |
+| Node 23.11.1 の組み込み URL（Ada 3.2.1） | seed 2 の 7,770 件のうち 387 件 |
+| WebKit 26.6 | 21 件。WPT の 257 件では割れない |
+| Firefox 155.0 | 790 件。うち WPT の 29 件 |
+| Chromium 153 | 576 件。うち WPT の 24 件 |
+
+**parser と同じく、三つの browser が互いに一致したうえで model と違う case は一件も無かった。**
+割れた case はどれも model・whatwg-url・Dommy の三つが同じ側にいる。
+
+Node の 387 件のうち 310 件は parser と同じ「opaque path の末尾の空白を `%20` にしない」で、
+setter を当てる前の URL がもう割れている。残りは path の `^`、`..` の後の空の segment、
+`xn--` の label（WPT の parser 表でも `https://xn--/` は成功が期待値）と、setter に固有の次のような形である。
+
+* 非 special な URL の `host` setter で、値の port（`example.com:80`）を落とす。
+* `hostname` setter に空文字列を渡すと、非 special で host の無い URL（`sc:/a`）を変えない。
+  §6.1 は host state を state override 付きで走らせ、空の opaque host を入れる（`sc:///a`）。
+* `host` setter に `:80` を渡すと、host を空にして port を入れる。§4.4 host state は buffer が空のまま
+  `:` に来たら失敗する。
+* `port` setter に空白だけ（`\n\n\t\t`）を渡すと port を消す。tab と newline を取り除くと空文字列で、
+  §6.1 の port setter は空文字列なら port を null にするが、取り除く前の値で判定するので何も変えないのが正しい。
+
+WebKit の 21 件は六つの形に分かれる。
+
+| 件数 | 形 | 本文 |
+| --- | --- | --- |
+| 11 | 非 special で userinfo か port があり path が空のとき、`/` を足す | parser と同じ形（§4.4 path start state） |
+| 3 | `hostname` setter に `[::1]:2` を渡すと、`:2` を無視して host を入れる | §4.4 host state：括弧の外の `:` で state override が hostname state なら失敗（何も変えない） |
+| 3 | `host` setter に `example.com:65536` を渡すと、`file:` では host を入れ、`https:` では port を消す | `file:` は file host state が `:` ごと host parser に渡して失敗。`https:` は host を書いた後で port state が失敗し、port はそのまま |
+| 2 | 値の `\t` を取り除く前に扱う（`host` では IDNA に渡し、`pathname` では先頭に `/` が余る） | §4.4 basic URL parser の冒頭：ASCII tab と newline を取り除く |
+| 1 | `hostname` setter の `///bad.com` で path まで書き換える | §6.1 hostname setter は host state から始める |
+| 1 | `file:` で host がある URL の `pathname` に `c|` を入れても `c:` に直さない | parser と同じ形（§4.4 path state） |
+
 以前は IPv4（10 件）、IPv6（15 件）、host（15 件）を Dommy とその場で突き合わせただけで、
 再現する手段が無かった（host の 2 件が IDNA の境界で割れた）。
 
