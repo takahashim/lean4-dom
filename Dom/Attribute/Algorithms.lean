@@ -13,9 +13,11 @@ element の namespace と local name に依る部分（`tagName`、attribute 名
 仕様の attribute は `Attr` node だが、本 model では element の状態として持つ
 （`Dom/Basic/NodeId.lean` の `Attr` を参照）。ただし **同一性は `AttrId` で表す**ので、
 「attribute を作り直したか、同じものを動かしたか」は観測できる。
-新しい attribute の id は `freshAttrId`（木にある id の最大より一つ大きいもの）である。
+新しい attribute の id は `freshStateAttrId`（木にある id と detach された `Attr` の id を合わせた
+最大より一つ大きいもの）である。
 
-attribute の node document は持たないので、adopt の step 3.2 は空になる。
+attribute の node document は `Attr.ownerDocument` で持つ。adopt の step 3.3.1 は
+`NodeData.withOwnerDocument` が element の attribute ごと書き換える。
 
 receiver が Element でない場合は WebIDL の TypeError を返す。仕様の algorithm 自体には
 その検査が無い（`Element` interface の method からしか呼ばれないため）が、
