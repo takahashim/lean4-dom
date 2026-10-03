@@ -38,12 +38,13 @@ theorem AttrIdsUnique.of_change {s s' : DOMState} (hu : AttrIdsUnique s) (n : No
     (hL : (L.map Prod.fst).Nodup) (hDn : D.Nodup) (hLD : ∀ i ∈ L.map Prod.fst, i ∉ D)
     (hLo : ∀ m, m ≠ n → ∀ i ∈ L.map Prod.fst, i ∉ attrIdsAt s.tree m)
     (hDo : ∀ m, m ≠ n → ∀ i ∈ attrIdsAt s.tree m, i ∉ D)
-    (hLn : ∀ p ∈ L, normalizeNamespace p.2 = p.2) : AttrIdsUnique s' := by
+    (hLn : ∀ p ∈ L, normalizeNamespace p.2 = p.2)
+    (hDN : ∀ p ∈ s'.detachedAttrs.map detachedSig, AttrNormalForm p.2) : AttrIdsUnique s' := by
   have hids' : ∀ m, attrIdsAt s'.tree m =
       if m = n then L.map Prod.fst else attrIdsAt s.tree m := by
     intro m; rw [attrIdsAt_eq, hids]; split <;> rfl
   refine ⟨fun m => ?_, fun m m' hne i hi => ?_, by rw [hD]; exact hDn, fun m i hi => ?_,
-    fun m p hp => ?_⟩
+    fun m p hp => ?_, hDN⟩
   · rw [hids']; split
     · exact hL
     · exact hu.within m
@@ -69,12 +70,47 @@ theorem AttrIdsUnique.of_change {s s' : DOMState} (hu : AttrIdsUnique s) (n : No
 /-- 木を変えず、detach された list だけを変えるとき。 -/
 theorem AttrIdsUnique.of_detached {s s' : DOMState} (hu : AttrIdsUnique s) (D : List AttrId)
     (ht : s'.tree = s.tree) (hD : s'.detachedAttrs.map (·.id) = D) (hDn : D.Nodup)
-    (hDo : ∀ m, ∀ i ∈ attrIdsAt s.tree m, i ∉ D) : AttrIdsUnique s' :=
+    (hDo : ∀ m, ∀ i ∈ attrIdsAt s.tree m, i ∉ D)
+    (hDN : ∀ p ∈ s'.detachedAttrs.map detachedSig, AttrNormalForm p.2) : AttrIdsUnique s' :=
   ⟨fun m => by rw [ht]; exact hu.within m,
     fun m m' hne i hi => by rw [ht] at hi ⊢; exact hu.across m m' hne i hi,
     by rw [hD]; exact hDn,
     fun m i hi => by rw [ht] at hi; rw [hD]; exact hDo m i hi,
-    fun m p hp => by rw [ht] at hp; exact hu.normalized m p hp⟩
+    fun m p hp => by rw [ht] at hp; exact hu.normalized m p hp, hDN⟩
+
+/-! ## 正規形 -/
+
+/-- 正規形の `Attr` は正規化しても変わらない。 -/
+theorem normalized_eq_of_normalForm {a : Attr} (h : AttrNormalForm (a.namespace, a.prefix)) :
+    a.normalized = a := by
+  obtain ⟨hn, hp⟩ := h
+  unfold Attr.normalized
+  simp only [hn]
+  cases a with
+  | mk id ns pfx ln v doc =>
+    simp only at hn hp ⊢
+    cases hns : ns with
+    | some x => simp
+    | none =>
+      cases hpf : pfx with
+      | none => simp
+      | some y => rw [hns, hpf] at hp; simp at hp
+
+theorem normalForm_normalized (a : Attr) :
+    AttrNormalForm (a.normalized.namespace, a.normalized.prefix) :=
+  ⟨by simp [normalizeNamespace_idem], a.normalized_prefixHasNamespace⟩
+
+/-- detach された list の `Attr` は正規形にある。 -/
+theorem AttrIdsUnique.normalForm_detached {s : DOMState} (hu : AttrIdsUnique s) {a : Attr}
+    (ha : a ∈ s.detachedAttrs) : AttrNormalForm (a.namespace, a.prefix) :=
+  hu.detachedNormal (detachedSig a) (List.mem_map_of_mem ha)
+
+/-- 各要素が正規形なら、sig の列も正規形である。 -/
+theorem detNormal_of_forall {l : List Attr} (h : ∀ a ∈ l, AttrNormalForm (a.namespace, a.prefix)) :
+    ∀ p ∈ l.map detachedSig, AttrNormalForm p.2 := by
+  intro p hp
+  obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hp
+  exact h a ha
 
 theorem attrSigAt_setAttributes {t : Tree} {n : NodeId} {d : NodeData} (hd : t.get? n = some d)
     (as : List Attr) (m : NodeId) :
@@ -122,6 +158,12 @@ theorem AttrIdsUnique.normalized_of_mem {s : DOMState} (hu : AttrIdsUnique s) {n
     normalizeNamespace a.namespace = a.namespace :=
   hu.normalized n (a.id, a.namespace) (by rw [attrSigAt_of_get? hd]; exact List.mem_map_of_mem ha)
 
+/-- 付いている attribute は正規形にある。 -/
+theorem AttrIdsUnique.normalForm_of_mem {s : DOMState} (hu : AttrIdsUnique s)
+    (hav : AttributesValid s.tree) {n : NodeId} {d : NodeData} (hd : s.tree.get? n = some d)
+    {a : Attr} (ha : a ∈ d.attributes) : AttrNormalForm (a.namespace, a.prefix) :=
+  ⟨hu.normalized_of_mem hd ha, hav.prefixHasNamespace n d hd a ha⟩
+
 /-! ## record を積む段は id の配置を変えない -/
 
 theorem attrFrame_handleAttributeChanges (s : DOMState) (element : NodeId) (a : Attr)
@@ -158,7 +200,7 @@ theorem unique_appendAttribute {s : DOMState} (hu : AttrIdsUnique s) {element : 
   rw [attrIdsAt_of_get? hd] at hold
   refine hu.of_change element
     (d.attributes.map (fun a => (a.id, a.namespace)) ++ [(a₀.id, a₀.namespace)])
-    (s.detachedAttrs.map (·.id)) (fun m => ?_) rfl ?_ hu.detached ?_ ?_ ?_ ?_
+    (s.detachedAttrs.map (·.id)) (fun m => ?_) rfl ?_ hu.detached ?_ ?_ ?_ ?_ hu.detachedNormal
   · show attrSigAt (setAttributes s.tree element d _) m = _
     rw [attrSigAt_setAttributes hd]
     simp
@@ -190,13 +232,13 @@ theorem unique_shrink {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId
     (hd : s.tree.get? element = some d) (as : List Attr)
     (hids : ∀ m, attrSigAt s'.tree m =
       if m = element then as.map (fun a => (a.id, a.namespace)) else attrSigAt s.tree m)
-    (hD : s'.detachedAttrs.map (·.id) = s.detachedAttrs.map (·.id))
+    (hD : s'.detachedAttrs = s.detachedAttrs)
     (hsub : as.Sublist d.attributes) : AttrIdsUnique s' := by
   have hold := hu.within element
   rw [attrIdsAt_of_get? hd] at hold
   have hsub' := hsub.map (·.id)
-  refine hu.of_change element _ _ hids hD (by rw [map_fst_sig]; exact hold.sublist hsub')
-    hu.detached ?_ ?_ ?_ ?_
+  refine hu.of_change element _ _ hids (by rw [hD]) (by rw [map_fst_sig]; exact hold.sublist hsub')
+    hu.detached ?_ ?_ ?_ ?_ (by rw [hD]; exact hu.detachedNormal)
   · intro i hi
     rw [map_fst_sig] at hi
     exact hu.attachedDetached element i (by rw [attrIdsAt_of_get? hd]; exact hsub'.subset hi)
@@ -262,7 +304,8 @@ theorem findAttr_attached {s : DOMState} {aid : AttrId} {a : Attr} {n : NodeId}
     obtain ⟨_, _, _, h⟩ := h
     cases h
 
-theorem unique_detachAttribute {s : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_detachAttribute {s : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
+    {element : NodeId}
     {d : NodeData} (hd : s.tree.get? element = some d) {a : Attr} (ha : a ∈ d.attributes) :
     AttrIdsUnique (detachAttribute s element d a) := by
   unfold detachAttribute
@@ -286,7 +329,7 @@ theorem unique_detachAttribute {s : DOMState} (hu : AttrIdsUnique s) {element : 
   let T := setAttributes s.tree element d (eraseFirst (fun b => b.id == a.id) d.attributes)
   refine hu.of_change (s' := { s with tree := T, detachedAttrs := s.detachedAttrs ++ [a] }) element
     ((pre ++ post).map (fun b => (b.id, b.namespace)))
-    (s.detachedAttrs.map (·.id) ++ [a.id]) (fun m => ?_) (by simp) ?_ ?_ ?_ ?_ ?_ ?_
+    (s.detachedAttrs.map (·.id) ++ [a.id]) (fun m => ?_) (by simp) ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · show attrSigAt (setAttributes s.tree element d _) m = _
     rw [attrSigAt_setAttributes hd, hlist]
   · rw [map_fst_sig]; exact hold.sublist hsubids
@@ -316,6 +359,10 @@ theorem unique_detachAttribute {s : DOMState} (hu : AttrIdsUnique s) {element : 
     rcases List.mem_append.mp hb with h | h
     · exact List.mem_append_left _ h
     · exact List.mem_append_right _ (List.mem_cons_of_mem _ h)
+  · refine detNormal_of_forall fun b hb => ?_
+    rcases List.mem_append.mp hb with h | h
+    · exact hu.normalForm_detached h
+    · simp at h; rw [h]; exact hu.normalForm_of_mem hav hd ha
 
 /-- 鍵に重複の無い list で、同じ鍵の要素は同じである。 -/
 theorem eq_of_key_eq {β : Type _} {f : Attr → β} : ∀ {l : List Attr}, (l.map f).Nodup →
@@ -397,7 +444,7 @@ theorem unique_appendDetached {s : DOMState} (hu : AttrIdsUnique s) {element : N
   refine hu.of_change (s' := { removeDetached s a₀.id with tree := T }) element
     (d.attributes.map (fun a => (a.id, a.namespace)) ++ [(a₀.id, normalizeNamespace a₀.namespace)])
     ((Dpre ++ Dpost).map (·.id)) (fun m => ?_) (by show List.map _ (removeDetached s a₀.id).detachedAttrs = _; rw [hDr])
-    ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · show attrSigAt (setAttributes s.tree element d _) m = _
     rw [attrSigAt_setAttributes hd]
     simp
@@ -427,9 +474,17 @@ theorem unique_appendDetached {s : DOMState} (hu : AttrIdsUnique s) {element : N
     · obtain ⟨a, ha', rfl⟩ := List.mem_map.mp h
       exact hu.normalized_of_mem hd ha'
     · simp at h; rw [h]; simp
+  · show ∀ p ∈ (removeDetached s a₀.id).detachedAttrs.map detachedSig, _
+    rw [hDr]
+    refine detNormal_of_forall fun b hb => hu.normalForm_detached ?_
+    rw [hDs]; simp at hb ⊢
+    rcases hb with h | h
+    · exact Or.inl h
+    · exact Or.inr (Or.inr h)
 
 /-- detach された `a₀` で、付いている `old` を置き換える（`setAttributeNode` の step 7）。 -/
-theorem unique_replaceDetached {s : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_replaceDetached {s : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
+    {element : NodeId}
     {d : NodeData} (hd : s.tree.get? element = some d) (hkeys : (d.attributes.map Attr.key).Nodup)
     {a₀ old : Attr} (ha : a₀ ∈ s.detachedAttrs) (hold : old ∈ d.attributes) :
     AttrIdsUnique (replaceAttributeWith (removeDetached s a₀.id) element d old a₀.normalized) := by
@@ -479,7 +534,7 @@ theorem unique_replaceDetached {s : DOMState} (hu : AttrIdsUnique s) {element : 
       (fun a => (a.id, a.namespace)))
     ((Dpre ++ Dpost).map (·.id) ++ [old.id]) (fun m => ?_)
     (by show List.map _ ((removeDetached s a₀.id).detachedAttrs ++ [old]) = _; simp [hDr])
-    ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · show attrSigAt (setAttributes s.tree element d _) m = _
     rw [attrSigAt_setAttributes hd, hlist]
   · rw [map_fst_sig]
@@ -537,6 +592,15 @@ theorem unique_replaceDetached {s : DOMState} (hu : AttrIdsUnique s) {element : 
       · rw [h]; simp
       · exact hu.normalized_of_mem hd
           (by rw [hsplit]; exact List.mem_append_right _ (List.mem_cons_of_mem _ h))
+  · show ∀ p ∈ ((removeDetached s a₀.id).detachedAttrs ++ [old]).map detachedSig, _
+    rw [hDr]
+    refine detNormal_of_forall fun b hb => ?_
+    simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hb
+    rcases hb with (h | h) | h
+    · exact hu.normalForm_detached (by rw [hDs]; exact List.mem_append_left _ h)
+    · exact hu.normalForm_detached
+        (by rw [hDs]; exact List.mem_append_right _ (List.mem_cons_of_mem _ h))
+    · rw [h]; exact hu.normalForm_of_mem hav hd hold
 
 theorem unique_setAttributeNode {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
     {element : NodeId} {aid : AttrId} {r : Option AttrId}
@@ -583,7 +647,7 @@ theorem unique_setAttributeNode {s s' : DOMState} (hu : AttrIdsUnique s) (hav : 
               have hold : old ∈ d.attributes := by
                 unfold getAttributeByKey at hgk
                 exact List.mem_of_find?_eq_some hgk
-              exact unique_replaceDetached hu hd hkeys ha₀ hold
+              exact unique_replaceDetached hu hav hd hkeys ha₀ hold
             · obtain ⟨hg, hid⟩ := hself ho
               rw [hg] at hgk; cases hgk
               exact absurd (by simp [hid]) hne
@@ -597,7 +661,8 @@ theorem unique_setAttributeNode {s s' : DOMState} (hu : AttrIdsUnique s) (hav : 
           · obtain ⟨hg, -⟩ := hself ho
             rw [hg] at hgk; cases hgk
 
-theorem unique_removeAttributeNode {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_removeAttributeNode {s s' : DOMState} (hu : AttrIdsUnique s)
+    (hav : AttributesValid s.tree) {element : NodeId}
     {aid r : AttrId} (h : removeAttributeNode s element aid = .ok (r, s')) : AttrIdsUnique s' := by
   unfold removeAttributeNode at h
   split at h
@@ -608,9 +673,10 @@ theorem unique_removeAttributeNode {s s' : DOMState} (hu : AttrIdsUnique s) {ele
     · cases h
     · next a hf =>
       cases h
-      exact unique_detachAttribute hu hd (List.mem_of_find?_eq_some hf)
+      exact unique_detachAttribute hu hav hd (List.mem_of_find?_eq_some hf)
 
-theorem unique_removeNamedItem {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_removeNamedItem {s s' : DOMState} (hu : AttrIdsUnique s)
+    (hav : AttributesValid s.tree) {element : NodeId}
     {qn : String} {r : AttrId} (h : removeNamedItem s element qn = .ok (r, s')) :
     AttrIdsUnique s' := by
   unfold removeNamedItem at h
@@ -618,14 +684,14 @@ theorem unique_removeNamedItem {s s' : DOMState} (hu : AttrIdsUnique s) {element
   · cases h
   · split at h
     · cases h
-    · exact unique_removeAttributeNode hu h
+    · exact unique_removeAttributeNode hu hav h
 
 /-! ## 新しい `Attr` を detach された list に足す -/
 
 theorem unique_addDetachedFresh {s : DOMState} (hu : AttrIdsUnique s) (a : Attr)
-    (hfresh : a.id = freshStateAttrId s) :
+    (hfresh : a.id = freshStateAttrId s) (hn : AttrNormalForm (a.namespace, a.prefix)) :
     AttrIdsUnique { s with detachedAttrs := s.detachedAttrs ++ [a] } := by
-  refine hu.of_detached (s.detachedAttrs.map (·.id) ++ [a.id]) rfl (by simp) ?_ ?_
+  refine hu.of_detached (s.detachedAttrs.map (·.id) ++ [a.id]) rfl (by simp) ?_ ?_ ?_
   · refine List.nodup_append.mpr ⟨hu.detached, by simp, ?_⟩
     intro x hx y hy hxy
     simp at hy; rw [hy, hfresh] at hxy
@@ -634,20 +700,34 @@ theorem unique_addDetachedFresh {s : DOMState} (hu : AttrIdsUnique s) (a : Attr)
     rcases List.mem_append.mp hD with h | h
     · exact hu.attachedDetached m i hi h
     · simp at h; rw [h, hfresh] at hi; exact fresh_not_mem_attrIdsAt s m hi
+  · refine detNormal_of_forall fun b hb => ?_
+    rcases List.mem_append.mp hb with h | h
+    · exact hu.normalForm_detached h
+    · simp at h; rw [h]; exact hn
 
 theorem unique_createAttributeIn {s : DOMState} (hu : AttrIdsUnique s) (doc : NodeId)
     (ns pfx : Option String) (ln : String) : AttrIdsUnique (createAttributeIn s doc ns pfx ln).2 :=
-  unique_addDetachedFresh hu _ rfl
+  unique_addDetachedFresh hu _ rfl (normalForm_normalized _)
 
-theorem unique_cloneAttrIn {s : DOMState} (hu : AttrIdsUnique s) (a : Attr) (doc : NodeId) :
-    AttrIdsUnique (cloneAttrIn s a doc).2 :=
-  unique_addDetachedFresh hu _ rfl
+theorem unique_cloneAttrIn {s : DOMState} (hu : AttrIdsUnique s) (a : Attr) (doc : NodeId)
+    (hn : AttrNormalForm (a.namespace, a.prefix)) : AttrIdsUnique (cloneAttrIn s a doc).2 :=
+  unique_addDetachedFresh hu _ rfl hn
+
+/-- `findAttr` が返す `Attr` は正規形にある。 -/
+theorem AttrIdsUnique.normalForm_findAttr {s : DOMState} (hu : AttrIdsUnique s)
+    (hav : AttributesValid s.tree) {aid : AttrId} {a : Attr} {o : Option NodeId}
+    (h : findAttr s aid = some (a, o)) : AttrNormalForm (a.namespace, a.prefix) := by
+  cases o with
+  | none => exact hu.normalForm_detached (findAttr_detached h).1
+  | some n =>
+    obtain ⟨d, hd, ha, -⟩ := findAttr_attached h
+    exact hu.normalForm_of_mem hav hd ha
 
 /-! ## `Attr` を一つ書き換える -/
 
 /-- id と namespace を変えない書き換えは枠を保つ。 -/
 theorem attrFrame_modifyAttr (s : DOMState) (aid : AttrId) (f : Attr → Attr)
-    (hf : ∀ b, (f b).id = b.id ∧ (f b).namespace = b.namespace) :
+    (hf : ∀ b, (f b).id = b.id ∧ (f b).namespace = b.namespace ∧ (f b).prefix = b.prefix) :
     AttrFrame s (modifyAttr s aid f) := by
   unfold modifyAttr
   split
@@ -671,7 +751,7 @@ theorem attrFrame_modifyAttr (s : DOMState) (aid : AttrId) (f : Attr → Attr)
     rw [List.map_map]
     congr 1; funext b
     simp only [Function.comp]
-    split <;> simp [hf]
+    split <;> simp [detachedSig, hf]
 
 theorem unique_adoptAttr {s s' : DOMState} (hu : AttrIdsUnique s) {doc : NodeId} {aid r : AttrId}
     (h : adoptAttr s doc aid = .ok (r, s')) : AttrIdsUnique s' := by
@@ -680,23 +760,25 @@ theorem unique_adoptAttr {s s' : DOMState} (hu : AttrIdsUnique s) {doc : NodeId}
   all_goals first
     | (cases h; exact hu)
     | (cases h; exact (attrFrame_modifyAttr s aid (fun x => x.withOwnerDocument doc)
-        (fun b => ⟨rfl, rfl⟩)).unique hu)
+        (fun b => ⟨rfl, rfl, rfl⟩)).unique hu)
     | (cases h; done)
 
-theorem unique_importAttr {s s' : DOMState} (hu : AttrIdsUnique s) {doc : NodeId} {aid r : AttrId}
+theorem unique_importAttr {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
+    {doc : NodeId} {aid r : AttrId}
     (h : importAttr s doc aid = .ok (r, s')) : AttrIdsUnique s' := by
   unfold importAttr at h
   repeat' split at h
   all_goals first
-    | (cases h; exact unique_cloneAttrIn hu _ _)
+    | (cases h; exact unique_cloneAttrIn hu _ _ (hu.normalForm_findAttr hav (by assumption)))
     | (cases h; done)
 
-theorem unique_cloneAttr {s s' : DOMState} (hu : AttrIdsUnique s) {aid r : AttrId}
+theorem unique_cloneAttr {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
+    {aid r : AttrId}
     (h : cloneAttr s aid = .ok (r, s')) : AttrIdsUnique s' := by
   unfold cloneAttr at h
   repeat' split at h
   all_goals first
-    | (cases h; exact unique_cloneAttrIn hu _ _)
+    | (cases h; exact unique_cloneAttrIn hu _ _ (hu.normalForm_findAttr hav (by assumption)))
     | (cases h; done)
 
 theorem unique_setAttrValue {s s' : DOMState} (hu : AttrIdsUnique s) {aid : AttrId} {v : String}
@@ -705,7 +787,7 @@ theorem unique_setAttrValue {s s' : DOMState} (hu : AttrIdsUnique s) {aid : Attr
   repeat' split at h
   all_goals first
     | (cases h; exact (attrFrame_modifyAttr s aid (fun b => { b with value := v })
-        (fun b => ⟨rfl, rfl⟩)).unique hu)
+        (fun b => ⟨rfl, rfl, rfl⟩)).unique hu)
     | (cases h; exact (attrFrame_changeAttribute (by assumption) _ _).unique hu)
     | (cases h; done)
 
@@ -959,7 +1041,7 @@ theorem unique_withFresh {s : DOMState} (hu : AttrIdsUnique s) (d : NodeData)
     AttrIdsUnique (withFresh s d).2 := by
   have hfresh := freshId_get?_eq_none s.tree
   refine hu.of_change (freshId s.tree) (d.attributes.map (fun a => (a.id, a.namespace)))
-    _ (fun m => ?_) rfl (by rw [map_fst_sig]; exact hnd) hu.detached ?_ ?_ ?_ ?_
+    _ (fun m => ?_) rfl (by rw [map_fst_sig]; exact hnd) hu.detached ?_ ?_ ?_ ?_ hu.detachedNormal
   · show attrSigAt (s.tree.insertNode (freshId s.tree) d) m = _
     by_cases hm : m = freshId s.tree
     · subst hm; rw [if_pos rfl]; unfold attrSigAt; rw [get?_insertNode_self]

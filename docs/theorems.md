@@ -103,7 +103,8 @@ theorem reachable_attrIdsUnique {initial : DOMState → Prop}
 
 `AttrIdsUnique` は、`Attr` の id が element の中でも element の間でも、
 detached な `Attr` との間でも重ならず、attached な `Attr` の namespace が
-正規化済み（`""` を持たない）であることを言う。
+正規化済み（`""` を持たない）で、detached な `Attr` も正規形
+（namespace が `""` でなく、prefix があれば namespace もある）であることを言う。
 `AdmissibleDOMState` には入れず、別の不変条件として並べてある。
 loader は `checkAttrIdsUnique` で初期状態を検査し、
 `attrIdsUnique_of_check` がその検査の健全性である。

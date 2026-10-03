@@ -29,6 +29,16 @@ def attrSigAt (t : Tree) (m : NodeId) : List (AttrId × Option String) :=
 /-- node `m` の attribute の id の列（node が無ければ空）。 -/
 def attrIdsAt (t : Tree) (m : NodeId) : List AttrId := (attrSigAt t m).map Prod.fst
 
+/-- detach された `Attr` の id・namespace・prefix。 -/
+def detachedSig (a : Attr) : AttrId × Option String × Option String := (a.id, a.namespace, a.prefix)
+
+/--
+`Attr` が model の正規形にあること：namespace は空文字列でなく、prefix があれば namespace もある。
+仕様の algorithm が作る `Attr` はどれもこの形である（`Attr.normalized` を参照）。
+-/
+def AttrNormalForm (p : Option String × Option String) : Prop :=
+  normalizeNamespace p.1 = p.1 ∧ (p.2.isSome → p.1.isSome)
+
 /-- **attribute の id は一意である。** -/
 structure AttrIdsUnique (s : DOMState) : Prop where
   /-- 一つの element の中で重複しない。 -/
@@ -45,13 +55,26 @@ structure AttrIdsUnique (s : DOMState) : Prop where
   同じ element の別の attribute を引いてしまう。
   -/
   normalized : ∀ m, ∀ p ∈ attrSigAt s.tree m, normalizeNamespace p.2 = p.2
+  /--
+  detach された `Attr` は正規形にある。`setAttributeNode` が正規化してから付けても
+  同じ `Attr` のままであるために要る。
+  -/
+  detachedNormal : ∀ p ∈ s.detachedAttrs.map detachedSig, AttrNormalForm p.2
 
 /-- attribute の id の配置が変わらないこと。 -/
 structure AttrFrame (s s' : DOMState) : Prop where
   ids : ∀ m, attrSigAt s'.tree m = attrSigAt s.tree m
-  detached : s'.detachedAttrs.map (·.id) = s.detachedAttrs.map (·.id)
+  detached : s'.detachedAttrs.map detachedSig = s.detachedAttrs.map detachedSig
+
+theorem map_id_eq_detachedSig (l : List Attr) :
+    l.map (·.id) = (l.map detachedSig).map Prod.fst := by
+  rw [List.map_map]; rfl
 
 namespace AttrFrame
+
+theorem detachedIds {s s' : DOMState} (h : AttrFrame s s') :
+    s'.detachedAttrs.map (·.id) = s.detachedAttrs.map (·.id) := by
+  rw [map_id_eq_detachedSig, h.detached, ← map_id_eq_detachedSig]
 
 theorem refl (s : DOMState) : AttrFrame s s := ⟨fun _ => rfl, rfl⟩
 
@@ -65,9 +88,10 @@ theorem idsAt {s s' : DOMState} (h : AttrFrame s s') (m : NodeId) :
 theorem unique {s s' : DOMState} (h : AttrFrame s s') (hu : AttrIdsUnique s) : AttrIdsUnique s' :=
   ⟨fun m => by rw [h.idsAt]; exact hu.within m,
     fun m m' hne i hi => by rw [h.idsAt] at hi ⊢; exact hu.across m m' hne i hi,
-    by rw [h.detached]; exact hu.detached,
-    fun m i hi => by rw [h.idsAt] at hi; rw [h.detached]; exact hu.attachedDetached m i hi,
-    fun m p hp => by rw [h.ids] at hp; exact hu.normalized m p hp⟩
+    by rw [h.detachedIds]; exact hu.detached,
+    fun m i hi => by rw [h.idsAt] at hi; rw [h.detachedIds]; exact hu.attachedDetached m i hi,
+    fun m p hp => by rw [h.ids] at hp; exact hu.normalized m p hp,
+    fun p hp => by rw [h.detached] at hp; exact hu.detachedNormal p hp⟩
 
 end AttrFrame
 
@@ -107,7 +131,9 @@ def checkAttrIdsUnique (s : DOMState) : Bool :=
       (attrSigAt s.tree k).all (fun p => normalizeNamespace p.2 == p.2)) &&
     ks.all (fun k₁ => ks.all (fun k₂ => k₁ == k₂ ||
       (attrIdsAt s.tree k₁).all (fun i => !(attrIdsAt s.tree k₂).contains i))) &&
-    ListUtil.nodupB det
+    ListUtil.nodupB det &&
+    s.detachedAttrs.all (fun a => normalizeNamespace a.namespace == a.namespace &&
+      (!a.prefix.isSome || a.namespace.isSome))
 
 theorem attrSigAt_eq_nil_of_not_key {t : Tree} {m : NodeId} (h : m ∉ t.nodes.keys) :
     attrSigAt t m = [] := by
@@ -137,9 +163,9 @@ theorem attrIdsUnique_of_check {s : DOMState} (h : checkAttrIdsUnique s = true) 
     AttrIdsUnique s := by
   unfold checkAttrIdsUnique at h
   simp only [Bool.and_eq_true, List.all_eq_true] at h
-  obtain ⟨⟨h₁, h₂⟩, h₃⟩ := h
+  obtain ⟨⟨⟨h₁, h₂⟩, h₃⟩, h₄⟩ := h
   refine ⟨fun m => ?_, fun m m' hne i hi hi' => ?_, (ListUtil.nodupB_iff _).mp h₃,
-    fun m i hi hd => ?_, fun m p hp => ?_⟩
+    fun m i hi hd => ?_, fun m p hp => ?_, fun p hp => ?_⟩
   · by_cases hk : m ∈ s.tree.nodes.keys
     · exact (ListUtil.nodupB_iff _).mp (h₁ m hk).1.1
     · rw [attrIdsAt_eq_nil_of_not_key hk]; exact List.nodup_nil
@@ -151,6 +177,13 @@ theorem attrIdsUnique_of_check {s : DOMState} (h : checkAttrIdsUnique s = true) 
   · have := (h₁ m (key_of_mem_attrIdsAt hi)).1.2 i hi
     simp [hd] at this
   · simpa using (h₁ m (key_of_mem_attrSigAt hp)).2 p hp
+  · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hp
+    have := h₄ a ha
+    simp only [beq_iff_eq, Bool.or_eq_true, Bool.not_eq_true'] at this
+    refine ⟨this.1, fun hp => ?_⟩
+    rcases this.2 with h | h
+    · exact absurd hp (by simp [detachedSig, h])
+    · exact h
 
 /-! ## 木の構造を変える primitive -/
 

@@ -98,9 +98,9 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | setAttributeNode e a =>
     obtain ⟨r, hr⟩ := dropAttr?_ok hop; exact unique_setAttributeNode hu h.attributes hr
   | removeAttributeNode e a =>
-    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_removeAttributeNode hu hr
+    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_removeAttributeNode hu h.attributes hr
   | removeNamedItem e qn =>
-    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_removeNamedItem hu hr
+    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_removeNamedItem hu h.attributes hr
   | rangeSetStart i n o =>
     cases n with
     | none => simp [applyOperation, withNode] at hop
@@ -189,9 +189,9 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | adoptAttr d a =>
     obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_adoptAttr hu hr
   | importAttr d a =>
-    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_importAttr hu hr
+    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_importAttr hu h.attributes hr
   | cloneAttr a =>
-    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_cloneAttr hu hr
+    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_cloneAttr hu h.attributes hr
   | setAttrValue a v via => exact unique_setAttrValue hu hop
   | attrLookupNamespaceURI a p => exact unique_requireRefs hu hop
   | attrLookupPrefix a ns => exact unique_requireRefs hu hop
