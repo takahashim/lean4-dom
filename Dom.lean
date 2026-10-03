@@ -130,6 +130,9 @@ import Dom.Spec.RangeInsertSound
 import Dom.Spec.RangeInsertCongr
 import Dom.Spec.Event
 import Dom.Spec.EventSound
+import Dom.Spec.Attribute
+import Dom.Spec.AttributeSound
+import Dom.Spec.AttributeCongr
 import Dom.Attribute.Reflect
 import Dom.Validity.Reflect
 import Dom.Properties.NullNamespace

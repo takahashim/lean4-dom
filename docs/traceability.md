@@ -47,6 +47,7 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | Range `insertNode(node)`（結果込み、§5.5） | `Dom.Spec.InsertNodeResult` | `rangeInsertNode_result_sound`（`RangeValid` を仮定） | `insertNode_result_deterministic` | `rangeInsertNode_result_complete` |
 | `dispatchEvent`（結果込み、§2.9） | `Dom.Spec.DispatchResult` | `dispatchEvent_result_sound` | `dispatchEvent_result_deterministic`（等号） | `dispatchEvent_result_complete`（等号） |
 | `addEventListener` / `removeEventListener`（結果込み、§2.7） | `Dom.Spec.AddEventListenerResult` / `RemoveEventListenerResult` | `addEventListener_result_sound` / `removeEventListener_result_sound` | complete から | `addEventListener_result_complete` / `removeEventListener_result_complete`（等号） |
+| `setAttribute` / `setAttributeNS` の step 2 以降 / `removeAttribute(NS)` / `toggleAttribute`（結果込み、§4.9） | `Dom.Spec.SetAttributeResult` ほか（`AttributeChanged`・`AttributeAppended`・`AttributeRemoved`・`AttributeRecordQueued`） | `setAttribute_result_sound` ほか（`AttributesValid` を仮定） | `setAttribute_result_deterministic` ほか | `setAttribute_result_complete` ほか |
 | replaceChildren（結果込み、§4.2.6） | `Dom.Spec.ReplaceChildrenResult` | `replaceChildren_result_sound` | `replaceChildren_result_deterministic` | `replaceChildren_result_complete` |
 | before（結果込み、§4.2.9） | `Dom.Spec.BeforeResult`（`ViablePreviousSibling`） | `before_result_sound` | `before_result_deterministic` | `before_result_complete` |
 | after（結果込み、§4.2.9） | `Dom.Spec.AfterResult`（`ViableNextSibling`） | `after_result_sound` | `after_result_deterministic` | `after_result_complete` |
@@ -279,16 +280,16 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | valid element local name | §1.3 | `isValidElementLocalName` | — | （loader が検査する） | — | 済 |
 | `Element.tagName` | §4.8 | `tagName` | — | `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | get an attribute by namespace and local name | 1-2 | `getAttributeByKey` | — | （生成 scenario の `removeAttributeNS`） | 同上 | 済 |
-| handle attribute changes | 1（2-3 は hook の位置のみ） | `handleAttributeChanges` | preservation `admissible_setAttribute` ほか | `observer-attribute-filter-does-not-shadow` | `test_wpt_mutation_observer_attribute_options.rb` | 済 |
-| change an attribute | 1-3 | `changeAttribute` | `attributesValid_change` | 同上 | 同上 | 済 |
-| append an attribute | 1-4 | `appendAttribute` | `attributesValid_append` | 同上 | 同上 | 済 |
+| handle attribute changes | 1（2-3 は hook の位置のみ） | `handleAttributeChanges` | relation `AttributeChangeHandled`（`AttributeRecordQueued`）、`handleAttributeChanges_spec`、congruence `attributeChangeHandled_congr`、preservation `admissible_setAttribute` ほか | `observer-attribute-filter-does-not-shadow` | `test_wpt_mutation_observer_attribute_options.rb` | 済 |
+| change an attribute | 1-3 | `changeAttribute` | relation `AttributeChanged`、`changeAttribute_spec`、`attributesValid_change` | 同上 | 同上 | 済 |
+| append an attribute | 1-4 | `appendAttribute` | relation `AttributeAppended`、`appendAttribute_spec`、`attributesValid_append` | 同上 | 同上 | 済 |
 | create an attribute（"set an attribute value" step 2 と `setAttribute` step 6 の中） | 新しい `Attr` を作る | `freshAttrId` | `ne_freshAttrId` | `attribute-identity-survives-value-change` | — | 済（`Attr` を返す口は未） |
-| remove an attribute | 1-4 | `removeAttributeFrom` | `attributesValid_erase`, `removeAttribute_erases` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
-| set an attribute value | 1-3 | `setAttributeValue` | `attrOpResult_setAttributeValue` | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
-| `setAttribute(qualifiedName, value)` | 1-2, 4-7（step 3 は Trusted Types なので非対象） | `setAttribute`, `attrNameFor` | `admissible_setAttribute`, `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace`, `attribute-identity-survives-value-change` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| remove an attribute | 1-4 | `removeAttributeFrom` | relation `AttributeRemoved`、`removeAttributeFrom_spec`、`attributesValid_erase`, `removeAttribute_erases` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| set an attribute value | 1-3 | `setAttributeValue` | relation `SetAttributeValueResult`（結果込み、sound / 一意 / complete）、`attrOpResult_setAttributeValue` | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
+| `setAttribute(qualifiedName, value)` | 1-2, 4-7（step 3 は Trusted Types なので非対象） | `setAttribute`, `attrNameFor` | relation `SetAttributeResult`（結果込み）、`setAttribute_result_complete`、`admissible_setAttribute`, `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace`, `attribute-identity-survives-value-change` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | `setAttributeNS(namespace, qualifiedName, value)` | 1, 3（step 2 は Trusted Types なので非対象） | `setAttributeNS` | `admissible_setAttributeNS` | （生成 scenario） | `test_wpt_attr.rb` | 済 |
-| `removeAttribute` / `removeAttributeNS` | 全 | `removeAttribute`, `removeAttributeNS` | `admissible_removeAttribute`, `admissible_removeAttributeNS` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
-| `toggleAttribute(qualifiedName, force)` | 1-6 | `toggleAttribute`, `attrNameFor` | `admissible_toggleAttribute` | 同上 | 同上 | 済 |
+| `removeAttribute` / `removeAttributeNS` | 全 | `removeAttribute`, `removeAttributeNS` | relation `RemoveAttributeResult` / `RemoveAttributeNSResult`（結果込み）、`admissible_removeAttribute`, `admissible_removeAttributeNS` | `attribute-by-name-uses-qualified-name` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| `toggleAttribute(qualifiedName, force)` | 1-6 | `toggleAttribute`, `attrNameFor` | relation `ToggleAttributeResult`（結果込み）、`toggleAttribute_result_complete`、`admissible_toggleAttribute` | 同上 | 同上 | 済 |
 | create an attribute / `createAttribute` / `createAttributeNS` | createAttribute 1-3 / createAttributeNS 1-2 | `createAttributeIn`, `createAttribute`, `createAttributeNS` | preservation `admissible_createAttribute`, `admissible_createAttributeNS` | `attr-node-identity-moves` | — | 済 |
 | `getAttributeNode` / `getAttributeNodeNS` | 全 | `getAttributeNode`, `getAttributeNodeNS` | — | 同上 | — | 済 |
 | set an attribute / `setAttributeNode` | 2 InUseAttributeError / 3-4 同じ鍵を引く / 7 replace / 8 append（step 1 と 6 は Trusted Types なので非対象） | `setAttributeNode`, `replaceAttributeWith` | preservation `admissible_setAttributeNode`、`attributesValid_replace` | 同上 | — | 済（`setAttributeNodeNS` は step が同一なので別に置かない） |
