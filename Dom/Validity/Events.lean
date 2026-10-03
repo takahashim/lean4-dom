@@ -86,6 +86,7 @@ theorem listenersOnly_invokeItem (s : DOMState) (e : EventState) (log : List Inv
     (capturing : Bool) (item : NodeId) (isTarget : Bool) :
     ListenersOnly s (invokeItem s e log capturing item isTarget).1 := by
   unfold invokeItem
+  dsimp only
   split
   · exact ListenersOnly.refl s
   · exact listenersOnly_innerInvoke _ _ _ _ _ _

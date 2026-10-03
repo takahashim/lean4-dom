@@ -45,6 +45,8 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | normalize（結果込み） | `Dom.Spec.NormalizeResult` | `normalize_result_sound` | `normalize_result_deterministic` | `normalize_result_complete` |
 | Range `deleteContents()`（結果込み、§5.5） | `Dom.Spec.DeleteContentsResult` | `rangeDeleteContents_result_sound`（`RangeValid` を仮定） | `deleteContents_result_deterministic` | `rangeDeleteContents_result_complete` |
 | Range `insertNode(node)`（結果込み、§5.5） | `Dom.Spec.InsertNodeResult` | `rangeInsertNode_result_sound`（`RangeValid` を仮定） | `insertNode_result_deterministic` | `rangeInsertNode_result_complete` |
+| `dispatchEvent`（結果込み、§2.9） | `Dom.Spec.DispatchResult` | `dispatchEvent_result_sound` | `dispatchEvent_result_deterministic`（等号） | `dispatchEvent_result_complete`（等号） |
+| `addEventListener` / `removeEventListener`（結果込み、§2.7） | `Dom.Spec.AddEventListenerResult` / `RemoveEventListenerResult` | `addEventListener_result_sound` / `removeEventListener_result_sound` | complete から | `addEventListener_result_complete` / `removeEventListener_result_complete`（等号） |
 | replaceChildren（結果込み、§4.2.6） | `Dom.Spec.ReplaceChildrenResult` | `replaceChildren_result_sound` | `replaceChildren_result_deterministic` | `replaceChildren_result_complete` |
 | before（結果込み、§4.2.9） | `Dom.Spec.BeforeResult`（`ViablePreviousSibling`） | `before_result_sound` | `before_result_deterministic` | `before_result_complete` |
 | after（結果込み、§4.2.9） | `Dom.Spec.AfterResult`（`ViableNextSibling`） | `after_result_sound` | `after_result_deterministic` | `after_result_complete` |
@@ -197,12 +199,12 @@ target から根までの祖先列そのものである。`Window` が無いの�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| dispatch | 1-5, 12-13, 14-18 | `dispatchEvent`, `eventPath`, `runPass` | `admissible_dispatchEvent`, `listenersOnly_dispatchEvent` | `event-dispatch-phases`, `event-dispatch-at-character-data-target` | `test_wpt_event_dispatch.rb` | 済（shadow / activation は対象外） |
+| dispatch | 1-5, 12-13, 14-18 | `dispatchEvent`, `eventPath`, `runPass` | relation `DispatchResult`（`EventPathSpec`・`PassRan`・`Invoked`・`InnerInvoked`）、`dispatchEvent_result_sound` / `_complete`（等号）、preservation `admissible_dispatchEvent`, `listenersOnly_dispatchEvent` | `event-dispatch-phases`, `event-dispatch-at-character-data-target` | `test_wpt_event_dispatch.rb` | 済（shadow / activation は対象外） |
 | invoke | 1-9 | `invokeItem` | 同上 | `event-listener-flags` | 同上 | 済 |
 | inner invoke | 1-3 | `innerInvoke`, `invokeOne` | 同上 | 同上 | 同上 | 済 |
-| add an event listener / `addEventListener` | add 5 | `addListener`, `addEventListener` | `admissible_addEventListener` | `event-listener-add-and-remove` | 同上 | 済（`signal` / `passive` は対象外） |
-| remove an event listener / `removeEventListener` | remove 2 | `removeListenerAt`, `removeEventListener` | `admissible_removeEventListener` | 同上 | 同上 | 済 |
-| `stopPropagation` / `stopImmediatePropagation` / `preventDefault` | — | `runAction` | 同上 | `event-listener-flags` | 同上 | 済 |
+| add an event listener / `addEventListener` | add 5 | `addListener`, `addEventListener` | relation `AddEventListenerResult`（`ListenerAdded`）、`addEventListener_result_sound` / `_complete`、preservation `admissible_addEventListener` | `event-listener-add-and-remove` | 同上 | 済（`signal` / `passive` は対象外） |
+| remove an event listener / `removeEventListener` | remove 2 | `removeListenerAt`, `removeEventListener` | relation `RemoveEventListenerResult`（`ListenerRemovedAt`）、`removeEventListener_result_sound` / `_complete`、preservation `admissible_removeEventListener` | 同上 | 同上 | 済 |
+| `stopPropagation` / `stopImmediatePropagation` / `preventDefault` | — | `runAction` | relation `CallbackRan` | `event-listener-flags` | 同上 | 済 |
 
 ## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.5 stringifier
 

@@ -830,4 +830,39 @@ theorem mem_updateFirst {α : Type _} {p : α → Bool} {f : α → α} {y : α}
         · exact Or.inl (List.mem_cons_of_mem _ h'')
         · exact Or.inr ⟨z, List.mem_cons_of_mem _ hz, hy⟩
 
+/-- 重複の無い二つの列が、同じ要素を、非対称な関係で整列して持つなら等しい。 -/
+theorem eq_of_pairwise_of_mem_iff {α : Type _} {R : α → α → Prop} :
+    ∀ {l₁ l₂ : List α}, (∀ x ∈ l₁, ¬ R x x) → (∀ x ∈ l₁, ∀ y ∈ l₁, R x y → ¬ R y x) →
+      l₁.Pairwise R → l₂.Pairwise R → (∀ x, x ∈ l₁ ↔ x ∈ l₂) → l₁ = l₂
+  | [], [], _, _, _, _, _ => rfl
+  | [], b :: _, _, _, _, _, hm => absurd ((hm b).mpr (by simp)) (by simp)
+  | a :: _, [], _, _, _, _, hm => absurd ((hm a).mp (by simp)) (by simp)
+  | a :: t₁, b :: t₂, hirr, hasy, hp₁, hp₂, hm => by
+    have hp₁' := List.pairwise_cons.mp hp₁
+    have hp₂' := List.pairwise_cons.mp hp₂
+    by_cases hab : a = b
+    · subst hab
+      congr 1
+      refine eq_of_pairwise_of_mem_iff (fun x hx => hirr x (by simp [hx]))
+        (fun x hx y hy => hasy x (by simp [hx]) y (by simp [hy])) hp₁'.2 hp₂'.2 (fun x => ?_)
+      constructor
+      · intro hx
+        rcases List.mem_cons.mp ((hm x).mp (by simp [hx])) with he | h
+        · subst he; exact absurd (hp₁'.1 x hx) (hirr x (by simp))
+        · exact h
+      · intro hx
+        rcases List.mem_cons.mp ((hm x).mpr (by simp [hx])) with he | h
+        · subst he; exact absurd (hp₂'.1 x hx) (hirr x (by simp))
+        · exact h
+    · exfalso
+      have ha₂ : a ∈ t₂ := by
+        rcases List.mem_cons.mp ((hm a).mp (by simp)) with he | h
+        · exact absurd he hab
+        · exact h
+      have hb₁ : b ∈ t₁ := by
+        rcases List.mem_cons.mp ((hm b).mpr (by simp)) with he | h
+        · exact absurd he.symm hab
+        · exact h
+      exact hasy a (by simp) b (by simp [hb₁]) (hp₁'.1 b hb₁) (hp₂'.1 a ha₂)
+
 end Dom.ListUtil
