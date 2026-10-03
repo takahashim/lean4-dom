@@ -164,12 +164,12 @@ soundness も component 単位で証明してある
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| set the start / set the end | 1 doctype / 2 offset / 3-5 反対の端の正規化 | `rangeSetStart`, `rangeSetEnd`, `setStartBP`, `setEndBP`, `rangeBoundaryError` | preservation `admissible_rangeSetStart` `admissible_rangeSetEnd` | `range-setstart-past-end-collapses`, `range-setstart-other-root-carries-range`, `range-setstart-errors` | `test_wpt_range_mutations.rb` | 済 |
+| set the start / set the end | 1 doctype / 2 offset / 3-5 反対の端の正規化 | `rangeSetStart`, `rangeSetEnd`, `setStartBP`, `setEndBP`, `rangeBoundaryError` | relation `SetStartResult` / `SetEndResult`（`StartSet`・`EndSet`、`RangeValid` を仮定、等号で complete）、preservation `admissible_rangeSetStart` `admissible_rangeSetEnd` | `range-setstart-past-end-collapses`, `range-setstart-other-root-carries-range`, `range-setstart-errors` | `test_wpt_range_mutations.rb` | 済 |
 | `Node` 引数の変換（WebIDL） | 引数変換は method の step より先 / `Range` の `Node` は non-nullable | `Operation` の `Option Nat`、`Dom.Exec.withNode` | — | `range-null-node-argument` | `test_range_node_arguments.rb` | 済 |
-| `setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter` | 1 parent / 2 null なら InvalidNodeTypeError / 3 set the start(end) | `rangeSetStartSibling`, `rangeSetEndSibling`, `siblingBP` | preservation `admissible_rangeSetStartSibling` ほか | `range-sibling-setters-and-collapse`, `range-boundary-needs-parent` | 同上 | 済 |
-| `collapse(toStart)` | 1-2 | `rangeCollapse` | preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
-| `selectNode(node)` | 1 parent / 2 null なら InvalidNodeTypeError / 3-5 両端 | `rangeSelectNode` | preservation `admissible_rangeSelectNode` | `range-select-node-and-contents`, `range-boundary-needs-parent` | 同上 | 済 |
-| `selectNodeContents(node)` | 1 doctype / 2-4 両端 | `rangeSelectNodeContents` | preservation `admissible_rangeSelectNodeContents` | 同上 | 同上 | 済 |
+| `setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter` | 1 parent / 2 null なら InvalidNodeTypeError / 3 set the start(end) | `rangeSetStartSibling`, `rangeSetEndSibling`, `siblingBP` | relation `SetStartSiblingResult` / `SetEndSiblingResult`、preservation `admissible_rangeSetStartSibling` ほか | `range-sibling-setters-and-collapse`, `range-boundary-needs-parent` | 同上 | 済 |
+| `collapse(toStart)` | 1-2 | `rangeCollapse` | relation `CollapseResult`、preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
+| `selectNode(node)` | 1 parent / 2 null なら InvalidNodeTypeError / 3-5 両端 | `rangeSelectNode` | relation `SelectNodeResult`、preservation `admissible_rangeSelectNode` | `range-select-node-and-contents`, `range-boundary-needs-parent` | 同上 | 済 |
+| `selectNodeContents(node)` | 1 doctype / 2-4 両端 | `rangeSelectNodeContents` | relation `SelectNodeContentsResult`、preservation `admissible_rangeSelectNodeContents` | 同上 | 同上 | 済 |
 | `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | `Spec.rangeIsPointInRange_eq_iff`（`Dom/Spec/RangeQuery.lean`、例外込み） | `range-point-predicates` | 同上 | 済 |
 | `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | `Spec.rangeIntersectsNode_eq_iff`（同上） | 同上 | 同上 | 済 |
 | `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | `Spec.rangeCompareBoundaryPoints_eq_iff`（同上） | `range-compare-boundary-points` | 同上 | 済 |
@@ -261,7 +261,7 @@ scenario が最初から walker を与える形にしてある。
 | transient registered observer | remove step 20 | `addTransientObservers` | `preservesRegs_remove` | `observer-transient-follows-existing-registration` | `test_wpt_transient_registered_observer.rb` | 済 |
 | queue a mutation observer microtask | 1-3 | `queueMutationObserverMicrotask`, `addPendingObserver` | preservation `admissible_*`（配送は木を触らない） | `observer-delivery` | `test_wpt_mutation_observer_order.rb` | 済 |
 | notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | `admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
-| `observe(target, options)` | 1-8（step 1-2 の省略の解決と step 3-6 の TypeError を含む） | `MutationObserver.observe`, `MutationObserverInit.resolve`, `observeOptionsError` | `admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow` | 同上 | 済 |
+| `observe(target, options)` | 1-8（step 1-2 の省略の解決と step 3-6 の TypeError を含む） | `MutationObserver.observe`, `MutationObserverInit.resolve`, `observeOptionsError` | relation `ObserveResult`（`AttributesResolved`・`CharacterDataResolved`・`ObserveOptionsRejected`、等号で complete）、`admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow` | 同上 | 済 |
 | `disconnect()` | 1-2 | `MutationObserver.disconnect` | `admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
 | `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | `admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |
 
