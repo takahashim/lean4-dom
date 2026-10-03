@@ -729,13 +729,13 @@ module DommyRunner
   # attribute に model と同じ規則で id を振る。
   #
   #   初期状態  node の id の昇順・node の中では list 順に 1 から
-  #   新しいもの いま木にある id の最大より一つ大きいもの
+  #   新しいもの いま木にある id と detach された `Attr` の id を合わせた最大より一つ大きいもの
   #
   # 1 から始めるのは、model の `maxAttrId` が attribute の無い木で 0 を返すからである。
   #
-  # model の `freshAttrId` がそうしている。`Attr` object の同一性で引くので、
+  # model の `freshStateAttrId` がそうしている。`Attr` object の同一性で引くので、
   # `setAttribute` が既にある attribute を書き換えたのか作り直したのかが観測できる。
-  # いま無い attribute の id は覚えない（model 側の最大も現在の木だけで決まる）。
+  # 木にも detach された list にも無い attribute の id は覚えない（model 側の最大も現在の状態だけで決まる）。
   def refresh_attr_ids(ctx)
     old = ctx[:attr_ids] || {}.compare_by_identity
     ordered = ctx[:objects].keys.sort.flat_map { |nid| attribute_nodes(ctx[:objects][nid]) }

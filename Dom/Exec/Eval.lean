@@ -32,7 +32,7 @@ namespace Dom.Exec
 
 **node の id の昇順に、node の中では list 順に、1 から順に**振る。
 0 から始めないのは、`maxAttrId` が attribute の無い木で 0 を返すからで、
-そこから `freshAttrId` が返す最初の id が 1 になる。
+そこから `freshStateAttrId` が返す最初の id が 1 になる。
 差分テストの相手の runner も同じ規則で振るので、attribute の同一性を id で比べられる。
 `NodeSpec` は id を持たない（scenario の JSON にも書かない）。
 -/
