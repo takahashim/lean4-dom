@@ -122,22 +122,24 @@ def innerInvoke (capturing : Bool) (cur : NodeId) :
         else innerInvoke capturing cur r.1 r.2 log₂ rest
 
 /--
-DOM Standard §2.9 "invoke"。
+DOM Standard §2.9 dispatch の step 5.13-5.14（eventPhase を決める）と "invoke"。
 
-step 5 の stop propagation flag は **その item の listener を呼ぶ前に** 見る。
+eventPhase は dispatch が invoke の前に決める。invoke の step 4 の stop propagation flag は
+**その item の listener を呼ぶ前に** 見る。
 -/
 def invokeItem (s : DOMState) (e : EventState) (log : List Invocation)
     (capturing : Bool) (item : NodeId) (isTarget : Bool) :
     DOMState × EventState × List Invocation :=
+  let phase :=
+    if isTarget then EventPhase.atTarget
+    else if capturing then EventPhase.capturing
+    else EventPhase.bubbling
+  let e := { e with eventPhase := phase }
   if e.stopPropagation then (s, e, log)
   else
-    let phase :=
-      if isTarget then EventPhase.atTarget
-      else if capturing then EventPhase.capturing
-      else EventPhase.bubbling
     let idxs := s.listeners.zipIdx.filterMap fun (l, i) =>
       if l.target == item && !l.removed then some i else none
-    innerInvoke capturing item s { e with eventPhase := phase } log idxs
+    innerInvoke capturing item s e log idxs
 
 /--
 DOM Standard §2.9 dispatch の step 12-13（capture と bubble の二周）。

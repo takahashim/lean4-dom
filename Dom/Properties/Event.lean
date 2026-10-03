@@ -94,6 +94,7 @@ theorem invokeItem_log_prefix (s : DOMState) (e : EventState) (log : List Invoca
     (capturing : Bool) (item : NodeId) (isTarget : Bool) :
     log <+: (invokeItem s e log capturing item isTarget).2.2 := by
   unfold invokeItem
+  dsimp only
   split
   · exact List.prefix_refl _
   · exact innerInvoke_log_prefix _ _ _ _ _ _
@@ -110,23 +111,34 @@ theorem runPass_log_prefix (capturing : Bool) (target : NodeId) :
     · exact List.IsPrefix.trans (invokeItem_log_prefix s e log capturing item (item == target))
         (runPass_log_prefix capturing target rest _ _ _)
 
-/-- **stop propagation flag が立っていれば、その item は何もしない（invoke の step 5）。** -/
+/--
+**stop propagation flag が立っていれば、その item は何もしない（invoke の step 4）。**
+
+eventPhase だけは dispatch が invoke の前に書き換える。
+-/
 theorem invokeItem_stopPropagation (s : DOMState) (e : EventState) (log : List Invocation)
     (capturing : Bool) (item : NodeId) (isTarget : Bool) (h : e.stopPropagation = true) :
-    invokeItem s e log capturing item isTarget = (s, e, log) := by
-  unfold invokeItem; rw [if_pos h]
+    ∃ ph, invokeItem s e log capturing item isTarget = (s, { e with eventPhase := ph }, log) := by
+  unfold invokeItem
+  dsimp only
+  rw [if_pos h]
+  exact ⟨_, rfl⟩
 
 /-- **stop propagation flag が立った後は、残りの item は一つも呼ばれない。** -/
 theorem runPass_stopPropagation (capturing : Bool) (target : NodeId) :
     ∀ (path : List NodeId) (s : DOMState) (e : EventState) (log : List Invocation),
-      e.stopPropagation = true → runPass capturing target s e log path = (s, e, log)
-  | [], s, e, log, _ => by rw [runPass]
+      e.stopPropagation = true →
+      ∃ ph, runPass capturing target s e log path = (s, { e with eventPhase := ph }, log)
+  | [], s, e, log, _ => ⟨e.eventPhase, by rw [runPass]⟩
   | item :: rest, s, e, log, h => by
     rw [runPass]
     split
     · exact runPass_stopPropagation capturing target rest s e log h
-    · rw [invokeItem_stopPropagation s e log capturing item (item == target) h]
-      exact runPass_stopPropagation capturing target rest s e log h
+    · obtain ⟨ph, hph⟩ := invokeItem_stopPropagation s e log capturing item (item == target) h
+      rw [hph]
+      obtain ⟨ph', hph'⟩ := runPass_stopPropagation capturing target rest s
+        { e with eventPhase := ph } log h
+      exact ⟨ph', hph'⟩
 
 /--
 **`bubbles` が false なら、bubble の周で target 以外は呼ばれない（dispatch の step 13.2.1）。**
@@ -253,6 +265,7 @@ theorem invokeItem_not_canceled (s : DOMState) (e : EventState) (log : List Invo
     (invokeItem s e log capturing item isTarget).2.1.cancelable = false ∧
       (invokeItem s e log capturing item isTarget).2.1.canceled = false := by
   unfold invokeItem
+  dsimp only
   split
   · exact ⟨hc, he⟩
   · exact innerInvoke_not_canceled _ _ _ _ _ _ hc he

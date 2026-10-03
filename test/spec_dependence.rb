@@ -37,9 +37,20 @@ end
 
 IMPL = defs(["Dom/Mutation/*.lean", "Dom/Range/Api.lean", "Dom/Selector/Match.lean",
              "Dom/Selector/Api.lean", "Dom/CharacterData/*.lean", "Dom/Observer/*.lean",
-             "Dom/Traversal/*.lean"])
+             "Dom/Traversal/*.lean", "Dom/Event/*.lean", "Dom/Attribute/Algorithms.lean"])
 VOCAB = defs(["Dom/Basic/*.lean", "Infra/*.lean", "Dom/Range/BoundaryPoint.lean"])
-ALGORITHMS = IMPL - VOCAB
+# 実行側の定義名のうち、関係の中で別の意味の語として現れるもの。
+# `EventPhase.none` / `EventPhase.capturing`（`Dom/Event/Dispatch.lean`）は名前の最後の成分が
+# `Option.none` や引数名 `capturing` と同じ語になるので、語の照合では区別できない。
+IGNORED_WORDS = %w[none capturing].to_set
+ALGORITHMS = IMPL - VOCAB - IGNORED_WORDS
+
+# 個別に確かめて許したもの：[file, 関係, 名前]。
+ALLOWED = [
+  # `ListenerAction.addListener`（callback の宣言の constructor）の match。
+  # 実行側の `addListener` は呼ばず、§2.7 の操作は `ListenerAdded` で書いている。
+  ["Event.lean", "CallbackRan", "addListener"]
+].freeze
 
 URL_IMPL = defs(["Url/Parser.lean", "Url/Api.lean", "Url/Urlencoded.lean",
                  "Url/SearchParams.lean", "Url/Idna.lean"])
@@ -54,6 +65,7 @@ def scan_defs(path, algorithms, rows)
   src.scan(/^def\s+([A-Za-z_][A-Za-z0-9_']*)\s*(.*?)$(.*?)(?=^(?:def|theorem|end|\/--|\/-!)|\z)/m) do
     name, sig, body = Regexp.last_match(1), Regexp.last_match(2), Regexp.last_match(3)
     used = body.scan(/[A-Za-z_][A-Za-z0-9_'!?]*/).uniq.select { |w| algorithms.include?(w) }.sort
+    used.reject! { |w| ALLOWED.include?([File.basename(path), name, w]) }
     next if used.empty?
 
     rows << [File.basename(path), name, sig.include?("Prop") ? "Prop" : "", used]
