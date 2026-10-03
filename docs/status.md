@@ -1265,6 +1265,21 @@ frame の補題は `Dom/Validity/AttrIds.lean`（木の構造を変える操作�
 `AttrIdsOps.lean`（normalize・Range・observer・event）・
 `AttrIdsAttr.lean`（attribute の操作と node の生成・clone）に分けてある。
 
+field `detachedNormal`（detach された `Attr` も正規形：namespace が空文字列でなく、
+prefix があれば namespace もある）も入れてある。`setAttributeNode` は `Attr.normalized` を付けるので、
+仕様どおり「渡された `Attr` そのものを付ける」と言うにはこれが要る。
+そのため `AttrFrame` は detach された `Attr` の id だけでなく namespace と prefix も追う。
+
+### `Attr` を node として渡す API の関係（`Dom/Spec/AttributeNode.lean`）
+
+`setAttributeNode` / `removeAttributeNode` / `NamedNodeMap.removeNamedItem` を、
+"set an attribute"・"replace an attribute"・"remove an attribute" の step から書いた関係
+（`SetAttributeNodeResult` / `RemoveAttributeNodeResult` / `RemoveNamedItemResult`）で特徴付けた。
+`Attr` は id で引く（`AttrLocated`）。element を null にすることは detach された list の末尾に足すこと、
+element を設定することはその list から外すこと（`AttrTakenFromDetached`）にあたる。
+健全性・一意性・完全性は `WellFormed`・`AttributesValid`・`AttrIdsUnique` を仮定する
+（`Dom/Spec/AttributeNodeSound.lean`）。
+
 ### §8（`Dom/Properties/Counterexample.lean`）
 
 `exists_insert_breaking_boundaryLE`。

@@ -37,7 +37,8 @@ end
 
 IMPL = defs(["Dom/Mutation/*.lean", "Dom/Range/Api.lean", "Dom/Selector/Match.lean",
              "Dom/Selector/Api.lean", "Dom/CharacterData/*.lean", "Dom/Observer/*.lean",
-             "Dom/Traversal/*.lean", "Dom/Event/*.lean", "Dom/Attribute/Algorithms.lean"])
+             "Dom/Traversal/*.lean", "Dom/Event/*.lean", "Dom/Attribute/Algorithms.lean",
+             "Dom/Attribute/Node.lean", "Dom/Attribute/AsNode.lean"])
 VOCAB = defs(["Dom/Basic/*.lean", "Infra/*.lean", "Dom/Range/BoundaryPoint.lean"])
 # 実行側の定義名のうち、関係の中で別の意味の語として現れるもの。
 # `EventPhase.none` / `EventPhase.capturing`（`Dom/Event/Dispatch.lean`）は名前の最後の成分が

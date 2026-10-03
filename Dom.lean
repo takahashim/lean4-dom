@@ -144,6 +144,8 @@ import Dom.Validity.AttrIds
 import Dom.Validity.AttrIdsOps
 import Dom.Validity.AttrIdsAttr
 import Dom.Exec.AttrIds
+import Dom.Spec.AttributeNode
+import Dom.Spec.AttributeNodeSound
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化
