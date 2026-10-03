@@ -33,22 +33,52 @@ step 番号だけに頼ると仕様改訂でずれるので、各行に短い st
 | insert | `Dom.Spec.InsertSpec` | `insert_sound` | `insertSpec_deterministic` / `insertSpec_congr` | `insert_complete` |
 | replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | `replaceSpec_deterministic` / `replaceSpec_congr` | `replace_complete` |
 | move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
-| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic`（congr は不要） | `replaceData_complete` |
-
+| replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic` / `replaceDataSpec_congr` | `replaceData_complete` |
+| normalize（§4.4） | `Dom.Spec.NormalizeSpec` | `normalize_sound` | `normalizeSpec_deterministic` / `normalizedEach_congr` | `normalize_isOk`（`this` が木にあれば成功） |
+| replace all | `Dom.Spec.ReplaceAllSpec` | `replaceAll_sound` | `replaceAllSpec_deterministic` | `replaceAll_isOk`（step 5 の事実があれば成功） |
 | ensure pre-insert validity | `Dom.Spec.PreInsertValidity` | `ensurePreInsertionValidity_spec`（仮定なし） | `preInsertValidity_deterministic` | `preInsertValidity_iff` |
 | move の pre-move validity（§4.2.4） | `Dom.Spec.MoveValidity` | `moveValidity_spec`（仮定なし） | `moveValidity_deterministic` | `moveValidity_iff` |
 | pre-insert（結果込み） | `Dom.Spec.PreInsertResult` | `preInsert_result_sound` | `preInsert_result_deterministic` | `preInsert_result_complete` |
 | remove（結果込み） | `Dom.Spec.RemoveResult` | `remove_result_sound` | `remove_result_deterministic` | `remove_result_complete` |
 | replace（結果込み） | `Dom.Spec.ReplaceResult` | `replace_result_sound` | `replace_result_deterministic` | `replace_result_complete` |
 | moveBefore（結果込み） | `Dom.Spec.MoveResult` | `move_result_sound` | `move_result_deterministic` | `move_result_complete` |
+| normalize（結果込み） | `Dom.Spec.NormalizeResult` | `normalize_result_sound` | `normalize_result_deterministic` | `normalize_result_complete` |
+| Range `deleteContents()`（結果込み、§5.5） | `Dom.Spec.DeleteContentsResult` | `rangeDeleteContents_result_sound`（`RangeValid` を仮定） | `deleteContents_result_deterministic` | `rangeDeleteContents_result_complete` |
+| Range `insertNode(node)`（結果込み、§5.5） | `Dom.Spec.InsertNodeResult` | `rangeInsertNode_result_sound`（`RangeValid` を仮定） | `insertNode_result_deterministic` | `rangeInsertNode_result_complete` |
+| replaceChildren（結果込み、§4.2.6） | `Dom.Spec.ReplaceChildrenResult` | `replaceChildren_result_sound` | `replaceChildren_result_deterministic` | `replaceChildren_result_complete` |
+| before（結果込み、§4.2.9） | `Dom.Spec.BeforeResult`（`ViablePreviousSibling`） | `before_result_sound` | `before_result_deterministic` | `before_result_complete` |
+| after（結果込み、§4.2.9） | `Dom.Spec.AfterResult`（`ViableNextSibling`） | `after_result_sound` | `after_result_deterministic` | `after_result_complete` |
+| replaceWith（結果込み、§4.2.9） | `Dom.Spec.ReplaceWithResult` | `replaceWith_result_sound` | `replaceWith_result_deterministic` | `replaceWith_result_complete` |
+| `remove()`（結果込み、§4.2.9） | `Dom.Spec.NodeRemoveResult` | `nodeRemove_result_sound` | `nodeRemove_result_deterministic` | `nodeRemove_result_complete` |
+| replace data（結果込み） | `Dom.Spec.ReplaceDataResult` | `replaceData_result_sound` | `replaceData_result_deterministic` | `replaceData_result_complete` |
+| appendData / setData（結果込み） | `Dom.Spec.AppendDataResult` / `SetDataResult` | `appendData_result_sound` / `setData_result_sound` | `replaceData_result_deterministic` に帰着 | `appendData_result_complete` / `setData_result_complete` |
+| insertData / deleteData（結果込み） | `Dom.Spec.ReplaceDataResult`（引数を固定） | `insertData_result_sound` / `deleteData_result_sound` | 同上 | `insertData_result_complete` / `deleteData_result_complete` |
 
-定理はすべて `Dom.Spec` 名前空間にある。下四つは**例外まで含めた**関係で、
+定理はすべて `Dom.Spec` 名前空間にある。「結果込み」の行は**例外まで含めた**関係で、
 soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。`replace` の
 失敗側は `preInsert` と同じ `PreInsertValidity` を使い回す（`replace` の step 1 が
 `ensurePreInsertionValidity` そのものであるため）。`move` は条件の語彙が違うので
 使い回せず、`Dom/Spec/MoveValidity.lean` に独立な `MoveValidity` を別に置いた。
 `moveBefore` は receiver 自身の失敗（木に無い・`ParentNode` でない）が二つある分、
 `MoveResult` の失敗側は三枝になる。
+
+`normalize` の関係（`Dom/Spec/Normalize.lean`）は、兄弟ごとに「data を足す・boundary point を
+渡す・外す」を繰り返す engine の読みで書く（record の並びがそれで決まる）。
+step 3 と step 7 の「contiguous exclusive Text nodes」は後ろ側だけを使う。
+tree order で処理すると、前側は処理の時点で残っていないからである。
+
+`ChildNode` / `ParentNode` の method と `CharacterData` の method は、仕様が
+pre-insert・replace・remove・replace all・replace data への委譲として書いているので、
+委譲の前の手順（parent が無ければ何もしない、viable sibling、reference child、
+step 2 の validity）だけを仕様の語彙で書き、委譲先は上の関係をそのまま使う
+（`Dom/Spec/ChildNode.lean`、`Dom/Spec/ReplaceAllSound.lean`、`Dom/Spec/CharacterDataResult.lean`）。
+`replaceWith` の step 6（pre-insert に回る枝）は、model では step 4 の変換が木を変えないので通らない。
+
+Range の `deleteContents()` と `insertNode()` は、`this` が live range として妥当（start と end が
+同じ木にあり、start が end の前か等しい）であることを仮定する。admissible な状態は
+range の両端が木にあることしか保証しないので、仮定として受け取る。
+`insertNode` の step 7（Text の split）は model の対象外で、関係は step 6 の validity を通れば
+`outsideModel` を返すとする。ここでの「Text」は CDATASection を含む。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`
@@ -89,14 +119,14 @@ soundness も component 単位で証明してある
 | remove | 1-2 parent の assert / 3 live range の pre-remove / 4 NodeIterator の pre-remove / 14 children から外す / 20 transient observer / 21 record | `remove`, `detachWithLiveAdjust`, `detach` | preservation `admissible_remove`、success `remove_succeeds_iff`、exception `remove_error_iff`、effect `remove_parentOf` `remove_not_mem_childrenOf` `remove_ranges` `remove_iterators`、frame `detach_frame` | `basic-insert-remove`, `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_mutation_primitives.rb`, `test_wpt_transient_registered_observer.rb` | 済 |
 | pre-remove | 1 parent の一致 / 2 remove | `preRemove` | success `preRemove_succeeds_iff`、exception `preRemove_error_iff` `preRemove_error_notFound`、委譲 `removeChild_refines_preRemove` | `basic-insert-remove` | `test_wpt_node_methods_on_every_node.rb` | 済 |
 | replace | 1 validity(child を除外) / 2-3 reference child / 4 previousSibling / 6 adopt / 7 child を外す / 9 insert / 10 record | `replace` | success `replace_succeeds_iff`、exception `replace_error_iff`、preservation `admissible_replace`、exception `replace_cycle_precedes_notFound`、effect `replace_reference_head` | `replacewith-bypasses-validity` | `test_wpt_mutation_record_insertion_point.rb` | 済（success は未） |
-| replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
+| replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | relation `ReplaceAllSpec`、success `replaceAll_isOk`、preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
 | move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 10-11 pre-remove / 14 外す / 16 offset 調整 / 18 入れる / 23-24 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、success `moveBefore_succeeds_iff` `move_isOk_of_validity`、exception `moveBefore_error_iff` `moveBefore_error_receiver`、exception 順序 `moveValidity_step1`〜`_step4`、step 7-9 の assert `moveValidity_parentOf_isSome`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move` | `test_wpt_move_before.rb` | 済（success は未） |
 
 ## §4.4 `Node.normalize()`
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| normalize | 1 descendant exclusive Text を順に / 2 長さ 0 なら外す / 3-4 続く兄弟の data を足す / 5-6 live range の引き渡し / 7 兄弟を外す | `normalize`, `normalizeList`, `normalizeRun`, `normalizeMergeOne`, `normalizeMergeBP` | preservation `admissible_normalize`、`endpointsValid_normalizeMerge` | `normalize-merges-adjacent-text`, `normalize-record-order-per-sibling`, `normalize-empty-sibling-keeps-boundary`, `normalize-parent-boundary-moves-to-join`, `normalize-descends-into-subtree`, `normalize-moves-iterator-off-merged-text` | （Dommy に normalize の WPT 由来 test は無い） | 済（record は engine の読み） |
+| normalize | 1 descendant exclusive Text を順に / 2 長さ 0 なら外す / 3-4 続く兄弟の data を足す / 5-6 live range の引き渡し / 7 兄弟を外す | `normalize`, `normalizeList`, `normalizeRun`, `followingTexts`, `normalizeMergeOne`, `normalizeMergeBP` | relation `NormalizeResult`（兄弟ごとの読み）、success `normalize_isOk`、preservation `admissible_normalize`、`endpointsValid_normalizeMerge` | `normalize-merges-adjacent-text`, `normalize-record-order-per-sibling`, `normalize-empty-sibling-keeps-boundary`, `normalize-parent-boundary-moves-to-join`, `normalize-descends-into-subtree`, `normalize-moves-iterator-off-merged-text` | （Dommy に normalize の WPT 由来 test は無い） | 済（record は engine の読み） |
 
 ### normalize の分岐
 
@@ -115,7 +145,7 @@ soundness も component 単位で証明してある
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| replace data | 1-2 IndexSizeError / 3 count の切り詰め / 4 record / 5-7 data の差し替え / 8-11 live range の調整 | `replaceData` と `appendData` / `insertData` / `deleteData` / `setData` | preservation `admissible_replaceData` ほか四つ、effect `replaceData_ok` | `characterdata-index-size-and-clamp`, `characterdata-replace-data-ranges` | `test_wpt_character_data.rb` | 済（success と exception は未） |
+| replace data | 1-2 IndexSizeError / 3 count の切り詰め / 4 record / 5-7 data の差し替え / 8-11 live range の調整 | `replaceData` と `appendData` / `insertData` / `deleteData` / `setData` | relation `ReplaceDataResult`（success と exception を含む）、preservation `admissible_replaceData` ほか四つ、effect `replaceData_ok` | `characterdata-index-size-and-clamp`, `characterdata-replace-data-ranges` | `test_wpt_character_data.rb` | 済 |
 
 ## §5.5 live Range / §6.1 NodeIterator
 
@@ -137,17 +167,17 @@ soundness も component 単位で証明してある
 | `collapse(toStart)` | 1-2 | `rangeCollapse` | preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
 | `selectNode(node)` | 1 parent / 2 null なら InvalidNodeTypeError / 3-5 両端 | `rangeSelectNode` | preservation `admissible_rangeSelectNode` | `range-select-node-and-contents`, `range-boundary-needs-parent` | 同上 | 済 |
 | `selectNodeContents(node)` | 1 doctype / 2-4 両端 | `rangeSelectNodeContents` | preservation `admissible_rangeSelectNodeContents` | 同上 | 同上 | 済 |
-| `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | — | `range-point-predicates` | 同上 | 済 |
-| `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | — | 同上 | 同上 | 済 |
-| `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | — | `range-compare-boundary-points` | 同上 | 済 |
-| `comparePoint(node, offset)` | 1 WrongDocumentError / 2 doctype / 3 offset / 4-6 位置 | `rangeComparePoint` | — | 同上 | 同上 | 済 |
+| `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | `Spec.rangeIsPointInRange_eq_iff`（`Dom/Spec/RangeQuery.lean`、例外込み） | `range-point-predicates` | 同上 | 済 |
+| `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | `Spec.rangeIntersectsNode_eq_iff`（同上） | 同上 | 同上 | 済 |
+| `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | `Spec.rangeCompareBoundaryPoints_eq_iff`（同上） | `range-compare-boundary-points` | 同上 | 済 |
+| `comparePoint(node, offset)` | 1 WrongDocumentError / 2 doctype / 3 offset / 4-6 位置 | `rangeComparePoint` | `Spec.rangeComparePoint_eq_iff`（同上） | 同上 | 同上 | 済 |
 
 ## §5.5 `Range` の API（木を変える側）
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `deleteContents()` | 1 collapsed / 3 同じ CharacterData / 4 nodes to remove / 5-6 新しい端点 / 7-9 削除と切り詰め / 10 両端 | `rangeDeleteContents`, `nodesToRemove`, `containedInRange`, `deleteContentsNewBP` | preservation `admissible_rangeDeleteContents`（step 10 の端点は実行時検査） | `range-delete-contents-within-text`, `-across-nodes`, `-ancestor-start`, `-collapsed-is-noop`, `range-delete-contents-partially-contained-end`, `-start` | `test_wpt_range_contents.rb` | 済 |
-| `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode` | preservation `admissible_rangeInsertNode`, `validBoundaryPoint_of_siblingBP` | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start`, `range-insert-node-null-leaves-text-alone` | 同上 | 済（step 7 の split text は対象外） |
+| `deleteContents()` | 1 collapsed / 3 同じ CharacterData / 4 nodes to remove / 5-6 新しい端点 / 7-9 削除と切り詰め / 10 両端 | `rangeDeleteContents`, `nodesToRemove`, `containedInRange`, `deleteContentsNewBP` | relation `DeleteContentsResult`（`Contained`・`NodesToRemove`・`DeleteNewBP`）、step 10 の端点の妥当性 `deleteContentsNewBP_valid`（妥当な range では実行時検査の fallback に落ちない）、preservation `admissible_rangeDeleteContents` | `range-delete-contents-within-text`, `-across-nodes`, `-ancestor-start`, `-collapsed-is-noop`, `range-delete-contents-partially-contained-end`, `-start` | `test_wpt_range_contents.rb` | 済 |
+| `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode` | relation `InsertNodeResult`（`ChildAtOffset`・`NewOffset`。step 13 の「最後に入った node の次」と step 10-11 の newOffset の一致は `insertTail_spec`）、preservation `admissible_rangeInsertNode`, `validBoundaryPoint_of_siblingBP` | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start`, `range-insert-node-null-leaves-text-alone` | 同上 | 済（step 7 の split text は対象外） |
 
 `extractContents` / `cloneContents` / `surroundContents` / `cloneRange` は node を生むので
 Text を分割して node を作るので model の対象外である。`insertNode` の step 7（start node が Text なら split する）も
@@ -180,8 +210,8 @@ target から根までの祖先列そのものである。`Window` が無いの�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `compareDocumentPosition(other)` | 1, 6-10 | `compareDocumentPosition` | `compareDocumentPosition_disconnected_consistent` | `node-query-position-and-containment`, `compare-document-position-disconnected-is-consistent` | `test_wpt_node_edges.rb` | 済（attribute の step 3-5 は対象外） |
-| `contains(other)` / `getRootNode()` | — | `nodeContains`, `getRootNode` | — | `node-query-position-and-containment` | 同上 | 済（`composed` は対象外） |
+| `compareDocumentPosition(other)` | 1, 6-10 | `compareDocumentPosition` | `compareDocumentPosition_disconnected_consistent`, `Spec.compareDocumentPosition_spec`, `Spec.compareDocumentPosition_eq_iff`（`Dom/Spec/NodeQuery.lean`） | `node-query-position-and-containment`, `compare-document-position-disconnected-is-consistent` | `test_wpt_node_edges.rb` | 済（attribute の step 3-5 は対象外） |
+| `contains(other)` / `getRootNode()` | — | `nodeContains`, `getRootNode` | `Spec.nodeContains_eq_true_iff`, `Spec.getRootNode_eq_iff`（同上） | `node-query-position-and-containment` | 同上 | 済（`composed` は対象外） |
 | `equals` / `isEqualNode(other)` | equals | `nodeEquals`, `nodeOwnPropertiesEqual`, `attrEquals` | — | `node-query-is-equal-node` | 同上 | 済（DocumentType の name ほかは対象外） |
 | get text content / `textContent` getter | — | `getTextContent`, `descendantTextContent` | — | `node-query-text-content` | 同上 | 済（setter は node を作るので対象外） |
 | `nodeValue` getter | — | `getNodeValue` | — | 同上 | 同上 | 済 |
@@ -195,6 +225,8 @@ target から根までの祖先列そのものである。`Window` が無いの�
 `compareDocumentPosition` の step 6（同じ木にない）は PRECEDING と FOLLOWING の
 どちらを返すかを実装に任せている。差分テストはその二 bit を落として比べる
 （`test/compare.rb` の `normalize_returned`）。一貫性そのものは model 側の定理で見る。
+同じ木にある場合の値は `Spec.compareDocumentPosition_eq_iff` が §4.2 の語彙
+（`Ancestor` と構造で書いた tree order `PrecedesStruct`）だけで一意に決めている。
 
 ## §6.2 TreeWalker
 

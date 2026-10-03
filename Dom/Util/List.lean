@@ -145,6 +145,11 @@ def insertBefore {α : Type _} [DecidableEq α] (l : List α) (child : Option α
 @[simp] theorem insertBefore_some {α : Type _} [DecidableEq α] (l : List α) (c a : α) :
     insertBefore l (some c) a = insertBeforeFirst l c a := rfl
 
+/-- 列を順に `child` の直前（`child` が `none` なら末尾）に挿入する。 -/
+def insertAllBefore {α : Type _} [DecidableEq α] (l : List α) (child : Option α) (ns : List α) :
+    List α :=
+  ns.foldl (fun acc n => insertBefore acc child n) l
+
 @[simp] theorem insertBeforeFirst_nil {α : Type _} [DecidableEq α] (c a : α) :
     insertBeforeFirst ([] : List α) c a = [a] := rfl
 

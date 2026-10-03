@@ -261,7 +261,9 @@ theorem admissible_rangeInsertNode {s s' : DOMState} {i : Nat} {n : NodeId}
       split at hr
       · simp at hr
       · split at hr
-        · simp at hr
+        · split at hr
+          · simp at hr
+          · split at hr <;> simp at hr
         · dsimp only at hr
           split at hr
           · simp at hr
