@@ -509,7 +509,7 @@ IDL attribute 十個と origin である。
 
 | 実装 | 結果 |
 | --- | --- |
-| Dommy `715fa7b` | 全件一致 |
+| Dommy `715fa7b` | 全件一致（2026-10-07 に `4fc3caa` でも seed 1 の 3,777 件が全件一致） |
 | whatwg-url 17.1.2（URL Standard の参照実装） | 全件一致 |
 | Node 23.11.1 の組み込み URL（Ada 3.2.1） | seed 1 の 3,777 件のうち 95 件で割れる |
 | WebKit 26.6（Playwright） | seed 1 の 5,750 件のうち 25 件。WPT の 820 件では割れない |
@@ -557,7 +557,7 @@ WebKit の 25 件は WPT の外にあり、三つの形に分かれる。どれ�
 
 | 実装 | 結果 |
 | --- | --- |
-| Dommy `f9114e5`（URL の部分は `715fa7b` と同じ） | 全件一致 |
+| Dommy `f9114e5`（URL の部分は `715fa7b` と同じ） | 全件一致（2026-10-07 に `4fc3caa` でも seed 1 の 3,167 件が全件一致） |
 | whatwg-url 17.1.2 | 全件一致 |
 | Node 23.11.1 の組み込み URL（Ada 3.2.1） | seed 2 の 7,770 件のうち 387 件 |
 | WebKit 26.6 | 21 件。WPT の 257 件では割れない |
@@ -596,6 +596,7 @@ WebKit の 21 件は六つの形に分かれる。
 §5.1 の urlencoded parser は `test/urlencoded_diff.rb` で Dommy と突き合わせている。
 固定の 45 件（区切り、`+`、percent-decode、不正な UTF-8 の列、BOM）と乱数の入力で、
 2026-10-03 に Dommy `715fa7b` に対して 5 seed・約 8.5 万件が一致した。
+2026-10-07 に `4fc3caa` でも seed 1 の 4,380 件が一致した。
 不正な UTF-8 は両者とも Encoding Standard の maximal subpart ごとに U+FFFD を一つ出し
 （`%F0%80%80` は三つ）、先頭の BOM は落とさない（§5.1 は「UTF-8 decode without BOM」）。
 
