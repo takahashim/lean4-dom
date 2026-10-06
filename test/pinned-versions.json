@@ -7,19 +7,19 @@
   },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
-    "commit": "715fa7b2d23503302d481a5ee04939e0169b7d8d",
+    "commit": "4fc3caa11c8564ed8ff548f709c0ef676a5124c9",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "main（`715fa7b`、2026-10-02、PR #92 の merge）を指す。`makiri >= 0.12.1` を要求する。固定 scenario は 183 ok / 2 skip / 5 known / 1 mismatch（findings 57）。5 known は仕様側が未決着の 19・20 と、model の読みが疑わしい `dataset` の 2 本（`known-divergences.yml`）。生成 scenario は 3 matrix × seed 1-10（`--quirks-prob 0.3 --move`）で 57 の 1 件だけ。findings 12-17 は `4e7c840`、21-24・26・29-32 は `a0d8736` と `38cbc5a`、37-45 は PR #67、50・51・53-56 はその後の main で直った。"
+    "_note": "main（`4fc3caa`、2026-10-07、PR #127 の merge。v0.15.0 の 124 commit 先）を指す。`makiri >= 0.14.0` を要求する。固定 scenario は 184 ok / 2 skip / 5 known / 0 mismatch。2 skip はどちらも model の対象外（lone surrogate と split text）。5 known は仕様側が未決着の 19・20 と、model の読みが疑わしい `dataset` の 2 本（`known-divergences.yml`）。生成 scenario は 3 matrix × seed 1-10（`--quirks-prob 0.3 --move`）で mismatch 0（unsupported のみ）。以前に挙げていた findings（12-17・21-24・26・29-32・37-45・50・51・53-57）はここまでの main で直った。"
   },
   "makiri": {
     "source": "rubygems",
-    "version": "0.12.1",
-    "_note": "RubyGems の公開版を使う。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。固定した Dommy の gemspec が `>= 0.12.1` を要求するので、ここを下げると CI の bundle install が解決できない。"
+    "version": "0.14.0",
+    "_note": "RubyGems の公開版を使う。0.14.0 で固定 scenario・生成 scenario・URL parser/setters/urlencoded が全通過した。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。固定した Dommy の gemspec が `>= 0.14.0` を要求するので、ここを下げると CI の bundle install が解決できない。"
   },
   "whatwg-url": {
     "version": "17.1.2",
-    "_note": "URL の差分テスト（test/url_diff.rb）の相手。URL Standard の参照実装で、npm から入れる。2026-10-03 に Dommy 715fa7b と並べて、model と全件一致した。"
+    "_note": "URL の差分テスト（test/url_diff.rb）の相手。URL Standard の参照実装で、npm から入れる。2026-10-07 に Dommy `4fc3caa` と並べて、seed 1 の parser 3777 件・setters 3167 件とも model と全件一致した。"
   },
   "ruby": "3.4",
   "lean": "leanprover/lean4:v4.33.1"

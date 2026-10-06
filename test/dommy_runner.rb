@@ -1180,6 +1180,12 @@ module DommyRunner
                v = op["value"]
                js_set(receiver, op["property"], [true, false].include?(v) ? v : v.to_s)
              when "datasetGet", "datasetSet", "datasetDelete", "datasetKeys"
+               # `dataset` は HTMLOrSVGOrMathMLElement mixin の attribute。Dommy がその mixin を持つなら、
+               # 含まない element（namespace が null の element など）では JS と同じく undefined で、
+               # そこから名前を引くと TypeError。mixin の無い Dommy では従来どおり比べられないとする。
+               mixin = defined?(Dommy::Internal::HTMLOrSVGOrMathMLElement) && Dommy::Internal::HTMLOrSVGOrMathMLElement
+               raise TypeError, "dataset is undefined" if mixin && !receiver.is_a?(mixin)
+
                # `DOMStringMap` は名前付き property なので、Ruby の method ではなく bridge で触る。
                map = js_get(receiver, "dataset")
                raise NotImplementedError, "dataset" if map.nil?

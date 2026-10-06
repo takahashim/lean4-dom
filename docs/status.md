@@ -1823,6 +1823,8 @@ Lean の `Char`（surrogate を除いた Unicode scalar value）では表せな�
 Ruby の UTF-8 String も lone surrogate を持てないので Dommy も同じところで断るが、
 **両者が同じところで失敗することは仕様適合の証拠にならない**。
 harness は Dommy 側のその失敗も `__unsupported__` として扱い、一致とは数えない。
+`dommy-conformance` も WPT のこの case を、algorithm の誤りではなく表現の限界として
+`expectations/known-divergences.yml` に記録している（`2ce6814`）。
 
 ### 検証
 
@@ -3567,7 +3569,8 @@ Dommy 側は 2026-10-01 の pin（`4d4f2c1`、v0.14.0）で 18 を除いてす�
 すべて閉じた。pin をそこへ上げた（2026-10-01）。
 
 50・51・53-56 も Dommy の main（`715fa7b`、2026-10-02）で閉じた。pin をそこへ上げ、57 が新しく出た
-（§「pin を Dommy `715fa7b` に上げた」）。
+（§「pin を Dommy `715fa7b` に上げた」）。57 も Dommy の `1a17b5b`（v0.15.0 に含まれる）で閉じた
+（§「pin を Dommy `4fc3caa` に上げた」）。
 
 * 37-44：CSS Syntax の escape・string・comment の扱いと attribute selector の照合
 * 45：`1877e5c`（"Find only HTML elements in getElementsByName"）
@@ -3627,7 +3630,7 @@ jsdom の findings（19・20・24・25・27-29・33-36・40・42-47）は pin �
 | 54 | Dommy | reflect の setter が null namespace の attribute を作らず、prefix の無い namespace 付きの同名 attribute を書き換える（同上） | `reflect-writes-the-null-namespace-attribute` |
 | 55 | Dommy | `HTMLCollection.namedItem` が namespace 付きの `id`・`name` で当たる（同上） | `named-item-ignores-namespaced-id-and-name` |
 | 56 | Dommy | `dataset` の setter が prefix の無い namespace 付きの `data-*` を書き換える（同上） | `dataset-writes-the-null-namespace-attribute` |
-| 57 | Dommy | `dataset` が HTML でも SVG でもない element（namespace が null の `div` など）にもある（§「pin を Dommy `715fa7b` に上げた」） | `dataset-only-on-html-and-svg` |
+| 57 | Dommy | `dataset` が HTML でも SVG でもない element（namespace が null の `div` など）にもある（§「pin を Dommy `715fa7b` に上げた」。`1a17b5b` で閉じた） | `dataset-only-on-html-and-svg` |
 
 19・20・24・29 は **両実装に共通**で、どれも仕様の改訂に追随できていない形である
 （`:empty` の空白、virtual scoping root、attribute の namespace、ident code point の一覧）。
@@ -5908,6 +5911,30 @@ MathML namespace の element も `dataset`（と同じ mixin の `autofocus` な
   --observers 3 --move`）は 0 mismatch。
 
 方針どおり 57 は expected に落とさないので、Dommy が直すまで固定 scenario の job は赤になる。
+
+## pin を Dommy `4fc3caa` に上げた
+
+2026-10-07 に `test/pinned-versions.json` を Dommy の main `4fc3caa`（v0.15.0 の 124 commit 先）と makiri `0.14.0` へ上げた。
+Dommy の gemspec が `>= 0.14.0` を要求するので makiri も一緒に上げた。
+
+**findings 57 は閉じた。** Dommy の `1a17b5b`（"Give dataset, nonce, autofocus, tabIndex, focus and blur to HTML,
+SVG and MathML only"）で、`dataset` などを `HTMLOrSVGOrMathMLElement` mixin にまとめ、HTML・SVG・MathML の
+element だけが含むようにした。namespace が null の element は `Element` でしかなく、`dataset` を持たない。
+
+ただし harness がそのままだと、`dataset-only-on-html-and-svg` は ok ではなく skip になった。
+`test/dommy_runner.rb` は `dataset` が無い element を「Dommy が実装していない」（`__unsupported__`）として
+報告していたからである。Dommy が mixin を持つなら、それを含まない element の `dataset` は JS と同じく
+undefined で、そこから名前を引くと TypeError になる、と runner で読むようにした。mixin の無い Dommy では
+従来どおり比べられないとする。
+
+結果は次のとおりである。
+
+* 固定 scenario：184 ok / 2 skip / 5 known / 0 mismatch。2 skip はどちらも model の対象外
+  （lone surrogate と split text）。5 known は前の pin と同じ。
+* 生成 scenario：CI と同じ seed 1（`--ranges 4 --iterators 2 --observers 3 --move`）と、nightly と同じ
+  3 matrix × seed 1-10（`--quirks-prob 0.3 --move`）で、どれも 0 mismatch。
+* URL：seed 1 の parser 3,777 件・setter 3,167 件が whatwg-url 17.1.2 とともに全件一致し、
+  urlencoded の 4,380 件も一致した（`docs/url-status.md`）。
 
 ## 未着手
 
