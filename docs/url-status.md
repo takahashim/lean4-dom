@@ -436,14 +436,14 @@ WPT: 一致 816 / 不一致 0 / 対象外 4
 
 ```
 $ lake exe url-model --wpt test/url/wpt-ascii.json test/url/uts46-table.json
-UTS #46 の表: 8509 範囲、Resolved を満たす
+UTS #46 の表: 8509 範囲、昇順・非重複、Resolved と NoUpperValid を満たす
 WPT: 一致 820 / 不一致 0 / 対象外 0
 ValidUrl: 違反 0
 origin: 一致 376 / 不一致 0
 ```
 
-`Resolved` は `IdnaTable` の仮定（`mapAll_valid` などが使う）で、
-それを満たすことを読み込み時に確かめてから使う。満たさなければ実行を止める。
+`Resolved` と `NoUpperValid` は `IdnaTable` の仮定（`mapAll_valid` などが使う）で、
+表が昇順で重ならないことと合わせて読み込み時に確かめてから使う。満たさなければ実行を止める。
 
 **対象外かどうかは fixture の `out_of_model` が決める。実行結果から推測しない。**
 以前は「不一致 かつ 非 ASCII を含む かつ model が失敗した」を対象外に分類していたが、
@@ -1031,7 +1031,7 @@ state に依存する成分は、移る元と先の state だけで決まる真�
 
 ### 測度は一つの自然数に潰せない
 
-`run` / `step` の `termination_by` は `(stateRank st, input.length)` の辞書式である。
+`run` / `step` の `termination_by` は `(stateRank st, 残りの文字数, 位相)` の辞書式である。
 長さを先にすれば一つの自然数に潰せそうに見えるが、**できない**。
 authority state が「pointer を buffer の長さだけ戻す」（§4.4 authority state の最後）ので、
 そこでは入力が伸びる。rank が先に減るから停止するのであって、長さは減らない。
