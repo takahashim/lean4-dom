@@ -10,8 +10,9 @@ WHATWG の仕様を Lean 4 で実行可能に形式化したものである。
 ## DOM Standard
 
 対象は node tree と document tree、mutation algorithms、
-mutation に追随する live Range、NodeIterator、CharacterData mutation、
-element の attribute、MutationObserver（record と配送）である。
+mutation に追随する live Range、NodeIterator と TreeWalker、CharacterData mutation、
+element の attribute、MutationObserver（record と配送）、event の配送、
+`querySelector()` などの selector の API である。
 Shadow DOM と Web Components は対象に含めない。
 
 参照する仕様は `docs/spec-version.md` に固定した
@@ -36,12 +37,12 @@ state machine は fuel ではなく `(state の順位, 残りの文字数, 位�
 
 ## 共有している部分
 
-ASCII の判定、大文字小文字、byte 列と UTF-8 は Infra Standard のもので、
+ASCII の判定、大文字小文字、byte 列は Infra Standard、UTF-8 の符号化と復号は Encoding Standard のもので、
 `Infra/` に置いて両方から使う。差分の相手（Dommy）も、CI も、axiom 監査も一つで済む。
 
 ## 何が示してあるか
 
-十の主定理を `docs/theorems.md` に並べてある。中心は次の三つである。
+二十二の主定理を `docs/theorems.md` に並べてある。中心は次の三つである。
 
 **妥当な状態は決定可能で、どの操作でも保たれる。**
 
@@ -144,11 +145,16 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 | `Dom/Basic/` | node tree、`WellFormed`、`DOMState` |
 | `Dom/Mutation/` | §4.2.3 の algorithm と public API |
 | `Dom/Range/`, `Dom/Traversal/`, `Dom/CharacterData/`, `Dom/Attribute/`, `Dom/Observer/` | live object、CharacterData、attribute、MutationObserver（record と配送） |
+| `Dom/Event/` | event の配送（§2.9） |
+| `Dom/Query/`, `Dom/Selector/` | 値を返すだけの method、id・class・name による lookup、selector を element に当てる照合と `querySelector()` などの API |
+| `Dom/Spec/` | 仕様本文から独立に書き写した関係意味論と、実行関数がそれを満たすことの証明 |
+| `Dom/Util/` | 自前の `List` の補題 |
 | `Dom/Properties/` | 効果・frame・契約・反例 |
 | `Dom/Validity/` | `AdmissibleDOMState` とその保存 |
 | `Dom/Observation.lean` | 差分テストの比較対象を型で固定する |
 | `Dom/Exec/` | scenario の型と評価（`Types` / `Eval`）、JSON 入出力（`Json`）、その入口（`Scenario`） |
 | `Infra/` | 共有する語彙（ASCII、byte 列、UTF-8 とその往復、UTF-16 の code unit）。`Dom` と `Url` が使う |
+| `Selectors/` | Selectors Level 4 と CSS Syntax Level 3 のうち selector を読むのに要る範囲（tokenizer、構文木、parser）。版は `docs/selectors-spec-version.md` |
 | `Url/` | URL Standard（percent-encoding、IPv4 / IPv6、host parser、basic URL parser、urlencoded、`URL` と `URLSearchParams` の IDL） |
 | `test/` | 固定 scenario、生成器、Dommy runner、比較器 |
 | `docs/` | 状況、主定理の一覧、仕様トレーサビリティ、threats to validity |
@@ -156,8 +162,8 @@ Dommy と makiri が要るので `lake build` の CI とは分けてある。
 ## 依存
 
 Lean 4 のみ。Mathlib も Batteries も使わない。
-必要な補題は `Dom/Util/List.lean` に自前で置いてある。
-`Lean.Data.Json` は `Dom/Exec/Json.lean` と `Audit.lean` に閉じている。
+必要な補題は `Dom/Util/List.lean` と `Infra/List.lean` に自前で置いてある。
+`Lean.Data.Json` は `Dom/Exec/Json.lean`、`UrlMain.lean`、`Audit.lean` に閉じている。
 操作列の型と評価は `Dom/Exec/Types.lean` と `Dom/Exec/Eval.lean` にあり、
 状態遷移の証明が入出力形式に依存しない。
 
@@ -170,8 +176,8 @@ Lean 4 のみ。Mathlib も Batteries も使わない。
 2. 差分テストは **有限の生成 trace 上の観測の一致** であり、
    一般の observational equivalence ではない。
 3. 比較対象に入れていないものがある（wrapper の object identity、lone surrogate、
-   MutationObserver の callback 本体、`Attr` の identity、Shadow tree）。
-   `Dom/Observation.lean` に列挙してある。
+   MutationObserver の callback 本体、`Attr` の node としての性質、Shadow tree）。
+   `docs/threats-to-validity.md` §3 に列挙してある。
 
 ## ライセンス
 
