@@ -1,0 +1,98 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "observe"
+    ],
+    "steps": "observe 1-2, 7",
+    "note": "options は WebIDL の dictionary への変換で MutationObserverInit になる。boolean の member は ToBoolean で読み、null は false として存在する（undefined だけが省略になる）。attributeFilter の要素は DOMString へ ToString で変換する。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {}
+  ],
+  "operations": [
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 1,
+      "options": {
+        "childList": 1,
+        "attributes": "",
+        "characterData": null
+      }
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": {
+        "attributeFilter": [
+          "a",
+          true
+        ]
+      }
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "a",
+      "value": "x"
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "b",
+      "value": "x"
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "true",
+      "value": "x"
+    },
+    {
+      "op": "appendChild",
+      "parent": 1,
+      "node": 2
+    },
+    {
+      "op": "setAttribute",
+      "element": 1,
+      "name": "a",
+      "value": "x"
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    }
+  ]
+}

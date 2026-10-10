@@ -6118,6 +6118,49 @@ Dommy（`4fc3caa`）の `EventTarget::Listener`（`event.rb`）について、�
 同じ不一致が繰り返し出るだけだからである。方針どおり expected には落とさないので、Dommy が直すまで
 固定 scenario の job は赤になる。
 
+## `observe()` の options を WebIDL で変換した（findings 61）
+
+WebIDL の型変換を member ごとに入れる四つ目の段として、`MutationObserver.observe()` の options を扱った。
+それまでは harness が `MutationObserverInit` を組み立て、boolean の member は真偽値、`attributeFilter` は文字列の
+配列に限っていた。
+
+* `Dom/Idl/NumberString.lean` に ECMAScript の Number::toString を本文の step どおりに書いた。本文の s と k は
+  「倍精度の値に丸まる最短の十進表記」なので、有効数字 15 桁以下で正規数の範囲の数に限り、JSON の十進表記から
+  読む。Node の `String(Number(...))` と 400 件の乱数で一致することを確かめた。
+* `Dom/Idl/Value.lean` に配列と ToString（object は "[object Object]"、配列は join）、DOMString と
+  `sequence<DOMString>` への変換を足した。sequence への変換は、object でなければ TypeError、`@@iterator` が
+  無ければ（普通の object）TypeError になる。
+* `Dom/Idl/ObserverInit.lean` に `MutationObserverInit` への dictionary の変換を書いた。undefined、null、object
+  以外は TypeError、boolean の member は ToBoolean で、null は「存在する false」になる。変換は method steps より
+  前なので、`invokeChecked` が変換の TypeError を step 3-6 の TypeError より先に返す。既存の
+  `applyOperation_of_invoke` は変換が通った場合に分けて証明し直した。
+* scenario の `observe` は `options` に JSON の値をそのまま書ける（無ければ従来の field を持つ object とみなす）。
+  runner は値をそのまま実装に渡す。生成器は boolean の member にたまに同じ真偽の数・文字列・null を入れる。
+* 固定 scenario を五本足した（`observe-options-are-converted`、`observe-options-must-be-a-dictionary`、
+  `observe-attribute-filter-must-be-a-sequence`、`observe-attribute-filter-converts-to-strings`、
+  `observe-attribute-filter-is-case-sensitive`）。jsdom の harness は notify の配送順を比べられないので、
+  records は `takeRecords` で読む。
+
+jsdom 30.1.2 は五本すべてで model と一致した（jsdom 27.0.1 は attribute の名前の検査が古く、`setAttribute("1")` を
+InvalidCharacterError にする）。Dommy（`4fc3caa`）は最初の二本と、生成 scenario（seed 21、200 本、
+`--ranges 4 --iterators 2 --observers 3 --move`）のうち findings 59 に当たる五件以外で一致した。
+
+**findings 61：Dommy の `attributeFilter` は三点で本文と違う。**
+Dommy（`4fc3caa`）の `Internal::ObserverOptions`（`internal/observer_options.rb`）について、固定 scenario の三本が
+不一致になる。
+
+1. `attributeFilter` が配列でなくても TypeError にならない。null、文字列、普通の object は `sequence<DOMString>` へ
+   変換できないので TypeError である（`observe-attribute-filter-must-be-a-sequence`）。
+2. 要素を Ruby の `to_s` で文字列にするので、null が "null" ではなく "" になる
+   （`observe-attribute-filter-converts-to-strings`）。同じ理由で 1.0 は "1" ではなく "1.0" になるはずだが、
+   scenario は null の step で先に割れるので、こちらはコードを読んだだけである。
+3. 要素を `downcase` する。本文の "queue a mutation record" step 2.3 は attribute の local name が filter に
+   含まれるかを大文字小文字を区別して見るので、filter ["ID"] は local name が "ID" の attribute に当たる
+   （`observe-attribute-filter-is-case-sensitive`）。これは変換ではなく照合の違いである。
+
+生成器はこの三点に当たる値を作らない。方針どおり expected には落とさないので、Dommy が直すまで固定 scenario の
+job は赤になる。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

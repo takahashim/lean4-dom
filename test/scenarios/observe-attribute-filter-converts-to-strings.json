@@ -1,0 +1,79 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "observe",
+      "queue a mutation record"
+    ],
+    "steps": "WebIDL の DOMString への変換（attributeFilter の要素）/ queue a mutation record 2.3",
+    "note": "attributeFilter の要素は ToString で DOMString になる。null は \"null\"、1.0 は \"1\" である。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {}
+  ],
+  "operations": [
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": {
+        "attributeFilter": [
+          null,
+          1.0,
+          0.5
+        ]
+      }
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "null",
+      "value": "x"
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "1",
+      "value": "x"
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "0.5",
+      "value": "x"
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    }
+  ]
+}

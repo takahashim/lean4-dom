@@ -15,6 +15,7 @@ import Dom.Observer.Deliver
 import Dom.Idl.Number
 import Dom.Mutation.Variadic
 import Dom.Event.Options
+import Dom.Idl.ObserverInit
 
 /-!
 # scenario の型
@@ -219,8 +220,8 @@ inductive Operation where
   | classListContains (element : Nat) (token : String)
   /-- DOM §4.2.10.1 `HTMLCollection.namedItem(key)`。collection は `ParentNode.children`。 -/
   | childrenNamedItem (node : Nat) (key : String)
-  /-- `MutationObserver.observe(target, options)`。 -/
-  | observe (observer : Nat) (target : Nat) (opts : MutationObserverInit)
+  /-- `MutationObserver.observe(target, options)`。options は WebIDL の変換の前の値。 -/
+  | observe (observer : Nat) (target : Nat) (options : Idl.JsValue)
   /-- `MutationObserver.disconnect()`。 -/
   | disconnect (observer : Nat)
   /-- `MutationObserver.takeRecords()`。 -/

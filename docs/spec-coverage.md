@@ -138,7 +138,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 9/12（近似 3） | `Dom.MutationObserver.observeMethod`<br>`Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
+| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 9/12（近似 3） | `Dom.MutationObserver.observeMethod`<br>`Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError`<br>`Dom.Idl.toMutationObserverInit` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
 | [dom-mutationobserver-disconnect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-disconnect) | 1/2（近似 1） | `Dom.MutationObserver.disconnect` |  |
 | [dom-mutationobserver-takerecords](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-takerecords) | 3/3 | `Dom.MutationObserver.takeRecords` |  |
 

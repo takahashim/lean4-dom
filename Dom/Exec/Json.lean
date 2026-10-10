@@ -98,7 +98,7 @@ private def jsNumberField (j : Json) (k : String) : Except String Idl.JsNumber :
 
 /--
 JavaScript の値（WebIDL の変換の前の値）。JSON の null・真偽値・数・文字列・object をそのまま写す。
-配列は model に無いので失敗する。
+配列は組み込みの `Array` として写す。
 -/
 partial def jsValueOfJson : Json → Except String Idl.JsValue
   | .null => pure .null
@@ -108,7 +108,26 @@ partial def jsValueOfJson : Json → Except String Idl.JsValue
   | .obj kvs => do
     let props ← kvs.toList.mapM fun (k, v) => do pure (k, ← jsValueOfJson v)
     pure (.object props)
-  | .arr _ => throw "配列の JavaScript の値は表せない"
+  | .arr xs => do
+    let elems ← xs.toList.mapM jsValueOfJson
+    pure (.array elems)
+
+/--
+`observe` の options。`options` があればその値、無ければ `MutationObserverInit` の member の名前の field
+のうち書いてあるものだけを持つ object とみなす（`observe` の step 1-2 は member が存在するかで分岐するので、
+書いていない member を補ってはいけない）。
+-/
+private def observeOptionsField (j : Json) : Except String Idl.JsValue := do
+  match field? j "options" with
+  | some v => jsValueOfJson v
+  | none =>
+    let keys := ["childList", "subtree", "attributes", "attributeOldValue", "attributeFilter",
+      "characterData", "characterDataOldValue"]
+    let props ← keys.filterMapM fun k => do
+      match field? j k with
+      | none => pure none
+      | some v => pure (some (k, ← jsValueOfJson v))
+    pure (.object props)
 
 /--
 listener の options。`options` があればその値、無ければ `capture`・`once`・`passive` の field を
@@ -216,22 +235,6 @@ def attrOfJson (j : Json) : Except String Attr := do
            «prefix» := ← strField? j "prefix"
            localName := ← strField j "localName" ""
            value := ← strField j "value" "" }
-
-/--
-`MutationObserverInit` の読み取り。既定値の無い member は省略と `false` を区別する（`observe` step 1-2）。
--/
-def observerInitOfJson (j : Json) : Except String MutationObserverInit := do
-  let flag (name : String) : Except String Bool :=
-    match field? j name with
-    | none => pure false
-    | some v => v.getBool?
-  return { childList := ← flag "childList"
-           subtree := ← flag "subtree"
-           attributes := ← boolField? j "attributes"
-           attributeOldValue := ← boolField? j "attributeOldValue"
-           attributeFilter := ← strListField? j "attributeFilter"
-           characterData := ← boolField? j "characterData"
-           characterDataOldValue := ← boolField? j "characterDataOldValue" }
 
 def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
   let id ← natField j "id"
@@ -498,7 +501,7 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "childrenNamedItem" =>
     return .childrenNamedItem (← natField j "node") (← strField j "key" "")
   | "observe" =>
-    return .observe (← natField j "observer") (← natField j "target") (← observerInitOfJson j)
+    return .observe (← natField j "observer") (← natField j "target") (← observeOptionsField j)
   | "disconnect" => return .disconnect (← natField j "observer")
   | "takeRecords" => return .takeRecords (← natField j "observer")
   | "notify" => return .notify

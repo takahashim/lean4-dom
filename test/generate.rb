@@ -477,8 +477,9 @@ module Generate
       return { "op" => op, "observer" => mo } unless op == "observe"
 
       # `observe` の options は `random_observed_types` が作る。
-      return { "op" => op, "observer" => mo, "target" => ids.sample(random: rng),
-               "subtree" => rng.rand < 0.6 }.merge(omit_observed_types(rng, random_observed_types(rng)))
+      opts = { "subtree" => rng.rand < 0.6 }.merge(omit_observed_types(rng, random_observed_types(rng)))
+      return { "op" => op, "observer" => mo, "target" => ids.sample(random: rng) }
+             .merge(loosen_booleans(rng, opts))
     end
     if RANGE_OPS.include?(op)
       return nil if range_count.zero?
@@ -1115,6 +1116,18 @@ module Generate
       end
     end
     opts
+  end
+
+  # `MutationObserverInit` の boolean の member は WebIDL の変換で ToBoolean を通るので、真偽値の代わりに
+  # 同じ真偽になる数・文字列・null をたまに入れる。null は undefined と違って「存在する false」である。
+  # `attributeFilter` の要素は文字列のままにする。null と数の要素、配列でない値は、Dommy の既知の不一致
+  # （findings 61）を固定 scenario で押さえてあるので、乱数の側では当てない。
+  def loosen_booleans(rng, opts)
+    opts.to_h do |k, v|
+      next [k, v] unless [true, false].include?(v) && rng.rand < 0.25
+
+      [k, v ? [1, "x"].sample(random: rng) : [0, "", nil].sample(random: rng)]
+    end
   end
 
   def random_observed_types(rng)

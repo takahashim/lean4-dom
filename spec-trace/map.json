@@ -1310,7 +1310,8 @@
         "Dom.MutationObserver.observeMethod",
         "Dom.MutationObserver.observe",
         "Dom.MutationObserverInit.resolve",
-        "Dom.MutationObserver.observeOptionsError"
+        "Dom.MutationObserver.observeOptionsError",
+        "Dom.Idl.toMutationObserverInit"
       ],
       "spec": [
         "Dom.Spec.ObserveResult",

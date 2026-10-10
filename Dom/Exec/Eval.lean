@@ -633,7 +633,8 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .classListReplace e tok nt => (classListReplace s ⟨e⟩ tok nt).map Prod.fst
   | .classListContains e tok => (classListContains s.tree ⟨e⟩ tok).map fun _ => s
   | .childrenNamedItem n k => (childrenNamedItem s.tree ⟨n⟩ k).map fun _ => s
-  | .observe mo target opts => MutationObserver.observe s mo ⟨target⟩ opts
+  | .observe mo target o =>
+    MutationObserver.observe s mo ⟨target⟩ ((Idl.toMutationObserverInit o).toOption.getD {})
   | .disconnect mo => .ok (MutationObserver.disconnect s mo)
   | .takeRecords mo => .ok (MutationObserver.takeRecords s mo).1
   | .createElement doc ln => dropNode (createElement s ⟨doc⟩ ln)
@@ -653,9 +654,16 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .removeNamedItem e qn => dropAttr (removeNamedItem s ⟨e⟩ qn)
   | .notify => .ok (notifyMutationObservers s).1
 
-/-- WebIDL の検査を通った後の method steps。`observe` だけが step 3-6 で `TypeError` を投げうる。 -/
+/--
+WebIDL の検査を通った後の method steps。
+
+`observe` は options の `MutationObserverInit` への変換（`attributeFilter` の `sequence<DOMString>` が
+TypeError になりうる）を行ってから、step 3-6 で `TypeError` を投げうる method steps に進む。
+-/
 def invokeChecked (s : DOMState) : Operation → Except IdlException DOMState
-  | .observe mo target opts => MutationObserver.observeMethod s mo ⟨target⟩ opts
+  | .observe mo target o => do
+    let opts ← Idl.toMutationObserverInit o
+    MutationObserver.observeMethod s mo ⟨target⟩ opts
   | op => liftDom (applyOperation s op)
 
 /--
@@ -687,7 +695,14 @@ theorem applyOperation_of_invoke {s s' : DOMState} {op : Operation}
   unfold invokeOperation at h
   split at h
   · cases op
-    case observe mo target opts => exact observe_of_observeMethod h
+    case observe mo target o _ =>
+      simp only [invokeChecked] at h
+      cases hc : Idl.toMutationObserverInit o with
+      | error e => rw [hc] at h; cases h
+      | ok opts =>
+        rw [hc] at h
+        simp only [applyOperation, hc]
+        exact observe_of_observeMethod h
     all_goals exact liftDom_eq_ok.mp h
   · cases h
 

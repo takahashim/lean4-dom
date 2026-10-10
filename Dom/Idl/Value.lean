@@ -1,21 +1,28 @@
-import Dom.Idl.Number
+import Dom.Idl.NumberString
+import Dom.Basic.Exception
 
 /-!
 # JavaScript の値と、WebIDL の boolean・dictionary・union への変換
 
 scenario が JSON で運ぶ JavaScript の値（`JsValue`）と、WebIDL Standard（`docs/spec-version.md` の版）の
-変換のうち、`addEventListener` と `removeEventListener` の options に要るものを書く。
+変換のうち、`addEventListener` と `removeEventListener` の options と、`MutationObserverInit` に要るものを書く。
 
 * boolean への変換は ECMAScript の ToBoolean である（§3.2.2）。
 * dictionary への変換は、継承の根から順に、各 dictionary の member を辞書順に `Get` で読み、undefined でなければ
   member の型へ変換し、undefined なら既定値を使う（§3.2.17）。
+* DOMString への変換は ECMAScript の ToString である（§3.2.10）。
+* `sequence<T>` への変換は、object でなければ TypeError、`@@iterator` が無ければ TypeError、あれば
+  iterator が返す値を順に T へ変換する（§3.2.20）。
 * union への変換は、null と undefined なら dictionary、object なら dictionary、boolean ならそのまま、
   それ以外（数と文字列）は union が string 型も numeric 型も含まないので boolean へ変換する（§3.2.24）。
 
 ## 対象外
 
-object は JSON の object（プロパティの列）に限る。getter や prototype は無いので、`Get` は自分のプロパティを
-引くだけで、利用者のコードは走らない。配列、関数、platform object（AbortSignal など）は表さない。
+object は JSON の object（プロパティの列）と配列に限る。getter や prototype の上書きは無いので、`Get` は
+自分のプロパティを引くだけで、利用者のコードは走らない。配列は組み込みの `Array` で、`@@iterator` は要素を
+順に返し、ToString は `Array.prototype.join` で "," つなぎになる。普通の object は `@@iterator` を持たず、
+ToString は "[object Object]" になる。関数と platform object（AbortSignal など）は表さない。
+数の ToString は有効数字 15 桁以下の数に限る（`Dom/Idl/NumberString.lean`）。
 `AbortSignal` 型の member（`signal`）に undefined 以外の値が来れば、それは AbortSignal ではないので TypeError になる。
 -/
 
@@ -29,6 +36,7 @@ inductive JsValue where
   | number (n : JsNumber)
   | string (s : String)
   | object (props : List (String × JsValue))
+  | array (elems : List JsValue)
 deriving Repr, Inhabited
 
 namespace JsValue
@@ -48,12 +56,68 @@ def toBoolean : JsValue → Bool
   | .number n => !n.isZero
   | .string s => !s.isEmpty
   | .object _ => true
+  | .array _ => true
 
 def isUndefined : JsValue → Bool
   | .undefined => true
   | _ => false
 
+/-- object か（配列を含む）。 -/
+def isObject : JsValue → Bool
+  | .object _ | .array _ => true
+  | _ => false
+
+mutual
+
+/--
+**ECMAScript の ToString。** 数が対象外（有効数字が 15 桁を超えるなど）なら `none`。
+
+object は ToPrimitive が `toString` を呼ぶ。普通の object は `Object.prototype.toString` で
+"[object Object]"、配列は `Array.prototype.join` で、要素を "," でつなぐ（undefined と null の要素は空文字列）。
+-/
+def toJsString : JsValue → Option String
+  | .undefined => some "undefined"
+  | .null => some "null"
+  | .bool b => some (if b then "true" else "false")
+  | .number n => n.toJsString
+  | .string s => some s
+  | .object _ => some "[object Object]"
+  | .array xs => joinElems xs
+
+/-- `Array.prototype.join(",")`。 -/
+def joinElems : List JsValue → Option String
+  | [] => some ""
+  | [x] => joinElem x
+  | x :: rest => do
+    let a ← joinElem x
+    let b ← joinElems rest
+    pure (a ++ "," ++ b)
+
+/-- join の一つの要素。undefined と null は空文字列。 -/
+def joinElem : JsValue → Option String
+  | .undefined | .null => some ""
+  | v => toJsString v
+
+end
+
 end JsValue
+
+/-- **JavaScript の値を IDL の `DOMString` に変換する。** 数が対象外なら model の対象外。 -/
+def toDOMString (v : JsValue) : Except IdlException String :=
+  match v.toJsString with
+  | some s => .ok s
+  | none => .error (.dom .outsideModel)
+
+/--
+**JavaScript の値を IDL の `sequence<DOMString>` に変換する。**
+
+1. object でなければ TypeError。
+2. `@@iterator` を引く。undefined なら TypeError（普通の object がこれに当たる）。
+3. iterator が返す値を順に DOMString に変換する（配列は要素を順に返す）。
+-/
+def toSequenceDOMString : JsValue → Except IdlException (List String)
+  | .array xs => xs.mapM toDOMString
+  | _ => .error .typeError
 
 /-- dictionary の boolean の member を読む。undefined なら既定値。 -/
 def boolMember (v : JsValue) (key : String) (default : Bool) : Bool :=
@@ -77,7 +141,7 @@ deriving DecidableEq, Repr
 /-- **JavaScript の値を `(EventListenerOptions or boolean)` に変換する。** 失敗しない。 -/
 def toEventListenerOptions (v : JsValue) : EventListenerOptionsOrBoolean :=
   match v with
-  | .undefined | .null | .object _ => .dict (boolMember v "capture" false)
+  | .undefined | .null | .object _ | .array _ => .dict (boolMember v "capture" false)
   | .bool b => .boolean b
   | .number _ | .string _ => .boolean v.toBoolean
 
@@ -101,7 +165,7 @@ dictionary は EventListenerOptions の `capture`、AddEventListenerOptions の 
 -/
 def toAddEventListenerOptions (v : JsValue) : Option AddEventListenerOptionsOrBoolean :=
   match v with
-  | .undefined | .null | .object _ =>
+  | .undefined | .null | .object _ | .array _ =>
     let capture := boolMember v "capture" false
     let once := boolMember v "once" false
     let passive := boolMember? v "passive"
@@ -117,5 +181,9 @@ example : toAddEventListenerOptions (.string "") = some (.boolean false) := by d
 example : toAddEventListenerOptions (.object [("passive", .number ⟨0, 0⟩), ("once", .string "x")]) =
     some (.dict false true (some false)) := by decide
 example : toAddEventListenerOptions (.object [("signal", .null)]) = none := by decide
+
+#guard JsValue.toJsString (.array [.number ⟨1, 0⟩, .null, .array [.bool true, .string "a"]]) = some "1,,true,a"
+#guard JsValue.toJsString (.object []) = some "[object Object]"
+#guard (toSequenceDOMString (.object [])).toOption = none
 
 end Dom.Idl

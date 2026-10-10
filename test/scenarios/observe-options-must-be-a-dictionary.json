@@ -1,0 +1,80 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "observe"
+    ],
+    "steps": "WebIDL の dictionary への変換",
+    "note": "MutationObserverInit への変換は、値が undefined、null、object のどれでもなければ TypeError になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {}
+  ],
+  "operations": [
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": true
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": "childList"
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": 1
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": null
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": {
+        "childList": true
+      }
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    }
+  ]
+}

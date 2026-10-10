@@ -25,7 +25,8 @@ def entries : List Entry := [
   { alg := "dom-mutationobserver-observe"
     -- step 3-6 の TypeError は `DOMException` ではなく `IdlException.typeError`（`observeMethod`）。
     impl := [``Dom.MutationObserver.observeMethod, ``Dom.MutationObserver.observe,
-             ``Dom.MutationObserverInit.resolve, ``Dom.MutationObserver.observeOptionsError]
+             ``Dom.MutationObserverInit.resolve, ``Dom.MutationObserver.observeOptionsError,
+             ``Dom.Idl.toMutationObserverInit]
     spec := [``Dom.Spec.ObserveResult, ``Dom.Spec.ObserveOptionsRejected]
     approx := [("7", "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた"),
                ("7.1", "node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す")] },

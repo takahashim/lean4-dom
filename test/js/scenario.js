@@ -589,6 +589,7 @@ function initialObserveOptions(spec) {
 const OBSERVE_KEYS = ["childList", "subtree", "attributes", "attributeOldValue", "attributeFilter",
                       "characterData", "characterDataOldValue"];
 function observeOptions(spec) {
+  if ("options" in spec) return spec.options;
   const o = {};
   for (const k of OBSERVE_KEYS) if (k in spec) o[k] = spec[k];
   return o;

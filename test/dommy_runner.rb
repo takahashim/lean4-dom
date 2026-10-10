@@ -773,6 +773,8 @@ module DommyRunner
                     characterData characterDataOldValue].freeze
 
   def observe_options(spec)
+    return spec["options"] if spec.key?("options")
+
     spec.slice(*OBSERVE_KEYS)
   end
 

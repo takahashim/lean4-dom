@@ -1,0 +1,78 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "observe"
+    ],
+    "steps": "WebIDL の sequence への変換（attributeFilter）",
+    "note": "attributeFilter は sequence<DOMString> なので、object でない値（null や文字列）と、@@iterator を持たない object は TypeError になる。method steps に入らないので registration は足されない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {}
+  ],
+  "operations": [
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": {
+        "attributeFilter": null
+      }
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": {
+        "attributeFilter": "a"
+      }
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 2,
+      "options": {
+        "attributeFilter": {}
+      }
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "a",
+      "value": "x"
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    }
+  ]
+}
