@@ -6737,6 +6737,12 @@ step 5.1 の近似の説明を、content type を写すようになったこと�
 "locate a namespace"・"locate a namespace prefix" を本文の再帰のまま帰納的な関係に書き、`lookupNamespaceURI`・
 `isDefaultNamespace`・`lookupPrefix` の実行関数がそれを満たすことを示した（`Dom/Spec/Namespace.lean`、`Attr` の枝を除く）。
 
+## DOMTokenList が token set を状態に持たなくてよいことを示した
+
+model の DOMTokenList は token set を持たず class attribute から読み直す（対応表の近似）。method が update steps に
+渡す set は serialize してから parse すると元に戻ることを示し（`orderedSetParse_serialize`、`Dom/Spec/TokenList.lean`）、
+この近似を「証明があるもの」に移した。本文の手順は実行関数がほぼそのまま写しているので、method ごとの関係は書いていない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

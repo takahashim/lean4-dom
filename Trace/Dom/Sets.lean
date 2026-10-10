@@ -25,6 +25,7 @@ def entries : List Entry := [
     approx := [("*", classOnly ++ "。value の getter が無いので、serialize steps を直接呼ぶ所は無い")] },
   { alg := "algorithm:DOMTokenList/attribute change steps"
     impl := [``Dom.classTokenSet, ``Dom.orderedSetParse]
+    spec := [``Dom.Spec.orderedSetParse_serialize, ``Dom.Spec.TokenSetOk]
     approx := [("*", "token set を状態に持たない。attribute change steps で更新する代わりに、使うたびに attribute の値から読み直す（値が無ければ空文字列なので空の set になる）")] },
   { alg := "algorithm:DOMTokenList/created"
     impl := [``Dom.classTokenSet]
@@ -33,14 +34,18 @@ def entries : List Entry := [
     impl := [``Dom.classListContains, ``Dom.classTokenSet] },
   { alg := "dom-domtokenlist-add"
     impl := [``Dom.classListAdd, ``Dom.validateTokens, ``Dom.validateToken,
-             ``Dom.orderedSetAppend, ``Dom.tokenListUpdate] },
+             ``Dom.orderedSetAppend, ``Dom.tokenListUpdate]
+    spec := [``Dom.Spec.tokenSetOk_add] },
   { alg := "dom-domtokenlist-remove"
     impl := [``Dom.classListRemove, ``Dom.validateTokens, ``Dom.validateToken,
-             ``Dom.tokenListUpdate] },
+             ``Dom.tokenListUpdate]
+    spec := [``Dom.Spec.tokenSetOk_filter] },
   { alg := "dom-domtokenlist-toggle"
-    impl := [``Dom.classListToggle, ``Dom.validateToken, ``Dom.tokenListUpdate] },
+    impl := [``Dom.classListToggle, ``Dom.validateToken, ``Dom.tokenListUpdate]
+    spec := [``Dom.Spec.tokenSetOk_filter, ``Dom.Spec.tokenSetOk_append_new] },
   { alg := "dom-domtokenlist-replace"
-    impl := [``Dom.classListReplace, ``Dom.orderedSetReplace, ``Dom.tokenListUpdate] }
+    impl := [``Dom.classListReplace, ``Dom.orderedSetReplace, ``Dom.tokenListUpdate]
+    spec := [``Dom.Spec.tokenSetOk_replace] }
 ]
 
 def exclusions : List Exclusion := [

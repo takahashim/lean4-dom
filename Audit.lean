@@ -1308,3 +1308,13 @@ open Dom.Audit
   Dom.Spec.lookupNamespaceURI_sound
   Dom.Spec.isDefaultNamespace_sound
   Dom.Spec.lookupPrefix_sound
+
+-- DOMTokenList の token set を状態に持たなくてよいこと（§7.1）
+#audit_axioms
+  Dom.Spec.orderedSetParse_serialize
+  Dom.Spec.tokenSetOk_classTokenSet
+  Dom.Spec.tokenSetOk_add
+  Dom.Spec.tokenSetOk_filter
+  Dom.Spec.tokenSetOk_append_new
+  Dom.Spec.tokenSetOk_replace
+  Dom.Spec.validateTokens_eq_none_iff

@@ -426,13 +426,13 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | --- | --- | --- | --- |
 | [concept-dtl-update](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-dtl-update) | 0/2（近似 2） | `Dom.tokenListUpdate`<br>`Dom.getAttributeByKey`<br>`Dom.setAttributeValue` |  |
 | [concept-dtl-serialize](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-dtl-serialize) | 0/1（近似 1） | `Dom.getAttributeValue` |  |
-| [algorithm:DOMTokenList/attribute change steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#algorithm:DOMTokenList/attribute change steps) | 0/2（近似 2） | `Dom.classTokenSet`<br>`Dom.orderedSetParse` |  |
+| [algorithm:DOMTokenList/attribute change steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#algorithm:DOMTokenList/attribute change steps) | 0/2（近似 2） | `Dom.classTokenSet`<br>`Dom.orderedSetParse` | `Dom.Spec.orderedSetParse_serialize`<br>`Dom.Spec.TokenSetOk` |
 | [algorithm:DOMTokenList/created](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#algorithm:DOMTokenList/created) | 0/4（近似 4） | `Dom.classTokenSet` |  |
 | [dom-domtokenlist-contains](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-contains) | 1/1 | `Dom.classListContains`<br>`Dom.classTokenSet` |  |
-| [dom-domtokenlist-add](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-add) | 5/5 | `Dom.classListAdd`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.orderedSetAppend`<br>`Dom.tokenListUpdate` |  |
-| [dom-domtokenlist-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-remove) | 5/5 | `Dom.classListRemove`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` |  |
-| [dom-domtokenlist-toggle](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-toggle) | 7/7 | `Dom.classListToggle`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` |  |
-| [dom-domtokenlist-replace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-replace) | 6/6 | `Dom.classListReplace`<br>`Dom.orderedSetReplace`<br>`Dom.tokenListUpdate` |  |
+| [dom-domtokenlist-add](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-add) | 5/5 | `Dom.classListAdd`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.orderedSetAppend`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_add` |
+| [dom-domtokenlist-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-remove) | 5/5 | `Dom.classListRemove`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_filter` |
+| [dom-domtokenlist-toggle](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-toggle) | 7/7 | `Dom.classListToggle`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_filter`<br>`Dom.Spec.tokenSetOk_append_new` |
+| [dom-domtokenlist-replace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-replace) | 6/6 | `Dom.classListReplace`<br>`Dom.orderedSetReplace`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_replace` |
 
 ## 外した step
 

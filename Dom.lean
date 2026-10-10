@@ -174,6 +174,7 @@ import Dom.Spec.Walker
 import Dom.Spec.LookupOrder
 import Dom.Spec.Equals
 import Dom.Spec.Namespace
+import Dom.Spec.TokenList
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

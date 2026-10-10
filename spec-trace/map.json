@@ -4694,7 +4694,10 @@
         "Dom.classTokenSet",
         "Dom.orderedSetParse"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.orderedSetParse_serialize",
+        "Dom.Spec.TokenSetOk"
+      ],
       "omit": [],
       "approx": [
         {
@@ -4745,7 +4748,9 @@
         "Dom.orderedSetAppend",
         "Dom.tokenListUpdate"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.tokenSetOk_add"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4760,7 +4765,9 @@
         "Dom.validateToken",
         "Dom.tokenListUpdate"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.tokenSetOk_filter"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4774,7 +4781,10 @@
         "Dom.validateToken",
         "Dom.tokenListUpdate"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.tokenSetOk_filter",
+        "Dom.Spec.tokenSetOk_append_new"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4788,7 +4798,9 @@
         "Dom.orderedSetReplace",
         "Dom.tokenListUpdate"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.tokenSetOk_replace"
+      ],
       "omit": [],
       "approx": []
     }

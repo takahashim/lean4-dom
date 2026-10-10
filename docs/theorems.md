@@ -771,6 +771,23 @@ interface による振り分け（Document なら document element、それ以�
 `LocateNamespace`・`LookupPrefixResult` で書いた。実行関数は element chain（parent element をたどれるだけたどった列）を
 前から見るので、列の形と再帰の形が一致することを、祖先の数での induction で示した。`Attr` の枝は関係に入れていない。
 
+## 27. DOMTokenList は token set を状態に持たなくてよい
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.orderedSetParse_serialize` | `Dom/Spec/TokenList.lean` |
+| `Dom.Spec.tokenSetOk_add` ほか | 同上 |
+
+```lean
+theorem orderedSetParse_serialize (h : TokenSetOk l) : orderedSetParse (" ".intercalate l) = l
+```
+
+本文の DOMTokenList は token set を状態に持ち、update steps が attribute に serialize した値を書き、attribute change
+steps が parse して token set に戻す。model は token set を持たず、使うたびに attribute から読み直す。二つが同じに
+なるのは、update steps に渡す set が serialize と parse で元に戻るときである。token が空でなく空白を含まず重複が
+無ければ戻り（`orderedSetParse_serialize`）、`add`・`remove`・`toggle`・`replace` が渡す set はいつもそうである
+（token の検査が `TokenOk` を保証する。`validateTokens_eq_none_iff`）。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。
