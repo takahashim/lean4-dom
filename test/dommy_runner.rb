@@ -66,12 +66,13 @@ module DommyRunner
     "getAttributeNodeNS" => :get_attribute_node_ns,
     "setAttributeNode" => :set_attribute_node,
     "removeAttributeNode" => :remove_attribute_node,
-    "removeNamedItem" => :attributes
+    "removeNamedItem" => :attributes,
+    "removeNamedItemNS" => :attributes
   }.freeze
 
   # `Attr` を渡す / 返す操作。受け手は Document か Element である。
   ATTR_NODE_OPS = %w[createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
-                     setAttributeNode removeAttributeNode removeNamedItem].freeze
+                     setAttributeNode removeAttributeNode removeNamedItem removeNamedItemNS].freeze
 
   # node を作る操作。受け手は Document である（cloneNode を除く）。
   CREATE_OPS = %w[createElement createElementNS createTextNode createComment
@@ -97,6 +98,8 @@ module DommyRunner
   QUERY_OPS = %w[compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
                  getTextContent getNodeValue substringData
                  getAttribute hasAttribute getAttributeNames
+                 getAttributeNS hasAttributeNS hasAttributes
+                 getElementsByTagName getElementsByTagNameNS
                  lookupNamespaceURI lookupPrefix isDefaultNamespace
                  querySelector querySelectorAll matches closest
                  getElementById getElementsByClassName getElementsByName].freeze
@@ -106,7 +109,8 @@ module DommyRunner
   LOOKUP_OPS = {
     "getElementById" => ["elementId", [9, 11]],
     "getElementsByClassName" => ["classNames", [1, 9]],
-    "getElementsByName" => ["elementName", [9]]
+    "getElementsByName" => ["elementName", [9]],
+    "getElementsByTagName" => ["name", [1, 9]]
   }.freeze
 
   # selector を取る method（§4.2.6 / §4.8）。受け手の種別が合わなければ TypeError。
@@ -137,6 +141,11 @@ module DommyRunner
     "closest" => "closest",
     "getElementById" => "getElementById",
     "getElementsByClassName" => "getElementsByClassName",
+    "getElementsByTagName" => "getElementsByTagName",
+    "getElementsByTagNameNS" => "getElementsByTagNameNS",
+    "getAttributeNS" => "getAttributeNS",
+    "hasAttributeNS" => "hasAttributeNS",
+    "hasAttributes" => "hasAttributes",
     "getElementsByName" => "getElementsByName"
   }.freeze
 
@@ -308,7 +317,10 @@ module DommyRunner
       qn = spec["prefix"] ? "#{spec['prefix']}:#{spec['localName']}" : (spec["localName"] || "div")
       # `createElement` は HTML document で名前を lowercase するので、
       # 大文字を含む local name を作りたいときは `createElementNS` を通す。
-      return doc.create_element(qn) if ns == HTML_NS && spec["prefix"].nil? && qn == qn.downcase
+      # XML document（content type が application/xhtml+xml でないもの）の `createElement` は
+      # namespace が null の element を作るので、HTML namespace を作るには `createElementNS` が要る。
+      html = !doc.respond_to?(:content_type) || doc.content_type == "text/html"
+      return doc.create_element(qn) if html && ns == HTML_NS && spec["prefix"].nil? && qn == qn.downcase
 
       doc.create_element_ns(ns, qn)
     end
@@ -411,12 +423,14 @@ module DommyRunner
       { "kind" => "number", "value" => returned.to_i }
     when "dispatchEvent"
       { "kind" => "boolean", "value" => !!returned }
-    when "nodeContains", "isEqualNode", "hasAttribute", "isDefaultNamespace", "matches"
+    when "nodeContains", "isEqualNode", "hasAttribute", "isDefaultNamespace", "matches",
+         "hasAttributeNS", "hasAttributes"
       { "kind" => "boolean", "value" => !!returned }
-    when "querySelectorAll", "getElementsByClassName", "getElementsByName"
+    when "querySelectorAll", "getElementsByClassName", "getElementsByName",
+         "getElementsByTagName", "getElementsByTagNameNS"
       { "kind" => "nodes", "nodes" => (returned || []).to_a.map { |n| node_id(objects, n) } }
     when "getTextContent", "getNodeValue", "substringData", "getAttribute", "rangeToString",
-         "lookupNamespaceURI", "lookupPrefix"
+         "lookupNamespaceURI", "lookupPrefix", "getAttributeNS"
       { "kind" => "string", "value" => returned.nil? ? nil : returned.to_s }
     when "getAttributeNames"
       { "kind" => "strings", "value" => (returned || []).to_a.map(&:to_s) }
@@ -1106,9 +1120,14 @@ module DommyRunner
       removed
     else
       map = receiver.respond_to?(:attributes) ? receiver.attributes : nil
-      raise NotImplementedError, op["op"] if map.nil? || !map.respond_to?(:remove_named_item)
+      meth = op["op"] == "removeNamedItemNS" ? :remove_named_item_ns : :remove_named_item
+      raise NotImplementedError, op["op"] if map.nil? || !map.respond_to?(meth)
 
-      removed = map.remove_named_item(op["name"].to_s)
+      removed = if op["op"] == "removeNamedItemNS"
+                  map.remove_named_item_ns(op["namespace"], op["name"].to_s)
+                else
+                  map.remove_named_item(op["name"].to_s)
+                end
       # 仕様では無ければ NotFoundError。nil を返す実装はそこを実装していない。
       raise NotImplementedError, "removeNamedItem returned nil" if removed.nil?
 
@@ -1309,12 +1328,20 @@ module DommyRunner
         return js_call(receiver, name, [op[field].to_s])
       end
 
+      if op["op"] == "getElementsByTagNameNS"
+        raise TypeError, "#{name} is not a function" unless [1, 9].include?(node_type_of(receiver))
+
+        return js_call(receiver, name, [op["namespace"], op["name"].to_s])
+      end
+
       return case op["op"]
              when "compareDocumentPosition", "nodeContains", "isEqualNode"
                js_call(receiver, name, [op.key?("other") ? node_value(ctx, op["other"]) : nil])
              when "getRootNode" then js_call(receiver, name, [])
              when "substringData" then js_call(receiver, name, [op["offset"], op["count"]])
              when "getAttribute", "hasAttribute" then js_call(receiver, name, [op["name"]])
+             when "getAttributeNS", "hasAttributeNS" then js_call(receiver, name, [op["namespace"], op["name"]])
+             when "hasAttributes" then js_call(receiver, name, [])
              when "getAttributeNames" then js_call(receiver, name, [])
              when "lookupNamespaceURI" then js_call(receiver, name, [op["prefix"]])
              when "lookupPrefix", "isDefaultNamespace" then js_call(receiver, name, [op["namespace"]])

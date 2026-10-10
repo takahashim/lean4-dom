@@ -31,6 +31,7 @@ module Generate
            compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
            getTextContent getNodeValue substringData getProperty
            getAttribute hasAttribute getAttributeNames
+           getAttributeNS hasAttributeNS hasAttributes getElementsByTagName getElementsByTagNameNS
            lookupNamespaceURI lookupPrefix isDefaultNamespace
            dispatchEvent addEventListener removeEventListener
            walkerParentNode walkerFirstChild walkerLastChild
@@ -92,7 +93,8 @@ module Generate
 
   # `Attr` を渡す / 返す操作。受け手は Element である。
   ATTR_ELEMENT_OPS = %w[getAttributeNode getAttributeNodeNS setAttributeNode
-                        removeAttributeNode removeNamedItem].freeze
+                        removeAttributeNode removeNamedItem
+                        removeNamedItemNS].freeze
 
   # `Attr` を作る操作。作る数が読めるので、生成器は id を追える。
   ATTR_CREATE_OPS = %w[createAttribute createAttributeNS].freeze
@@ -136,7 +138,11 @@ module Generate
   CHARACTER_DATA_OPS = %w[replaceData appendData insertData deleteData setData
                           substringData].freeze
   ATTRIBUTE_OPS = %w[setAttribute setAttributeNS removeAttribute removeAttributeNS
-                     toggleAttribute getAttribute hasAttribute getAttributeNames].freeze
+                     toggleAttribute getAttribute hasAttribute getAttributeNames
+                     getAttributeNS hasAttributeNS hasAttributes].freeze
+  # tag name で element を引く操作（§4.2.6）。受け手は Document か Element。
+  TAG_NAME_OPS = %w[getElementsByTagName getElementsByTagNameNS].freeze
+  HTML_NS = "http://www.w3.org/1999/xhtml"
 
   # §4.9 の reflect、§7.1 の `classList`。namespace が null の attribute だけを読み書きする。
   # `setAttributeNS` が置く namespace 付きの同名 attribute（`ATTR_NAMESPACES`）と混ざる木で、
@@ -234,12 +240,12 @@ module Generate
   end
 
   SPEC_OPS = {
-    "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS + SELECTOR_PARENT_OPS +
+    "document" => NODE_OPS + PARENT_NODE_OPS + DOCUMENT_OPS + SELECTOR_PARENT_OPS + TAG_NAME_OPS +
                   %w[getElementById getElementsByClassName getElementsByName childrenNamedItem],
     "documentFragment" => NODE_OPS + PARENT_NODE_OPS + SELECTOR_PARENT_OPS +
                           %w[getElementById childrenNamedItem],
     "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS +
-                 SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS + REFLECT_ELEMENT_OPS +
+                 SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS + REFLECT_ELEMENT_OPS + TAG_NAME_OPS +
                  %w[getElementsByClassName childrenNamedItem],
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -568,7 +574,16 @@ module Generate
         "count" => idl_number(rng, rng.rand(4)) }
     when "getAttribute", "hasAttribute"
       { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng) }
-    when "getAttributeNames" then { "op" => op, "element" => pick.call }
+    when "getAttributeNames", "hasAttributes" then { "op" => op, "element" => pick.call }
+    when "getAttributeNS", "hasAttributeNS"
+      { "op" => op, "element" => pick.call, "namespace" => (ATTR_NAMESPACES + [""]).sample(random: rng),
+        "name" => ATTR_OP_NAMES.sample(random: rng) }
+    when "getElementsByTagName"
+      { "op" => op, "node" => pick.call,
+        "name" => (ELEMENT_NAMES + %w[DIV rect svg:rect *]).sample(random: rng) }
+    when "getElementsByTagNameNS"
+      { "op" => op, "node" => pick.call, "namespace" => [nil, "", "*", HTML_NS, SVG_NS].sample(random: rng),
+        "name" => (ELEMENT_NAMES + %w[DIV rect *]).sample(random: rng) }
     when "dispatchEvent"
       { "op" => op, "target" => pick.call, "type" => EVENT_TYPES.sample(random: rng),
         "bubbles" => rng.rand < 0.6, "cancelable" => rng.rand < 0.5 }
@@ -756,7 +771,7 @@ module Generate
 
       { "op" => op, "element" => els.sample(random: rng),
         "name" => ATTR_OP_NAMES.sample(random: rng) }
-    when "getAttributeNodeNS"
+    when "getAttributeNodeNS", "removeNamedItemNS"
       els = ids.select { |i| kinds[i] == "element" }
       return nil if els.empty?
 

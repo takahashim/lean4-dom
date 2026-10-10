@@ -2062,6 +2062,43 @@
       "approx": []
     },
     {
+      "alg": "dom-document-getelementsbytagname",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementsByTagName",
+        "Dom.descendantElements"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な HTMLCollection ではなく、呼んだ時点の element の列を返す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-document-getelementsbytagnamens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementsByTagNameNS",
+        "Dom.descendantElements",
+        "Dom.normalizeNamespace"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な HTMLCollection ではなく、呼んだ時点の element の列を返す"
+        }
+      ]
+    },
+    {
       "alg": "dom-document-getelementsbyclassname",
       "steps": [
         "*"
@@ -2870,6 +2907,81 @@
       "approx": []
     },
     {
+      "alg": "dom-element-getattributens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeNS",
+        "Dom.getAttributeByKey"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-hasattributens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.hasAttributeNS",
+        "Dom.getAttributeByKey"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-hasattributes",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.hasAttributes"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-getelementsbytagname",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementsByTagName",
+        "Dom.descendantElements"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な HTMLCollection ではなく、呼んだ時点の element の列を返す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-element-getelementsbytagnamens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementsByTagNameNS",
+        "Dom.descendantElements",
+        "Dom.normalizeNamespace"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な HTMLCollection ではなく、呼んだ時点の element の列を返す"
+        }
+      ]
+    },
+    {
       "alg": "dom-element-toggleattribute",
       "steps": [
         "*"
@@ -3090,6 +3202,25 @@
       ],
       "omit": [],
       "approx": []
+    },
+    {
+      "alg": "dom-namednodemap-removenameditemns",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeNamedItemNS",
+        "Dom.getAttributeByKey",
+        "Dom.removeAttributeNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "remove an attribute by namespace and local name を、get してから `removeAttributeNode` で外す形に書く"
+        }
+      ]
     },
     {
       "alg": "create-an-attribute",
@@ -4726,20 +4857,6 @@
       }
     },
     {
-      "target": "dom-document-getelementsbytagname",
-      "why": {
-        "reason": "todo",
-        "detail": "list of elements with qualified name が無い"
-      }
-    },
-    {
-      "target": "dom-document-getelementsbytagnamens",
-      "why": {
-        "reason": "todo",
-        "detail": "list of elements with namespace and local name が無い"
-      }
-    },
-    {
       "target": "flatten-element-creation-options",
       "why": {
         "reason": "custom-elements",
@@ -4838,31 +4955,10 @@
       }
     },
     {
-      "target": "dom-element-hasattributes",
-      "why": {
-        "reason": "todo",
-        "detail": "hasAttributes() の関数と harness の op が無い"
-      }
-    },
-    {
       "target": "dom-element-attributes",
       "why": {
         "reason": "todo",
         "detail": "NamedNodeMap object（element の attributes getter）を持たない"
-      }
-    },
-    {
-      "target": "dom-element-getattributens",
-      "why": {
-        "reason": "todo",
-        "detail": "getAttributeNS() の関数が無い（getAttributeByKey はあるが null と value を返す method が無い）"
-      }
-    },
-    {
-      "target": "dom-element-hasattributens",
-      "why": {
-        "reason": "todo",
-        "detail": "hasAttributeNS() の関数が無い"
       }
     },
     {
@@ -4891,20 +4987,6 @@
       "why": {
         "reason": "custom-elements",
         "detail": ""
-      }
-    },
-    {
-      "target": "dom-element-getelementsbytagname",
-      "why": {
-        "reason": "todo",
-        "detail": "list of elements with qualified name（getElementsByTagName）が無い"
-      }
-    },
-    {
-      "target": "dom-element-getelementsbytagnamens",
-      "why": {
-        "reason": "todo",
-        "detail": "list of elements with namespace and local name（getElementsByTagNameNS）が無い"
       }
     },
     {
@@ -4947,13 +5029,6 @@
       "why": {
         "reason": "todo",
         "detail": "NamedNodeMap の named property が無い"
-      }
-    },
-    {
-      "target": "dom-namednodemap-removenameditemns",
-      "why": {
-        "reason": "todo",
-        "detail": "removeNamedItemNS() の関数が無い（removeAttributeNS は NotFoundError も `Attr` を返すことも無い）"
       }
     },
     {

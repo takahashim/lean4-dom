@@ -211,4 +211,19 @@ def removeNamedItem (s : DOMState) (element : NodeId) (qualifiedName : String) :
     | none => .error .notFoundError
     | some a => removeAttributeNode s element a.id
 
+/--
+DOM Standard §4.9 `NamedNodeMap.removeNamedItemNS(namespace, localName)`。
+
+"remove an attribute by namespace and local name" は get してから remove するので、見つけた `Attr` を
+`removeAttributeNode` で外す。無ければ `NotFoundError`。
+-/
+def removeNamedItemNS (s : DOMState) (element : NodeId) («namespace» : Option String)
+    (localName : String) : Except DOMException (AttrId × DOMState) :=
+  match requireElement s.tree element with
+  | .error e => .error e
+  | .ok d =>
+    match getAttributeByKey d «namespace» localName with
+    | none => .error .notFoundError
+    | some a => removeAttributeNode s element a.id
+
 end Dom

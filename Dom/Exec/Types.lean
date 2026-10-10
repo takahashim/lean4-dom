@@ -332,6 +332,18 @@ inductive Operation where
   -/
   | getElementById (node : Nat) (elementId : String)
   | getElementsByClassName (node : Nat) (classNames : String)
+  /-- §4.2.6 `getElementsByTagName(qualifiedName)`（Document・Element）。 -/
+  | getElementsByTagName (node : Nat) (qualifiedName : String)
+  /-- §4.2.6 `getElementsByTagNameNS(namespace, localName)`（Document・Element）。 -/
+  | getElementsByTagNameNS (node : Nat) («namespace» : Option String) (localName : String)
+  /-- §4.9 `getAttributeNS(namespace, localName)`。 -/
+  | getAttributeNS (element : Nat) («namespace» : Option String) (localName : String)
+  /-- §4.9 `hasAttributeNS(namespace, localName)`。 -/
+  | hasAttributeNS (element : Nat) («namespace» : Option String) (localName : String)
+  /-- §4.9 `hasAttributes()`。 -/
+  | hasAttributes (element : Nat)
+  /-- §4.9 `NamedNodeMap.removeNamedItemNS(namespace, localName)`。外した `Attr` を返す。 -/
+  | removeNamedItemNS (element : Nat) («namespace» : Option String) (localName : String)
   | getElementsByName (node : Nat) (elementName : String)
   /--
   `Attr` を `Node` として扱う操作（§4.4・§4.5・§4.9、`Dom/Attribute/AsNode.lean`）。

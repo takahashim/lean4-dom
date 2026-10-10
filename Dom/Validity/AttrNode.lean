@@ -256,6 +256,22 @@ theorem admissible_removeAttributeNode {s s' : DOMState} {element : NodeId} {aid
     AdmissibleDOMState s' :=
   admissible_of_attrOp h (attrOpResult_removeAttributeNode hr)
 
+theorem attrOpResult_removeNamedItemNS {s s' : DOMState} {element : NodeId} {ns : Option String}
+    {ln : String} {ret : AttrId} (hr : removeNamedItemNS s element ns ln = .ok (ret, s')) :
+    AttrOpResult s s' := by
+  unfold removeNamedItemNS at hr
+  split at hr
+  · simp at hr
+  · next d hreq =>
+    split at hr
+    · simp at hr
+    · next a ha => exact attrOpResult_removeAttributeNode hr
+
+theorem admissible_removeNamedItemNS {s s' : DOMState} {element : NodeId} {ns : Option String}
+    {ln : String} {ret : AttrId} (h : AdmissibleDOMState s)
+    (hr : removeNamedItemNS s element ns ln = .ok (ret, s')) : AdmissibleDOMState s' :=
+  admissible_of_attrOp h (attrOpResult_removeNamedItemNS hr)
+
 theorem admissible_removeNamedItem {s s' : DOMState} {element : NodeId} {qn : String}
     {ret : AttrId} (h : AdmissibleDOMState s) (hr : removeNamedItem s element qn = .ok (ret, s')) :
     AdmissibleDOMState s' :=

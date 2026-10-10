@@ -102,6 +102,50 @@ def getElementsByClassName (t : Tree) (node : NodeId) (classNames : String) :
       classes.all (fun c => (elementClassesOf t e).any (fun c' =>
         quirksFold q c'.toList == quirksFold q c.toList))))
 
+/-! ## `getElementsByTagName()` / `getElementsByTagNameNS()` -/
+
+/--
+DOM §4.2.6 "list of elements with qualified name"。`*` なら descendant の element すべて。
+root の node document が HTML document なら、HTML namespace の element は qualified name を
+ASCII lowercase にした `qualifiedName` と、それ以外の element は `qualifiedName` そのものと比べる。
+-/
+def getElementsByTagName (t : Tree) (node : NodeId) (qualifiedName : String) :
+    Except DOMException (List NodeId) :=
+  match requireDocumentOrElement t node with
+  | .error e => .error e
+  | .ok _ =>
+    let els := descendantElements t node
+    if qualifiedName == "*" then .ok els
+    else
+      let html := match t.get? node with
+        | some d => isHTMLDocumentOf t d
+        | none => false
+      let lower := asciiLowercase qualifiedName
+      .ok (els.filter fun e =>
+        match t.get? e with
+        | none => false
+        | some d =>
+          if html then
+            (d.namespace == some htmlNamespace && d.qualifiedName == lower) ||
+              (d.namespace != some htmlNamespace && d.qualifiedName == qualifiedName)
+          else d.qualifiedName == qualifiedName)
+
+/--
+DOM §4.2.6 "list of elements with namespace and local name"。空文字列の namespace は null。
+`*` は namespace でも local name でも「何でも当たる」。
+-/
+def getElementsByTagNameNS (t : Tree) (node : NodeId) («namespace» : Option String)
+    (localName : String) : Except DOMException (List NodeId) :=
+  match requireDocumentOrElement t node with
+  | .error e => .error e
+  | .ok _ =>
+    let ns := normalizeNamespace «namespace»
+    .ok ((descendantElements t node).filter fun e =>
+      match t.get? e with
+      | none => false
+      | some d =>
+        (ns == some "*" || d.namespace == ns) && (localName == "*" || d.localName == localName))
+
 /-! ## `getElementsByName()` -/
 
 /--

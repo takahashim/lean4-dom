@@ -85,12 +85,13 @@ const OP_METHOD = {
   createAttribute: "createAttribute", createAttributeNS: "createAttributeNS",
   getAttributeNode: "getAttributeNode", getAttributeNodeNS: "getAttributeNodeNS",
   setAttributeNode: "setAttributeNode", removeAttributeNode: "removeAttributeNode",
-  removeNamedItem: "attributes"
+  removeNamedItem: "attributes", removeNamedItemNS: "attributes"
 };
 
 // `Attr` を渡す / 返す操作。
 const ATTR_NODE_OPS = ["createAttribute", "createAttributeNS", "getAttributeNode",
-  "getAttributeNodeNS", "setAttributeNode", "removeAttributeNode", "removeNamedItem"];
+  "getAttributeNodeNS", "setAttributeNode", "removeAttributeNode", "removeNamedItem",
+  "removeNamedItemNS"];
 
 // node を作る操作。受け手は Document である（cloneNode を除く）。
 const CREATE_OPS = ["createElement", "createElementNS", "createTextNode", "createComment",
@@ -109,6 +110,8 @@ const QUERY_JS_NAME = {
   getTextContent: "textContent",
   getNodeValue: "nodeValue", substringData: "substringData", getAttribute: "getAttribute",
   hasAttribute: "hasAttribute", getAttributeNames: "getAttributeNames",
+  getAttributeNS: "getAttributeNS", hasAttributeNS: "hasAttributeNS", hasAttributes: "hasAttributes",
+  getElementsByTagName: "getElementsByTagName", getElementsByTagNameNS: "getElementsByTagNameNS",
   lookupNamespaceURI: "lookupNamespaceURI", lookupPrefix: "lookupPrefix",
   isDefaultNamespace: "isDefaultNamespace",
   querySelector: "querySelector", querySelectorAll: "querySelectorAll",
@@ -120,7 +123,8 @@ const QUERY_JS_NAME = {
 const LOOKUP_OPS = {
   getElementById: ["elementId", [9, 11]],
   getElementsByClassName: ["classNames", [1, 9]],
-  getElementsByName: ["elementName", [9]]
+  getElementsByName: ["elementName", [9]],
+  getElementsByTagName: ["name", [1, 9]]
 };
 // selector を取る method。receiver の種別が合わなければ TypeError になる。
 const SELECTOR_OPS = ["querySelector", "querySelectorAll", "matches", "closest"];
@@ -252,7 +256,10 @@ class Builder {
     const qn = spec.prefix ? `${spec.prefix}:${spec.localName}` : (spec.localName ?? "div");
     // `createElement` は HTML document で名前を lowercase するので、
     // 大文字を含む local name を作りたいときは `createElementNS` を通す。
-    if (ns === HTML_NS && !spec.prefix && qn === qn.toLowerCase()) return doc.createElement(qn);
+    // XML document（content type が application/xhtml+xml でないもの）の `createElement` は
+    // namespace が null の element を作るので、HTML namespace を作るには `createElementNS` が要る。
+    const html = (doc.contentType ?? "text/html") === "text/html";
+    if (html && ns === HTML_NS && !spec.prefix && qn === qn.toLowerCase()) return doc.createElement(qn);
     return doc.createElementNS(ns, qn);
   }
 }
@@ -514,6 +521,7 @@ function returnValueSnapshot(idOf, attrOf, op, returned) {
   switch (name) {
     case "toggleAttribute": case "rangeIsPointInRange": case "rangeIntersectsNode":
     case "dispatchEvent": case "nodeContains": case "isEqualNode": case "hasAttribute":
+    case "hasAttributeNS": case "hasAttributes":
     case "isDefaultNamespace": case "matches":
     case "classListToggle": case "classListReplace": case "classListContains":
       return { kind: "boolean", value: !!returned };
@@ -527,10 +535,12 @@ function returnValueSnapshot(idOf, attrOf, op, returned) {
     case "datasetKeys":
       return { kind: "strings", value: [...(returned ?? [])].map(String) };
     case "querySelectorAll": case "getElementsByClassName": case "getElementsByName":
+    case "getElementsByTagName": case "getElementsByTagNameNS":
       return { kind: "nodes", nodes: [...(returned ?? [])].map(idOf) };
     case "rangeCompareBoundaryPoints": case "rangeComparePoint": case "compareDocumentPosition":
       return { kind: "number", value: Number(returned) | 0 };
     case "getTextContent": case "getNodeValue": case "substringData": case "getAttribute":
+    case "getAttributeNS":
     case "rangeToString": case "lookupNamespaceURI": case "lookupPrefix":
       return { kind: "string", value: returned === null || returned === undefined ? null : String(returned) };
     case "getAttributeNames":
@@ -720,6 +730,11 @@ function applyQueryOp(ctx, op) {
     if (typeof receiver[name] !== "function") throw new Unsupported(name);
     return receiver[name](arg(op, field));
   }
+  if (op.op === "getElementsByTagNameNS") {
+    if (![1, 9].includes(receiver.nodeType)) throw new TypeError(`${name} is not a function`);
+    if (typeof receiver[name] !== "function") throw new Unsupported(name);
+    return receiver[name](op.namespace ?? null, arg(op, "name"));
+  }
   if (typeof receiver[name] !== "function") throw new Unsupported(name);
   switch (op.op) {
     case "compareDocumentPosition": case "nodeContains": case "isEqualNode":
@@ -727,6 +742,8 @@ function applyQueryOp(ctx, op) {
     case "getRootNode": case "getAttributeNames": return receiver[name]();
     case "substringData": return receiver[name](op.offset, op.count);
     case "getAttribute": case "hasAttribute": return receiver[name](arg(op, "name"));
+    case "getAttributeNS": case "hasAttributeNS": return receiver[name](op.namespace ?? null, arg(op, "name"));
+    case "hasAttributes": return receiver[name]();
     case "lookupNamespaceURI": return receiver[name](op.prefix ?? null);
     case "lookupPrefix": case "isDefaultNamespace": return receiver[name](op.namespace ?? null);
   }
@@ -818,8 +835,10 @@ function applyAttrNode(ctx, op) {
     }
     default: {
       const map = receiver.attributes;
-      if (!map || typeof map.removeNamedItem !== "function") throw new Unsupported(op.op);
-      const removed = map.removeNamedItem(arg(op, "name"));
+      if (!map || typeof map[op.op] !== "function") throw new Unsupported(op.op);
+      const removed = op.op === "removeNamedItemNS"
+        ? map.removeNamedItemNS(op.namespace ?? null, arg(op, "name"))
+        : map.removeNamedItem(arg(op, "name"));
       // 仕様では無ければ NotFoundError。null を返す実装はそこを実装していない。
       if (removed === null || removed === undefined) throw new Unsupported("removeNamedItem null");
       ctx.detached.push(removed);
@@ -999,7 +1018,7 @@ function apply(ctx, op) {
     }
     case "createAttribute": case "createAttributeNS": case "getAttributeNode":
     case "getAttributeNodeNS": case "setAttributeNode": case "removeAttributeNode":
-    case "removeNamedItem":
+    case "removeNamedItem": case "removeNamedItemNS":
       return applyAttrNode(ctx, op);
     case "cloneNode": {
       const src = resolveRef(ctx, op.node);

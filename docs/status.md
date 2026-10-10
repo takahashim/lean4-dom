@@ -6577,6 +6577,30 @@ Chromium、Firefox、WebKit は固定 scenario のすべてで model と一致�
 **jsdom 30.1.2 は `compatMode` を読むたびに doctype の有無で決める。** quirks の document に doctype を足すと
 "CSS1Compat" を返す。mode は parser が決める document の持ち物なので、`test/known-divergences.yml` に記録した。
 
+## namespace で引く attribute の method と tag name の lookup を足した
+
+対応表で `.todo` の除外だった method を足した。`getAttributeNS`・`hasAttributeNS`・`hasAttributes`、
+`NamedNodeMap.removeNamedItemNS`、`getElementsByTagName`・`getElementsByTagNameNS`（Document と Element）である。
+
+* `getAttributeNS`・`hasAttributeNS` は "get an attribute by namespace and local name"（`getAttributeByKey`）で引く。
+  空文字列の namespace は null で、local name で引くので `x:a` のような prefix 付きの名前には当たらない。
+* `removeNamedItemNS` は get してから `removeAttributeNode` で外し、無ければ NotFoundError を投げて、外した `Attr` を返す
+  （`removeNamedItem` と同じ形）。admissibility と attribute の id の一意性の証明は `removeAttributeNode` のものを使う。
+* `getElementsByTagName` は "list of elements with qualified name"。HTML document では HTML namespace の element だけを
+  ASCII lowercase にした名前と比べ、他の namespace の element は qualified name をそのまま比べる。XML document では
+  そのまま比べる。`getElementsByTagNameNS` は空文字列の namespace を null にし、`*` は namespace でも local name でも
+  何にでも当たる。どちらも live な HTMLCollection ではなく呼んだ時点の列を返す（`getElementsByClassName` と同じ近似）。
+* 固定 scenario `namespace-attribute-and-tag-name-queries` を足した。生成器は新しい op を出す。
+
+**runner の builder が XML document の中に HTML namespace の element を作れていなかった。** runner は HTML namespace の
+小文字の名前を `createElement` で作っていたが、content type が application/xml の document の `createElement` は namespace
+が null の element を作る（§4.5 step 4）。model は scenario の namespace をそのまま使うので、XML document の中の
+HTML namespace の element は、model と実装で namespace が違う木になっていた。`getElementsByTagNameNS` で初めて見えた
+（六つの実装がそろって空の列を返した）。runner は document が HTML document（content type が text/html）のときだけ
+`createElement` を使うようにした。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、この scenario のすべての step で model と一致した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

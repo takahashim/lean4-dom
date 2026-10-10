@@ -25,6 +25,12 @@ def entries : List Entry := [
     impl := [``Dom.doctypeOf] },
   { alg := "dom-document-documentelement"
     impl := [``Dom.documentElement] },
+  { alg := "dom-document-getelementsbytagname"
+    impl := [``Dom.getElementsByTagName, ``Dom.descendantElements]
+    approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
+  { alg := "dom-document-getelementsbytagnamens"
+    impl := [``Dom.getElementsByTagNameNS, ``Dom.descendantElements, ``Dom.normalizeNamespace]
+    approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
   { alg := "dom-document-getelementsbyclassname"
     impl := [``Dom.getElementsByClassName, ``Dom.orderedSetParse, ``Dom.elementClassesOf,
              ``Dom.receiverInQuirksMode]
@@ -84,9 +90,6 @@ def exclusions : List Exclusion := [
   { target := "dom-document-characterset", reason := .todo "document の encoding を持たない" },
   { target := "dom-document-charset", reason := .todo "document の encoding を持たない" },
   { target := "dom-document-inputencoding", reason := .todo "document の encoding を持たない" },
-  { target := "dom-document-getelementsbytagname", reason := .todo "list of elements with qualified name が無い" },
-  { target := "dom-document-getelementsbytagnamens",
-    reason := .todo "list of elements with namespace and local name が無い" },
   { target := "flatten-element-creation-options", reason := .customElements },
   { target := "dom-document-createcdatasection", reason := .todo "createCDATASection が無い（`Dom/Mutation/Create.lean` の注）" },
   { target := "dom-document-createprocessinginstruction",

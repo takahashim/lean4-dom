@@ -447,6 +447,18 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     | .ok str => .str (some str)
   | .getAttribute e q => .str (getAttribute s.tree ⟨e⟩ q)
   | .hasAttribute e q => .bool (hasAttribute s.tree ⟨e⟩ q)
+  | .getAttributeNS e ns ln => .str (getAttributeNS s.tree ⟨e⟩ ns ln)
+  | .hasAttributeNS e ns ln => .bool (hasAttributeNS s.tree ⟨e⟩ ns ln)
+  | .hasAttributes e => .bool (hasAttributes s.tree ⟨e⟩)
+  | .removeNamedItemNS e ns ln => createdAttr (removeNamedItemNS s ⟨e⟩ ns ln)
+  | .getElementsByTagName n q =>
+    match getElementsByTagName s.tree ⟨n⟩ q with
+    | .error _ => .unit
+    | .ok l => .nodes l
+  | .getElementsByTagNameNS n ns ln =>
+    match getElementsByTagNameNS s.tree ⟨n⟩ ns ln with
+    | .error _ => .unit
+    | .ok l => .nodes l
   | .getAttributeNames e => .strs (getAttributeNames s.tree ⟨e⟩)
   | .getReflected e _ r =>
     match getReflectedProp s.tree ⟨e⟩ r with
@@ -655,6 +667,12 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
     (substringData s.tree ⟨n⟩ (Idl.toUnsignedLong o) (Idl.toUnsignedLong c)).map (fun _ => s)
   | .getAttribute e _ => requireNodes s [⟨e⟩]
   | .hasAttribute e _ => requireNodes s [⟨e⟩]
+  | .getAttributeNS e _ _ => requireNodes s [⟨e⟩]
+  | .hasAttributeNS e _ _ => requireNodes s [⟨e⟩]
+  | .hasAttributes e => requireNodes s [⟨e⟩]
+  | .removeNamedItemNS e ns ln => dropAttr (removeNamedItemNS s ⟨e⟩ ns ln)
+  | .getElementsByTagName n q => (getElementsByTagName s.tree ⟨n⟩ q).map fun _ => s
+  | .getElementsByTagNameNS n ns ln => (getElementsByTagNameNS s.tree ⟨n⟩ ns ln).map fun _ => s
   | .getAttributeNames e => requireNodes s [⟨e⟩]
   | .querySelector n sel => (querySelector s.tree sel ⟨n⟩).map fun _ => s
   | .querySelectorAll n sel => (querySelectorAll s.tree sel ⟨n⟩).map fun _ => s

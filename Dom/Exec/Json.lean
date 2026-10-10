@@ -643,6 +643,21 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "substringData" =>
     return .substringData (← natField j "node") (← numArgField j "offset") (← numArgField j "count")
   | "getAttribute" => return .getAttribute (← natField j "element") (← domStrField j "name" "")
+  | "getAttributeNS" =>
+    return .getAttributeNS (← natField j "element") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
+  | "hasAttributeNS" =>
+    return .hasAttributeNS (← natField j "element") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
+  | "hasAttributes" => return .hasAttributes (← natField j "element")
+  | "removeNamedItemNS" =>
+    return .removeNamedItemNS (← natField j "element") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
+  | "getElementsByTagName" =>
+    return .getElementsByTagName (← natField j "node") (← domStrField j "name" "")
+  | "getElementsByTagNameNS" =>
+    return .getElementsByTagNameNS (← natField j "node") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
   | "hasAttribute" => return .hasAttribute (← natField j "element") (← domStrField j "name" "")
   | "getAttributeNames" => return .getAttributeNames (← natField j "element")
   | "querySelector" => return .querySelector (← natField j "node") (← domStrField j "selectors" "")

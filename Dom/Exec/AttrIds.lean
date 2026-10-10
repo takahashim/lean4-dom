@@ -173,6 +173,13 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | getNodeValue n => exact unique_requireNodes hu hop
   | getAttribute e q => exact unique_requireNodes hu hop
   | hasAttribute e q => exact unique_requireNodes hu hop
+  | getAttributeNS e ns ln => exact unique_requireNodes hu hop
+  | hasAttributeNS e ns ln => exact unique_requireNodes hu hop
+  | hasAttributes e => exact unique_requireNodes hu hop
+  | removeNamedItemNS e ns ln =>
+    obtain ⟨r, hr⟩ := dropAttr_ok hop; exact unique_removeNamedItemNS hu h.attributes hr
+  | getElementsByTagName n q => exact unique_mapConst hu hop
+  | getElementsByTagNameNS n ns ln => exact unique_mapConst hu hop
   | getAttributeNames e => exact unique_requireNodes hu hop
   | querySelector n sel => exact unique_mapConst hu hop
   | querySelectorAll n sel => exact unique_mapConst hu hop

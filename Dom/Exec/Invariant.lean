@@ -255,6 +255,14 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | getNodeValue n => exact admissible_requireNodes h hop
   | getAttribute e q => exact admissible_requireNodes h hop
   | hasAttribute e q => exact admissible_requireNodes h hop
+  | getAttributeNS e ns ln => exact admissible_requireNodes h hop
+  | hasAttributeNS e ns ln => exact admissible_requireNodes h hop
+  | hasAttributes e => exact admissible_requireNodes h hop
+  | removeNamedItemNS e ns ln =>
+    obtain ⟨r, hr⟩ := dropAttr_ok hop
+    exact admissible_removeNamedItemNS h hr
+  | getElementsByTagName n q => exact admissible_mapConst h hop
+  | getElementsByTagNameNS n ns ln => exact admissible_mapConst h hop
   | getAttributeNames e => exact admissible_requireNodes h hop
   | querySelector n sel => exact admissible_mapConst h hop
   | querySelectorAll n sel => exact admissible_mapConst h hop

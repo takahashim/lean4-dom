@@ -109,6 +109,18 @@ def entries : List Entry := [
     spec := [``Dom.Spec.RemoveAttributeNSResult] },
   { alg := "dom-element-hasattribute"
     impl := [``Dom.hasAttribute, ``Dom.getAttributeByName] },
+  { alg := "dom-element-getattributens"
+    impl := [``Dom.getAttributeNS, ``Dom.getAttributeByKey] },
+  { alg := "dom-element-hasattributens"
+    impl := [``Dom.hasAttributeNS, ``Dom.getAttributeByKey] },
+  { alg := "dom-element-hasattributes"
+    impl := [``Dom.hasAttributes] },
+  { alg := "dom-element-getelementsbytagname"
+    impl := [``Dom.getElementsByTagName, ``Dom.descendantElements]
+    approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
+  { alg := "dom-element-getelementsbytagnamens"
+    impl := [``Dom.getElementsByTagNameNS, ``Dom.descendantElements, ``Dom.normalizeNamespace]
+    approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
   { alg := "dom-element-toggleattribute"
     impl := [``Dom.toggleAttribute]
     spec := [``Dom.Spec.ToggleAttributeResult] },
@@ -150,6 +162,9 @@ def entries : List Entry := [
   { alg := "dom-namednodemap-removenameditem"
     impl := [``Dom.removeNamedItem, ``Dom.removeAttributeNode]
     spec := [``Dom.Spec.RemoveNamedItemResult] },
+  { alg := "dom-namednodemap-removenameditemns"
+    impl := [``Dom.removeNamedItemNS, ``Dom.getAttributeByKey, ``Dom.removeAttributeNode]
+    approx := [("1", "remove an attribute by namespace and local name を、get してから `removeAttributeNode` で外す形に書く")] },
   -- §4.9.2 Attr
   { alg := "create-an-attribute"
     impl := [``Dom.createAttributeIn, ``Dom.Attr.normalized]
@@ -175,23 +190,17 @@ def entries : List Entry := [
 ]
 
 def exclusions : List Exclusion := [
-  { target := "dom-element-hasattributes", reason := .todo "hasAttributes() の関数と harness の op が無い" },
   { target := "dom-element-attributes", reason := .todo "NamedNodeMap object（element の attributes getter）を持たない" },
-  { target := "dom-element-getattributens", reason := .todo "getAttributeNS() の関数が無い（getAttributeByKey はあるが null と value を返す method が無い）" },
-  { target := "dom-element-hasattributens", reason := .todo "hasAttributeNS() の関数が無い" },
   { target := "dom-element-attachshadow", reason := .shadow },
   { target := "concept-attach-a-shadow-root", reason := .shadow },
   { target := "dom-element-shadowroot", reason := .shadow },
   { target := "dom-element-customelementregistry", reason := .customElements },
-  { target := "dom-element-getelementsbytagname", reason := .todo "list of elements with qualified name（getElementsByTagName）が無い" },
-  { target := "dom-element-getelementsbytagnamens", reason := .todo "list of elements with namespace and local name（getElementsByTagNameNS）が無い" },
   { target := "insert-adjacent", reason := .todo "insert adjacent が無い" },
   { target := "dom-element-insertadjacentelement", reason := .todo "insert adjacent が無い" },
   { target := "dom-element-insertadjacenttext", reason := .todo "insert adjacent が無い" },
   { target := "dom-namednodemap-length", reason := .todo "NamedNodeMap object を持たない（length が無い）" },
   { target := "dom-namednodemap-item", reason := .todo "NamedNodeMap object を持たない（item(index) が無い）" },
   { target := "interface-namednodemap/supported-property-names", reason := .todo "NamedNodeMap の named property が無い" },
-  { target := "dom-namednodemap-removenameditemns", reason := .todo "removeNamedItemNS() の関数が無い（removeAttributeNS は NotFoundError も `Attr` を返すことも無い）" },
   { target := "dom-attr-specified", reason := .legacy }
 ]
 

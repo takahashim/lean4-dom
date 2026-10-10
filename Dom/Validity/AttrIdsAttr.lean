@@ -745,6 +745,17 @@ theorem unique_removeNamedItem {s s' : DOMState} (hu : AttrIdsUnique s)
     · cases h
     · exact unique_removeAttributeNode hu hav h
 
+theorem unique_removeNamedItemNS {s s' : DOMState} (hu : AttrIdsUnique s)
+    (hav : AttributesValid s.tree) {element : NodeId} {ns : Option String}
+    {ln : String} {r : AttrId} (h : removeNamedItemNS s element ns ln = .ok (r, s')) :
+    AttrIdsUnique s' := by
+  unfold removeNamedItemNS at h
+  split at h
+  · cases h
+  · split at h
+    · cases h
+    · exact unique_removeAttributeNode hu hav h
+
 /-! ## 新しい `Attr` を detach された list に足す -/
 
 theorem unique_addDetachedFresh {s : DOMState} (hu : AttrIdsUnique s) (a : Attr)

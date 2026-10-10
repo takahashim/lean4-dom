@@ -367,6 +367,23 @@ def getAttribute (t : Tree) (element : NodeId) (qualifiedName : String) : Option
 def hasAttribute (t : Tree) (element : NodeId) (qualifiedName : String) : Bool :=
   (getAttribute t element qualifiedName).isSome
 
+/-- DOM Standard §4.9 `Element.getAttributeNS(namespace, localName)`。 -/
+def getAttributeNS (t : Tree) (element : NodeId) («namespace» : Option String) (localName : String) :
+    Option String :=
+  match t.get? element with
+  | none => none
+  | some d => (getAttributeByKey d «namespace» localName).map (·.value)
+
+/-- DOM Standard §4.9 `Element.hasAttributeNS(namespace, localName)`。step 1 の「空文字列なら null」は `getAttributeByKey` が行う。 -/
+def hasAttributeNS (t : Tree) (element : NodeId) («namespace» : Option String) (localName : String) : Bool :=
+  (getAttributeNS t element «namespace» localName).isSome
+
+/-- DOM Standard §4.9 `Element.hasAttributes()`。 -/
+def hasAttributes (t : Tree) (element : NodeId) : Bool :=
+  match t.get? element with
+  | none => false
+  | some d => !d.attributes.isEmpty
+
 /-- DOM Standard §4.9 `Element.getAttributeNames()`。attribute list の順である。 -/
 def getAttributeNames (t : Tree) (element : NodeId) : List String :=
   match t.get? element with

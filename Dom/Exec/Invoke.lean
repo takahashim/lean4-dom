@@ -88,6 +88,12 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .setAttributeNode e a => implementsIface s.tree e isElement && (findAttr s ⟨a⟩).isSome
   | .removeAttributeNode e _ => implementsIface s.tree e isElement
   | .removeNamedItem e _ => implementsIface s.tree e isElement
+  | .removeNamedItemNS e _ _ => implementsIface s.tree e isElement
+  | .getAttributeNS e _ _ => implementsIface s.tree e isElement
+  | .hasAttributeNS e _ _ => implementsIface s.tree e isElement
+  | .hasAttributes e => implementsIface s.tree e isElement
+  | .getElementsByTagName n _ => implementsIface s.tree n isDocumentOrElement
+  | .getElementsByTagNameNS n _ _ => implementsIface s.tree n isDocumentOrElement
   | .classListAdd e _ => implementsIface s.tree e isElement
   | .classListRemove e _ => implementsIface s.tree e isElement
   | .classListToggle e _ _ => implementsIface s.tree e isElement
@@ -149,6 +155,9 @@ def requiredArgs : String → Option Nat
   | "cloneNode" | "normalize" | "rangeCollapse" => some 0
   | "getAttribute" | "hasAttribute" | "removeAttribute" | "getAttributeNode" | "toggleAttribute" => some 1
   | "setAttribute" | "removeAttributeNS" | "getAttributeNodeNS" => some 2
+  | "getAttributeNS" | "hasAttributeNS" | "removeNamedItemNS" | "getElementsByTagNameNS" => some 2
+  | "hasAttributes" => some 0
+  | "getElementsByTagName" => some 1
   | "setAttributeNS" => some 3
   | "setAttributeNode" | "removeAttributeNode" => some 1
   | "querySelector" | "querySelectorAll" | "matches" | "closest" => some 1

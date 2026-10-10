@@ -1,0 +1,343 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "getAttributeNS",
+      "hasAttributeNS",
+      "hasAttributes",
+      "getElementsByTagName",
+      "getElementsByTagNameNS",
+      "removeNamedItemNS",
+      "list of elements with qualified name",
+      "list of elements with namespace and local name",
+      "get an attribute by namespace and local name"
+    ],
+    "steps": "各 method",
+    "note": "namespace で attribute を引く method（空文字列の namespace は null、local name で引くので prefix 付きの名前には当たらない）、hasAttributes、tag name で element を引く method（HTML document では HTML namespace の element だけ ASCII lowercase で比べ、他の namespace の element は qualified name をそのまま比べる。XML document ではそのまま。namespace と local name の * は何にでも当たる。受け手自身は含まない）、removeNamedItemNS（無ければ NotFoundError、外した Attr を返す）。無い attribute の removeNamedItemNS は NotFoundError で、scenario はそこで終わる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": "http://example.com/ns",
+          "prefix": "x",
+          "localName": "a",
+          "value": "2"
+        },
+        {
+          "namespace": "http://www.w3.org/XML/1998/namespace",
+          "prefix": "xml",
+          "localName": "lang",
+          "value": "en"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2,
+      "namespace": "http://www.w3.org/2000/svg",
+      "localName": "rect"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "namespace": "http://www.w3.org/2000/svg",
+      "prefix": "svg",
+      "localName": "rect"
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 1,
+      "namespace": "http://www.w3.org/2000/svg",
+      "localName": "div"
+    },
+    {
+      "id": 8,
+      "kind": "document",
+      "isHTMLDocument": false
+    },
+    {
+      "id": 9,
+      "kind": "element",
+      "parent": 8,
+      "ownerDocument": 8,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "localName": "Foo"
+    },
+    {
+      "id": 10,
+      "kind": "element",
+      "parent": 9,
+      "ownerDocument": 8,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "localName": "foo"
+    },
+    {
+      "id": 11,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 12,
+      "kind": "text",
+      "parent": 2,
+      "data": "t"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getAttributeNS",
+      "element": 2,
+      "namespace": null,
+      "name": "a"
+    },
+    {
+      "op": "getAttributeNS",
+      "element": 2,
+      "namespace": "",
+      "name": "a"
+    },
+    {
+      "op": "getAttributeNS",
+      "element": 2,
+      "namespace": "http://example.com/ns",
+      "name": "a"
+    },
+    {
+      "op": "getAttributeNS",
+      "element": 2,
+      "namespace": "http://example.com/ns",
+      "name": "x:a"
+    },
+    {
+      "op": "getAttributeNS",
+      "element": 2,
+      "namespace": "http://www.w3.org/XML/1998/namespace",
+      "name": "lang"
+    },
+    {
+      "op": "getAttributeNS",
+      "element": 2,
+      "namespace": "*",
+      "name": "a"
+    },
+    {
+      "op": "hasAttributeNS",
+      "element": 2,
+      "namespace": "",
+      "name": "a"
+    },
+    {
+      "op": "hasAttributeNS",
+      "element": 2,
+      "namespace": null,
+      "name": "lang"
+    },
+    {
+      "op": "hasAttributeNS",
+      "element": 2,
+      "namespace": "http://example.com/ns",
+      "name": "a"
+    },
+    {
+      "op": "hasAttributes",
+      "element": 2
+    },
+    {
+      "op": "hasAttributes",
+      "element": 11
+    },
+    {
+      "op": "hasAttributes",
+      "element": 1
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 0,
+      "name": "div"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 0,
+      "name": "DIV"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 0,
+      "name": "*"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 1,
+      "name": "rect"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 0,
+      "name": "svg:rect"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 2,
+      "name": "span"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 8,
+      "name": "Foo"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 8,
+      "name": "foo"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 8,
+      "name": "FOO"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 0,
+      "name": "html"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 2,
+      "name": "div"
+    },
+    {
+      "op": "getElementsByTagName",
+      "node": 6,
+      "name": "*"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": "*",
+      "name": "*"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": "*",
+      "name": "rect"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": "http://www.w3.org/2000/svg",
+      "name": "*"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": "http://www.w3.org/2000/svg",
+      "name": "rect"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": "",
+      "name": "div"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": null,
+      "name": "div"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "name": "div"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 0,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "name": "DIV"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 8,
+      "namespace": "*",
+      "name": "Foo"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 8,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "name": "foo"
+    },
+    {
+      "op": "getElementsByTagNameNS",
+      "node": 2,
+      "namespace": "*",
+      "name": "*"
+    },
+    {
+      "op": "removeNamedItemNS",
+      "element": 2,
+      "namespace": "http://example.com/ns",
+      "name": "a"
+    },
+    {
+      "op": "getAttributeNames",
+      "element": 2
+    },
+    {
+      "op": "removeNamedItemNS",
+      "element": 2,
+      "namespace": "",
+      "name": "a"
+    },
+    {
+      "op": "getAttributeNames",
+      "element": 2
+    },
+    {
+      "op": "removeNamedItemNS",
+      "element": 2,
+      "namespace": null,
+      "name": "zzz"
+    }
+  ]
+}

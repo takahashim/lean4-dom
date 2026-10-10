@@ -7,11 +7,11 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 235 |
-| 対象外としたもの | 156 |
-| 表に載せた algorithm の step | 1008 |
-| そのうち実装したもの | 601 |
-| そのうち近似したもの | 211 |
+| 表に載せたもの | 243 |
+| 対象外としたもの | 148 |
+| 表に載せた algorithm の step | 1021 |
+| そのうち実装したもの | 609 |
+| そのうち近似したもの | 216 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -207,6 +207,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-contenttype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-contenttype) | 1/1 | `Dom.NodeData.contentType` |  |
 | [dom-document-doctype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-doctype) | 1/1 | `Dom.doctypeOf` |  |
 | [dom-document-documentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-documentelement) | 1/1 | `Dom.documentElement` |  |
+| [dom-document-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` |  |
+| [dom-document-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` |  |
 | [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` |  |
 | [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
 | [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` |  |
@@ -252,14 +254,17 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-element-tagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-tagname) | 1/1 | `Dom.tagName` |  |
 | [concept-reflect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-reflect) | 1/1 | `Dom.getReflected`<br>`Dom.getReflectedProp`<br>`Dom.setReflectedProp` |  |
 | [dom-element-classlist](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-classlist) | 0/1（近似 1） | `Dom.classTokenSet`<br>`Dom.classListContains`<br>`Dom.classListAdd` |  |
+| [dom-element-hasattributes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-hasattributes) | 1/1 | `Dom.hasAttributes` |  |
 | [dom-element-getattributenames](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributenames) | 1/1 | `Dom.getAttributeNames` |  |
 | [dom-element-getattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattribute) | 3/3 | `Dom.getAttribute`<br>`Dom.getAttributeByName` |  |
+| [dom-element-getattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributens) | 3/3 | `Dom.getAttributeNS`<br>`Dom.getAttributeByKey` |  |
 | [dom-element-setattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-setattribute) | 6/7 | `Dom.setAttribute`<br>`Dom.attrNameFor`<br>`Dom.isValidAttributeLocalName` | `Dom.Spec.SetAttributeResult` |
 | [dom-element-setattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-setattributens) | 2/3 | `Dom.setAttributeNS`<br>`Dom.validateAndExtractAttribute`<br>`Dom.setAttributeValue` | `Dom.Spec.SetAttributeValueResult` |
 | [dom-element-removeattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-removeattribute) | 1/1 | `Dom.removeAttribute` | `Dom.Spec.RemoveAttributeResult` |
 | [dom-element-removeattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-removeattributens) | 1/1 | `Dom.removeAttributeNS` | `Dom.Spec.RemoveAttributeNSResult` |
 | [dom-element-hasattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-hasattribute) | 2/2 | `Dom.hasAttribute`<br>`Dom.getAttributeByName` |  |
 | [dom-element-toggleattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-toggleattribute) | 8/8 | `Dom.toggleAttribute` | `Dom.Spec.ToggleAttributeResult` |
+| [dom-element-hasattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-hasattributens) | 2/2 | `Dom.hasAttributeNS`<br>`Dom.getAttributeByKey` |  |
 | [dom-element-getattributenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributenode) | 1/1 | `Dom.getAttributeNode` |  |
 | [dom-element-getattributenodens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributenodens) | 1/1 | `Dom.getAttributeNodeNS` |  |
 | [dom-element-setattributenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-setattributenode) | 1/1 | `Dom.setAttributeNode` | `Dom.Spec.SetAttributeNodeResult` |
@@ -267,6 +272,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-element-closest](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-closest) | 3/5（近似 2） | `Dom.closest`<br>`Dom.inclusiveAncestorElements` |  |
 | [dom-element-matches](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-matches) | 1/3（近似 2） | `Dom.matchesSelector` |  |
 | [dom-element-webkitmatchesselector](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-webkitmatchesselector) | 1/3（近似 2） | `Dom.matchesSelector` |  |
+| [dom-element-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` |  |
+| [dom-element-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` |  |
 | [dom-element-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.elementClassesOf` |  |
 
 ### §4.9.1（`interface-namednodemap`）
@@ -278,6 +285,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-namednodemap-setnameditem](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-setnameditem) | 0/1（近似 1） | `Dom.setAttributeNode` |  |
 | [dom-namednodemap-setnameditemns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-setnameditemns) | 0/1（近似 1） | `Dom.setAttributeNode` |  |
 | [dom-namednodemap-removenameditem](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-removenameditem) | 3/3 | `Dom.removeNamedItem`<br>`Dom.removeAttributeNode` | `Dom.Spec.RemoveNamedItemResult` |
+| [dom-namednodemap-removenameditemns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-removenameditemns) | 2/3（近似 1） | `Dom.removeNamedItemNS`<br>`Dom.getAttributeByKey`<br>`Dom.removeAttributeNode` |  |
 
 ### §4.9.2（`interface-attr`）
 
@@ -555,6 +563,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-node-normalize | 7 | 兄弟ごとに step 6 の直後に remove する（上と同じ） |
 | clone-a-single-node | 2.4 | create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い） |
 | clone-a-single-node | 5.1 | Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い |
+| dom-document-getelementsbytagname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
+| dom-document-getelementsbytagnamens | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-document-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |
 | internal-createelementns-steps | 3 | create an element を呼ばず、`NodeData` を直に作る（is・registry は無い） |
@@ -578,11 +588,14 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-element-closest | 1-2 | parse a selector は model の Selectors の部分集合（`Dom/Selector/`） |
 | dom-element-matches | 1-2 | parse a selector は model の Selectors の部分集合（`Dom/Selector/`） |
 | dom-element-webkitmatchesselector | 1-2 | parse a selector は model の Selectors の部分集合（`Dom/Selector/`） |
+| dom-element-getelementsbytagname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
+| dom-element-getelementsbytagnamens | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-element-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-namednodemap-getnameditem | * | NamedNodeMap object を持たない。同じ algorithm（get an attribute by name）を呼ぶ getAttributeNode で計算する |
 | dom-namednodemap-getnameditemns | * | NamedNodeMap object を持たない。同じ algorithm を呼ぶ getAttributeNodeNS で計算する |
 | dom-namednodemap-setnameditem | * | NamedNodeMap object を持たない。同じ algorithm（set an attribute）を呼ぶ setAttributeNode で計算する |
 | dom-namednodemap-setnameditemns | * | NamedNodeMap object を持たない。同じ algorithm（set an attribute）を呼ぶ setAttributeNode で計算する |
+| dom-namednodemap-removenameditemns | 1 | remove an attribute by namespace and local name を、get してから `removeAttributeNode` で外す形に書く |
 | create-an-attribute | 1 | node tree には入れず、detachedAttrs に足す。id は freshStateAttrId |
 | concept-cd-replace | 5-7 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
 | concept-cd-substring | 3-4 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
@@ -661,19 +674,11 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：extract が未実装 | dom-range-extractcontents |
 | todo：extract に依存するので未実装 | dom-range-surroundcontents |
 | todo：extract（DocumentFragment への移し替えと部分 clone）が未実装 | concept-range-extract |
-| todo：getAttributeNS() の関数が無い（getAttributeByKey はあるが null と value を返す method が無い） | dom-element-getattributens |
 | todo：harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない） | dom-node-issamenode |
-| todo：hasAttributeNS() の関数が無い | dom-element-hasattributens |
-| todo：hasAttributes() の関数と harness の op が無い | dom-element-hasattributes |
 | todo：insert adjacent が無い | dom-element-insertadjacentelement, dom-element-insertadjacenttext, insert-adjacent |
 | todo：item() が無い | dom-domtokenlist-item |
 | todo：length の getter が無い（token set は classTokenSet で読めるが API が無い） | dom-domtokenlist-length |
-| todo：list of elements with namespace and local name が無い | dom-document-getelementsbytagnamens |
-| todo：list of elements with namespace and local name（getElementsByTagNameNS）が無い | dom-element-getelementsbytagnamens |
-| todo：list of elements with qualified name が無い | dom-document-getelementsbytagname |
-| todo：list of elements with qualified name（getElementsByTagName）が無い | dom-element-getelementsbytagname |
 | todo：node 以外の EventTarget を作れない（listener の target は NodeId） | dom-eventtarget-eventtarget |
-| todo：removeNamedItemNS() の関数が無い（removeAttributeNS は NotFoundError も `Attr` を返すことも無い） | dom-namednodemap-removenameditemns |
 | todo：returnValue の setter が無い（ListenerAction に無い） | dom-event-returnvalue/setter |
 | todo：set text content が無い（同上） | dom-node-textcontent/setter |
 | todo：split a Text node が無い（docs/status.md の未着手。固定 scenario でも skip） | concept-text-split |
