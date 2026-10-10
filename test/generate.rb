@@ -41,6 +41,7 @@ module Generate
            setAttribute setAttributeNS removeAttribute removeAttributeNS
            toggleAttribute
            createElement createElementNS createTextNode createComment
+           createProcessingInstruction createCDATASection
            createDocumentFragment cloneNode importNode adoptNode
            createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
            setAttributeNode removeAttributeNode removeNamedItem
@@ -93,6 +94,7 @@ module Generate
 
   # 受け手が Document である操作（§4.5）。
   DOCUMENT_OPS = %w[createElement createElementNS createTextNode createComment
+                    createProcessingInstruction createCDATASection
                     createDocumentFragment importNode adoptNode
                     createAttribute createAttributeNS].freeze
 
@@ -120,7 +122,11 @@ module Generate
   # `adoptNode` は node を作らないので入らない。`cloneNode` は受け手が Document とは
   # 限らないので `DOCUMENT_OPS` には入らない。
   CREATE_OPS = %w[createElement createElementNS createTextNode createComment
+                  createProcessingInstruction createCDATASection
                   createDocumentFragment cloneNode importNode].freeze
+  # `createProcessingInstruction` の target。Name production に当たるものと当たらないもの。
+  PI_TARGETS = %w[pi xml-stylesheet a:b x.y_z].freeze
+  BAD_PI_TARGETS = ["", "1x", "a b", "-a", "a>b"].freeze
 
   # 仕様上どの interface がどの操作を持つか。
   #   Node        すべての node
@@ -240,6 +246,10 @@ module Generate
     when "createElementNS", "createAttributeNS"
       BAD_NS_NAMES.include?([op["namespace"], op["name"]])
     when "importNode" then kinds[op["node"]] == "document"
+    when "createProcessingInstruction"
+      BAD_PI_TARGETS.include?(op["target"]) || op["data"].to_s.include?("?>")
+    # 生成器の document は HTML document なので、CDATASection は作れない。
+    when "createCDATASection" then true
     else false
     end
   end
@@ -726,6 +736,12 @@ module Generate
       end
     when "createTextNode", "createComment"
       { "op" => op, "document" => doc, "data" => ["x", "yz", ASTRAL][rng.rand(3)] }
+    when "createProcessingInstruction"
+      targets = rng.rand < INVALID_NAME_PROB ? BAD_PI_TARGETS : PI_TARGETS
+      { "op" => op, "document" => doc, "target" => targets.sample(random: rng),
+        "data" => ["x", "a?>b", "y=z", ASTRAL].sample(random: rng) }
+    when "createCDATASection"
+      { "op" => op, "document" => doc, "data" => ["x", "a]]>b", ASTRAL].sample(random: rng) }
     when "createDocumentFragment"
       { "op" => op, "document" => doc }
     when "importNode"
@@ -865,6 +881,8 @@ module Generate
     when "createElement", "createElementNS" then "element"
     when "createTextNode" then "text"
     when "createComment" then "comment"
+    when "createProcessingInstruction" then "processingInstruction"
+    when "createCDATASection" then "cdataSection"
     when "createDocumentFragment" then "documentFragment"
     else kinds[op["node"]]
     end

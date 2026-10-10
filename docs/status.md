@@ -6666,6 +6666,22 @@ Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、こ
 **findings 69：Dommy も、`splitText` の characterData の record を childList の record より先に積む。** ブラウザと同じ
 順で、本文の順ではない。
 
+## `createProcessingInstruction` と `createCDATASection` を足した
+
+未着手に挙げていた二つの method を実行関数にした（`Dom/Mutation/Create.lean`）。
+
+* `createProcessingInstruction` は target を XML §2.3 の Name production（`matchesName`。NameStartChar と NameChar を
+  code point の範囲で書いた）で検査し、data が "?>" を含めば InvalidCharacterError を投げ、target と data と node document
+  を持つ ProcessingInstruction を作る。
+* `createCDATASection` は HTML document なら NotSupportedError、data が "]]>" を含めば InvalidCharacterError で、
+  XML document に CDATASection を作る。
+* 妥当性は `createTextNode` と同じ形（`CreatesNode` から `admissible_createsNode`）。
+* 固定 scenario を四本足した（XML document での作成と HTML document の NotSupportedError、不正な target、"?>"、"]]>"）。
+  生成器は `createProcessingInstruction` を出し（不正な target と "?>" は失敗する形として避ける）、
+  `createCDATASection` は生成器の document が HTML document なので失敗する形として避ける。
+
+六つの実装すべてが、四本の scenario のすべての step で model と一致した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
@@ -6676,6 +6692,4 @@ Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、こ
   MutationObserver と違って既存の定理の多くに影響する。
 * `Attr` を target にした event の配送と、`insertBefore` などの child 側に `Attr` を渡す形
   （§「`Attr` を `Node` として扱う」）。
-* `createProcessingInstruction` と `createCDATASection`。前者の target は Name production を
-  参照しており、model はその production を持たない。
 * style attribute と CSS の宣言（CSSOM の `CSSStyleDeclaration`）。DOM の木の上の仕様ではない。

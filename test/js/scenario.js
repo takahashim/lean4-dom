@@ -83,6 +83,7 @@ const OP_METHOD = {
   removeEventListener: "removeEventListener", normalize: "normalize",
   createElement: "createElement", createElementNS: "createElementNS",
   createTextNode: "createTextNode", createComment: "createComment",
+  createProcessingInstruction: "createProcessingInstruction", createCDATASection: "createCDATASection",
   createDocumentFragment: "createDocumentFragment", cloneNode: "cloneNode",
   importNode: "importNode", adoptNode: "adoptNode",
   createAttribute: "createAttribute", createAttributeNS: "createAttributeNS",
@@ -98,6 +99,7 @@ const ATTR_NODE_OPS = ["createAttribute", "createAttributeNS", "getAttributeNode
 
 // node を作る操作。受け手は Document である（cloneNode を除く）。
 const CREATE_OPS = ["createElement", "createElementNS", "createTextNode", "createComment",
+  "createProcessingInstruction", "createCDATASection",
   "createDocumentFragment", "importNode", "adoptNode"];
 
 // nodeType から scenario の kind 名へ。作った node に kind を付けるのに使う。
@@ -879,6 +881,8 @@ const ARGC_CALLS = {
   createElementNS: ["document", "createElementNS", ["namespace", "name"]],
   createTextNode: ["document", "createTextNode", ["data"]],
   createComment: ["document", "createComment", ["data"]],
+  createProcessingInstruction: ["document", "createProcessingInstruction", ["target", "data"]],
+  createCDATASection: ["document", "createCDATASection", ["data"]],
   createAttribute: ["document", "createAttribute", ["name"]],
   createAttributeNS: ["document", "createAttributeNS", ["namespace", "name"]],
   importNode: ["document", "importNode", ["node"]],
@@ -997,6 +1001,7 @@ function apply(ctx, op) {
     }
     case "createElement": case "createElementNS": case "createTextNode":
     case "createComment": case "createDocumentFragment":
+    case "createProcessingInstruction": case "createCDATASection":
     case "importNode": case "adoptNode": {
       const doc = need(objects.get(op.document), "missing node");
       if (typeof doc[OP_METHOD[op.op]] !== "function") throw new Unsupported(op.op);
@@ -1015,6 +1020,10 @@ function apply(ctx, op) {
           break;
         case "createTextNode": made = doc.createTextNode(arg(op, "data")); break;
         case "createComment": made = doc.createComment(arg(op, "data")); break;
+        case "createProcessingInstruction":
+          made = doc.createProcessingInstruction(arg(op, "target"), arg(op, "data"));
+          break;
+        case "createCDATASection": made = doc.createCDATASection(arg(op, "data")); break;
         case "createDocumentFragment": made = doc.createDocumentFragment(); break;
         case "importNode": made = doc.importNode(src, importOptions(op)); break;
         default: made = doc.adoptNode(src); break;

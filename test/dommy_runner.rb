@@ -61,6 +61,8 @@ module DommyRunner
     "createElementNS" => :create_element_ns,
     "createTextNode" => :create_text_node,
     "createComment" => :create_comment,
+    "createProcessingInstruction" => :create_processing_instruction,
+    "createCDATASection" => :create_cdata_section,
     "createDocumentFragment" => :create_document_fragment,
     "cloneNode" => :clone_node,
     "importNode" => :import_node,
@@ -81,6 +83,7 @@ module DommyRunner
 
   # node を作る操作。受け手は Document である（cloneNode を除く）。
   CREATE_OPS = %w[createElement createElementNS createTextNode createComment
+                  createProcessingInstruction createCDATASection
                   createDocumentFragment importNode adoptNode].freeze
 
   # nodeType から scenario の kind 名へ。作った node に kind を付けるのに使う。
@@ -360,6 +363,7 @@ module DommyRunner
                           walkerPreviousSibling walkerNextSibling
                           walkerPreviousNode walkerNextNode
                           createElement createElementNS createTextNode createComment
+                          createProcessingInstruction createCDATASection
                           createDocumentFragment cloneNode importNode adoptNode
                           querySelector closest getElementById].freeze
 
@@ -1249,6 +1253,9 @@ module DommyRunner
         when "createElementNS" then doc.create_element_ns(op["namespace"], op["name"].to_s)
         when "createTextNode" then doc.create_text_node(op["data"].to_s)
         when "createComment" then doc.create_comment(op["data"].to_s)
+        when "createProcessingInstruction"
+          doc.create_processing_instruction(op["target"].to_s, op["data"].to_s)
+        when "createCDATASection" then doc.create_cdata_section(op["data"].to_s)
         when "createDocumentFragment" then doc.create_document_fragment
         when "importNode" then doc.import_node(src, op["deep"] ? true : false)
         when "adoptNode" then doc.adopt_node(src)

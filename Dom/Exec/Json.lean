@@ -489,6 +489,11 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .createTextNode (← natField j "document") (← domStrField j "data" "")
   | "createComment" =>
     return .createComment (← natField j "document") (← domStrField j "data" "")
+  | "createProcessingInstruction" =>
+    return .createProcessingInstruction (← natField j "document") (← domStrField j "target" "")
+      (← domStrField j "data" "")
+  | "createCDATASection" =>
+    return .createCDATASection (← natField j "document") (← domStrField j "data" "")
   | "createDocumentFragment" => return .createDocumentFragment (← natField j "document")
   | "cloneNode" =>
     match ← refField j "node" with

@@ -52,6 +52,12 @@ def entries : List Entry := [
     impl := [``Dom.createTextNode] },
   { alg := "dom-document-createcomment"
     impl := [``Dom.createComment] },
+  { alg := "dom-document-createprocessinginstruction"
+    impl := [``Dom.createProcessingInstruction, ``Dom.matchesName, ``Dom.isNameStartChar,
+             ``Dom.isNameChar, ``Dom.containsSubstr] },
+  { alg := "dom-document-createcdatasection"
+    impl := [``Dom.createCDATASection, ``Dom.containsSubstr]
+    approx := [("3-4", "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）")] },
   { alg := "dom-document-importnode"
     impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn, ``Dom.Exec.idlCheck,
              ``Dom.importNodeSubtree, ``Dom.Idl.toImportNodeOptions]
@@ -91,9 +97,6 @@ def exclusions : List Exclusion := [
   { target := "dom-document-charset", reason := .todo "document の encoding を持たない" },
   { target := "dom-document-inputencoding", reason := .todo "document の encoding を持たない" },
   { target := "flatten-element-creation-options", reason := .customElements },
-  { target := "dom-document-createcdatasection", reason := .todo "createCDATASection が無い（`Dom/Mutation/Create.lean` の注）" },
-  { target := "dom-document-createprocessinginstruction",
-    reason := .todo "createProcessingInstruction が無い。target の Name production と ProcessingInstruction の target を model が持たない" },
   { target := "concept-node-adopt-ext", reason := .hook },
   { target := "dom-document-createevent",
     reason := .todo "Event object を作る API が無い（`dispatchEvent` が型・bubbles・cancelable から event を組む）。step 7 の timeStamp は host" },

@@ -395,6 +395,47 @@ theorem admissible_createTextNode {s s' : DOMState} {doc n : NodeId} {data : Str
     AdmissibleDOMState s' :=
   admissible_createsNode hv (createTextNode_creates h)
 
+theorem createProcessingInstruction_creates {s s' : DOMState} {doc n : NodeId}
+    {target data : String} (h : createProcessingInstruction s doc target data = .ok (n, s')) :
+    CreatesNode s n s' { kind := .processingInstruction, ownerDocument := doc, data := data,
+                         piTarget := target } := by
+  unfold createProcessingInstruction at h
+  split at h
+  · simp at h
+  · next dd hreq =>
+    obtain ⟨hdd, hk⟩ := requireDocument_ok hreq
+    split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · exact creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
+          Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)
+
+theorem createCDATASection_creates {s s' : DOMState} {doc n : NodeId} {data : String}
+    (h : createCDATASection s doc data = .ok (n, s')) :
+    CreatesNode s n s' { kind := .cdataSection, ownerDocument := doc, data := data } := by
+  unfold createCDATASection at h
+  split at h
+  · simp at h
+  · next dd hreq =>
+    obtain ⟨hdd, hk⟩ := requireDocument_ok hreq
+    split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · exact creates_of_withFresh ⟨rfl, rfl, fun _ => rfl, by simp, by simp,
+          Or.inr ⟨by simp, dd, hdd, hk⟩⟩ (Except.ok.inj h)
+
+theorem admissible_createProcessingInstruction {s s' : DOMState} {doc n : NodeId}
+    {target data : String} (hv : AdmissibleDOMState s)
+    (h : createProcessingInstruction s doc target data = .ok (n, s')) : AdmissibleDOMState s' :=
+  admissible_createsNode hv (createProcessingInstruction_creates h)
+
+theorem admissible_createCDATASection {s s' : DOMState} {doc n : NodeId} {data : String}
+    (hv : AdmissibleDOMState s) (h : createCDATASection s doc data = .ok (n, s')) :
+    AdmissibleDOMState s' :=
+  admissible_createsNode hv (createCDATASection_creates h)
+
 theorem admissible_createComment {s s' : DOMState} {doc n : NodeId} {data : String}
     (hv : AdmissibleDOMState s) (h : createComment s doc data = .ok (n, s')) :
     AdmissibleDOMState s' :=

@@ -1,0 +1,34 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "createCDATASection"
+    ],
+    "steps": "createProcessingInstruction / createCDATASection",
+    "note": "XML document でも data が \"]]>\" を含めば InvalidCharacterError。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "document",
+      "isHTMLDocument": false
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createCDATASection",
+      "document": 1,
+      "data": "a]]>b"
+    }
+  ]
+}

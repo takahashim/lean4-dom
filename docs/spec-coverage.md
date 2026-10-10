@@ -7,11 +7,11 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 253 |
-| 対象外としたもの | 138 |
-| 表に載せた algorithm の step | 1047 |
-| そのうち実装したもの | 627 |
-| そのうち近似したもの | 224 |
+| 表に載せたもの | 255 |
+| 対象外としたもの | 136 |
+| 表に載せた algorithm の step | 1053 |
+| そのうち実装したもの | 631 |
+| そのうち近似したもの | 226 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -218,7 +218,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck`<br>`Dom.Idl.elementCreationOptionsOk` |  |
 | [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` |  |
 | [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` |  |
+| [dom-document-createcdatasection](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcdatasection) | 3/5（近似 2） | `Dom.createCDATASection`<br>`Dom.containsSubstr` |  |
 | [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcomment) | 1/1 | `Dom.createComment` |  |
+| [dom-document-createprocessinginstruction](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createprocessinginstruction) | 1/1 | `Dom.createProcessingInstruction`<br>`Dom.matchesName`<br>`Dom.isNameStartChar`<br>`Dom.isNameChar`<br>`Dom.containsSubstr` |  |
 | [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-importnode) | 4/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn`<br>`Dom.Exec.idlCheck`<br>`Dom.importNodeSubtree`<br>`Dom.Idl.toImportNodeOptions` |  |
 | [concept-node-adopt](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-adopt) | 2/14（近似 4） | `Dom.adopt`<br>`Dom.setOwnerDocument`<br>`Dom.NodeData.withOwnerDocument`<br>`Dom.adoptAttr` | `Dom.Spec.AdoptSpec` |
 | [dom-document-adoptnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-adoptnode) | 3/4 | `Dom.adoptNode`<br>`Dom.adoptAttr`<br>`Dom.Exec.idlCheck` |  |
@@ -580,6 +582,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |
 | internal-createelementns-steps | 3 | create an element を呼ばず、`NodeData` を直に作る（is・registry は無い） |
 | dom-document-createelementns | * | options は WebIDL の変換だけを行い（`customElementRegistry` を持つ dictionary は TypeError）、is と registry は使わない |
+| dom-document-createcdatasection | 3-4 | data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う） |
 | dom-document-importnode | 1 | Document だけを弾く。shadow root は model に無いので検査しない |
 | dom-document-importnode | 7 | fallbackRegistry を渡さない（custom element registry が無い） |
 | concept-node-adopt | 3 | shadow-including inclusive descendant ではなく inclusive descendant をたどる（shadow tree が無いので同じ集合） |
@@ -666,7 +669,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：NamedNodeMap object（element の attributes getter）を持たない | dom-element-attributes |
 | todo：NamedNodeMap の named property が無い | interface-namednodemap/supported-property-names |
 | todo：NodeIterator を作る API が無い（iterator は scenario が与える） | dom-document-createnodeiterator |
-| todo：ProcessingInstruction の target は持ち `getProperty` で読める（`piTarget`）が、attribute map と createProcessingInstruction が無い（XML Name production も無い） | create-a-processing-instruction-node, dom-processinginstruction-getattribute, dom-processinginstruction-getattributenames, dom-processinginstruction-hasattribute, dom-processinginstruction-hasattributes, dom-processinginstruction-processinginstruction, dom-processinginstruction-removeattribute, dom-processinginstruction-setattribute, dom-processinginstruction-target, dom-processinginstruction-toggleattribute, get-a-processing-instruction-attribute, processinginstruction-initialize, update-attributes-from-data, update-data-from-attributes |
+| todo：ProcessingInstruction の target は持ち `getProperty` で読め、`createProcessingInstruction` もあるが、attribute map（§4.11 の `setAttribute` ほか）が無い | create-a-processing-instruction-node, dom-processinginstruction-getattribute, dom-processinginstruction-getattributenames, dom-processinginstruction-hasattribute, dom-processinginstruction-hasattributes, dom-processinginstruction-processinginstruction, dom-processinginstruction-removeattribute, dom-processinginstruction-setattribute, dom-processinginstruction-target, dom-processinginstruction-toggleattribute, get-a-processing-instruction-attribute, processinginstruction-initialize, update-attributes-from-data, update-data-from-attributes |
 | todo：Range object を作る API が無い（range は scenario が与える。`Dom/Range/Api.lean` の注） | dom-document-createrange |
 | todo：Range object を新しく作る操作が model に無い（range は初期状態で与える） | dom-range-clonerange |
 | todo：StaticRange が model に無い | dom-staticrange-staticrange, staticrange-valid |
@@ -678,8 +681,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：common ancestor を求める定義が無い（使う extract・clone the contents が未実装） | get-the-common-ancestor |
 | todo：commonAncestorContainer getter が無い | dom-range-commonancestorcontainer |
 | todo：composedPath() が無い（shadow tree が無いので event path を逆順に invocation target を並べたものになるはずだが、実行関数が無い） | dom-event-composedpath |
-| todo：createCDATASection が無い（`Dom/Mutation/Create.lean` の注） | dom-document-createcdatasection |
-| todo：createProcessingInstruction が無い。target の Name production と ProcessingInstruction の target を model が持たない | dom-document-createprocessinginstruction |
 | todo：currentNode を設定する操作が harness に無い（初期状態の current だけを与えられる） | dom-treewalker-currentnode/setter |
 | todo：document の URL を持たない | dom-document-documenturi, dom-document-url |
 | todo：document の URL（document base URL）を持たない | dom-node-baseuri |

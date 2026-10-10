@@ -265,6 +265,8 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `deleteData` | `node`, `offset`, `count` |
 | `setData` | `node`, `data` |
 | `splitText` | `node`, `offset` |
+| `createProcessingInstruction` | `document`, `target`, `data` |
+| `createCDATASection` | `document`, `data` |
 | `insertAdjacentElement` | `element`, `where`, `node` |
 | `insertAdjacentText` | `element`, `where`, `data` |
 | `setTextContent` / `setNodeValue` | `node`（`{"attr": id}` 可）, `value`（null 可。null は空文字列） |

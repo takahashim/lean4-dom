@@ -1144,6 +1144,30 @@ theorem unique_createTextNode {s s' : DOMState} (hu : AttrIdsUnique s) {doc : No
   · cases h
   · cases h; exact unique_withFresh_empty hu _ rfl
 
+theorem unique_createProcessingInstruction {s s' : DOMState} (hu : AttrIdsUnique s) {doc : NodeId}
+    {target data : String} {n : NodeId}
+    (h : createProcessingInstruction s doc target data = .ok (n, s')) : AttrIdsUnique s' := by
+  unfold createProcessingInstruction at h
+  split at h
+  · cases h
+  · split at h
+    · cases h
+    · split at h
+      · cases h
+      · cases h; exact unique_withFresh_empty hu _ rfl
+
+theorem unique_createCDATASection {s s' : DOMState} (hu : AttrIdsUnique s) {doc : NodeId}
+    {data : String} {n : NodeId} (h : createCDATASection s doc data = .ok (n, s')) :
+    AttrIdsUnique s' := by
+  unfold createCDATASection at h
+  split at h
+  · cases h
+  · split at h
+    · cases h
+    · split at h
+      · cases h
+      · cases h; exact unique_withFresh_empty hu _ rfl
+
 theorem unique_createComment {s s' : DOMState} (hu : AttrIdsUnique s) {doc : NodeId}
     {data : String} {n : NodeId} (h : createComment s doc data = .ok (n, s')) : AttrIdsUnique s' := by
   unfold createComment at h

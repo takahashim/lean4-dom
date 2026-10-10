@@ -116,6 +116,8 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .createElementNS d _ _ => implementsIface s.tree d isDocument
   | .createTextNode d _ => implementsIface s.tree d isDocument
   | .createComment d _ => implementsIface s.tree d isDocument
+  | .createProcessingInstruction d _ _ => implementsIface s.tree d isDocument
+  | .createCDATASection d _ => implementsIface s.tree d isDocument
   | .createDocumentFragment d => implementsIface s.tree d isDocument
   -- options の `(boolean or ImportNodeOptions)` への変換（`customElementRegistry` があれば TypeError）
   | .importNode d _ o => implementsIface s.tree d isDocument && (Idl.toImportNodeOptions o).isSome
@@ -154,7 +156,9 @@ def requiredArgs : String → Option Nat
   | "replaceData" => some 3
   | "insertData" | "deleteData" | "substringData" => some 2
   | "appendData" => some 1
-  | "createElement" | "createTextNode" | "createComment" | "createAttribute" => some 1
+  | "createElement" | "createTextNode" | "createComment" | "createAttribute"
+  | "createCDATASection" => some 1
+  | "createProcessingInstruction" => some 2
   | "createElementNS" | "createAttributeNS" => some 2
   | "cloneNode" | "normalize" | "rangeCollapse" => some 0
   | "getAttribute" | "hasAttribute" | "removeAttribute" | "getAttributeNode" | "toggleAttribute" => some 1

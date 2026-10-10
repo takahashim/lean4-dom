@@ -122,6 +122,12 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | createTextNode doc d =>
     obtain ⟨n, hr⟩ := dropNode_ok hop
     exact admissible_createTextNode h hr
+  | createProcessingInstruction doc t d =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop
+    exact admissible_createProcessingInstruction h hr
+  | createCDATASection doc d =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop
+    exact admissible_createCDATASection h hr
   | createComment doc d =>
     obtain ⟨n, hr⟩ := dropNode_ok hop
     exact admissible_createComment h hr

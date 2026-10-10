@@ -87,6 +87,10 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
     obtain ⟨n, hr⟩ := dropNode_ok hop; exact unique_createElementNS hu hr
   | createTextNode doc d =>
     obtain ⟨n, hr⟩ := dropNode_ok hop; exact unique_createTextNode hu hr
+  | createProcessingInstruction doc t d =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop; exact unique_createProcessingInstruction hu hr
+  | createCDATASection doc d =>
+    obtain ⟨n, hr⟩ := dropNode_ok hop; exact unique_createCDATASection hu hr
   | createComment doc d =>
     obtain ⟨n, hr⟩ := dropNode_ok hop; exact unique_createComment hu hr
   | createDocumentFragment doc =>

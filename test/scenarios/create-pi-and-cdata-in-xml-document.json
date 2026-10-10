@@ -1,0 +1,97 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "createProcessingInstruction",
+      "createCDATASection"
+    ],
+    "steps": "createProcessingInstruction / createCDATASection",
+    "note": "createProcessingInstruction は target が Name production に当たり data が \"?>\" を含まなければ、HTML document でも XML document でも ProcessingInstruction を作る。createCDATASection は XML document では CDATASection を作り、HTML document では NotSupportedError で、scenario はそこで終わる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "document",
+      "isHTMLDocument": false
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createProcessingInstruction",
+      "document": 1,
+      "target": "pi",
+      "data": "x"
+    },
+    {
+      "op": "createProcessingInstruction",
+      "document": 0,
+      "target": "xml-stylesheet",
+      "data": "href=a"
+    },
+    {
+      "op": "createCDATASection",
+      "document": 1,
+      "data": "cd"
+    },
+    {
+      "op": "createProcessingInstruction",
+      "document": 1,
+      "target": "A:b.c-d_e",
+      "data": ""
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "wholeText"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "target"
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": 3
+    },
+    {
+      "op": "createCDATASection",
+      "document": 0,
+      "data": "x"
+    }
+  ]
+}

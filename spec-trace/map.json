@@ -2273,6 +2273,40 @@
       "approx": []
     },
     {
+      "alg": "dom-document-createprocessinginstruction",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createProcessingInstruction",
+        "Dom.matchesName",
+        "Dom.isNameStartChar",
+        "Dom.isNameChar",
+        "Dom.containsSubstr"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-createcdatasection",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createCDATASection",
+        "Dom.containsSubstr"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3-4",
+          "what": "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）"
+        }
+      ]
+    },
+    {
       "alg": "dom-document-importnode",
       "steps": [
         "*"
@@ -5003,20 +5037,6 @@
       }
     },
     {
-      "target": "dom-document-createcdatasection",
-      "why": {
-        "reason": "todo",
-        "detail": "createCDATASection が無い（`Dom/Mutation/Create.lean` の注）"
-      }
-    },
-    {
-      "target": "dom-document-createprocessinginstruction",
-      "why": {
-        "reason": "todo",
-        "detail": "createProcessingInstruction が無い。target の Name production と ProcessingInstruction の target を model が持たない"
-      }
-    },
-    {
       "target": "concept-node-adopt-ext",
       "why": {
         "reason": "hook",
@@ -5174,7 +5194,7 @@
       "target": "interface-processinginstruction",
       "why": {
         "reason": "todo",
-        "detail": "ProcessingInstruction の target は持ち `getProperty` で読める（`piTarget`）が、attribute map と createProcessingInstruction が無い（XML Name production も無い）"
+        "detail": "ProcessingInstruction の target は持ち `getProperty` で読め、`createProcessingInstruction` もあるが、attribute map（§4.11 の `setAttribute` ほか）が無い"
       }
     },
     {

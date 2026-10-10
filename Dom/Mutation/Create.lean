@@ -17,8 +17,7 @@ WebIDL の受け手検査に当たるものをここで行う
 （attribute の method が Element を要求するのと同じ扱い。
 `docs/threats-to-validity.md` の「WebIDL の TypeError」を参照）。
 
-`createProcessingInstruction` と `createCDATASection` はまだ無い。前者の target は
-仕様が Name production を参照しており、model はその production を持たない。
+`createProcessingInstruction` の target は XML の Name production（`matchesName`）で検査する。
 -/
 
 namespace Dom
@@ -66,6 +65,58 @@ def createComment (s : DOMState) (doc : NodeId) (data : String) :
   match requireDocument s.tree doc with
   | .error e => .error e
   | .ok _ => .ok (withFresh s { kind := .comment, ownerDocument := doc, data := data })
+
+/-- XML §2.3 の NameStartChar。 -/
+def isNameStartChar (c : Char) : Bool :=
+  let v := c.val
+  c == ':' || ('A' ≤ c && c ≤ 'Z') || c == '_' || ('a' ≤ c && c ≤ 'z') ||
+    (0xC0 ≤ v && v ≤ 0xD6) || (0xD8 ≤ v && v ≤ 0xF6) || (0xF8 ≤ v && v ≤ 0x2FF) ||
+    (0x370 ≤ v && v ≤ 0x37D) || (0x37F ≤ v && v ≤ 0x1FFF) || (0x200C ≤ v && v ≤ 0x200D) ||
+    (0x2070 ≤ v && v ≤ 0x218F) || (0x2C00 ≤ v && v ≤ 0x2FEF) || (0x3001 ≤ v && v ≤ 0xD7FF) ||
+    (0xF900 ≤ v && v ≤ 0xFDCF) || (0xFDF0 ≤ v && v ≤ 0xFFFD) || (0x10000 ≤ v && v ≤ 0xEFFFF)
+
+/-- XML §2.3 の NameChar。 -/
+def isNameChar (c : Char) : Bool :=
+  let v := c.val
+  isNameStartChar c || c == '-' || c == '.' || ('0' ≤ c && c ≤ '9') || v == 0xB7 ||
+    (0x300 ≤ v && v ≤ 0x36F) || (0x203F ≤ v && v ≤ 0x2040)
+
+/-- XML §2.3 の Name production に当たる。 -/
+def matchesName (s : String) : Bool :=
+  match s.toList with
+  | [] => false
+  | c :: rest => isNameStartChar c && rest.all isNameChar
+
+/-- `data` が部分文字列 `sub` を含む。 -/
+def containsSubstr (data sub : String) : Bool :=
+  (data.splitOn sub).length != 1
+
+/--
+DOM Standard §4.5 `createProcessingInstruction(target, data)`。target は Name production に当たらなければ、
+data は "?>" を含めば InvalidCharacterError。
+-/
+def createProcessingInstruction (s : DOMState) (doc : NodeId) (target data : String) :
+    Except DOMException (NodeId × DOMState) :=
+  match requireDocument s.tree doc with
+  | .error e => .error e
+  | .ok _ =>
+    if !matchesName target then .error .invalidCharacterError
+    else if containsSubstr data "?>" then .error .invalidCharacterError
+    else .ok (withFresh s { kind := .processingInstruction, ownerDocument := doc, data := data,
+                             piTarget := target })
+
+/--
+DOM Standard §4.5 `createCDATASection(data)`。HTML document なら NotSupportedError、data が "]]>" を含めば
+InvalidCharacterError。
+-/
+def createCDATASection (s : DOMState) (doc : NodeId) (data : String) :
+    Except DOMException (NodeId × DOMState) :=
+  match requireDocument s.tree doc with
+  | .error e => .error e
+  | .ok dd =>
+    if dd.isHTMLDocument then .error .notSupportedError
+    else if containsSubstr data "]]>" then .error .invalidCharacterError
+    else .ok (withFresh s { kind := .cdataSection, ownerDocument := doc, data := data })
 
 /-- DOM Standard §4.5 `createDocumentFragment()`。 -/
 def createDocumentFragment (s : DOMState) (doc : NodeId) :

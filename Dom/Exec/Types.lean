@@ -309,6 +309,10 @@ inductive Operation where
   | createElementNS (document : Nat) («namespace» : Option String) (qualifiedName : String)
   | createTextNode (document : Nat) (data : String)
   | createComment (document : Nat) (data : String)
+  /-- §4.5 `createProcessingInstruction(target, data)`。 -/
+  | createProcessingInstruction (document : Nat) (target data : String)
+  /-- §4.5 `createCDATASection(data)`。 -/
+  | createCDATASection (document : Nat) (data : String)
   | createDocumentFragment (document : Nat)
   /-- §4.4 `cloneNode(deep)`。 -/
   | cloneNode (node : Nat) (deep : Bool)

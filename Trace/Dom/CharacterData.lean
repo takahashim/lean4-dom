@@ -83,7 +83,7 @@ def exclusions : List Exclusion := [
   { target := "dom-text-text", reason := .host },
   -- §4.13。model の NodeData は target も attribute map も持たず、PI を作る関数も無い。
   { target := "interface-processinginstruction",
-    reason := .todo "ProcessingInstruction の target は持ち `getProperty` で読める（`piTarget`）が、attribute map と createProcessingInstruction が無い（XML Name production も無い）" },
+    reason := .todo "ProcessingInstruction の target は持ち `getProperty` で読め、`createProcessingInstruction` もあるが、attribute map（§4.11 の `setAttribute` ほか）が無い" },
   { target := "dom-comment-comment", reason := .host }
 ]
 
