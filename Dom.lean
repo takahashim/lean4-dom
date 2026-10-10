@@ -176,6 +176,7 @@ import Dom.Spec.Equals
 import Dom.Spec.Namespace
 import Dom.Spec.TokenList
 import Dom.Spec.Create
+import Dom.Spec.TextQuery
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

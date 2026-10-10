@@ -1325,3 +1325,8 @@ open Dom.Audit
   Dom.Spec.validAttributeLocalName_iff
   Dom.Spec.validElementLocalName_iff
   Dom.Spec.createElement_result_sound
+
+-- descendant text content と substring data（§4.4、§4.10）
+#audit_axioms
+  Dom.Spec.descendantTextContent_spec
+  Dom.Spec.substringData_result_sound

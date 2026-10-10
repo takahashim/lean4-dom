@@ -6753,6 +6753,12 @@ registered observer を外し、model は observer の transient をすべて外
 node は node list にある」という不変条件をすべての操作について示す必要がある。固定版より後の改訂（`3071e5f`）は observer に
 transient node set を持たせてこの掃除を書き直しているので、関係は固定版を上げるときにその本文で書く。
 
+## descendant text content と substring data に関係を書いた
+
+"descendant text content" を tree order の連結として、"substring data" を code unit の切り出しとして関係に書き、
+実行関数がそれを満たすことを示した（`Dom/Spec/TextQuery.lean`）。`contains()` と host-including inclusive ancestor の
+対応表に既存の定理（`nodeContains_eq_true_iff`・`isInclusiveAncestorOf_iff`）を載せた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

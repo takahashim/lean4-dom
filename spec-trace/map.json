@@ -1758,7 +1758,9 @@
         "Dom.descendantTextContent",
         "Dom.Exec.attrQueryValue"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.descendantTextContent_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1964,7 +1966,9 @@
         "Dom.nodeContainsRef",
         "Dom.Exec.Operation.nodeContainsNull"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.nodeContains_eq_true_iff"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2527,7 +2531,9 @@
       "impl": [
         "Dom.isInclusiveAncestorOf"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.isInclusiveAncestorOf_iff"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3680,7 +3686,10 @@
         "Dom.substringData",
         "Dom.adjustedCount"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.SubstringResult",
+        "Dom.Spec.substringData_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3725,7 +3734,9 @@
       "impl": [
         "Dom.substringData"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.substringData_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3827,7 +3838,10 @@
       "impl": [
         "Dom.descendantTextContent"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.DescendantTextContent",
+        "Dom.Spec.descendantTextContent_spec"
+      ],
       "omit": [],
       "approx": []
     },

@@ -90,6 +90,7 @@ def entries : List Entry := [
   /- §4.7 -/
   { alg := "concept-tree-host-including-inclusive-ancestor"
     impl := [``Dom.isInclusiveAncestorOf]
+    spec := [``Dom.isInclusiveAncestorOf_iff]
     approx := [("*", "host を見ない。shadow root が無いので inclusive ancestor と同じ")] },
   { alg := "create-a-document-fragment"
     impl := [``Dom.createDocumentFragment]

@@ -804,6 +804,20 @@ InvalidCharacterError、満たせば step 2-5 の element（HTML document なら
 HTML document か content type が application/xhtml+xml なら HTML namespace）を一つ作る（`CreateElementResult`）。
 ほかの作成 method は、作る node を `CreatesNode` で述べる既存の定理（`createTextNode_creates` ほか）を対応表に載せた。
 
+## 29. descendant text content は tree order の連結であり、substring data は code unit で切り出す
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.descendantTextContent_spec` | `Dom/Spec/TextQuery.lean` |
+| `Dom.Spec.substringData_result_sound` | 同上 |
+
+"descendant text content" は Text node descendant の data を tree order に連結したもので、関係
+`DescendantTextContent` は連結する列を tree order（`PrecedesStruct`）と descendant の条件で決める。
+"substring data" は、offset が length を超えれば IndexSizeError、そうでなければ offset から count（length − offset で
+切り詰める）code unit を返す。関係 `SubstringResult` は「前 offset 単位・次の c 単位・残り」に分ける形
+（replace data の `DataSpliced` と同じ）で書き、そう分けられない（surrogate pair の途中で切る）ときだけ model の対象外
+（`outsideModel`）になることも述べる。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。
