@@ -3,7 +3,8 @@ name: Differential
 # Dommy と makiri を固定した差分テスト。`lake build` の CI（ci.yml）とは分けてある。
 # Dommy の checkout と native gem の build が要るので、既定では走らせない。
 #
-#   deterministic  固定 scenario 全件 ＋ 固定 seed の生成 scenario
+#   deterministic  固定 scenario 全件 ＋ 固定 seed の生成 scenario（Ruby の API を呼ぶ runner）
+#   dommy-js       同じものを、Dommy を JS の側から動かす runner で（dommy-js-quickjs）
 #   exploration    nightly で seed を増やし、設定を変えて広く探索する
 #
 # 固定する version は `test/pinned-versions.json` に書いてある。
@@ -108,6 +109,91 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: counterexamples
+          path: test/scenarios/failing-*.json
+          if-no-files-found: ignore
+
+  # Dommy を JS の側から動かす（test/dommy_js_runner.rb）。Ruby の API を呼ぶ runner は Dommy が JS の層で行う
+  # WebIDL の変換（DOMString・boolean・可変長の引数、引数の個数）を通らないので、それらはこの job で比べる。
+  dommy-js:
+    name: Dommy を JS の側から動かす差分テスト
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read pinned versions
+        id: pins
+        run: |
+          echo "dommy_commit=$(jq -r .dommy.commit test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "dommy_path=$(jq -r .dommy.path test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "makiri=$(jq -r .makiri.version test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "adapter_commit=$(jq -r '.["dommy-js-quickjs"].commit' test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "quickjs=$(jq -r .quickjs.version test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "ruby=$(jq -r .ruby test/pinned-versions.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Dommy
+        uses: actions/checkout@v7
+        with:
+          repository: takahashim/dommy
+          ref: ${{ steps.pins.outputs.dommy_commit }}
+          path: dommy
+
+      - name: Checkout dommy-js-quickjs
+        uses: actions/checkout@v7
+        with:
+          repository: takahashim/dommy-js-quickjs
+          ref: ${{ steps.pins.outputs.adapter_commit }}
+          path: dommy-js-quickjs
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ steps.pins.outputs.ruby }}
+
+      - name: Install elan
+        run: |
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build the oracle
+        run: lake build
+
+      - name: Bundle Dommy with QuickJS
+        run: |
+          mkdir -p difftest
+          cat > difftest/Gemfile <<EOF
+          source "https://rubygems.org"
+          gem "dommy", path: "$GITHUB_WORKSPACE/dommy/${{ steps.pins.outputs.dommy_path }}"
+          gem "makiri", "${{ steps.pins.outputs.makiri }}"
+          gem "dommy-js-quickjs", path: "$GITHUB_WORKSPACE/dommy-js-quickjs"
+          gem "quickjs", "${{ steps.pins.outputs.quickjs }}"
+          gem "minitest", "~> 5.16"
+          gem "bigdecimal"
+          EOF
+          cd difftest && bundle install
+
+      - name: Fixed scenarios
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+          IMPL_CMD: bundle exec ruby ${{ github.workspace }}/test/dommy_js_runner.rb
+          IMPL_NAME: dommy-js
+        run: ruby test/difftest.rb --fixed-only
+
+      - name: Generated scenarios (fixed seed)
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/difftest/Gemfile
+          IMPL_CMD: bundle exec ruby ${{ github.workspace }}/test/dommy_js_runner.rb
+          IMPL_NAME: dommy-js
+        run: |
+          ruby test/difftest.rb --count 100 --seed 1 \
+            --ranges 4 --iterators 2 --observers 3 --move
+
+      - name: Upload counterexamples
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: counterexamples-dommy-js
           path: test/scenarios/failing-*.json
           if-no-files-found: ignore
 

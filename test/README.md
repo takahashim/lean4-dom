@@ -32,7 +32,8 @@
 `dommy_runner.rb` は Dommy の Ruby の API を呼ぶので、Dommy が JS の層（`js/host_runtime.js`）で行う WebIDL の
 変換（DOMString・boolean・可変長の引数の変換、引数の個数の検査）を通らず、それらの値を書いた step は比べない。
 `dommy_js_runner.rb` はブラウザと同じ `js/scenario.js` を JavaScript の側から走らせるので、変換の層まで含めて
-比べられる。Gemfile には dommy、makiri、dommy-js-quickjs、quickjs が要る。
+比べられる。Gemfile には dommy、makiri、dommy-js-quickjs、quickjs が要る（版は `test/pinned-versions.json`）。
+`differential.yml` の `dommy-js` job が、固定 scenario と seed 1 の生成 scenario をこの runner で流す。
 
 ```sh
 export BUNDLE_GEMFILE=/path/to/Gemfile   # dommy・makiri・dommy-js-quickjs・quickjs

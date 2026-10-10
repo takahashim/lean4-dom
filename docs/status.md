@@ -6454,6 +6454,10 @@ Dommy の PR #142（findings 59-61）、#143（findings 62・63）、#145（find
 5 known は以前からの記録（仕様側が未決着の 19・20 と `dataset` の 2 本）である。JS の側から動かす runner の skip のうち 18 本は、
 MutationObserver の配送順を比べられないという harness の制約による。findings 59 から 64 は、これで Dommy の側ですべて直った。
 
+あわせて、Dommy を JS の側から動かす runner を CI（`differential.yml` の `dommy-js` job、手動で起動）に加えた。
+dommy-js-quickjs（`a0f1776`）と quickjs（0.22.0）を pin に足した。CI と同じ Ruby 3.4 で bundle を組み、固定 scenario
+（209 ok / 21 skip / 5 known / 0 mismatch）と seed 1 の生成 scenario（100 本、mismatch 0）が通ることを手元で確かめた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

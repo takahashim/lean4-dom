@@ -24,6 +24,17 @@
     "ref": "main",
     "_note": "main（`8faf1056`、2026-10-10、PR #145 の merge）を指す。findings 59-64 の修正（PR #142・#143・#145）を含み、`makiri >= 0.15.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 213 ok / 17 skip / 5 known / 0 mismatch、JS の側から動かす runner（dommy-js-quickjs `a0f1776`）で 209 ok / 21 skip / 5 known / 0 mismatch。5 known は仕様側が未決着の 19・20 と、model の読みが疑わしい `dataset` の 2 本（`known-divergences.yml`）。生成 scenario は二つの runner とも 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）で mismatch 0（unsupported のみ）。"
   },
+  "dommy-js-quickjs": {
+    "repository": "https://github.com/takahashim/dommy-js-quickjs",
+    "commit": "a0f17768aeb63d6f2a5d7a99c222768cb6a54d04",
+    "date": "2026-10-09",
+    "_note": "Dommy を JS の側から動かす runner（test/dommy_js_runner.rb）が使う QuickJS の adapter。`dommy >= 0.15, < 0.16` と `quickjs ~> 0.22.0` を要求する。Ruby 3.4 で固定 scenario 209 ok / 21 skip / 5 known / 0 mismatch、seed 1 の生成 scenario（`--ranges 4 --iterators 2 --observers 3 --move`、100 本）で mismatch 0。"
+  },
+  "quickjs": {
+    "source": "rubygems",
+    "version": "0.22.0",
+    "_note": "dommy-js-quickjs が使う QuickJS の Ruby binding（native の拡張を build する）。"
+  },
   "makiri": {
     "source": "rubygems",
     "version": "0.15.0",
