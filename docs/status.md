@@ -6710,6 +6710,14 @@ current が root の外に出るのは、`currentNode` の setter か root を�
 TreeWalker の関係（`nextNode`・`previousNode`・"traverse children"・`parentNode`）も書きかけたが、soundness の証明が
 まだ無いので入れていない。
 
+## TreeWalker の走査の関係と soundness を足した
+
+前の節で書きかけていた TreeWalker の関係（`Dom/Spec/Walker.lean`）を、soundness の証明とともに入れた。
+`nextNode()`・`previousNode()`・"traverse children"（first）・`parentNode()` は、それぞれ候補の集まりのうち accept される
+もので tree order で最初（`parentNode()` と `previousNode()` は最後）のものを返す（`walkerNextNode_result_sound` ほか。
+`ValidWalker` を仮定する）。`docs/theorems.md` の §24 にまとめた。`lastChild()` と "traverse siblings" は鏡像の順序を
+使うので、まだ関係が無い。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

@@ -63,11 +63,13 @@ def entries : List Entry := [
     impl := [``Dom.WalkerState.current, ``Dom.observe] },
   { alg := "dom-treewalker-parentnode"
     impl := [``Dom.walkerParentNode, ``Dom.takeUntilIncl, ``Dom.walkerStep, ``Dom.walkerRun]
+    spec := [``Dom.Spec.WalkerParentNodeResult]
     approx := [("2", "current の祖先を root まで（root を含む）並べ、accept される最初のものを取る")] },
   { alg := "concept-traverse-children"
     impl := [``Dom.walkerFirstChild, ``Dom.walkerLastChild, ``Dom.mirrorPreorder,
              ``Dom.lastDescendant, ``Dom.mirrorLastDescendant, ``Dom.takeUntilIncl,
              ``Dom.walkerStep, ``Dom.walkerRun]
+    spec := [``Dom.Spec.WalkerFirstChildResult]
     approx := [("2-4", "current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。" ++ filterNull)] },
   { alg := "dom-treewalker-firstchild"
     impl := [``Dom.walkerFirstChild, ``Dom.walkerStep] },
@@ -83,10 +85,12 @@ def entries : List Entry := [
     impl := [``Dom.walkerSibling, ``Dom.walkerStep] },
   { alg := "dom-treewalker-previousnode"
     impl := [``Dom.walkerPreviousNode, ``Dom.takeUntilIncl, ``Dom.walkerStep, ``Dom.walkerRun]
+    spec := [``Dom.Spec.WalkerPreviousNodeResult]
     approx := [("2", "current の木の tree order を current の手前から逆にたどり、root まで（root を含む）で切る。current が root なら何も見ない。" ++ filterNull)] },
   { alg := "dom-treewalker-nextnode"
     impl := [``Dom.walkerNextNode, ``Dom.lastDescendant, ``Dom.takeUntilIncl, ``Dom.walkerStep,
              ``Dom.walkerRun]
+    spec := [``Dom.Spec.WalkerNextNodeResult]
     approx := [("3", "current の木の tree order を current の次からたどり、root の最後の inclusive descendant で切る（step 3.4.1 の「temporary が root」）。current がその node なら何も見ない。" ++ filterNull)] }
 ]
 

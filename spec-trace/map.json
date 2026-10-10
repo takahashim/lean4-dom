@@ -4443,7 +4443,9 @@
         "Dom.walkerStep",
         "Dom.walkerRun"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerParentNodeResult"
+      ],
       "omit": [],
       "approx": [
         {
@@ -4467,7 +4469,9 @@
         "Dom.walkerStep",
         "Dom.walkerRun"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerFirstChildResult"
+      ],
       "omit": [],
       "approx": [
         {
@@ -4562,7 +4566,9 @@
         "Dom.walkerStep",
         "Dom.walkerRun"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerPreviousNodeResult"
+      ],
       "omit": [],
       "approx": [
         {
@@ -4583,7 +4589,9 @@
         "Dom.walkerStep",
         "Dom.walkerRun"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerNextNodeResult"
+      ],
       "omit": [],
       "approx": [
         {

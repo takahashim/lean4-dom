@@ -689,6 +689,41 @@ ECMA-262 の「the Number value for x」は、x に最も近い IEEE 754 binary6
 `toAddEventListenerOptions_eq_none_iff` と `toImportNodeOptions_eq_none_iff` は、union への変換が TypeError に
 なる条件（dictionary として読む値に、model が表せない型の member があるとき）を言う。
 
+## 24. 走査は tree order の上で「最初の」（または最後の）候補を返す
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.treeOrderList_preorder` | `Dom/Spec/TreeOrder.lean` |
+| `Dom.Spec.treeOrderList_unique` | 同上 |
+| `Dom.Spec.nextNode_result_sound` | `Dom/Spec/Traverse.lean` |
+| `Dom.Spec.previousNode_result_sound` | 同上 |
+| `Dom.Spec.walkerNextNode_result_sound` | `Dom/Spec/Walker.lean` |
+| `Dom.Spec.walkerPreviousNode_result_sound` | 同上 |
+| `Dom.Spec.walkerFirstChild_result_sound` | 同上 |
+| `Dom.Spec.walkerParentNode_result_sound` | 同上 |
+
+```lean
+theorem walkerNextNode_result_sound (hwf : WellFormed t) (hw : ValidWalker t w) :
+    WalkerNextNodeResult t w (walkerNextNode t w)
+```
+
+関係は §4.2 の tree order を、列を使わない構造的な条件 `PrecedesStruct`（ancestor であるか、共通の parent の下で
+index の小さい子の側にいる）で書く。`TreeOrderList t r l` は `r` の inclusive descendant をその順に並べた列で、
+`preorder` がそれであり、列は一つしかない。
+
+filter が null なら、本文の traverse の loop が返すのは「ある候補の集まりのうち accept されるもので、tree order で
+最初（または最後）のもの」である。候補の集まりを本文の loop から読み取って関係にした。NodeIterator の traverse は
+reference に後続する（pointer before なら reference 自身も）node、TreeWalker の `nextNode()` は current に後続し、
+root の最後の inclusive descendant を越えない node、`previousNode()` は current に先行し、root を越えない node、
+"traverse children"（first）は current の strict descendant（root が current の子孫なら root の最後の inclusive
+descendant まで）、`parentNode()` は current の strict ancestor のうち root より上でないものである。実行関数は
+tree order の列を切って `find?` するので、整列した列の `find?` が最初のものを返すこと（`find?_first_of_pairwise`）に
+帰着させた。
+
+関係を書くために本文の loop を読み直して、TreeWalker の走査が root の外から始まると root の部分木を抜けても
+止まらない誤りを見つけた（`docs/status.md`）。`lastChild()` と "traverse siblings" は鏡像の順序を使うので、
+関係はまだ無い。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

@@ -170,6 +170,7 @@ import Dom.Spec.AttributeNode
 import Dom.Spec.AttributeNodeSound
 import Dom.Spec.TreeOrder
 import Dom.Spec.Traverse
+import Dom.Spec.Walker
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

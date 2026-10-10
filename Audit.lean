@@ -1277,3 +1277,14 @@ open Dom.Audit
   Dom.replaceWithNodes_single
   Dom.appendNodes_single
   Dom.replaceChildrenNodes_single
+
+-- tree order の列と、NodeIterator・TreeWalker の走査の関係（filter は null）
+#audit_axioms
+  Dom.Spec.treeOrderList_preorder
+  Dom.Spec.treeOrderList_unique
+  Dom.Spec.nextNode_result_sound
+  Dom.Spec.previousNode_result_sound
+  Dom.Spec.walkerNextNode_result_sound
+  Dom.Spec.walkerPreviousNode_result_sound
+  Dom.Spec.walkerFirstChild_result_sound
+  Dom.Spec.walkerParentNode_result_sound
