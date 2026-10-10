@@ -155,7 +155,9 @@ def attrOfJson (j : Json) : Except String Attr := do
            localName := ← strField j "localName" ""
            value := ← strField j "value" "" }
 
-/-- `MutationObserverInit` の読み取り。省略と `false` は区別する（`observe` step 1-2）。 -/
+/--
+`MutationObserverInit` の読み取り。既定値の無い member は省略と `false` を区別する（`observe` step 1-2）。
+-/
 def observerInitOfJson (j : Json) : Except String MutationObserverInit := do
   let flag (name : String) : Except String Bool :=
     match field? j name with
@@ -164,10 +166,10 @@ def observerInitOfJson (j : Json) : Except String MutationObserverInit := do
   return { childList := ← flag "childList"
            subtree := ← flag "subtree"
            attributes := ← boolField? j "attributes"
-           attributeOldValue := ← flag "attributeOldValue"
+           attributeOldValue := ← boolField? j "attributeOldValue"
            attributeFilter := ← strListField? j "attributeFilter"
            characterData := ← boolField? j "characterData"
-           characterDataOldValue := ← flag "characterDataOldValue" }
+           characterDataOldValue := ← boolField? j "characterDataOldValue" }
 
 def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
   let id ← natField j "id"

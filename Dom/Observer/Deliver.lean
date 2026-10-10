@@ -22,13 +22,13 @@ remove step 20 が node list にもその node を足すと読む。
 namespace Dom
 
 /--
-DOM Standard §4.3.2 の `MutationObserverInit`。
+DOM Standard §4.3.1 の `MutationObserverInit`。
 
-IDL は `childList` / `subtree` / `attributeOldValue` / `characterDataOldValue` に
-`false` の既定値を与えるが、`attributes` と `characterData` には与えない。
-`observe` の step 1-2 が「存在するか」で分岐するので、この二つは `Option Bool` で持つ。
-`attributeFilter` も同じく存在の有無に意味がある（step 5、および
-"queue a mutation record" step 2.3 の三つ目の条件）。
+IDL が既定値を与えるのは `childList` と `subtree`（どちらも `false`）だけで、
+`attributes`・`characterData`・`attributeOldValue`・`characterDataOldValue`・`attributeFilter`
+には既定値が無い。`observe` の step 1-2 は「存在するか」で分岐するので、
+既定値の無いものは `Option` で持ち、省略（`none`）と `false` を区別する。
+`attributeFilter` は step 5 と "queue a mutation record" の条件でも存在の有無に意味がある。
 
 `attributes` に対応する `Attr` node の観測は model の対象外だが、
 attribute の変更そのものは §4.9 の algorithm として扱う。
@@ -37,10 +37,10 @@ structure MutationObserverInit where
   childList : Bool := false
   subtree : Bool := false
   attributes : Option Bool := none
-  attributeOldValue : Bool := false
+  attributeOldValue : Option Bool := none
   attributeFilter : Option (List String) := none
   characterData : Option Bool := none
-  characterDataOldValue : Bool := false
+  characterDataOldValue : Option Bool := none
 deriving DecidableEq, Repr, Inhabited
 
 namespace MutationObserverInit
@@ -48,17 +48,14 @@ namespace MutationObserverInit
 /--
 `observe` の step 1-2。省略された `attributes` / `characterData` を埋める。
 
-step 1 は `attributeOldValue` が **存在する** ことを条件にするが、IDL の既定値が
-`false` なので、model では「true である」ことで代用する。
-`attributeOldValue: false` を明示した場合との差は
-step 4 の TypeError の有無にしか出ず、そこでは `attributes` が
-`some false` でなければならないので結論は変わらない。
-`characterDataOldValue` も同様である。
+step 1 の条件は `attributeOldValue` が **存在する** ことで、値は問わない。
+`{attributeOldValue: false}` だけを渡しても `attributes` は true になり、step 3 を通る。
+`characterDataOldValue` も同じである。
 -/
 def resolve (o : MutationObserverInit) : MutationObserverInit :=
-  let o := if o.attributes.isNone && (o.attributeOldValue || o.attributeFilter.isSome) then
+  let o := if o.attributes.isNone && (o.attributeOldValue.isSome || o.attributeFilter.isSome) then
       { o with attributes := some true } else o
-  if o.characterData.isNone && o.characterDataOldValue then
+  if o.characterData.isNone && o.characterDataOldValue.isSome then
     { o with characterData := some true } else o
 
 end MutationObserverInit
@@ -85,11 +82,11 @@ def observeOptionsError (opts₀ : MutationObserverInit) : Option DOMException :
   if !(opts.childList || opts.attributes == some true || opts.characterData == some true) then
     some .typeError
   -- step 4
-  else if opts.attributeOldValue && opts.attributes == some false then some .typeError
+  else if opts.attributeOldValue == some true && opts.attributes == some false then some .typeError
   -- step 5
   else if opts.attributeFilter.isSome && opts.attributes == some false then some .typeError
   -- step 6
-  else if opts.characterDataOldValue && opts.characterData == some false then some .typeError
+  else if opts.characterDataOldValue == some true && opts.characterData == some false then some .typeError
   else none
 
 /--
@@ -118,10 +115,10 @@ def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts₀ : MutationObser
     let reg : Registration :=
       { node := target, observer := mo, subtree := opts.subtree, childList := opts.childList,
         attributes := opts.attributes == some true,
-        attributeOldValue := opts.attributeOldValue,
+        attributeOldValue := opts.attributeOldValue == some true,
         attributeFilter := opts.attributeFilter,
         characterData := opts.characterData == some true,
-        characterDataOldValue := opts.characterDataOldValue }
+        characterDataOldValue := opts.characterDataOldValue == some true }
     -- step 7。既にこの observer の registration が target にあるか。
     if s.registrations.any (fun r => r.observer == mo && r.node == target && !r.transient) then
       -- step 7.1.1：この registration を source とする transient を取り除く。

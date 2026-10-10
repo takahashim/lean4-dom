@@ -8,9 +8,8 @@ import Dom.Observer.Deliver
 
 ## 読み
 
-step 1-2 の「`attributeOldValue` / `characterDataOldValue` が存在する」は、IDL の既定値が
-false なので「true である」と読む（`MutationObserverInit.resolve` の注を参照）。
-`attributeFilter` は存在の有無をそのまま見る。
+step 1-2 の「`attributeOldValue` / `characterDataOldValue` / `attributeFilter` が存在する」は、
+値を問わず `none` でないことである（IDL はこの三つに既定値を与えない）。
 
 step 7.1.1 は「node list の各 node から、source が registered の transient を取り除く」である。
 model の registered observer list は一本で、transient は source の node（`source`）を持つので、
@@ -21,16 +20,16 @@ namespace Dom.Spec
 
 open Dom MutationObserver
 
-/-- step 1：`attributes` が省略され、`attributeOldValue` か `attributeFilter` があれば true にする。 -/
+/-- step 1：`attributes` が省略され、`attributeOldValue` か `attributeFilter` が（値を問わず）あれば true にする。 -/
 def AttributesResolved (o : MutationObserverInit) (b : Option Bool) : Prop :=
-  (o.attributes = none ∧ (o.attributeOldValue = true ∨ o.attributeFilter ≠ none) ∧ b = some true) ∨
-    (¬ (o.attributes = none ∧ (o.attributeOldValue = true ∨ o.attributeFilter ≠ none)) ∧
+  (o.attributes = none ∧ (o.attributeOldValue ≠ none ∨ o.attributeFilter ≠ none) ∧ b = some true) ∨
+    (¬ (o.attributes = none ∧ (o.attributeOldValue ≠ none ∨ o.attributeFilter ≠ none)) ∧
       b = o.attributes)
 
-/-- step 2：`characterData` が省略され、`characterDataOldValue` があれば true にする。 -/
+/-- step 2：`characterData` が省略され、`characterDataOldValue` が（値を問わず）あれば true にする。 -/
 def CharacterDataResolved (o : MutationObserverInit) (b : Option Bool) : Prop :=
-  (o.characterData = none ∧ o.characterDataOldValue = true ∧ b = some true) ∨
-    (¬ (o.characterData = none ∧ o.characterDataOldValue = true) ∧ b = o.characterData)
+  (o.characterData = none ∧ o.characterDataOldValue ≠ none ∧ b = some true) ∨
+    (¬ (o.characterData = none ∧ o.characterDataOldValue ≠ none) ∧ b = o.characterData)
 
 /--
 **step 3-6：TypeError になる options。**
@@ -45,17 +44,17 @@ attributes と characterData は step 1-2 で解決した後の値で見る。
 def ObserveOptionsRejected (o : MutationObserverInit) : Prop :=
   ∃ a c, AttributesResolved o a ∧ CharacterDataResolved o c ∧
     ((o.childList = false ∧ a ≠ some true ∧ c ≠ some true) ∨
-      (o.attributeOldValue = true ∧ a = some false) ∨
+      (o.attributeOldValue = some true ∧ a = some false) ∨
       (o.attributeFilter ≠ none ∧ a = some false) ∨
-      (o.characterDataOldValue = true ∧ c = some false))
+      (o.characterDataOldValue = some true ∧ c = some false))
 
 /-- step 7-8 で使う registered observer（options は解決後の値）。 -/
 def registrationFor (mo : Nat) (target : NodeId) (o : MutationObserverInit) (a c : Option Bool) :
     Registration :=
   { node := target, observer := mo, subtree := o.subtree, childList := o.childList,
-    attributes := decide (a = some true), attributeOldValue := o.attributeOldValue,
+    attributes := decide (a = some true), attributeOldValue := decide (o.attributeOldValue = some true),
     attributeFilter := o.attributeFilter, characterData := decide (c = some true),
-    characterDataOldValue := o.characterDataOldValue }
+    characterDataOldValue := decide (o.characterDataOldValue = some true) }
 
 /-- step 7.1：source がこの registration の transient を落とし、registration の options を差し替える。 -/
 def reregistered (mo : Nat) (target : NodeId) (reg r : Registration) : Option Registration :=

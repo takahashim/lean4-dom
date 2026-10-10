@@ -57,9 +57,9 @@ theorem characterDataResolved_unique {o : MutationObserverInit} {a b : Option Bo
 theorem rejected_iff (o : MutationObserverInit) :
     ObserveOptionsRejected o ↔
       ((o.childList = false ∧ o.resolve.attributes ≠ some true ∧ o.resolve.characterData ≠ some true) ∨
-        (o.attributeOldValue = true ∧ o.resolve.attributes = some false) ∨
+        (o.attributeOldValue = some true ∧ o.resolve.attributes = some false) ∨
         (o.attributeFilter ≠ none ∧ o.resolve.attributes = some false) ∨
-        (o.characterDataOldValue = true ∧ o.resolve.characterData = some false)) := by
+        (o.characterDataOldValue = some true ∧ o.resolve.characterData = some false)) := by
   constructor
   · rintro ⟨a, c, ha, hc, h⟩
     rw [attributesResolved_unique ha (attributesResolved_resolve o),
@@ -74,9 +74,9 @@ theorem observeOptionsError_spec (o : MutationObserverInit) :
   rw [rejected_iff]
   unfold observeOptionsError
   obtain ⟨cl, st, att, aov, af, cd, cdov⟩ := o
-  cases cl <;> cases att <;> cases aov <;> cases af <;> cases cd <;> cases cdov <;>
-    simp [MutationObserverInit.resolve] <;>
-    (try (rename_i x; cases x)) <;> (try (rename_i x; cases x)) <;> simp_all
+  cases cl <;> rcases att with _ | ⟨_ | _⟩ <;> rcases aov with _ | ⟨_ | _⟩ <;> cases af <;>
+    rcases cd with _ | ⟨_ | _⟩ <;> rcases cdov with _ | ⟨_ | _⟩ <;>
+    simp [MutationObserverInit.resolve]
 
 /-! ## 全体 -/
 
@@ -84,17 +84,17 @@ theorem registrationFor_resolve (mo : Nat) (target : NodeId) (o : MutationObserv
     registrationFor mo target o o.resolve.attributes o.resolve.characterData =
       { node := target, observer := mo, subtree := o.resolve.subtree,
         childList := o.resolve.childList, attributes := o.resolve.attributes == some true,
-        attributeOldValue := o.resolve.attributeOldValue,
+        attributeOldValue := o.resolve.attributeOldValue == some true,
         attributeFilter := o.resolve.attributeFilter,
         characterData := o.resolve.characterData == some true,
-        characterDataOldValue := o.resolve.characterDataOldValue } := by
+        characterDataOldValue := o.resolve.characterDataOldValue == some true } := by
   obtain ⟨hcl, hst, haov, hfil, hcov⟩ := resolve_fields o
   have hb : ∀ x : Option Bool, decide (x = some true) = (x == some true) := by
     intro x; cases x with
     | none => rfl
     | some b => cases b <;> rfl
   unfold registrationFor
-  rw [hcl, hst, haov, hfil, hcov, hb, hb]
+  rw [hcl, hst, haov, hfil, hcov, hb, hb, hb, hb]
 
 /-- **`observe` の結果は関係を満たす。** -/
 theorem observe_result_sound (s : DOMState) (mo : Nat) (target : NodeId) (o : MutationObserverInit) :

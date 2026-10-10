@@ -26,9 +26,8 @@ def entries : List Entry := [
     impl := [``Dom.MutationObserver.observe, ``Dom.MutationObserverInit.resolve,
              ``Dom.MutationObserver.observeOptionsError]
     spec := [``Dom.Spec.ObserveResult, ``Dom.Spec.ObserveOptionsRejected]
-    approx := [("1-2", "options の attributeOldValue / characterDataOldValue は「存在する」ではなく「true である」で見る（IDL の既定値が false なので、step 4・6 を通すと結論は同じ）"),
-               ("3-6", "TypeError を `DOMException.typeError` で表す"),
-               ("7", "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む"),
+    approx := [("3-6", "TypeError を `DOMException.typeError` で表す"),
+               ("7", "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた"),
                ("7.1", "node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す")] },
   { alg := "dom-mutationobserver-disconnect"
     impl := [``Dom.MutationObserver.disconnect]
@@ -43,8 +42,10 @@ def entries : List Entry := [
              ``Dom.Spec.AttributeRecordQueued] },
   { alg := "queue-a-tree-mutation-record"
     impl := [``Dom.queueTreeMutationRecord, ``Dom.queueMutationRecord]
-    spec := [``Dom.Spec.TreeRecordQueued]
-    approx := [("1", "assert の代わりに、addedNodes と removedNodes が両方空なら何もしない")] }
+    -- step 1 の assert の代わりに、両方空なら何もしない。replace all の step 7（どちらかが空でなければ積む）は
+    -- この guard が担う。それ以外の呼び出し元（insert・remove・replace・move）は、関係の soundness の証明が
+    -- `treeRecordQueued_of_queue` の仮定（どちらかが空でない）を示しているので、guard は効かない。
+    spec := [``Dom.Spec.TreeRecordQueued, ``Dom.Spec.treeRecordQueued_of_queue] }
 ]
 
 def exclusions : List Exclusion := [

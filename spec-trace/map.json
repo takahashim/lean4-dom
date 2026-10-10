@@ -49,6 +49,8 @@
         "Dom.matchSelList"
       ],
       "spec": [
+        "Dom.Spec.ScopeMatchResult",
+        "Dom.Spec.MatchAgainstTree",
         "Dom.Spec.SelectorListMatches"
       ],
       "omit": [],
@@ -56,10 +58,6 @@
         {
           "steps": "1",
           "what": "parse a selector は model の selector 文法（`parseSelector` が受け付ける部分集合）で行う。受け付けない構文は failure（SyntaxError）になる"
-        },
-        {
-          "steps": "3",
-          "what": "root の全 element ではなく node の descendant element だけを候補にする（scoping root が node なので、それ以外は scoping で落ちるという前提。node 自身は候補に入れない）"
         }
       ]
     },
@@ -111,7 +109,11 @@
         "Dom.splitAtFirstColon",
         "Dom.normalizeNamespace"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.validateAndExtractSteps",
+        "Dom.Spec.validateAndExtractAttribute_eq_steps",
+        "Dom.Spec.validateAndExtractElement_eq_steps"
+      ],
       "omit": [
         {
           "steps": "5",
@@ -121,16 +123,7 @@
           }
         }
       ],
-      "approx": [
-        {
-          "steps": "1",
-          "what": "namespace の正規化（空文字列を null に）を step 4.3 の後で一度だけ行う。step 1-4 の間で namespace は読まないので結果は同じ"
-        },
-        {
-          "steps": "6-7",
-          "what": "context の代わりに attribute 版と element 版の二つの関数を持ち、local name の検査関数だけを差し替える"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-event-stoppropagation",
@@ -1275,16 +1268,12 @@
       "omit": [],
       "approx": [
         {
-          "steps": "1-2",
-          "what": "options の attributeOldValue / characterDataOldValue は「存在する」ではなく「true である」で見る（IDL の既定値が false なので、step 4・6 を通すと結論は同じ）"
-        },
-        {
           "steps": "3-6",
           "what": "TypeError を `DOMException.typeError` で表す"
         },
         {
           "steps": "7",
-          "what": "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む"
+          "what": "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた"
         },
         {
           "steps": "7.1",
@@ -1353,15 +1342,11 @@
         "Dom.queueMutationRecord"
       ],
       "spec": [
-        "Dom.Spec.TreeRecordQueued"
+        "Dom.Spec.TreeRecordQueued",
+        "Dom.Spec.treeRecordQueued_of_queue"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "1",
-          "what": "assert の代わりに、addedNodes と removedNodes が両方空なら何もしない"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "create-a-node",
@@ -3463,19 +3448,11 @@
       ],
       "spec": [
         "Dom.Spec.RangeAdjusted",
-        "Dom.Spec.BoundaryAdjusted"
+        "Dom.Spec.BoundaryAdjusted",
+        "Dom.liveRangePreRemoveBP_comm"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "2",
-          "what": "assert の代わりに、parent が無ければ何もしない"
-        },
-        {
-          "steps": "4-7",
-          "what": "range ごとに step 4・6（start）と step 5・7（end）を合成して一度に当てる。step 4-5 で移した点の offset は index なので step 6-7 に掛からず、結果は同じ"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "concept-range-bp-set",
@@ -3684,15 +3661,11 @@
         "Dom.Spec.DeleteContentsResult",
         "Dom.Spec.NodesToRemove",
         "Dom.Spec.Contained",
-        "Dom.Spec.DeleteNewBP"
+        "Dom.Spec.DeleteNewBP",
+        "Dom.Spec.rangeDeleteContents_result_sound"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "8",
-          "what": "(newNode, newOffset) を step 9-11 の後で置く。step 9-11 の live range 調整はこの点を動かさないので同じ値になるが、実行関数はその点が最終の木で妥当かを検査し、妥当でなければ調整後の start を使う"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "concept-range-insert",
@@ -3722,12 +3695,7 @@
           }
         }
       ],
-      "approx": [
-        {
-          "steps": "10-11",
-          "what": "newOffset を step 12 の前に数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める。空の DocumentFragment なら end を置き直さない"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-range-insertnode",

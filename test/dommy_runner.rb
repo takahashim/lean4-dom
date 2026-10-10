@@ -689,14 +689,16 @@ module DommyRunner
                  "records" => records.to_a.map { |rec| record_snapshot(objects, rec) } }
       })
       if spec["target"]
-        obs.__js_call__("observe", [objects.fetch(spec["target"]), observe_options(spec)])
+        obs.__js_call__("observe", [objects.fetch(spec["target"]), initial_observe_options(spec)])
       end
       obs
     end
     [observers, log]
   end
 
-  def observe_options(spec)
+  # 初期状態の observer の options。model は registration を直接組み立てる（`buildState`）ので、
+  # step 1-2 の補完が効かないよう全部を明示して渡す。
+  def initial_observe_options(spec)
     {
       "childList" => !!spec["childList"],
       "subtree" => !!spec["subtree"],
@@ -705,6 +707,15 @@ module DommyRunner
       "attributes" => !!spec["attributes"],
       "attributeOldValue" => !!spec["attributeOldValue"]
     }.tap { |o| o["attributeFilter"] = spec["attributeFilter"] if spec["attributeFilter"] }
+  end
+
+  # `observe` 操作の options。`MutationObserverInit` は既定値の無い member が多く、
+  # step 1-2 は「存在するか」で分岐するので、scenario にある key だけを渡す。
+  OBSERVE_KEYS = %w[childList subtree attributes attributeOldValue attributeFilter
+                    characterData characterDataOldValue].freeze
+
+  def observe_options(spec)
+    spec.slice(*OBSERVE_KEYS)
   end
 
   # element の attribute list を model と同じ形に並べる。

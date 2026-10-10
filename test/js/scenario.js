@@ -531,7 +531,9 @@ const ATTR_QUERY_KIND = {
   textContent: "string", isConnected: "boolean", hasChildNodes: "boolean"
 };
 
-function observeOptions(spec) {
+// 初期状態の observer の options。model は registration を直接組み立てる（`buildState`）ので、
+// step 1-2 の補完が効かないよう全部を明示して渡す。
+function initialObserveOptions(spec) {
   const o = {
     childList: !!spec.childList,
     subtree: !!spec.subtree,
@@ -541,6 +543,16 @@ function observeOptions(spec) {
     attributeOldValue: !!spec.attributeOldValue
   };
   if (spec.attributeFilter) o.attributeFilter = spec.attributeFilter;
+  return o;
+}
+
+// `observe` 操作の options。`MutationObserverInit` は既定値の無い member が多く、
+// step 1-2 は「存在するか」で分岐するので、scenario にある key だけを渡す。
+const OBSERVE_KEYS = ["childList", "subtree", "attributes", "attributeOldValue", "attributeFilter",
+                      "characterData", "characterDataOldValue"];
+function observeOptions(spec) {
+  const o = {};
+  for (const k of OBSERVE_KEYS) if (k in spec) o[k] = spec[k];
   return o;
 }
 
@@ -1008,7 +1020,7 @@ class ObserverSet {
   registerInitial(objects, specs) {
     (specs ?? []).forEach((spec, i) => {
       if (spec.target === undefined || spec.target === null) return;
-      this.observers[i].observe(objects.get(spec.target), observeOptions(spec));
+      this.observers[i].observe(objects.get(spec.target), initialObserveOptions(spec));
     });
   }
 
