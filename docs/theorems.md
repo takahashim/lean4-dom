@@ -663,6 +663,32 @@ element で、"locate a namespace prefix" は step 1 を外れて step 2 の属�
 見る。`find?_xmlnsDecl_eq` は、属性の名前が `NamespaceWellFormed` を満たせば二つが同じ属性で
 止まることを言う。
 
+## 23. 十進の値を最も近い倍精度の値に丸める
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.roundPos_spec` | `Dom/Spec/DoubleSound.lean` |
+| `Dom.Spec.round_spec` | 同上 |
+| `Dom.Idl.toAddEventListenerOptions_eq_none_iff` | `Dom/Idl/Value.lean` |
+| `Dom.Idl.toImportNodeOptions_eq_none_iff` | 同上 |
+
+```lean
+theorem roundPos_spec (hn : 0 < n) (hd : 0 < d) : NearestDouble n d (JsNum.roundPos n d)
+```
+
+ECMA-262 の「the Number value for x」は、x に最も近い IEEE 754 binary64 の値で、ちょうど中間なら仮数が偶数のほうを
+取り、2^1024 − 2^970 以上は +∞ である。関係 `NearestDouble`（`Dom/Spec/Double.lean`）は、正の有理数 n/d について
+これを binade（`Binade`：正規数なら 2^(e+52) ≤ n/d < 2^(e+53)、非正規化数なら e = −1074）と、その中での丸め
+（`RoundsAt`：2^e の倍数のうち最も近いもの、中間なら偶数）で書く。仮数が 2^53 になれば 2^52 × 2^(e+1) と書き直し、
+指数が 971 を超えれば +∞ である。binade の中で最も近い値が全体で最も近い値であること（区間の外の値のほうが遠いこと）は
+散文の議論で、定理にはしていない。
+
+整数型の引数の ConvertToInt、ToNumber、StringToNumber は、この丸めの上にある。`JsNum.ofDecimal` が巨大な指数を
+冪を計算せずに ∞ と ±0 にする二つの近道は、この定理の範囲の外である。
+
+`toAddEventListenerOptions_eq_none_iff` と `toImportNodeOptions_eq_none_iff` は、union への変換が TypeError に
+なる条件（dictionary として読む値に、model が表せない型の member があるとき）を言う。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

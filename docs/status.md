@@ -6367,6 +6367,21 @@ DOM で作った step の対応表と改訂の検出を、Web IDL Standard と�
 あわせて、findings 62 と 63 を Dommy に引き継ぐノートを書いた（`notes/`、git の管理外）。Dommy の main（`c0a0d581`）
 でも、この二つの固定 scenario の六本だけが不一致になることを確かめた。
 
+## 倍精度への丸めの正しさを証明した
+
+WebIDL の変換の性質の証明として、十進の値を倍精度に丸める `JsNum.roundPos` が、ECMA-262 の「the Number value for x」
+（最も近い値、偶数への丸め、∞ への溢れ）を書いた関係 `NearestDouble`（`Dom/Spec/Double.lean`）を満たすことを示した
+（`Dom.Spec.roundPos_spec`、`Dom/Spec/DoubleSound.lean`）。部品は、`Nat.log2` から binade の指数を求めること、
+商と余りによる偶数への丸め、仮数が 2^53 になったときの書き直しと溢れである。関係は binade の中で最も近い値として
+書いてあり、それが全体で最も近い値であることは散文の議論で、定理にはしていない。ECMA-262 の対応表の RoundMVResult の
+行に、この関係を載せた。
+
+あわせて、`(AddEventListenerOptions or boolean)` と `(boolean or ImportNodeOptions)` への変換が TypeError になる条件を
+定理にした。
+
+証明の範囲の外に残っているのは、`JsNum.ofDecimal` が巨大な指数を ∞ と ±0 にする近道、StringToNumber の文法の読み取り、
+Number::toString である。どれも例と、Node との突き合わせ（それぞれ 3000 件と 400 件）だけが根拠である。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

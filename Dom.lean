@@ -132,6 +132,8 @@ import Dom.Spec.RangeInsertCongr
 import Dom.Spec.Event
 import Dom.Spec.EventSound
 import Dom.Spec.EventPassive
+import Dom.Spec.Double
+import Dom.Spec.DoubleSound
 import Dom.Spec.Attribute
 import Dom.Spec.AttributeSound
 import Dom.Spec.AttributeCongr

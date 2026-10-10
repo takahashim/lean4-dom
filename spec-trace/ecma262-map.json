@@ -260,7 +260,9 @@
         "Dom.Idl.JsNum.ofRat",
         "Dom.Idl.JsNum.roundPos"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.NearestDouble"
+      ],
       "omit": [
         {
           "steps": "2-5",

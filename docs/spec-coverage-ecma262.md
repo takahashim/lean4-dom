@@ -72,7 +72,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-roundmvresult](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5328) | 1/5 | `Dom.Idl.JsNum.ofDecimal?`<br>`Dom.Idl.JsNum.ofDecimal`<br>`Dom.Idl.JsNum.ofRat`<br>`Dom.Idl.JsNum.roundPos` |  |
+| [sec-roundmvresult](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5328) | 1/5 | `Dom.Idl.JsNum.ofDecimal?`<br>`Dom.Idl.JsNum.ofDecimal`<br>`Dom.Idl.JsNum.ofRat`<br>`Dom.Idl.JsNum.roundPos` | `Dom.Spec.NearestDouble` |
 
 ### §7.1.19（`sec-tostring`）
 

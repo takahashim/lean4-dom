@@ -67,6 +67,11 @@ def isUndefined : JsValue → Bool
   | .undefined => true
   | _ => false
 
+/-- dictionary への変換が受ける値か（undefined・null・object。配列を含む）。 -/
+def isObjectOrNullish : JsValue → Bool
+  | .undefined | .null | .object _ | .array _ => true
+  | _ => false
+
 /-- object か（配列を含む）。 -/
 def isObject : JsValue → Bool
   | .object _ | .array _ => true
@@ -227,6 +232,12 @@ def toAddEventListenerOptions (v : JsValue) : Option AddEventListenerOptionsOrBo
   | .bool b => some (.boolean b)
   | .number _ | .string _ => some (.boolean v.toBoolean)
 
+/-- **`(AddEventListenerOptions or boolean)` への変換が TypeError になるのは、dictionary として読む値（undefined・null・
+object）に undefined でない `signal` があるときだけである。** -/
+theorem toAddEventListenerOptions_eq_none_iff (v : JsValue) :
+    toAddEventListenerOptions v = none ↔ v.isObjectOrNullish = true ∧ (v.get "signal").isUndefined = false := by
+  cases v <;> simp [toAddEventListenerOptions, JsValue.isObjectOrNullish] <;> split <;> simp_all
+
 /-! ## `(boolean or ImportNodeOptions)` -/
 
 /-- IDL の `(boolean or ImportNodeOptions)` の値。`customElementRegistry` は model に無い。 -/
@@ -250,6 +261,13 @@ def toImportNodeOptions (v : JsValue) : Option ImportNodeOptionsOrBoolean :=
     else none
   | .bool b => some (.boolean b)
   | .number _ | .string _ => some (.boolean v.toBoolean)
+
+/-- **`(boolean or ImportNodeOptions)` への変換が TypeError になるのは、dictionary として読む値に undefined でない
+`customElementRegistry` があるときだけである。** -/
+theorem toImportNodeOptions_eq_none_iff (v : JsValue) :
+    toImportNodeOptions v = none ↔
+      v.isObjectOrNullish = true ∧ (v.get "customElementRegistry").isUndefined = false := by
+  cases v <;> simp [toImportNodeOptions, JsValue.isObjectOrNullish] <;> split <;> simp_all
 
 /-! ## 例 -/
 

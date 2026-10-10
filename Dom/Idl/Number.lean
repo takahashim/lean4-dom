@@ -58,10 +58,10 @@ namespace JsNum
 def ofNat (n : Nat) : JsNum := .finite false n 0
 
 /-- 2 の冪。指数が負なら使わない。 -/
-private def pow2 (j : Int) : Nat := 2 ^ j.toNat
+def pow2 (j : Int) : Nat := 2 ^ j.toNat
 
 /-- 正の有理数 n / d が 2^a 未満か。 -/
-private def ltPow2 (n d : Nat) (a : Int) : Bool :=
+def ltPow2 (n d : Nat) (a : Int) : Bool :=
   if a ≥ 0 then n < d * pow2 a else n * pow2 (-a) < d
 
 /--
@@ -100,6 +100,9 @@ def ofRat (neg : Bool) (n d : Nat) : JsNum :=
 m が D 桁なら値は 10^(D+e−1) 以上 10^(D+e) 未満なので、D + e > 310 なら倍精度の最大値（約 1.8 × 10^308）を
 超えて ∞、D + e < −330 なら最小の非正規化数（約 4.9 × 10^−324）の半分より小さくて ±0 である。この二つは
 冪を計算せずに決める（`"1e1000000000"` のような文字列で巨大な冪を作らないため）。
+
+それ以外は `ofRat` で、その丸め（`roundPos`）が最も近い倍精度の値を返すことは `Dom.Spec.roundPos_spec` で証明してある。
+この二つの近道は証明の範囲の外で、10^310 > 2^1024 と 10^(−330) < 2^(−1075) の散文の議論と、`#guard` の例だけが根拠である。
 -/
 def ofDecimal (neg : Bool) (m : Nat) (e : Int) : JsNum :=
   let digits : Int := (toString m).length

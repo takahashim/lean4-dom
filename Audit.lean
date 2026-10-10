@@ -254,6 +254,10 @@ open Dom.Audit
   Dom.invokeOne_once
   Dom.invokeOne_passive_preventDefault
   Dom.Idl.toDOMString_error
+  Dom.Spec.roundPos_spec
+  Dom.Spec.round_spec
+  Dom.Idl.toAddEventListenerOptions_eq_none_iff
+  Dom.Idl.toImportNodeOptions_eq_none_iff
   Dom.Idl.toNullableDOMString_error
   Dom.Idl.toLegacyNullDOMString_error
   Dom.Spec.defaultPassiveValue_spec
