@@ -6766,6 +6766,17 @@ pre-insert・replace・remove などを呼ぶだけの method について、結
 （255 件中）に増えた。残りは、木の field を読むだけの getter、`lastChild()` と traverse siblings、splitText、
 MutationObserver の method、attribute の作成と値の設定、Range の getter などである。
 
+## findings 65-69 への Dommy の対応
+
+Dommy は branch `fix/lean4-dom-findings-65-68`（`6ff2584a`、PR #150）で 65・66・67・68 を直した。この branch（makiri 0.16.0 を要求する）で
+固定 scenario を流すと、Ruby の API の runner は 229 ok / 19 skip / 6 known、JS の側の runner は 226 ok / 22 skip / 6 known で、不一致は無い。
+
+69（`splitText` の record の並び）は直さない。Dommy は三つのブラウザ（Blink・WebCore・Gecko がそろって characterData の record を先に積む）に
+合わせている。`test/known-divergences.yml` に `impl: dommy` と `impl: dommy-js` の entry を足した。木・live range・data の最終状態は本文どおりで、
+違うのは record の並びだけである。
+
+`test/pinned-versions.json` の Dommy は、PR #150 が main に入ってから上げる（makiri の版も 0.16.0 に上げる）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

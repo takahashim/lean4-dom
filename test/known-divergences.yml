@@ -682,3 +682,18 @@
   scenario: split-text-moves-ranges
   digest: b87d3a2a3ac91b8f
   reason: *split_text_record_order
+
+- impl: dommy
+  scenario: split-text-moves-ranges
+  digest: 917ce5a800d92ac7
+  reason: &split_text_record_order_dommy |
+    `impl: chromium` の同じ scenario の記録と同じ理由。DOM §4.11 "split a Text node" は childList の record
+    （step 7.1 の insert）を characterData の record（step 8 の replace data）より先に積むが、Dommy は三つの
+    ブラウザに合わせて characterData を先に積む（Dommy の `lib/dommy/character_data.rb` の `split_text`。
+    Blink・WebCore・Gecko がそろってこの順で、Gecko は nsRange がこの順に依存している）。木・live range・data の
+    最終状態は本文どおりで、違うのは record の並びだけである。
+
+- impl: dommy-js
+  scenario: split-text-moves-ranges
+  digest: d706b8fa52f5ab3e
+  reason: *split_text_record_order_dommy
