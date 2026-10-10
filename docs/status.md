@@ -6019,6 +6019,25 @@ Dommy との差分テストは、固定 scenario 185 件、CI と同じ seed 1�
 WebIDL の型変換（ToUint32、DOMString、dictionary、可変長の引数と union、overload）はまだ無い。scenario が変換済みの
 値を運ぶので、これを入れるには scenario の形式と runner も変える必要がある（member ごとに進める）。
 
+## WebIDL の整数型の変換（ConvertToInt）を入れた
+
+WebIDL の型変換を member ごとに入れる最初の段として、IDL の型が `unsigned long` と `unsigned short` の引数を扱った。
+対象は CharacterData の `substringData`・`replaceData`・`insertData`・`deleteData` の offset と count、Range の
+`setStart`・`setEnd`・`isPointInRange`・`comparePoint` の offset、`compareBoundaryPoints` の `how` である。
+
+* WebIDL の版を固定した（`docs/spec-version.md`、`test/pinned-versions.json`）。
+* `Dom/Idl/Number.lean` に、JSON の数を正確に表す `JsNumber`（仮数と十進の指数）と、ConvertToInt の unsigned の場合
+  （NaN・±0・±∞ は 0、IntegerPart、2^bitLength の剰余）を本文の step どおりに書いた。範囲内の自然数を変えないこと
+  （`convertToIntUnsigned_ofNat`）と、結果が範囲に入ること（`convertToIntUnsigned_lt`）を証明した。
+* scenario の操作はこれらの引数を変換前の値で運び、`applyOperation` が algorithm を呼ぶ前に変換する。変換は例外を
+  投げないので、既存の証明は変えずに通った。
+* 生成器は、変換の効く数（n ± 2^bits、n + 0.5、−1、−0.5、2^bits）をたまに混ぜる。倍精度で正確に表せる数に限るのは、
+  JS が数を倍精度に丸めてから変換し、model は十進のまま変換するからである。
+* 固定 scenario `idl-unsigned-long-wraps-in-character-data` と `idl-unsigned-converts-range-arguments` を足した。
+
+Dommy（`4fc3caa`）は WebIDL の変換を実装しており、固定 scenario 187 件と生成 scenario（seed 1-4、
+`--ranges 4 --iterators 2 --observers 3 --move`）で不一致は無かった。jsdom とブラウザでは確かめていない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

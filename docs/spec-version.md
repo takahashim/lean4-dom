@@ -5,9 +5,13 @@
 | 仕様 | 版 | commit |
 | --- | --- | --- |
 | WHATWG DOM Standard | Living Standard, 2026-08-25 | `a2331a45360129e8645ef7e0a04740241b6e3726` |
+| WHATWG Web IDL Standard | Living Standard, 2026-10-06 | `8c65329114411ebd3af025106c2267f5bc00faeb` |
 
 * 本文：https://dom.spec.whatwg.org/
 * source：https://github.com/whatwg/dom/blob/main/dom.bs
+* Web IDL の本文：https://webidl.spec.whatwg.org/（source は whatwg/webidl の `index.bs`）。
+  method を呼ぶ層（`Dom/Exec/Invoke.lean`）と整数型の変換（`Dom/Idl/Number.lean`）がこの版に従う。
+  step と Lean の定義の対応表（`Trace/`）はまだ DOM だけを対象にしている。
 
 上記 commit は `dom.bs` に対する 2026-08-25 時点の最新 commit である。
 Phase 3 の algorithm はこの版の本文から step を写している。

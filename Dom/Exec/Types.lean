@@ -12,6 +12,7 @@ import Dom.Event.Dispatch
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
 import Dom.Observer.Deliver
+import Dom.Idl.Number
 
 /-!
 # scenario の型
@@ -87,7 +88,13 @@ inductive AttrSetter where
   | textContent
 deriving Repr, DecidableEq
 
-/-- scenario が並べる操作。Phase 3 までの public API に対応する。 -/
+/--
+scenario が並べる操作。Phase 3 までの public API に対応する。
+
+IDL の型が `unsigned long` / `unsigned short` の引数（CharacterData と Range の offset・count、
+`compareBoundaryPoints` の `how`）は、WebIDL の変換の前の JavaScript の値（`Idl.JsNumber`）で持つ。
+変換は `applyOperation` が algorithm を呼ぶ前に行う（`Dom/Idl/Number.lean`）。
+-/
 inductive Operation where
   | appendChild (parent node : Nat)
   | insertBefore (parent node : Nat) (child : Option Nat)
@@ -101,10 +108,10 @@ inductive Operation where
   | moveBefore (parent node : Nat) (child : Option Nat)
   | iteratorNext (index : Nat)
   | iteratorPrevious (index : Nat)
-  | replaceData (node : Nat) (offset count : Nat) (data : String)
+  | replaceData (node : Nat) (offset count : Idl.JsNumber) (data : String)
   | appendData (node : Nat) (data : String)
-  | insertData (node : Nat) (offset : Nat) (data : String)
-  | deleteData (node : Nat) (offset count : Nat)
+  | insertData (node : Nat) (offset : Idl.JsNumber) (data : String)
+  | deleteData (node : Nat) (offset count : Idl.JsNumber)
   | setData (node : Nat) (data : String)
   /-- `Node.normalize()`。 -/
   | normalize (target : Nat)
@@ -117,8 +124,8 @@ inductive Operation where
   順序は観測に出る（`setStart(null, 木より大きい offset)` は `IndexSizeError` ではなく
   `TypeError`）ので、model でも引数の側に置いてある。
   -/
-  | rangeSetStart (range : Nat) (node : Option Nat) (offset : Nat)
-  | rangeSetEnd (range : Nat) (node : Option Nat) (offset : Nat)
+  | rangeSetStart (range : Nat) (node : Option Nat) (offset : Idl.JsNumber)
+  | rangeSetEnd (range : Nat) (node : Option Nat) (offset : Idl.JsNumber)
   /-- `Range.setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter`。 -/
   | rangeSetStartSibling (range : Nat) (node : Option Nat) (after : Bool)
   | rangeSetEndSibling (range : Nat) (node : Option Nat) (after : Bool)
@@ -128,11 +135,11 @@ inductive Operation where
   | rangeSelectNode (range : Nat) (node : Option Nat)
   | rangeSelectNodeContents (range : Nat) (node : Option Nat)
   /-- `Range.isPointInRange(node, offset)` / `intersectsNode(node)`。 -/
-  | rangeIsPointInRange (range : Nat) (node : Option Nat) (offset : Nat)
+  | rangeIsPointInRange (range : Nat) (node : Option Nat) (offset : Idl.JsNumber)
   | rangeIntersectsNode (range : Nat) (node : Option Nat)
   /-- `Range.compareBoundaryPoints(how, sourceRange)` / `comparePoint(node, offset)`。 -/
-  | rangeCompareBoundaryPoints (range how source : Nat)
-  | rangeComparePoint (range : Nat) (node : Option Nat) (offset : Nat)
+  | rangeCompareBoundaryPoints (range : Nat) (how : Idl.JsNumber) (source : Nat)
+  | rangeComparePoint (range : Nat) (node : Option Nat) (offset : Idl.JsNumber)
   /-- `Range.deleteContents()`。 -/
   | rangeDeleteContents (range : Nat)
   /-- `Range.insertNode(node)`。 -/
@@ -149,7 +156,7 @@ inductive Operation where
   | getTextContent (node : Nat)
   | getNodeValue (node : Nat)
   /-- `CharacterData.substringData(offset, count)`（§4.10）。 -/
-  | substringData (node offset count : Nat)
+  | substringData (node : Nat) (offset count : Idl.JsNumber)
   /-- §4.9 の、値を返すだけの attribute の method。 -/
   | getAttribute (element : Nat) (qualifiedName : String)
   | hasAttribute (element : Nat) (qualifiedName : String)

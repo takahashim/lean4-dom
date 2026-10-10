@@ -335,7 +335,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     match n with
     | none => .unit
     | some n =>
-      match rangeIsPointInRange s i ⟨⟨n⟩, o⟩ with
+      match rangeIsPointInRange s i ⟨⟨n⟩, Idl.toUnsignedLong o⟩ with
       | .error _ => .unit
       | .ok b => .bool b
   | .rangeIntersectsNode i n =>
@@ -346,14 +346,14 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
       | .error _ => .unit
       | .ok b => .bool b
   | .rangeCompareBoundaryPoints i how j =>
-    match rangeCompareBoundaryPoints s i how j with
+    match rangeCompareBoundaryPoints s i (Idl.toUnsignedShort how) j with
     | .error _ => .unit
     | .ok v => .int v
   | .rangeComparePoint i n o =>
     match n with
     | none => .unit
     | some n =>
-      match rangeComparePoint s i ⟨⟨n⟩, o⟩ with
+      match rangeComparePoint s i ⟨⟨n⟩, Idl.toUnsignedLong o⟩ with
       | .error _ => .unit
       | .ok v => .int v
   | .rangeDeleteContents _ => .unit
@@ -373,7 +373,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .getTextContent n => .str (getTextContent s.tree ⟨n⟩)
   | .getNodeValue n => .str (getNodeValue s.tree ⟨n⟩)
   | .substringData n o c =>
-    match substringData s.tree ⟨n⟩ o c with
+    match substringData s.tree ⟨n⟩ (Idl.toUnsignedLong o) (Idl.toUnsignedLong c) with
     | .error _ => .unit
     | .ok str => .str (some str)
   | .getAttribute e q => .str (getAttribute s.tree ⟨e⟩ q)
@@ -528,6 +528,8 @@ def withNode {α : Type} (n : Option Nat) (f : NodeId → Except DOMException α
 
 WebIDL の検査（`idlCheck`）と、method steps が投げる `TypeError` は含まない。
 それらを含めて method を呼ぶのは `invokeOperation` である。
+`unsigned long` / `unsigned short` の引数の変換（`Idl.toUnsignedLong` ほか）はここで行う。
+この変換は例外を投げないので、`idlCheck` の側には置かない。
 -/
 def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .appendChild p n => appendChild s ⟨p⟩ ⟨n⟩
@@ -542,25 +544,26 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .moveBefore p n c => moveBefore s ⟨p⟩ ⟨n⟩ (c.map NodeId.mk)
   | .iteratorNext i => .ok (stepIterator s i nextNode).1
   | .iteratorPrevious i => .ok (stepIterator s i previousNode).1
-  | .replaceData n o c d => replaceData s ⟨n⟩ o c d
+  | .replaceData n o c d => replaceData s ⟨n⟩ (Idl.toUnsignedLong o) (Idl.toUnsignedLong c) d
   | .appendData n d => appendData s ⟨n⟩ d
-  | .insertData n o d => insertData s ⟨n⟩ o d
-  | .deleteData n o c => deleteData s ⟨n⟩ o c
+  | .insertData n o d => insertData s ⟨n⟩ (Idl.toUnsignedLong o) d
+  | .deleteData n o c => deleteData s ⟨n⟩ (Idl.toUnsignedLong o) (Idl.toUnsignedLong c)
   | .setData n d => setData s ⟨n⟩ d
   | .normalize tgt => normalize s ⟨tgt⟩
-  | .rangeSetStart i n o => withNode n fun n => rangeSetStart s i ⟨n, o⟩
-  | .rangeSetEnd i n o => withNode n fun n => rangeSetEnd s i ⟨n, o⟩
+  | .rangeSetStart i n o => withNode n fun n => rangeSetStart s i ⟨n, Idl.toUnsignedLong o⟩
+  | .rangeSetEnd i n o => withNode n fun n => rangeSetEnd s i ⟨n, Idl.toUnsignedLong o⟩
   | .rangeSetStartSibling i n a => withNode n fun n => rangeSetStartSibling s i n a
   | .rangeSetEndSibling i n a => withNode n fun n => rangeSetEndSibling s i n a
   | .rangeCollapse i t => rangeCollapse s i t
   | .rangeSelectNode i n => withNode n fun n => rangeSelectNode s i n
   | .rangeSelectNodeContents i n => withNode n fun n => rangeSelectNodeContents s i n
   | .rangeIsPointInRange i n o =>
-    withNode n fun n => (rangeIsPointInRange s i ⟨n, o⟩).map (fun _ => s)
+    withNode n fun n => (rangeIsPointInRange s i ⟨n, Idl.toUnsignedLong o⟩).map (fun _ => s)
   | .rangeIntersectsNode i n => withNode n fun n => (rangeIntersectsNode s i n).map (fun _ => s)
-  | .rangeCompareBoundaryPoints i how j => (rangeCompareBoundaryPoints s i how j).map (fun _ => s)
+  | .rangeCompareBoundaryPoints i how j =>
+    (rangeCompareBoundaryPoints s i (Idl.toUnsignedShort how) j).map (fun _ => s)
   | .rangeComparePoint i n o =>
-    withNode n fun n => (rangeComparePoint s i ⟨n, o⟩).map (fun _ => s)
+    withNode n fun n => (rangeComparePoint s i ⟨n, Idl.toUnsignedLong o⟩).map (fun _ => s)
   | .rangeDeleteContents i => rangeDeleteContents s i
   | .rangeInsertNode i n => withNode n fun n => rangeInsertNode s i n
   | .walkerMove i m => (walkerStep s i m).map (·.2)
@@ -571,7 +574,8 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .isEqualNode n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .getTextContent n => requireNodes s [⟨n⟩]
   | .getNodeValue n => requireNodes s [⟨n⟩]
-  | .substringData n o c => (substringData s.tree ⟨n⟩ o c).map (fun _ => s)
+  | .substringData n o c =>
+    (substringData s.tree ⟨n⟩ (Idl.toUnsignedLong o) (Idl.toUnsignedLong c)).map (fun _ => s)
   | .getAttribute e _ => requireNodes s [⟨e⟩]
   | .hasAttribute e _ => requireNodes s [⟨e⟩]
   | .getAttributeNames e => requireNodes s [⟨e⟩]

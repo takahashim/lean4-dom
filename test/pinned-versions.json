@@ -5,6 +5,12 @@
     "commit": "a2331a45360129e8645ef7e0a04740241b6e3726",
     "date": "2026-08-25"
   },
+  "webidl": {
+    "repository": "https://github.com/whatwg/webidl",
+    "commit": "8c65329114411ebd3af025106c2267f5bc00faeb",
+    "date": "2026-10-06",
+    "_note": "method を呼ぶ層の WebIDL の検査と、整数型の変換（ConvertToInt）が従う版。source は index.bs。"
+  },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
     "commit": "4fc3caa11c8564ed8ff548f709c0ef676a5124c9",

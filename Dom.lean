@@ -137,6 +137,7 @@ import Dom.Spec.Observe
 import Dom.Spec.ObserveSound
 import Dom.Spec.ValidateAndExtract
 import Dom.Spec.ScopeMatch
+import Dom.Idl.Number
 import Dom.Spec.RangeSet
 import Dom.Attribute.Reflect
 import Dom.Validity.Reflect

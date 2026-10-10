@@ -1,0 +1,29 @@
+{
+  "_note": "CharacterData の offset と count は IDL の unsigned long なので、method steps の前に WebIDL の ConvertToInt(V, 32, \"unsigned\") で変換される。0 の方向へ切り捨ててから 2^32 で剰余を取るので、count の −1 は 4294967295、offset の 4294967297 は 1、1.5 は 1 になる。offset の −1 は 4294967295 になり、length を超えるので IndexSizeError になる。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/webidl/blob/8c65329114411ebd3af025106c2267f5bc00faeb/index.bs",
+    "algorithm": [
+      "ConvertToInt",
+      "convert a JavaScript value to unsigned long",
+      "substring data",
+      "replace data"
+    ],
+    "steps": "ConvertToInt 4-12 / substring data 2-3 / replace data 2",
+    "note": "WebIDL の版は docs/spec-version.md に固定した commit。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0 },
+    { "id": 2, "kind": "text", "parent": 1, "data": "abcd" }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "substringData", "node": 2, "offset": 1, "count": -1 },
+    { "op": "deleteData", "node": 2, "offset": 4294967297, "count": 1 },
+    { "op": "insertData", "node": 2, "offset": 1.5, "data": "x" },
+    { "op": "replaceData", "node": 2, "offset": -1, "count": 0, "data": "z" }
+  ]
+}

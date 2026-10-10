@@ -413,7 +413,7 @@ node document が copy になるのは `append` の中の adopt による。
 | `normalize()` の record の並び | engine に合わせた | 仕様を字義どおり読むと run ごとに characterData が一つだが、Blink・WebCore・Gecko は兄弟ごとに積む。WPT が固定しているのは childList の側だけである。木と live range の最終状態はどちらの読みでも同じ |
 | `Attr` の identity | 済 | attribute は element の状態だが、同一性は `AttrId` で持つ。element から外れた `Attr` は `detachedAttrs` にいる。`setAttributeNode` / `removeAttributeNode` / `NamedNodeMap.removeNamedItem` / `InUseAttributeError` は関係で特徴付けてあり（`SetAttributeNodeResult` ほか）、id の一意性は全操作で保たれる（`AttrIdsUnique`） |
 | `NodeFilter` の callback | 対象外 | callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
-| WebIDL の TypeError | 済（一部） | method を呼ぶ層（`idlCheck`・`invokeOperation`）が this の interface と、`Range` の `Node` 引数・`setAttributeNode` の `Attr` 引数を検査し、`TypeError` を `DOMException` とは別の型（`IdlException.typeError`）で返す。`observe` の step 3-6 は method steps の TypeError で、`observeMethod` が同じ型で返す。algorithm の層は `DOMException` だけを返し、受け手の guard は model の都合として `NotFoundError` にする。型変換（ToUint32 ほか）は未着手 |
+| WebIDL の TypeError | 済（一部） | method を呼ぶ層（`idlCheck`・`invokeOperation`）が this の interface と、`Range` の `Node` 引数・`setAttributeNode` の `Attr` 引数を検査し、`TypeError` を `DOMException` とは別の型（`IdlException.typeError`）で返す。`observe` の step 3-6 は method steps の TypeError で、`observeMethod` が同じ型で返す。algorithm の層は `DOMException` だけを返し、受け手の guard は model の都合として `NotFoundError` にする。`unsigned long` と `unsigned short` の引数は WebIDL の ConvertToInt（`Dom/Idl/Number.lean`）で変換する（`idl-unsigned-long-wraps-in-character-data`、`idl-unsigned-converts-range-arguments`）。DOMString、dictionary、可変長の引数と union、overload は未着手 |
 
 ## §1.3 Selectors / §4.2.6 `ParentNode` / §4.8 `Element`
 

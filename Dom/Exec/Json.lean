@@ -85,6 +85,17 @@ private def field? (j : Json) (k : String) : Option Json :=
   | .ok v => if v.isNull then none else some v
   | .error _ => none
 
+/--
+JavaScript の Number として運ぶ数（WebIDL の変換の前の値）。JSON の数をそのまま `mantissa × 10^(-exponent)` で持つ。
+-/
+private def jsNumberField (j : Json) (k : String) : Except String Idl.JsNumber := do
+  match field? j k with
+  | none => throw s!"field `{k}` が無い"
+  | some v =>
+    match v with
+    | .num n => pure ⟨n.mantissa, n.exponent⟩
+    | _ => throw s!"field `{k}` が数でない"
+
 private def natField (j : Json) (k : String) : Except String Nat :=
   match field? j k with
   | none => .error s!"必須の field `{k}` がない"
@@ -216,13 +227,13 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "iteratorNext" => return .iteratorNext (← natField j "iterator")
   | "iteratorPrevious" => return .iteratorPrevious (← natField j "iterator")
   | "replaceData" =>
-    return .replaceData (← natField j "node") (← natField j "offset") (← natField j "count")
+    return .replaceData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
       (← strField j "data" "")
   | "appendData" => return .appendData (← natField j "node") (← strField j "data" "")
   | "insertData" =>
-    return .insertData (← natField j "node") (← natField j "offset") (← strField j "data" "")
+    return .insertData (← natField j "node") (← jsNumberField j "offset") (← strField j "data" "")
   | "deleteData" =>
-    return .deleteData (← natField j "node") (← natField j "offset") (← natField j "count")
+    return .deleteData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
   | "setData" => return .setData (← natField j "node") (← strField j "data" "")
   | "normalize" => return .normalize (← natField j "target")
   | "createElement" =>
@@ -264,9 +275,9 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "removeNamedItem" =>
     return .removeNamedItem (← natField j "element") (← strField j "name" "")
   | "rangeSetStart" =>
-    return .rangeSetStart (← natField j "range") (← nodeField j "node") (← natField j "offset")
+    return .rangeSetStart (← natField j "range") (← nodeField j "node") (← jsNumberField j "offset")
   | "rangeSetEnd" =>
-    return .rangeSetEnd (← natField j "range") (← nodeField j "node") (← natField j "offset")
+    return .rangeSetEnd (← natField j "range") (← nodeField j "node") (← jsNumberField j "offset")
   | "rangeSetStartBefore" =>
     return .rangeSetStartSibling (← natField j "range") (← nodeField j "node") false
   | "rangeSetStartAfter" =>
@@ -282,15 +293,15 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .rangeSelectNodeContents (← natField j "range") (← nodeField j "node")
   | "rangeIsPointInRange" =>
     return .rangeIsPointInRange (← natField j "range") (← nodeField j "node")
-      (← natField j "offset")
+      (← jsNumberField j "offset")
   | "rangeIntersectsNode" =>
     return .rangeIntersectsNode (← natField j "range") (← nodeField j "node")
   | "rangeCompareBoundaryPoints" =>
-    return .rangeCompareBoundaryPoints (← natField j "range") (← natField j "how")
+    return .rangeCompareBoundaryPoints (← natField j "range") (← jsNumberField j "how")
       (← natField j "source")
   | "rangeComparePoint" =>
     return .rangeComparePoint (← natField j "range") (← nodeField j "node")
-      (← natField j "offset")
+      (← jsNumberField j "offset")
   | "rangeDeleteContents" => return .rangeDeleteContents (← natField j "range")
   | "rangeInsertNode" => return .rangeInsertNode (← natField j "range") (← nodeField j "node")
   | "walkerParentNode" => return .walkerMove (← natField j "walker") .parentNode
@@ -348,7 +359,7 @@ def operationOfJson (j : Json) : Except String Operation := do
       | other => throw s!"未知の setter `{other}`"
     return .setAttrValue (← natField j "attr") (← strField j "value" "") via
   | "substringData" =>
-    return .substringData (← natField j "node") (← natField j "offset") (← natField j "count")
+    return .substringData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
   | "getAttribute" => return .getAttribute (← natField j "element") (← strField j "name" "")
   | "hasAttribute" => return .hasAttribute (← natField j "element") (← strField j "name" "")
   | "getAttributeNames" => return .getAttributeNames (← natField j "element")

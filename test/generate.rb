@@ -489,7 +489,7 @@ module Generate
       # IndexSizeError にならないこと）を撫でるために、たまに null を混ぜる。
       node = rng.rand < 0.06 ? nil : ids.sample(random: rng)
       # 大きい offset も混ぜる。null と合わせると変換が先だと分かる。
-      offset = -> { rng.rand < 0.1 ? 99 : rng.rand(4) }
+      offset = -> { idl_number(rng, rng.rand < 0.1 ? 99 : rng.rand(4)) }
       return case op
              when "rangeSetStart", "rangeSetEnd", "rangeIsPointInRange"
                { "op" => op, "range" => r, "node" => node, "offset" => offset.call }
@@ -499,7 +499,8 @@ module Generate
                { "op" => op, "range" => r, "node" => node, "offset" => offset.call }
              when "rangeCompareBoundaryPoints"
                # `how` は 0-3 のほかに範囲外も混ぜて NotSupportedError を撫でる。
-               { "op" => op, "range" => r, "how" => rng.rand(5), "source" => rng.rand(range_count) }
+               { "op" => op, "range" => r, "how" => idl_number(rng, rng.rand(5), 16),
+                 "source" => rng.rand(range_count) }
              else { "op" => op, "range" => r, "node" => node }
              end
     end
@@ -534,7 +535,8 @@ module Generate
       { "op" => op, "node" => pick.call, "other" => pick.call }
     when "getRootNode", "getTextContent", "getNodeValue" then { "op" => op, "node" => pick.call }
     when "substringData"
-      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4) }
+      { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),
+        "count" => idl_number(rng, rng.rand(4)) }
     when "getAttribute", "hasAttribute"
       { "op" => op, "element" => pick.call, "name" => ATTR_OP_NAMES.sample(random: rng) }
     when "getAttributeNames" then { "op" => op, "element" => pick.call }
@@ -560,15 +562,17 @@ module Generate
         "namespace" => [nil, "", "urn:x", "urn:y", ATTR_NAMESPACES.compact.sample(random: rng),
                         "http://www.w3.org/1999/xhtml"].sample(random: rng) }
     when "replaceData"
-      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4),
+      { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),
+        "count" => idl_number(rng, rng.rand(4)),
         "data" => ["x", "yz", "abc", ASTRAL][rng.rand(4)] }
     when "appendData"
       { "op" => op, "node" => pick.call, "data" => ["x", "yz", ASTRAL][rng.rand(3)] }
     when "insertData"
-      { "op" => op, "node" => pick.call, "offset" => rng.rand(5),
+      { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),
         "data" => ["x", "yz", ASTRAL][rng.rand(3)] }
     when "deleteData"
-      { "op" => op, "node" => pick.call, "offset" => rng.rand(5), "count" => rng.rand(4) }
+      { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),
+        "count" => idl_number(rng, rng.rand(4)) }
     when "setData"
       { "op" => op, "node" => pick.call,
         "data" => ["", "pq", "rstu", ASTRAL, "p#{ASTRAL}q"][rng.rand(5)] }
@@ -1047,6 +1051,16 @@ module Generate
   #
   # `attributeFilter` は「存在するだけで」絞り込みになるので、
   # 空 list と非空 list の両方を混ぜる。
+  # WebIDL の整数型（`unsigned long` は 32、`unsigned short` は 16）への変換を撫でる数。
+  # たまに `n` を、変換すると同じ値になるもの（n ± 2^bits、n + 0.5）か、端の値（−1、−0.5、2^bits）に変える。
+  # model は JSON の十進をそのまま変換し、JS は倍精度に丸めてから変換するので、倍精度で正確に表せる数に限る。
+  def idl_number(rng, n, bits = 32)
+    return n unless rng.rand < 0.15
+
+    m = 2**bits
+    [n + m, n - m, n + 0.5, -1, -0.5, m].sample(random: rng)
+  end
+
   # `observe` 操作の options から、既定値の無い member を落としたり、
   # old value を明示の false にしたりする。step 1-2 は「存在するか」で分岐するので、
   # 省略と false の区別を差分テストに通す（初期状態の observer には使わない）。

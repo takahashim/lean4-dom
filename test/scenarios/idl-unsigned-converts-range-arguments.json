@@ -1,0 +1,34 @@
+{
+  "_note": "Range の offset は IDL の unsigned long、compareBoundaryPoints の how は unsigned short なので、method steps の前に WebIDL の ConvertToInt で変換される。offset の 4294967299 は 3、−4294967295 は 1、4294967298 は 2 になる。how の 65537 は 1（START_TO_END）になって比べられ、65540 は 4 になって NotSupportedError になる。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/webidl/blob/8c65329114411ebd3af025106c2267f5bc00faeb/index.bs",
+    "algorithm": [
+      "ConvertToInt",
+      "convert a JavaScript value to unsigned long",
+      "convert a JavaScript value to unsigned short",
+      "set the start or end",
+      "compareBoundaryPoints"
+    ],
+    "steps": "ConvertToInt 4-12 / compareBoundaryPoints 1",
+    "note": "WebIDL の版は docs/spec-version.md に固定した commit。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0 },
+    { "id": 2, "kind": "text", "parent": 1, "data": "abcd" }
+  ],
+  "ranges": [
+    { "start": { "node": 2, "offset": 0 }, "end": { "node": 2, "offset": 0 } },
+    { "start": { "node": 2, "offset": 2 }, "end": { "node": 2, "offset": 2 } }
+  ],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "rangeSetEnd", "range": 0, "node": 2, "offset": 4294967299 },
+    { "op": "rangeSetStart", "range": 0, "node": 2, "offset": -4294967295 },
+    { "op": "rangeComparePoint", "range": 0, "node": 2, "offset": 4294967298 },
+    { "op": "rangeCompareBoundaryPoints", "range": 0, "how": 65537, "source": 1 },
+    { "op": "rangeCompareBoundaryPoints", "range": 0, "how": 65540, "source": 1 }
+  ]
+}

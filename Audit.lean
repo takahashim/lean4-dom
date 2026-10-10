@@ -1240,3 +1240,10 @@ open Dom.Audit
 #audit_axioms
   Dom.Exec.applyOperation_of_invoke
   Dom.Exec.observe_of_observeMethod
+
+-- WebIDL の整数型への変換（ConvertToInt）：範囲内の自然数は変えず、結果は範囲に入る
+#audit_axioms
+  Dom.Idl.convertToIntUnsigned_lt
+  Dom.Idl.convertToIntUnsigned_ofNat
+  Dom.Idl.toUnsignedLong_ofNat
+  Dom.Idl.toUnsignedShort_ofNat
