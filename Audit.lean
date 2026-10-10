@@ -1295,3 +1295,9 @@ open Dom.Audit
   Dom.Spec.getElementsByTagNameNS_sorted
   Dom.Spec.mem_getElementsByTagName_iff
   Dom.Spec.mem_getElementsByTagNameNS_iff
+
+-- equals（§4.4）と clone
+#audit_axioms
+  Dom.Spec.nodeEquals_iff
+  Dom.Spec.cloneOf_nodeEquals
+  Dom.Spec.cloneNode_nodeEquals

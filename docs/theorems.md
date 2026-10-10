@@ -732,6 +732,30 @@ element も "list of elements with qualified name"・"list of elements with name
 止まらない誤りを見つけた（`docs/status.md`）。`lastChild()` と "traverse siblings" は鏡像の順序を使うので、
 関係はまだ無い。
 
+## 25. `isEqualNode` は §4.4 の equals そのものであり、deep clone は原本と equals である
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.nodeEquals_iff` | `Dom/Spec/Equals.lean` |
+| `Dom.Spec.cloneOf_nodeEquals` | 同上 |
+| `Dom.Spec.cloneNode_nodeEquals` | 同上 |
+
+```lean
+theorem nodeEquals_iff (hwf : WellFormed t) (a b : NodeId) :
+    nodeEquals t a b = true ↔ NodeEquals t a b
+theorem cloneNode_nodeEquals (hv : AdmissibleDOMState s) (h : cloneNode s n true = .ok (c, s')) :
+    nodeEquals s'.tree c n = true
+```
+
+本文の "A equals B" は条件の並びで、children の条件（同じ数で、同じ index の子どうしが equals）が再帰になる。
+関係 `NodeEquals` はそれを帰納的な関係の構成子に書いた。実行関数 `nodeEquals` は木の高さを fuel にした再帰で、
+関係とちょうど一致する（`↔`）。
+
+clone の関係 `CloneOf`（`Dom/Properties/Clone.lean`。copy の部分木と原本の部分木が、id と node document を除いて
+位置ごとに一致する bisimulation）は、ここで equals に結びつく。bisimulation は有限の木の上で帰納的な関係に落ちる
+（深さで induction する）。二つの別々の定式化（clone の側は `NodeData.shapeAnon` の一致、equals の側は本文の
+条件の並び）が整合することを示したもので、どちらかの読み違いがあればここで証明が通らなくなる。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

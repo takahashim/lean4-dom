@@ -6724,6 +6724,14 @@ TreeWalker の関係（`nextNode`・`previousNode`・"traverse children"・`pare
 `getElementsByName()`・`getElementsByTagName()`・`getElementsByTagNameNS()` の列が tree order に並ぶことを示した
 （`Dom/Spec/LookupOrder.lean`）。tag name で引く二つは当たる element の条件も本文の語彙で書いた。
 
+## equals の関係を書き、deep clone が原本と equals であることを示した
+
+§4.4 の "A equals B" を帰納的な関係 `NodeEquals` に書き、`isEqualNode` の実行関数 `nodeEquals` がちょうどそれで
+あることを示した（`nodeEquals_iff`、`Dom/Spec/Equals.lean`）。clone の関係 `CloneOf`（既にあった bisimulation）で
+結ばれた node は equals である（`cloneOf_nodeEquals`）ので、deep clone の結果は原本と `isEqualNode` で等しい
+（`cloneNode_nodeEquals`）。clone の対応表には `CloneOf` と既存の定理を関係として載せ、"clone a single node" の
+step 5.1 の近似の説明を、content type を写すようになったことに合わせて直した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

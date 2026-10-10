@@ -185,11 +185,11 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [set-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#set-text-content) | 0/1（近似 1） | `Dom.setTextContent`<br>`Dom.stringReplaceAll`<br>`Dom.setAttrValue` |  |
 | [dom-node-textcontent/setter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-textcontent) | 1/1 | `Dom.setTextContent`<br>`Dom.setAttrValue` |  |
 | [dom-node-normalize](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-normalize) | 3/13（近似 10） | `Dom.normalize`<br>`Dom.normalizeList`<br>`Dom.normalizeRun`<br>`Dom.normalizeMergeOne`<br>`Dom.normalizeMergeRange`<br>`Dom.normalizeMergeBP`<br>`Dom.followingTexts` | `Dom.Spec.NormalizeSpec`<br>`Dom.Spec.NormalizeResult` |
-| [concept-node-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-clone) | 5/14 | `Dom.cloneNodeIn`<br>`Dom.cloneMany`<br>`Dom.cloneAppend` |  |
-| [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#clone-a-single-node) | 12/18（近似 2） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` |  |
+| [concept-node-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-clone) | 5/14 | `Dom.cloneNodeIn`<br>`Dom.cloneMany`<br>`Dom.cloneAppend` | `Dom.CloneOf`<br>`Dom.cloneNode_cloneOf`<br>`Dom.cloneNodeIn_deep_spec` |
+| [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#clone-a-single-node) | 12/18（近似 2） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` | `Dom.cloneNodeIn_shallow_spec` |
 | [dom-node-clonenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-clonenode) | 1/2 | `Dom.cloneNode`<br>`Dom.cloneAttr` |  |
-| [concept-node-equals](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-equals) | 1/1 | `Dom.nodeEqualsFuel`<br>`Dom.nodeOwnPropertiesEqual`<br>`Dom.attrEquals`<br>`Dom.nodeRefEquals` |  |
-| [dom-node-isequalnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isequalnode) | 1/1 | `Dom.nodeEquals`<br>`Dom.nodeRefEquals`<br>`Dom.Exec.Operation.isEqualNodeNull` |  |
+| [concept-node-equals](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-equals) | 1/1 | `Dom.nodeEqualsFuel`<br>`Dom.nodeOwnPropertiesEqual`<br>`Dom.attrEquals`<br>`Dom.nodeRefEquals` | `Dom.Spec.NodeEquals`<br>`Dom.Spec.nodeEquals_iff`<br>`Dom.Spec.cloneOf_nodeEquals` |
+| [dom-node-isequalnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isequalnode) | 1/1 | `Dom.nodeEquals`<br>`Dom.nodeRefEquals`<br>`Dom.Exec.Operation.isEqualNodeNull` | `Dom.Spec.nodeEquals_iff` |
 | [dom-node-comparedocumentposition](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-comparedocumentposition) | 15/15 | `Dom.compareDocumentPosition`<br>`Dom.compareDocumentPositionRef` | `Dom.Spec.DocumentPositionSpec` |
 | [dom-node-contains](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-contains) | 1/1 | `Dom.nodeContains`<br>`Dom.nodeContainsRef`<br>`Dom.Exec.Operation.nodeContainsNull` |  |
 | [locate-a-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#locate-a-namespace-prefix) | 4/4 | `Dom.locateNamespacePrefixIn`<br>`Dom.elementChain` |  |
@@ -575,7 +575,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-node-normalize | 6 | 兄弟ごとに boundary point を渡してからその兄弟を remove する。step 6 と step 7 を兄弟ごとに交互に行う |
 | dom-node-normalize | 7 | 兄弟ごとに step 6 の直後に remove する（上と同じ） |
 | clone-a-single-node | 2.4 | create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い） |
-| clone-a-single-node | 5.1 | Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い |
+| clone-a-single-node | 5.1 | Document の持ち物のうち model にあるのは type（`isHTMLDocument`）・mode・content type だけで、それを写す。encoding・URL・origin・allow declarative shadow roots は無い |
 | dom-document-getelementsbytagname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-document-getelementsbytagnamens | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-document-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |

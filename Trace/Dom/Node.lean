@@ -70,20 +70,24 @@ def entries : List Entry := [
                ("7", "兄弟ごとに step 6 の直後に remove する（上と同じ）")] },
   { alg := "concept-node-clone"
     impl := [``Dom.cloneNodeIn, ``Dom.cloneMany, ``Dom.cloneAppend]
+    spec := [``Dom.CloneOf, ``Dom.cloneNode_cloneOf, ``Dom.cloneNodeIn_deep_spec]
     omitted := [("3", .hook), ("6", .shadow)] },
   { alg := "clone-a-single-node"
     impl := [``Dom.cloneSingle, ``Dom.cloneData, ``Dom.cloneDocumentOf, ``Dom.cloneAttrIn]
+    spec := [``Dom.cloneNodeIn_shallow_spec]
     omitted := [("2.1-2.3", .customElements), ("5.2", .customElements)]
     approx := [("2.4", "create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い）"),
-               ("5.1", "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い")] },
+               ("5.1", "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）・mode・content type だけで、それを写す。encoding・URL・origin・allow declarative shadow roots は無い")] },
   { alg := "dom-node-clonenode"
     impl := [``Dom.cloneNode, ``Dom.cloneAttr]
     omitted := [("1", .shadow)] },
   { alg := "concept-node-equals"
-    impl := [``Dom.nodeEqualsFuel, ``Dom.nodeOwnPropertiesEqual, ``Dom.attrEquals, ``Dom.nodeRefEquals] },
+    impl := [``Dom.nodeEqualsFuel, ``Dom.nodeOwnPropertiesEqual, ``Dom.attrEquals, ``Dom.nodeRefEquals]
+    spec := [``Dom.Spec.NodeEquals, ``Dom.Spec.nodeEquals_iff, ``Dom.Spec.cloneOf_nodeEquals] },
   { alg := "dom-node-isequalnode"
     -- otherNode が null なら false（`isEqualNodeNull`）。
-    impl := [``Dom.nodeEquals, ``Dom.nodeRefEquals, ``Dom.Exec.Operation.isEqualNodeNull] },
+    impl := [``Dom.nodeEquals, ``Dom.nodeRefEquals, ``Dom.Exec.Operation.isEqualNodeNull]
+    spec := [``Dom.Spec.nodeEquals_iff] },
   { alg := "dom-node-comparedocumentposition"
     impl := [``Dom.compareDocumentPosition, ``Dom.compareDocumentPositionRef]
     spec := [``Dom.Spec.DocumentPositionSpec] },

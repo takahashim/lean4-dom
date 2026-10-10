@@ -172,6 +172,7 @@ import Dom.Spec.TreeOrder
 import Dom.Spec.Traverse
 import Dom.Spec.Walker
 import Dom.Spec.LookupOrder
+import Dom.Spec.Equals
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化

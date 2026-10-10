@@ -1810,7 +1810,11 @@
         "Dom.cloneMany",
         "Dom.cloneAppend"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.CloneOf",
+        "Dom.cloneNode_cloneOf",
+        "Dom.cloneNodeIn_deep_spec"
+      ],
       "omit": [
         {
           "steps": "3",
@@ -1840,7 +1844,9 @@
         "Dom.cloneDocumentOf",
         "Dom.cloneAttrIn"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.cloneNodeIn_shallow_spec"
+      ],
       "omit": [
         {
           "steps": "2.1-2.3",
@@ -1864,7 +1870,7 @@
         },
         {
           "steps": "5.1",
-          "what": "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い"
+          "what": "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）・mode・content type だけで、それを写す。encoding・URL・origin・allow declarative shadow roots は無い"
         }
       ]
     },
@@ -1900,7 +1906,11 @@
         "Dom.attrEquals",
         "Dom.nodeRefEquals"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.NodeEquals",
+        "Dom.Spec.nodeEquals_iff",
+        "Dom.Spec.cloneOf_nodeEquals"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1914,7 +1924,9 @@
         "Dom.nodeRefEquals",
         "Dom.Exec.Operation.isEqualNodeNull"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.nodeEquals_iff"
+      ],
       "omit": [],
       "approx": []
     },
