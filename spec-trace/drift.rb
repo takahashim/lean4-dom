@@ -7,6 +7,7 @@
 #   ruby spec-trace/drift.rb --ref <sha|branch>
 #   ruby spec-trace/drift.rb --bs path/to/dom.bs
 #   ruby spec-trace/drift.rb --mapping map.json # 表（既定は spec-trace/map.json。`lake exe spec-trace` の出力）
+#   ruby spec-trace/drift.rb --spec webidl      # WebIDL（spec-trace/webidl.json と spec-trace/webidl-map.json）
 #
 # 終了コードは、表に載せた algorithm に変化があるか、どこにも分類されない新しい
 # algorithm が現れたときに 1 になる。対象外の algorithm の変化は報告だけする。
@@ -18,11 +19,12 @@
 require "json"
 require_relative "extract"
 require_relative "fetch"
+require_relative "specs"
 
 ROOT = File.expand_path("..", __dir__)
 
-def load_mapping(path)
-  JSON.parse(File.read(path || File.join(ROOT, "spec-trace/map.json")))
+def load_mapping(path, spec)
+  JSON.parse(File.read(path || File.join(ROOT, spec[:map])))
 end
 
 def diff_steps(old, new)
@@ -45,8 +47,10 @@ end
 ref = "main"
 bs = nil
 mapping_path = nil
+name = "dom"
 while (a = ARGV.shift)
   case a
+  when "--spec" then name = ARGV.shift
   when "--ref" then ref = ARGV.shift
   when "--bs" then bs = ARGV.shift
   when "--mapping" then mapping_path = ARGV.shift
@@ -54,18 +58,19 @@ while (a = ARGV.shift)
   end
 end
 
-snap = JSON.parse(File.read(File.join(ROOT, "spec-trace/dom.json")))
+spec = Trace.spec(name)
+snap = JSON.parse(File.read(File.join(ROOT, spec[:snapshot])))
 base = snap["commit"]
 if bs
   head = "(#{bs})"
   src = File.read(bs)
 else
-  head = Trace::Fetch.resolve(ref)
-  src = Trace::Fetch.dom_bs(head)
+  head = Trace::Fetch.resolve(ref, spec[:repo])
+  src = Trace::Fetch.source(spec, head)
 end
-new_algs = Trace::Extract.run(src).to_h { |x| [x["key"], x] }
+new_algs = Trace.extract(name, src).to_h { |x| [x["key"], x] }
 old_algs = snap["algorithms"].to_h { |x| [x["key"], x] }
-mapping = load_mapping(mapping_path)
+mapping = load_mapping(mapping_path, spec)
 mapped = mapping["entries"].map { |e| e["alg"] }.to_set
 exclusions = mapping["exclusions"].map { |x| x["target"] }
 
@@ -74,12 +79,12 @@ excluded = lambda do |alg|
 end
 
 report = +""
-report << "# dom.bs の改訂と対応表\n\n"
+report << "# #{spec[:file]}（#{spec[:title]}）の改訂と対応表\n\n"
 report << "固定版 `#{base[0, 12]}` と `#{head[0, 12]}`（#{ref}）を比べた。\n\n"
 unless bs || base == head
-  commits = Trace::Fetch.commits_between(base, head)
+  commits = Trace::Fetch.commits_between(base, head, spec[:repo])
   unless commits.empty?
-    report << "その間の whatwg/dom の commit：\n\n"
+    report << "その間の #{spec[:repo]} の commit：\n\n"
     commits.each { |sha, msg| report << "* `#{sha}` #{msg}\n" }
     report << "\n"
   end
@@ -95,7 +100,7 @@ sections = { mapped: +"", excluded: +"" }
   bucket = mapped.include?(k) ? :mapped : :excluded
   text = +""
   if o.nil?
-    link = "[#{k}](https://dom.spec.whatwg.org/##{k.sub(%r{/setter\z}, '')})"
+    link = "[#{k}](#{spec[:site]}/##{k.sub(%r{/(setter|\d+)\z}, '')})"
     if excluded.call(n)
       sections[:excluded] << "* 新しい algorithm #{link}（§#{n['section']}）：対象外の見出しの下にある\n"
     else

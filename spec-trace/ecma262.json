@@ -1,0 +1,1600 @@
+{
+  "spec": "ecma262",
+  "commit": "5345883164f463e87f8b40aca4956157ecba8783",
+  "algorithms": [
+    {
+      "key": "sec-numeric-types-number-tostring",
+      "section": "6.1.6.1.20",
+      "heading": "sec-numeric-types-number-tostring",
+      "headings": [
+        "sec-ecmascript-data-types-and-values",
+        "sec-ecmascript-language-types",
+        "sec-numeric-types",
+        "sec-ecmascript-language-types-number-type"
+      ],
+      "line": 2419,
+      "title": "Number::toString ( x: a Number, radix: an integer in the inclusive interval from 2 to 36, ): a String",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "e0611cac88497c21",
+          "text": "If _x_ is *NaN*, return *\"NaN\"*."
+        },
+        {
+          "n": "2",
+          "hash": "440ca61b7e490fb7",
+          "text": "If _x_ is either *+0*𝔽 or *-0*𝔽, return *\"0\"*."
+        },
+        {
+          "n": "3",
+          "hash": "7b7647b39cb6baf7",
+          "text": "If _x_ < *-0*𝔽, return the string-concatenation of *\"-\"* and Number::toString(-_x_, _radix_)."
+        },
+        {
+          "n": "4",
+          "hash": "0bd953420c0751df",
+          "text": "If _x_ is *+∞*𝔽, return *\"Infinity\"*."
+        },
+        {
+          "n": "5",
+          "hash": "f755e7d9e87d110d",
+          "text": "[id=\"step-number-tostring-intermediate-values\"] Let _n_, _k_, and _s_ be integers such that _k_ ≥ 1, _radix__k_ - 1 ≤ _s_ < _radix__k_, 𝔽(_s_ × _radix__n_ - _k_"
+        },
+        {
+          "n": "6",
+          "hash": "436630f95f54e98c",
+          "text": "If _radix_ ≠ 10 or _n_ is in the inclusive interval from -5 to 21, then"
+        },
+        {
+          "n": "6.1",
+          "hash": "d2434f4658974bef",
+          "text": "If _n_ ≥ _k_, then"
+        },
+        {
+          "n": "6.1.1",
+          "hash": "7d4cfe75c14983bc",
+          "text": "Return the string-concatenation of: * the code units of the _k_ digits of the representation of _s_ using radix _radix_ * _n_ - _k_ occurrences of the code unit"
+        },
+        {
+          "n": "6.2",
+          "hash": "2ae2a4c839ce0639",
+          "text": "If _n_ > 0, then"
+        },
+        {
+          "n": "6.2.1",
+          "hash": "885bf01d68f34f43",
+          "text": "Return the string-concatenation of: * the code units of the most significant _n_ digits of the representation of _s_ using radix _radix_ * the code unit 0x002E "
+        },
+        {
+          "n": "6.3",
+          "hash": "8bcb5bc2ac01d720",
+          "text": "Assert: _n_ ≤ 0."
+        },
+        {
+          "n": "6.4",
+          "hash": "2fef2be085509b89",
+          "text": "Return the string-concatenation of: * the code unit 0x0030 (DIGIT ZERO) * the code unit 0x002E (FULL STOP) * -_n_ occurrences of the code unit 0x0030 (DIGIT ZER"
+        },
+        {
+          "n": "7",
+          "hash": "ce431c9e1373614d",
+          "text": "NOTE: In this case, the input will be represented using scientific E notation, such as `1.2e+3`."
+        },
+        {
+          "n": "8",
+          "hash": "b9c501135892ea2c",
+          "text": "Assert: _radix_ is 10."
+        },
+        {
+          "n": "9",
+          "hash": "3646f33d33df8ab8",
+          "text": "If _n_ < 0, then"
+        },
+        {
+          "n": "9.1",
+          "hash": "61800bd9fc280ac3",
+          "text": "Let _exponentSign_ be the code unit 0x002D (HYPHEN-MINUS)."
+        },
+        {
+          "n": "10",
+          "hash": "73d618bc9c48dd8d",
+          "text": "Else,"
+        },
+        {
+          "n": "10.1",
+          "hash": "631164295721acda",
+          "text": "Let _exponentSign_ be the code unit 0x002B (PLUS SIGN)."
+        },
+        {
+          "n": "11",
+          "hash": "82b3ae49856e43bd",
+          "text": "If _k_ = 1, then"
+        },
+        {
+          "n": "11.1",
+          "hash": "6d81b612244d8b3c",
+          "text": "Return the string-concatenation of: * the code unit of the single digit of _s_ * the code unit 0x0065 (LATIN SMALL LETTER E) * _exponentSign_ * the code units o"
+        },
+        {
+          "n": "12",
+          "hash": "85ce5e4540f37e1f",
+          "text": "Return the string-concatenation of: * the code unit of the most significant digit of the decimal representation of _s_ * the code unit 0x002E (FULL STOP) * the "
+        }
+      ],
+      "hash": "415a61876fde16db"
+    },
+    {
+      "key": "sec-toprimitive",
+      "section": "7.1.1",
+      "heading": "sec-toprimitive",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5083,
+      "title": "ToPrimitive ( input: an ECMAScript language value, optional preferredType: ~string~ or ~number~, ): either a normal completion containing an ECMAScript language",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "d85cbb9997af339b",
+          "text": "If _input_ is an Object, then"
+        },
+        {
+          "n": "1.1",
+          "hash": "4923741f3c009584",
+          "text": "Let _exoticToPrimitive_ be ? GetMethod(_input_, %Symbol.toPrimitive%)."
+        },
+        {
+          "n": "1.2",
+          "hash": "abc6966012797e25",
+          "text": "If _exoticToPrimitive_ is not *undefined*, then"
+        },
+        {
+          "n": "1.2.1",
+          "hash": "4c7a04a2bee7caa2",
+          "text": "If _preferredType_ is not present, then"
+        },
+        {
+          "n": "1.2.1.1",
+          "hash": "04cb223bc4b195b7",
+          "text": "Let _hint_ be *\"default\"*."
+        },
+        {
+          "n": "1.2.2",
+          "hash": "234fd6ca21c71999",
+          "text": "Else if _preferredType_ is ~string~, then"
+        },
+        {
+          "n": "1.2.2.1",
+          "hash": "cfb57f60d7ff0e46",
+          "text": "Let _hint_ be *\"string\"*."
+        },
+        {
+          "n": "1.2.3",
+          "hash": "73d618bc9c48dd8d",
+          "text": "Else,"
+        },
+        {
+          "n": "1.2.3.1",
+          "hash": "df61845387867d90",
+          "text": "Assert: _preferredType_ is ~number~."
+        },
+        {
+          "n": "1.2.3.2",
+          "hash": "701ed50f04cb8bce",
+          "text": "Let _hint_ be *\"number\"*."
+        },
+        {
+          "n": "1.2.4",
+          "hash": "1fc63ec767ed9066",
+          "text": "Let _result_ be ? Call(_exoticToPrimitive_, _input_, « _hint_ »)."
+        },
+        {
+          "n": "1.2.5",
+          "hash": "0001741e56a9ff6a",
+          "text": "If _result_ is not an Object, return _result_."
+        },
+        {
+          "n": "1.2.6",
+          "hash": "4a6a0deea7dc6f7f",
+          "text": "Throw a *TypeError* exception."
+        },
+        {
+          "n": "1.3",
+          "hash": "237f570bfd3cc87c",
+          "text": "If _preferredType_ is not present, set _preferredType_ to ~number~."
+        },
+        {
+          "n": "1.4",
+          "hash": "226235cdd40ef4ea",
+          "text": "Return ? OrdinaryToPrimitive(_input_, _preferredType_)."
+        },
+        {
+          "n": "2",
+          "hash": "8e065d54d5602457",
+          "text": "Return _input_."
+        }
+      ],
+      "hash": "de148c33e038efa6"
+    },
+    {
+      "key": "sec-ordinarytoprimitive",
+      "section": "7.1.1.1",
+      "heading": "sec-ordinarytoprimitive",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-toprimitive"
+      ],
+      "line": 5114,
+      "title": "OrdinaryToPrimitive ( obj: an Object, hint: ~string~ or ~number~, ): either a normal completion containing an ECMAScript language value or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "cfa89d243515848f",
+          "text": "If _hint_ is ~string~, then"
+        },
+        {
+          "n": "1.1",
+          "hash": "bfb8d5a26fe0e1b8",
+          "text": "Let _methodNames_ be « *\"toString\"*, *\"valueOf\"* »."
+        },
+        {
+          "n": "2",
+          "hash": "73d618bc9c48dd8d",
+          "text": "Else,"
+        },
+        {
+          "n": "2.1",
+          "hash": "36224e8e431e144e",
+          "text": "Let _methodNames_ be « *\"valueOf\"*, *\"toString\"* »."
+        },
+        {
+          "n": "3",
+          "hash": "58d5e3b6c06c8995",
+          "text": "For each element _name_ of _methodNames_, do"
+        },
+        {
+          "n": "3.1",
+          "hash": "50a762e07f806884",
+          "text": "Let _method_ be ? Get(_obj_, _name_)."
+        },
+        {
+          "n": "3.2",
+          "hash": "b97e1f41feab6063",
+          "text": "If IsCallable(_method_) is *true*, then"
+        },
+        {
+          "n": "3.2.1",
+          "hash": "5d199fea2130d74c",
+          "text": "Let _result_ be ? Call(_method_, _obj_)."
+        },
+        {
+          "n": "3.2.2",
+          "hash": "0001741e56a9ff6a",
+          "text": "If _result_ is not an Object, return _result_."
+        },
+        {
+          "n": "4",
+          "hash": "4a6a0deea7dc6f7f",
+          "text": "Throw a *TypeError* exception."
+        }
+      ],
+      "hash": "9be12bc5474ff6ea"
+    },
+    {
+      "key": "sec-toboolean",
+      "section": "7.1.2",
+      "heading": "sec-toboolean",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5139,
+      "title": "ToBoolean ( arg: an ECMAScript language value, ): a Boolean",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "cf4cbb20a88f17f6",
+          "text": "If _arg_ is a Boolean, return _arg_."
+        },
+        {
+          "n": "2",
+          "hash": "07d183bf9f63bc7b",
+          "text": "If _arg_ is one of *undefined*, *null*, *+0*𝔽, *-0*𝔽, *NaN*, *0*ℤ, or the empty String, return *false*."
+        },
+        {
+          "n": "3",
+          "hash": "20ffc7fd7432befb",
+          "text": "[id=\"step-to-boolean-web-compat-insertion-point\", normative-optional] If the host is a web browser or otherwise supports , then"
+        },
+        {
+          "n": "3.1",
+          "hash": "2437d157935ea972",
+          "text": "If _arg_ is an Object and _arg_ has an [[IsHTMLDDA]] internal slot, return *false*."
+        },
+        {
+          "n": "4",
+          "hash": "2bf67fa2f9f184b0",
+          "text": "Return *true*."
+        }
+      ],
+      "hash": "516a2f284b23f5b4"
+    },
+    {
+      "key": "sec-tonumeric",
+      "section": "7.1.3",
+      "heading": "sec-tonumeric",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5158,
+      "title": "ToNumeric ( arg: an ECMAScript language value, ): either a normal completion containing either a Number or a BigInt, or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "8d2fea2ff746c42b",
+          "text": "Let _primitiveValue_ be ? ToPrimitive(_arg_, ~number~)."
+        },
+        {
+          "n": "2",
+          "hash": "5163626cfadb6262",
+          "text": "If _primitiveValue_ is a BigInt, return _primitiveValue_."
+        },
+        {
+          "n": "3",
+          "hash": "4500a55671291cf6",
+          "text": "Return ? ToNumber(_primitiveValue_)."
+        }
+      ],
+      "hash": "685a1915d84a8110"
+    },
+    {
+      "key": "sec-tonumber",
+      "section": "7.1.4",
+      "heading": "sec-tonumber",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5175,
+      "title": "ToNumber ( arg: an ECMAScript language value, ): either a normal completion containing a Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "d7f98d30e42c45dd",
+          "text": "If _arg_ is a Number, return _arg_."
+        },
+        {
+          "n": "2",
+          "hash": "1012de8ad33f63db",
+          "text": "If _arg_ is either a Symbol or a BigInt, throw a *TypeError* exception."
+        },
+        {
+          "n": "3",
+          "hash": "f122e97463d9fd5b",
+          "text": "If _arg_ is *undefined*, return *NaN*."
+        },
+        {
+          "n": "4",
+          "hash": "184fd68fd441420c",
+          "text": "If _arg_ is either *null* or *false*, return *+0*𝔽."
+        },
+        {
+          "n": "5",
+          "hash": "faef80a3e4b8044a",
+          "text": "If _arg_ is *true*, return *1*𝔽."
+        },
+        {
+          "n": "6",
+          "hash": "5b2a91e0bd48fe89",
+          "text": "If _arg_ is a String, return StringToNumber(_arg_)."
+        },
+        {
+          "n": "7",
+          "hash": "fef9e6c7e7dfe28a",
+          "text": "Assert: _arg_ is an Object."
+        },
+        {
+          "n": "8",
+          "hash": "8d2fea2ff746c42b",
+          "text": "Let _primitiveValue_ be ? ToPrimitive(_arg_, ~number~)."
+        },
+        {
+          "n": "9",
+          "hash": "6ae8d43f058eec04",
+          "text": "Assert: _primitiveValue_ is not an Object."
+        },
+        {
+          "n": "10",
+          "hash": "dae90e92388937df",
+          "text": "Return ? ToNumber(_primitiveValue_)."
+        }
+      ],
+      "hash": "9a45284f909041ad"
+    },
+    {
+      "key": "sec-stringtonumber",
+      "section": "7.1.4.1.1",
+      "heading": "sec-stringtonumber",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5255,
+      "title": "StringToNumber ( string: a String, ): a Number",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "ed09f79c5e148774",
+          "text": "Let _literal_ be ParseText(_string_, |StringNumericLiteral|)."
+        },
+        {
+          "n": "2",
+          "hash": "6216838141f9fb10",
+          "text": "If _literal_ is a List of errors, return *NaN*."
+        },
+        {
+          "n": "3",
+          "hash": "40044043e6e8239b",
+          "text": "Return the StringNumericValue of _literal_."
+        }
+      ],
+      "hash": "39e732cf7bac1d44"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/1",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5270,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StringNumericLiteral ::: StrWhiteSpace?",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "ce1f40b8b2973d7b",
+          "text": "Return *+0*𝔽."
+        }
+      ],
+      "hash": "bba0e04fdd3dea97"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/2",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5274,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StringNumericLiteral ::: StrWhiteSpace? StrNumericLiteral StrWhiteSpace?",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "9645803af3328b9c",
+          "text": "Return the StringNumericValue of |StrNumericLiteral|."
+        }
+      ],
+      "hash": "32744f9a1f40d8ef"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/3",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5278,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrNumericLiteral ::: NonDecimalIntegerLiteral",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "5437aad679b03644",
+          "text": "Return 𝔽(MV of |NonDecimalIntegerLiteral|)."
+        }
+      ],
+      "hash": "f98039fb79a68963"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/4",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5282,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrDecimalLiteral ::: `-` StrUnsignedDecimalLiteral",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "adb875ec61158a24",
+          "text": "Let _a_ be the StringNumericValue of |StrUnsignedDecimalLiteral|."
+        },
+        {
+          "n": "2",
+          "hash": "4fe80936e68b5714",
+          "text": "If _a_ is *+0*𝔽, return *-0*𝔽."
+        },
+        {
+          "n": "3",
+          "hash": "3dd5b25429aae214",
+          "text": "Return -_a_."
+        }
+      ],
+      "hash": "d86d3392dcfd1506"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/5",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5288,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: `Infinity`",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "7fb6ffde4a6dd631",
+          "text": "Return *+∞*𝔽."
+        }
+      ],
+      "hash": "867d8880fb6fd979"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/6",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5292,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: DecimalDigits `.` DecimalDigits? ExponentPart?",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "16f8355271862e8a",
+          "text": "Let _a_ be the MV of the first |DecimalDigits|."
+        },
+        {
+          "n": "2",
+          "hash": "cbd1ba62136ce762",
+          "text": "If the second |DecimalDigits| is present, then"
+        },
+        {
+          "n": "2.1",
+          "hash": "82b881b83b31632d",
+          "text": "Let _b_ be the MV of the second |DecimalDigits|."
+        },
+        {
+          "n": "2.2",
+          "hash": "e39a4b49ed9a1407",
+          "text": "Let _n_ be the number of code points in the second |DecimalDigits|."
+        },
+        {
+          "n": "3",
+          "hash": "73d618bc9c48dd8d",
+          "text": "Else,"
+        },
+        {
+          "n": "3.1",
+          "hash": "d09b40725b7dcb4f",
+          "text": "Let _b_ be 0."
+        },
+        {
+          "n": "3.2",
+          "hash": "1b1cfbcded924bfa",
+          "text": "Let _n_ be 0."
+        },
+        {
+          "n": "4",
+          "hash": "3a95ad6d61beeb4d",
+          "text": "If |ExponentPart| is present, let _e_ be the MV of |ExponentPart|; else let _e_ be 0."
+        },
+        {
+          "n": "5",
+          "hash": "4ab2b50baaec530c",
+          "text": "Return RoundMVResult((_a_ + (_b_ × 10-_n_)) × 10_e_)."
+        }
+      ],
+      "hash": "bcb61051c3923100"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/7",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5304,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: `.` DecimalDigits ExponentPart?",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "0bb47fd1771230a6",
+          "text": "Let _b_ be the MV of |DecimalDigits|."
+        },
+        {
+          "n": "2",
+          "hash": "3a95ad6d61beeb4d",
+          "text": "If |ExponentPart| is present, let _e_ be the MV of |ExponentPart|; else let _e_ be 0."
+        },
+        {
+          "n": "3",
+          "hash": "d3e1300328616ab3",
+          "text": "Let _n_ be the number of code points in |DecimalDigits|."
+        },
+        {
+          "n": "4",
+          "hash": "771a224717e373d9",
+          "text": "Return RoundMVResult(_b_ × 10_e_ - _n_)."
+        }
+      ],
+      "hash": "e480661bb1e84bcf"
+    },
+    {
+      "key": "sec-runtime-semantics-stringnumericvalue/8",
+      "section": "7.1.4.1.2",
+      "heading": "sec-runtime-semantics-stringnumericvalue",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5311,
+      "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: DecimalDigits ExponentPart?",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "85d906b982974bd0",
+          "text": "Let _a_ be the MV of |DecimalDigits|."
+        },
+        {
+          "n": "2",
+          "hash": "3a95ad6d61beeb4d",
+          "text": "If |ExponentPart| is present, let _e_ be the MV of |ExponentPart|; else let _e_ be 0."
+        },
+        {
+          "n": "3",
+          "hash": "8ed4fdec1f964717",
+          "text": "Return RoundMVResult(_a_ × 10_e_)."
+        }
+      ],
+      "hash": "de6d48ed762b3820"
+    },
+    {
+      "key": "sec-roundmvresult",
+      "section": "7.1.4.1.3",
+      "heading": "sec-roundmvresult",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion",
+        "sec-tonumber",
+        "sec-tonumber-applied-to-the-string-type"
+      ],
+      "line": 5328,
+      "title": "RoundMVResult ( n: a mathematical value, ): a Number",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "3dd639751bd2b8f3",
+          "text": "If the decimal representation of _n_ has 20 or fewer significant digits, return 𝔽(_n_)."
+        },
+        {
+          "n": "2",
+          "hash": "5561a92ee37160cb",
+          "text": "Let _option1_ be the mathematical value denoted by the result of replacing each significant digit in the decimal representation of _n_ after the 20th with a 0 d"
+        },
+        {
+          "n": "3",
+          "hash": "d032d1ee57db618d",
+          "text": "Let _option2_ be the mathematical value denoted by the result of replacing each significant digit in the decimal representation of _n_ after the 20th with a 0 d"
+        },
+        {
+          "n": "4",
+          "hash": "a5b1d25092f48ef9",
+          "text": "Let _chosen_ be an implementation-defined choice of either _option1_ or _option2_."
+        },
+        {
+          "n": "5",
+          "hash": "8c3da1c6bc3125dd",
+          "text": "Return 𝔽(_chosen_)."
+        }
+      ],
+      "hash": "6d556cc2058c37da"
+    },
+    {
+      "key": "sec-tointegerorinfinity",
+      "section": "7.1.5",
+      "heading": "sec-tointegerorinfinity",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5349,
+      "title": "ToIntegerOrInfinity ( arg: an ECMAScript language value, ): either a normal completion containing either an integer, +&infin;, or -&infin;, or a throw completio",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "32cfaf32ccf0d170",
+          "text": "Let _number_ be ? ToNumber(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "5e000d8819d881f3",
+          "text": "If _number_ is one of *NaN*, *+0*𝔽, or *-0*𝔽, return 0."
+        },
+        {
+          "n": "3",
+          "hash": "c0f7cb21092f09a0",
+          "text": "If _number_ is *+∞*𝔽, return +∞."
+        },
+        {
+          "n": "4",
+          "hash": "a5d8a3c0403c715f",
+          "text": "If _number_ is *-∞*𝔽, return -∞."
+        },
+        {
+          "n": "5",
+          "hash": "f68dfc6ba511e5fb",
+          "text": "Return truncate(ℝ(_number_))."
+        }
+      ],
+      "hash": "eca650367e0ee8ed"
+    },
+    {
+      "key": "sec-snaptointeger",
+      "section": "7.1.6",
+      "heading": "sec-snaptointeger",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5374,
+      "title": "SnapToInteger ( arg: an ECMAScript language value, nonIntHandling: ~reject~ or ~truncate~, optional minimum: an integer, optional maximum: an integer, ): either",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "32cfaf32ccf0d170",
+          "text": "Let _number_ be ? ToNumber(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "d9d15c93390631a8",
+          "text": "If _number_ is one of *NaN*, *+∞*𝔽, or *-∞*𝔽, throw a *RangeError* exception."
+        },
+        {
+          "n": "3",
+          "hash": "2bdcaf0c91993e88",
+          "text": "Let _mv_ be ℝ(_number_)."
+        },
+        {
+          "n": "4",
+          "hash": "65ebff8c7a43fa2f",
+          "text": "If _nonIntHandling_ is ~truncate~, set _mv_ to truncate(_mv_)."
+        },
+        {
+          "n": "5",
+          "hash": "123fcb4990bc8a6b",
+          "text": "If _mv_ is not an integer, throw a *RangeError* exception."
+        },
+        {
+          "n": "6",
+          "hash": "98ddbc10fa538097",
+          "text": "If _minimum_ is present and _mv_ < _minimum_, throw a *RangeError* exception."
+        },
+        {
+          "n": "7",
+          "hash": "ba60600d6ebcc172",
+          "text": "If _maximum_ is present and _mv_ > _maximum_, throw a *RangeError* exception."
+        },
+        {
+          "n": "8",
+          "hash": "86c71a6c47ffd06c",
+          "text": "Return _mv_."
+        }
+      ],
+      "hash": "96d91fd789c15973"
+    },
+    {
+      "key": "sec-tofixedsizeinteger",
+      "section": "7.1.7",
+      "heading": "sec-tofixedsizeinteger",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5398,
+      "title": "ToFixedSizeInteger ( int: an integer, +∞, or -∞, signed: ~unsigned~ or ~signed~, bitWidth: a positive integer, ): an integer",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "567a114fbf60f5b5",
+          "text": "If _int_ = +∞ or _int_ = -∞, return 0."
+        },
+        {
+          "n": "2",
+          "hash": "2ad1dacc2e287ea4",
+          "text": "Let _fixedInt_ be _int_ modulo 2_bitWidth_."
+        },
+        {
+          "n": "3",
+          "hash": "908546c8525ea240",
+          "text": "NOTE: The following step does not change the two's complement representation of _fixedInt_."
+        },
+        {
+          "n": "4",
+          "hash": "e2e3f5daa16d6cc7",
+          "text": "If _signed_ is ~signed~ and _fixedInt_ ≥ 2_bitWidth_ - 1, set _fixedInt_ to _fixedInt_ - 2_bitWidth_."
+        },
+        {
+          "n": "5",
+          "hash": "583b70f67dacade5",
+          "text": "Return _fixedInt_."
+        }
+      ],
+      "hash": "8683afcbea2abbd6"
+    },
+    {
+      "key": "sec-toint32",
+      "section": "7.1.8",
+      "heading": "sec-toint32",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5420,
+      "title": "ToInt32 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "b6211cddcf0aecca",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "99b35831d3d7af06",
+          "text": "Return 𝔽(ToFixedSizeInteger(_int_, ~signed~, 32))."
+        }
+      ],
+      "hash": "20a5ba92b143ad95"
+    },
+    {
+      "key": "sec-touint32",
+      "section": "7.1.9",
+      "heading": "sec-touint32",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5436,
+      "title": "ToUint32 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "b6211cddcf0aecca",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "78352e36473f6aed",
+          "text": "Return 𝔽(ToFixedSizeInteger(_int_, ~unsigned~, 32))."
+        }
+      ],
+      "hash": "ae7b0e949b09eba9"
+    },
+    {
+      "key": "sec-toint16",
+      "section": "7.1.10",
+      "heading": "sec-toint16",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5452,
+      "title": "ToInt16 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "b6211cddcf0aecca",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "af5c7cf6ee710b43",
+          "text": "Return 𝔽(ToFixedSizeInteger(_int_, ~signed~, 16))."
+        }
+      ],
+      "hash": "b5dff6a99c13a731"
+    },
+    {
+      "key": "sec-touint16",
+      "section": "7.1.11",
+      "heading": "sec-touint16",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5468,
+      "title": "ToUint16 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "b6211cddcf0aecca",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "21fa08c6357490bf",
+          "text": "Return 𝔽(ToFixedSizeInteger(_int_, ~unsigned~, 16))."
+        }
+      ],
+      "hash": "556757265c6ff815"
+    },
+    {
+      "key": "sec-toint8",
+      "section": "7.1.12",
+      "heading": "sec-toint8",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5484,
+      "title": "ToInt8 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "b6211cddcf0aecca",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "ed9016b9fc2f7d3c",
+          "text": "Return 𝔽(ToFixedSizeInteger(_int_, ~signed~, 8))."
+        }
+      ],
+      "hash": "615672de324ebd74"
+    },
+    {
+      "key": "sec-touint8",
+      "section": "7.1.13",
+      "heading": "sec-touint8",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5500,
+      "title": "ToUint8 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "b6211cddcf0aecca",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "d64d36f8214e4a2a",
+          "text": "Return 𝔽(ToFixedSizeInteger(_int_, ~unsigned~, 8))."
+        }
+      ],
+      "hash": "38f485f15e877860"
+    },
+    {
+      "key": "sec-touint8clamp",
+      "section": "7.1.14",
+      "heading": "sec-touint8clamp",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5516,
+      "title": "ToUint8Clamp ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "32cfaf32ccf0d170",
+          "text": "Let _number_ be ? ToNumber(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "71de17e9f5df1de9",
+          "text": "If _number_ is *NaN*, return *+0*𝔽."
+        },
+        {
+          "n": "3",
+          "hash": "caf62cb29d6f7de2",
+          "text": "Let _mv_ be the extended mathematical value of _number_."
+        },
+        {
+          "n": "4",
+          "hash": "ac01832dbf0145b0",
+          "text": "Let _clamped_ be the result of clamping _mv_ between 0 and 255."
+        },
+        {
+          "n": "5",
+          "hash": "3190b78b0e4685f8",
+          "text": "Let _f_ be floor(_clamped_)."
+        },
+        {
+          "n": "6",
+          "hash": "41d5cb6b843aec71",
+          "text": "If _clamped_ < _f_ + 0.5, return 𝔽(_f_)."
+        },
+        {
+          "n": "7",
+          "hash": "35dea1f10e9b69c9",
+          "text": "If _clamped_ > _f_ + 0.5, return 𝔽(_f_ + 1)."
+        },
+        {
+          "n": "8",
+          "hash": "77490e6e05935032",
+          "text": "If _f_ is even, return 𝔽(_f_)."
+        },
+        {
+          "n": "9",
+          "hash": "79301928de50e255",
+          "text": "Return 𝔽(_f_ + 1)."
+        }
+      ],
+      "hash": "801e622d3ff2c32f"
+    },
+    {
+      "key": "sec-tobigint/1",
+      "section": "7.1.15",
+      "heading": "sec-tobigint",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5542,
+      "title": "ToBigInt ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "e968c0996c69bd7d",
+          "text": "Let _primitive_ be ? ToPrimitive(_arg_, ~number~)."
+        },
+        {
+          "n": "2",
+          "hash": "8f5e8001bbc6ec79",
+          "text": "Return the value that _primitive_ corresponds to in ."
+        }
+      ],
+      "hash": "93a3b47055f0a005"
+    },
+    {
+      "key": "sec-tobigint/2",
+      "section": "7.1.15",
+      "heading": "sec-tobigint",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5603,
+      "title": "ToBigInt ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "a64e0abdbbe77ae0",
+          "text": "Let _n_ be StringToBigInt(_primitive_)."
+        },
+        {
+          "n": "2",
+          "hash": "a5bdb9ee8385d367",
+          "text": "If _n_ is *undefined*, throw a *SyntaxError* exception."
+        },
+        {
+          "n": "3",
+          "hash": "8076031643c4e0d1",
+          "text": "Return _n_."
+        }
+      ],
+      "hash": "222c326f0fcf8698"
+    },
+    {
+      "key": "sec-stringtobigint",
+      "section": "7.1.16",
+      "heading": "sec-stringtobigint",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5630,
+      "title": "StringToBigInt ( string: a String, ): a BigInt or undefined",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "7ef3f4418c9115af",
+          "text": "Let _literal_ be ParseText(_string_, |StringIntegerLiteral|)."
+        },
+        {
+          "n": "2",
+          "hash": "0f15721c6d6e6e5e",
+          "text": "If _literal_ is a List of errors, return *undefined*."
+        },
+        {
+          "n": "3",
+          "hash": "50c94b1f8fd34032",
+          "text": "Let _mv_ be the MV of _literal_."
+        },
+        {
+          "n": "4",
+          "hash": "f7252a911c41c894",
+          "text": "Assert: _mv_ is an integer."
+        },
+        {
+          "n": "5",
+          "hash": "7d024b0761288f41",
+          "text": "Return ℤ(_mv_)."
+        }
+      ],
+      "hash": "b780753437056609"
+    },
+    {
+      "key": "sec-tobigint64",
+      "section": "7.1.17",
+      "heading": "sec-tobigint64",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5676,
+      "title": "ToBigInt64 ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "1f799a97b4c60858",
+          "text": "Let _int_ be ℝ(? ToBigInt(_arg_))."
+        },
+        {
+          "n": "2",
+          "hash": "9d198d2062fdc13f",
+          "text": "Return ℤ(ToFixedSizeInteger(_int_, ~signed~, 64))."
+        }
+      ],
+      "hash": "dbd38f375665deb9"
+    },
+    {
+      "key": "sec-tobiguint64",
+      "section": "7.1.18",
+      "heading": "sec-tobiguint64",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5692,
+      "title": "ToBigUint64 ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "1f799a97b4c60858",
+          "text": "Let _int_ be ℝ(? ToBigInt(_arg_))."
+        },
+        {
+          "n": "2",
+          "hash": "8e2bff96b3917dad",
+          "text": "Return ℤ(ToFixedSizeInteger(_int_, ~unsigned~, 64))."
+        }
+      ],
+      "hash": "bda0ff5830cee537"
+    },
+    {
+      "key": "sec-tostring",
+      "section": "7.1.19",
+      "heading": "sec-tostring",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5708,
+      "title": "ToString ( arg: an ECMAScript language value, ): either a normal completion containing a String or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "2d99022e965ac0e2",
+          "text": "If _arg_ is a String, return _arg_."
+        },
+        {
+          "n": "2",
+          "hash": "fba8ddbad0e0457c",
+          "text": "If _arg_ is a Symbol, throw a *TypeError* exception."
+        },
+        {
+          "n": "3",
+          "hash": "09c04c79c5d69451",
+          "text": "If _arg_ is *undefined*, return *\"undefined\"*."
+        },
+        {
+          "n": "4",
+          "hash": "1b92cd5c6dd43cfb",
+          "text": "If _arg_ is *null*, return *\"null\"*."
+        },
+        {
+          "n": "5",
+          "hash": "e72a29c1a3920483",
+          "text": "If _arg_ is *true*, return *\"true\"*."
+        },
+        {
+          "n": "6",
+          "hash": "4cf30fe0cbb51604",
+          "text": "If _arg_ is *false*, return *\"false\"*."
+        },
+        {
+          "n": "7",
+          "hash": "d6cbb720d8509bb0",
+          "text": "If _arg_ is a Number, return Number::toString(_arg_, 10)."
+        },
+        {
+          "n": "8",
+          "hash": "227087b290f9ef13",
+          "text": "If _arg_ is a BigInt, return BigInt::toString(_arg_, 10)."
+        },
+        {
+          "n": "9",
+          "hash": "fef9e6c7e7dfe28a",
+          "text": "Assert: _arg_ is an Object."
+        },
+        {
+          "n": "10",
+          "hash": "116890fb97ee5ff6",
+          "text": "Let _primitiveValue_ be ? ToPrimitive(_arg_, ~string~)."
+        },
+        {
+          "n": "11",
+          "hash": "6ae8d43f058eec04",
+          "text": "Assert: _primitiveValue_ is not an Object."
+        },
+        {
+          "n": "12",
+          "hash": "09f12f32d30cd6fa",
+          "text": "Return ? ToString(_primitiveValue_)."
+        }
+      ],
+      "hash": "56a8cdb7a1e745f6"
+    },
+    {
+      "key": "sec-toobject",
+      "section": "7.1.20",
+      "heading": "sec-toobject",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5734,
+      "title": "ToObject ( arg: an ECMAScript language value, ): either a normal completion containing an Object or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "a6d63c1657693e6d",
+          "text": "If _arg_ is either *undefined* or *null*, throw a *TypeError* exception."
+        },
+        {
+          "n": "2",
+          "hash": "6f5462d94c848b38",
+          "text": "If _arg_ is a Boolean, return a new Boolean object whose [[BooleanData]] internal slot is set to _arg_. See for a description of Boolean objects."
+        },
+        {
+          "n": "3",
+          "hash": "325d9f2422d45ef3",
+          "text": "If _arg_ is a Number, return a new Number object whose [[NumberData]] internal slot is set to _arg_. See for a description of Number objects."
+        },
+        {
+          "n": "4",
+          "hash": "ff880bc94d21751c",
+          "text": "If _arg_ is a String, return a new String object whose [[StringData]] internal slot is set to _arg_. See for a description of String objects."
+        },
+        {
+          "n": "5",
+          "hash": "d140e30a7f315726",
+          "text": "If _arg_ is a Symbol, return a new Symbol object whose [[SymbolData]] internal slot is set to _arg_. See for a description of Symbol objects."
+        },
+        {
+          "n": "6",
+          "hash": "8e1f4c487c914e92",
+          "text": "If _arg_ is a BigInt, return a new BigInt object whose [[BigIntData]] internal slot is set to _arg_. See for a description of BigInt objects."
+        },
+        {
+          "n": "7",
+          "hash": "fef9e6c7e7dfe28a",
+          "text": "Assert: _arg_ is an Object."
+        },
+        {
+          "n": "8",
+          "hash": "2c89cc6adc6fea8c",
+          "text": "Return _arg_."
+        }
+      ],
+      "hash": "9a59bf4650875cd5"
+    },
+    {
+      "key": "sec-topropertykey",
+      "section": "7.1.21",
+      "heading": "sec-topropertykey",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5756,
+      "title": "ToPropertyKey ( arg: an ECMAScript language value, ): either a normal completion containing a property key or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "217a89fccab7b9e3",
+          "text": "Let _key_ be ? ToPrimitive(_arg_, ~string~)."
+        },
+        {
+          "n": "2",
+          "hash": "68a16b344a1581af",
+          "text": "If _key_ is a Symbol, then"
+        },
+        {
+          "n": "2.1",
+          "hash": "258ddc19de00d9f5",
+          "text": "Return _key_."
+        },
+        {
+          "n": "3",
+          "hash": "82dcf08e85fccf6e",
+          "text": "Return ! ToString(_key_)."
+        }
+      ],
+      "hash": "b9ffe2bfc7918d0a"
+    },
+    {
+      "key": "sec-tolength",
+      "section": "7.1.22",
+      "heading": "sec-tolength",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5774,
+      "title": "ToLength ( arg: an ECMAScript language value, ): either a normal completion containing a non-negative integral Number or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "8bf31eb530d4911f",
+          "text": "Let _length_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "2b7b3f8860b32373",
+          "text": "Let _clampedLength_ be the result of clamping _length_ between 0 and 253 - 1."
+        },
+        {
+          "n": "3",
+          "hash": "aa0a450ddd809a0e",
+          "text": "Return 𝔽(_clampedLength_)."
+        }
+      ],
+      "hash": "27afc9446a4e816b"
+    },
+    {
+      "key": "sec-canonicalnumericindexstring",
+      "section": "7.1.23",
+      "heading": "sec-canonicalnumericindexstring",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5791,
+      "title": "CanonicalNumericIndexString ( arg: a String, ): a Number or undefined",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "1532d5682455b978",
+          "text": "If _arg_ is *\"-0\"*, return *-0*𝔽."
+        },
+        {
+          "n": "2",
+          "hash": "e22e8f9c4baa275b",
+          "text": "Let _n_ be ! ToNumber(_arg_)."
+        },
+        {
+          "n": "3",
+          "hash": "f210794ea6fa3304",
+          "text": "If ! ToString(_n_) is _arg_, return _n_."
+        },
+        {
+          "n": "4",
+          "hash": "fa3bad0de6ab97f8",
+          "text": "Return *undefined*."
+        }
+      ],
+      "hash": "9a733ec224ecb992"
+    },
+    {
+      "key": "sec-toindex",
+      "section": "7.1.24",
+      "heading": "sec-toindex",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5810,
+      "title": "ToIndex ( arg: an ECMAScript language value, ): either a normal completion containing a non-negative integer or a throw completion",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "b6211cddcf0aecca",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_arg_)."
+        },
+        {
+          "n": "2",
+          "hash": "90f8ca80c51816ad",
+          "text": "If _int_ is not in the inclusive interval from 0 to 253 - 1, throw a *RangeError* exception."
+        },
+        {
+          "n": "3",
+          "hash": "4806e18b69b027e7",
+          "text": "Return _int_."
+        }
+      ],
+      "hash": "e5d8c605e8e8a899"
+    },
+    {
+      "key": "sec-toabsoluteindex",
+      "section": "7.1.25",
+      "heading": "sec-toabsoluteindex",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5828,
+      "title": "ToAbsoluteIndex ( value: an ECMAScript language value, length: a non-negative integer, ): either a normal completion containing either an integer, +&infin;, or ",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "fcab4a9eb20b7d17",
+          "text": "Let _int_ be ? ToIntegerOrInfinity(_value_)."
+        },
+        {
+          "n": "2",
+          "hash": "c86b999b7d1608a7",
+          "text": "If _int_ is finite and _int_ < 0, set _int_ to _length_ + _int_."
+        },
+        {
+          "n": "3",
+          "hash": "4806e18b69b027e7",
+          "text": "Return _int_."
+        }
+      ],
+      "hash": "7f35a20ded9d2097"
+    },
+    {
+      "key": "sec-toclampedindex",
+      "section": "7.1.26",
+      "heading": "sec-toclampedindex",
+      "headings": [
+        "sec-abstract-operations",
+        "sec-type-conversion"
+      ],
+      "line": 5846,
+      "title": "ToClampedIndex ( value: an ECMAScript language value, length: a non-negative integer, ): either a normal completion containing a non-negative integer or a throw",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "d51b871b30431793",
+          "text": "Let _index_ be ? ToAbsoluteIndex(_value_, _length_)."
+        },
+        {
+          "n": "2",
+          "hash": "7c443bda6510a19f",
+          "text": "Return the result of clamping _index_ between 0 and _length_."
+        }
+      ],
+      "hash": "fa35cefc6b0a4549"
+    },
+    {
+      "key": "sec-array.prototype.join",
+      "section": "23.1.3.18",
+      "heading": "sec-array.prototype.join",
+      "headings": [
+        "sec-indexed-collections",
+        "sec-array-objects",
+        "sec-properties-of-the-array-prototype-object"
+      ],
+      "line": 41203,
+      "title": "Array.prototype.join ( separator )",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "1bc8cbac28431043",
+          "text": "Let _obj_ be ? ToObject(*this* value)."
+        },
+        {
+          "n": "2",
+          "hash": "8fb18264bf5c853c",
+          "text": "Let _length_ be ? LengthOfArrayLike(_obj_)."
+        },
+        {
+          "n": "3",
+          "hash": "61190bf21b6ffe58",
+          "text": "If _separator_ is *undefined*, let _separatorString_ be *\",\"*."
+        },
+        {
+          "n": "4",
+          "hash": "07687626de3eba43",
+          "text": "Else, let _separatorString_ be ? ToString(_separator_)."
+        },
+        {
+          "n": "5",
+          "hash": "68decc0d81a0cf0f",
+          "text": "Let _result_ be the empty String."
+        },
+        {
+          "n": "6",
+          "hash": "30b6f60ca8375bf9",
+          "text": "Let _k_ be 0."
+        },
+        {
+          "n": "7",
+          "hash": "d9a6d46a2dcdeeb4",
+          "text": "Repeat, while _k_ < _length_,"
+        },
+        {
+          "n": "7.1",
+          "hash": "f44aab24c1d64559",
+          "text": "If _k_ > 0, set _result_ to the string-concatenation of _result_ and _separatorString_."
+        },
+        {
+          "n": "7.2",
+          "hash": "41f55e0595ff0cc3",
+          "text": "Let _element_ be ? Get(_obj_, ! ToString(𝔽(_k_)))."
+        },
+        {
+          "n": "7.3",
+          "hash": "07541314e334f0d2",
+          "text": "If _element_ is neither *undefined* nor *null*, then"
+        },
+        {
+          "n": "7.3.1",
+          "hash": "4280aeeb8c47c776",
+          "text": "Let _elementString_ be ? ToString(_element_)."
+        },
+        {
+          "n": "7.3.2",
+          "hash": "290b82cca70fc935",
+          "text": "Set _result_ to the string-concatenation of _result_ and _elementString_."
+        },
+        {
+          "n": "7.4",
+          "hash": "cfaea1e0deca031b",
+          "text": "Set _k_ to _k_ + 1."
+        },
+        {
+          "n": "8",
+          "hash": "ce61be8af0842ee4",
+          "text": "Return _result_."
+        }
+      ],
+      "hash": "488665f6c0dbf293"
+    }
+  ]
+}

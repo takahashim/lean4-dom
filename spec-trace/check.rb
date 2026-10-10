@@ -5,6 +5,7 @@
 #   ruby spec-trace/check.rb                       # 全体を検査する（`lake exe spec-trace` を走らせる）
 #   ruby spec-trace/check.rb --write               # 加えて docs/spec-coverage.md と spec-trace/map.json を書き直す
 #   ruby spec-trace/check.rb --check-doc           # docs/spec-coverage.md と spec-trace/map.json が最新かも検査する
+#   ruby spec-trace/check.rb --spec webidl ...      # WebIDL の表（spec-trace/webidl.json、docs/spec-coverage-webidl.md）
 #
 # spec-trace/map.json は `lake exe spec-trace` の出力そのもので、`spec-trace/drift.rb` が
 # build せずに表を読めるように commit しておく。
@@ -21,6 +22,7 @@ require "json"
 require "open3"
 require "set"
 require "tempfile"
+require_relative "specs"
 
 ROOT = File.expand_path("..", __dir__)
 
@@ -28,7 +30,8 @@ module Trace
   class Check
     attr_reader :errors
 
-    def initialize(snapshot, mapping, partial: false)
+    def initialize(snapshot, mapping, partial: false, spec: Trace.spec("dom"))
+      @spec = spec
       @snap = snapshot
       @algs = snapshot["algorithms"].to_h { |a| [a["key"], a] }
       @entries = mapping["entries"]
@@ -70,7 +73,7 @@ module Trace
       @entries.group_by { |e| e["alg"] }.each do |key, es|
         alg = @algs[key]
         unless alg
-          error("表の algorithm #{key} は dom.json に無い")
+          error("表の algorithm #{key} は snapshot に無い")
           next
         end
         nums = alg["steps"].map { |s| s["n"] }
@@ -103,7 +106,7 @@ module Trace
       @exclusions.each do |x|
         t = x["target"]
         hits = @algs.values.select { |a| a["key"] == t || a["headings"].include?(t) }
-        error("対象外の #{t} は dom.json のどの algorithm にも見出しにも当たらない") if hits.empty?
+        error("対象外の #{t} は snapshot のどの algorithm にも見出しにも当たらない") if hits.empty?
         hits.each do |a|
           if @status.key?(a["key"])
             error("#{a['key']} は表にあるのに対象外にもされている") if a["key"] == t
@@ -160,7 +163,11 @@ module Trace
     end
 
     def snapshot_url(key)
-      "https://dom.spec.whatwg.org/commit-snapshots/#{@snap['commit']}/##{key.sub(%r{/setter\z}, '')}"
+      if @spec[:link] == :source
+        return "https://github.com/#{@spec[:repo]}/blob/#{@snap['commit']}/#{@spec[:file]}#L#{@algs[key]['line']}"
+      end
+
+      "#{@spec[:site]}/commit-snapshots/#{@snap['commit']}/##{key.sub(%r{/setter\z}, '')}"
     end
 
     def reason_text(why)
@@ -184,11 +191,16 @@ module Trace
       s = summary
       out = +""
       out << "# 仕様の step との対応（自動生成）\n\n"
-      out << "このファイルは `ruby spec-trace/check.rb --write` が `Trace/` の対応表と `spec-trace/dom.json` から作る。手で編集しない。\n\n"
-      out << "対象は `dom.bs` commit `#{@snap['commit']}` である。"
-      out << "algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。\n\n"
+      flag = @snap["spec"] == "dom" ? "" : " --spec #{@snap['spec']}"
+      out << "このファイルは `ruby spec-trace/check.rb#{flag} --write` が `Trace/` の対応表と `#{@spec[:snapshot]}` から作る。手で編集しない。\n\n"
+      out << "対象は #{@spec[:title]} の `#{@spec[:file]}` commit `#{@snap['commit']}` である。"
+      out << if @spec[:link] == :source
+               "algorithm の鍵は節の id（一つの節に algorithm が複数あれば `<id>/<k>`）で、各行はその commit の source の行に張ってある。\n\n"
+             else
+               "algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。\n\n"
+             end
       out << "| 項目 | 数 |\n| --- | --- |\n"
-      out << "| `dom.bs` の algorithm | #{s[:algorithms]} |\n"
+      out << "| `#{@spec[:file]}` の algorithm | #{s[:algorithms]} |\n"
       out << "| 表に載せたもの | #{s[:mapped]} |\n"
       out << "| 対象外としたもの | #{s[:excluded]} |\n"
       out << "| 表に載せた algorithm の step | #{s[:steps][:total]} |\n"
@@ -196,7 +208,7 @@ module Trace
       out << "| そのうち近似したもの | #{s[:steps][:approx]} |\n"
       out << "| そのうち外したもの | #{s[:steps][:omit]} |\n\n"
       out << "step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。\n"
-      out << "「関係」の列は `Dom/Spec/` にある、仕様本文から独立に書いた関係である。\n\n"
+      out << "「関係」の列は、仕様本文から独立に書いた関係（`Dom/Spec/` ほか）である。\n\n"
 
       out << "## 表に載せた algorithm\n\n"
       @algs.values.select { |a| @status.key?(a["key"]) }.group_by { |a| a["section"] }
@@ -254,8 +266,8 @@ def lean_json_for_file(path)
   end
 end
 
-def lean_json_all
-  out, err, st = Open3.capture3("lake", "exe", "spec-trace", chdir: ROOT)
+def lean_json_all(name)
+  out, err, st = Open3.capture3("lake", "exe", "spec-trace", name, chdir: ROOT)
   abort("lake exe spec-trace failed:\n#{out}#{err}") unless st.success?
   JSON.parse(out)
 end
@@ -264,11 +276,11 @@ if $PROGRAM_NAME == __FILE__
   file = nil
   write = false
   check_doc = false
-  snapshot = File.join(ROOT, "spec-trace/dom.json")
-  doc = File.join(ROOT, "docs/spec-coverage.md")
-  map_path = File.join(ROOT, "spec-trace/map.json")
+  name = "dom"
+  snapshot = nil
   while (a = ARGV.shift)
     case a
+    when "--spec" then name = ARGV.shift
     when "--file" then file = ARGV.shift
     when "--write" then write = true
     when "--check-doc" then check_doc = true
@@ -276,9 +288,13 @@ if $PROGRAM_NAME == __FILE__
     else abort "unknown option #{a}"
     end
   end
+  spec = Trace.spec(name)
+  snapshot ||= File.join(ROOT, spec[:snapshot])
+  doc = File.join(ROOT, spec[:doc])
+  map_path = File.join(ROOT, spec[:map])
   snap = JSON.parse(File.read(snapshot))
-  mapping = file ? lean_json_for_file(File.expand_path(file)) : lean_json_all
-  chk = Trace::Check.new(snap, mapping, partial: !file.nil?).run
+  mapping = file ? lean_json_for_file(File.expand_path(file)) : lean_json_all(name)
+  chk = Trace::Check.new(snap, mapping, partial: !file.nil?, spec: spec).run
   s = chk.summary
   puts "algorithms: #{s[:algorithms]} / mapped #{s[:mapped]} / excluded #{s[:excluded]}"
   puts "steps of mapped algorithms: #{s[:steps][:total]} / implemented #{s[:steps][:impl]} / " \
@@ -298,7 +314,8 @@ if $PROGRAM_NAME == __FILE__
     [[doc, md], [map_path, map]].each do |path, want|
       next if File.exist?(path) && File.read(path) == want
 
-      abort "#{path.sub("#{ROOT}/", '')} が古い。ruby spec-trace/check.rb --write で作り直す"
+      flag = name == "dom" ? "" : " --spec #{name}"
+      abort "#{path.sub("#{ROOT}/", '')} が古い。ruby spec-trace/check.rb#{flag} --write で作り直す"
     end
   end
 end

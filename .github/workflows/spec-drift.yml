@@ -1,6 +1,7 @@
 name: Spec drift
 
-# 固定した dom.bs と whatwg/dom の main を比べ、対応表（spec-trace/map.json）が引き受けている
+# 固定した dom.bs と whatwg/dom の main、固定した index.bs と whatwg/webidl の main、固定した spec.html と
+# tc39/ecma262 の main を比べ、対応表（spec-trace/map.json ほか）が引き受けている
 # step の本文が変わったとき、または分類されていない algorithm が現れたときに失敗する。
 # 対応表は commit 済みの spec-trace/map.json を読むので、Lean の build は要らない。
 # 失敗したら job summary の報告を見て、固定 commit を上げるか表を直す（docs/spec-version.md）。
@@ -16,7 +17,7 @@ on:
 
 jobs:
   drift:
-    name: dom.bs の改訂
+    name: dom.bs・WebIDL・ECMA-262 の改訂
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -29,3 +30,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ruby spec-trace/drift.rb --ref "${{ github.event.inputs.ref || 'main' }}"
+
+      # dom.bs の比較が失敗しても WebIDL の比較は走らせる。
+      - name: Compare with whatwg/webidl
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ruby spec-trace/drift.rb --spec webidl
+
+      - name: Compare with tc39/ecma262
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ruby spec-trace/drift.rb --spec ecma262

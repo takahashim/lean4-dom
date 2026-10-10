@@ -6343,6 +6343,30 @@ Chromium、Firefox、WebKit は八本とも model と一致した（WebKit と j
 Dommy の修正 branch で流した生成 scenario（seed 61、300 本、`--ranges 4 --iterators 2 --observers 3 --move`）は
 不一致 0 だった。
 
+## Web IDL と ECMA-262 にも step の対応表を広げた
+
+DOM で作った step の対応表と改訂の検出を、Web IDL Standard と、WebIDL の変換が呼ぶ ECMA-262 の節に広げた。
+それまで Web IDL の変換は本文の step どおりに書いていたが、それを確かめる表も、本文の改訂を検出する仕組みも
+無かった。
+
+* 道具は仕様の名前を `--spec` で受ける（`spec-trace/specs.rb`。`dom`・`webidl`・`ecma262`、既定は `dom`）。
+* Web IDL の `index.bs` は、step を `<div algorithm>` の中の markdown の番号付きリストで書くので、
+  `spec-trace/extract_md.rb` を書いた。固定版から 191 の algorithm を抜き出した（`spec-trace/webidl.json`）。
+* ECMA-262 の `spec.html`（ecmarkup）は節を `<emu-clause>` の入れ子で、step を `<emu-alg>` の番号付きリストで書く。
+  本文が大きいので、model が使う節の部分木（型変換 §7.1、Number::toString、`Array.prototype.join`）だけを抜き出す
+  `spec-trace/extract_ecma.rb` を書いた（40 の algorithm、`spec-trace/ecma262.json`）。一つの節に algorithm が
+  複数ある syntax-directed operation（StringNumericValue）は、鍵を `<id>/<k>` にした。commit ごとの描画が無いので、
+  表のリンクは固定した commit の source の行に張る。ECMA-262 の固定版は tc39/ecma262 の `5345883`（2026-10-09）である。
+* 対応表は `Trace/Webidl.lean`（13 の algorithm を載せ、178 を理由付きで対象外）と `Trace/Ecma.lean`（17 を載せ、
+  23 を対象外）。生成した文書は `docs/spec-coverage-webidl.md` と `docs/spec-coverage-ecma262.md` である。
+* CI は三つの仕様について、表の網羅と snapshot の一致を検査する。週次の `spec-drift.yml` は whatwg/webidl と
+  tc39/ecma262 の main とも比べる。どちらも今は固定版と main の間に変化が無い。
+* 突き合わせの途中で、Number::toString の doc comment の step 番号が古い版のものだったので、固定版の番号に直した
+  （場合分けの範囲は同じだった）。
+
+あわせて、findings 62 と 63 を Dommy に引き継ぐノートを書いた（`notes/`、git の管理外）。Dommy の main（`c0a0d581`）
+でも、この二つの固定 scenario の六本だけが不一致になることを確かめた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

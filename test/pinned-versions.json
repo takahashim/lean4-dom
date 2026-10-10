@@ -11,6 +11,12 @@
     "date": "2026-10-06",
     "_note": "method を呼ぶ層の WebIDL の検査と、整数型の変換（ConvertToInt）が従う版。source は index.bs。"
   },
+  "ecma262": {
+    "repository": "https://github.com/tc39/ecma262",
+    "commit": "5345883164f463e87f8b40aca4956157ecba8783",
+    "date": "2026-10-09",
+    "_note": "WebIDL の変換が呼ぶ ECMAScript の抽象操作（ToNumber、StringToNumber、ToString、Number::toString、ToBoolean、ToPrimitive）と Array.prototype.join が従う版。source は spec.html。"
+  },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
     "commit": "4fc3caa11c8564ed8ff548f709c0ef676a5124c9",

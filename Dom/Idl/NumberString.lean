@@ -27,18 +27,22 @@ private def dropTrailingZeros (ds : List Char) : List Char :=
   (ds.reverse.dropWhile (· == '0')).reverse
 
 /--
-**ECMAScript の Number::toString(x, 10)。** 対象外の数（上の節）は `none`。
+**ECMAScript の Number::toString(x, 10)。** 対象外の数（上の節）は `none`。step 番号は固定版（`docs/spec-version.md`）の
+§6.1.6.1.20 のものである（`Trace/Ecma.lean`）。
 
 1.  x が NaN なら "NaN"（JSON に無い）。
 2.  x が +0 か −0 なら "0"。
-3.  x < 0 なら "-" と Number::toString(−x) をつなぐ。
+3.  x < −0 なら "-" と Number::toString(−x) をつなぐ。
 4.  x が +∞ なら "Infinity"（JSON に無い）。
 5.  n、k、s を、k ≥ 1、10^(k−1) ≤ s < 10^k、s × 10^(n−k) が x、k が最小となるように取る。
-6.  k ≤ n ≤ 21 なら、s の k 桁の後に n − k 個の "0"。
-7.  0 < n ≤ 21 なら、s の上位 n 桁、"."、残りの k − n 桁。
-8.  −6 < n ≤ 0 なら、"0."、−n 個の "0"、s の k 桁。
-9-10. それ以外は指数表記。e = n − 1 として、k = 1 なら s の 1 桁、"e"、符号、|e|。
-      k > 1 なら s の上位 1 桁、"."、残りの k − 1 桁、"e"、符号、|e|。符号は e ≥ 0 なら "+"、そうでなければ "-"。
+6.  n が −5 以上 21 以下なら（radix は 10）：
+    6.1. n ≥ k なら、s の k 桁の後に n − k 個の "0"。
+    6.2. n > 0 なら、s の上位 n 桁、"."、残りの k − n 桁。
+    6.4. そうでなければ（n ≤ 0）、"0."、−n 個の "0"、s の k 桁。
+9-10. それ以外は指数表記で、指数の符号は n < 0 なら "-"、そうでなければ "+"（この枝では n ≤ −6 か n ≥ 22 なので、
+      実装が見る n − 1 < 0 と同じである）。
+11. k = 1 なら、s の 1 桁、"e"、符号、|n − 1|。
+12. そうでなければ、s の上位 1 桁、"."、残りの k − 1 桁、"e"、符号、|n − 1|。
 -/
 def toJsString (x : JsNumber) : Option String :=
   if x.mantissa == 0 then some "0"

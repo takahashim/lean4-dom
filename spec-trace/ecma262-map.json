@@ -1,0 +1,335 @@
+{
+  "entries": [
+    {
+      "alg": "sec-numeric-types-number-tostring",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsNumber.toJsString"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "NaN は JSON の数に無い"
+          }
+        },
+        {
+          "steps": "4",
+          "why": {
+            "reason": "other",
+            "detail": "+∞ は JSON の数に無い"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "5",
+          "what": "JSON の十進の値の末尾の 0 を落として n・k・s を読む。倍精度の値に丸まる最短の表記と一致するのは有効数字 15 桁以下で正規数の範囲の数だけなので、それ以外は model の対象外とする"
+        },
+        {
+          "steps": "6",
+          "what": "radix は 10 だけ"
+        }
+      ]
+    },
+    {
+      "alg": "sec-toprimitive",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.toJsString",
+        "Dom.Idl.JsValue.toNumber"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1.1-1.2",
+          "why": {
+            "reason": "other",
+            "detail": "@@toPrimitive を持つ object は表せない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1.3-1.4",
+          "what": "OrdinaryToPrimitive の結果（普通の object は \"[object Object]\"、配列は join）を ToString と ToNumber の中に書いてある"
+        }
+      ]
+    },
+    {
+      "alg": "sec-ordinarytoprimitive",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.toJsString",
+        "Dom.Idl.JsValue.toNumber"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "valueOf は自分を返すので、hint が number でも toString が使われる。普通の object の toString は \"[object Object]\"、配列の toString は join で、どちらも利用者のコードを呼ばない"
+        }
+      ]
+    },
+    {
+      "alg": "sec-toboolean",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.toBoolean"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "3",
+          "why": {
+            "reason": "other",
+            "detail": "[[IsHTMLDDA]] を持つ object（document.all）は model に無い"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "NaN と BigInt は表せない。数は倍精度の値に丸めてから 0 かを見る"
+        }
+      ]
+    },
+    {
+      "alg": "sec-tonumber",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.toNumber"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "2",
+          "why": {
+            "reason": "other",
+            "detail": "Symbol と BigInt は表せない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "7-10",
+          "what": "object は普通の object と配列だけで、ToPrimitive の結果の文字列を StringToNumber で読む"
+        }
+      ]
+    },
+    {
+      "alg": "sec-stringtonumber",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.stringToNumber",
+        "Dom.Idl.isStrWhiteSpace"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "ParseText の代わりに、StringNumericLiteral の文法を前後の空白・接頭辞・符号で場合分けして手で読む"
+        }
+      ]
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/1",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.stringToNumber"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/2",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.stringToNumber"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/3",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.stringToNumber.nonDecimal",
+        "Dom.Idl.readDigits",
+        "Dom.Idl.JsNum.ofRat"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/4",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.stringToNumber.signed"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/5",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.stringToNumber.signed"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/6",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.readUnsignedDecimal",
+        "Dom.Idl.JsNum.ofDecimal?"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/7",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.readUnsignedDecimal",
+        "Dom.Idl.JsNum.ofDecimal?"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-runtime-semantics-stringnumericvalue/8",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.readUnsignedDecimal",
+        "Dom.Idl.JsNum.ofDecimal?"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "sec-roundmvresult",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsNum.ofDecimal?",
+        "Dom.Idl.JsNum.ofDecimal",
+        "Dom.Idl.JsNum.ofRat",
+        "Dom.Idl.JsNum.roundPos"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "2-5",
+          "why": {
+            "reason": "other",
+            "detail": "有効数字が 20 桁を超える十進表記は、丸めが実装に任されて結果が一つに決まらないので、model の対象外とする"
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "sec-tostring",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.toJsString"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "2",
+          "why": {
+            "reason": "other",
+            "detail": "Symbol は表せない"
+          }
+        },
+        {
+          "steps": "8",
+          "why": {
+            "reason": "other",
+            "detail": "BigInt は表せない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "9-12",
+          "what": "object は普通の object と配列だけで、ToPrimitive の結果を直接書いてある"
+        }
+      ]
+    },
+    {
+      "alg": "sec-array.prototype.join",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.joinElems",
+        "Dom.Idl.JsValue.joinElem"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-4",
+          "what": "配列の ToString からだけ呼ぶので、this は配列で、separator は \",\" である"
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "target": "sec-type-conversion",
+      "why": {
+        "reason": "other",
+        "detail": "Web IDL の変換が呼ばない型変換（ToNumeric、整数への切り詰め、BigInt、ToObject、index ほか）"
+      }
+    }
+  ]
+}

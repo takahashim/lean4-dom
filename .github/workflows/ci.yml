@@ -37,7 +37,7 @@ jobs:
 
       # 仕様の step と Lean の定義の対応表（`Trace/`）を検査する。
       # 表に載せた algorithm の step が漏れなく「実装・近似・除外」のどれかに入り、
-      # `dom.bs` の algorithm がどれも表か対象外の一覧にあることを確かめる。
+      # `dom.bs`、WebIDL の `index.bs`、ECMA-262 の `spec.html`（使う節）の algorithm がどれも表か対象外の一覧にあることを確かめる。
       # 生成した docs/spec-coverage.md と spec-trace/map.json が最新であることも見る。
       - uses: ruby/setup-ruby@v1
         with:
@@ -46,10 +46,21 @@ jobs:
       - name: Spec step coverage
         run: ruby spec-trace/check.rb --check-doc
 
-      # spec-trace/dom.json が、固定した commit の dom.bs から作り直したものと一致し、
+      # WebIDL の表（docs/spec-coverage-webidl.md と spec-trace/webidl-map.json）も同じく検査する。
+      - name: WebIDL step coverage
+        run: ruby spec-trace/check.rb --spec webidl --check-doc
+
+      # ECMA-262 の表（Web IDL の変換が呼ぶ抽象操作）も同じく検査する。
+      - name: ECMA-262 step coverage
+        run: ruby spec-trace/check.rb --spec ecma262 --check-doc
+
+      # spec-trace/dom.json と spec-trace/webidl.json が、固定した commit の source から作り直したものと一致し、
       # その commit が test/pinned-versions.json・docs/spec-version.md と一致することを確かめる。
       - name: Spec snapshot
-        run: ruby spec-trace/extract.rb --check-snapshot spec-trace/dom.json
+        run: |
+          ruby spec-trace/extract.rb --check-snapshot spec-trace/dom.json
+          ruby spec-trace/extract.rb --check-snapshot spec-trace/webidl.json
+          ruby spec-trace/extract.rb --check-snapshot spec-trace/ecma262.json
 
       # 公開主定理が propext / Classical.choice / Quot.sound 以外の
       # axiom に依存していないことを確認する。`sorryAx` もここで落ちる。

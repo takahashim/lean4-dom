@@ -2,7 +2,7 @@
 
 このファイルは `ruby spec-trace/check.rb --write` が `Trace/` の対応表と `spec-trace/dom.json` から作る。手で編集しない。
 
-対象は `dom.bs` commit `a2331a45360129e8645ef7e0a04740241b6e3726` である。algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。
+対象は DOM Standard の `dom.bs` commit `a2331a45360129e8645ef7e0a04740241b6e3726` である。algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。
 
 | 項目 | 数 |
 | --- | --- |
@@ -15,7 +15,7 @@
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
-「関係」の列は `Dom/Spec/` にある、仕様本文から独立に書いた関係である。
+「関係」の列は、仕様本文から独立に書いた関係（`Dom/Spec/` ほか）である。
 
 ## 表に載せた algorithm
 

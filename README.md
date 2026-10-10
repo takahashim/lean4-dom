@@ -130,9 +130,14 @@ lake exe dom-model test/scenarios/basic-insert-remove.json
 ```sh
 # 仕様の step と Lean の定義の対応表を検査し、docs/spec-coverage.md を作り直す
 ruby spec-trace/check.rb --write
+# Web IDL の表（docs/spec-coverage-webidl.md）
+ruby spec-trace/check.rb --spec webidl --write
+ruby spec-trace/check.rb --spec ecma262 --write
 
 # 固定した dom.bs と whatwg/dom の main を比べ、対応表が引き受けている step の変化を挙げる
 ruby spec-trace/drift.rb
+ruby spec-trace/drift.rb --spec webidl
+ruby spec-trace/drift.rb --spec ecma262
 ```
 
 差分テストの詳しい実行方法については `test/README.md` を参照されたい。
@@ -156,7 +161,7 @@ ruby spec-trace/drift.rb
 | `Infra/` | 共通語彙（ASCII、byte 列、UTF-8 エンコード/デコード、UTF-16 code unit）。`Dom` および `Url` から参照 |
 | `Selectors/` | Selectors Level 4 および CSS Syntax Level 3 のうち selector 解析に必要な範囲（tokenizer、構文木、parser）。仕様バージョンは `docs/selectors-spec-version.md` に記載 |
 | `Url/` | URL Standard（percent-encoding、IPv4 / IPv6、host parser、basic URL parser、urlencoded、`URL` および `URLSearchParams` の IDL） |
-| `Trace/`, `spec-trace/` | `dom.bs` の algorithm と step を Lean の定義に対応づける表と、その網羅・仕様の改訂を検査する道具（`docs/spec-version.md`） |
+| `Trace/`, `spec-trace/` | `dom.bs`、Web IDL の `index.bs`、ECMA-262 の使う節の algorithm と step を Lean の定義に対応づける表と、その網羅・仕様の改訂を検査する道具（`docs/spec-version.md`） |
 | `test/` | 固定シナリオ、テスト生成器、Dommy 用ランナー、比較器 |
 | `docs/` | プロジェクトの状況、主要な定理一覧、仕様トレーサビリティ、検証上の限界（threats to validity） |
 

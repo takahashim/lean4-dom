@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# whatwg/dom の `dom.bs` を取ってくる。
+# whatwg の仕様の Bikeshed source（`dom.bs`・WebIDL の `index.bs`）を取ってくる。
 
 require "net/http"
 require "json"
@@ -25,19 +25,24 @@ module Trace
     end
 
     # branch 名や短い sha を、完全な commit sha にする。
-    def resolve(ref)
+    def resolve(ref, repo = REPO)
       return ref if ref.match?(/\A\h{40}\z/)
 
-      JSON.parse(get("https://api.github.com/repos/#{REPO}/commits/#{ref}"))["sha"]
+      JSON.parse(get("https://api.github.com/repos/#{repo}/commits/#{ref}"))["sha"]
     end
 
     def dom_bs(commit)
       get("https://raw.githubusercontent.com/#{REPO}/#{commit}/dom.bs")
     end
 
-    # commit の範囲で dom.bs に触れた commit（新しい順）。
-    def commits_between(base, head)
-      cmp = JSON.parse(get("https://api.github.com/repos/#{REPO}/compare/#{base}...#{head}"))
+    # 仕様（`specs.rb` の設定）の source。
+    def source(spec, commit)
+      get("https://raw.githubusercontent.com/#{spec[:repo]}/#{commit}/#{spec[:file]}")
+    end
+
+    # commit の範囲の commit（新しい順）。
+    def commits_between(base, head, repo = REPO)
+      cmp = JSON.parse(get("https://api.github.com/repos/#{repo}/compare/#{base}...#{head}"))
       cmp["commits"].map { |c| [c["sha"][0, 7], c["commit"]["message"].lines.first.strip] }.reverse
     rescue StandardError => e
       warn "commit の一覧を取れなかった: #{e.message}"

@@ -293,47 +293,57 @@ end
 
 if $PROGRAM_NAME == __FILE__
   require_relative "fetch"
+  require_relative "specs"
   usage = <<~USAGE
-    usage: extract.rb dom.bs [--commit SHA] [--verify-ids rendered.html]
-           extract.rb --fetch REF                 # whatwg/dom の REF を取って抜き出す
+    usage: extract.rb [--spec NAME] SOURCE.bs [--commit SHA] [--verify-ids rendered.html]
+           extract.rb [--spec NAME] --fetch REF     # 仕様の repository の REF を取って抜き出す
            extract.rb --check-snapshot spec-trace/dom.json
+    NAME は spec-trace/specs.rb の仕様（dom・webidl）。既定は dom。
   USAGE
   args = ARGV.dup
   path = nil
   commit = nil
   verify = nil
   check = nil
+  name = "dom"
+  fetch_ref = nil
   while (a = args.shift)
     case a
+    when "--spec" then name = args.shift
     when "--commit" then commit = args.shift
     when "--verify-ids" then verify = args.shift
-    when "--fetch" then commit = Trace::Fetch.resolve(args.shift)
+    when "--fetch" then fetch_ref = args.shift
     when "--check-snapshot" then check = args.shift
     when /\A--/ then abort usage
     else path = a
     end
   end
+  spec = Trace.spec(name)
+  commit = Trace::Fetch.resolve(fetch_ref, spec[:repo]) if fetch_ref
 
   if check
     # 固定した snapshot が、記録した commit の dom.bs から作り直したものと一致し、
     # その commit が test/pinned-versions.json と docs/spec-version.md の commit と一致することを確かめる。
     root = File.expand_path("..", __dir__)
     snap = JSON.parse(File.read(check))
-    pinned = JSON.parse(File.read(File.join(root, "test/pinned-versions.json")))["spec"]["commit"]
+    name = snap["spec"]
+    spec = Trace.spec(name)
+    pinned = JSON.parse(File.read(File.join(root, "test/pinned-versions.json")))[spec[:pinned]]["commit"]
     abort "#{check} の commit #{snap['commit']} が test/pinned-versions.json の #{pinned} と違う" if snap["commit"] != pinned
     unless File.read(File.join(root, "docs/spec-version.md")).include?(pinned)
       abort "docs/spec-version.md に commit #{pinned} が無い"
     end
-    fresh = Trace::Extract.run(Trace::Fetch.dom_bs(snap["commit"]))
+    fresh = Trace.extract(name, Trace::Fetch.source(spec, snap["commit"]))
     if fresh != snap["algorithms"]
-      abort "#{check} が dom.bs #{snap['commit']} から作り直したものと一致しない。ruby spec-trace/extract.rb --fetch #{snap['commit']} > #{check}"
+      abort "#{check} が #{spec[:file]} #{snap['commit']} から作り直したものと一致しない。" \
+            "ruby spec-trace/extract.rb --spec #{name} --fetch #{snap['commit']} > #{check}"
     end
-    puts "#{check}: #{fresh.size} algorithms, dom.bs #{snap['commit']} と一致"
+    puts "#{check}: #{fresh.size} algorithms, #{spec[:file]} #{snap['commit']} と一致"
     exit 0
   end
 
-  src = path ? File.read(path) : (commit ? Trace::Fetch.dom_bs(commit) : abort(usage))
-  algs = Trace::Extract.run(src)
+  src = path ? File.read(path) : (commit ? Trace::Fetch.source(spec, commit) : abort(usage))
+  algs = Trace.extract(name, src)
   if verify
     ids = File.read(verify).scan(/\bid="?([^"\s>]+)/).flatten.to_set
     missing = algs.map { |x| x["key"].sub(%r{/setter\z}, "") }
@@ -342,5 +352,5 @@ if $PROGRAM_NAME == __FILE__
     missing.each { |k| warn "  #{k}" }
     exit(missing.empty? ? 0 : 1)
   end
-  puts JSON.pretty_generate({ "spec" => "dom", "commit" => commit, "algorithms" => algs })
+  puts JSON.pretty_generate({ "spec" => name, "commit" => commit, "algorithms" => algs })
 end

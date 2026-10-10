@@ -1,0 +1,491 @@
+{
+  "entries": [
+    {
+      "alg": "js-to-boolean",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.toBoolean"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "js-to-unsigned-short",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toUnsignedShort"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "js-to-unsigned-long",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toUnsignedLong"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "abstract-opdef-integerpart",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsNum.truncAbs",
+        "Dom.Idl.convertToIntUnsigned"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "|n| の floor を `truncAbs` が、符号を `convertToIntUnsigned` が付ける"
+        }
+      ]
+    },
+    {
+      "alg": "abstract-opdef-converttoint",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.convertToIntUnsigned",
+        "Dom.Idl.JsValue.toNumber",
+        "Dom.Idl.JsNumber.toNum?"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う整数型の引数は unsigned の 16・32 bit だけで、64 bit は無い"
+          }
+        },
+        {
+          "steps": "3",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う整数型の引数に signed は無い"
+          }
+        },
+        {
+          "steps": "6",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う引数に [EnforceRange] は付いていない"
+          }
+        },
+        {
+          "steps": "7",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う引数に [Clamp] は付いていない"
+          }
+        },
+        {
+          "steps": "11",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う整数型の引数に signed は無い"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "ToNumber は scenario を読むときに行う（失敗も副作用も無い）。有効数字が 20 桁を超える十進表記は、ECMAScript が丸めを実装に任せるので受けない"
+        }
+      ]
+    },
+    {
+      "alg": "js-to-DOMString",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toDOMString",
+        "Dom.Idl.toLegacyNullDOMString",
+        "Dom.Idl.JsValue.toJsString"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "ToString は scenario を読むときに行う（`Idl.toDOMString_error`：TypeError を投げない）。数は有効数字 15 桁以下に限り、object は toString を上書きしない普通の object と配列に限る"
+        }
+      ]
+    },
+    {
+      "alg": "js-to-interface",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Exec.Operation.argumentTypeError",
+        "Dom.Exec.idlCheck"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "scenario の JSON の数は node、`{\"attr\": id}` は Attr で、それ以外の値はどの interface も実装しない。this が method の interface を実装するかは node の kind で決める"
+        }
+      ]
+    },
+    {
+      "alg": "js-to-dictionary",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toEventListenerOptions",
+        "Dom.Idl.toAddEventListenerOptions",
+        "Dom.Idl.toMutationObserverInit",
+        "Dom.Idl.toImportNodeOptions",
+        "Dom.Idl.boolMember",
+        "Dom.Idl.boolMember?"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "4.1.6",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う dictionary に required の member は無い"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "dictionary ごとに、継承の根から member を辞書順に読む順を変換の関数に書いてある（継承は AddEventListenerOptions が EventListenerOptions を継承する一つだけ）"
+        },
+        {
+          "steps": "4.1.3.1",
+          "what": "Get は自分のプロパティを引くだけで、getter や prototype の上の member は無い"
+        }
+      ]
+    },
+    {
+      "alg": "js-to-nullable",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toNullableDOMString",
+        "Dom.Exec.Operation.nodeContainsNull",
+        "Dom.Exec.Operation.isEqualNodeNull"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う nullable 型に callback function は無い"
+          }
+        },
+        {
+          "steps": "2",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う nullable 型に undefined を含む型は無い"
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "js-to-sequence",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toSequenceDOMString"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2-3",
+          "what": "@@iterator を持つのは配列だけとみなす。Set などの配列でない iterable は表せない"
+        }
+      ]
+    },
+    {
+      "alg": "algorithm:create sequence from iterable",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toSequenceDOMString"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "配列の要素を順に読む。iterator object を作らず、利用者の iterator は表せない"
+        }
+      ]
+    },
+    {
+      "alg": "js-to-union",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.toEventListenerOptions",
+        "Dom.Idl.toAddEventListenerOptions",
+        "Dom.Idl.toImportNodeOptions",
+        "Dom.NodeOrString"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は undefined を含まない"
+          }
+        },
+        {
+          "steps": "2",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は nullable 型を含まない"
+          }
+        },
+        {
+          "steps": "5.2",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は object を含まない"
+          }
+        },
+        {
+          "steps": "6-10",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は buffer source・DataView・typed array・callback function を含まない"
+          }
+        },
+        {
+          "steps": "11.1-11.3",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は async sequence・sequence・frozen array を含まない"
+          }
+        },
+        {
+          "steps": "11.5-11.7",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は record・callback interface・object を含まない"
+          }
+        },
+        {
+          "steps": "13",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は numeric 型を含まない"
+          }
+        },
+        {
+          "steps": "14",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は bigint を含まない"
+          }
+        },
+        {
+          "steps": "16-17",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は numeric 型を含まない"
+          }
+        },
+        {
+          "steps": "19",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union は bigint を含まない"
+          }
+        },
+        {
+          "steps": "20",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う union はどれも boolean か string 型を含むので、ここに来ない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "5.1",
+          "what": "`(Node or DOMString)` の node は scenario の JSON の数（node の id）で表す"
+        }
+      ]
+    },
+    {
+      "alg": "dfn-create-operation-function",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Exec.invokeOperation",
+        "Dom.Exec.idlCheck",
+        "Dom.Exec.invokeChecked",
+        "Dom.Exec.returnValueOf"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "関数 object を作らない。操作は scenario の op 名で呼ぶ"
+          }
+        },
+        {
+          "steps": "2.1.2.1-2.1.2.2",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "2.1.7",
+          "why": {
+            "reason": "other",
+            "detail": "[Default] の付いた operation（toJSON）を扱わない"
+          }
+        },
+        {
+          "steps": "2.2",
+          "why": {
+            "reason": "other",
+            "detail": "promise を返す operation を扱わない"
+          }
+        },
+        {
+          "steps": "3-6",
+          "why": {
+            "reason": "other",
+            "detail": "関数 object を作らない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "2.1.3-2.1.5",
+          "what": "overload の選択と引数の個数の検査は無い。引数の変換は操作ごとに、例外を投げないものは scenario の読み取りで、投げうるものは `idlCheck` と `invokeChecked` で行う"
+        },
+        {
+          "steps": "2.1.9",
+          "what": "戻り値は `ReturnValue` として JSON に書き、JavaScript の値には変換しない"
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "target": "idl",
+      "why": {
+        "reason": "other",
+        "detail": "IDL の構文と型の定義（§2）。model は IDL fragment を読まず、変換を member ごとに書く"
+      }
+    },
+    {
+      "target": "js-type-mapping",
+      "why": {
+        "reason": "other",
+        "detail": "model の操作の引数に無い型からの変換と、IDL の値から JavaScript の値への変換（戻り値は `ReturnValue` として JSON で比べる）"
+      }
+    },
+    {
+      "target": "js-extended-attributes",
+      "why": {
+        "reason": "other",
+        "detail": "model が扱う member に付く拡張属性（[CEReactions] ほか）は観測に効かない。[LegacyNullToEmptyString] は DOMString の変換の step 1 で扱う"
+      }
+    },
+    {
+      "target": "js-interfaces",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "js-platform-objects",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "js-legacy-platform-objects",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "js-observable-arrays",
+      "why": {
+        "reason": "other",
+        "detail": "model が扱う member に observable array は無い"
+      }
+    },
+    {
+      "target": "js-user-objects",
+      "why": {
+        "reason": "other",
+        "detail": "callback と利用者の object の呼び出しは model の外（listener の callback は `ListenerAction` で表す）"
+      }
+    },
+    {
+      "target": "js-invoking-callback-functions",
+      "why": {
+        "reason": "other",
+        "detail": "callback function は model の外"
+      }
+    },
+    {
+      "target": "js-namespaces",
+      "why": {
+        "reason": "other",
+        "detail": "model が扱う member に namespace は無い"
+      }
+    },
+    {
+      "target": "js-exceptions",
+      "why": {
+        "reason": "other",
+        "detail": "例外は object を作らず、名前（`IdlException.name`）で比べる"
+      }
+    },
+    {
+      "target": "dfn-overload-resolution-algorithm",
+      "why": {
+        "reason": "todo",
+        "detail": "overload の選択と、引数の個数が足りないときの TypeError"
+      }
+    }
+  ]
+}
