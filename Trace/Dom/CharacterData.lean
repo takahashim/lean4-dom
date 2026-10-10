@@ -70,11 +70,13 @@ def entries : List Entry := [
     impl := [``Dom.descendantTextContent] },
   -- createTextNode の受け手の WebIDL の検査は `Dom.Exec.idlCheck` が行う。実行関数に残る guard は model の都合。
   { alg := "create-a-text-node"
-    impl := [``Dom.createTextNode, ``Dom.withFresh] },
+    impl := [``Dom.createTextNode, ``Dom.withFresh]
+    spec := [``Dom.createTextNode_creates] },
   /- §4.14 Comment -/
   -- createComment の受け手の WebIDL の検査は `Dom.Exec.idlCheck` が行う。実行関数に残る guard は model の都合。
   { alg := "create-a-comment-node"
-    impl := [``Dom.createComment, ``Dom.withFresh] }
+    impl := [``Dom.createComment, ``Dom.withFresh]
+    spec := [``Dom.createComment_creates] }
 ]
 
 def exclusions : List Exclusion := [

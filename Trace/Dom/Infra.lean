@@ -24,11 +24,14 @@ def entries : List Entry := [
     spec := [``Dom.Spec.ScopeMatchResult, ``Dom.Spec.MatchAgainstTree, ``Dom.Spec.SelectorListMatches]
     approx := [("1", "parse a selector は model の selector 文法（`parseSelector` が受け付ける部分集合）で行う。受け付けない構文は failure（SyntaxError）になる")] },
   { alg := "valid-namespace-prefix"
-    impl := [``Dom.isValidNamespacePrefix] },
+    impl := [``Dom.isValidNamespacePrefix]
+    spec := [``Dom.Spec.ValidNamespacePrefix, ``Dom.Spec.validNamespacePrefix_iff] },
   { alg := "valid-attribute-local-name"
-    impl := [``Dom.isValidAttributeLocalName] },
+    impl := [``Dom.isValidAttributeLocalName]
+    spec := [``Dom.Spec.ValidAttributeLocalName, ``Dom.Spec.validAttributeLocalName_iff] },
   { alg := "valid-element-local-name"
-    impl := [``Dom.isValidElementLocalName] },
+    impl := [``Dom.isValidElementLocalName]
+    spec := [``Dom.Spec.ValidElementLocalName, ``Dom.Spec.validElementLocalName_iff] },
   { alg := "validate-and-extract"
     impl := [``Dom.validateAndExtractAttribute, ``Dom.validateAndExtractElement,
              ``Dom.validateAndExtractError, ``Dom.splitAtFirstColon, ``Dom.normalizeNamespace]

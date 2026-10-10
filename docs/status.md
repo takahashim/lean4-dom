@@ -6743,6 +6743,16 @@ model の DOMTokenList は token set を持たず class attribute から読み�
 渡す set は serialize してから parse すると元に戻ることを示し（`orderedSetParse_serialize`、`Dom/Spec/TokenList.lean`）、
 この近似を「証明があるもの」に移した。本文の手順は実行関数がほぼそのまま写しているので、method ごとの関係は書いていない。
 
+## 名前の検査と createElement に関係を書いた
+
+§1.3 の三つの名前の条件を命題に書き、実行側の検査と一致させ、`createElement()` の成否と作る element を関係
+`CreateElementResult` で述べた（`Dom/Spec/Create.lean`）。作成 method の対応表には既存の `*_creates` 定理を関係として載せた。
+
+notify mutation observers（C-6）の関係は書いていない。本文の notify step 6.3 は observer の node list の node から transient
+registered observer を外し、model は observer の transient をすべて外す。二つが同じになることを言うには「transient を置いた
+node は node list にある」という不変条件をすべての操作について示す必要がある。固定版より後の改訂（`3071e5f`）は observer に
+transient node set を持たせてこの掃除を書き直しているので、関係は固定版を上げるときにその本文で書く。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

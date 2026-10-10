@@ -1318,3 +1318,10 @@ open Dom.Audit
   Dom.Spec.tokenSetOk_append_new
   Dom.Spec.tokenSetOk_replace
   Dom.Spec.validateTokens_eq_none_iff
+
+-- 名前の検査と createElement（§1.3、§4.5）
+#audit_axioms
+  Dom.Spec.validNamespacePrefix_iff
+  Dom.Spec.validAttributeLocalName_iff
+  Dom.Spec.validElementLocalName_iff
+  Dom.Spec.createElement_result_sound

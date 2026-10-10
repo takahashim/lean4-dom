@@ -69,7 +69,10 @@
       "impl": [
         "Dom.isValidNamespacePrefix"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.ValidNamespacePrefix",
+        "Dom.Spec.validNamespacePrefix_iff"
+      ],
       "omit": [],
       "approx": []
     },
@@ -81,7 +84,10 @@
       "impl": [
         "Dom.isValidAttributeLocalName"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.ValidAttributeLocalName",
+        "Dom.Spec.validAttributeLocalName_iff"
+      ],
       "omit": [],
       "approx": []
     },
@@ -93,7 +99,10 @@
       "impl": [
         "Dom.isValidElementLocalName"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.ValidElementLocalName",
+        "Dom.Spec.validElementLocalName_iff"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2214,7 +2223,10 @@
         "Dom.isValidElementLocalName",
         "Dom.Exec.idlCheck"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.CreateElementResult",
+        "Dom.Spec.createElement_result_sound"
+      ],
       "omit": [
         {
           "steps": "3",
@@ -2240,7 +2252,9 @@
         "Dom.createElementNS",
         "Dom.validateAndExtractElement"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createElementNS_creates"
+      ],
       "omit": [
         {
           "steps": "2",
@@ -2284,7 +2298,9 @@
       "impl": [
         "Dom.createDocumentFragment"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createDocumentFragment_creates"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2296,7 +2312,9 @@
       "impl": [
         "Dom.createTextNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createTextNode_creates"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2308,7 +2326,9 @@
       "impl": [
         "Dom.createComment"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createComment_creates"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2324,7 +2344,9 @@
         "Dom.isNameChar",
         "Dom.containsSubstr"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createProcessingInstruction_creates"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2337,7 +2359,9 @@
         "Dom.createCDATASection",
         "Dom.containsSubstr"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createCDATASection_creates"
+      ],
       "omit": [],
       "approx": [
         {
@@ -2520,7 +2544,9 @@
       "impl": [
         "Dom.createDocumentFragment"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createDocumentFragment_creates"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2548,7 +2574,10 @@
         "Dom.createElementNS",
         "Dom.withFresh"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.CreateElementResult",
+        "Dom.createElementNS_creates"
+      ],
       "omit": [
         {
           "steps": "2-5",
@@ -3811,7 +3840,9 @@
         "Dom.createTextNode",
         "Dom.withFresh"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createTextNode_creates"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3824,7 +3855,9 @@
         "Dom.createComment",
         "Dom.withFresh"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.createComment_creates"
+      ],
       "omit": [],
       "approx": []
     },

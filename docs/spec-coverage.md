@@ -36,9 +36,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [valid-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-namespace-prefix) | 1/1 | `Dom.isValidNamespacePrefix` |  |
-| [valid-attribute-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-attribute-local-name) | 1/1 | `Dom.isValidAttributeLocalName` |  |
-| [valid-element-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-element-local-name) | 7/7 | `Dom.isValidElementLocalName` |  |
+| [valid-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-namespace-prefix) | 1/1 | `Dom.isValidNamespacePrefix` | `Dom.Spec.ValidNamespacePrefix`<br>`Dom.Spec.validNamespacePrefix_iff` |
+| [valid-attribute-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-attribute-local-name) | 1/1 | `Dom.isValidAttributeLocalName` | `Dom.Spec.ValidAttributeLocalName`<br>`Dom.Spec.validAttributeLocalName_iff` |
+| [valid-element-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-element-local-name) | 7/7 | `Dom.isValidElementLocalName` | `Dom.Spec.ValidElementLocalName`<br>`Dom.Spec.validElementLocalName_iff` |
 | [validate-and-extract](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#validate-and-extract) | 14/15 | `Dom.validateAndExtractAttribute`<br>`Dom.validateAndExtractElement`<br>`Dom.validateAndExtractError`<br>`Dom.splitAtFirstColon`<br>`Dom.normalizeNamespace` | `Dom.Spec.validateAndExtractSteps`<br>`Dom.Spec.validateAndExtractAttribute_eq_steps`<br>`Dom.Spec.validateAndExtractElement_eq_steps` |
 
 ### §2.2（`interface-event`）
@@ -213,14 +213,14 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` | `Dom.Spec.QualifiedNameMatches`<br>`Dom.Spec.getElementsByTagName_sorted` |
 | [dom-document-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` | `Dom.Spec.NamespaceLocalNameMatches`<br>`Dom.Spec.getElementsByTagNameNS_sorted` |
 | [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` | `Dom.Spec.HasClass`<br>`Dom.Spec.getElementsByClassName_sorted` |
-| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
-| [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` |  |
+| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` | `Dom.Spec.CreateElementResult`<br>`Dom.Spec.createElement_result_sound` |
+| [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` | `Dom.createElementNS_creates` |
 | [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck`<br>`Dom.Idl.elementCreationOptionsOk` |  |
-| [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` |  |
-| [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` |  |
-| [dom-document-createcdatasection](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcdatasection) | 3/5（近似 2） | `Dom.createCDATASection`<br>`Dom.containsSubstr` |  |
-| [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcomment) | 1/1 | `Dom.createComment` |  |
-| [dom-document-createprocessinginstruction](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createprocessinginstruction) | 1/1 | `Dom.createProcessingInstruction`<br>`Dom.matchesName`<br>`Dom.isNameStartChar`<br>`Dom.isNameChar`<br>`Dom.containsSubstr` |  |
+| [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` | `Dom.createDocumentFragment_creates` |
+| [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` | `Dom.createTextNode_creates` |
+| [dom-document-createcdatasection](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcdatasection) | 3/5（近似 2） | `Dom.createCDATASection`<br>`Dom.containsSubstr` | `Dom.createCDATASection_creates` |
+| [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcomment) | 1/1 | `Dom.createComment` | `Dom.createComment_creates` |
+| [dom-document-createprocessinginstruction](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createprocessinginstruction) | 1/1 | `Dom.createProcessingInstruction`<br>`Dom.matchesName`<br>`Dom.isNameStartChar`<br>`Dom.isNameChar`<br>`Dom.containsSubstr` | `Dom.createProcessingInstruction_creates` |
 | [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-importnode) | 4/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn`<br>`Dom.Exec.idlCheck`<br>`Dom.importNodeSubtree`<br>`Dom.Idl.toImportNodeOptions` |  |
 | [concept-node-adopt](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-adopt) | 2/14（近似 4） | `Dom.adopt`<br>`Dom.setOwnerDocument`<br>`Dom.NodeData.withOwnerDocument`<br>`Dom.adoptAttr` | `Dom.Spec.AdoptSpec` |
 | [dom-document-adoptnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-adoptnode) | 3/4 | `Dom.adoptNode`<br>`Dom.adoptAttr`<br>`Dom.Exec.idlCheck` |  |
@@ -232,14 +232,14 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
 | [concept-tree-host-including-inclusive-ancestor](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-tree-host-including-inclusive-ancestor) | 0/1（近似 1） | `Dom.isInclusiveAncestorOf` |  |
-| [create-a-document-fragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-document-fragment) | 1/1 | `Dom.createDocumentFragment` |  |
+| [create-a-document-fragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-document-fragment) | 1/1 | `Dom.createDocumentFragment` | `Dom.createDocumentFragment_creates` |
 
 ### §4.9（`interface-element`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
 | [element-html-uppercased-qualified-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#element-html-uppercased-qualified-name) | 3/3 | `Dom.tagName`<br>`Dom.isHTMLDocumentOf`<br>`Dom.NodeData.qualifiedName` |  |
-| [concept-create-element](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-create-element) | 4/40（近似 1） | `Dom.createElement`<br>`Dom.createElementNS`<br>`Dom.withFresh` |  |
+| [concept-create-element](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-create-element) | 4/40（近似 1） | `Dom.createElement`<br>`Dom.createElementNS`<br>`Dom.withFresh` | `Dom.Spec.CreateElementResult`<br>`Dom.createElementNS_creates` |
 | [create-an-element-internal](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-an-element-internal) | 2/4（近似 2） | `Dom.withFresh` |  |
 | [handle-attribute-changes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#handle-attribute-changes) | 1/3 | `Dom.handleAttributeChanges` | `Dom.Spec.AttributeChangeHandled`<br>`Dom.Spec.AttributeRecordQueued` |
 | [concept-element-attributes-change](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-change) | 2/3（近似 1） | `Dom.changeAttribute` | `Dom.Spec.AttributeChanged` |
@@ -331,7 +331,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [contiguous-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-text-nodes) | 1/1 | `Dom.contiguousTextNodes`<br>`Dom.contiguousTextNodes.isTextNode` |  |
 | [contiguous-exclusive-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-exclusive-text-nodes) | 0/1（近似 1） | `Dom.followingTexts`<br>`Dom.isExclusiveText` | `Dom.Spec.FollowingContiguousTexts` |
 | [concept-descendant-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-descendant-text-content) | 1/1 | `Dom.descendantTextContent` |  |
-| [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-text-node) | 3/3 | `Dom.createTextNode`<br>`Dom.withFresh` |  |
+| [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-text-node) | 3/3 | `Dom.createTextNode`<br>`Dom.withFresh` | `Dom.createTextNode_creates` |
 | [concept-text-split](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-text-split) | 8/14（近似 6） | `Dom.splitText`<br>`Dom.splitTextAdjust`<br>`Dom.splitTextRange`<br>`Dom.splitTextBP`<br>`Dom.splitTextMoved`<br>`Dom.guardBP` |  |
 | [dom-text-splittext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-splittext) | 1/1 | `Dom.splitText` |  |
 | [dom-text-wholetext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-wholetext) | 1/1 | `Dom.wholeText`<br>`Dom.contiguousTextNodes` |  |
@@ -340,7 +340,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [create-a-comment-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-comment-node) | 3/3 | `Dom.createComment`<br>`Dom.withFresh` |  |
+| [create-a-comment-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-comment-node) | 3/3 | `Dom.createComment`<br>`Dom.withFresh` | `Dom.createComment_creates` |
 
 ### §5.2（`boundary-points`）
 

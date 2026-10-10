@@ -788,6 +788,22 @@ steps が parse して token set に戻す。model は token set を持たず、
 無ければ戻り（`orderedSetParse_serialize`）、`add`・`remove`・`toggle`・`replace` が渡す set はいつもそうである
 （token の検査が `TokenOk` を保証する。`validateTokens_eq_none_iff`）。
 
+## 28. 名前の検査は §1.3 の条件そのものであり、`createElement()` はその条件で失敗する
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.validElementLocalName_iff` | `Dom/Spec/Create.lean` |
+| `Dom.Spec.validAttributeLocalName_iff` | 同上 |
+| `Dom.Spec.validNamespacePrefix_iff` | 同上 |
+| `Dom.Spec.createElement_result_sound` | 同上 |
+
+§1.3 の valid namespace prefix・valid attribute local name・valid element local name を、本文の言い方
+（長さが 1 以上で、使えない文字を含まない。element では先頭の code point で場合を分ける）のまま命題に書き、
+実行側の Boolean の検査と `↔` で結んだ。`createElement()` は、Document の上で、名前がこの条件を満たさなければ
+InvalidCharacterError、満たせば step 2-5 の element（HTML document なら local name を ASCII lowercase、namespace は
+HTML document か content type が application/xhtml+xml なら HTML namespace）を一つ作る（`CreateElementResult`）。
+ほかの作成 method は、作る node を `CreatesNode` で述べる既存の定理（`createTextNode_creates` ほか）を対応表に載せた。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

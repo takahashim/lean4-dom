@@ -40,26 +40,33 @@ def entries : List Entry := [
     approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
   { alg := "dom-document-createelement"
     impl := [``Dom.createElement, ``Dom.isValidElementLocalName, ``Dom.Exec.idlCheck]
+    spec := [``Dom.Spec.CreateElementResult, ``Dom.Spec.createElement_result_sound]
     omitted := [("3", .customElements)]
     approx := [("5", "create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い）")] },
   { alg := "internal-createelementns-steps"
     impl := [``Dom.createElementNS, ``Dom.validateAndExtractElement]
+    spec := [``Dom.createElementNS_creates]
     omitted := [("2", .customElements)]
     approx := [("3", "create an element を呼ばず、`NodeData` を直に作る（is・registry は無い）")] },
   { alg := "dom-document-createelementns"
     impl := [``Dom.createElementNS, ``Dom.Exec.idlCheck, ``Dom.Idl.elementCreationOptionsOk]
     approx := [("*", "options は WebIDL の変換だけを行い（`customElementRegistry` を持つ dictionary は TypeError）、is と registry は使わない")] },
   { alg := "dom-document-createdocumentfragment"
-    impl := [``Dom.createDocumentFragment] },
+    impl := [``Dom.createDocumentFragment]
+    spec := [``Dom.createDocumentFragment_creates] },
   { alg := "dom-document-createtextnode"
-    impl := [``Dom.createTextNode] },
+    impl := [``Dom.createTextNode]
+    spec := [``Dom.createTextNode_creates] },
   { alg := "dom-document-createcomment"
-    impl := [``Dom.createComment] },
+    impl := [``Dom.createComment]
+    spec := [``Dom.createComment_creates] },
   { alg := "dom-document-createprocessinginstruction"
     impl := [``Dom.createProcessingInstruction, ``Dom.matchesName, ``Dom.isNameStartChar,
-             ``Dom.isNameChar, ``Dom.containsSubstr] },
+             ``Dom.isNameChar, ``Dom.containsSubstr]
+    spec := [``Dom.createProcessingInstruction_creates] },
   { alg := "dom-document-createcdatasection"
     impl := [``Dom.createCDATASection, ``Dom.containsSubstr]
+    spec := [``Dom.createCDATASection_creates]
     approx := [("3-4", "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）")] },
   { alg := "dom-document-importnode"
     impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn, ``Dom.Exec.idlCheck,
@@ -85,7 +92,8 @@ def entries : List Entry := [
     impl := [``Dom.isInclusiveAncestorOf]
     approx := [("*", "host を見ない。shadow root が無いので inclusive ancestor と同じ")] },
   { alg := "create-a-document-fragment"
-    impl := [``Dom.createDocumentFragment] }
+    impl := [``Dom.createDocumentFragment]
+    spec := [``Dom.createDocumentFragment_creates] }
 ]
 
 def exclusions : List Exclusion := [

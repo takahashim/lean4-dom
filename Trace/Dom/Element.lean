@@ -21,6 +21,7 @@ def entries : List Entry := [
     impl := [``Dom.tagName, ``Dom.isHTMLDocumentOf, ``Dom.NodeData.qualifiedName] },
   { alg := "concept-create-element"
     impl := [``Dom.createElement, ``Dom.createElementNS, ``Dom.withFresh]
+    spec := [``Dom.Spec.CreateElementResult, ``Dom.createElementNS_creates]
     omitted := [("2-5", .customElements), ("6.3", .customElements)]
     approx := [("6.1", "element interface を持たない。interface は namespace と local name から決まるものとして扱う")] },
   { alg := "create-an-element-internal"
