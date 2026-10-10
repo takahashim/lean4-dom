@@ -609,3 +609,33 @@
   scenario: variadic-parent-node-moves-live-range-into-the-fragment
   digest: cd80dc1e85170066
   reason: *variadic_range
+
+- impl: dommy-js
+  scenario: empty-pseudo-allows-white-space
+  digest: 93bbbb7c1de0b178
+  reason: |
+    impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。
+
+- impl: dommy-js
+  scenario: scope-pseudo-virtual-root-is-featureless
+  digest: 992a28858196e2a0
+  reason: |
+    impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。
+
+- impl: dommy-js
+  scenario: scope-pseudo-is-the-document-element
+  digest: 014700d595798b40
+  reason: |
+    impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。
+
+- impl: dommy-js
+  scenario: dataset-reads-by-qualified-name
+  digest: ab522a19d938099a
+  reason: |
+    impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。
+
+- impl: dommy-js
+  scenario: dataset-deletes-by-qualified-name
+  digest: 3b584008decfcfcd
+  reason: |
+    impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。

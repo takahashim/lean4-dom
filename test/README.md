@@ -24,9 +24,21 @@
 
 | runner | 対象 |
 | --- | --- |
-| `dommy_runner.rb` | Dommy（Ruby） |
+| `dommy_runner.rb` | Dommy（Ruby の API を直接呼ぶ） |
+| `dommy_js_runner.rb` | Dommy（dommy-js-quickjs の QuickJS の中で `js/scenario.js` を走らせる。`IMPL_NAME=dommy-js`） |
 | `js_runner.mjs` | jsdom / happy-dom（`--impl` で選ぶ） |
 | `browser_runner.mjs` | Playwright の Chromium・Firefox・WebKit（`BROWSER` で選ぶ。既定は `chromium`） |
+
+`dommy_runner.rb` は Dommy の Ruby の API を呼ぶので、Dommy が JS の層（`js/host_runtime.js`）で行う WebIDL の
+変換（DOMString・boolean・可変長の引数の変換、引数の個数の検査）を通らず、それらの値を書いた step は比べない。
+`dommy_js_runner.rb` はブラウザと同じ `js/scenario.js` を JavaScript の側から走らせるので、変換の層まで含めて
+比べられる。Gemfile には dommy、makiri、dommy-js-quickjs、quickjs が要る。
+
+```sh
+export BUNDLE_GEMFILE=/path/to/Gemfile   # dommy・makiri・dommy-js-quickjs・quickjs
+export IMPL_CMD="bundle exec ruby $PWD/test/dommy_js_runner.rb" IMPL_NAME=dommy-js
+ruby test/difftest.rb --fixed-only
+```
 
 `js_runner.mjs` の `--impl` は名前でも module の path でもよい。
 path を渡せば checkout した working tree をそのまま測れる。

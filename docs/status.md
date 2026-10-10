@@ -6400,6 +6400,29 @@ scenario の field を個別に省く約束（省けば既定値）はそのま�
 Chromium、Firefox、WebKit、jsdom 30.1.2 は八本とも model と一致した（WebKit と jsdom は `moveBefore` を持たないので、
 既存の一本は比べられない）。
 
+## Dommy を JS の側から動かす runner を足した（findings 64）
+
+`test/dommy_runner.rb` は Dommy の Ruby の API を直接呼ぶので、Dommy が JS の層で行う WebIDL の変換を通らない。
+WebIDL の変換の段を重ねるたびに、Dommy との比較は「比べられない」が増えていた。そこで、dommy-js-quickjs の QuickJS の中で、
+ブラウザ・jsdom と同じ `test/js/scenario.js` を Dommy の window に対して走らせる `test/dommy_js_runner.rb` を書いた
+（`IMPL_NAME=dommy-js`）。固定 scenario 全体が数秒で流れる。
+
+Dommy の main（`c0a0d581`）と dommy-js-quickjs（`a0f1776`）で、固定 scenario は一致 199、記録済み 5（`dommy` の記録を写した）、
+不一致 9 だった。不一致のうち五本は findings 62 と 63 で、`insertBefore` に node でない child を渡す件（findings 63 の 2）は
+JS の層を通すと本文どおり TypeError になった。生成 scenario（seed 71、300 本、`--ranges 4 --iterators 2 --move`）の
+不一致は、下の 3 と同じ原因の一件だった。
+
+**findings 64：JS の側から見た Dommy は三点で本文と違う。** どれも Ruby の API では本文どおりで、JS の層を通したときにだけ
+現れる。値ごとに QuickJS から直接呼んで確かめた。
+
+1. `cloneNode(undefined)` と `cloneNode("")` が深い複製になる。本文では引数は ToBoolean で、どちらも false
+   （`cloneNode()` と `cloneNode(false)` は正しく浅い複製になる）。
+2. `importNode(node, null)` が浅い複製になる。`(boolean or ImportNodeOptions)` の union は null を dictionary に変換し、
+   `selfOnly` が false なので深い複製である。
+3. JS から CharacterData の `data`・`nodeValue`・`textContent` を書くと、live range が動かない。本文ではどれも
+   "replace data"（offset 0、count は長さ）で、node の中の range は (node, 0) へ移る。`replaceData()` を呼べば動く。
+   range が node の長さを超えたまま残るので、影響が大きい。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
