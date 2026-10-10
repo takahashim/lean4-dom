@@ -16,7 +16,12 @@ def entries : List Entry := [
     approx := [("2", "realm を持たない。node document を与えた `NodeData` を `freshId` の位置に置く")] },
   { alg := "dom-node-nodetype"
     impl := [``Dom.NodeKind.nodeType, ``Dom.kindOf]
-    approx := [("*", "`NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型）。harness に getter の操作は無い")] },
+    approx := [("*", "`NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型で、`getProperty` も `Attr` の nodeType を読まない）")] },
+  { alg := "dom-node-nodename"
+    impl := [``Dom.nodeName, ``Dom.Exec.attrQueryValue] },
+  { alg := "dom-node-isconnected"
+    impl := [``Dom.isConnected, ``Dom.Exec.attrQueryValue]
+    approx := [("*", "shadow tree が無いので、shadow-including root の代わりに root を見る")] },
   { alg := "dom-node-ownerdocument"
     impl := [``Dom.ownerDocumentGetter, ``Dom.Exec.attrQueryValue] },
   { alg := "dom-node-getrootnode"
@@ -100,11 +105,7 @@ def entries : List Entry := [
 ]
 
 def exclusions : List Exclusion := [
-  { target := "dom-node-nodename",
-    reason := .todo "Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target は持つ（`doctypeName`・`piTarget`）が、それを読む操作が無い" },
   { target := "dom-node-baseuri", reason := .todo "document の URL（document base URL）を持たない" },
-  { target := "dom-node-isconnected",
-    reason := .todo "node の connected を返す関数が無い（Attr だけ harness の attrQuery が false を返す）" },
   { target := "dom-node-issamenode", reason := .todo "harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない）" },
   { target := "string-replace-all", reason := .todo "文字列から Text node を作って replace all する関数が無い" },
   { target := "set-text-content",

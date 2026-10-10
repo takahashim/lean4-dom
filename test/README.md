@@ -286,6 +286,7 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `getAttributeNodeNS` | `element`, `namespace`（null 可）, `name` |
 | `setAttributeNode` / `removeAttributeNode` | `element`, `attr`（attribute の id） |
 | `removeNamedItem` | `element`, `name` |
+| `getProperty` | `node`, `property`（値を読むだけの getter：`nodeType`・`nodeName`・`isConnected`・`parentNode`・`parentElement`・`firstChild`・`lastChild`・`previousSibling`・`nextSibling`・`childNodes`・`tagName`・`namespaceURI`・`prefix`・`localName`・`firstElementChild`・`lastElementChild`・`childElementCount`・`children`・`previousElementSibling`・`nextElementSibling`・`doctype`・`documentElement`・`contentType`・`compatMode`・`length`・`data`・`name`・`publicId`・`systemId`・`target`）。受け手の interface に無い getter は undefined を返す。`node` に `{"attr": id}` を書けるのは `attrQuery` にもあるものだけ |
 | `attrQuery` | `attr`, `query`（`ownerDocument`・`parentNode`・`parentElement`・`ownerElement`・`getRootNode`・`nodeName`・`nodeValue`・`textContent`・`isConnected`・`hasChildNodes`・`firstChild`） |
 | `setAttrValue` | `attr`, `value`, `via`（`value`・`nodeValue`・`textContent` のどの setter を使うか） |
 

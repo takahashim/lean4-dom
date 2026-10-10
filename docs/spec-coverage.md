@@ -7,11 +7,11 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 226 |
-| 対象外としたもの | 165 |
-| 表に載せた algorithm の step | 999 |
-| そのうち実装したもの | 593 |
-| そのうち近似したもの | 210 |
+| 表に載せたもの | 235 |
+| 対象外としたもの | 156 |
+| 表に載せた algorithm の step | 1008 |
+| そのうち実装したもの | 601 |
+| そのうち近似したもの | 211 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -105,12 +105,22 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | --- | --- | --- | --- |
 | [convert-nodes-into-a-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#convert-nodes-into-a-node) | 5/5 | `Dom.convertNodesIntoNode`<br>`Dom.textsFor`<br>`Dom.appendAll`<br>`Dom.discardAll` |  |
 | [dom-parentnode-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-children) | 0/1（近似 1） | `Dom.elementChildrenOf` |  |
+| [dom-parentnode-firstelementchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-firstelementchild) | 1/1 | `Dom.firstElementChild` |  |
+| [dom-parentnode-lastelementchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-lastelementchild) | 1/1 | `Dom.lastElementChild` |  |
+| [dom-parentnode-childelementcount](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-childelementcount) | 1/1 | `Dom.childElementCount` |  |
 | [dom-parentnode-prepend](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-prepend) | 2/2 | `Dom.prependNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.preInsert` |  |
 | [dom-parentnode-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-append) | 2/2 | `Dom.appendNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.append` |  |
 | [dom-parentnode-replacechildren](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-replacechildren) | 3/3 | `Dom.replaceChildrenNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.replaceChildren`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.replaceAll` | `Dom.Spec.ReplaceChildrenResult` |
 | [dom-parentnode-movebefore](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-movebefore) | 3/3 | `Dom.moveBefore`<br>`Dom.move` | `Dom.Spec.MoveResult` |
 | [dom-parentnode-queryselector](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-queryselector) | 1/1 | `Dom.querySelector`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` |  |
 | [dom-parentnode-queryselectorall](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-queryselectorall) | 0/1（近似 1） | `Dom.querySelectorAll`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` |  |
+
+### §4.2.7（`interface-nondocumenttypechildnode`）
+
+| algorithm | step | 実行関数 | 関係 |
+| --- | --- | --- | --- |
+| [dom-nondocumenttypechildnode-previouselementsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nondocumenttypechildnode-previouselementsibling) | 1/1 | `Dom.previousElementSibling` |  |
+| [dom-nondocumenttypechildnode-nextelementsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nondocumenttypechildnode-nextelementsibling) | 1/1 | `Dom.nextElementSibling` |  |
 
 ### §4.2.8（`interface-childnode`）
 
@@ -155,6 +165,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | --- | --- | --- | --- |
 | [create-a-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-node) | 1/2（近似 1） | `Dom.withFresh` |  |
 | [dom-node-nodetype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodetype) | 0/1（近似 1） | `Dom.NodeKind.nodeType`<br>`Dom.kindOf` |  |
+| [dom-node-nodename](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodename) | 1/1 | `Dom.nodeName`<br>`Dom.Exec.attrQueryValue` |  |
+| [dom-node-isconnected](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isconnected) | 0/1（近似 1） | `Dom.isConnected`<br>`Dom.Exec.attrQueryValue` |  |
 | [dom-node-ownerdocument](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-ownerdocument) | 1/1 | `Dom.ownerDocumentGetter`<br>`Dom.Exec.attrQueryValue` |  |
 | [dom-node-getrootnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-getrootnode) | 0/1（近似 1） | `Dom.getRootNode`<br>`Dom.attrGetRootNode` | `Dom.Spec.IsRoot` |
 | [dom-node-parentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-parentnode) | 1/1 | `Dom.parentOf`<br>`Dom.attrParentNode` |  |
@@ -191,7 +203,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-document-compatmode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-compatmode) | 1/1 | `Dom.inQuirksModeOf` |  |
+| [dom-document-compatmode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-compatmode) | 1/1 | `Dom.compatMode`<br>`Dom.inQuirksModeOf` |  |
+| [dom-document-contenttype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-contenttype) | 1/1 | `Dom.NodeData.contentType` |  |
+| [dom-document-doctype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-doctype) | 1/1 | `Dom.doctypeOf` |  |
 | [dom-document-documentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-documentelement) | 1/1 | `Dom.documentElement` |  |
 | [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` |  |
 | [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
@@ -521,7 +535,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-event-listener-inner-invoke | 2.11 | callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない |
 | concept-node-length | 1 | Attr は木の node ではない（NodeKind に無い）ので、DocumentType だけが 0 になる |
 | move | 1 | shadow-including root ではなく root で比べる（shadow tree が無いので同じ値） |
-| dom-parentnode-children | * | live な HTMLCollection は作らない。collection が表す element children をその時点の list として返す。harness に操作は無く、`childrenNamedItem` の中でだけ使う |
+| dom-parentnode-children | * | live な HTMLCollection は作らない。collection が表す element children を、読んだ時点の list として返す |
 | dom-parentnode-queryselectorall | * | static な NodeList ではなく、element の list を返す |
 | dom-htmlcollection-nameditem | * | collection は `ParentNode.children` のものに限る（他の HTMLCollection は model に無い） |
 | queue-a-mutation-observer-compound-microtask | 3 | microtask は積まず、flag を立てるだけである。notify mutation observers は harness の `notify` 操作として呼ぶ |
@@ -531,7 +545,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-mutationobserver-observe | 7.1 | node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す |
 | dom-mutationobserver-disconnect | 1 | node list の node に限らず、この observer の registered observer を全部外す |
 | create-a-node | 2 | realm を持たない。node document を与えた `NodeData` を `freshId` の位置に置く |
-| dom-node-nodetype | * | `NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型）。harness に getter の操作は無い |
+| dom-node-nodetype | * | `NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型で、`getProperty` も `Attr` の nodeType を読まない） |
+| dom-node-isconnected | * | shadow tree が無いので、shadow-including root の代わりに root を見る |
 | dom-node-getrootnode | * | options["composed"] を受けず、常に root を返す（shadow tree が無いので shadow-including root と同じ値） |
 | dom-node-childnodes | * | live な NodeList ではなく、読んだ時点の children の列を返す |
 | dom-node-nodevalue/setter | * | setter として振り分ける関数は無い。Attr の枝は `setAttrValue`（harness の `setAttrValue` の via = nodeValue）、CharacterData の枝は同じ replace data をする `setData` が担う。「Otherwise 何もしない」の枝と null → 空文字列の変換は model に無い |
@@ -606,7 +621,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：DOMImplementation object を持たない | dom-document-implementation |
 | todo：DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document と DocumentType を作る関数が無い（DocumentType の name・public ID・system ID は scenario の初期状態で与える） | dom-domimplementation-createdocument, dom-domimplementation-createdocumenttype, dom-domimplementation-createhtmldocument |
 | todo：Document を作る関数が無い（clone a single node の step 3 だけは `cloneSingle` が `NodeData` を写して作る）。harness の document は scenario が与える | create-a-document |
-| todo：DocumentType の name・public ID・system ID は持つ（`doctypeName`・`publicId`・`systemId`）が、create a doctype と三つの getter が無い | create-a-doctype, dom-documenttype-name, dom-documenttype-publicid, dom-documenttype-systemid |
+| todo：DocumentType の name・public ID・system ID は持ち、三つの getter は `getProperty` で読める（`doctypeName`・`publicId`・`systemId`）が、create a doctype（`createDocumentType`）が無い | create-a-doctype, dom-documenttype-name, dom-documenttype-publicid, dom-documenttype-systemid |
 | todo：Element・DocumentFragment の枝（string replace all）が無い。Attr の枝は `setAttrValue`（via = textContent）、CharacterData の枝は `setData` と同じ処理だが、set text content として振り分ける関数は無い | set-text-content |
 | todo：Event object を作る API が無い（`dispatchEvent` が型・bubbles・cancelable から event を組む）。step 7 の timeStamp は host | dom-document-createevent |
 | todo：Event object を持たず、composed flag も無い | dom-event-composed |
@@ -623,9 +638,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：NamedNodeMap object を持たない（length が無い） | dom-namednodemap-length |
 | todo：NamedNodeMap object（element の attributes getter）を持たない | dom-element-attributes |
 | todo：NamedNodeMap の named property が無い | interface-namednodemap/supported-property-names |
-| todo：Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target は持つ（`doctypeName`・`piTarget`）が、それを読む操作が無い | dom-node-nodename |
 | todo：NodeIterator を作る API が無い（iterator は scenario が与える） | dom-document-createnodeiterator |
-| todo：ProcessingInstruction の target・attribute map・createProcessingInstruction が無い（XML Name production も無い） | create-a-processing-instruction-node, dom-processinginstruction-getattribute, dom-processinginstruction-getattributenames, dom-processinginstruction-hasattribute, dom-processinginstruction-hasattributes, dom-processinginstruction-processinginstruction, dom-processinginstruction-removeattribute, dom-processinginstruction-setattribute, dom-processinginstruction-target, dom-processinginstruction-toggleattribute, get-a-processing-instruction-attribute, processinginstruction-initialize, update-attributes-from-data, update-data-from-attributes |
+| todo：ProcessingInstruction の target は持ち `getProperty` で読める（`piTarget`）が、attribute map と createProcessingInstruction が無い（XML Name production も無い） | create-a-processing-instruction-node, dom-processinginstruction-getattribute, dom-processinginstruction-getattributenames, dom-processinginstruction-hasattribute, dom-processinginstruction-hasattributes, dom-processinginstruction-processinginstruction, dom-processinginstruction-removeattribute, dom-processinginstruction-setattribute, dom-processinginstruction-target, dom-processinginstruction-toggleattribute, get-a-processing-instruction-attribute, processinginstruction-initialize, update-attributes-from-data, update-data-from-attributes |
 | todo：Range object を作る API が無い（range は scenario が与える。`Dom/Range/Api.lean` の注） | dom-document-createrange |
 | todo：Range object を新しく作る操作が model に無い（range は初期状態で与える） | dom-range-clonerange |
 | todo：StaticRange が model に無い | dom-staticrange-staticrange, staticrange-valid |
@@ -641,16 +655,13 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：createCDATASection が無い（`Dom/Mutation/Create.lean` の注） | dom-document-createcdatasection |
 | todo：createProcessingInstruction が無い。target の Name production と ProcessingInstruction の target を model が持たない | dom-document-createprocessinginstruction |
 | todo：currentNode を設定する操作が harness に無い（初期状態の current だけを与えられる） | dom-treewalker-currentnode/setter |
-| todo：doctype の子を返す関数が無い | dom-document-doctype |
 | todo：document の URL を持たない | dom-document-documenturi, dom-document-url |
 | todo：document の URL（document base URL）を持たない | dom-node-baseuri |
-| todo：document の content type を持たない（type は `isHTMLDocument` で持つ） | dom-document-contenttype |
 | todo：document の encoding を持たない | dom-document-characterset, dom-document-charset, dom-document-inputencoding |
 | todo：extract が未実装 | dom-range-extractcontents |
 | todo：extract に依存するので未実装 | dom-range-surroundcontents |
 | todo：extract（DocumentFragment への移し替えと部分 clone）が未実装 | concept-range-extract |
 | todo：getAttributeNS() の関数が無い（getAttributeByKey はあるが null と value を返す method が無い） | dom-element-getattributens |
-| todo：getter の実行関数も harness の操作も無い | dom-nondocumenttypechildnode-nextelementsibling, dom-nondocumenttypechildnode-previouselementsibling, dom-parentnode-childelementcount, dom-parentnode-firstelementchild, dom-parentnode-lastelementchild |
 | todo：harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない） | dom-node-issamenode |
 | todo：hasAttributeNS() の関数が無い | dom-element-hasattributens |
 | todo：hasAttributes() の関数と harness の op が無い | dom-element-hasattributes |
@@ -661,7 +672,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：list of elements with namespace and local name（getElementsByTagNameNS）が無い | dom-element-getelementsbytagnamens |
 | todo：list of elements with qualified name が無い | dom-document-getelementsbytagname |
 | todo：list of elements with qualified name（getElementsByTagName）が無い | dom-element-getelementsbytagname |
-| todo：node の connected を返す関数が無い（Attr だけ harness の attrQuery が false を返す） | dom-node-isconnected |
 | todo：node 以外の EventTarget を作れない（listener の target は NodeId） | dom-eventtarget-eventtarget |
 | todo：removeNamedItemNS() の関数が無い（removeAttributeNS は NotFoundError も `Attr` を返すことも無い） | dom-namednodemap-removenameditemns |
 | todo：returnValue の setter が無い（ListenerAction に無い） | dom-event-returnvalue/setter |

@@ -579,6 +579,17 @@ def operationOfJson (j : Json) : Except String Operation := do
     | n, .null => return .nodeContainsNull n
     | .node n, .node (.node o) => return .nodeContains n o
     | n, .node o => return .nodeContainsRef n o
+  | "getProperty" =>
+    let p ← strField j "property" ""
+    match NodeProp.ofString? p with
+    | none => throw s!"model が持たない getter `{p}`"
+    | some prop =>
+      match ← refField j "node" with
+      | .node n => return .getProperty n prop
+      | .attr a =>
+        match prop.attrQuery? with
+        | some q => return .attrQuery a q
+        | none => throw s!"`Attr` に対する getter `{p}` は model に無い"
   | "getOwnerDocument" =>
     match ← refField j "node" with
     | .node n => return .getOwnerDocument n

@@ -6535,6 +6535,48 @@ namespace が null になった。
 
 Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、この scenario で model と同じ結果だった。
 
+## 値を読むだけの getter を `getProperty` で比べるようにした（findings 66–68）
+
+harness に getter の操作が無く、対応表で「実行関数も操作も無い」としていた getter をまとめて足した。
+操作は一つ（`getProperty`、`node` と `property`）で、`nodeType`・`nodeName`・`isConnected`・`parentNode`・
+`parentElement`・`firstChild`・`lastChild`・`previousSibling`・`nextSibling`・`childNodes`（Node）、`tagName`・
+`namespaceURI`・`prefix`・`localName`（Element）、`firstElementChild`・`lastElementChild`・`childElementCount`・
+`children`（ParentNode）、`previousElementSibling`・`nextElementSibling`（NonDocumentTypeChildNode）、`doctype`・
+`documentElement`・`contentType`・`compatMode`（Document）、`length`・`data`（CharacterData）、`name`・`publicId`・
+`systemId`（DocumentType）、`target`（ProcessingInstruction）を読む。
+
+* 受け手の interface に無い getter は JavaScript では undefined になる。model も `propertyValue`
+  （`Dom/Exec/Eval.lean`）が受け手の種類を見て undefined を返し、runner は interface が持つはずの nodeType の表
+  （`PROPERTY_NODE_TYPES`）で「無くてよい」と「実装漏れ」を分ける。
+* 新しい実行関数は `Dom/Query/Property.lean`（`nodeName`・`isConnected`・`firstElementChild`・`lastElementChild`・
+  `childElementCount`・`previousElementSibling`・`nextElementSibling`・`doctypeOf`・`compatMode`）。対応表の
+  `.todo` の除外を 10 件（`nodeName`・`isConnected`・`doctype`・`contentType`・ParentNode の三つ・
+  NonDocumentTypeChildNode の二つ）外した。`isConnected` は shadow tree が無いので root を見る（近似）。
+* `Attr` を受け手にできるのは `attrQuery` にもあるもの（`nodeName`・`isConnected`・`parentNode`・`parentElement`・
+  `firstChild`）だけで、`getProperty` はそれを `attrQuery` に読み替える。
+* 生成器は `getProperty` を出す。固定 scenario `getters-read-every-node-kind` は、すべての node 種
+  （quirks の HTML document、doctype、HTML と SVG の element、Text、Comment、PI、DocumentFragment、XHTML の
+  XML document、親の無い element、`Attr`）に対して全部の getter を読む。
+
+Chromium、Firefox、WebKit は固定 scenario のすべてで model と一致した。
+
+**findings 66：Dommy の JS の層では、DocumentType が Element と ParentNode の getter を持つ。** `tagName`・
+`namespaceURI`・`prefix`・`localName` が null、`firstElementChild`・`lastElementChild` が null、`childElementCount`
+が 0、`children` が collection を返す。本文の DocumentType はこれらを持たないので undefined になる
+（ブラウザと jsdom も undefined）。Text・Comment・PI では起きない。
+
+**findings 67：Dommy は、DocumentFragment の中の Comment の `isConnected` が undefined になる。** 本文では false
+である（document の中の Comment は true を返す）。Ruby の API でも CommentNode は `is_connected` を持たず、
+`test/dommy_runner.rb` では固定 scenario `getters-read-every-node-kind` がその step で skip になる。
+
+**findings 68：Dommy の `removeChild(doctype)` は null を返す。** pre-remove は child を返すので、DocumentType でも
+その node が返る。`--doctype-prob 0.5` の生成 scenario で見つかり、Ruby と JS のどちらの runner でも null である
+（ブラウザは本文どおり）。固定 scenario `is-connected-of-a-comment-in-a-fragment` と
+`remove-child-returns-the-doctype` を足した。
+
+**jsdom 30.1.2 は `compatMode` を読むたびに doctype の有無で決める。** quirks の document に doctype を足すと
+"CSS1Compat" を返す。mode は parser が決める document の持ち物なので、`test/known-divergences.yml` に記録した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

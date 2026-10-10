@@ -1053,9 +1053,69 @@
       "approx": [
         {
           "steps": "*",
-          "what": "live な HTMLCollection は作らない。collection が表す element children をその時点の list として返す。harness に操作は無く、`childrenNamedItem` の中でだけ使う"
+          "what": "live な HTMLCollection は作らない。collection が表す element children を、読んだ時点の list として返す"
         }
       ]
+    },
+    {
+      "alg": "dom-parentnode-firstelementchild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.firstElementChild"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-parentnode-lastelementchild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.lastElementChild"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-parentnode-childelementcount",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.childElementCount"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nondocumenttypechildnode-previouselementsibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.previousElementSibling"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nondocumenttypechildnode-nextelementsibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nextElementSibling"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
     },
     {
       "alg": "dom-parentnode-prepend",
@@ -1427,7 +1487,38 @@
       "approx": [
         {
           "steps": "*",
-          "what": "`NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型）。harness に getter の操作は無い"
+          "what": "`NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型で、`getProperty` も `Attr` の nodeType を読まない）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-nodename",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nodeName",
+        "Dom.Exec.attrQueryValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-isconnected",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.isConnected",
+        "Dom.Exec.attrQueryValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "shadow tree が無いので、shadow-including root の代わりに root を見る"
         }
       ]
     },
@@ -1927,7 +2018,32 @@
         "*"
       ],
       "impl": [
+        "Dom.compatMode",
         "Dom.inQuirksModeOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-contenttype",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.NodeData.contentType"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-doctype",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.doctypeOf"
       ],
       "spec": [],
       "omit": [],
@@ -4491,41 +4607,6 @@
       }
     },
     {
-      "target": "dom-parentnode-firstelementchild",
-      "why": {
-        "reason": "todo",
-        "detail": "getter の実行関数も harness の操作も無い"
-      }
-    },
-    {
-      "target": "dom-parentnode-lastelementchild",
-      "why": {
-        "reason": "todo",
-        "detail": "getter の実行関数も harness の操作も無い"
-      }
-    },
-    {
-      "target": "dom-parentnode-childelementcount",
-      "why": {
-        "reason": "todo",
-        "detail": "getter の実行関数も harness の操作も無い"
-      }
-    },
-    {
-      "target": "dom-nondocumenttypechildnode-previouselementsibling",
-      "why": {
-        "reason": "todo",
-        "detail": "getter の実行関数も harness の操作も無い"
-      }
-    },
-    {
-      "target": "dom-nondocumenttypechildnode-nextelementsibling",
-      "why": {
-        "reason": "todo",
-        "detail": "getter の実行関数も harness の操作も無い"
-      }
-    },
-    {
       "target": "dom-htmlcollection-length",
       "why": {
         "reason": "todo",
@@ -4554,24 +4635,10 @@
       }
     },
     {
-      "target": "dom-node-nodename",
-      "why": {
-        "reason": "todo",
-        "detail": "Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target は持つ（`doctypeName`・`piTarget`）が、それを読む操作が無い"
-      }
-    },
-    {
       "target": "dom-node-baseuri",
       "why": {
         "reason": "todo",
         "detail": "document の URL（document base URL）を持たない"
-      }
-    },
-    {
-      "target": "dom-node-isconnected",
-      "why": {
-        "reason": "todo",
-        "detail": "node の connected を返す関数が無い（Attr だけ harness の attrQuery が false を返す）"
       }
     },
     {
@@ -4656,20 +4723,6 @@
       "why": {
         "reason": "todo",
         "detail": "document の encoding を持たない"
-      }
-    },
-    {
-      "target": "dom-document-contenttype",
-      "why": {
-        "reason": "todo",
-        "detail": "document の content type を持たない（type は `isHTMLDocument` で持つ）"
-      }
-    },
-    {
-      "target": "dom-document-doctype",
-      "why": {
-        "reason": "todo",
-        "detail": "doctype の子を返す関数が無い"
       }
     },
     {
@@ -4760,7 +4813,7 @@
       "target": "interface-documenttype",
       "why": {
         "reason": "todo",
-        "detail": "DocumentType の name・public ID・system ID は持つ（`doctypeName`・`publicId`・`systemId`）が、create a doctype と三つの getter が無い"
+        "detail": "DocumentType の name・public ID・system ID は持ち、三つの getter は `getProperty` で読める（`doctypeName`・`publicId`・`systemId`）が、create a doctype（`createDocumentType`）が無い"
       }
     },
     {
@@ -4956,7 +5009,7 @@
       "target": "interface-processinginstruction",
       "why": {
         "reason": "todo",
-        "detail": "ProcessingInstruction の target・attribute map・createProcessingInstruction が無い（XML Name production も無い）"
+        "detail": "ProcessingInstruction の target は持ち `getProperty` で読める（`piTarget`）が、attribute map と createProcessingInstruction が無い（XML Name production も無い）"
       }
     },
     {

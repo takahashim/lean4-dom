@@ -235,6 +235,53 @@ def attrQueryValue (s : DOMState) (a : AttrId) : AttrQuery → ReturnValue
   | .hasChildNodes => .bool false
   | .firstChild => .node none
 
+/--
+`getProperty` の値。受け手の interface に無い getter は undefined（`.unit`）で、
+JavaScript で `node.tagName` を Text に対して読んだときと同じ。
+-/
+def propertyValue (t : Tree) (n : NodeId) (p : NodeProp) : ReturnValue :=
+  match t.get? n with
+  | none => .unit
+  | some d =>
+    let k := d.kind
+    let isElement := k == .element
+    let isDocument := k == .document
+    let isParentNode := k.canHaveChildren
+    let isCharacterData := k.isCharacterData
+    -- NonDocumentTypeChildNode は Element と CharacterData。
+    let isNDTChildNode := isElement || isCharacterData
+    match p with
+    | .nodeType => .int k.nodeType
+    | .nodeName => .str (nodeName t n)
+    | .isConnected => .bool (isConnected t n)
+    | .parentNode => .node (parentOf t n)
+    | .parentElement => .node (parentElement t n)
+    | .firstChild => .node (childrenOf t n).head?
+    | .lastChild => .node (childrenOf t n).getLast?
+    | .previousSibling => .node (previousSibling t n)
+    | .nextSibling => .node (nextSibling t n)
+    | .childNodes => .nodes (childrenOf t n)
+    | .tagName => if isElement then .str (tagName t n) else .unit
+    | .namespaceURI => if isElement then .str d.namespace else .unit
+    | .prefix => if isElement then .str d.prefix else .unit
+    | .localName => if isElement then .str (some d.localName) else .unit
+    | .firstElementChild => if isParentNode then .node (firstElementChild t n) else .unit
+    | .lastElementChild => if isParentNode then .node (lastElementChild t n) else .unit
+    | .childElementCount => if isParentNode then .int (childElementCount t n) else .unit
+    | .children => if isParentNode then .nodes (elementChildrenOf t n) else .unit
+    | .previousElementSibling => if isNDTChildNode then .node (previousElementSibling t n) else .unit
+    | .nextElementSibling => if isNDTChildNode then .node (nextElementSibling t n) else .unit
+    | .doctype => if isDocument then .node (doctypeOf t n) else .unit
+    | .documentElement => if isDocument then .node (documentElement t n) else .unit
+    | .contentType => if isDocument then .str (some d.contentType) else .unit
+    | .compatMode => if isDocument then .str (compatMode t n) else .unit
+    | .length => if isCharacterData then .int d.length else .unit
+    | .data => if isCharacterData then .str (some d.data) else .unit
+    | .name => if k == .documentType then .str (some d.doctypeName) else .unit
+    | .publicId => if k == .documentType then .str (some d.publicId) else .unit
+    | .systemId => if k == .documentType then .str (some d.systemId) else .unit
+    | .target => if k == .processingInstruction then .str (some d.piTarget) else .unit
+
 /-- `Attr` と状態を返す操作を、状態だけを返す形にする。 -/
 def dropAttr (r : Except DOMException (AttrId × DOMState)) : Except DOMException DOMState :=
   match r with
@@ -390,6 +437,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .nodeContains n o => .bool (nodeContains s.tree ⟨n⟩ ⟨o⟩)
   | .getRootNode n => .node (some (getRootNode s.tree ⟨n⟩))
   | .getOwnerDocument n => .node (ownerDocumentGetter s.tree ⟨n⟩)
+  | .getProperty n p => propertyValue s.tree ⟨n⟩ p
   | .isEqualNode n o => .bool (nodeEquals s.tree ⟨n⟩ ⟨o⟩)
   | .getTextContent n => .str (getTextContent s.tree ⟨n⟩)
   | .getNodeValue n => .str (getNodeValue s.tree ⟨n⟩)
@@ -599,6 +647,7 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .nodeContains n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .getRootNode n => requireNodes s [⟨n⟩]
   | .getOwnerDocument n => requireNodes s [⟨n⟩]
+  | .getProperty n _ => requireNodes s [⟨n⟩]
   | .isEqualNode n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .getTextContent n => requireNodes s [⟨n⟩]
   | .getNodeValue n => requireNodes s [⟨n⟩]

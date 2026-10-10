@@ -18,7 +18,11 @@ open Trace
 def entries : List Entry := [
   /- §4.5 -/
   { alg := "dom-document-compatmode"
-    impl := [``Dom.inQuirksModeOf] },
+    impl := [``Dom.compatMode, ``Dom.inQuirksModeOf] },
+  { alg := "dom-document-contenttype"
+    impl := [``Dom.NodeData.contentType] },
+  { alg := "dom-document-doctype"
+    impl := [``Dom.doctypeOf] },
   { alg := "dom-document-documentelement"
     impl := [``Dom.documentElement] },
   { alg := "dom-document-getelementsbyclassname"
@@ -80,9 +84,6 @@ def exclusions : List Exclusion := [
   { target := "dom-document-characterset", reason := .todo "document の encoding を持たない" },
   { target := "dom-document-charset", reason := .todo "document の encoding を持たない" },
   { target := "dom-document-inputencoding", reason := .todo "document の encoding を持たない" },
-  { target := "dom-document-contenttype",
-    reason := .todo "document の content type を持たない（type は `isHTMLDocument` で持つ）" },
-  { target := "dom-document-doctype", reason := .todo "doctype の子を返す関数が無い" },
   { target := "dom-document-getelementsbytagname", reason := .todo "list of elements with qualified name が無い" },
   { target := "dom-document-getelementsbytagnamens",
     reason := .todo "list of elements with namespace and local name が無い" },
@@ -103,7 +104,7 @@ def exclusions : List Exclusion := [
   { target := "dom-domimplementation-hasfeature", reason := .legacy },
   /- §4.6 -/
   { target := "interface-documenttype",
-    reason := .todo "DocumentType の name・public ID・system ID は持つ（`doctypeName`・`publicId`・`systemId`）が、create a doctype と三つの getter が無い" },
+    reason := .todo "DocumentType の name・public ID・system ID は持ち、三つの getter は `getProperty` で読める（`doctypeName`・`publicId`・`systemId`）が、create a doctype（`createDocumentType`）が無い" },
   /- §4.7 -/
   { target := "exclusive-documentfragment-node",
     reason := .shadow },

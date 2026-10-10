@@ -1,0 +1,39 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "isConnected"
+    ],
+    "steps": "isConnected getter",
+    "note": "isConnected は shadow-including root が document なら true、そうでなければ false を返す。DocumentFragment の中の Comment は false である（undefined ではない）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 2,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 2,
+      "data": ""
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "isConnected"
+    }
+  ]
+}

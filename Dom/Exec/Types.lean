@@ -8,6 +8,7 @@ import Dom.Range.Adjust
 import Dom.Traversal.NodeIterator
 import Dom.Traversal.TreeWalker
 import Dom.Query.NodeQuery
+import Dom.Query.Property
 import Dom.Event.Dispatch
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
@@ -97,6 +98,45 @@ inductive AttrQuery where
   | hasChildNodes
   | firstChild
 deriving Repr, DecidableEq
+
+/--
+`getProperty` で読む getter。受け手の interface に無いものは JavaScript では undefined になるので、
+値は `Dom.Exec.propertyValue` が受け手の種類を見て決める。
+-/
+inductive NodeProp where
+  | nodeType | nodeName | isConnected | parentNode | parentElement
+  | firstChild | lastChild | previousSibling | nextSibling | childNodes
+  | tagName | namespaceURI | «prefix» | localName
+  | firstElementChild | lastElementChild | childElementCount | children
+  | previousElementSibling | nextElementSibling
+  | doctype | documentElement | contentType | compatMode
+  | length | data | name | publicId | systemId | target
+deriving Repr, DecidableEq
+
+def NodeProp.ofString? : String → Option NodeProp
+  | "nodeType" => some .nodeType | "nodeName" => some .nodeName | "isConnected" => some .isConnected
+  | "parentNode" => some .parentNode | "parentElement" => some .parentElement
+  | "firstChild" => some .firstChild | "lastChild" => some .lastChild
+  | "previousSibling" => some .previousSibling | "nextSibling" => some .nextSibling
+  | "childNodes" => some .childNodes
+  | "tagName" => some .tagName | "namespaceURI" => some .namespaceURI
+  | "prefix" => some .prefix | "localName" => some .localName
+  | "firstElementChild" => some .firstElementChild | "lastElementChild" => some .lastElementChild
+  | "childElementCount" => some .childElementCount | "children" => some .children
+  | "previousElementSibling" => some .previousElementSibling
+  | "nextElementSibling" => some .nextElementSibling
+  | "doctype" => some .doctype | "documentElement" => some .documentElement
+  | "contentType" => some .contentType | "compatMode" => some .compatMode
+  | "length" => some .length | "data" => some .data | "name" => some .name
+  | "publicId" => some .publicId | "systemId" => some .systemId | "target" => some .target
+  | _ => none
+
+/-- `Attr` を受け手にしたとき、`attrQuery` で読めるもの。 -/
+def NodeProp.attrQuery? : NodeProp → Option AttrQuery
+  | .nodeName => some .nodeName | .isConnected => some .isConnected
+  | .parentNode => some .parentNode | .parentElement => some .parentElement
+  | .firstChild => some .firstChild
+  | _ => none
 
 /-- `Attr` の value を書く setter。どれも "set an existing attribute value" を呼ぶ。 -/
 inductive AttrSetter where
@@ -189,6 +229,8 @@ inductive Operation where
   | getRootNode (node : Nat)
   /-- §4.4 `ownerDocument` の getter。 -/
   | getOwnerDocument (node : Nat)
+  /-- 値を読むだけの getter（`NodeProp`）。 -/
+  | getProperty (node : Nat) (prop : NodeProp)
   | isEqualNode (node other : Nat)
   | getTextContent (node : Nat)
   | getNodeValue (node : Nat)

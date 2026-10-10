@@ -78,7 +78,7 @@ def exclusions : List Exclusion := [
     reason := .todo "wholeText の getter が無い" },
   -- §4.13。model の NodeData は target も attribute map も持たず、PI を作る関数も無い。
   { target := "interface-processinginstruction",
-    reason := .todo "ProcessingInstruction の target・attribute map・createProcessingInstruction が無い（XML Name production も無い）" },
+    reason := .todo "ProcessingInstruction の target は持ち `getProperty` で読める（`piTarget`）が、attribute map と createProcessingInstruction が無い（XML Name production も無い）" },
   { target := "dom-comment-comment", reason := .host }
 ]
 

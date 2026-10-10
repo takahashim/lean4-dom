@@ -31,7 +31,18 @@ def entries : List Entry := [
   -- §4.2.6
   { alg := "dom-parentnode-children"
     impl := [``Dom.elementChildrenOf]
-    approx := [("*", "live な HTMLCollection は作らない。collection が表す element children をその時点の list として返す。harness に操作は無く、`childrenNamedItem` の中でだけ使う")] },
+    approx := [("*", "live な HTMLCollection は作らない。collection が表す element children を、読んだ時点の list として返す")] },
+  { alg := "dom-parentnode-firstelementchild"
+    impl := [``Dom.firstElementChild] },
+  { alg := "dom-parentnode-lastelementchild"
+    impl := [``Dom.lastElementChild] },
+  { alg := "dom-parentnode-childelementcount"
+    impl := [``Dom.childElementCount] },
+  -- §4.2.7
+  { alg := "dom-nondocumenttypechildnode-previouselementsibling"
+    impl := [``Dom.previousElementSibling] },
+  { alg := "dom-nondocumenttypechildnode-nextelementsibling"
+    impl := [``Dom.nextElementSibling] },
   { alg := "dom-parentnode-prepend"
     impl := [``Dom.prependNodes, ``Dom.convertNodesIntoNode, ``Dom.preInsert] },
   { alg := "dom-parentnode-append"
@@ -78,18 +89,6 @@ def exclusions : List Exclusion := [
   { target := "mixin-slotable", reason := .shadow },
   -- §4.2.5
   { target := "dom-documentorshadowroot-customelementregistry", reason := .customElements },
-  -- §4.2.6
-  { target := "dom-parentnode-firstelementchild"
-    reason := .todo "getter の実行関数も harness の操作も無い" },
-  { target := "dom-parentnode-lastelementchild"
-    reason := .todo "getter の実行関数も harness の操作も無い" },
-  { target := "dom-parentnode-childelementcount"
-    reason := .todo "getter の実行関数も harness の操作も無い" },
-  -- §4.2.7
-  { target := "dom-nondocumenttypechildnode-previouselementsibling"
-    reason := .todo "getter の実行関数も harness の操作も無い" },
-  { target := "dom-nondocumenttypechildnode-nextelementsibling"
-    reason := .todo "getter の実行関数も harness の操作も無い" },
   -- §4.2.10
   { target := "dom-htmlcollection-length"
     reason := .todo "HTMLCollection を表す構造が無く、length の実行関数も無い" },

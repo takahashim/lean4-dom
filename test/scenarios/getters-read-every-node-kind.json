@@ -1,0 +1,2279 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "nodeType",
+      "nodeName",
+      "isConnected",
+      "parentNode",
+      "parentElement",
+      "firstChild",
+      "lastChild",
+      "previousSibling",
+      "nextSibling",
+      "childNodes",
+      "tagName",
+      "namespaceURI",
+      "prefix",
+      "localName",
+      "firstElementChild",
+      "lastElementChild",
+      "childElementCount",
+      "children",
+      "previousElementSibling",
+      "nextElementSibling",
+      "doctype",
+      "documentElement",
+      "contentType",
+      "compatMode",
+      "length",
+      "data",
+      "name",
+      "publicId",
+      "systemId",
+      "target"
+    ],
+    "steps": "各 getter",
+    "note": "値を読むだけの getter を、すべての node 種（quirks の HTML document、doctype、HTML と SVG の element、Text、Comment、PI、DocumentFragment、XHTML の XML document、親の無い element、Attr）に対して読む。受け手の interface に無い getter は undefined になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document",
+      "mode": "quirks"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0,
+      "name": "html",
+      "publicId": "-//W3C//DTD HTML 4.01//EN",
+      "systemId": "http://www.w3.org/TR/html4/strict.dtd"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 3,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2,
+      "localName": "body",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 4,
+      "data": "tx"
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 4,
+      "namespace": "http://www.w3.org/2000/svg",
+      "prefix": "s",
+      "localName": "svg"
+    },
+    {
+      "id": 7,
+      "kind": "processingInstruction",
+      "parent": 4,
+      "target": "xml-stylesheet",
+      "data": "href=a"
+    },
+    {
+      "id": 8,
+      "kind": "text",
+      "parent": 4,
+      "data": "ty"
+    },
+    {
+      "id": 9,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 10,
+      "kind": "element",
+      "parent": 9,
+      "localName": "p"
+    },
+    {
+      "id": 11,
+      "kind": "document",
+      "isHTMLDocument": false,
+      "contentType": "application/xhtml+xml"
+    },
+    {
+      "id": 12,
+      "kind": "element",
+      "parent": 11,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "localName": "Foo",
+      "ownerDocument": 11
+    },
+    {
+      "id": 13,
+      "kind": "element",
+      "ownerDocument": 0
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 0,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 1,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 4,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 7,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 12,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "nodeType"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "firstChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "lastChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "previousSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "nextSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "tagName"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "namespaceURI"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "prefix"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "localName"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "firstElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "lastElementChild"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "childElementCount"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "children"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "previousElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "nextElementSibling"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "doctype"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "documentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "contentType"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "compatMode"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "length"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "name"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "publicId"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "systemId"
+    },
+    {
+      "op": "getProperty",
+      "node": 13,
+      "property": "target"
+    },
+    {
+      "op": "getProperty",
+      "node": {
+        "attr": 1
+      },
+      "property": "nodeName"
+    },
+    {
+      "op": "getProperty",
+      "node": {
+        "attr": 1
+      },
+      "property": "isConnected"
+    },
+    {
+      "op": "getProperty",
+      "node": {
+        "attr": 1
+      },
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": {
+        "attr": 1
+      },
+      "property": "parentElement"
+    },
+    {
+      "op": "getProperty",
+      "node": {
+        "attr": 1
+      },
+      "property": "firstChild"
+    }
+  ]
+}

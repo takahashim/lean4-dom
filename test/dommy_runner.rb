@@ -140,6 +140,31 @@ module DommyRunner
     "getElementsByName" => "getElementsByName"
   }.freeze
 
+  # `getProperty` で読む getter と、その戻り値の種類（`test/js/scenario.js` の `PROPERTY_KIND`）。
+  PROPERTY_KIND = {
+    "nodeType" => "number", "nodeName" => "string", "isConnected" => "boolean", "parentNode" => "node",
+    "parentElement" => "node", "firstChild" => "node", "lastChild" => "node", "previousSibling" => "node",
+    "nextSibling" => "node", "childNodes" => "nodes",
+    "tagName" => "string", "namespaceURI" => "string", "prefix" => "string", "localName" => "string",
+    "firstElementChild" => "node", "lastElementChild" => "node", "childElementCount" => "number",
+    "children" => "nodes", "previousElementSibling" => "node", "nextElementSibling" => "node",
+    "doctype" => "node", "documentElement" => "node", "contentType" => "string", "compatMode" => "string",
+    "length" => "number", "data" => "string", "name" => "string", "publicId" => "string",
+    "systemId" => "string", "target" => "string"
+  }.freeze
+  # その getter を持つ interface の nodeType。無いものは `Node` の getter。
+  PROPERTY_NODE_TYPES = {
+    "tagName" => [1], "namespaceURI" => [1, 2], "prefix" => [1, 2], "localName" => [1, 2],
+    "firstElementChild" => [1, 9, 11], "lastElementChild" => [1, 9, 11], "childElementCount" => [1, 9, 11],
+    "children" => [1, 9, 11], "previousElementSibling" => [1, 3, 4, 7, 8],
+    "nextElementSibling" => [1, 3, 4, 7, 8],
+    "doctype" => [9], "documentElement" => [9], "contentType" => [9], "compatMode" => [9],
+    "length" => [3, 4, 7, 8], "data" => [3, 4, 7, 8], "name" => [2, 10], "publicId" => [10],
+    "systemId" => [10], "target" => [7]
+  }.freeze
+  # interface に無い getter を読んだ結果（JavaScript の undefined）。
+  UNDEFINED = Object.new.freeze
+
   # attribute の getter として読むもの（method ではなく IDL attribute）。
   QUERY_GETTERS = %w[getTextContent getNodeValue getOwnerDocument].freeze
 
@@ -341,6 +366,18 @@ module DommyRunner
     objects = ctx[:objects]
     # `Attr` を `Node` として渡した op は `Attr` を返しうる（getRootNode・cloneNode・importNode・adoptNode）。
     return { "kind" => "attr", "attr" => ctx[:attr_ids][returned] } if attr_object?(returned)
+
+    if op["op"] == "getProperty"
+      return { "kind" => "undefined" } if returned.equal?(UNDEFINED)
+
+      return case PROPERTY_KIND.fetch(op["property"])
+             when "node" then { "kind" => "node", "node" => returned.nil? ? nil : node_id(objects, returned) }
+             when "nodes" then { "kind" => "nodes", "nodes" => (returned || []).to_a.map { |n| node_id(objects, n) } }
+             when "boolean" then { "kind" => "boolean", "value" => !!returned }
+             when "number" then { "kind" => "number", "value" => returned.to_i }
+             else { "kind" => "string", "value" => returned.nil? ? nil : returned.to_s }
+             end
+    end
 
     if op["op"] == "attrQuery"
       return case ATTR_QUERY_KIND.fetch(op["query"])
@@ -1237,6 +1274,19 @@ module DommyRunner
       return target.remove_event_listener(op["type"].to_s, cb, listener_options(op))
     end
 
+    if op["op"] == "getProperty"
+      receiver = resolve_ref(ctx, op["node"])
+      raise NotImplementedError, "missing node" if receiver.nil?
+
+      prop = op["property"].to_s
+      raise NotImplementedError, "getProperty #{prop}" unless PROPERTY_KIND.key?(prop)
+
+      kinds = PROPERTY_NODE_TYPES[prop]
+      return UNDEFINED if kinds && !kinds.include?(node_type_of(receiver))
+
+      return js_get(receiver, prop)
+    end
+
     if QUERY_OPS.include?(op["op"])
       receiver = op.key?("element") ? objects[op["element"]] : resolve_ref(ctx, op["node"])
       raise NotImplementedError, "missing node" if receiver.nil?
@@ -1512,6 +1562,7 @@ module DommyRunner
       ops += QUERY_OPS.select { |q| supports_query?(node, q) }
       ops += REFLECT_OPS if node.respond_to?(:class_list)
       ops << "childrenNamedItem" if node.respond_to?(:children) && !ops.include?("childrenNamedItem")
+      ops << "getProperty"
       [kind, ops]
     end.to_h
   end

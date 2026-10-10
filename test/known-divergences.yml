@@ -650,3 +650,14 @@
     scoped な custom element registry を実装しておらず、この member を読まないので TypeError にならない
     （`import-node-options-are-converted` と同じ理由）。Chromium と WebKit は本文どおり。
     https://dom.spec.whatwg.org/#dom-document-createelement
+
+- impl: jsdom
+  scenario: getters-read-every-node-kind
+  digest: 658ccd992f29c486
+  reason: |
+    DOM §4.5 の `compatMode` は document の mode（quirks なら "BackCompat"）を返す。mode は HTML parser が
+    parse のときに決める document の持ち物で、あとから doctype を足しても外しても変わらない。jsdom 30.1.2 は
+    `compatMode` を「doctype が無ければ BackCompat」と、読むたびに doctype の有無で決めるので、quirks の
+    document に doctype を足すと "CSS1Compat" を返す。三つのブラウザと Dommy は本文どおり。
+    https://dom.spec.whatwg.org/#dom-document-compatmode
+    https://html.spec.whatwg.org/multipage/parsing.html#the-initial-insertion-mode

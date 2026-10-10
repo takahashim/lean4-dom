@@ -29,7 +29,7 @@ module Generate
            rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
            rangeInsertNode rangeToString
            compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
-           getTextContent getNodeValue substringData
+           getTextContent getNodeValue substringData getProperty
            getAttribute hasAttribute getAttributeNames
            lookupNamespaceURI lookupPrefix isDefaultNamespace
            dispatchEvent addEventListener removeEventListener
@@ -52,6 +52,15 @@ module Generate
   # `Attr` を `Node` として扱う操作（`Dom/Attribute/AsNode.lean`）。`attrRef` は生成器の内部名で、
   # `Node` を受ける既存の操作の引数に `{"attr": id}` を入れたものを作る。
   ATTR_AS_NODE_OPS = %w[attrQuery setAttrValue attrRef].freeze
+
+  # `getProperty` で読む getter（`Dom/Exec/Types.lean` の `NodeProp`）。受け手の interface に無いものは
+  # undefined になるので、どの node にも出してよい。`Attr` に対しては `attrQuery` で読めるものだけ。
+  PROPERTIES = %w[nodeType nodeName isConnected parentNode parentElement firstChild lastChild
+                  previousSibling nextSibling childNodes tagName namespaceURI prefix localName
+                  firstElementChild lastElementChild childElementCount children
+                  previousElementSibling nextElementSibling doctype documentElement contentType
+                  compatMode length data name publicId systemId target].freeze
+  ATTR_PROPERTIES = %w[nodeName isConnected parentNode parentElement firstChild].freeze
   ATTR_QUERIES = %w[ownerDocument parentNode parentElement ownerElement getRootNode nodeName
                     nodeValue textContent isConnected hasChildNodes firstChild].freeze
   ATTR_SETTERS = %w[value nodeValue textContent].freeze
@@ -118,7 +127,7 @@ module Generate
 
   NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize cloneNode
                 compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
-                getTextContent getNodeValue
+                getTextContent getNodeValue getProperty
                 dispatchEvent addEventListener removeEventListener
                 lookupNamespaceURI lookupPrefix isDefaultNamespace
            dispatchEvent addEventListener removeEventListener].freeze
@@ -552,6 +561,8 @@ module Generate
       { "op" => op, "node" => pick.call, "other" => other }
     when "getRootNode", "getOwnerDocument", "getTextContent", "getNodeValue"
       { "op" => op, "node" => pick.call }
+    when "getProperty"
+      { "op" => op, "node" => pick.call, "property" => PROPERTIES.sample(random: rng) }
     when "substringData"
       { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),
         "count" => idl_number(rng, rng.rand(4)) }
@@ -786,8 +797,12 @@ module Generate
         { "op" => %w[compareDocumentPosition nodeContains isEqualNode].sample(random: rng),
           "node" => ids.sample(random: rng), "other" => attr.call }
       when 4
-        { "op" => %w[getRootNode getOwnerDocument getTextContent getNodeValue].sample(random: rng),
-          "node" => attr.call }
+        if rng.rand < 0.3
+          { "op" => "getProperty", "node" => attr.call, "property" => ATTR_PROPERTIES.sample(random: rng) }
+        else
+          { "op" => %w[getRootNode getOwnerDocument getTextContent getNodeValue].sample(random: rng),
+            "node" => attr.call }
+        end
       when 5
         { "op" => "lookupNamespaceURI", "node" => attr.call, "prefix" => ["xml", nil, "x"].sample(random: rng) }
       when 6
@@ -826,7 +841,7 @@ module Generate
     end
   end
 
-  NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
+  NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode getProperty
                          getTextContent getNodeValue
                          lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 

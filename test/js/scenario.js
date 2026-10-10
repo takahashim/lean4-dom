@@ -126,6 +126,28 @@ const LOOKUP_OPS = {
 const SELECTOR_OPS = ["querySelector", "querySelectorAll", "matches", "closest"];
 const SELECTOR_ELEMENT_OPS = ["matches", "closest"];
 const QUERY_OPS = Object.keys(QUERY_JS_NAME);
+
+// `getProperty` で読む getter と、その戻り値の種類。受け手の interface に無い getter は undefined になる
+// （model も undefined を返す）ので、interface が持つはずの nodeType を `PROPERTY_NODE_TYPES` に書き、
+// そこに無いときだけ実装漏れ（未対応）とする。書いてないものは `Node` の getter で、どの node も持つ。
+const PROPERTY_KIND = {
+  nodeType: "number", nodeName: "string", isConnected: "boolean", parentNode: "node",
+  parentElement: "node", firstChild: "node", lastChild: "node", previousSibling: "node",
+  nextSibling: "node", childNodes: "nodes",
+  tagName: "string", namespaceURI: "string", prefix: "string", localName: "string",
+  firstElementChild: "node", lastElementChild: "node", childElementCount: "number", children: "nodes",
+  previousElementSibling: "node", nextElementSibling: "node",
+  doctype: "node", documentElement: "node", contentType: "string", compatMode: "string",
+  length: "number", data: "string", name: "string", publicId: "string", systemId: "string",
+  target: "string"
+};
+const PROPERTY_NODE_TYPES = {
+  tagName: [1], namespaceURI: [1, 2], prefix: [1, 2], localName: [1, 2],
+  firstElementChild: [1, 9, 11], lastElementChild: [1, 9, 11], childElementCount: [1, 9, 11],
+  children: [1, 9, 11], previousElementSibling: [1, 3, 4, 7, 8], nextElementSibling: [1, 3, 4, 7, 8],
+  doctype: [9], documentElement: [9], contentType: [9], compatMode: [9],
+  length: [3, 4, 7, 8], data: [3, 4, 7, 8], name: [2, 10], publicId: [10], systemId: [10], target: [7]
+};
 const QUERY_GETTERS = ["getTextContent", "getNodeValue", "getOwnerDocument"];
 
 // §4.9 の reflect（`id` / `className` / `slot`）、§7.1 の `classList`、
@@ -461,6 +483,16 @@ function snapshot(ctx) {
 
 function returnValueSnapshot(idOf, attrOf, op, returned) {
   const name = op.op;
+  if (name === "getProperty") {
+    if (returned === undefined) return { kind: "undefined" };
+    switch (PROPERTY_KIND[op.property]) {
+      case "node": return { kind: "node", node: returned === null ? null : idOf(returned) };
+      case "nodes": return { kind: "nodes", nodes: [...returned].map(idOf) };
+      case "boolean": return { kind: "boolean", value: !!returned };
+      case "number": return { kind: "number", value: Number(returned) | 0 };
+      default: return { kind: "string", value: returned === null ? null : String(returned) };
+    }
+  }
   // `Attr` を返しうる op（`getRootNode`・`cloneNode`・`importNode`・`adoptNode` に `Attr` を渡したとき）。
   if (returned?.nodeType === 2 &&
       (NODE_RETURNING_OPS.includes(name) || ATTR_RETURNING_OPS.includes(name) ||
@@ -547,7 +579,7 @@ function exceptionName(e) {
 /* ------------------------------------------------------------------ 操作の適用 */
 
 function receiverId(op) {
-  if (CHARACTER_DATA_OPS.includes(op.op)) return op.node;
+  if (CHARACTER_DATA_OPS.includes(op.op) || op.op === "getProperty") return op.node;
   if (QUERY_OPS.includes(op.op) && "node" in op) return op.node;
   if (ATTRIBUTE_OPS.includes(op.op)) return op.element;
   return "target" in op ? op.target : op.parent;
@@ -1002,6 +1034,14 @@ function apply(ctx, op) {
     }
   }
   if (QUERY_OPS.includes(op.op)) return applyQueryOp(ctx, op);
+  if (op.op === "getProperty") {
+    const receiver = resolveRef(ctx, op.node);
+    const prop = op.property;
+    if (!(prop in PROPERTY_KIND)) throw new Unsupported(`getProperty ${prop}`);
+    const kinds = PROPERTY_NODE_TYPES[prop];
+    if ((!kinds || kinds.includes(receiver.nodeType)) && !(prop in receiver)) throw new Unsupported(prop);
+    return receiver[prop];
+  }
   if (WALKER_OPS.includes(op.op)) {
     const w = need(ctx.walkers[op.walker], "walker index");
     const m = WALKER_METHOD[op.op];
@@ -1383,6 +1423,7 @@ function capabilities(win) {
     }
     if ("classList" in node) ops.push(...REFLECT_OPS);
     else if ("children" in node) ops.push("childrenNamedItem");
+    ops.push("getProperty");
     out[kind] = ops;
   }
   return out;
