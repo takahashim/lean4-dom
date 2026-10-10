@@ -1,6 +1,6 @@
 name = "dom"
 version = "0.1.0"
-defaultTargets = ["Infra", "Dom", "Url", "Selectors", "dom-model", "url-model"]
+defaultTargets = ["Infra", "Dom", "Url", "Selectors", "Trace", "dom-model", "url-model", "spec-trace"]
 
 [leanOptions]
 autoImplicit = false
@@ -27,3 +27,11 @@ root = "Main"
 [[lean_exe]]
 name = "url-model"
 root = "UrlMain"
+
+# 仕様の step と Lean の定義の対応表。`spec-trace/check.rb` が `spec-trace/dom.json` と突き合わせる。
+[[lean_lib]]
+name = "Trace"
+
+[[lean_exe]]
+name = "spec-trace"
+root = "TraceMain"

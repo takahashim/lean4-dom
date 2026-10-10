@@ -1,0 +1,5202 @@
+{
+  "entries": [
+    {
+      "alg": "concept-ordered-set-parser",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.orderedSetParse",
+        "Dom.splitWsAux"
+      ],
+      "spec": [
+        "Dom.Spec.ClassToken"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2-3",
+          "what": "ordered set を List String で持ち、`eraseDups` で後から重複を落とす（最初の出現を残すので append を繰り返したのと同じ列）"
+        }
+      ]
+    },
+    {
+      "alg": "concept-ordered-set-serializer",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.tokenListUpdate"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "専用の関数は無く、DOMTokenList の update steps（`tokenListUpdate`）の中で `\" \".intercalate` として書いている"
+        }
+      ]
+    },
+    {
+      "alg": "scope-match-a-selectors-string",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.scopeMatch",
+        "Dom.matchTree",
+        "Selectors.parseSelector",
+        "Dom.matchSelList"
+      ],
+      "spec": [
+        "Dom.Spec.SelectorListMatches"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "parse a selector は model の selector 文法（`parseSelector` が受け付ける部分集合）で行う。受け付けない構文は failure（SyntaxError）になる"
+        },
+        {
+          "steps": "3",
+          "what": "root の全 element ではなく node の descendant element だけを候補にする（scoping root が node なので、それ以外は scoping で落ちるという前提。node 自身は候補に入れない）"
+        }
+      ]
+    },
+    {
+      "alg": "valid-namespace-prefix",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.isValidNamespacePrefix"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "valid-attribute-local-name",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.isValidAttributeLocalName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "valid-element-local-name",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.isValidElementLocalName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "validate-and-extract",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.validateAndExtractAttribute",
+        "Dom.validateAndExtractElement",
+        "Dom.validateAndExtractError",
+        "Dom.splitAtFirstColon",
+        "Dom.normalizeNamespace"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "5",
+          "why": {
+            "reason": "other",
+            "detail": "assert。step 4.3 の分岐から従うので検査しない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "namespace の正規化（空文字列を null に）を step 4.3 の後で一度だけ行う。step 1-4 の間で namespace は読まないので結果は同じ"
+        },
+        {
+          "steps": "6-7",
+          "what": "context の代わりに attribute 版と element 版の二つの関数を持ち、local name の検査関数だけを差し替える"
+        }
+      ]
+    },
+    {
+      "alg": "dom-event-stoppropagation",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.runAction"
+      ],
+      "spec": [
+        "Dom.Spec.CallbackRan"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "callback の中の呼び出しではなく、listener の `ListenerAction.stopPropagation` として callback の後に一度だけ走る"
+        }
+      ]
+    },
+    {
+      "alg": "dom-event-stopimmediatepropagation",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.runAction"
+      ],
+      "spec": [
+        "Dom.Spec.CallbackRan"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "listener の `ListenerAction.stopImmediatePropagation` として走る"
+        }
+      ]
+    },
+    {
+      "alg": "set-the-canceled-flag",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.runAction"
+      ],
+      "spec": [
+        "Dom.Spec.CallbackRan"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "in passive listener flag を持たない（passive を扱わない）ので、cancelable だけで決まる"
+        }
+      ]
+    },
+    {
+      "alg": "dom-event-preventdefault",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.runAction"
+      ],
+      "spec": [
+        "Dom.Spec.CallbackRan"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "listener の `ListenerAction.preventDefault` として走る"
+        }
+      ]
+    },
+    {
+      "alg": "add-an-event-listener",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.addListener"
+      ],
+      "spec": [
+        "Dom.Spec.ListenerAdded"
+      ],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "2",
+          "why": {
+            "reason": "todo",
+            "detail": "AbortSignal と listener の signal を持たない"
+          }
+        },
+        {
+          "steps": "3",
+          "why": {
+            "reason": "other",
+            "detail": "callback は scenario の番号で、null にならない"
+          }
+        },
+        {
+          "steps": "4",
+          "why": {
+            "reason": "todo",
+            "detail": "passive を持たない"
+          }
+        },
+        {
+          "steps": "6",
+          "why": {
+            "reason": "todo",
+            "detail": "AbortSignal と listener の signal を持たない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "5",
+          "what": "listener list を EventTarget ごとではなく一本の list に `target` 付きで持つ。外した listener は `removed` を立てて残すので、それを除いて重複を探す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-eventtarget-addeventlistener",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.addEventListener",
+        "Dom.addListener"
+      ],
+      "spec": [
+        "Dom.Spec.AddEventListenerResult"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "options の flatten は harness が済ませ、capture と once を Bool で受け取る。passive と signal は無い"
+        },
+        {
+          "steps": "2",
+          "what": "callback は scenario の `source` 番の listener のもの（番号と `ListenerAction`）を使い回す。target か source が無ければ（model の都合で）NotFoundError"
+        }
+      ]
+    },
+    {
+      "alg": "remove-an-event-listener",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeListenerAt"
+      ],
+      "spec": [
+        "Dom.Spec.ListenerRemovedAt"
+      ],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "list から取り除かず `removed` を立てるだけにする。以後の検索と配送は `removed` の listener を飛ばす"
+        }
+      ]
+    },
+    {
+      "alg": "dom-eventtarget-removeeventlistener",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeEventListener",
+        "Dom.removeListenerAt"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveEventListenerResult"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "options の flatten は harness が済ませ、capture を Bool で受け取る"
+        }
+      ]
+    },
+    {
+      "alg": "dom-eventtarget-dispatchevent",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.dispatchEvent"
+      ],
+      "spec": [
+        "Dom.Spec.DispatchResult"
+      ],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "Event object を持たず、配送ごとに新しい EventState を作るので、dispatch flag が立った event や初期化されていない event は渡せない"
+          }
+        },
+        {
+          "steps": "2",
+          "why": {
+            "reason": "other",
+            "detail": "isTrusted を持たない（常に false として扱う）"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "event は引数の type・bubbles・cancelable からその場で作る（`new Event(type, {bubbles, cancelable})` と dispatchEvent を合わせた形）"
+        }
+      ]
+    },
+    {
+      "alg": "concept-event-dispatch",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.dispatchEvent",
+        "Dom.eventPath",
+        "Dom.runPass",
+        "Dom.invokeItem"
+      ],
+      "spec": [
+        "Dom.Spec.DispatchResult",
+        "Dom.Spec.EventPathSpec",
+        "Dom.Spec.PassRan"
+      ],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "dispatch flag を持たない。callback が model の外で、配送中に同じ event を配送し直すことが起きない"
+          }
+        },
+        {
+          "steps": "3",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "4",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "5",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.1-6.2",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.4-6.5",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.6-6.7",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.9.1-6.9.5",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.9.6.1",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.9.7",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.9.8",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.9.10",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.10-6.11",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.12",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "11",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "12",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "legacy target override flag（Window の場合）が無いので targetOverride は target そのもの"
+        },
+        {
+          "steps": "6",
+          "what": "relatedTarget を持たない（null）ので、条件は常に真として step 6 の中身を走らせる"
+        },
+        {
+          "steps": "6.3",
+          "what": "event path の item は node だけを持ち、shadow-adjusted target を持つのは先頭の target だけ（`runPass` の `isTarget`）"
+        },
+        {
+          "steps": "6.8",
+          "what": "get the parent は parent をそのまま返す。Document の get the parent は（Window が無いので）null"
+        },
+        {
+          "steps": "6.9.6",
+          "what": "shadow tree が無いので、parent は常に target と同じ tree にあり、この分岐を常に取る（shadow-adjusted target は null）"
+        },
+        {
+          "steps": "6.9.9",
+          "what": "get the parent は parent をそのまま返す。Document の get the parent は（Window が無いので）null"
+        },
+        {
+          "steps": "6.13-6.14",
+          "what": "legacyOutputDidListenersThrowFlag を渡さない（callback が例外を投げない）"
+        },
+        {
+          "steps": "7-10",
+          "what": "EventState を配送の終わりに捨てるので、フラグと eventPhase の後始末は結果に現れない"
+        }
+      ]
+    },
+    {
+      "alg": "concept-event-path-append",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.eventPath"
+      ],
+      "spec": [
+        "Dom.Spec.EventPathSpec"
+      ],
+      "omit": [
+        {
+          "steps": "1-4",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "5",
+          "what": "item は invocation target の node だけ。shadow-adjusted target は `runPass` が先頭（target）かどうかで決め、relatedTarget と touch target list は持たない"
+        }
+      ]
+    },
+    {
+      "alg": "concept-event-listener-invoke",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.invokeItem",
+        "Dom.innerInvoke"
+      ],
+      "spec": [
+        "Dom.Spec.Invoked",
+        "Dom.Spec.ListenersOf"
+      ],
+      "omit": [
+        {
+          "steps": "1-3",
+          "why": {
+            "reason": "other",
+            "detail": "Event の target 属性を持たない（shadow tree が無いので配送中は常に target で、callback は model の外なので観測されない）"
+          }
+        },
+        {
+          "steps": "4-5",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "9",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "11",
+          "why": {
+            "reason": "other",
+            "detail": "isTrusted が常に false なので起きない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "7",
+          "what": "currentTarget は event に持たず、`innerInvoke` の引数 `cur` として呼び出しの記録（`Invocation`）に残す"
+        },
+        {
+          "steps": "8",
+          "what": "clone は listener の index の列。外された listener は clone の時点で除き、その後に外されたものは inner invoke が現在の状態の `removed` を見て飛ばす"
+        }
+      ]
+    },
+    {
+      "alg": "concept-event-listener-inner-invoke",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.innerInvoke",
+        "Dom.invokeOne",
+        "Dom.runAction",
+        "Dom.removeListenerAt"
+      ],
+      "spec": [
+        "Dom.Spec.InnerInvoked",
+        "Dom.Spec.CallbackRan"
+      ],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "found を計算しない。使い道の invoke step 11 が isTrusted=false で起きない"
+          }
+        },
+        {
+          "steps": "2.2",
+          "why": {
+            "reason": "other",
+            "detail": "found を計算しない"
+          }
+        },
+        {
+          "steps": "2.6-2.8",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "2.9",
+          "why": {
+            "reason": "todo",
+            "detail": "passive と in passive listener flag を持たない"
+          }
+        },
+        {
+          "steps": "2.10",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "2.11.1-2.11.2",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "2.12",
+          "why": {
+            "reason": "todo",
+            "detail": "passive と in passive listener flag を持たない"
+          }
+        },
+        {
+          "steps": "2.13",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "3",
+          "why": {
+            "reason": "other",
+            "detail": "found を返さない"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "2.11",
+          "what": "callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない"
+        }
+      ]
+    },
+    {
+      "alg": "concept-node-ensure-pre-insertion-validity",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.ensurePreInsertionValidity"
+      ],
+      "spec": [
+        "Dom.Spec.PreInsertValidity"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-pre-insert",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.preInsert",
+        "Dom.preInsertReferenceChild"
+      ],
+      "spec": [
+        "Dom.Spec.PreInsertResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-insert",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.insert",
+        "Dom.insertNodesAt",
+        "Dom.insertEachAt",
+        "Dom.insertEach",
+        "Dom.insertPrevSibling"
+      ],
+      "spec": [
+        "Dom.Spec.InsertSpec"
+      ],
+      "omit": [
+        {
+          "steps": "7.4-7.6",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "7.7.1",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "7.7.2-7.7.4",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "9",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "10-12",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-append",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.append"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "move",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.move",
+        "Dom.moveValidity"
+      ],
+      "spec": [
+        "Dom.Spec.MoveSpec",
+        "Dom.Spec.MoveValidity"
+      ],
+      "omit": [
+        {
+          "steps": "14-16",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "21-23",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "24.1-24.2",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "24.3",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "shadow-including root ではなく root で比べる（shadow tree が無いので同じ値）"
+        }
+      ]
+    },
+    {
+      "alg": "concept-node-replace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replace"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceSpec",
+        "Dom.Spec.ReplaceResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-replace-all",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replaceAll",
+        "Dom.replaceAllNodes"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceAllSpec"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-pre-remove",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.preRemove"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-remove",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.remove",
+        "Dom.detachWithLiveAdjust"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveSpec",
+        "Dom.Spec.RemoveResult"
+      ],
+      "omit": [
+        {
+          "steps": "8-10",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "11",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "12-13",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "14.1",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "14.2",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "17",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-length",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.lengthOf",
+        "Dom.NodeData.length"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "Attr は木の node ではない（NodeKind に無い）ので、DocumentType だけが 0 になる"
+        }
+      ]
+    },
+    {
+      "alg": "get-an-element-by-id",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementById",
+        "Dom.descendantElements",
+        "Dom.elementIdOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nonelementparentnode-getelementbyid",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementById",
+        "Dom.requireNonElementParentNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-parentnode-children",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.elementChildrenOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な HTMLCollection は作らない。collection が表す element children をその時点の list として返す。harness に操作は無く、`childrenNamedItem` の中でだけ使う"
+        }
+      ]
+    },
+    {
+      "alg": "dom-parentnode-append",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.append"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る"
+        }
+      ]
+    },
+    {
+      "alg": "dom-parentnode-replacechildren",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replaceChildren",
+        "Dom.ensurePreInsertionValidity",
+        "Dom.replaceAll"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceChildrenResult"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る"
+        }
+      ]
+    },
+    {
+      "alg": "dom-parentnode-movebefore",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.moveBefore",
+        "Dom.move"
+      ],
+      "spec": [
+        "Dom.Spec.MoveResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-parentnode-queryselector",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.querySelector",
+        "Dom.scopeMatch",
+        "Dom.matchTree",
+        "Dom.requireParentNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-parentnode-queryselectorall",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.querySelectorAll",
+        "Dom.scopeMatch",
+        "Dom.matchTree",
+        "Dom.requireParentNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "static な NodeList ではなく、element の list を返す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-childnode-before",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.before",
+        "Dom.viablePreviousSibling",
+        "Dom.preInsert"
+      ],
+      "spec": [
+        "Dom.Spec.BeforeResult",
+        "Dom.Spec.ViablePreviousSibling"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる"
+        }
+      ]
+    },
+    {
+      "alg": "dom-childnode-after",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.after",
+        "Dom.viableNextSibling",
+        "Dom.preInsert"
+      ],
+      "spec": [
+        "Dom.Spec.AfterResult",
+        "Dom.Spec.ViableNextSibling"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる"
+        }
+      ]
+    },
+    {
+      "alg": "dom-childnode-replacewith",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replaceWith",
+        "Dom.viableNextSibling",
+        "Dom.replace",
+        "Dom.preInsert"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceWithResult",
+        "Dom.Spec.ViableNextSibling"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。step 1-3 は変換の後の木で評価され、nodes は [node] になる"
+        },
+        {
+          "steps": "5-6",
+          "what": "step 1 と step 5 の間で木が変わらないので、step 5 の条件は常に真になる（this が nodes に入っていて fragment に移る場合を区別しない）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-childnode-remove",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nodeRemove",
+        "Dom.remove"
+      ],
+      "spec": [
+        "Dom.Spec.NodeRemoveResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-htmlcollection-nameditem",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.childrenNamedItem",
+        "Dom.elementIdOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "collection は `ParentNode.children` のものに限る（他の HTMLCollection は model に無い）"
+        }
+      ]
+    },
+    {
+      "alg": "queue-a-mutation-observer-compound-microtask",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.queueMutationObserverMicrotask"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "microtask は積まず、flag を立てるだけである。notify mutation observers は harness の `notify` 操作として呼ぶ"
+        }
+      ]
+    },
+    {
+      "alg": "notify-mutation-observers",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.notifyMutationObservers",
+        "Dom.notifyEach",
+        "Dom.notifyOne",
+        "Dom.MutationObserver.takeRecords",
+        "Dom.removeTransients"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "4-5",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "7",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "6.3",
+          "what": "node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる"
+        },
+        {
+          "steps": "6.4",
+          "what": "callback は呼ばない。records が空でない observer と records の組を返り値に並べる"
+        }
+      ]
+    },
+    {
+      "alg": "dom-mutationobserver-observe",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.MutationObserver.observe",
+        "Dom.MutationObserverInit.resolve",
+        "Dom.MutationObserver.observeOptionsError"
+      ],
+      "spec": [
+        "Dom.Spec.ObserveResult",
+        "Dom.Spec.ObserveOptionsRejected"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "options の attributeOldValue / characterDataOldValue は「存在する」ではなく「true である」で見る（IDL の既定値が false なので、step 4・6 を通すと結論は同じ）"
+        },
+        {
+          "steps": "3-6",
+          "what": "TypeError を `DOMException.typeError` で表す"
+        },
+        {
+          "steps": "7",
+          "what": "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む"
+        },
+        {
+          "steps": "7.1",
+          "what": "node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-mutationobserver-disconnect",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.MutationObserver.disconnect"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "node list の node に限らず、この observer の registered observer を全部外す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-mutationobserver-takerecords",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.MutationObserver.takeRecords"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "queue-a-mutation-record",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.queueMutationRecord",
+        "Dom.interestedObservers",
+        "Dom.Registration.interestedIn",
+        "Dom.addInterested",
+        "Dom.enqueueRecord",
+        "Dom.addPendingObserver",
+        "Dom.queueMutationObserverMicrotask"
+      ],
+      "spec": [
+        "Dom.Spec.TreeRecordQueued",
+        "Dom.Spec.CharacterDataRecordQueued",
+        "Dom.Spec.AttributeRecordQueued"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "queue-a-tree-mutation-record",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.queueTreeMutationRecord",
+        "Dom.queueMutationRecord"
+      ],
+      "spec": [
+        "Dom.Spec.TreeRecordQueued"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "assert の代わりに、addedNodes と removedNodes が両方空なら何もしない"
+        }
+      ]
+    },
+    {
+      "alg": "create-a-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.withFresh"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "realm を持たない。node document を与えた `NodeData` を `freshId` の位置に置く"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-nodetype",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.NodeKind.nodeType",
+        "Dom.kindOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "`NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型）。harness に getter の操作は無い"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-ownerdocument",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.ownerDocumentOf",
+        "Dom.Exec.attrQueryValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "`ownerDocumentOf` は Document に対して null ではなく自分自身を返す（model の Document は自分を node document に持つ）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-getrootnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getRootNode",
+        "Dom.attrGetRootNode"
+      ],
+      "spec": [
+        "Dom.Spec.IsRoot"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "options[\"composed\"] を受けず、常に root を返す（shadow tree が無いので shadow-including root と同じ値）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-parentnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.parentOf",
+        "Dom.attrParentNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-parentelement",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.parentElement"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-haschildnodes",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.childrenOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-childnodes",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.childrenOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な NodeList ではなく、読んだ時点の children の列を返す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-firstchild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.childrenOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-lastchild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.childrenOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-previoussibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.previousSibling"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-nextsibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nextSibling"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-nodevalue",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getNodeValue",
+        "Dom.Exec.attrQueryValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-nodevalue/setter",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttrValue",
+        "Dom.setData"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "setter として振り分ける関数は無い。Attr の枝は `setAttrValue`（harness の `setAttrValue` の via = nodeValue）、CharacterData の枝は同じ replace data をする `setData` が担う。「Otherwise 何もしない」の枝と null → 空文字列の変換は model に無い"
+        }
+      ]
+    },
+    {
+      "alg": "get-text-content",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getTextContent",
+        "Dom.descendantTextContent",
+        "Dom.Exec.attrQueryValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-textcontent",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getTextContent",
+        "Dom.Exec.attrQueryValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-normalize",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.normalize",
+        "Dom.normalizeList",
+        "Dom.normalizeRun",
+        "Dom.normalizeMergeOne",
+        "Dom.normalizeMergeRange",
+        "Dom.normalizeMergeBP",
+        "Dom.followingTexts"
+      ],
+      "spec": [
+        "Dom.Spec.NormalizeSpec",
+        "Dom.Spec.NormalizeResult"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3-4",
+          "what": "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。木と range の最終状態は同じで、characterData record の並びが違う"
+        },
+        {
+          "steps": "6",
+          "what": "兄弟ごとに boundary point を渡してからその兄弟を remove する。step 6 と step 7 を兄弟ごとに交互に行う"
+        },
+        {
+          "steps": "7",
+          "what": "兄弟ごとに step 6 の直後に remove する（上と同じ）"
+        }
+      ]
+    },
+    {
+      "alg": "concept-node-clone",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.cloneNodeIn",
+        "Dom.cloneMany",
+        "Dom.cloneAppend"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "3",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "clone-a-single-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.cloneSingle",
+        "Dom.cloneData",
+        "Dom.cloneDocumentOf",
+        "Dom.cloneAttrIn"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "2.1-2.3",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "5.2",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "2.4",
+          "what": "create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い）"
+        },
+        {
+          "steps": "5",
+          "what": "DocumentType の name・public ID・system ID と ProcessingInstruction の target を model が持たないので写さない"
+        },
+        {
+          "steps": "5.1",
+          "what": "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-clonenode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.cloneNode",
+        "Dom.cloneAttr"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "concept-node-equals",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nodeEqualsFuel",
+        "Dom.nodeOwnPropertiesEqual",
+        "Dom.attrEquals",
+        "Dom.nodeRefEquals"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "DocumentType の name・public ID・system ID と ProcessingInstruction の target は model に無いので比べない（harness はどちらも固定値で作る）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-isequalnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nodeEquals",
+        "Dom.nodeRefEquals"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "otherNode に null を受けない"
+        }
+      ]
+    },
+    {
+      "alg": "dom-node-comparedocumentposition",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.compareDocumentPosition",
+        "Dom.compareDocumentPositionRef"
+      ],
+      "spec": [
+        "Dom.Spec.DocumentPositionSpec"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-contains",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nodeContains",
+        "Dom.nodeContainsRef"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "other に null を受けない"
+        }
+      ]
+    },
+    {
+      "alg": "locate-a-namespace-prefix",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.locateNamespacePrefixIn",
+        "Dom.elementChain"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "locate-a-namespace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.locateNamespace",
+        "Dom.locateNamespaceIn",
+        "Dom.elementChain",
+        "Dom.attrLookupNamespaceURI"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-lookupprefix",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.lookupPrefix",
+        "Dom.attrLookupPrefix"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-lookupnamespaceuri",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.lookupNamespaceURI",
+        "Dom.attrLookupNamespaceURI"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-isdefaultnamespace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.isDefaultNamespace",
+        "Dom.attrIsDefaultNamespace"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-insertbefore",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.insertBefore"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-appendchild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.appendChild",
+        "Dom.appendChildRef"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-replacechild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replaceChild"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-removechild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeChild"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-compatmode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.inQuirksModeOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-documentelement",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.documentElement"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-getelementsbyclassname",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementsByClassName",
+        "Dom.orderedSetParse",
+        "Dom.elementClassesOf",
+        "Dom.receiverInQuirksMode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な HTMLCollection ではなく、呼んだ時点の element の列を返す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-document-createelement",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createElement",
+        "Dom.isValidElementLocalName"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "3",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "step に入る前に、受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す）"
+        },
+        {
+          "steps": "4",
+          "what": "content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない"
+        },
+        {
+          "steps": "5",
+          "what": "create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い）"
+        }
+      ]
+    },
+    {
+      "alg": "internal-createelementns-steps",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createElementNS",
+        "Dom.validateAndExtractElement"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "2",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "create an element を呼ばず、`NodeData` を直に作る（is・registry は無い）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-document-createelementns",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createElementNS"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "options を受けない。受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-document-createdocumentfragment",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createDocumentFragment"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-createtextnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createTextNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-createcomment",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createComment"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-importnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.importNode",
+        "Dom.importAttr",
+        "Dom.cloneNodeIn"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "3",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "5.1",
+          "why": {
+            "reason": "todo",
+            "detail": "ImportNodeOptions の dictionary の形を受けない（boolean の形だけ）"
+          }
+        },
+        {
+          "steps": "5.2-5.3",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "Document だけを弾く。shadow root は model に無いので検査しない。その前に、受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す）"
+        },
+        {
+          "steps": "7",
+          "what": "fallbackRegistry を渡さない（custom element registry が無い）"
+        }
+      ]
+    },
+    {
+      "alg": "concept-node-adopt",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.adopt",
+        "Dom.setOwnerDocument",
+        "Dom.NodeData.withOwnerDocument",
+        "Dom.adoptAttr"
+      ],
+      "spec": [
+        "Dom.Spec.AdoptSpec"
+      ],
+      "omit": [
+        {
+          "steps": "3.2",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "3.3.2",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "3.3.3",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "3.4",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "shadow-including inclusive descendant ではなく inclusive descendant をたどる（shadow tree が無いので同じ集合）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-document-adoptnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.adoptNode",
+        "Dom.adoptAttr"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "2",
+          "why": {
+            "reason": "shadow",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "step に入る前に、受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-document-createattribute",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createAttribute",
+        "Dom.isValidAttributeLocalName",
+        "Dom.createAttributeIn"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-document-createattributens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createAttributeNS",
+        "Dom.validateAndExtractAttribute",
+        "Dom.createAttributeIn"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-tree-host-including-inclusive-ancestor",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.isInclusiveAncestorOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "host を見ない。shadow root が無いので inclusive ancestor と同じ"
+        }
+      ]
+    },
+    {
+      "alg": "create-a-document-fragment",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createDocumentFragment"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "element-html-uppercased-qualified-name",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.tagName",
+        "Dom.isHTMLDocumentOf",
+        "Dom.NodeData.qualifiedName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-create-element",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createElement",
+        "Dom.createElementNS",
+        "Dom.withFresh"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "2-5",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "6.3",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "6.1",
+          "what": "element interface を持たない。interface は namespace と local name から決まるものとして扱う"
+        }
+      ]
+    },
+    {
+      "alg": "create-an-element-internal",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.withFresh"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "interface を持たない。node kind が element の `NodeData` を作る"
+        },
+        {
+          "steps": "2",
+          "what": "custom element registry・custom element state・is value は持たない（custom element は対象外）。namespace・prefix・local name・node document だけを置く"
+        }
+      ]
+    },
+    {
+      "alg": "handle-attribute-changes",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.handleAttributeChanges"
+      ],
+      "spec": [
+        "Dom.Spec.AttributeChangeHandled",
+        "Dom.Spec.AttributeRecordQueued"
+      ],
+      "omit": [
+        {
+          "steps": "2",
+          "why": {
+            "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "3",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "concept-element-attributes-change",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.changeAttribute"
+      ],
+      "spec": [
+        "Dom.Spec.AttributeChanged"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "attribute は element の状態なので、attribute list の中の同じ鍵の要素を差し替える"
+        }
+      ]
+    },
+    {
+      "alg": "concept-element-attributes-append",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.appendAttribute"
+      ],
+      "spec": [
+        "Dom.Spec.AttributeAppended"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "attribute の element は持たず、attribute list に入っていることで表す"
+        }
+      ]
+    },
+    {
+      "alg": "concept-element-attributes-remove",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.detachAttribute",
+        "Dom.removeAttributeFrom"
+      ],
+      "spec": [
+        "Dom.Spec.AttributeDetached",
+        "Dom.Spec.AttributeRemoved"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "element を null にした `Attr` は detachedAttrs に足して表す。ただし名前で消す経路（removeAttributeFrom：removeAttribute・removeAttributeNS・toggleAttribute・reflect の boolean setter・dataset の deleter）は `Attr` を捨てる"
+        }
+      ]
+    },
+    {
+      "alg": "concept-element-attributes-replace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replaceAttributeWith"
+      ],
+      "spec": [
+        "Dom.Spec.AttributeReplacedWith"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "newAttribute の element は attribute list に入っていることで表す"
+        },
+        {
+          "steps": "5",
+          "what": "oldAttribute の element を null にすることを、detachedAttrs の末尾に足して表す"
+        }
+      ]
+    },
+    {
+      "alg": "concept-element-attributes-get-by-name",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeByName",
+        "Dom.attrNameFor"
+      ],
+      "spec": [
+        "Dom.Spec.AttrByName",
+        "Dom.Spec.AttrNameNormalized"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-element-attributes-get-by-namespace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeByKey",
+        "Dom.normalizeNamespace"
+      ],
+      "spec": [
+        "Dom.Spec.AttrByKey"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-element-attributes-get-value",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-element-attributes-set",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttributeNode",
+        "Dom.findAttr",
+        "Dom.removeDetached"
+      ],
+      "spec": [
+        "Dom.Spec.SetAttributeNodeResult"
+      ],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "Trusted Types（get trusted type compliant attribute value）は対象外"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "5",
+          "what": "step 1 が無いので verifiedValue は attr の value と同じで、書き換えは何もしない"
+        }
+      ]
+    },
+    {
+      "alg": "concept-element-attributes-set-value",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttributeValue"
+      ],
+      "spec": [
+        "Dom.Spec.SetAttributeValueResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-element-attributes-remove-by-name",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeAttribute",
+        "Dom.removeNamedItem"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveAttributeResult",
+        "Dom.Spec.RemoveNamedItemResult"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "removeAttribute は戻り値を捨てるので、取り除いた `Attr` を状態に残さない（removeNamedItem は残す）"
+        }
+      ]
+    },
+    {
+      "alg": "concept-element-attributes-remove-by-namespace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeAttributeNS"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveAttributeNSResult"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "removeAttributeNS は戻り値を捨てるので、取り除いた `Attr` を状態に残さない"
+        }
+      ]
+    },
+    {
+      "alg": "dom-element-namespaceuri",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.NodeData.namespace"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-prefix",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.NodeData.prefix"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-localname",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.NodeData.localName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-tagname",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.tagName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-reflect",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getReflected",
+        "Dom.getReflectedProp",
+        "Dom.setReflectedProp"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-classlist",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classTokenSet",
+        "Dom.classListContains",
+        "Dom.classListAdd"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "DOMTokenList object を持たず、各 method が element を受けて class attribute の値から token set を読み直す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-element-getattributenames",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeNames"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-getattribute",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttribute",
+        "Dom.getAttributeByName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-setattribute",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttribute",
+        "Dom.attrNameFor",
+        "Dom.isValidAttributeLocalName"
+      ],
+      "spec": [
+        "Dom.Spec.SetAttributeResult"
+      ],
+      "omit": [
+        {
+          "steps": "3",
+          "why": {
+            "reason": "other",
+            "detail": "Trusted Types（get trusted type compliant attribute value）は対象外"
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-setattributens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttributeNS",
+        "Dom.validateAndExtractAttribute",
+        "Dom.setAttributeValue"
+      ],
+      "spec": [
+        "Dom.Spec.SetAttributeValueResult"
+      ],
+      "omit": [
+        {
+          "steps": "2",
+          "why": {
+            "reason": "other",
+            "detail": "Trusted Types（get trusted type compliant attribute value）は対象外"
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-removeattribute",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeAttribute"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveAttributeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-removeattributens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeAttributeNS"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveAttributeNSResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-hasattribute",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.hasAttribute",
+        "Dom.getAttributeByName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-toggleattribute",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.toggleAttribute"
+      ],
+      "spec": [
+        "Dom.Spec.ToggleAttributeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-getattributenode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-getattributenodens",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeNodeNS"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-setattributenode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttributeNode"
+      ],
+      "spec": [
+        "Dom.Spec.SetAttributeNodeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-removeattributenode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeAttributeNode",
+        "Dom.detachAttribute"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveAttributeNodeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-closest",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.closest",
+        "Dom.inclusiveAncestorElements"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "parse a selector は model の Selectors の部分集合（`Dom/Selector/`）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-element-matches",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.matchesSelector"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "parse a selector は model の Selectors の部分集合（`Dom/Selector/`）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-element-webkitmatchesselector",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.matchesSelector"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "parse a selector は model の Selectors の部分集合（`Dom/Selector/`）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-element-getelementsbyclassname",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getElementsByClassName",
+        "Dom.elementClassesOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "live な HTMLCollection ではなく、呼んだ時点の element の列を返す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-namednodemap-getnameditem",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeNode",
+        "Dom.getAttributeByName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "NamedNodeMap object を持たない。同じ algorithm（get an attribute by name）を呼ぶ getAttributeNode で計算する"
+        }
+      ]
+    },
+    {
+      "alg": "dom-namednodemap-getnameditemns",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeNodeNS",
+        "Dom.getAttributeByKey"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "NamedNodeMap object を持たない。同じ algorithm を呼ぶ getAttributeNodeNS で計算する"
+        }
+      ]
+    },
+    {
+      "alg": "dom-namednodemap-setnameditem",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttributeNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "NamedNodeMap object を持たない。同じ algorithm（set an attribute）を呼ぶ setAttributeNode で計算する"
+        }
+      ]
+    },
+    {
+      "alg": "dom-namednodemap-setnameditemns",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttributeNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "NamedNodeMap object を持たない。同じ algorithm（set an attribute）を呼ぶ setAttributeNode で計算する"
+        }
+      ]
+    },
+    {
+      "alg": "dom-namednodemap-removenameditem",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeNamedItem",
+        "Dom.removeAttributeNode"
+      ],
+      "spec": [
+        "Dom.Spec.RemoveNamedItemResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "create-an-attribute",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createAttributeIn",
+        "Dom.Attr.normalized"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "node tree には入れず、detachedAttrs に足す。id は freshStateAttrId"
+        }
+      ]
+    },
+    {
+      "alg": "dom-attr-namespaceuri",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.findAttr",
+        "Dom.Attr.namespace"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-attr-prefix",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.findAttr",
+        "Dom.Attr.prefix"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-attr-localname",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.findAttr",
+        "Dom.Attr.localName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-attr-name",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.findAttr",
+        "Dom.Attr.qualifiedName"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-attr-value",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.findAttr",
+        "Dom.Attr.value"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "set-an-existing-attribute-value",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttrValue",
+        "Dom.modifyAttr",
+        "Dom.changeAttribute"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "3",
+          "why": {
+            "reason": "other",
+            "detail": "Trusted Types（get trusted type compliant attribute value）は対象外"
+          }
+        },
+        {
+          "steps": "4",
+          "why": {
+            "reason": "other",
+            "detail": "step 3 が script を走らせないので、attribute の element は step 1 の判定から変わらない"
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "dom-attr-value/setter",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setAttrValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-attr-ownerelement",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.attrOwnerElement",
+        "Dom.ownerElementOf"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-cd-replace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replaceData",
+        "Dom.adjustedCount",
+        "Dom.spliceData?",
+        "Dom.queueCharacterDataRecord",
+        "Dom.replaceDataAdjustRange",
+        "Dom.replaceDataAdjustBP"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceDataSpec",
+        "Dom.Spec.ReplaceDataResult"
+      ],
+      "omit": [
+        {
+          "steps": "12",
+          "why": {
+            "reason": "todo",
+            "detail": "ProcessingInstruction の attribute map（update attributes from data）が model に無い"
+          }
+        },
+        {
+          "steps": "13",
+          "why": {
+            "reason": "hook",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "5-7",
+          "what": "offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す"
+        }
+      ]
+    },
+    {
+      "alg": "concept-cd-substring",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.substringData",
+        "Dom.adjustedCount"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3-4",
+          "what": "offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-characterdata-data",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.NodeData.data",
+        "Dom.setData"
+      ],
+      "spec": [
+        "Dom.Spec.SetDataResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-characterdata-length",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.NodeData.length",
+        "Dom.Utf16.length"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-characterdata-substringdata",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.substringData"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-characterdata-appenddata",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.appendData"
+      ],
+      "spec": [
+        "Dom.Spec.AppendDataResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-characterdata-insertdata",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.insertData"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceDataResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-characterdata-deletedata",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.deleteData"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceDataResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-characterdata-replacedata",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.replaceData"
+      ],
+      "spec": [
+        "Dom.Spec.ReplaceDataResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "exclusive-text-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.isExclusiveText"
+      ],
+      "spec": [
+        "Dom.Spec.ExclusiveText"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "contiguous-exclusive-text-nodes",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.followingTexts",
+        "Dom.isExclusiveText"
+      ],
+      "spec": [
+        "Dom.Spec.FollowingContiguousTexts"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "node より後ろの兄弟だけを集める（normalize が run の先頭から呼ぶので前側は空になる）。前後両側を集める関数は無い"
+        }
+      ]
+    },
+    {
+      "alg": "concept-descendant-text-content",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.descendantTextContent"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "create-a-text-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createTextNode",
+        "Dom.withFresh"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "createTextNode は受け手が Document であることも確かめる（WebIDL の受け手検査。仕様の algorithm には無い）"
+        }
+      ]
+    },
+    {
+      "alg": "create-a-comment-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createComment",
+        "Dom.withFresh"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "createComment は受け手が Document であることも確かめる（WebIDL の受け手検査。仕様の algorithm には無い）"
+        }
+      ]
+    },
+    {
+      "alg": "concept-range-bp-position",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.bpPosition",
+        "Dom.bpPositionDown",
+        "Dom.childTowards"
+      ],
+      "spec": [
+        "Dom.Spec.BPBefore"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "assert は書かない。呼び出し側（`BoundaryLE`・`rangeNeedsCollapse` など）が root を別に比べる"
+        },
+        {
+          "steps": "3",
+          "what": "自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段）"
+        }
+      ]
+    },
+    {
+      "alg": "range-collapsed",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeDeleteContents",
+        "Dom.rangeInsertNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く"
+        }
+      ]
+    },
+    {
+      "alg": "dom-range-startcontainer",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.RangeState.start",
+        "Dom.BoundaryPoint.node",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-startoffset",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.RangeState.start",
+        "Dom.BoundaryPoint.offset",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-endcontainer",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.RangeState.end",
+        "Dom.BoundaryPoint.node",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-endoffset",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.RangeState.end",
+        "Dom.BoundaryPoint.offset",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "live-range-pre-remove-steps",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.liveRangePreRemove",
+        "Dom.liveRangePreRemoveRange",
+        "Dom.liveRangePreRemoveBP",
+        "Dom.rangeMoveOutOfSubtree",
+        "Dom.rangeShiftAfterRemove"
+      ],
+      "spec": [
+        "Dom.Spec.RangeAdjusted",
+        "Dom.Spec.BoundaryAdjusted"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "assert の代わりに、parent が無ければ何もしない"
+        },
+        {
+          "steps": "4-7",
+          "what": "range ごとに step 4・6（start）と step 5・7（end）を合成して一度に当てる。step 4-5 で移した点の offset は index なので step 6-7 に掛からず、結果は同じ"
+        }
+      ]
+    },
+    {
+      "alg": "concept-range-bp-set",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setStartBP",
+        "Dom.setEndBP",
+        "Dom.rangeBoundaryError",
+        "Dom.rangeNeedsCollapse"
+      ],
+      "spec": [
+        "Dom.Spec.StartSet",
+        "Dom.Spec.EndSet",
+        "Dom.Spec.BoundaryPointError",
+        "Dom.Spec.BoundaryPointOk"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "set the start では range の root を start node ではなく end node の root で比べる（妥当な range では同じ。spec 側は start node の root で書き、定理が RangeValid を仮定する）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-range-setstart",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSetStart"
+      ],
+      "spec": [
+        "Dom.Spec.SetStartResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-setend",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSetEnd"
+      ],
+      "spec": [
+        "Dom.Spec.SetEndResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-setstartbefore",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSetStartSibling",
+        "Dom.siblingBP"
+      ],
+      "spec": [
+        "Dom.Spec.SetStartSiblingResult",
+        "Dom.Spec.SiblingPoint"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-setstartafter",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSetStartSibling",
+        "Dom.siblingBP"
+      ],
+      "spec": [
+        "Dom.Spec.SetStartSiblingResult",
+        "Dom.Spec.SiblingPoint"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-setendbefore",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSetEndSibling",
+        "Dom.siblingBP"
+      ],
+      "spec": [
+        "Dom.Spec.SetEndSiblingResult",
+        "Dom.Spec.SiblingPoint"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-setendafter",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSetEndSibling",
+        "Dom.siblingBP"
+      ],
+      "spec": [
+        "Dom.Spec.SetEndSiblingResult",
+        "Dom.Spec.SiblingPoint"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-collapse",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeCollapse"
+      ],
+      "spec": [
+        "Dom.Spec.CollapseResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-range-select",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSelectNode"
+      ],
+      "spec": [
+        "Dom.Spec.SelectNodeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-selectnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSelectNode"
+      ],
+      "spec": [
+        "Dom.Spec.SelectNodeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-selectnodecontents",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSelectNodeContents"
+      ],
+      "spec": [
+        "Dom.Spec.SelectNodeContentsResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-compareboundarypoints",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeCompareBoundaryPoints",
+        "Dom.bpPosition"
+      ],
+      "spec": [
+        "Dom.Spec.CompareBoundaryPointsResult",
+        "Dom.Spec.compareHowPoints",
+        "Dom.Spec.PositionResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-deletecontents",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeDeleteContents",
+        "Dom.nodesToRemove",
+        "Dom.containedInRange",
+        "Dom.deleteContentsNewBP",
+        "Dom.removeEach",
+        "Dom.replaceData"
+      ],
+      "spec": [
+        "Dom.Spec.DeleteContentsResult",
+        "Dom.Spec.NodesToRemove",
+        "Dom.Spec.Contained",
+        "Dom.Spec.DeleteNewBP"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "8",
+          "what": "(newNode, newOffset) を step 9-11 の後で置く。step 9-11 の live range 調整はこの点を動かさないので同じ値になるが、実行関数はその点が最終の木で妥当かを検査し、妥当でなければ調整後の start を使う"
+        }
+      ]
+    },
+    {
+      "alg": "concept-range-insert",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeInsertNode",
+        "Dom.ensurePreInsertionValidity",
+        "Dom.preInsert",
+        "Dom.remove",
+        "Dom.siblingBP"
+      ],
+      "spec": [
+        "Dom.Spec.InsertNodeResult",
+        "Dom.Spec.InsertNodeTail",
+        "Dom.Spec.NewOffset",
+        "Dom.Spec.InsertNodeHierarchyError",
+        "Dom.Spec.ChildAtOffset"
+      ],
+      "omit": [
+        {
+          "steps": "7",
+          "why": {
+            "reason": "todo",
+            "detail": "Text node の split（§4.11 split a Text node）が model に無い。start node が Text なら step 6 の validity を通った後で outsideModel を返す"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "10-11",
+          "what": "newOffset を step 12 の前に数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める。空の DocumentFragment なら end を置き直さない"
+        }
+      ]
+    },
+    {
+      "alg": "dom-range-insertnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeInsertNode"
+      ],
+      "spec": [
+        "Dom.Spec.InsertNodeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-ispointinrange",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeIsPointInRange"
+      ],
+      "spec": [
+        "Dom.Spec.IsPointInRangeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-comparepoint",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeComparePoint"
+      ],
+      "spec": [
+        "Dom.Spec.ComparePointResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-intersectsnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeIntersectsNode"
+      ],
+      "spec": [
+        "Dom.Spec.IntersectsNodeResult"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-stringifier",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeToString",
+        "Dom.containedInRange",
+        "Dom.substringData"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2-5",
+          "what": "UTF-16 の code unit で切り出す。surrogate pair の途中を指すと outsideModel になる"
+        }
+      ]
+    },
+    {
+      "alg": "concept-node-filter",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.showsNode",
+        "Dom.walkerAccepts"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "5-8",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "filter は常に null として扱うので、ここで必ず FILTER_ACCEPT を返す"
+        }
+      ]
+    },
+    {
+      "alg": "nodeiterator-pre-removing-steps",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.iteratorPreRemove",
+        "Dom.iteratorPreRemoveOne"
+      ],
+      "spec": [
+        "Dom.Spec.IteratorAdjusted"
+      ],
+      "omit": [
+        {
+          "steps": "2",
+          "why": {
+            "reason": "other",
+            "detail": "candidate reference は traverse の途中（filter の callback の中）でしか非 null にならず、filter が null なので状態に持たない"
+          }
+        }
+      ],
+      "approx": []
+    },
+    {
+      "alg": "nodeiterator-adjust-a-node-pointer",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.adjustNodePointer",
+        "Dom.firstFollowingOutside"
+      ],
+      "spec": [
+        "Dom.Spec.PointerAdjusted",
+        "Dom.Spec.FirstFollowingOutside",
+        "Dom.Spec.LastBeforeRemoval"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nodeiterator-root",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.IteratorState.root",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nodeiterator-referencenode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.IteratorState.reference",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nodeiterator-pointerbeforereferencenode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.IteratorState.pointerBeforeReference",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nodeiterator-whattoshow",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.IteratorState.whatToShow",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-nodeiterator-traverse",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nextNode",
+        "Dom.previousNode",
+        "Dom.iteratorCollection",
+        "Dom.showsNode",
+        "Dom.Exec.stepIterator"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-4",
+          "what": "candidate reference を持たず、iterator collection を reference で二つに分けて、pointer before に応じて reference 自身を候補に足した列から whatToShow を満たす最初の node を探す。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+        }
+      ]
+    },
+    {
+      "alg": "dom-nodeiterator-nextnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nextNode",
+        "Dom.Exec.stepIterator"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nodeiterator-previousnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.previousNode",
+        "Dom.Exec.stepIterator"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-treewalker-root",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.WalkerState.root",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-treewalker-whattoshow",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.WalkerState.whatToShow",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-treewalker-currentnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.WalkerState.current",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-treewalker-parentnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerParentNode",
+        "Dom.takeUntilIncl",
+        "Dom.walkerStep",
+        "Dom.walkerRun"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "current の祖先を root まで（root を含む）並べ、accept される最初のものを取る"
+        }
+      ]
+    },
+    {
+      "alg": "concept-traverse-children",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerFirstChild",
+        "Dom.walkerLastChild",
+        "Dom.mirrorPreorder",
+        "Dom.walkerStep",
+        "Dom.walkerRun"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2-4",
+          "what": "current の（自身を除く）部分木を tree order（last なら鏡像）に並べた列で探す。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+        }
+      ]
+    },
+    {
+      "alg": "dom-treewalker-firstchild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerFirstChild",
+        "Dom.walkerStep"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-treewalker-lastchild",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerLastChild",
+        "Dom.walkerStep"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-traverse-siblings",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerSibling",
+        "Dom.walkerSiblingSearch",
+        "Dom.siblingCandidates",
+        "Dom.followingSiblings",
+        "Dom.precedingSiblings",
+        "Dom.walkerStep",
+        "Dom.walkerRun"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "段ごとに兄弟の部分木を順に並べた列で探し、見つからなければ親へ上がる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+        }
+      ]
+    },
+    {
+      "alg": "dom-treewalker-nextsibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerSibling",
+        "Dom.walkerStep"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-treewalker-previoussibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerSibling",
+        "Dom.walkerStep"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-treewalker-previousnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerPreviousNode",
+        "Dom.walkerBase",
+        "Dom.walkerStep",
+        "Dom.walkerRun"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "`walkerBase`（current が root の外なら current 側の木の根）を根とする preorder を current の手前から逆にたどる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+        }
+      ]
+    },
+    {
+      "alg": "dom-treewalker-nextnode",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.walkerNextNode",
+        "Dom.walkerBase",
+        "Dom.walkerStep",
+        "Dom.walkerRun"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "`walkerBase` を根とする preorder を current の次からたどる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+        }
+      ]
+    },
+    {
+      "alg": "concept-dtl-update",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.tokenListUpdate",
+        "Dom.getAttributeByKey",
+        "Dom.setAttributeValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "DOMTokenList は classList だけで、element と attribute name は（受け手の element, \"class\"）に固定"
+        }
+      ]
+    },
+    {
+      "alg": "concept-dtl-serialize",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.getAttributeValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "DOMTokenList は classList だけで、element と attribute name は（受け手の element, \"class\"）に固定。value の getter が無いので、serialize steps を直接呼ぶ所は無い"
+        }
+      ]
+    },
+    {
+      "alg": "algorithm:DOMTokenList/attribute change steps",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classTokenSet",
+        "Dom.orderedSetParse"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "token set を状態に持たない。attribute change steps で更新する代わりに、使うたびに attribute の値から読み直す（値が無ければ空文字列なので空の set になる）"
+        }
+      ]
+    },
+    {
+      "alg": "algorithm:DOMTokenList/created",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classTokenSet"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "DOMTokenList object を作らない。token set は使うたびに attribute の値から読み直す"
+        }
+      ]
+    },
+    {
+      "alg": "dom-domtokenlist-contains",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classListContains",
+        "Dom.classTokenSet"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-domtokenlist-add",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classListAdd",
+        "Dom.validateTokens",
+        "Dom.validateToken",
+        "Dom.orderedSetAppend",
+        "Dom.tokenListUpdate"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-domtokenlist-remove",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classListRemove",
+        "Dom.validateTokens",
+        "Dom.validateToken",
+        "Dom.tokenListUpdate"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-domtokenlist-toggle",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classListToggle",
+        "Dom.validateToken",
+        "Dom.tokenListUpdate"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-domtokenlist-replace",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.classListReplace",
+        "Dom.orderedSetReplace",
+        "Dom.tokenListUpdate"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    }
+  ],
+  "exclusions": [
+    {
+      "target": "dom-event-target",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を持たないので target の getter が無い"
+      }
+    },
+    {
+      "target": "dom-event-srcelement",
+      "why": {
+        "reason": "legacy",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-event-composedpath",
+      "why": {
+        "reason": "todo",
+        "detail": "composedPath() が無い（shadow tree が無いので event path を逆順に invocation target を並べたものになるはずだが、実行関数が無い）"
+      }
+    },
+    {
+      "target": "dom-event-cancelbubble",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を持たないので cancelBubble の getter が無い"
+      }
+    },
+    {
+      "target": "dom-event-cancelbubble/setter",
+      "why": {
+        "reason": "todo",
+        "detail": "cancelBubble の setter が無い（ListenerAction に無い）"
+      }
+    },
+    {
+      "target": "dom-event-returnvalue",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を持たないので returnValue の getter が無い"
+      }
+    },
+    {
+      "target": "dom-event-returnvalue/setter",
+      "why": {
+        "reason": "todo",
+        "detail": "returnValue の setter が無い（ListenerAction に無い）"
+      }
+    },
+    {
+      "target": "dom-event-defaultprevented",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を持たないので defaultPrevented の getter が無い（dispatchEvent の戻り値としてだけ canceled flag が見える）"
+      }
+    },
+    {
+      "target": "dom-event-composed",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を持たず、composed flag も無い"
+      }
+    },
+    {
+      "target": "concept-event-initialize",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を持たない。dispatchEvent が type・bubbles・cancelable から EventState をその場で作る"
+      }
+    },
+    {
+      "target": "dom-event-initevent",
+      "why": {
+        "reason": "legacy",
+        "detail": ""
+      }
+    },
+    {
+      "target": "interface-window-extensions",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-customevent-initcustomevent",
+      "why": {
+        "reason": "legacy",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-event-constructor",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を持たない。dispatchEvent が type・bubbles・cancelable から EventState をその場で作り、constructor・dictionary・timeStamp は無い"
+      }
+    },
+    {
+      "target": "concept-event-create",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "inner-event-creation-steps",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-flatten-options",
+      "why": {
+        "reason": "other",
+        "detail": "options の IDL 変換は harness が済ませ、capture・once を Bool で渡す"
+      }
+    },
+    {
+      "target": "event-flatten-more",
+      "why": {
+        "reason": "other",
+        "detail": "options の IDL 変換は harness が済ませる。passive と signal は持たない"
+      }
+    },
+    {
+      "target": "dom-eventtarget-eventtarget",
+      "why": {
+        "reason": "todo",
+        "detail": "node 以外の EventTarget を作れない（listener の target は NodeId）"
+      }
+    },
+    {
+      "target": "default-passive-value",
+      "why": {
+        "reason": "todo",
+        "detail": "passive を持たない（判定には Window・Document の body も要る）"
+      }
+    },
+    {
+      "target": "remove-all-event-listeners",
+      "why": {
+        "reason": "other",
+        "detail": "HTML（document.open()）が使う道具。model の操作からは呼ばれず、実行関数も無い"
+      }
+    },
+    {
+      "target": "observing-event-listeners",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-event-fire",
+      "why": {
+        "reason": "other",
+        "detail": "他の仕様（と §3 の abort steps）が使う道具。model の操作からは呼ばれない"
+      }
+    },
+    {
+      "target": "aborting-ongoing-activities",
+      "why": {
+        "reason": "todo",
+        "detail": "AbortController と AbortSignal（abort reason・abort algorithms・dependent signal）が無い"
+      }
+    },
+    {
+      "target": "concept-node-insert-ext",
+      "why": {
+        "reason": "hook",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-node-post-connection-ext",
+      "why": {
+        "reason": "hook",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-node-children-changed-ext",
+      "why": {
+        "reason": "hook",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-node-move-ext",
+      "why": {
+        "reason": "hook",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-node-remove-ext",
+      "why": {
+        "reason": "hook",
+        "detail": ""
+      }
+    },
+    {
+      "target": "shadow-trees",
+      "why": {
+        "reason": "shadow",
+        "detail": ""
+      }
+    },
+    {
+      "target": "mixin-slotable",
+      "why": {
+        "reason": "shadow",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-documentorshadowroot-customelementregistry",
+      "why": {
+        "reason": "custom-elements",
+        "detail": ""
+      }
+    },
+    {
+      "target": "convert-nodes-into-a-node",
+      "why": {
+        "reason": "todo",
+        "detail": "文字列から Text を作り、複数の node を DocumentFragment にまとめる変換。model の method は変換済みの一つの node を受け取る（呼び出し側で済ませる）"
+      }
+    },
+    {
+      "target": "dom-parentnode-prepend",
+      "why": {
+        "reason": "todo",
+        "detail": "prepend に当たる関数（this の first child の前への pre-insert）が無い。harness にも操作が無い"
+      }
+    },
+    {
+      "target": "dom-parentnode-firstelementchild",
+      "why": {
+        "reason": "todo",
+        "detail": "getter の実行関数も harness の操作も無い"
+      }
+    },
+    {
+      "target": "dom-parentnode-lastelementchild",
+      "why": {
+        "reason": "todo",
+        "detail": "getter の実行関数も harness の操作も無い"
+      }
+    },
+    {
+      "target": "dom-parentnode-childelementcount",
+      "why": {
+        "reason": "todo",
+        "detail": "getter の実行関数も harness の操作も無い"
+      }
+    },
+    {
+      "target": "dom-nondocumenttypechildnode-previouselementsibling",
+      "why": {
+        "reason": "todo",
+        "detail": "getter の実行関数も harness の操作も無い"
+      }
+    },
+    {
+      "target": "dom-nondocumenttypechildnode-nextelementsibling",
+      "why": {
+        "reason": "todo",
+        "detail": "getter の実行関数も harness の操作も無い"
+      }
+    },
+    {
+      "target": "dom-htmlcollection-length",
+      "why": {
+        "reason": "todo",
+        "detail": "HTMLCollection を表す構造が無く、length の実行関数も無い"
+      }
+    },
+    {
+      "target": "dom-htmlcollection-item",
+      "why": {
+        "reason": "todo",
+        "detail": "HTMLCollection を表す構造が無く、item の実行関数も無い"
+      }
+    },
+    {
+      "target": "interface-htmlcollection/supported-property-names",
+      "why": {
+        "reason": "todo",
+        "detail": "HTMLCollection の supported property names（WebIDL の named property）の実行関数が無い"
+      }
+    },
+    {
+      "target": "dom-mutationobserver-mutationobserver",
+      "why": {
+        "reason": "other",
+        "detail": "callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い"
+      }
+    },
+    {
+      "target": "dom-node-nodename",
+      "why": {
+        "reason": "todo",
+        "detail": "Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target も model に無い"
+      }
+    },
+    {
+      "target": "dom-node-baseuri",
+      "why": {
+        "reason": "todo",
+        "detail": "document の URL（document base URL）を持たない"
+      }
+    },
+    {
+      "target": "dom-node-isconnected",
+      "why": {
+        "reason": "todo",
+        "detail": "node の connected を返す関数が無い（Attr だけ harness の attrQuery が false を返す）"
+      }
+    },
+    {
+      "target": "dom-node-issamenode",
+      "why": {
+        "reason": "todo",
+        "detail": "harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない）"
+      }
+    },
+    {
+      "target": "string-replace-all",
+      "why": {
+        "reason": "todo",
+        "detail": "文字列から Text node を作って replace all する関数が無い"
+      }
+    },
+    {
+      "target": "set-text-content",
+      "why": {
+        "reason": "todo",
+        "detail": "Element・DocumentFragment の枝（string replace all）が無い。Attr の枝は `setAttrValue`（via = textContent）、CharacterData の枝は `setData` と同じ処理だが、set text content として振り分ける関数は無い"
+      }
+    },
+    {
+      "target": "dom-node-textcontent/setter",
+      "why": {
+        "reason": "todo",
+        "detail": "set text content が無い（同上）"
+      }
+    },
+    {
+      "target": "create-a-document",
+      "why": {
+        "reason": "todo",
+        "detail": "Document を作る関数が無い（clone a single node の step 3 だけは `cloneSingle` が `NodeData` を写して作る）。harness の document は scenario が与える"
+      }
+    },
+    {
+      "target": "dom-document-document",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-document-implementation",
+      "why": {
+        "reason": "todo",
+        "detail": "DOMImplementation object を持たない"
+      }
+    },
+    {
+      "target": "dom-document-url",
+      "why": {
+        "reason": "todo",
+        "detail": "document の URL を持たない"
+      }
+    },
+    {
+      "target": "dom-document-documenturi",
+      "why": {
+        "reason": "todo",
+        "detail": "document の URL を持たない"
+      }
+    },
+    {
+      "target": "dom-document-characterset",
+      "why": {
+        "reason": "todo",
+        "detail": "document の encoding を持たない"
+      }
+    },
+    {
+      "target": "dom-document-charset",
+      "why": {
+        "reason": "todo",
+        "detail": "document の encoding を持たない"
+      }
+    },
+    {
+      "target": "dom-document-inputencoding",
+      "why": {
+        "reason": "todo",
+        "detail": "document の encoding を持たない"
+      }
+    },
+    {
+      "target": "dom-document-contenttype",
+      "why": {
+        "reason": "todo",
+        "detail": "document の content type を持たない（type は `isHTMLDocument` で持つ）"
+      }
+    },
+    {
+      "target": "dom-document-doctype",
+      "why": {
+        "reason": "todo",
+        "detail": "doctype の子を返す関数が無い"
+      }
+    },
+    {
+      "target": "dom-document-getelementsbytagname",
+      "why": {
+        "reason": "todo",
+        "detail": "list of elements with qualified name が無い"
+      }
+    },
+    {
+      "target": "dom-document-getelementsbytagnamens",
+      "why": {
+        "reason": "todo",
+        "detail": "list of elements with namespace and local name が無い"
+      }
+    },
+    {
+      "target": "flatten-element-creation-options",
+      "why": {
+        "reason": "custom-elements",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-document-createcdatasection",
+      "why": {
+        "reason": "todo",
+        "detail": "createCDATASection が無い（`Dom/Mutation/Create.lean` の注）"
+      }
+    },
+    {
+      "target": "dom-document-createprocessinginstruction",
+      "why": {
+        "reason": "todo",
+        "detail": "createProcessingInstruction が無い。target の Name production と ProcessingInstruction の target を model が持たない"
+      }
+    },
+    {
+      "target": "concept-node-adopt-ext",
+      "why": {
+        "reason": "hook",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-document-createevent",
+      "why": {
+        "reason": "todo",
+        "detail": "Event object を作る API が無い（`dispatchEvent` が型・bubbles・cancelable から event を組む）。step 7 の timeStamp は host"
+      }
+    },
+    {
+      "target": "dom-document-createrange",
+      "why": {
+        "reason": "todo",
+        "detail": "Range object を作る API が無い（range は scenario が与える。`Dom/Range/Api.lean` の注）"
+      }
+    },
+    {
+      "target": "dom-document-createnodeiterator",
+      "why": {
+        "reason": "todo",
+        "detail": "NodeIterator を作る API が無い（iterator は scenario が与える）"
+      }
+    },
+    {
+      "target": "dom-document-createtreewalker",
+      "why": {
+        "reason": "todo",
+        "detail": "TreeWalker を作る API が無い（walker は scenario が与える）"
+      }
+    },
+    {
+      "target": "interface-domimplementation",
+      "why": {
+        "reason": "todo",
+        "detail": "DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document を作る関数も、DocumentType の name・public ID・system ID も model に無い"
+      }
+    },
+    {
+      "target": "dom-domimplementation-hasfeature",
+      "why": {
+        "reason": "legacy",
+        "detail": ""
+      }
+    },
+    {
+      "target": "interface-documenttype",
+      "why": {
+        "reason": "todo",
+        "detail": "DocumentType の name・public ID・system ID を持たない（create a doctype と三つの getter）"
+      }
+    },
+    {
+      "target": "exclusive-documentfragment-node",
+      "why": {
+        "reason": "shadow",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-documentfragment-documentfragment",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "interface-shadowroot",
+      "why": {
+        "reason": "shadow",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-element-hasattributes",
+      "why": {
+        "reason": "todo",
+        "detail": "hasAttributes() の関数と harness の op が無い"
+      }
+    },
+    {
+      "target": "dom-element-attributes",
+      "why": {
+        "reason": "todo",
+        "detail": "NamedNodeMap object（element の attributes getter）を持たない"
+      }
+    },
+    {
+      "target": "dom-element-getattributens",
+      "why": {
+        "reason": "todo",
+        "detail": "getAttributeNS() の関数が無い（getAttributeByKey はあるが null と value を返す method が無い）"
+      }
+    },
+    {
+      "target": "dom-element-hasattributens",
+      "why": {
+        "reason": "todo",
+        "detail": "hasAttributeNS() の関数が無い"
+      }
+    },
+    {
+      "target": "dom-element-attachshadow",
+      "why": {
+        "reason": "shadow",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-attach-a-shadow-root",
+      "why": {
+        "reason": "shadow",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-element-shadowroot",
+      "why": {
+        "reason": "shadow",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-element-customelementregistry",
+      "why": {
+        "reason": "custom-elements",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-element-getelementsbytagname",
+      "why": {
+        "reason": "todo",
+        "detail": "list of elements with qualified name（getElementsByTagName）が無い"
+      }
+    },
+    {
+      "target": "dom-element-getelementsbytagnamens",
+      "why": {
+        "reason": "todo",
+        "detail": "list of elements with namespace and local name（getElementsByTagNameNS）が無い"
+      }
+    },
+    {
+      "target": "insert-adjacent",
+      "why": {
+        "reason": "todo",
+        "detail": "insert adjacent が無い"
+      }
+    },
+    {
+      "target": "dom-element-insertadjacentelement",
+      "why": {
+        "reason": "todo",
+        "detail": "insert adjacent が無い"
+      }
+    },
+    {
+      "target": "dom-element-insertadjacenttext",
+      "why": {
+        "reason": "todo",
+        "detail": "insert adjacent が無い"
+      }
+    },
+    {
+      "target": "dom-namednodemap-length",
+      "why": {
+        "reason": "todo",
+        "detail": "NamedNodeMap object を持たない（length が無い）"
+      }
+    },
+    {
+      "target": "dom-namednodemap-item",
+      "why": {
+        "reason": "todo",
+        "detail": "NamedNodeMap object を持たない（item(index) が無い）"
+      }
+    },
+    {
+      "target": "interface-namednodemap/supported-property-names",
+      "why": {
+        "reason": "todo",
+        "detail": "NamedNodeMap の named property が無い"
+      }
+    },
+    {
+      "target": "dom-namednodemap-removenameditemns",
+      "why": {
+        "reason": "todo",
+        "detail": "removeNamedItemNS() の関数が無い（removeAttributeNS は NotFoundError も `Attr` を返すことも無い）"
+      }
+    },
+    {
+      "target": "dom-attr-specified",
+      "why": {
+        "reason": "legacy",
+        "detail": ""
+      }
+    },
+    {
+      "target": "contiguous-text-nodes",
+      "why": {
+        "reason": "todo",
+        "detail": "contiguous Text nodes（CDATASection を含む前後両側）を集める関数が無い。使う側の wholeText も未実装"
+      }
+    },
+    {
+      "target": "concept-child-text-content",
+      "why": {
+        "reason": "todo",
+        "detail": "child text content を計算する関数が無い"
+      }
+    },
+    {
+      "target": "dom-text-text",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "concept-text-split",
+      "why": {
+        "reason": "todo",
+        "detail": "split a Text node が無い（docs/status.md の未着手。固定 scenario でも skip）"
+      }
+    },
+    {
+      "target": "dom-text-splittext",
+      "why": {
+        "reason": "todo",
+        "detail": "splitText() が無い（split a Text node が未実装）"
+      }
+    },
+    {
+      "target": "dom-text-wholetext",
+      "why": {
+        "reason": "todo",
+        "detail": "wholeText の getter が無い"
+      }
+    },
+    {
+      "target": "interface-processinginstruction",
+      "why": {
+        "reason": "todo",
+        "detail": "ProcessingInstruction の target・attribute map・createProcessingInstruction が無い（XML Name production も無い）"
+      }
+    },
+    {
+      "target": "dom-comment-comment",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-range-collapsed",
+      "why": {
+        "reason": "todo",
+        "detail": "collapsed getter を返す操作が harness に無い（両端は観測に出るので導ける）"
+      }
+    },
+    {
+      "target": "dom-staticrange-staticrange",
+      "why": {
+        "reason": "todo",
+        "detail": "StaticRange が model に無い"
+      }
+    },
+    {
+      "target": "staticrange-valid",
+      "why": {
+        "reason": "todo",
+        "detail": "StaticRange が model に無い"
+      }
+    },
+    {
+      "target": "dom-range-range",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "get-the-common-ancestor",
+      "why": {
+        "reason": "todo",
+        "detail": "common ancestor を求める定義が無い（使う extract・clone the contents が未実装）"
+      }
+    },
+    {
+      "target": "dom-range-commonancestorcontainer",
+      "why": {
+        "reason": "todo",
+        "detail": "commonAncestorContainer getter が無い"
+      }
+    },
+    {
+      "target": "concept-range-extract",
+      "why": {
+        "reason": "todo",
+        "detail": "extract（DocumentFragment への移し替えと部分 clone）が未実装"
+      }
+    },
+    {
+      "target": "dom-range-extractcontents",
+      "why": {
+        "reason": "todo",
+        "detail": "extract が未実装"
+      }
+    },
+    {
+      "target": "concept-range-clone",
+      "why": {
+        "reason": "todo",
+        "detail": "clone the contents が未実装"
+      }
+    },
+    {
+      "target": "dom-range-clonecontents",
+      "why": {
+        "reason": "todo",
+        "detail": "clone the contents が未実装"
+      }
+    },
+    {
+      "target": "dom-range-surroundcontents",
+      "why": {
+        "reason": "todo",
+        "detail": "extract に依存するので未実装"
+      }
+    },
+    {
+      "target": "dom-range-clonerange",
+      "why": {
+        "reason": "todo",
+        "detail": "Range object を新しく作る操作が model に無い（range は初期状態で与える）"
+      }
+    },
+    {
+      "target": "dom-range-detach",
+      "why": {
+        "reason": "legacy",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-nodeiterator-filter",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-nodeiterator-detach",
+      "why": {
+        "reason": "legacy",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-treewalker-filter",
+      "why": {
+        "reason": "host",
+        "detail": ""
+      }
+    },
+    {
+      "target": "dom-treewalker-currentnode/setter",
+      "why": {
+        "reason": "todo",
+        "detail": "currentNode を設定する操作が harness に無い（初期状態の current だけを与えられる）"
+      }
+    },
+    {
+      "target": "concept-domtokenlist-validation",
+      "why": {
+        "reason": "todo",
+        "detail": "validation steps（supported tokens）が無い。classList の class は supported tokens を定めないので TypeError になるはずの所"
+      }
+    },
+    {
+      "target": "dom-domtokenlist-supports",
+      "why": {
+        "reason": "todo",
+        "detail": "supports() が無い（validation steps が未実装）"
+      }
+    },
+    {
+      "target": "dom-domtokenlist-length",
+      "why": {
+        "reason": "todo",
+        "detail": "length の getter が無い（token set は classTokenSet で読めるが API が無い）"
+      }
+    },
+    {
+      "target": "dom-domtokenlist-item",
+      "why": {
+        "reason": "todo",
+        "detail": "item() が無い"
+      }
+    },
+    {
+      "target": "dom-domtokenlist-value",
+      "why": {
+        "reason": "todo",
+        "detail": "value の getter が無い（値は className の reflect getter と同じだが、DOMTokenList 側の API は無い）"
+      }
+    },
+    {
+      "target": "dom-domtokenlist-value/setter",
+      "why": {
+        "reason": "todo",
+        "detail": "value の setter が無い（className の reflect setter と同じ効果だが、DOMTokenList 側の API は無い）"
+      }
+    },
+    {
+      "target": "xpath",
+      "why": {
+        "reason": "other",
+        "detail": "XPath（§8）は model の対象外。XPath の評価器を持たない"
+      }
+    }
+  ]
+}
