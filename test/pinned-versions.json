@@ -19,10 +19,10 @@
   },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
-    "commit": "8faf1056f3ce748d331b530f8d97421421a401ec",
+    "commit": "f6904d642b5f82b7bfb27747cd20ce0dee4d3dfd",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "main（`8faf1056`、2026-10-10、PR #145 の merge）を指す。findings 59-64 の修正（PR #142・#143・#145）を含み、`makiri >= 0.15.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 213 ok / 17 skip / 5 known / 0 mismatch、JS の側から動かす runner（dommy-js-quickjs `a0f1776`）で 209 ok / 21 skip / 5 known / 0 mismatch。5 known は仕様側が未決着の 19・20 と、model の読みが疑わしい `dataset` の 2 本（`known-divergences.yml`）。生成 scenario は二つの runner とも 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）で mismatch 0（unsupported のみ）。"
+    "_note": "main（`f6904d64`、2026-10-10、PR #150 の merge）を指す。findings 59-68 の修正（PR #142・#143・#145・#150）を含み、`makiri >= 0.16.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 229 ok / 19 skip / 6 known / 0 mismatch、JS の側から動かす runner（dommy-js-quickjs `a0f1776`）で 226 ok / 22 skip / 6 known / 0 mismatch。6 known は仕様側が未決着の 19・20、model の読みが疑わしい `dataset` の 2 本、ブラウザに合わせた `splitText` の record の並び（findings 69）（`known-divergences.yml`）。生成 scenario は二つの runner とも 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）で mismatch 0（unsupported のみ）。"
   },
   "dommy-js-quickjs": {
     "repository": "https://github.com/takahashim/dommy-js-quickjs",
@@ -37,12 +37,12 @@
   },
   "makiri": {
     "source": "rubygems",
-    "version": "0.15.0",
-    "_note": "RubyGems の公開版を使う。固定した Dommy の gemspec が `>= 0.15.0` を要求する。0.15.0 で固定 scenario・生成 scenario・URL parser/setters/urlencoded が全通過した。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。"
+    "version": "0.16.0",
+    "_note": "RubyGems の公開版を使う。固定した Dommy の gemspec が `>= 0.16.0` を要求する。0.16.0 で固定 scenario・生成 scenario・URL parser（3777 件）/setters（3167 件）/urlencoded（4380 件）が全通過した。ローカル checkout から build したものだと Makiri::Document#create_document_type を持たないことがあり、Dommy が node-backed でない DocumentType にフォールバックする。"
   },
   "whatwg-url": {
     "version": "17.1.2",
-    "_note": "URL の差分テスト（test/url_diff.rb）の相手。URL Standard の参照実装で、npm から入れる。2026-10-10 に Dommy `8faf1056` と並べて、seed 1 の parser 3777 件・setters 3167 件とも model と全件一致した。"
+    "_note": "URL の差分テスト（test/url_diff.rb）の相手。URL Standard の参照実装で、npm から入れる。2026-10-10 に Dommy `f6904d64`（makiri 0.16.0）と並べて、seed 1 の parser 3777 件・setters 3167 件とも model と全件一致した。"
   },
   "ruby": "3.4",
   "lean": "leanprover/lean4:v4.33.1"

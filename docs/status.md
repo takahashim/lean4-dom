@@ -6777,6 +6777,16 @@ Dommy は branch `fix/lean4-dom-findings-65-68`（`6ff2584a`、PR #150）で 65�
 
 `test/pinned-versions.json` の Dommy は、PR #150 が main に入ってから上げる（makiri の版も 0.16.0 に上げる）。
 
+## Dommy を `f6904d64`、makiri を 0.16.0 に上げた
+
+Dommy の PR #150（findings 65-68 の修正）が main に入ったので、`test/pinned-versions.json` の Dommy を `f6904d64` に、makiri を
+0.16.0 に上げた。dommy-js-quickjs は `a0f1776` のまま。上げる前に次を流し、どれも不一致 0 だった。
+
+* 固定 scenario：Ruby の API の runner で 229 ok / 19 skip / 6 known、JS の側の runner で 226 ok / 22 skip / 6 known。
+* 生成 scenario：二つの runner とも 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、
+  seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）。
+* URL：parser 3777 件、setters 3167 件（whatwg-url 17.1.2 と Dommy の両方）、urlencoded 4380 件。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
