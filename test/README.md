@@ -264,6 +264,7 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `insertData` | `node`, `offset`, `data` |
 | `deleteData` | `node`, `offset`, `count` |
 | `setData` | `node`, `data` |
+| `setTextContent` / `setNodeValue` | `node`（`{"attr": id}` 可）, `value`（null 可。null は空文字列） |
 | `setAttribute` | `element`, `name`, `value` |
 | `setAttributeNS` | `element`, `namespace`（null 可）, `name`, `value` |
 | `removeAttribute` | `element`, `name` |
@@ -346,10 +347,11 @@ id の予測が実際とずれ、以降の操作が別の node を指してし�
 可変長引数を "converting nodes into a node" で一つの node にまとめるが、
 その変換は呼び出し側で済ませた形（まとめた結果の node）を引数に取る。
 
-document は必ず HTML document になる（runner は `Window` の document と
-`createHTMLDocument` しか使えない）。`isHTMLDocument: false` を指定した scenario は
-Dommy 側の runner が断る。黙って HTML document を返すと、`createElement` の
-step 2（ASCII lowercase）と step 4（HTML namespace）が偽の不一致になるからである。
+`isHTMLDocument: false` の document は、runner が `createDocument` で作る XML document である。
+content type（`contentType`。既定は application/xml）に合わせて namespace を渡す
+（application/xhtml+xml なら HTML namespace、image/svg+xml なら SVG namespace、それ以外は null）。
+XML document の `createElement` は namespace が null の element を作る（§4.5 step 4）ので、
+runner は HTML document のときだけ `createElement` を使い、そうでなければ `createElementNS` で作る。
 
 初期状態は `WellFormed` を満たす必要があり、Lean 側は読み込み時に
 `checkWellFormed` で拒否する。加えて DOM の node tree 制約も満たす必要がある

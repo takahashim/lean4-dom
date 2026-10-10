@@ -73,7 +73,8 @@ const OP_METHOD = {
   removeChild: "removeChild", replaceChildren: "replaceChildren", before: "before",
   after: "after", replaceWith: "replaceWith", prepend: "prepend", append: "append", remove: "remove", moveBefore: "moveBefore",
   replaceData: "replaceData", appendData: "appendData", insertData: "insertData",
-  deleteData: "deleteData", setData: "data", setAttribute: "setAttribute",
+  deleteData: "deleteData", setData: "data", setTextContent: "textContent", setNodeValue: "nodeValue",
+  setAttribute: "setAttribute",
   setAttributeNS: "setAttributeNS", removeAttribute: "removeAttribute",
   removeAttributeNS: "removeAttributeNS", toggleAttribute: "toggleAttribute",
   dispatchEvent: "dispatchEvent", addEventListener: "addEventListener",
@@ -173,6 +174,9 @@ const RANGE_OPS = ["rangeSetStart", "rangeSetEnd", "rangeSetStartBefore", "range
   "rangeCompareBoundaryPoints", "rangeComparePoint", "rangeDeleteContents",
   "rangeInsertNode", "rangeToString"];
 const CHARACTER_DATA_OPS = ["replaceData", "appendData", "insertData", "deleteData", "setData"];
+// IDL attribute の setter として書く操作と、その attribute。`setData` の受け手は CharacterData、
+// あとの二つは `Node`（`{"attr": id}` で `Attr` も受ける）。`DOMString?` なので null をそのまま渡す。
+const SETTER_PROPS = { setData: "data", setTextContent: "textContent", setNodeValue: "nodeValue" };
 const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
@@ -589,7 +593,7 @@ function exceptionName(e) {
 /* ------------------------------------------------------------------ 操作の適用 */
 
 function receiverId(op) {
-  if (CHARACTER_DATA_OPS.includes(op.op) || op.op === "getProperty") return op.node;
+  if (CHARACTER_DATA_OPS.includes(op.op) || op.op in SETTER_PROPS || op.op === "getProperty") return op.node;
   if (QUERY_OPS.includes(op.op) && "node" in op) return op.node;
   if (ATTRIBUTE_OPS.includes(op.op)) return op.element;
   return "target" in op ? op.target : op.parent;
@@ -1068,6 +1072,17 @@ function apply(ctx, op) {
     return w[m]();
   }
   if (RANGE_OPS.includes(op.op)) return applyRangeOp(ctx, op);
+  if (op.op === "setTextContent" || op.op === "setNodeValue") {
+    const node = resolveRef(ctx, op.node);
+    const prop = SETTER_PROPS[op.op];
+    if (!(prop in node)) throw new Unsupported(prop);
+    node[prop] = op.value ?? null;
+    // string replace all が作った Text に、model（`createTextNode` の `freshId`）と同じ規則で id を振る。
+    if (prop === "textContent" && (node.nodeType === 1 || node.nodeType === 11) && (op.value ?? "") !== "") {
+      registerSubtree(ctx, node.firstChild);
+    }
+    return undefined;
+  }
   if (CHARACTER_DATA_OPS.includes(op.op)) {
     const node = need(objects.get(op.node), "missing node");
     if (op.op === "setData") {
@@ -1428,8 +1443,8 @@ function capabilities(win) {
     }
     const ops = [];
     for (const [op, m] of Object.entries(OP_METHOD)) {
-      if (op === "setData") {
-        if ("data" in node) ops.push(op);
+      if (op in SETTER_PROPS) {
+        if (SETTER_PROPS[op] in node) ops.push(op);
       } else if (typeof node[m] === "function") {
         ops.push(op);
       }

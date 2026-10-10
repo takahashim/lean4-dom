@@ -6601,6 +6601,27 @@ HTML namespace の element は、model と実装で namespace が違う木にな
 
 Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、この scenario のすべての step で model と一致した。
 
+## `textContent` と `nodeValue` の setter を足した
+
+対応表で `.todo` の除外だった "set text content"・"string replace all"・`textContent` の setter と、近似だった
+`nodeValue` の setter を実行関数にした（`Dom/Mutation/SetText.lean`）。
+
+* `stringReplaceAll` は、文字列が空でなければ parent の node document で `createTextNode` した Text で、空なら null で
+  `replaceAll` する。`setTextContent` は Element と DocumentFragment でこれを、CharacterData で replace data
+  （offset 0、length、value）を行い、Document と DocumentType では何もしない。`setNodeValue` は CharacterData で
+  replace data、それ以外では何もしない。`Attr` の枝は `setAttrValue`（set an existing attribute value）で、harness が
+  `Attr` を受け手にした `setTextContent`・`setNodeValue` を via 付きの `setAttrValue` に読み替える。
+* admissibility と attribute の id の一意性は、`replaceAll` の前提（parent が children を持て Document でない。入れる node は
+  Text）を "set text content" の振り分け（Element か DocumentFragment）から示して、`admissible_replaceAll`・
+  `attrFrame_replaceAll` と `createTextNode` の定理につないだ（`Dom/Validity/SetText.lean`）。
+* 操作は `setTextContent`・`setNodeValue`（`node` と `value`。`DOMString?` なので null は空文字列）。runner は string replace all
+  が作った Text に、`createTextNode` と同じ規則（木にある id の最大より一つ大きい）で id を振る。
+* 固定 scenario `text-content-and-node-value-setters` を足した（replace all の childList record、replace data の
+  characterData record と live range の調整、`Attr` の setter、Document で何もしないこと）。生成器は二つの op を出す。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の JS の runner は、この scenario のすべての step で model と一致した。
+Dommy の Ruby の API は Text に `node_value=` を持たないので、Ruby の runner ではその step で skip になる。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

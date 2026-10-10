@@ -29,7 +29,7 @@ module Generate
            rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
            rangeInsertNode rangeToString
            compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
-           getTextContent getNodeValue substringData getProperty
+           getTextContent getNodeValue substringData getProperty setTextContent setNodeValue
            getAttribute hasAttribute getAttributeNames
            getAttributeNS hasAttributeNS hasAttributes getElementsByTagName getElementsByTagNameNS
            lookupNamespaceURI lookupPrefix isDefaultNamespace
@@ -129,7 +129,7 @@ module Generate
 
   NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize cloneNode
                 compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
-                getTextContent getNodeValue getProperty
+                getTextContent getNodeValue getProperty setTextContent setNodeValue
                 dispatchEvent addEventListener removeEventListener
                 lookupNamespaceURI lookupPrefix isDefaultNamespace
            dispatchEvent addEventListener removeEventListener].freeze
@@ -569,6 +569,8 @@ module Generate
       { "op" => op, "node" => pick.call }
     when "getProperty"
       { "op" => op, "node" => pick.call, "property" => PROPERTIES.sample(random: rng) }
+    when "setTextContent", "setNodeValue"
+      { "op" => op, "node" => pick.call, "value" => [nil, "", "pq", "p#{ASTRAL}q"].sample(random: rng) }
     when "substringData"
       { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),
         "count" => idl_number(rng, rng.rand(4)) }
@@ -857,6 +859,7 @@ module Generate
   end
 
   NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode getProperty
+                         setTextContent setNodeValue
                          getTextContent getNodeValue
                          lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 

@@ -43,6 +43,8 @@ module DommyRunner
     "insertData" => :insert_data,
     "deleteData" => :delete_data,
     "setData" => :data=,
+    "setTextContent" => :text_content=,
+    "setNodeValue" => :node_value=,
     "setAttribute" => :set_attribute,
     "setAttributeNS" => :set_attribute_ns,
     "removeAttribute" => :remove_attribute,
@@ -744,6 +746,8 @@ module DommyRunner
       v = op[k]
       next if v.is_a?(String)
       next if k == "value" && op["op"] == "setReflected" && [true, false].include?(v)
+      # `textContent`・`nodeValue` の setter は `DOMString?` で、null を受ける。
+      next if k == "value" && %w[setTextContent setNodeValue].include?(op["op"]) && v.nil?
 
       raise NotImplementedError, "DOMString の引数 `#{k}` が文字列でない（Dommy の変換は JS の層にあり、この runner は通らない）"
     end
@@ -1061,6 +1065,7 @@ module DommyRunner
   # 操作の受け手（method を呼ぶ相手）の id。
   def receiver_id(op)
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
+    return op["node"] if %w[setTextContent setNodeValue getProperty].include?(op["op"])
     return op["node"] if QUERY_OPS.include?(op["op"]) && op.key?("node")
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
 
@@ -1393,6 +1398,19 @@ module DommyRunner
              when "rangeInsertNode" then range.insert_node(node)
              when "rangeToString" then range.to_s
              end
+    end
+    if %w[setTextContent setNodeValue].include?(op["op"])
+      node = resolve_ref(ctx, op["node"])
+      method = OP_METHOD.fetch(op["op"])
+      raise NotImplementedError, op["op"] if node.nil? || !node.respond_to?(method)
+
+      # `DOMString?` の setter。null はそのまま渡す。
+      node.public_send(method, op["value"].nil? ? nil : op["value"].to_s)
+      # string replace all が作った Text に、model（`createTextNode` の `freshId`）と同じ規則で id を振る。
+      if op["op"] == "setTextContent" && [1, 11].include?(node_type_of(node)) && !op["value"].to_s.empty?
+        register_subtree(ctx, children_of(node).first)
+      end
+      return nil
     end
     if CHARACTER_DATA_OPS.include?(op["op"])
       node = objects[op["node"]]

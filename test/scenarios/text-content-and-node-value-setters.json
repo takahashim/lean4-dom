@@ -1,0 +1,235 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "textContent",
+      "set text content",
+      "string replace all",
+      "nodeValue"
+    ],
+    "steps": "textContent setter / nodeValue setter",
+    "note": "textContent の setter は、Element と DocumentFragment では string replace all（空でなければ新しい Text で、空なら null で replace all）、CharacterData では replace data、Document では何もしない。null は空文字列。nodeValue の setter は CharacterData では replace data、それ以外（Element）では何もしない。Attr の両方の setter は set an existing attribute value。MutationObserver の queue に childList と characterData と attributes の record が積まれ、range は replace all と replace data の調整を受ける。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "a"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span"
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 4,
+      "data": "b"
+    },
+    {
+      "id": 6,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c"
+    },
+    {
+      "id": 7,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 8,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 9,
+      "kind": "text",
+      "parent": 8,
+      "data": "f"
+    },
+    {
+      "id": 10,
+      "kind": "element",
+      "parent": 8,
+      "localName": "i"
+    },
+    {
+      "id": 11,
+      "kind": "text",
+      "parent": 1,
+      "data": "t"
+    },
+    {
+      "id": 12,
+      "kind": "comment",
+      "parent": 1,
+      "data": "k"
+    },
+    {
+      "id": 13,
+      "kind": "processingInstruction",
+      "parent": 1,
+      "target": "pi",
+      "data": "d"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 0
+      },
+      "end": {
+        "node": 5,
+        "offset": 1
+      }
+    },
+    {
+      "start": {
+        "node": 11,
+        "offset": 1
+      },
+      "end": {
+        "node": 11,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {
+      "target": 0,
+      "subtree": true,
+      "childList": true,
+      "characterData": true,
+      "characterDataOldValue": true,
+      "attributes": true,
+      "attributeOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "setTextContent",
+      "node": 2,
+      "value": "x"
+    },
+    {
+      "op": "setTextContent",
+      "node": 7,
+      "value": ""
+    },
+    {
+      "op": "setTextContent",
+      "node": 7,
+      "value": "y"
+    },
+    {
+      "op": "setTextContent",
+      "node": 8,
+      "value": "frag"
+    },
+    {
+      "op": "setTextContent",
+      "node": 11,
+      "value": "T"
+    },
+    {
+      "op": "setTextContent",
+      "node": 12,
+      "value": null
+    },
+    {
+      "op": "setTextContent",
+      "node": 13,
+      "value": "pd"
+    },
+    {
+      "op": "setNodeValue",
+      "node": 11,
+      "value": "n"
+    },
+    {
+      "op": "setNodeValue",
+      "node": 1,
+      "value": "q"
+    },
+    {
+      "op": "setNodeValue",
+      "node": 13,
+      "value": null
+    },
+    {
+      "op": "setTextContent",
+      "node": {
+        "attr": 1
+      },
+      "value": "v2"
+    },
+    {
+      "op": "setNodeValue",
+      "node": {
+        "attr": 1
+      },
+      "value": null
+    },
+    {
+      "op": "getTextContent",
+      "node": 2
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "childNodes"
+    },
+    {
+      "op": "getTextContent",
+      "node": 8
+    },
+    {
+      "op": "setTextContent",
+      "node": 2,
+      "value": ""
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "childNodes"
+    },
+    {
+      "op": "setTextContent",
+      "node": 0,
+      "value": "zzz"
+    }
+  ]
+}

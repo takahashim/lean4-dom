@@ -63,8 +63,10 @@ import Dom.Properties.InsertContract
 import Dom.Properties.ReplaceContract
 import Dom.Properties.MoveContract
 import Dom.Mutation.Create
+import Dom.Mutation.SetText
 import Dom.Properties.Create
 import Dom.Validity.Create
+import Dom.Validity.SetText
 import Dom.Mutation.Clone
 import Dom.Validity.Clone
 import Dom.Properties.Clone

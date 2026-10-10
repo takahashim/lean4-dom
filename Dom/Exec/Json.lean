@@ -590,6 +590,11 @@ def operationOfJson (j : Json) : Except String Operation := do
         match prop.attrQuery? with
         | some q => return .attrQuery a q
         | none => throw s!"`Attr` に対する getter `{p}` は model に無い"
+  | "setTextContent" | "setNodeValue" =>
+    let value := (← nullableDomStrField j "value").getD ""
+    match ← refField j "node" with
+    | .node n => return if op == "setTextContent" then .setTextContent n value else .setNodeValue n value
+    | .attr a => return .setAttrValue a value (if op == "setTextContent" then .textContent else .nodeValue)
   | "getOwnerDocument" =>
     match ← refField j "node" with
     | .node n => return .getOwnerDocument n

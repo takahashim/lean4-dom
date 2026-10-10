@@ -1676,17 +1676,63 @@
         "*"
       ],
       "impl": [
-        "Dom.setAttrValue",
-        "Dom.setData"
+        "Dom.setNodeValue",
+        "Dom.setAttrValue"
       ],
       "spec": [],
       "omit": [],
       "approx": [
         {
           "steps": "*",
-          "what": "setter として振り分ける関数は無い。Attr の枝は `setAttrValue`（harness の `setAttrValue` の via = nodeValue）、CharacterData の枝は同じ replace data をする `setData` が担う。「Otherwise 何もしない」の枝と null → 空文字列の変換は model に無い"
+          "what": "Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setNodeValue` を via = nodeValue に読み替える）。null → 空文字列は scenario を読むときに行う"
         }
       ]
+    },
+    {
+      "alg": "set-text-content",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setTextContent",
+        "Dom.stringReplaceAll",
+        "Dom.setAttrValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setTextContent` を via = textContent に読み替える）。null → 空文字列は scenario を読むときに行う"
+        }
+      ]
+    },
+    {
+      "alg": "string-replace-all",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.stringReplaceAll",
+        "Dom.createTextNode",
+        "Dom.replaceAll"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-node-textcontent/setter",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.setTextContent",
+        "Dom.setAttrValue"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
     },
     {
       "alg": "get-text-content",
@@ -4777,27 +4823,6 @@
       "why": {
         "reason": "todo",
         "detail": "harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない）"
-      }
-    },
-    {
-      "target": "string-replace-all",
-      "why": {
-        "reason": "todo",
-        "detail": "文字列から Text node を作って replace all する関数が無い"
-      }
-    },
-    {
-      "target": "set-text-content",
-      "why": {
-        "reason": "todo",
-        "detail": "Element・DocumentFragment の枝（string replace all）が無い。Attr の枝は `setAttrValue`（via = textContent）、CharacterData の枝は `setData` と同じ処理だが、set text content として振り分ける関数は無い"
-      }
-    },
-    {
-      "target": "dom-node-textcontent/setter",
-      "why": {
-        "reason": "todo",
-        "detail": "set text content が無い（同上）"
       }
     },
     {

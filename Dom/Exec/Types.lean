@@ -9,6 +9,7 @@ import Dom.Traversal.NodeIterator
 import Dom.Traversal.TreeWalker
 import Dom.Query.NodeQuery
 import Dom.Query.Property
+import Dom.Mutation.SetText
 import Dom.Event.Dispatch
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
@@ -231,6 +232,10 @@ inductive Operation where
   | getOwnerDocument (node : Nat)
   /-- 値を読むだけの getter（`NodeProp`）。 -/
   | getProperty (node : Nat) (prop : NodeProp)
+  /-- §4.4 `textContent` の setter（`Attr` は `setAttrValue` に読み替える）。null は空文字列。 -/
+  | setTextContent (node : Nat) (value : String)
+  /-- §4.4 `nodeValue` の setter（`Attr` は `setAttrValue` に読み替える）。null は空文字列。 -/
+  | setNodeValue (node : Nat) (value : String)
   | isEqualNode (node other : Nat)
   | getTextContent (node : Nat)
   | getNodeValue (node : Nat)

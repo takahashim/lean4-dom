@@ -48,8 +48,15 @@ def entries : List Entry := [
   { alg := "dom-node-nodevalue"
     impl := [``Dom.getNodeValue, ``Dom.Exec.attrQueryValue] },
   { alg := "dom-node-nodevalue/setter"
-    impl := [``Dom.setAttrValue, ``Dom.setData]
-    approx := [("*", "setter として振り分ける関数は無い。Attr の枝は `setAttrValue`（harness の `setAttrValue` の via = nodeValue）、CharacterData の枝は同じ replace data をする `setData` が担う。「Otherwise 何もしない」の枝と null → 空文字列の変換は model に無い")] },
+    impl := [``Dom.setNodeValue, ``Dom.setAttrValue]
+    approx := [("*", "Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setNodeValue` を via = nodeValue に読み替える）。null → 空文字列は scenario を読むときに行う")] },
+  { alg := "set-text-content"
+    impl := [``Dom.setTextContent, ``Dom.stringReplaceAll, ``Dom.setAttrValue]
+    approx := [("*", "Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setTextContent` を via = textContent に読み替える）。null → 空文字列は scenario を読むときに行う")] },
+  { alg := "string-replace-all"
+    impl := [``Dom.stringReplaceAll, ``Dom.createTextNode, ``Dom.replaceAll] },
+  { alg := "dom-node-textcontent/setter"
+    impl := [``Dom.setTextContent, ``Dom.setAttrValue] },
   { alg := "get-text-content"
     impl := [``Dom.getTextContent, ``Dom.descendantTextContent, ``Dom.Exec.attrQueryValue] },
   { alg := "dom-node-textcontent"
@@ -106,11 +113,7 @@ def entries : List Entry := [
 
 def exclusions : List Exclusion := [
   { target := "dom-node-baseuri", reason := .todo "document の URL（document base URL）を持たない" },
-  { target := "dom-node-issamenode", reason := .todo "harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない）" },
-  { target := "string-replace-all", reason := .todo "文字列から Text node を作って replace all する関数が無い" },
-  { target := "set-text-content",
-    reason := .todo "Element・DocumentFragment の枝（string replace all）が無い。Attr の枝は `setAttrValue`（via = textContent）、CharacterData の枝は `setData` と同じ処理だが、set text content として振り分ける関数は無い" },
-  { target := "dom-node-textcontent/setter", reason := .todo "set text content が無い（同上）" }
+  { target := "dom-node-issamenode", reason := .todo "harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない）" }
 ]
 
 end Trace.Dom.Node

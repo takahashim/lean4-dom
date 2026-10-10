@@ -7,11 +7,11 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 243 |
-| 対象外としたもの | 148 |
-| 表に載せた algorithm の step | 1021 |
-| そのうち実装したもの | 609 |
-| そのうち近似したもの | 216 |
+| 表に載せたもの | 246 |
+| 対象外としたもの | 145 |
+| 表に載せた algorithm の step | 1026 |
+| そのうち実装したもの | 613 |
+| そのうち近似したもの | 217 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -178,9 +178,12 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-node-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-previoussibling) | 1/1 | `Dom.previousSibling` |  |
 | [dom-node-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nextsibling) | 1/1 | `Dom.nextSibling` |  |
 | [dom-node-nodevalue](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodevalue) | 1/1 | `Dom.getNodeValue`<br>`Dom.Exec.attrQueryValue` |  |
-| [dom-node-nodevalue/setter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodevalue) | 0/1（近似 1） | `Dom.setAttrValue`<br>`Dom.setData` |  |
+| [dom-node-nodevalue/setter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodevalue) | 0/1（近似 1） | `Dom.setNodeValue`<br>`Dom.setAttrValue` |  |
 | [get-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-text-content) | 1/1 | `Dom.getTextContent`<br>`Dom.descendantTextContent`<br>`Dom.Exec.attrQueryValue` |  |
 | [dom-node-textcontent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-textcontent) | 1/1 | `Dom.getTextContent`<br>`Dom.Exec.attrQueryValue` |  |
+| [string-replace-all](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#string-replace-all) | 3/3 | `Dom.stringReplaceAll`<br>`Dom.createTextNode`<br>`Dom.replaceAll` |  |
+| [set-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#set-text-content) | 0/1（近似 1） | `Dom.setTextContent`<br>`Dom.stringReplaceAll`<br>`Dom.setAttrValue` |  |
+| [dom-node-textcontent/setter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-textcontent) | 1/1 | `Dom.setTextContent`<br>`Dom.setAttrValue` |  |
 | [dom-node-normalize](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-normalize) | 3/13（近似 10） | `Dom.normalize`<br>`Dom.normalizeList`<br>`Dom.normalizeRun`<br>`Dom.normalizeMergeOne`<br>`Dom.normalizeMergeRange`<br>`Dom.normalizeMergeBP`<br>`Dom.followingTexts` | `Dom.Spec.NormalizeSpec`<br>`Dom.Spec.NormalizeResult` |
 | [concept-node-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-clone) | 5/14 | `Dom.cloneNodeIn`<br>`Dom.cloneMany`<br>`Dom.cloneAppend` |  |
 | [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#clone-a-single-node) | 12/18（近似 2） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` |  |
@@ -557,7 +560,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-node-isconnected | * | shadow tree が無いので、shadow-including root の代わりに root を見る |
 | dom-node-getrootnode | * | options["composed"] を受けず、常に root を返す（shadow tree が無いので shadow-including root と同じ値） |
 | dom-node-childnodes | * | live な NodeList ではなく、読んだ時点の children の列を返す |
-| dom-node-nodevalue/setter | * | setter として振り分ける関数は無い。Attr の枝は `setAttrValue`（harness の `setAttrValue` の via = nodeValue）、CharacterData の枝は同じ replace data をする `setData` が担う。「Otherwise 何もしない」の枝と null → 空文字列の変換は model に無い |
+| dom-node-nodevalue/setter | * | Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setNodeValue` を via = nodeValue に読み替える）。null → 空文字列は scenario を読むときに行う |
+| set-text-content | * | Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setTextContent` を via = textContent に読み替える）。null → 空文字列は scenario を読むときに行う |
 | dom-node-normalize | 3-4 | run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。木と range の最終状態は同じで、characterData record の並びが違う |
 | dom-node-normalize | 6 | 兄弟ごとに boundary point を渡してからその兄弟を remove する。step 6 と step 7 を兄弟ごとに交互に行う |
 | dom-node-normalize | 7 | 兄弟ごとに step 6 の直後に remove する（上と同じ） |
@@ -635,7 +639,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document と DocumentType を作る関数が無い（DocumentType の name・public ID・system ID は scenario の初期状態で与える） | dom-domimplementation-createdocument, dom-domimplementation-createdocumenttype, dom-domimplementation-createhtmldocument |
 | todo：Document を作る関数が無い（clone a single node の step 3 だけは `cloneSingle` が `NodeData` を写して作る）。harness の document は scenario が与える | create-a-document |
 | todo：DocumentType の name・public ID・system ID は持ち、三つの getter は `getProperty` で読める（`doctypeName`・`publicId`・`systemId`）が、create a doctype（`createDocumentType`）が無い | create-a-doctype, dom-documenttype-name, dom-documenttype-publicid, dom-documenttype-systemid |
-| todo：Element・DocumentFragment の枝（string replace all）が無い。Attr の枝は `setAttrValue`（via = textContent）、CharacterData の枝は `setData` と同じ処理だが、set text content として振り分ける関数は無い | set-text-content |
 | todo：Event object を作る API が無い（`dispatchEvent` が型・bubbles・cancelable から event を組む）。step 7 の timeStamp は host | dom-document-createevent |
 | todo：Event object を持たず、composed flag も無い | dom-event-composed |
 | todo：Event object を持たない。dispatchEvent が type・bubbles・cancelable から EventState をその場で作り、constructor・dictionary・timeStamp は無い | concept-event-constructor |
@@ -680,7 +683,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：length の getter が無い（token set は classTokenSet で読めるが API が無い） | dom-domtokenlist-length |
 | todo：node 以外の EventTarget を作れない（listener の target は NodeId） | dom-eventtarget-eventtarget |
 | todo：returnValue の setter が無い（ListenerAction に無い） | dom-event-returnvalue/setter |
-| todo：set text content が無い（同上） | dom-node-textcontent/setter |
 | todo：split a Text node が無い（docs/status.md の未着手。固定 scenario でも skip） | concept-text-split |
 | todo：splitText() が無い（split a Text node が未実装） | dom-text-splittext |
 | todo：supports() が無い（validation steps が未実装） | dom-domtokenlist-supports |
@@ -688,4 +690,3 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：value の getter が無い（値は className の reflect getter と同じだが、DOMTokenList 側の API は無い） | dom-domtokenlist-value |
 | todo：value の setter が無い（className の reflect setter と同じ効果だが、DOMTokenList 側の API は無い） | dom-domtokenlist-value/setter |
 | todo：wholeText の getter が無い | dom-text-wholetext |
-| todo：文字列から Text node を作って replace all する関数が無い | string-replace-all |
