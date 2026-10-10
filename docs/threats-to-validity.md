@@ -10,6 +10,11 @@ Lean の定義が WHATWG DOM Standard を正しく写しているかは、形式
 **緩和。**
 
 * `docs/traceability.md` が algorithm ごとに step 要約と `dom.bs` の固定 commit を記録する。
+* `Trace/Dom/` の対応表が、固定 commit の `dom.bs` の algorithm を一つ残らず「表に載せる」か
+  「理由付きで対象外」に分け、表に載せた algorithm の step を「実装」「近似」「除外」に分ける。
+  CI がその網羅を検査し、週次の job が仕様の改訂で変わった step を挙げる（`docs/spec-version.md`、
+  集計は `docs/spec-coverage.md`）。ただし「実装」と書いた step が本当にその step のことをしているかは、
+  表を書いた人の読みである。
 * 固定 scenario が normative branch ごとに置いてあり、期待結果の根拠（`_basis`）を持つ。
 * Dommy との差分テストが、独立に書かれた実装との一致を有限の trace で確かめる。
 
@@ -37,7 +42,7 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | lone surrogate | offset と長さは UTF-16 の code unit で数えるが、surrogate pair を割った切り出しは Lean の `Char` で表せない。その操作は `__outsideModel__` を返し、比較から外れる。Dommy も同じところで断るが、それは仕様適合の証拠にならない |
 | MutationObserver の callback 本体 | callback は model の外。どの observer にどの record が配送されるかまでは比べる |
 | `NodeFilter` の callback | 同じく callback なので filter は常に null。`whatToShow` は純粋なので扱う |
-| 名前で消した attribute | 仕様の "remove an attribute" は element を null にするだけで `Attr` object は残るが、`removeAttribute` で消したものは誰も参照できないので model は持たない。`removeAttributeNode` など呼び出し側に返るものだけを `detachedAttrs` に持つ |
+| 名前で消した attribute | 仕様の "remove an attribute" は element を null にするだけで `Attr` object は残る。model は `removeAttribute` などで消した `Attr` を持たず、`removeAttributeNode` など呼び出し側に返るものだけを `detachedAttrs` に持つ。**先に `getAttributeNode` で参照を取ってから名前で消すと、仕様と観測が食い違う**（`Attr` が見つからない。値を書くと NotFoundError、同じ element への `setAttributeNode` が TypeError になる。仕様ではどちらも成功する）。`removeAttributeNS`・`toggleAttribute`・boolean の reflect の setter・dataset の削除も同じ経路を通る |
 | Shadow tree | 対象外 |
 | custom element / insertion steps / removing steps | hook の位置だけを保っている |
 

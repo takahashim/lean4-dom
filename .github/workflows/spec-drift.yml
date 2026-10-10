@@ -1,0 +1,31 @@
+name: Spec drift
+
+# 固定した dom.bs と whatwg/dom の main を比べ、対応表（spec-trace/map.json）が引き受けている
+# step の本文が変わったとき、または分類されていない algorithm が現れたときに失敗する。
+# 対応表は commit 済みの spec-trace/map.json を読むので、Lean の build は要らない。
+# 失敗したら job summary の報告を見て、固定 commit を上げるか表を直す（docs/spec-version.md）。
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "比べる whatwg/dom の ref"
+        default: main
+
+jobs:
+  drift:
+    name: dom.bs の改訂
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+
+      - name: Compare with whatwg/dom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ruby spec-trace/drift.rb --ref "${{ github.event.inputs.ref || 'main' }}"

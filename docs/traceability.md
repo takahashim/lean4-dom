@@ -7,6 +7,10 @@ Dommy 側の WPT 由来 test を結ぶ対応表である。
 `a2331a45360129e8645ef7e0a04740241b6e3726`（2026-08-25）である。
 step 番号だけに頼ると仕様改訂でずれるので、各行に短い step 要約も置く。
 
+step 単位の対応は `Trace/Dom/` の表が持ち、CI が網羅を検査する。algorithm ごとの集計は
+自動生成の `docs/spec-coverage.md` にある。この文書の step 要約と、Lean のコメントにある step 番号は
+人が書いたもので、固定版より前の番号が残っていることがある（`docs/spec-version.md`）。
+
 ## 読み方
 
 | 列 | 内容 |
