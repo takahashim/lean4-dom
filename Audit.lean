@@ -253,6 +253,9 @@ open Dom.Audit
   Dom.runAction_preventDefault_not_cancelable
   Dom.invokeOne_once
   Dom.invokeOne_passive_preventDefault
+  Dom.Idl.toDOMString_error
+  Dom.Idl.toNullableDOMString_error
+  Dom.Idl.toLegacyNullDOMString_error
   Dom.Spec.defaultPassiveValue_spec
   Dom.Spec.defaultPassive_eq
   Dom.innerInvoke_skip

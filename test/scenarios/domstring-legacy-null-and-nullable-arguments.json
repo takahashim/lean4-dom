@@ -1,0 +1,116 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "CharacterData data",
+      "setAttributeNS",
+      "lookupNamespaceURI",
+      "Attr value",
+      "Attr nodeValue"
+    ],
+    "steps": "WebIDL の DOMString?・[LegacyNullToEmptyString] DOMString への変換",
+    "note": "CharacterData の data の setter は [LegacyNullToEmptyString] なので null は空文字列になる。appendData の引数はただの DOMString なので null は \"null\" になる。DOMString? の引数（namespace、prefix）は null のまま、ほかの値は ToString する。Attr の value は DOMString なので null は \"null\"、nodeValue と textContent は DOMString? で、Attr の setter は null を空文字列として扱う。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "h",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "x"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "setData",
+      "node": 3,
+      "data": null
+    },
+    {
+      "op": "appendData",
+      "node": 3,
+      "data": null
+    },
+    {
+      "op": "setAttributeNS",
+      "element": 2,
+      "namespace": null,
+      "name": "f",
+      "value": "v"
+    },
+    {
+      "op": "setAttributeNS",
+      "element": 2,
+      "namespace": 1,
+      "name": "g",
+      "value": "v"
+    },
+    {
+      "op": "lookupNamespaceURI",
+      "node": 2,
+      "prefix": null
+    },
+    {
+      "op": "setAttrValue",
+      "attr": 1,
+      "via": "value",
+      "value": null
+    },
+    {
+      "op": "getAttribute",
+      "element": 2,
+      "name": "h"
+    },
+    {
+      "op": "setAttrValue",
+      "attr": 1,
+      "via": "nodeValue",
+      "value": null
+    },
+    {
+      "op": "getAttribute",
+      "element": 2,
+      "name": "h"
+    },
+    {
+      "op": "setAttrValue",
+      "attr": 1,
+      "via": "textContent",
+      "value": null
+    },
+    {
+      "op": "getAttribute",
+      "element": 2,
+      "name": "h"
+    }
+  ]
+}

@@ -645,6 +645,38 @@ module DommyRunner
     callbacks
   end
 
+  # DOMString の引数の field。
+  DOMSTRING_KEYS = %w[data localName name value selectors elementId classNames elementName
+                      key token newToken type].freeze
+  # `DOMString?` の引数の field。
+  NULLABLE_DOMSTRING_KEYS = %w[namespace prefix].freeze
+
+  # DOMString の引数に文字列でない値（null・数・真偽値・object・配列）があれば、この step は比べない。
+  #
+  # Dommy の WebIDL の変換（ToString）は JS の実行環境の側（`js/host_runtime.js`）にあり、この runner が
+  # 呼ぶ Ruby の API は通らない。runner が Ruby の `to_s` で変換すると、null が "" になるなど runner の都合の
+  # 不一致が Dommy の不具合に見えてしまう。値をそのまま渡すと Ruby の API の想定の外になる。
+  # boolean の reflect（`setReflected` の真偽値）は boolean の引数なので除く。
+  def require_plain_strings!(op)
+    DOMSTRING_KEYS.each do |k|
+      next unless op.key?(k)
+
+      v = op[k]
+      next if v.is_a?(String)
+      next if k == "value" && op["op"] == "setReflected" && [true, false].include?(v)
+
+      raise NotImplementedError, "DOMString の引数 `#{k}` が文字列でない（Dommy の変換は JS の層にあり、この runner は通らない）"
+    end
+    NULLABLE_DOMSTRING_KEYS.each do |k|
+      next unless op.key?(k) && !op[k].nil? && !op[k].is_a?(String)
+
+      raise NotImplementedError, "DOMString? の引数 `#{k}` が文字列でも null でもない"
+    end
+    return unless op.key?("tokens") && !Array(op["tokens"]).all?(String)
+
+    raise NotImplementedError, "DOMString の可変長引数 `tokens` に文字列でない値がある"
+  end
+
   # listener の options。`options` があればその JavaScript の値（JSON をそのまま Ruby の値にしたもの）、
   # 無ければ `capture`・`once`・`passive` のうち書いてあるものだけを持つ dictionary。
   def listener_options(spec)
@@ -1372,6 +1404,7 @@ module DommyRunner
       delivery_log.clear
       invocation_log.clear
       begin
+        require_plain_strings!(op)
         returned = apply(objects, op, iterators, ctx)
       rescue NotImplementedError, NoMethodError => e
         # この harness で比べられない step。理由を残しておくと、

@@ -6161,6 +6161,31 @@ Dommy（`4fc3caa`）の `Internal::ObserverOptions`（`internal/observer_options
 生成器はこの三点に当たる値を作らない。方針どおり expected には落とさないので、Dommy が直すまで固定 scenario の
 job は赤になる。
 
+## DOMString の引数を WebIDL で変換した
+
+WebIDL の型変換を member ごとに入れる五つ目の段として、操作の文字列の引数を扱った。それまでは scenario が
+文字列だけを運び、runner が `String(x ?? "")` や Ruby の `to_s` で文字列にしていた（null は空文字列になっていた）。
+
+* `Dom/Idl/Value.lean` に `DOMString?`（undefined と null は null）と `[LegacyNullToEmptyString] DOMString`
+  （null は空文字列）への変換を足した。DOM の IDL で後者が付くのは CharacterData の `data` の setter だけである。
+* DOMString への変換が TypeError を投げないこと（失敗は model の対象外の数だけ）を証明した
+  （`toDOMString_error` ほか）。変換に副作用も無いので、scenario を読むときに変換しても、method を呼ぶときに
+  変換するのと観測は変わらない。`Dom/Exec/Json.lean` は DOMString の引数を JSON の任意の値として読み、この
+  変換を通す。`Operation` は変換後の文字列を持つので、既存の定理はそのまま通った。
+* Attr の `value` は DOMString（null は "null"）、`nodeValue` と `textContent` は `DOMString?` で、Attr の setter は
+  null を空文字列として扱う。この違いを読み取りで分けた。
+* JS runner は文字列の引数を JSON の値のまま渡す（field が無ければ空文字列）。
+* Dommy の WebIDL の変換は JS の実行環境の側（`js/host_runtime.js`）にあり、Ruby の runner が呼ぶ API は通らない。
+  runner が Ruby の `to_s` で変換すると null が "" になり、runner の都合が Dommy の不具合に見えてしまう。
+  そこで、文字列でない値を DOMString の引数に書いた step は、Dommy の runner では比べない（「比べられない」）。
+* 固定 scenario を二本足した（`domstring-arguments-use-to-string`、
+  `domstring-legacy-null-and-nullable-arguments`）。生成器は変えていない。
+
+jsdom 30.1.2 は二本とも model と一致し、既存の固定 scenario の結果も変わらなかった。Dommy は二本とも
+「比べられない」になり、既存の固定 scenario と生成 scenario（seed 31、200 本）の結果は findings 59 から 61 の
+ままだった。boolean の引数（`toggleAttribute` と `classList.toggle` の `force`、`cloneNode` の `deep` など）の
+ToBoolean はまだ入れていない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

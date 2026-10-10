@@ -1,0 +1,133 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "setAttribute",
+      "appendData",
+      "classList add",
+      "dispatchEvent"
+    ],
+    "steps": "WebIDL の DOMString への変換",
+    "note": "DOMString の引数は ToString で変換する。null は \"null\"、数は Number::toString、真偽値は \"true\"/\"false\"、普通の object は \"[object Object]\"、配列は要素を \",\" でつないだもの（null の要素は空文字列）になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "h",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "x"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 2,
+      "type": "null"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "a",
+      "value": null
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "b",
+      "value": 1.5
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "c",
+      "value": true
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "d",
+      "value": {}
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "e",
+      "value": [
+        1,
+        null,
+        "x"
+      ]
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": null,
+      "value": "v"
+    },
+    {
+      "op": "hasAttribute",
+      "element": 2,
+      "name": null
+    },
+    {
+      "op": "getAttribute",
+      "element": 2,
+      "name": null
+    },
+    {
+      "op": "appendData",
+      "node": 3,
+      "data": null
+    },
+    {
+      "op": "appendData",
+      "node": 3,
+      "data": 1e-06
+    },
+    {
+      "op": "classListAdd",
+      "element": 2,
+      "tokens": [
+        1,
+        null,
+        false
+      ]
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": null,
+      "bubbles": false
+    }
+  ]
+}

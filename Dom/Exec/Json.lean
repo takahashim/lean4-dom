@@ -209,6 +209,46 @@ private def strField? (j : Json) (k : String) : Except String (Option String) :=
   | none => .ok none
   | some v => (v.getStr?).map some
 
+/-- WebIDL の変換の結果を読み取りの結果にする。model の対象外の値（桁の多い数）は読み取りの失敗にする。 -/
+private def idlValue {α : Type} (k : String) : Except IdlException α → Except String α
+  | .ok a => .ok a
+  | .error e => .error s!"field `{k}` の値は WebIDL の変換で {e} になる（model の対象外）"
+
+/-!
+### DOMString の引数
+
+DOMString の引数は、JSON の任意の値を JavaScript の値として受け、scenario を読むときに WebIDL の変換を行う。
+model が表す値の DOMString への変換は TypeError を投げず副作用も無い（`Idl.toDOMString_error`）ので、
+method を呼ぶときに変換するのと観測は変わらない。field が無ければ既定値（多くは空文字列）を使う。
+これは scenario の約束で、JavaScript の undefined を渡すこととは違う。
+-/
+
+/-- `DOMString` の引数。 -/
+private def domStrField (j : Json) (k : String) (dflt : String) : Except String String :=
+  match j.getObjVal? k with
+  | .error _ => .ok dflt
+  | .ok v => do idlValue k (Idl.toDOMString (← jsValueOfJson v))
+
+/-- `DOMString?` の引数。field が無いか null なら null。 -/
+private def nullableDomStrField (j : Json) (k : String) : Except String (Option String) :=
+  match j.getObjVal? k with
+  | .error _ => .ok none
+  | .ok v => do idlValue k (Idl.toNullableDOMString (← jsValueOfJson v))
+
+/-- `[LegacyNullToEmptyString] DOMString` の引数。null は空文字列。 -/
+private def legacyNullDomStrField (j : Json) (k : String) (dflt : String) : Except String String :=
+  match j.getObjVal? k with
+  | .error _ => .ok dflt
+  | .ok v => do idlValue k (Idl.toLegacyNullDOMString (← jsValueOfJson v))
+
+/-- 可変長の `DOMString...` の引数。配列の要素をそれぞれ DOMString に変換する。 -/
+private def domStrListField (j : Json) (k : String) : Except String (List String) :=
+  match field? j k with
+  | none => .ok []
+  | some v => do
+    let arr ← v.getArr?
+    arr.toList.mapM fun x => do idlValue k (Idl.toDOMString (← jsValueOfJson x))
+
 private def boolField? (j : Json) (k : String) : Except String (Option Bool) :=
   match field? j k with
   | none => .ok none
@@ -284,23 +324,23 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "iteratorPrevious" => return .iteratorPrevious (← natField j "iterator")
   | "replaceData" =>
     return .replaceData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
-      (← strField j "data" "")
-  | "appendData" => return .appendData (← natField j "node") (← strField j "data" "")
+      (← domStrField j "data" "")
+  | "appendData" => return .appendData (← natField j "node") (← domStrField j "data" "")
   | "insertData" =>
-    return .insertData (← natField j "node") (← jsNumberField j "offset") (← strField j "data" "")
+    return .insertData (← natField j "node") (← jsNumberField j "offset") (← domStrField j "data" "")
   | "deleteData" =>
     return .deleteData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
-  | "setData" => return .setData (← natField j "node") (← strField j "data" "")
+  | "setData" => return .setData (← natField j "node") (← legacyNullDomStrField j "data" "")
   | "normalize" => return .normalize (← natField j "target")
   | "createElement" =>
-    return .createElement (← natField j "document") (← strField j "localName" "")
+    return .createElement (← natField j "document") (← domStrField j "localName" "")
   | "createElementNS" =>
-    return .createElementNS (← natField j "document") (← strField? j "namespace")
-      (← strField j "name" "")
+    return .createElementNS (← natField j "document") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
   | "createTextNode" =>
-    return .createTextNode (← natField j "document") (← strField j "data" "")
+    return .createTextNode (← natField j "document") (← domStrField j "data" "")
   | "createComment" =>
-    return .createComment (← natField j "document") (← strField j "data" "")
+    return .createComment (← natField j "document") (← domStrField j "data" "")
   | "createDocumentFragment" => return .createDocumentFragment (← natField j "document")
   | "cloneNode" =>
     match ← refField j "node" with
@@ -315,21 +355,21 @@ def operationOfJson (j : Json) : Except String Operation := do
     | .node n => return .adoptNode (← natField j "document") n
     | .attr a => return .adoptAttr (← natField j "document") a
   | "createAttribute" =>
-    return .createAttribute (← natField j "document") (← strField j "name" "")
+    return .createAttribute (← natField j "document") (← domStrField j "name" "")
   | "createAttributeNS" =>
-    return .createAttributeNS (← natField j "document") (← strField? j "namespace")
-      (← strField j "name" "")
+    return .createAttributeNS (← natField j "document") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
   | "getAttributeNode" =>
-    return .getAttributeNode (← natField j "element") (← strField j "name" "")
+    return .getAttributeNode (← natField j "element") (← domStrField j "name" "")
   | "getAttributeNodeNS" =>
-    return .getAttributeNodeNS (← natField j "element") (← strField? j "namespace")
-      (← strField j "name" "")
+    return .getAttributeNodeNS (← natField j "element") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
   | "setAttributeNode" =>
     return .setAttributeNode (← natField j "element") (← natField j "attr")
   | "removeAttributeNode" =>
     return .removeAttributeNode (← natField j "element") (← natField j "attr")
   | "removeNamedItem" =>
-    return .removeNamedItem (← natField j "element") (← strField j "name" "")
+    return .removeNamedItem (← natField j "element") (← domStrField j "name" "")
   | "rangeSetStart" =>
     return .rangeSetStart (← natField j "range") (← nodeField j "node") (← jsNumberField j "offset")
   | "rangeSetEnd" =>
@@ -413,57 +453,62 @@ def operationOfJson (j : Json) : Except String Operation := do
       | "nodeValue" => pure .nodeValue
       | "textContent" => pure .textContent
       | other => throw s!"未知の setter `{other}`"
-    return .setAttrValue (← natField j "attr") (← strField j "value" "") via
+    -- `Attr.value` は `DOMString`、`nodeValue` と `textContent` は `DOMString?` で、Attr の setter は null を
+    -- 空文字列として扱う。
+    let value ← match via with
+      | .value => domStrField j "value" ""
+      | _ => do pure ((← nullableDomStrField j "value").getD "")
+    return .setAttrValue (← natField j "attr") value via
   | "substringData" =>
     return .substringData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
-  | "getAttribute" => return .getAttribute (← natField j "element") (← strField j "name" "")
-  | "hasAttribute" => return .hasAttribute (← natField j "element") (← strField j "name" "")
+  | "getAttribute" => return .getAttribute (← natField j "element") (← domStrField j "name" "")
+  | "hasAttribute" => return .hasAttribute (← natField j "element") (← domStrField j "name" "")
   | "getAttributeNames" => return .getAttributeNames (← natField j "element")
-  | "querySelector" => return .querySelector (← natField j "node") (← strField j "selectors" "")
+  | "querySelector" => return .querySelector (← natField j "node") (← domStrField j "selectors" "")
   | "querySelectorAll" =>
-    return .querySelectorAll (← natField j "node") (← strField j "selectors" "")
-  | "matches" => return .matchesSelector (← natField j "element") (← strField j "selectors" "")
-  | "closest" => return .closest (← natField j "element") (← strField j "selectors" "")
+    return .querySelectorAll (← natField j "node") (← domStrField j "selectors" "")
+  | "matches" => return .matchesSelector (← natField j "element") (← domStrField j "selectors" "")
+  | "closest" => return .closest (← natField j "element") (← domStrField j "selectors" "")
   | "getElementById" =>
-    return .getElementById (← natField j "node") (← strField j "elementId" "")
+    return .getElementById (← natField j "node") (← domStrField j "elementId" "")
   | "getElementsByClassName" =>
-    return .getElementsByClassName (← natField j "node") (← strField j "classNames" "")
+    return .getElementsByClassName (← natField j "node") (← domStrField j "classNames" "")
   | "getElementsByName" =>
-    return .getElementsByName (← natField j "node") (← strField j "elementName" "")
+    return .getElementsByName (← natField j "node") (← domStrField j "elementName" "")
   | "lookupNamespaceURI" =>
     match ← refField j "node" with
-    | .node n => return .lookupNamespaceURI n (← strField? j "prefix")
-    | .attr a => return .attrLookupNamespaceURI a (← strField? j "prefix")
+    | .node n => return .lookupNamespaceURI n (← nullableDomStrField j "prefix")
+    | .attr a => return .attrLookupNamespaceURI a (← nullableDomStrField j "prefix")
   | "lookupPrefix" =>
     match ← refField j "node" with
-    | .node n => return .lookupPrefix n (← strField? j "namespace")
-    | .attr a => return .attrLookupPrefix a (← strField? j "namespace")
+    | .node n => return .lookupPrefix n (← nullableDomStrField j "namespace")
+    | .attr a => return .attrLookupPrefix a (← nullableDomStrField j "namespace")
   | "isDefaultNamespace" =>
     match ← refField j "node" with
-    | .node n => return .isDefaultNamespace n (← strField? j "namespace")
-    | .attr a => return .attrIsDefaultNamespace a (← strField? j "namespace")
+    | .node n => return .isDefaultNamespace n (← nullableDomStrField j "namespace")
+    | .attr a => return .attrIsDefaultNamespace a (← nullableDomStrField j "namespace")
   | "addEventListener" =>
-    return .addEventListener (← natField j "target") (← strField j "type" "")
+    return .addEventListener (← natField j "target") (← domStrField j "type" "")
       (← natField j "source") (← listenerOptionsField j)
   | "removeEventListener" =>
-    return .removeEventListener (← natField j "target") (← strField j "type" "")
+    return .removeEventListener (← natField j "target") (← domStrField j "type" "")
       (← natField j "callback") (← listenerOptionsField j)
   | "dispatchEvent" =>
-    return .dispatchEvent (← natField j "target") (← strField j "type" "")
+    return .dispatchEvent (← natField j "target") (← domStrField j "type" "")
       ((← boolField? j "bubbles").getD false) ((← boolField? j "cancelable").getD false)
   | "setAttribute" =>
-    return .setAttribute (← natField j "element") (← strField j "name" "")
-      (← strField j "value" "")
+    return .setAttribute (← natField j "element") (← domStrField j "name" "")
+      (← domStrField j "value" "")
   | "setAttributeNS" =>
-    return .setAttributeNS (← natField j "element") (← strField? j "namespace")
-      (← strField j "name" "") (← strField j "value" "")
+    return .setAttributeNS (← natField j "element") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "") (← domStrField j "value" "")
   | "removeAttribute" =>
-    return .removeAttribute (← natField j "element") (← strField j "name" "")
+    return .removeAttribute (← natField j "element") (← domStrField j "name" "")
   | "removeAttributeNS" =>
-    return .removeAttributeNS (← natField j "element") (← strField? j "namespace")
-      (← strField j "name" "")
+    return .removeAttributeNS (← natField j "element") (← nullableDomStrField j "namespace")
+      (← domStrField j "name" "")
   | "toggleAttribute" =>
-    return .toggleAttribute (← natField j "element") (← strField j "name" "")
+    return .toggleAttribute (← natField j "element") (← domStrField j "name" "")
       (← boolField? j "force")
   | "getReflected" =>
     let p ← strField j "property" ""
@@ -475,31 +520,31 @@ def operationOfJson (j : Json) : Except String Operation := do
     match reflectSpec p with
     | some r =>
       match r.kind with
-      | .string => return .setReflected (← natField j "element") p r (← strField j "value" "")
+      | .string => return .setReflected (← natField j "element") p r (← domStrField j "value" "")
       | .boolean =>
         match ← boolField? j "value" with
         | some b => return .setReflectedBool (← natField j "element") p r b
         | none => throw s!"boolean の reflect `{p}` には boolean の value が要る"
     | none => throw s!"model が持たない reflect `{p}`"
-  | "datasetGet" => return .datasetGet (← natField j "element") (← strField j "name" "")
+  | "datasetGet" => return .datasetGet (← natField j "element") (← domStrField j "name" "")
   | "datasetSet" =>
-    return .datasetSet (← natField j "element") (← strField j "name" "") (← strField j "value" "")
-  | "datasetDelete" => return .datasetDelete (← natField j "element") (← strField j "name" "")
+    return .datasetSet (← natField j "element") (← domStrField j "name" "") (← domStrField j "value" "")
+  | "datasetDelete" => return .datasetDelete (← natField j "element") (← domStrField j "name" "")
   | "datasetKeys" => return .datasetKeys (← natField j "element")
   | "classListAdd" =>
-    return .classListAdd (← natField j "element") ((← strListField? j "tokens").getD [])
+    return .classListAdd (← natField j "element") (← domStrListField j "tokens")
   | "classListRemove" =>
-    return .classListRemove (← natField j "element") ((← strListField? j "tokens").getD [])
+    return .classListRemove (← natField j "element") (← domStrListField j "tokens")
   | "classListToggle" =>
-    return .classListToggle (← natField j "element") (← strField j "token" "")
+    return .classListToggle (← natField j "element") (← domStrField j "token" "")
       (← boolField? j "force")
   | "classListReplace" =>
-    return .classListReplace (← natField j "element") (← strField j "token" "")
-      (← strField j "newToken" "")
+    return .classListReplace (← natField j "element") (← domStrField j "token" "")
+      (← domStrField j "newToken" "")
   | "classListContains" =>
-    return .classListContains (← natField j "element") (← strField j "token" "")
+    return .classListContains (← natField j "element") (← domStrField j "token" "")
   | "childrenNamedItem" =>
-    return .childrenNamedItem (← natField j "node") (← strField j "key" "")
+    return .childrenNamedItem (← natField j "node") (← domStrField j "key" "")
   | "observe" =>
     return .observe (← natField j "observer") (← natField j "target") (← observeOptionsField j)
   | "disconnect" => return .disconnect (← natField j "observer")

@@ -109,6 +109,55 @@ def toDOMString (v : JsValue) : Except IdlException String :=
   | none => .error (.dom .outsideModel)
 
 /--
+**JavaScript の値を IDL の `DOMString?` に変換する。** undefined と null は null、それ以外は DOMString へ
+変換する（§3.2.22 nullable types）。
+-/
+def toNullableDOMString (v : JsValue) : Except IdlException (Option String) :=
+  match v with
+  | .undefined | .null => .ok none
+  | _ => some <$> toDOMString v
+
+/--
+**`[LegacyNullToEmptyString]` の付いた `DOMString` に変換する。** null は ToString ではなく空文字列になる
+（§3.3.11）。CharacterData の `data` の setter がこれである。
+-/
+def toLegacyNullDOMString (v : JsValue) : Except IdlException String :=
+  match v with
+  | .null => .ok ""
+  | _ => toDOMString v
+
+/--
+**DOMString への変換は TypeError を投げない。** model が表す値（primitive、普通の object、配列）の ToString は
+利用者のコードを呼ばず、失敗しない。失敗するのは model の対象外の数だけである。
+
+このため、引数の DOMString への変換を、scenario を読むときに前もって行っても観測は変わらない
+（`Dom/Exec/Json.lean`）。変換は副作用を持たず、this の検査やほかの引数の変換と順序を入れ替えても結果が同じである。
+-/
+theorem toDOMString_error {v : JsValue} {e : IdlException} (h : toDOMString v = .error e) :
+    e = .dom .outsideModel := by
+  unfold toDOMString at h
+  split at h
+  · cases h
+  · cases h; rfl
+
+theorem toNullableDOMString_error {v : JsValue} {e : IdlException}
+    (h : toNullableDOMString v = .error e) : e = .dom .outsideModel := by
+  unfold toNullableDOMString at h
+  split at h
+  · cases h
+  · cases h
+  · cases hv : toDOMString v with
+    | ok s => rw [hv] at h; cases h
+    | error e' => rw [hv] at h; cases h; exact toDOMString_error hv
+
+theorem toLegacyNullDOMString_error {v : JsValue} {e : IdlException}
+    (h : toLegacyNullDOMString v = .error e) : e = .dom .outsideModel := by
+  unfold toLegacyNullDOMString at h
+  split at h
+  · cases h
+  · exact toDOMString_error h
+
+/--
 **JavaScript の値を IDL の `sequence<DOMString>` に変換する。**
 
 1. object でなければ TypeError。

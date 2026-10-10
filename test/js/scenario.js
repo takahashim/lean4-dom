@@ -642,13 +642,13 @@ function applyQueryOp(ctx, op) {
       throw e;
     }
     if (typeof receiver[name] !== "function") throw new Unsupported(name);
-    return receiver[name](op.selectors);
+    return receiver[name](arg(op, "selectors"));
   }
   if (op.op in LOOKUP_OPS) {
     const [field, kinds] = LOOKUP_OPS[op.op];
     if (!kinds.includes(receiver.nodeType)) throw new TypeError(`${name} is not a function`);
     if (typeof receiver[name] !== "function") throw new Unsupported(name);
-    return receiver[name](String(op[field] ?? ""));
+    return receiver[name](arg(op, field));
   }
   if (typeof receiver[name] !== "function") throw new Unsupported(name);
   switch (op.op) {
@@ -656,7 +656,7 @@ function applyQueryOp(ctx, op) {
       return receiver[name](resolveRef(ctx, op.other));
     case "getRootNode": case "getAttributeNames": return receiver[name]();
     case "substringData": return receiver[name](op.offset, op.count);
-    case "getAttribute": case "hasAttribute": return receiver[name](op.name);
+    case "getAttribute": case "hasAttribute": return receiver[name](arg(op, "name"));
     case "lookupNamespaceURI": return receiver[name](op.prefix ?? null);
     case "lookupPrefix": case "isDefaultNamespace": return receiver[name](op.namespace ?? null);
   }
@@ -670,14 +670,14 @@ function applyReflectOp(ctx, op) {
       return receiver[op.property];
     case "setReflected":
       if (!(op.property in receiver)) throw new Unsupported(op.property);
-      receiver[op.property] = typeof op.value === "boolean" ? op.value : String(op.value ?? "");
+      receiver[op.property] = arg(op, "value");
       return undefined;
     case "datasetGet": case "datasetSet": case "datasetDelete": case "datasetKeys": {
       const map = receiver.dataset;
       if (!map) throw new Unsupported("dataset");
-      const name = String(op.name ?? "");
+      const name = arg(op, "name");
       if (op.op === "datasetGet") return map[name];
-      if (op.op === "datasetSet") { map[name] = String(op.value ?? ""); return undefined; }
+      if (op.op === "datasetSet") { map[name] = arg(op, "value"); return undefined; }
       if (op.op === "datasetDelete") { delete map[name]; return undefined; }
       return Object.keys(map);
     }
@@ -685,19 +685,19 @@ function applyReflectOp(ctx, op) {
       if (!receiver.children || typeof receiver.children.namedItem !== "function") {
         throw new Unsupported("children.namedItem");
       }
-      return receiver.children.namedItem(String(op.key ?? ""));
+      return receiver.children.namedItem(arg(op, "key"));
   }
   const list = receiver.classList;
   if (!list) throw new Unsupported("classList");
   switch (op.op) {
-    case "classListAdd": return list.add(...(op.tokens ?? []).map(String));
-    case "classListRemove": return list.remove(...(op.tokens ?? []).map(String));
+    case "classListAdd": return list.add(...(op.tokens ?? []));
+    case "classListRemove": return list.remove(...(op.tokens ?? []));
     case "classListToggle":
       return "force" in op && op.force !== null
-        ? list.toggle(String(op.token ?? ""), op.force)
-        : list.toggle(String(op.token ?? ""));
-    case "classListReplace": return list.replace(String(op.token ?? ""), String(op.newToken ?? ""));
-    case "classListContains": return list.contains(String(op.token ?? ""));
+        ? list.toggle(arg(op, "token"), op.force)
+        : list.toggle(arg(op, "token"));
+    case "classListReplace": return list.replace(arg(op, "token"), arg(op, "newToken"));
+    case "classListContains": return list.contains(arg(op, "token"));
   }
 }
 
@@ -718,17 +718,17 @@ function applyAttrNode(ctx, op) {
     case "createAttribute": case "createAttributeNS": {
       if (!has(OP_METHOD[op.op])) throw new Unsupported(op.op);
       const a = op.op === "createAttribute"
-        ? receiver.createAttribute(String(op.name ?? ""))
-        : receiver.createAttributeNS(op.namespace ?? null, String(op.name ?? ""));
+        ? receiver.createAttribute(arg(op, "name"))
+        : receiver.createAttributeNS(op.namespace ?? null, arg(op, "name"));
       ctx.detached.push(a);
       return a;
     }
     case "getAttributeNode":
       if (!has("getAttributeNode")) throw new Unsupported(op.op);
-      return receiver.getAttributeNode(String(op.name ?? ""));
+      return receiver.getAttributeNode(arg(op, "name"));
     case "getAttributeNodeNS":
       if (!has("getAttributeNodeNS")) throw new Unsupported(op.op);
-      return receiver.getAttributeNodeNS(op.namespace ?? null, String(op.name ?? ""));
+      return receiver.getAttributeNodeNS(op.namespace ?? null, arg(op, "name"));
     case "setAttributeNode": {
       if (!has("setAttributeNode")) throw new Unsupported(op.op);
       const a = attrById(ctx, op.attr);
@@ -749,7 +749,7 @@ function applyAttrNode(ctx, op) {
     default: {
       const map = receiver.attributes;
       if (!map || typeof map.removeNamedItem !== "function") throw new Unsupported(op.op);
-      const removed = map.removeNamedItem(String(op.name ?? ""));
+      const removed = map.removeNamedItem(arg(op, "name"));
       // 仕様では無ければ NotFoundError。null を返す実装はそこを実装していない。
       if (removed === null || removed === undefined) throw new Unsupported("removeNamedItem null");
       ctx.detached.push(removed);
@@ -791,7 +791,7 @@ function apply(ctx, op) {
       const a = need(attrById(ctx, op.attr), "missing attr");
       const via = op.via ?? "value";
       if (!(via in a)) throw new Unsupported(via);
-      a[via] = String(op.value ?? "");
+      a[via] = arg(op, "value");
       return undefined;
     }
     case "createElement": case "createElementNS": case "createTextNode":
@@ -804,11 +804,11 @@ function apply(ctx, op) {
         : null;
       let made;
       switch (op.op) {
-        case "createElement": made = doc.createElement(String(op.localName ?? "")); break;
+        case "createElement": made = doc.createElement(arg(op, "localName")); break;
         case "createElementNS":
-          made = doc.createElementNS(op.namespace ?? null, String(op.name ?? "")); break;
-        case "createTextNode": made = doc.createTextNode(String(op.data ?? "")); break;
-        case "createComment": made = doc.createComment(String(op.data ?? "")); break;
+          made = doc.createElementNS(op.namespace ?? null, arg(op, "name")); break;
+        case "createTextNode": made = doc.createTextNode(arg(op, "data")); break;
+        case "createComment": made = doc.createComment(arg(op, "data")); break;
         case "createDocumentFragment": made = doc.createDocumentFragment(); break;
         case "importNode": made = doc.importNode(src, !!op.deep); break;
         default: made = doc.adoptNode(src); break;
@@ -845,19 +845,19 @@ function apply(ctx, op) {
       break;
     case "dispatchEvent": {
       const target = need(objects.get(op.target), "missing node");
-      const event = new ctx.win.Event(String(op.type),
+      const event = new ctx.win.Event(arg(op, "type"),
         { bubbles: !!op.bubbles, cancelable: !!op.cancelable });
       return target.dispatchEvent(event);
     }
     case "addEventListener": {
       const target = need(objects.get(op.target), "missing node");
       const cb = need(ctx.callbacks[op.source], "listener index");
-      return target.addEventListener(String(op.type), cb, listenerOptions(op));
+      return target.addEventListener(arg(op, "type"), cb, listenerOptions(op));
     }
     case "removeEventListener": {
       const target = need(objects.get(op.target), "missing node");
       const cb = need(ctx.callbacks[op.callback], "listener index");
-      return target.removeEventListener(String(op.type), cb, listenerOptions(op));
+      return target.removeEventListener(arg(op, "type"), cb, listenerOptions(op));
     }
   }
   if (QUERY_OPS.includes(op.op)) return applyQueryOp(ctx, op);
@@ -872,15 +872,15 @@ function apply(ctx, op) {
     const node = need(objects.get(op.node), "missing node");
     if (op.op === "setData") {
       if (!("data" in node)) throw new Unsupported("data");
-      node.data = String(op.data ?? "");
+      node.data = arg(op, "data");
       return undefined;
     }
     const m = OP_METHOD[op.op];
     if (typeof node[m] !== "function") throw new Unsupported(m);
     switch (op.op) {
-      case "replaceData": return node.replaceData(op.offset, op.count, String(op.data ?? ""));
-      case "appendData": return node.appendData(String(op.data ?? ""));
-      case "insertData": return node.insertData(op.offset, String(op.data ?? ""));
+      case "replaceData": return node.replaceData(op.offset, op.count, arg(op, "data"));
+      case "appendData": return node.appendData(arg(op, "data"));
+      case "insertData": return node.insertData(op.offset, arg(op, "data"));
       case "deleteData": return node.deleteData(op.offset, op.count);
     }
   }
@@ -889,11 +889,11 @@ function apply(ctx, op) {
     const el = need(objects.get(op.element), "missing node");
     const m = OP_METHOD[op.op];
     if (typeof el[m] !== "function") throw new Unsupported(m);
-    const name = String(op.name);
+    const name = arg(op, "name");
     switch (op.op) {
-      case "setAttribute": return el.setAttribute(name, String(op.value ?? ""));
+      case "setAttribute": return el.setAttribute(name, arg(op, "value"));
       case "setAttributeNS":
-        return el.setAttributeNS(op.namespace ?? null, name, String(op.value ?? ""));
+        return el.setAttributeNS(op.namespace ?? null, name, arg(op, "value"));
       case "removeAttribute": return el.removeAttribute(name);
       case "removeAttributeNS": return el.removeAttributeNS(op.namespace ?? null, name);
       case "toggleAttribute":
@@ -1015,6 +1015,12 @@ function buildListeners(objects, idOf, specs, log) {
     target.addEventListener(String(spec.type), callbacks[i], listenerOptions(spec));
   });
   return callbacks;
+}
+
+// DOMString の引数。field が無ければ空文字列（scenario の約束）、あれば JSON の値をそのまま渡し、
+// WebIDL の変換（ToString、null なら "null"）は実装に任せる。
+function arg(op, key) {
+  return key in op ? op[key] : "";
 }
 
 // listener の options。`options` があればその JavaScript の値、無ければ
