@@ -11,6 +11,7 @@ import Dom.Properties.Import
 import Dom.Validity.Variadic
 import Dom.Validity.Reflect
 import Dom.Validity.SetText
+import Dom.Validity.InsertAdjacent
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -252,6 +253,10 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | getOwnerDocument n => exact admissible_requireNodes h hop
   | getProperty n _ => exact admissible_requireNodes h hop
   | setTextContent n v => exact admissible_setTextContent h hop
+  | insertAdjacentElement e w n =>
+    obtain ⟨r, hr⟩ := dropRet_ok hop
+    exact admissible_insertAdjacentElement h hr
+  | insertAdjacentText e w d => exact admissible_insertAdjacentText h hop
   | setNodeValue n v => exact admissible_setNodeValue h hop
   | isEqualNode n o => exact admissible_requireNodes h hop
   | getTextContent n => exact admissible_requireNodes h hop

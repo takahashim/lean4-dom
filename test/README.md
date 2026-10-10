@@ -264,6 +264,8 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `insertData` | `node`, `offset`, `data` |
 | `deleteData` | `node`, `offset`, `count` |
 | `setData` | `node`, `data` |
+| `insertAdjacentElement` | `element`, `where`, `node` |
+| `insertAdjacentText` | `element`, `where`, `data` |
 | `setTextContent` / `setNodeValue` | `node`（`{"attr": id}` 可）, `value`（null 可。null は空文字列） |
 | `setAttribute` | `element`, `name`, `value` |
 | `setAttributeNS` | `element`, `namespace`（null 可）, `name`, `value` |

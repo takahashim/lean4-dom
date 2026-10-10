@@ -89,6 +89,9 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .removeAttributeNode e _ => implementsIface s.tree e isElement
   | .removeNamedItem e _ => implementsIface s.tree e isElement
   | .removeNamedItemNS e _ _ => implementsIface s.tree e isElement
+  -- 引数の `Element` も変換する。Element でなければ TypeError。
+  | .insertAdjacentElement e _ n => implementsIface s.tree e isElement && implementsIface s.tree n isElement
+  | .insertAdjacentText e _ _ => implementsIface s.tree e isElement
   | .getAttributeNS e _ _ => implementsIface s.tree e isElement
   | .hasAttributeNS e _ _ => implementsIface s.tree e isElement
   | .hasAttributes e => implementsIface s.tree e isElement
@@ -157,6 +160,7 @@ def requiredArgs : String → Option Nat
   | "setAttribute" | "removeAttributeNS" | "getAttributeNodeNS" => some 2
   | "getAttributeNS" | "hasAttributeNS" | "removeNamedItemNS" | "getElementsByTagNameNS" => some 2
   | "hasAttributes" => some 0
+  | "insertAdjacentElement" | "insertAdjacentText" => some 2
   | "getElementsByTagName" => some 1
   | "setAttributeNS" => some 3
   | "setAttributeNode" | "removeAttributeNode" => some 1

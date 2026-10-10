@@ -2991,6 +2991,52 @@
       "approx": []
     },
     {
+      "alg": "insert-adjacent",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.insertAdjacent",
+        "Dom.adjacentPosition?",
+        "Dom.preInsert"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-insertadjacentelement",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.insertAdjacentElement",
+        "Dom.insertAdjacent"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-element-insertadjacenttext",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.insertAdjacentText",
+        "Dom.createTextNode",
+        "Dom.insertAdjacent"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "parent が無くて null が返るときは、作った Text をどこからも参照できないので状態を元のままにする"
+        }
+      ]
+    },
+    {
       "alg": "dom-element-getelementsbytagname",
       "steps": [
         "*"
@@ -5012,27 +5058,6 @@
       "why": {
         "reason": "custom-elements",
         "detail": ""
-      }
-    },
-    {
-      "target": "insert-adjacent",
-      "why": {
-        "reason": "todo",
-        "detail": "insert adjacent が無い"
-      }
-    },
-    {
-      "target": "dom-element-insertadjacentelement",
-      "why": {
-        "reason": "todo",
-        "detail": "insert adjacent が無い"
-      }
-    },
-    {
-      "target": "dom-element-insertadjacenttext",
-      "why": {
-        "reason": "todo",
-        "detail": "insert adjacent が無い"
       }
     },
     {

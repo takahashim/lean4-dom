@@ -46,6 +46,8 @@ module DommyRunner
     "setTextContent" => :text_content=,
     "setNodeValue" => :node_value=,
     "setAttribute" => :set_attribute,
+    "insertAdjacentElement" => :insert_adjacent_element,
+    "insertAdjacentText" => :insert_adjacent_text,
     "setAttributeNS" => :set_attribute_ns,
     "removeAttribute" => :remove_attribute,
     "removeAttributeNS" => :remove_attribute_ns,
@@ -352,7 +354,7 @@ module DommyRunner
   # `undefined` と `null` を取り違えないよう kind を添える
   # （`removeChild` が null を返したら不一致、`remove()` が undefined を返すのは正しい）。
   NODE_RETURNING_OPS = %w[appendChild insertBefore replaceChild removeChild
-                          iteratorNext iteratorPrevious getRootNode getOwnerDocument
+                          iteratorNext iteratorPrevious getRootNode getOwnerDocument insertAdjacentElement
                           walkerParentNode walkerFirstChild walkerLastChild
                           walkerPreviousSibling walkerNextSibling
                           walkerPreviousNode walkerNextNode
@@ -1068,6 +1070,7 @@ module DommyRunner
     return op["node"] if %w[setTextContent setNodeValue getProperty].include?(op["op"])
     return op["node"] if QUERY_OPS.include?(op["op"]) && op.key?("node")
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
+    return op["element"] if %w[insertAdjacentElement insertAdjacentText].include?(op["op"])
 
     op.key?("target") ? op["target"] : op["parent"]
   end
@@ -1462,6 +1465,26 @@ module DommyRunner
                when "classListContains" then js_call(list, "contains", [op["token"].to_s])
                end
              end
+    end
+    if %w[insertAdjacentElement insertAdjacentText].include?(op["op"])
+      element = objects[op["element"]]
+      method = OP_METHOD.fetch(op["op"])
+      raise NotImplementedError, op["op"] if element.nil? || !element.respond_to?(method)
+
+      where = op["where"].to_s
+      return element.insert_adjacent_element(where, node_value(ctx, op["node"])) if op["op"] == "insertAdjacentElement"
+
+      had_parent = !element.parent_node.nil?
+      element.insert_adjacent_text(where, op["data"].to_s)
+      # 作った Text に、model（`createTextNode` の `freshId`）と同じ規則で id を振る。
+      made = case where.downcase
+             when "beforebegin" then had_parent ? element.previous_sibling : nil
+             when "afterbegin" then children_of(element).first
+             when "beforeend" then children_of(element).last
+             when "afterend" then had_parent ? element.next_sibling : nil
+             end
+      register_subtree(ctx, made) if made
+      return nil
     end
     if ATTRIBUTE_OPS.include?(op["op"])
       element = objects[op["element"]]

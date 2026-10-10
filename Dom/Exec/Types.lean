@@ -10,6 +10,7 @@ import Dom.Traversal.TreeWalker
 import Dom.Query.NodeQuery
 import Dom.Query.Property
 import Dom.Mutation.SetText
+import Dom.Mutation.InsertAdjacent
 import Dom.Event.Dispatch
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
@@ -232,6 +233,10 @@ inductive Operation where
   | getOwnerDocument (node : Nat)
   /-- 値を読むだけの getter（`NodeProp`）。 -/
   | getProperty (node : Nat) (prop : NodeProp)
+  /-- §4.9 `insertAdjacentElement(where, element)`。入れた element か null を返す。 -/
+  | insertAdjacentElement (element : Nat) (where_ : String) (node : Nat)
+  /-- §4.9 `insertAdjacentText(where, data)`。 -/
+  | insertAdjacentText (element : Nat) (where_ : String) (data : String)
   /-- §4.4 `textContent` の setter（`Attr` は `setAttrValue` に読み替える）。null は空文字列。 -/
   | setTextContent (node : Nat) (value : String)
   /-- §4.4 `nodeValue` の setter（`Attr` は `setAttrValue` に読み替える）。null は空文字列。 -/

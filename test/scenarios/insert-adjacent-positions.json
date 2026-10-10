@@ -1,0 +1,180 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "insertAdjacentElement",
+      "insertAdjacentText",
+      "insert adjacent"
+    ],
+    "steps": "insert adjacent の四つの where",
+    "note": "insert adjacent は where を ASCII case-insensitive に読み、beforebegin と afterend は parent に、afterbegin と beforeend は element 自身に pre-insert する。parent の無い element の beforebegin と afterend は null を返して何もしない（insertAdjacentText では作った Text が捨てられる）。insertAdjacentText が Document に Text を入れようとすると HierarchyRequestError で、scenario はそこで終わる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "body"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "a"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span"
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 2,
+      "localName": "p"
+    },
+    {
+      "id": 7,
+      "kind": "element",
+      "localName": "b"
+    },
+    {
+      "id": 8,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 9,
+      "kind": "element",
+      "parent": 8,
+      "localName": "i"
+    },
+    {
+      "id": 10,
+      "kind": "element",
+      "localName": "u"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {
+      "target": 0,
+      "subtree": true,
+      "childList": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "insertAdjacentElement",
+      "element": 3,
+      "where": "beforebegin",
+      "node": 6
+    },
+    {
+      "op": "insertAdjacentElement",
+      "element": 3,
+      "where": "afterbegin",
+      "node": 5
+    },
+    {
+      "op": "insertAdjacentElement",
+      "element": 3,
+      "where": "BeforeEnd",
+      "node": 9
+    },
+    {
+      "op": "insertAdjacentElement",
+      "element": 3,
+      "where": "afterend",
+      "node": 7
+    },
+    {
+      "op": "insertAdjacentElement",
+      "element": 10,
+      "where": "beforebegin",
+      "node": 5
+    },
+    {
+      "op": "insertAdjacentElement",
+      "element": 10,
+      "where": "afterend",
+      "node": 5
+    },
+    {
+      "op": "insertAdjacentText",
+      "element": 3,
+      "where": "beforebegin",
+      "data": "t1"
+    },
+    {
+      "op": "insertAdjacentText",
+      "element": 3,
+      "where": "afterbegin",
+      "data": "t2"
+    },
+    {
+      "op": "insertAdjacentText",
+      "element": 3,
+      "where": "beforeend",
+      "data": "t3"
+    },
+    {
+      "op": "insertAdjacentText",
+      "element": 3,
+      "where": "AFTEREND",
+      "data": "t4"
+    },
+    {
+      "op": "insertAdjacentText",
+      "element": 10,
+      "where": "beforebegin",
+      "data": "no"
+    },
+    {
+      "op": "insertAdjacentText",
+      "element": 10,
+      "where": "afterbegin",
+      "data": "in"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "childNodes"
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "childNodes"
+    },
+    {
+      "op": "getTextContent",
+      "node": 2
+    },
+    {
+      "op": "insertAdjacentText",
+      "element": 1,
+      "where": "beforebegin",
+      "data": "x"
+    }
+  ]
+}

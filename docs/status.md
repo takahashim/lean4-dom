@@ -6565,8 +6565,8 @@ Chromium、Firefox、WebKit は固定 scenario のすべてで model と一致�
 が 0、`children` が collection を返す。本文の DocumentType はこれらを持たないので undefined になる
 （ブラウザと jsdom も undefined）。Text・Comment・PI では起きない。
 
-**findings 67：Dommy は、DocumentFragment の中の Comment の `isConnected` が undefined になる。** 本文では false
-である（document の中の Comment は true を返す）。Ruby の API でも CommentNode は `is_connected` を持たず、
+**findings 67：Dommy は、DocumentFragment の中の Comment と ProcessingInstruction の `isConnected` が undefined になる。**
+本文では false である（document の中の Comment は true を返す）。Ruby の API でも CommentNode は `is_connected` を持たず、
 `test/dommy_runner.rb` では固定 scenario `getters-read-every-node-kind` がその step で skip になる。
 
 **findings 68：Dommy の `removeChild(doctype)` は null を返す。** pre-remove は child を返すので、DocumentType でも
@@ -6621,6 +6621,24 @@ Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、こ
 
 Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の JS の runner は、この scenario のすべての step で model と一致した。
 Dommy の Ruby の API は Text に `node_value=` を持たないので、Ruby の runner ではその step で skip になる。
+
+## `insertAdjacentElement` と `insertAdjacentText` を足した
+
+対応表で `.todo` の除外だった "insert adjacent" と二つの method を実行関数にした（`Dom/Mutation/InsertAdjacent.lean`）。
+
+* `insertAdjacent` は where を ASCII case-insensitive に読み、beforebegin と afterend は parent に（parent が無ければ null を
+  返して何もしない）、afterbegin と beforeend は element 自身に pre-insert する。どれでもなければ SyntaxError。
+* `insertAdjacentText` は this の node document で `createTextNode` してから insert adjacent する。null が返るとき
+  （parent が無い beforebegin / afterend）は、作った Text をどこからも参照できないので状態を元のままにする（近似として
+  対応表に書いた）。
+* 妥当性はどの枝も pre-insert か「何もしない」なので、`admissible_preInsert`・`attrFrame_preInsert` と `createTextNode` の
+  定理に帰着する（`Dom/Validity/InsertAdjacent.lean`）。
+* 操作は `insertAdjacentElement`（`element`・`where`・`node`。`node` は `Element` 型なので null や `Attr` は TypeError、
+  Element でない node も TypeError）と `insertAdjacentText`（`element`・`where`・`data`）。runner は作った Text に
+  `createTextNode` と同じ規則で id を振る。
+* 固定 scenario `insert-adjacent-positions` を足した。生成器は where に大文字の形と不正な文字列も混ぜて出す。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、この scenario のすべての step で model と一致した。
 
 ## 未着手
 

@@ -115,6 +115,13 @@ def entries : List Entry := [
     impl := [``Dom.hasAttributeNS, ``Dom.getAttributeByKey] },
   { alg := "dom-element-hasattributes"
     impl := [``Dom.hasAttributes] },
+  { alg := "insert-adjacent"
+    impl := [``Dom.insertAdjacent, ``Dom.adjacentPosition?, ``Dom.preInsert] },
+  { alg := "dom-element-insertadjacentelement"
+    impl := [``Dom.insertAdjacentElement, ``Dom.insertAdjacent] },
+  { alg := "dom-element-insertadjacenttext"
+    impl := [``Dom.insertAdjacentText, ``Dom.createTextNode, ``Dom.insertAdjacent]
+    approx := [("2", "parent が無くて null が返るときは、作った Text をどこからも参照できないので状態を元のままにする")] },
   { alg := "dom-element-getelementsbytagname"
     impl := [``Dom.getElementsByTagName, ``Dom.descendantElements]
     approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
@@ -195,9 +202,6 @@ def exclusions : List Exclusion := [
   { target := "concept-attach-a-shadow-root", reason := .shadow },
   { target := "dom-element-shadowroot", reason := .shadow },
   { target := "dom-element-customelementregistry", reason := .customElements },
-  { target := "insert-adjacent", reason := .todo "insert adjacent が無い" },
-  { target := "dom-element-insertadjacentelement", reason := .todo "insert adjacent が無い" },
-  { target := "dom-element-insertadjacenttext", reason := .todo "insert adjacent が無い" },
   { target := "dom-namednodemap-length", reason := .todo "NamedNodeMap object を持たない（length が無い）" },
   { target := "dom-namednodemap-item", reason := .todo "NamedNodeMap object を持たない（item(index) が無い）" },
   { target := "interface-namednodemap/supported-property-names", reason := .todo "NamedNodeMap の named property が無い" },

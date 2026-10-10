@@ -314,6 +314,19 @@ def dropNode (r : Except DOMException (NodeId × DOMState)) : Except DOMExceptio
   | .error e => .error e
   | .ok (_, s) => .ok s
 
+/-- 返す node（null になりうる）と状態を返す操作を、状態だけを返す形にする。 -/
+def dropRet (r : Except DOMException (Option NodeId × DOMState)) : Except DOMException DOMState :=
+  match r with
+  | .error e => .error e
+  | .ok (_, s) => .ok s
+
+theorem dropRet_ok {r : Except DOMException (Option NodeId × DOMState)} {s' : DOMState}
+    (h : dropRet r = .ok s') : ∃ n, r = .ok (n, s') := by
+  unfold dropRet at h
+  split at h
+  · simp at h
+  · next n s₀ => exact ⟨n, by rw [← Except.ok.inj h]⟩
+
 theorem dropNode_ok {r : Except DOMException (NodeId × DOMState)} {s' : DOMState}
     (h : dropNode r = .ok s') : ∃ n, r = .ok (n, s') := by
   unfold dropNode at h
@@ -440,6 +453,11 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .getProperty n p => propertyValue s.tree ⟨n⟩ p
   | .setTextContent _ _ => .unit
   | .setNodeValue _ _ => .unit
+  | .insertAdjacentElement e w n =>
+    match insertAdjacentElement s ⟨e⟩ w ⟨n⟩ with
+    | .error _ => .unit
+    | .ok (r, _) => .node r
+  | .insertAdjacentText _ _ _ => .unit
   | .isEqualNode n o => .bool (nodeEquals s.tree ⟨n⟩ ⟨o⟩)
   | .getTextContent n => .str (getTextContent s.tree ⟨n⟩)
   | .getNodeValue n => .str (getNodeValue s.tree ⟨n⟩)
@@ -664,6 +682,8 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .getProperty n _ => requireNodes s [⟨n⟩]
   | .setTextContent n v => setTextContent s ⟨n⟩ v
   | .setNodeValue n v => setNodeValue s ⟨n⟩ v
+  | .insertAdjacentElement e w n => dropRet (insertAdjacentElement s ⟨e⟩ w ⟨n⟩)
+  | .insertAdjacentText e w d => insertAdjacentText s ⟨e⟩ w d
   | .isEqualNode n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .getTextContent n => requireNodes s [⟨n⟩]
   | .getNodeValue n => requireNodes s [⟨n⟩]

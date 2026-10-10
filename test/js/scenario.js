@@ -75,6 +75,7 @@ const OP_METHOD = {
   replaceData: "replaceData", appendData: "appendData", insertData: "insertData",
   deleteData: "deleteData", setData: "data", setTextContent: "textContent", setNodeValue: "nodeValue",
   setAttribute: "setAttribute",
+  insertAdjacentElement: "insertAdjacentElement", insertAdjacentText: "insertAdjacentText",
   setAttributeNS: "setAttributeNS", removeAttribute: "removeAttribute",
   removeAttributeNS: "removeAttributeNS", toggleAttribute: "toggleAttribute",
   dispatchEvent: "dispatchEvent", addEventListener: "addEventListener",
@@ -180,7 +181,8 @@ const SETTER_PROPS = { setData: "data", setTextContent: "textContent", setNodeVa
 const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
-  "iteratorNext", "iteratorPrevious", "getRootNode", "getOwnerDocument", ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
+  "iteratorNext", "iteratorPrevious", "getRootNode", "getOwnerDocument", "insertAdjacentElement",
+  ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
   "querySelector", "closest", "getElementById"];
 const ATTR_RETURNING_OPS = ATTR_NODE_OPS;
 
@@ -595,7 +597,9 @@ function exceptionName(e) {
 function receiverId(op) {
   if (CHARACTER_DATA_OPS.includes(op.op) || op.op in SETTER_PROPS || op.op === "getProperty") return op.node;
   if (QUERY_OPS.includes(op.op) && "node" in op) return op.node;
-  if (ATTRIBUTE_OPS.includes(op.op)) return op.element;
+  if (ATTRIBUTE_OPS.includes(op.op) || op.op === "insertAdjacentElement" || op.op === "insertAdjacentText") {
+    return op.element;
+  }
   return "target" in op ? op.target : op.parent;
 }
 
@@ -1100,6 +1104,20 @@ function apply(ctx, op) {
     }
   }
   if (REFLECT_OPS.includes(op.op)) return applyReflectOp(ctx, op);
+  if (op.op === "insertAdjacentElement" || op.op === "insertAdjacentText") {
+    const el = need(objects.get(op.element), "missing node");
+    if (typeof el[op.op] !== "function") throw new Unsupported(op.op);
+    const where = arg(op, "where");
+    if (op.op === "insertAdjacentElement") return el.insertAdjacentElement(where, nodeValue(ctx, op.node));
+    const hadParent = el.parentNode !== null;
+    el.insertAdjacentText(where, arg(op, "data"));
+    // 作った Text に、model（`createTextNode` の `freshId`）と同じ規則で id を振る。parent が無い
+    // beforebegin / afterend は null を返して何も入れない。
+    const made = { beforebegin: hadParent ? el.previousSibling : null, afterbegin: el.firstChild,
+      beforeend: el.lastChild, afterend: hadParent ? el.nextSibling : null }[where.toLowerCase()];
+    if (made) registerSubtree(ctx, made);
+    return undefined;
+  }
   if (ATTRIBUTE_OPS.includes(op.op)) {
     const el = need(objects.get(op.element), "missing node");
     const m = OP_METHOD[op.op];

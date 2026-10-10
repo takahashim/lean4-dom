@@ -30,6 +30,7 @@ module Generate
            rangeInsertNode rangeToString
            compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
            getTextContent getNodeValue substringData getProperty setTextContent setNodeValue
+           insertAdjacentElement insertAdjacentText
            getAttribute hasAttribute getAttributeNames
            getAttributeNS hasAttributeNS hasAttributes getElementsByTagName getElementsByTagNameNS
            lookupNamespaceURI lookupPrefix isDefaultNamespace
@@ -62,6 +63,10 @@ module Generate
                   previousElementSibling nextElementSibling doctype documentElement contentType
                   compatMode length data name publicId systemId target].freeze
   ATTR_PROPERTIES = %w[nodeName isConnected parentNode parentElement firstChild].freeze
+  # `insertAdjacentElement` / `insertAdjacentText` の where。ASCII case-insensitive なので大文字も混ぜ、
+  # どれでもない文字列（SyntaxError）も出す。
+  ADJACENT_WHERE = %w[beforebegin afterbegin beforeend afterend BeforeEnd AFTERBEGIN bogus].freeze
+  INSERT_ADJACENT_OPS = %w[insertAdjacentElement insertAdjacentText].freeze
   ATTR_QUERIES = %w[ownerDocument parentNode parentElement ownerElement getRootNode nodeName
                     nodeValue textContent isConnected hasChildNodes firstChild].freeze
   ATTR_SETTERS = %w[value nodeValue textContent].freeze
@@ -246,7 +251,7 @@ module Generate
                           %w[getElementById childrenNamedItem],
     "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS +
                  SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS + REFLECT_ELEMENT_OPS + TAG_NAME_OPS +
-                 %w[getElementsByClassName childrenNamedItem],
+                 INSERT_ADJACENT_OPS + %w[getElementsByClassName childrenNamedItem],
     "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
@@ -569,6 +574,11 @@ module Generate
       { "op" => op, "node" => pick.call }
     when "getProperty"
       { "op" => op, "node" => pick.call, "property" => PROPERTIES.sample(random: rng) }
+    when "insertAdjacentElement"
+      { "op" => op, "element" => pick.call, "where" => ADJACENT_WHERE.sample(random: rng), "node" => maybe.call }
+    when "insertAdjacentText"
+      { "op" => op, "element" => pick.call, "where" => ADJACENT_WHERE.sample(random: rng),
+        "data" => ["", "ia", "i#{ASTRAL}a"].sample(random: rng) }
     when "setTextContent", "setNodeValue"
       { "op" => op, "node" => pick.call, "value" => [nil, "", "pq", "p#{ASTRAL}q"].sample(random: rng) }
     when "substringData"

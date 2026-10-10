@@ -7,11 +7,11 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 246 |
-| 対象外としたもの | 145 |
-| 表に載せた algorithm の step | 1026 |
-| そのうち実装したもの | 613 |
-| そのうち近似したもの | 217 |
+| 表に載せたもの | 249 |
+| 対象外としたもの | 142 |
+| 表に載せた algorithm の step | 1030 |
+| そのうち実装したもの | 616 |
+| そのうち近似したもの | 218 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -278,6 +278,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-element-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` |  |
 | [dom-element-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` |  |
 | [dom-element-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.elementClassesOf` |  |
+| [insert-adjacent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#insert-adjacent) | 1/1 | `Dom.insertAdjacent`<br>`Dom.adjacentPosition?`<br>`Dom.preInsert` |  |
+| [dom-element-insertadjacentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-insertadjacentelement) | 1/1 | `Dom.insertAdjacentElement`<br>`Dom.insertAdjacent` |  |
+| [dom-element-insertadjacenttext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-insertadjacenttext) | 1/2（近似 1） | `Dom.insertAdjacentText`<br>`Dom.createTextNode`<br>`Dom.insertAdjacent` |  |
 
 ### §4.9.1（`interface-namednodemap`）
 
@@ -595,6 +598,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-element-getelementsbytagname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-element-getelementsbytagnamens | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-element-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
+| dom-element-insertadjacenttext | 2 | parent が無くて null が返るときは、作った Text をどこからも参照できないので状態を元のままにする |
 | dom-namednodemap-getnameditem | * | NamedNodeMap object を持たない。同じ algorithm（get an attribute by name）を呼ぶ getAttributeNode で計算する |
 | dom-namednodemap-getnameditemns | * | NamedNodeMap object を持たない。同じ algorithm を呼ぶ getAttributeNodeNS で計算する |
 | dom-namednodemap-setnameditem | * | NamedNodeMap object を持たない。同じ algorithm（set an attribute）を呼ぶ setAttributeNode で計算する |
@@ -678,7 +682,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：extract に依存するので未実装 | dom-range-surroundcontents |
 | todo：extract（DocumentFragment への移し替えと部分 clone）が未実装 | concept-range-extract |
 | todo：harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない） | dom-node-issamenode |
-| todo：insert adjacent が無い | dom-element-insertadjacentelement, dom-element-insertadjacenttext, insert-adjacent |
 | todo：item() が無い | dom-domtokenlist-item |
 | todo：length の getter が無い（token set は classTokenSet で読めるが API が無い） | dom-domtokenlist-length |
 | todo：node 以外の EventTarget を作れない（listener の target は NodeId） | dom-eventtarget-eventtarget |

@@ -590,6 +590,16 @@ def operationOfJson (j : Json) : Except String Operation := do
         match prop.attrQuery? with
         | some q => return .attrQuery a q
         | none => throw s!"`Attr` に対する getter `{p}` は model に無い"
+  | "insertAdjacentElement" =>
+    let e ← natField j "element"
+    let w ← domStrField j "where" ""
+    match ← nodeArg? j "node" with
+    | some (.node n) => return .insertAdjacentElement e w n
+    -- `Element` 型の引数。null や `Attr` は TypeError。
+    | _ => return .argumentTypeError "insertAdjacentElement"
+  | "insertAdjacentText" =>
+    return .insertAdjacentText (← natField j "element") (← domStrField j "where" "")
+      (← domStrField j "data" "")
   | "setTextContent" | "setNodeValue" =>
     let value := (← nullableDomStrField j "value").getD ""
     match ← refField j "node" with
