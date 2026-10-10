@@ -10,8 +10,8 @@
 | 表に載せたもの | 226 |
 | 対象外としたもの | 165 |
 | 表に載せた algorithm の step | 999 |
-| そのうち実装したもの | 589 |
-| そのうち近似したもの | 214 |
+| そのうち実装したもの | 590 |
+| そのうち近似したもの | 213 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -155,7 +155,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | --- | --- | --- | --- |
 | [create-a-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-node) | 1/2（近似 1） | `Dom.withFresh` |  |
 | [dom-node-nodetype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodetype) | 0/1（近似 1） | `Dom.NodeKind.nodeType`<br>`Dom.kindOf` |  |
-| [dom-node-ownerdocument](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-ownerdocument) | 0/1（近似 1） | `Dom.ownerDocumentOf`<br>`Dom.Exec.attrQueryValue` |  |
+| [dom-node-ownerdocument](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-ownerdocument) | 1/1 | `Dom.ownerDocumentGetter`<br>`Dom.Exec.attrQueryValue` |  |
 | [dom-node-getrootnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-getrootnode) | 0/1（近似 1） | `Dom.getRootNode`<br>`Dom.attrGetRootNode` | `Dom.Spec.IsRoot` |
 | [dom-node-parentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-parentnode) | 1/1 | `Dom.parentOf`<br>`Dom.attrParentNode` |  |
 | [dom-node-parentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-parentelement) | 1/1 | `Dom.parentElement` |  |
@@ -532,7 +532,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-mutationobserver-disconnect | 1 | node list の node に限らず、この observer の registered observer を全部外す |
 | create-a-node | 2 | realm を持たない。node document を与えた `NodeData` を `freshId` の位置に置く |
 | dom-node-nodetype | * | `NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型）。harness に getter の操作は無い |
-| dom-node-ownerdocument | * | `ownerDocumentOf` は Document に対して null ではなく自分自身を返す（model の Document は自分を node document に持つ） |
 | dom-node-getrootnode | * | options["composed"] を受けず、常に root を返す（shadow tree が無いので shadow-including root と同じ値） |
 | dom-node-childnodes | * | live な NodeList ではなく、読んだ時点の children の列を返す |
 | dom-node-nodevalue/setter | * | setter として振り分ける関数は無い。Attr の枝は `setAttrValue`（harness の `setAttrValue` の via = nodeValue）、CharacterData の枝は同じ replace data をする `setData` が担う。「Otherwise 何もしない」の枝と null → 空文字列の変換は model に無い |

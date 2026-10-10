@@ -6481,6 +6481,16 @@ Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy（Ruby の API と JS の側�
 既存の固定 scenario にも新しい不一致は出なかった。生成 scenario（Dommy の二つの runner で 2 設定 × 300 本、Chromium で
 150 本）でも、名前で消す操作による不一致は無かった（Chromium の一件は可変長の引数の既知の不一致）。
 
+## `ownerDocument` の getter を入れた
+
+notes の「観測できる違い」にあった `ownerDocument` の getter を入れた。本文の getter は this が Document なら null、そうでなければ
+node document を返す。model には node document を返す `ownerDocumentOf` しか無く、Document では自分自身を返していた。
+`ownerDocumentGetter`（`Dom/Basic/Tree.lean`）を足し、node の `ownerDocument` を読む操作 `getOwnerDocument` を加えた
+（`Attr` を渡すと、これまでの `attrQuery` の `ownerDocument` になる）。生成器も、この操作を作る。
+
+固定 scenario `owner-document-is-null-for-a-document` は、Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner の
+すべてで一致した。生成 scenario（Dommy、seed 21、300 本）でも不一致は無かった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

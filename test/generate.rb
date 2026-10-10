@@ -28,7 +28,7 @@ module Generate
            rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
            rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
            rangeInsertNode rangeToString
-           compareDocumentPosition nodeContains getRootNode isEqualNode
+           compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
            getTextContent getNodeValue substringData
            getAttribute hasAttribute getAttributeNames
            lookupNamespaceURI lookupPrefix isDefaultNamespace
@@ -117,7 +117,7 @@ module Generate
   EVENT_TYPES = %w[a b].freeze
 
   NODE_OPS = %w[appendChild insertBefore replaceChild removeChild normalize cloneNode
-                compareDocumentPosition nodeContains getRootNode isEqualNode
+                compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
                 getTextContent getNodeValue
                 dispatchEvent addEventListener removeEventListener
                 lookupNamespaceURI lookupPrefix isDefaultNamespace
@@ -547,7 +547,8 @@ module Generate
       # null は TypeError で、Dommy の既知の不一致（findings 63）なので乱数の側では当てない。
       other = op != "compareDocumentPosition" && rng.rand < 0.1 ? nil : pick.call
       { "op" => op, "node" => pick.call, "other" => other }
-    when "getRootNode", "getTextContent", "getNodeValue" then { "op" => op, "node" => pick.call }
+    when "getRootNode", "getOwnerDocument", "getTextContent", "getNodeValue"
+      { "op" => op, "node" => pick.call }
     when "substringData"
       { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),
         "count" => idl_number(rng, rng.rand(4)) }
@@ -782,7 +783,8 @@ module Generate
         { "op" => %w[compareDocumentPosition nodeContains isEqualNode].sample(random: rng),
           "node" => ids.sample(random: rng), "other" => attr.call }
       when 4
-        { "op" => %w[getRootNode getTextContent getNodeValue].sample(random: rng), "node" => attr.call }
+        { "op" => %w[getRootNode getOwnerDocument getTextContent getNodeValue].sample(random: rng),
+          "node" => attr.call }
       when 5
         { "op" => "lookupNamespaceURI", "node" => attr.call, "prefix" => ["xml", nil, "x"].sample(random: rng) }
       when 6
@@ -821,7 +823,7 @@ module Generate
     end
   end
 
-  NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
+  NODE_RECEIVER_OPS = %w[compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
                          getTextContent getNodeValue
                          lookupNamespaceURI lookupPrefix isDefaultNamespace].freeze
 

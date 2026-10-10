@@ -248,6 +248,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | compareDocumentPosition n o => exact admissible_requireNodes h hop
   | nodeContains n o => exact admissible_requireNodes h hop
   | getRootNode n => exact admissible_requireNodes h hop
+  | getOwnerDocument n => exact admissible_requireNodes h hop
   | isEqualNode n o => exact admissible_requireNodes h hop
   | getTextContent n => exact admissible_requireNodes h hop
   | getNodeValue n => exact admissible_requireNodes h hop

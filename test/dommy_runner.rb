@@ -94,7 +94,7 @@ module DommyRunner
   #
   # Ruby 側に snake_case の method が無くても JS bridge が持っていることがあるので、
   # 呼び出しは `js_call` / `js_get` を通す。
-  QUERY_OPS = %w[compareDocumentPosition nodeContains getRootNode isEqualNode
+  QUERY_OPS = %w[compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
                  getTextContent getNodeValue substringData
                  getAttribute hasAttribute getAttributeNames
                  lookupNamespaceURI lookupPrefix isDefaultNamespace
@@ -120,6 +120,7 @@ module DommyRunner
     "compareDocumentPosition" => "compareDocumentPosition",
     "nodeContains" => "contains",
     "getRootNode" => "getRootNode",
+    "getOwnerDocument" => "ownerDocument",
     "isEqualNode" => "isEqualNode",
     "getTextContent" => "textContent",
     "getNodeValue" => "nodeValue",
@@ -140,7 +141,7 @@ module DommyRunner
   }.freeze
 
   # attribute の getter として読むもの（method ではなく IDL attribute）。
-  QUERY_GETTERS = %w[getTextContent getNodeValue].freeze
+  QUERY_GETTERS = %w[getTextContent getNodeValue getOwnerDocument].freeze
 
   # 受け手が TreeWalker である操作（§6.2）。
   WALKER_OPS = %w[walkerParentNode walkerFirstChild walkerLastChild
@@ -299,7 +300,7 @@ module DommyRunner
   # `undefined` と `null` を取り違えないよう kind を添える
   # （`removeChild` が null を返したら不一致、`remove()` が undefined を返すのは正しい）。
   NODE_RETURNING_OPS = %w[appendChild insertBefore replaceChild removeChild
-                          iteratorNext iteratorPrevious getRootNode
+                          iteratorNext iteratorPrevious getRootNode getOwnerDocument
                           walkerParentNode walkerFirstChild walkerLastChild
                           walkerPreviousSibling walkerNextSibling
                           walkerPreviousNode walkerNextNode

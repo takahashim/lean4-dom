@@ -51,6 +51,15 @@ def kindOf (t : Tree) (n : NodeId) : Option NodeKind :=
 def ownerDocumentOf (t : Tree) (n : NodeId) : Option NodeId :=
   (t.get? n).map (·.ownerDocument)
 
+/--
+DOM Standard §4.4 `Node.ownerDocument` の getter。this が Document なら null、そうでなければ node document。
+model の Document は自分を node document に持つので、`ownerDocumentOf` とは Document のときだけ違う。
+-/
+def ownerDocumentGetter (t : Tree) (n : NodeId) : Option NodeId :=
+  match t.get? n with
+  | none => none
+  | some d => if d.kind == .document then none else some d.ownerDocument
+
 /-- DOM Standard §4.4 の node length。 -/
 def lengthOf (t : Tree) (n : NodeId) : Nat :=
   match t.get? n with

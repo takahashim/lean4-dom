@@ -1,0 +1,96 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ownerDocument"
+    ],
+    "steps": "ownerDocument getter",
+    "note": "ownerDocument の getter は、this が Document なら null、そうでなければ this の node document を返す。Document の node document は自分自身だが、getter は null を返す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "t"
+    },
+    {
+      "id": 3,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 4,
+      "kind": "document"
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "ownerDocument": 4
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getOwnerDocument",
+      "node": 0
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": 1
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": 2
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": 3
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": 4
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": 5
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": {
+        "attr": 1
+      }
+    },
+    {
+      "op": "adoptNode",
+      "document": 4,
+      "node": 1
+    },
+    {
+      "op": "getOwnerDocument",
+      "node": 2
+    }
+  ]
+}

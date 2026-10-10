@@ -381,6 +381,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .compareDocumentPosition n o => .int (compareDocumentPosition s.tree ⟨n⟩ ⟨o⟩)
   | .nodeContains n o => .bool (nodeContains s.tree ⟨n⟩ ⟨o⟩)
   | .getRootNode n => .node (some (getRootNode s.tree ⟨n⟩))
+  | .getOwnerDocument n => .node (ownerDocumentGetter s.tree ⟨n⟩)
   | .isEqualNode n o => .bool (nodeEquals s.tree ⟨n⟩ ⟨o⟩)
   | .getTextContent n => .str (getTextContent s.tree ⟨n⟩)
   | .getNodeValue n => .str (getNodeValue s.tree ⟨n⟩)
@@ -589,6 +590,7 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .compareDocumentPosition n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .nodeContains n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .getRootNode n => requireNodes s [⟨n⟩]
+  | .getOwnerDocument n => requireNodes s [⟨n⟩]
   | .isEqualNode n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .getTextContent n => requireNodes s [⟨n⟩]
   | .getNodeValue n => requireNodes s [⟨n⟩]

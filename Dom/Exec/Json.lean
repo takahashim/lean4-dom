@@ -574,6 +574,10 @@ def operationOfJson (j : Json) : Except String Operation := do
     | n, .null => return .nodeContainsNull n
     | .node n, .node (.node o) => return .nodeContains n o
     | n, .node o => return .nodeContainsRef n o
+  | "getOwnerDocument" =>
+    match ← refField j "node" with
+    | .node n => return .getOwnerDocument n
+    | .attr a => return .attrQuery a .ownerDocument
   | "getRootNode" =>
     match ← refField j "node" with
     | .node n => return .getRootNode n

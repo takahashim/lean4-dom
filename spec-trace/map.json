@@ -1437,17 +1437,12 @@
         "*"
       ],
       "impl": [
-        "Dom.ownerDocumentOf",
+        "Dom.ownerDocumentGetter",
         "Dom.Exec.attrQueryValue"
       ],
       "spec": [],
       "omit": [],
-      "approx": [
-        {
-          "steps": "*",
-          "what": "`ownerDocumentOf` は Document に対して null ではなく自分自身を返す（model の Document は自分を node document に持つ）"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-node-getrootnode",

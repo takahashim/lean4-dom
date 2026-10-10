@@ -174,6 +174,8 @@ inductive Operation where
   | compareDocumentPosition (node other : Nat)
   | nodeContains (node other : Nat)
   | getRootNode (node : Nat)
+  /-- §4.4 `ownerDocument` の getter。 -/
+  | getOwnerDocument (node : Nat)
   | isEqualNode (node other : Nat)
   | getTextContent (node : Nat)
   | getNodeValue (node : Nat)

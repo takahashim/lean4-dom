@@ -105,7 +105,8 @@ const NODE_TYPE_KIND = {
 // 値を返すだけの操作と、その IDL 名。
 const QUERY_JS_NAME = {
   compareDocumentPosition: "compareDocumentPosition", nodeContains: "contains",
-  getRootNode: "getRootNode", isEqualNode: "isEqualNode", getTextContent: "textContent",
+  getRootNode: "getRootNode", getOwnerDocument: "ownerDocument", isEqualNode: "isEqualNode",
+  getTextContent: "textContent",
   getNodeValue: "nodeValue", substringData: "substringData", getAttribute: "getAttribute",
   hasAttribute: "hasAttribute", getAttributeNames: "getAttributeNames",
   lookupNamespaceURI: "lookupNamespaceURI", lookupPrefix: "lookupPrefix",
@@ -125,7 +126,7 @@ const LOOKUP_OPS = {
 const SELECTOR_OPS = ["querySelector", "querySelectorAll", "matches", "closest"];
 const SELECTOR_ELEMENT_OPS = ["matches", "closest"];
 const QUERY_OPS = Object.keys(QUERY_JS_NAME);
-const QUERY_GETTERS = ["getTextContent", "getNodeValue"];
+const QUERY_GETTERS = ["getTextContent", "getNodeValue", "getOwnerDocument"];
 
 // §4.9 の reflect（`id` / `className` / `slot`）、§7.1 の `classList`、
 // §4.2.10.1 の `children.namedItem`。どれも namespace が null の attribute を読み書きする。
@@ -149,7 +150,7 @@ const CHARACTER_DATA_OPS = ["replaceData", "appendData", "insertData", "deleteDa
 const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
-  "iteratorNext", "iteratorPrevious", "getRootNode", ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
+  "iteratorNext", "iteratorPrevious", "getRootNode", "getOwnerDocument", ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
   "querySelector", "closest", "getElementById"];
 const ATTR_RETURNING_OPS = ATTR_NODE_OPS;
 
