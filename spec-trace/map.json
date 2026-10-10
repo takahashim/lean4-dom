@@ -1023,7 +1023,10 @@
         "Dom.descendantElements",
         "Dom.elementIdOf"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.HasId",
+        "Dom.Spec.getElementById_first"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1036,7 +1039,9 @@
         "Dom.getElementById",
         "Dom.requireNonElementParentNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getElementById_first"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2116,7 +2121,10 @@
         "Dom.getElementsByTagName",
         "Dom.descendantElements"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.QualifiedNameMatches",
+        "Dom.Spec.getElementsByTagName_sorted"
+      ],
       "omit": [],
       "approx": [
         {
@@ -2135,7 +2143,10 @@
         "Dom.descendantElements",
         "Dom.normalizeNamespace"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.NamespaceLocalNameMatches",
+        "Dom.Spec.getElementsByTagNameNS_sorted"
+      ],
       "omit": [],
       "approx": [
         {
@@ -2155,7 +2166,10 @@
         "Dom.elementClassesOf",
         "Dom.receiverInQuirksMode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.HasClass",
+        "Dom.Spec.getElementsByClassName_sorted"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3079,7 +3093,10 @@
         "Dom.getElementsByTagName",
         "Dom.descendantElements"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.QualifiedNameMatches",
+        "Dom.Spec.getElementsByTagName_sorted"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3098,7 +3115,10 @@
         "Dom.descendantElements",
         "Dom.normalizeNamespace"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.NamespaceLocalNameMatches",
+        "Dom.Spec.getElementsByTagNameNS_sorted"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3235,7 +3255,10 @@
         "Dom.getElementsByClassName",
         "Dom.elementClassesOf"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.HasClass",
+        "Dom.Spec.getElementsByClassName_sorted"
+      ],
       "omit": [],
       "approx": [
         {

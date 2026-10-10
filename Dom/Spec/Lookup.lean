@@ -14,9 +14,8 @@ import Dom.Query.Lookup
 | `ClassToken s c` | ordered set parser が `s` から読む語に `c` がある（`Dom/Spec/SelectorMatch.lean`） |
 | `ClassIdMatches` | quirks mode なら ASCII case-insensitive、そうでなければ identical（同上） |
 
-`getElementById()` が tree order で **最初の** element を返すことは `List.find?` そのものなので、
-ここでは当たるものを返すこと（`getElementById_eq_some`）と、無ければ null（`getElementById_eq_none_iff`）
-だけを述べる。
+ここでは当たるものを返すこと（`getElementById_eq_some`）と、無ければ null（`getElementById_eq_none_iff`）を
+述べる。tree order で **最初の** element を返すことと、列が tree order に並ぶことは `Dom/Spec/LookupOrder.lean` にある。
 -/
 
 namespace Dom.Spec

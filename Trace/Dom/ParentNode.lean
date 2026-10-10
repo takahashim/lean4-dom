@@ -25,9 +25,11 @@ def entries : List Entry := [
     approx := [("1", "Attr は木の node ではない（NodeKind に無い）ので、DocumentType だけが 0 になる")] },
   -- §4.2.4
   { alg := "get-an-element-by-id"
-    impl := [``Dom.getElementById, ``Dom.descendantElements, ``Dom.elementIdOf] },
+    impl := [``Dom.getElementById, ``Dom.descendantElements, ``Dom.elementIdOf]
+    spec := [``Dom.Spec.HasId, ``Dom.Spec.getElementById_first] },
   { alg := "dom-nonelementparentnode-getelementbyid"
-    impl := [``Dom.getElementById, ``Dom.requireNonElementParentNode] },
+    impl := [``Dom.getElementById, ``Dom.requireNonElementParentNode]
+    spec := [``Dom.Spec.getElementById_first] },
   -- §4.2.6
   { alg := "dom-parentnode-children"
     impl := [``Dom.elementChildrenOf]

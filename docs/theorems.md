@@ -720,6 +720,14 @@ descendant まで）、`parentNode()` は current の strict ancestor のうち 
 tree order の列を切って `find?` するので、整列した列の `find?` が最初のものを返すこと（`find?_first_of_pairwise`）に
 帰着させた。
 
+lookup の method も同じ道具で順序を言う（`Dom/Spec/LookupOrder.lean`）。`getElementById()` は当たる element のうち
+tree order で最初のものを返し（`getElementById_first`）、`getElementsByClassName()`・`getElementsByName()`・
+`getElementsByTagName()`・`getElementsByTagNameNS()` の列は tree order に並ぶ（`..._sorted`）。当たる element の
+集まりが決まれば tree order に並んだ列は一つしか無いので、列そのものが関係で決まる。tag name で引く二つは、当たる
+element も "list of elements with qualified name"・"list of elements with namespace and local name" の条件
+（`QualifiedNameMatches`・`NamespaceLocalNameMatches`）で書いた（`mem_getElementsByTagName_iff`・
+`mem_getElementsByTagNameNS_iff`）。
+
 関係を書くために本文の loop を読み直して、TreeWalker の走査が root の外から始まると root の部分木を抜けても
 止まらない誤りを見つけた（`docs/status.md`）。`lastChild()` と "traverse siblings" は鏡像の順序を使うので、
 関係はまだ無い。

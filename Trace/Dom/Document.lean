@@ -27,13 +27,16 @@ def entries : List Entry := [
     impl := [``Dom.documentElement] },
   { alg := "dom-document-getelementsbytagname"
     impl := [``Dom.getElementsByTagName, ``Dom.descendantElements]
+    spec := [``Dom.Spec.QualifiedNameMatches, ``Dom.Spec.getElementsByTagName_sorted]
     approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
   { alg := "dom-document-getelementsbytagnamens"
     impl := [``Dom.getElementsByTagNameNS, ``Dom.descendantElements, ``Dom.normalizeNamespace]
+    spec := [``Dom.Spec.NamespaceLocalNameMatches, ``Dom.Spec.getElementsByTagNameNS_sorted]
     approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
   { alg := "dom-document-getelementsbyclassname"
     impl := [``Dom.getElementsByClassName, ``Dom.orderedSetParse, ``Dom.elementClassesOf,
              ``Dom.receiverInQuirksMode]
+    spec := [``Dom.Spec.HasClass, ``Dom.Spec.getElementsByClassName_sorted]
     approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
   { alg := "dom-document-createelement"
     impl := [``Dom.createElement, ``Dom.isValidElementLocalName, ``Dom.Exec.idlCheck]

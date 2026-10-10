@@ -6718,6 +6718,12 @@ TreeWalker の関係（`nextNode`・`previousNode`・"traverse children"・`pare
 `ValidWalker` を仮定する）。`docs/theorems.md` の §24 にまとめた。`lastChild()` と "traverse siblings" は鏡像の順序を
 使うので、まだ関係が無い。
 
+## lookup の method に tree order の関係を足した
+
+`getElementById()` が当たる element のうち tree order で最初のものを返すこと、`getElementsByClassName()`・
+`getElementsByName()`・`getElementsByTagName()`・`getElementsByTagNameNS()` の列が tree order に並ぶことを示した
+（`Dom/Spec/LookupOrder.lean`）。tag name で引く二つは当たる element の条件も本文の語彙で書いた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

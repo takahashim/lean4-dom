@@ -96,8 +96,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [get-an-element-by-id](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-an-element-by-id) | 1/1 | `Dom.getElementById`<br>`Dom.descendantElements`<br>`Dom.elementIdOf` |  |
-| [dom-nonelementparentnode-getelementbyid](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nonelementparentnode-getelementbyid) | 1/1 | `Dom.getElementById`<br>`Dom.requireNonElementParentNode` |  |
+| [get-an-element-by-id](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-an-element-by-id) | 1/1 | `Dom.getElementById`<br>`Dom.descendantElements`<br>`Dom.elementIdOf` | `Dom.Spec.HasId`<br>`Dom.Spec.getElementById_first` |
+| [dom-nonelementparentnode-getelementbyid](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nonelementparentnode-getelementbyid) | 1/1 | `Dom.getElementById`<br>`Dom.requireNonElementParentNode` | `Dom.Spec.getElementById_first` |
 
 ### §4.2.6（`interface-parentnode`）
 
@@ -210,9 +210,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-contenttype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-contenttype) | 1/1 | `Dom.NodeData.contentType` |  |
 | [dom-document-doctype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-doctype) | 1/1 | `Dom.doctypeOf` |  |
 | [dom-document-documentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-documentelement) | 1/1 | `Dom.documentElement` |  |
-| [dom-document-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` |  |
-| [dom-document-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` |  |
-| [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` |  |
+| [dom-document-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` | `Dom.Spec.QualifiedNameMatches`<br>`Dom.Spec.getElementsByTagName_sorted` |
+| [dom-document-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` | `Dom.Spec.NamespaceLocalNameMatches`<br>`Dom.Spec.getElementsByTagNameNS_sorted` |
+| [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` | `Dom.Spec.HasClass`<br>`Dom.Spec.getElementsByClassName_sorted` |
 | [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
 | [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` |  |
 | [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck`<br>`Dom.Idl.elementCreationOptionsOk` |  |
@@ -277,9 +277,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-element-closest](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-closest) | 3/5（近似 2） | `Dom.closest`<br>`Dom.inclusiveAncestorElements` |  |
 | [dom-element-matches](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-matches) | 1/3（近似 2） | `Dom.matchesSelector` |  |
 | [dom-element-webkitmatchesselector](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-webkitmatchesselector) | 1/3（近似 2） | `Dom.matchesSelector` |  |
-| [dom-element-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` |  |
-| [dom-element-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` |  |
-| [dom-element-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.elementClassesOf` |  |
+| [dom-element-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` | `Dom.Spec.QualifiedNameMatches`<br>`Dom.Spec.getElementsByTagName_sorted` |
+| [dom-element-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` | `Dom.Spec.NamespaceLocalNameMatches`<br>`Dom.Spec.getElementsByTagNameNS_sorted` |
+| [dom-element-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.elementClassesOf` | `Dom.Spec.HasClass`<br>`Dom.Spec.getElementsByClassName_sorted` |
 | [insert-adjacent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#insert-adjacent) | 1/1 | `Dom.insertAdjacent`<br>`Dom.adjacentPosition?`<br>`Dom.preInsert` |  |
 | [dom-element-insertadjacentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-insertadjacentelement) | 1/1 | `Dom.insertAdjacentElement`<br>`Dom.insertAdjacent` |  |
 | [dom-element-insertadjacenttext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-insertadjacenttext) | 1/2（近似 1） | `Dom.insertAdjacentText`<br>`Dom.createTextNode`<br>`Dom.insertAdjacent` |  |

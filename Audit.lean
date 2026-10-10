@@ -1288,3 +1288,10 @@ open Dom.Audit
   Dom.Spec.walkerPreviousNode_result_sound
   Dom.Spec.walkerFirstChild_result_sound
   Dom.Spec.walkerParentNode_result_sound
+  Dom.Spec.getElementById_first
+  Dom.Spec.getElementsByClassName_sorted
+  Dom.Spec.getElementsByName_sorted
+  Dom.Spec.getElementsByTagName_sorted
+  Dom.Spec.getElementsByTagNameNS_sorted
+  Dom.Spec.mem_getElementsByTagName_iff
+  Dom.Spec.mem_getElementsByTagNameNS_iff
