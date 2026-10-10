@@ -312,6 +312,6 @@ Dommy は木をその場で書き換えるので、失敗した操作が状態�
 inductive StepResult where
   | ok (s : DOMState) (delivered : List (Nat × List MutationRecord)) (returned : ReturnValue)
       (invocations : List Invocation)
-  | failed (before : DOMState) (e : DOMException)
+  | failed (before : DOMState) (e : IdlException)
 
 end Dom.Exec

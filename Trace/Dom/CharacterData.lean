@@ -55,13 +55,13 @@ def entries : List Entry := [
     approx := [("*", "node より後ろの兄弟だけを集める（normalize が run の先頭から呼ぶので前側は空になる）。前後両側を集める関数は無い")] },
   { alg := "concept-descendant-text-content"
     impl := [``Dom.descendantTextContent] },
+  -- createTextNode の受け手の WebIDL の検査は `Dom.Exec.idlCheck` が行う。実行関数に残る guard は model の都合。
   { alg := "create-a-text-node"
-    impl := [``Dom.createTextNode, ``Dom.withFresh]
-    approx := [("1", "createTextNode は受け手が Document であることも確かめる（WebIDL の受け手検査。仕様の algorithm には無い）")] },
+    impl := [``Dom.createTextNode, ``Dom.withFresh] },
   /- §4.14 Comment -/
+  -- createComment の受け手の WebIDL の検査は `Dom.Exec.idlCheck` が行う。実行関数に残る guard は model の都合。
   { alg := "create-a-comment-node"
-    impl := [``Dom.createComment, ``Dom.withFresh]
-    approx := [("1", "createComment は受け手が Document であることも確かめる（WebIDL の受け手検査。仕様の algorithm には無い）")] }
+    impl := [``Dom.createComment, ``Dom.withFresh] }
 ]
 
 def exclusions : List Exclusion := [

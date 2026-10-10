@@ -358,7 +358,7 @@ theorem runOperations_no_violation :
     split
     · rfl
     · next s' hop =>
-      have h' : AdmissibleDOMState s' := admissible_applyOperation h hop
+      have h' : AdmissibleDOMState s' := admissible_applyOperation h (applyOperation_of_invoke hop)
       rw [if_neg (by simp [(checkWellFormed_iff s'.tree).mpr h'.wellFormed])]
       rw [if_neg (by simp [(checkStructurallyValid_iff s'.tree).mpr h'.structural])]
       rw [if_neg (by simp [(checkNodeDocumentsValid_iff s'.tree).mpr h'.nodeDocuments])]
@@ -373,10 +373,10 @@ theorem runOperations_no_violation :
 /-! ## 操作列と到達可能性 -/
 
 /-- 操作列を順に適用する。例外が起きたらそこで止める。 -/
-def run : DOMState → List Operation → Except DOMException DOMState
+def run : DOMState → List Operation → Except IdlException DOMState
   | s, [] => .ok s
   | s, op :: ops =>
-    match applyOperation s op with
+    match invokeOperation s op with
     | .error e => .error e
     | .ok s' => run s' ops
 
@@ -390,7 +390,7 @@ theorem run_preserves_admissibility :
     split at hr
     · simp at hr
     · next s₁ hop =>
-      exact run_preserves_admissibility ops (admissible_applyOperation h hop) hr
+      exact run_preserves_admissibility ops (admissible_applyOperation h (applyOperation_of_invoke hop)) hr
 
 /--
 指定した初期状態の集合から public API だけで到達できる状態。
@@ -402,7 +402,7 @@ theorem run_preserves_admissibility :
 inductive ReachableFrom (initial : DOMState → Prop) : DOMState → Prop where
   | base {s : DOMState} : initial s → ReachableFrom initial s
   | step {s s' : DOMState} {op : Operation} :
-      ReachableFrom initial s → applyOperation s op = .ok s' → ReachableFrom initial s'
+      ReachableFrom initial s → invokeOperation s op = .ok s' → ReachableFrom initial s'
 
 /-- admissible な初期状態から到達できる状態は admissible である。 -/
 theorem reachable_admissible {initial : DOMState → Prop}
@@ -410,6 +410,6 @@ theorem reachable_admissible {initial : DOMState → Prop}
     (hr : ReachableFrom initial s) : AdmissibleDOMState s := by
   induction hr with
   | base h => exact hinit _ h
-  | step _ hop ih => exact admissible_applyOperation ih hop
+  | step _ hop ih => exact admissible_applyOperation ih (applyOperation_of_invoke hop)
 
 end Dom.Exec

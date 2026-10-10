@@ -1,5 +1,6 @@
 import Trace.Basic
 import Dom
+import Dom.Exec.Invoke
 
 /-!
 # §4.5 Interface `Document`（§4.5.1 `DOMImplementation`）、§4.6 `DocumentType`、
@@ -10,8 +11,9 @@ namespace Trace.Dom.Document
 
 open Trace
 
-private def receiverTypeError : String :=
-  "受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す）"
+-- 受け手が Document でないときの WebIDL の TypeError は、method を呼ぶ層の `Dom.Exec.idlCheck` が
+-- algorithm より先に返す（`DOMException` とは別の型 `IdlException.typeError`）。実行関数に残る受け手の
+-- guard は model の都合（不正な id）で、その経路は WebIDL の検査を通った後には通らない。
 
 def entries : List Entry := [
   /- §4.5 -/
@@ -24,18 +26,17 @@ def entries : List Entry := [
              ``Dom.receiverInQuirksMode]
     approx := [("*", "live な HTMLCollection ではなく、呼んだ時点の element の列を返す")] },
   { alg := "dom-document-createelement"
-    impl := [``Dom.createElement, ``Dom.isValidElementLocalName]
+    impl := [``Dom.createElement, ``Dom.isValidElementLocalName, ``Dom.Exec.idlCheck]
     omitted := [("3", .customElements)]
-    approx := [("1", "step に入る前に、" ++ receiverTypeError),
-               ("4", "content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない"),
+    approx := [("4", "content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない"),
                ("5", "create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い）")] },
   { alg := "internal-createelementns-steps"
     impl := [``Dom.createElementNS, ``Dom.validateAndExtractElement]
     omitted := [("2", .customElements)]
     approx := [("3", "create an element を呼ばず、`NodeData` を直に作る（is・registry は無い）")] },
   { alg := "dom-document-createelementns"
-    impl := [``Dom.createElementNS]
-    approx := [("*", "options を受けない。" ++ receiverTypeError)] },
+    impl := [``Dom.createElementNS, ``Dom.Exec.idlCheck]
+    approx := [("*", "options を受けない")] },
   { alg := "dom-document-createdocumentfragment"
     impl := [``Dom.createDocumentFragment] },
   { alg := "dom-document-createtextnode"
@@ -43,10 +44,10 @@ def entries : List Entry := [
   { alg := "dom-document-createcomment"
     impl := [``Dom.createComment] },
   { alg := "dom-document-importnode"
-    impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn]
+    impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn, ``Dom.Exec.idlCheck]
     omitted := [("3", .customElements), ("5.1", .todo "ImportNodeOptions の dictionary の形を受けない（boolean の形だけ）"),
              ("5.2-5.3", .customElements), ("6", .customElements)]
-    approx := [("1", "Document だけを弾く。shadow root は model に無いので検査しない。その前に、" ++ receiverTypeError),
+    approx := [("1", "Document だけを弾く。shadow root は model に無いので検査しない"),
                ("7", "fallbackRegistry を渡さない（custom element registry が無い）")] },
   { alg := "concept-node-adopt"
     impl := [``Dom.adopt, ``Dom.setOwnerDocument, ``Dom.NodeData.withOwnerDocument, ``Dom.adoptAttr]
@@ -55,9 +56,8 @@ def entries : List Entry := [
              ("3.4", .hook)]
     approx := [("3", "shadow-including inclusive descendant ではなく inclusive descendant をたどる（shadow tree が無いので同じ集合）")] },
   { alg := "dom-document-adoptnode"
-    impl := [``Dom.adoptNode, ``Dom.adoptAttr]
-    omitted := [("2", .shadow)]
-    approx := [("1", "step に入る前に、" ++ receiverTypeError)] },
+    impl := [``Dom.adoptNode, ``Dom.adoptAttr, ``Dom.Exec.idlCheck]
+    omitted := [("2", .shadow)] },
   { alg := "dom-document-createattribute"
     impl := [``Dom.createAttribute, ``Dom.isValidAttributeLocalName, ``Dom.createAttributeIn] },
   { alg := "dom-document-createattributens"

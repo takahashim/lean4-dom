@@ -25,11 +25,16 @@ attribute は見ない・書かない（`Dom/Properties/NullNamespace.lean`）�
 
 namespace Dom
 
-/-- 受け手が Element であること（WebIDL）。 -/
+/--
+受け手が Element であること。
+
+受け手の interface は WebIDL の検査として呼び出しの層（`Dom/Exec/Invoke.lean`）が先に確かめ、`TypeError` を返す。
+ここに残る検査は、model の都合で interface の違う node の id を渡された場合の guard で、木に無い id と同じく `NotFoundError` にする。
+-/
 def requireElementData (t : Tree) (element : NodeId) : Except DOMException NodeData :=
   match t.get? element with
   | none => .error .notFoundError
-  | some d => if d.kind != .element then .error .typeError else .ok d
+  | some d => if d.kind != .element then .error .notFoundError else .ok d
 
 /--
 DOMString の reflect の getter。"get an attribute value"（namespace は null）。
@@ -92,11 +97,16 @@ def ReflectIface.applies (d : NodeData) : ReflectIface → Bool
   | .html => d.namespace == some htmlNamespace
   | .htmlOrSvg => d.namespace == some htmlNamespace || d.namespace == some svgNamespace
 
-/-- 受け手が Element で、その IDL attribute を持つこと。持たなければ WebIDL の TypeError とする。 -/
+/--
+受け手が Element で、その IDL attribute を持つこと。
+
+持たない object では property が undefined なので、JS では呼び出しが `TypeError` になる。
+その検査は呼び出しの層（`Dom/Exec/Invoke.lean`）が行う。ここに残るのは model の都合の guard である。
+-/
 def requireReflectTarget (t : Tree) (element : NodeId) (r : ReflectSpec) :
     Except DOMException NodeData := do
   let d ← requireElementData t element
-  if r.iface.applies d then return d else throw .typeError
+  if r.iface.applies d then return d else throw .notFoundError
 
 /--
 reflect の getter。DOMString は "get an attribute value"、boolean は

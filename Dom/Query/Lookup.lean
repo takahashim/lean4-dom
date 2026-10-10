@@ -21,19 +21,23 @@ class の一覧だけである）。
 
 namespace Dom
 
-/-! ## receiver の種別 -/
+/-! ## receiver の種別
+
+受け手の interface は WebIDL の検査として呼び出しの層（`Dom/Exec/Invoke.lean`）が先に確かめ、`TypeError` を返す。
+ここに残る検査は、model の都合で interface の違う node の id を渡された場合の guard で、木に無い id と同じく `NotFoundError` にする。
+-/
 
 /-- `getElementById()` は `NonElementParentNode`、つまり Document と DocumentFragment の method である。 -/
 def requireNonElementParentNode (t : Tree) (node : NodeId) : Except DOMException Unit :=
   match t.get? node with
-  | some d => if d.kind == .document || d.kind == .documentFragment then .ok () else .error .typeError
-  | none => .error .typeError
+  | some d => if d.kind == .document || d.kind == .documentFragment then .ok () else .error .notFoundError
+  | none => .error .notFoundError
 
 /-- `getElementsByClassName()` は Document と Element の method である。 -/
 def requireDocumentOrElement (t : Tree) (node : NodeId) : Except DOMException Unit :=
   match t.get? node with
-  | some d => if d.kind == .document || d.kind == .element then .ok () else .error .typeError
-  | none => .error .typeError
+  | some d => if d.kind == .document || d.kind == .element then .ok () else .error .notFoundError
+  | none => .error .notFoundError
 
 /-- `node` の descendant である element を tree order に並べる。 -/
 def descendantElements (t : Tree) (node : NodeId) : List NodeId :=

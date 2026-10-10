@@ -5,6 +5,7 @@ import Dom.Range.Api
 import Dom.Selector.Api
 import Dom.Query.Lookup
 import Dom.Validity.AttrIds
+import Dom.Exec.Invoke
 
 /-!
 # 操作列の評価
@@ -513,18 +514,21 @@ def requireRefs (s : DOMState) (rs : List NodeRef) : Except DOMException DOMStat
 /--
 WebIDL の non-nullable な `Node` 引数を受け取る。
 
-引数の変換は method の step に入る前に走るので、null は
-**手順を一つも実行しないうちに** `TypeError` になる。
-`Range.setStart(null, 木より大きい offset)` が `IndexSizeError` ではなく
-`TypeError` になるのはこのためである。
+null を渡したときの `TypeError` は、method を呼ぶ層の WebIDL の検査（`idlCheck`）が先に返す。
+ここに来るのは model の都合で null のまま algorithm の層を呼んだ場合だけで、`NotFoundError` にする。
 -/
 def withNode {α : Type} (n : Option Nat) (f : NodeId → Except DOMException α) :
     Except DOMException α :=
   match n with
-  | none => .error .typeError
+  | none => .error .notFoundError
   | some n => f ⟨n⟩
 
-/-- 一つの操作を public API に割り当てる。 -/
+/--
+一つの操作を、algorithm の層の実行関数に割り当てる。
+
+WebIDL の検査（`idlCheck`）と、method steps が投げる `TypeError` は含まない。
+それらを含めて method を呼ぶのは `invokeOperation` である。
+-/
 def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .appendChild p n => appendChild s ⟨p⟩ ⟨n⟩
   | .insertBefore p n c => insertBefore s ⟨p⟩ ⟨n⟩ (c.map NodeId.mk)
@@ -634,6 +638,44 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .removeNamedItem e qn => dropAttr (removeNamedItem s ⟨e⟩ qn)
   | .notify => .ok (notifyMutationObservers s).1
 
+/-- WebIDL の検査を通った後の method steps。`observe` だけが step 3-6 で `TypeError` を投げうる。 -/
+def invokeChecked (s : DOMState) : Operation → Except IdlException DOMState
+  | .observe mo target opts => MutationObserver.observeMethod s mo ⟨target⟩ opts
+  | op => liftDom (applyOperation s op)
+
+/--
+**一つの操作を、JS から method を呼んだときと同じ順で行う。**
+
+WebIDL の検査（this の interface と引数の変換）が先に走り、通らなければ `TypeError` を返す。
+通れば method steps に進む。
+-/
+def invokeOperation (s : DOMState) (op : Operation) : Except IdlException DOMState :=
+  if idlCheck s op then invokeChecked s op else .error .typeError
+
+/-- `observeMethod` が通れば、step 3-6 を除いた `observe` も通る。 -/
+theorem observe_of_observeMethod {s s' : DOMState} {mo : Nat} {target : NodeId}
+    {opts : MutationObserverInit} (h : MutationObserver.observeMethod s mo target opts = .ok s') :
+    MutationObserver.observe s mo target opts = .ok s' := by
+  unfold MutationObserver.observeMethod at h
+  split at h
+  · cases h
+  · exact liftDom_eq_ok.mp h
+
+/--
+**method を呼ぶ層が成功すれば、algorithm の層も同じ状態で成功する。**
+
+`applyOperation` について立てた定理（admissibility の保存ほか）は、これを通して
+`invokeOperation` に移る。
+-/
+theorem applyOperation_of_invoke {s s' : DOMState} {op : Operation}
+    (h : invokeOperation s op = .ok s') : applyOperation s op = .ok s' := by
+  unfold invokeOperation at h
+  split at h
+  · cases op
+    case observe mo target opts => exact observe_of_observeMethod h
+    all_goals exact liftDom_eq_ok.mp h
+  · cases h
+
 /--
 操作列を順に適用する。例外が起きた step で打ち切る（PLAN §7.2）。
 
@@ -648,7 +690,7 @@ step 7 の adopt→remove より前に走るせいで、順序は実際に逆転
 def runOperations : DOMState → List Operation → Nat → List StepResult × Option (Nat × String)
   | _, [], _ => ([], none)
   | s, op :: ops, i =>
-    match applyOperation s op with
+    match invokeOperation s op with
     | .error e => ([.failed s e], none)
     | .ok s' =>
       let delivered := deliveredBy s op

@@ -19,9 +19,9 @@ element の namespace と local name に依る部分（`tagName`、attribute 名
 attribute の node document は `Attr.ownerDocument` で持つ。adopt の step 3.3.1 は
 `NodeData.withOwnerDocument` が element の attribute ごと書き換える。
 
-receiver が Element でない場合は WebIDL の TypeError を返す。仕様の algorithm 自体には
-その検査が無い（`Element` interface の method からしか呼ばれないため）が、
-model は node を kind で区別するので、IDL 由来の検査として置く。
+receiver が Element でない場合の WebIDL の TypeError は、呼び出しの層（`Dom/Exec/Invoke.lean`）が返す。
+仕様の algorithm 自体にはその検査が無い（`Element` interface の method からしか呼ばれないため）。
+ここに残る検査は、model の都合で Element でない node の id を渡された場合の guard で、`NotFoundError` を返す。
 -/
 
 namespace Dom
@@ -250,7 +250,7 @@ def setAttributeValue (s : DOMState) (element : NodeId) (localName value : Strin
   match s.tree.get? element with
   | none => .error .notFoundError
   | some d =>
-    if d.kind != .element then .error .typeError
+    if d.kind != .element then .error .notFoundError
     else
       match getAttributeByKey d «namespace» localName with
       | none =>
@@ -276,7 +276,7 @@ def setAttribute (s : DOMState) (element : NodeId) (qualifiedName value : String
     match s.tree.get? element with
     | none => .error .notFoundError
     | some d =>
-      if d.kind != .element then .error .typeError
+      if d.kind != .element then .error .notFoundError
       else
         match getAttributeByName s.tree d qualifiedName with
         -- step 5
@@ -304,7 +304,7 @@ def removeAttribute (s : DOMState) (element : NodeId) (qualifiedName : String) :
   match s.tree.get? element with
   | none => .error .notFoundError
   | some d =>
-    if d.kind != .element then .error .typeError
+    if d.kind != .element then .error .notFoundError
     else
       match getAttributeByName s.tree d qualifiedName with
       | none => .ok s
@@ -316,7 +316,7 @@ def removeAttributeNS (s : DOMState) (element : NodeId) («namespace» : Option 
   match s.tree.get? element with
   | none => .error .notFoundError
   | some d =>
-    if d.kind != .element then .error .typeError
+    if d.kind != .element then .error .notFoundError
     else
       match getAttributeByKey d «namespace» localName with
       | none => .ok s
@@ -335,7 +335,7 @@ def toggleAttribute (s : DOMState) (element : NodeId) (qualifiedName : String)
     match s.tree.get? element with
     | none => .error .notFoundError
     | some d =>
-      if d.kind != .element then .error .typeError
+      if d.kind != .element then .error .notFoundError
       else
         match getAttributeByName s.tree d qualifiedName with
         -- step 4

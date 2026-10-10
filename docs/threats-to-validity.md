@@ -68,7 +68,7 @@ step 2（ASCII lowercase）と step 4（HTML namespace）が効かない側（XM
 | --- | --- |
 | `move` step 1 は shadow-including root ではなく root で判定する | shadow tree を含む木では仕様と違う。対象外なので実害は無い |
 | `convert nodes into a node` は呼び出し側で済ませた形で受け取る | `x.replaceWith(x)` のような「変換が node を動かす」場合を model 側で再現できない |
-| WebIDL の TypeError を `DOMException` と同じ型で扱う | `moveBefore` と attribute の method の receiver、`observe` の options、`Range` の `Node` 引数、§4.5 の factory と `importNode` / `adoptNode` の receiver がこれに当たる。名前は "TypeError" で一致するが、実際には `DOMException` ではない |
+| WebIDL の層は this の interface と一部の引数の検査だけである | method を呼ぶ層（`Dom/Exec/Invoke.lean` の `idlCheck` と `Dom/Exec/Eval.lean` の `invokeOperation`）は、this が method を持つ interface を実装するか、`Range` の `Node` 引数が null でないか、`setAttributeNode` の引数が `Attr` かを検査し、`TypeError` を `DOMException` とは別の型（`IdlException.typeError`）で返す。scenario は変換済みの値を運ぶので、数値の ToUint32、DOMString への変換、dictionary の member の型、可変長の引数と union、overload の選択は model に無い。interface の判定は node の kind で行う |
 | `NodeStore` は association list | 性能ではなく証明の都合。`keys` に重複が無いことは構造では保証していない（`observe` は id で正規化して吸収する） |
 | IDNA / UTS #46 は**相対的な保証**である | 写像表の正しさは証明していない。`IdnaTable.Resolved` を仮定に置き、実行時に `checkResolved` で検査する。NFC・Bidi・Joiner の code point は誤って扱うのではなく `none` で弾く（`outOfModel`）。**安全側に限定した model であって、UTS #46 適合ではない** |
 | `insertAt` の guard が仕様より厳しい | 仕様は「`child` は `parent` の子」を `pre-insert` の validity（step 3）に置き、`move` の側には置いていない。model は primitive 側に置くので、`move` を `child = node` で呼ぶと仕様（先頭に入れる）と違って `notFoundError` になる。**差が観測できないことは散文ではなく検査で押さえてある**——`Dom.moveBefore_reference_ne` と `ruby test/callsites.rb`（`move` を呼ぶ実行定義は `moveBefore` だけ） |

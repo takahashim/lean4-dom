@@ -35,22 +35,26 @@ def scopeMatch (t : Tree) (selectors : String) (node : NodeId) :
   | some sel => .ok (matchTree t sel node)
 
 /--
-receiver が `ParentNode`（Document / DocumentFragment / Element）か検査する。
+receiver が `ParentNode`（Document / DocumentFragment / Element）であること。
 
-`querySelector()` はこの三つにしか無い method なので、それ以外の node に対しては
-WebIDL の `TypeError` になる。検査は method 本体より前、つまり
-`parse a selector` より前に起きる。
+受け手の interface は WebIDL の検査として呼び出しの層（`Dom/Exec/Invoke.lean`）が先に確かめ、`TypeError` を返す。
+ここに残る検査は、model の都合で interface の違う node の id を渡された場合の guard で、木に無い id と同じく `NotFoundError` にする。
 -/
 def requireParentNode (t : Tree) (node : NodeId) : Except DOMException Unit :=
   match t.get? node with
-  | none => .error .typeError
-  | some d => if d.kind.canHaveChildren then .ok () else .error .typeError
+  | none => .error .notFoundError
+  | some d => if d.kind.canHaveChildren then .ok () else .error .notFoundError
 
-/-- `matches()` と `closest()` は `Element` の method である。 -/
+/--
+`matches()` と `closest()` は `Element` の method である。
+
+受け手の interface は WebIDL の検査として呼び出しの層（`Dom/Exec/Invoke.lean`）が先に確かめ、`TypeError` を返す。
+ここに残る検査は、model の都合で interface の違う node の id を渡された場合の guard で、木に無い id と同じく `NotFoundError` にする。
+-/
 def requireElementNode (t : Tree) (node : NodeId) : Except DOMException Unit :=
   match t.get? node with
-  | none => .error .typeError
-  | some d => if d.kind == .element then .ok () else .error .typeError
+  | none => .error .notFoundError
+  | some d => if d.kind == .element then .ok () else .error .notFoundError
 
 /-- §4.2.6 `ParentNode.querySelector()`。 -/
 def querySelector (t : Tree) (selectors : String) (node : NodeId) :

@@ -1235,3 +1235,8 @@ open Dom.Audit
   Dom.Spec.rangeDeleteContents_result_complete
   Dom.Spec.observe_result_sound
   Dom.Spec.observe_result_complete
+
+-- method を呼ぶ層（WebIDL の検査）：成功すれば algorithm の層も同じ状態で成功する
+#audit_axioms
+  Dom.Exec.applyOperation_of_invoke
+  Dom.Exec.observe_of_observeMethod

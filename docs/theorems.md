@@ -720,8 +720,9 @@ evaluator を引けるのはそのためで、ここを普通の意味で整理�
 
 同じ file で、仮定を外すと結論が成り立たなくなることを見る。
 `adoptNode` に Document を渡すと `NotSupportedError`、parent の無い node を
-`remove` すると `NotFoundError`、`ParentNode` でない受け手に `querySelector()` を
-呼ぶと `TypeError` になる。
+`remove` すると `NotFoundError`、`ParentNode` でない受け手に `querySelector()` の
+algorithm を呼ぶと guard で止まる（JS から呼んだときの `TypeError` は、method を呼ぶ層の
+WebIDL の検査 `Dom.Exec.idlCheck` が先に返す）。
 
 ### 3. 関係が実装の言い換えになっていないか
 

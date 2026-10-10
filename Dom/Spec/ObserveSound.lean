@@ -3,7 +3,7 @@ import Dom.Spec.Observe
 /-!
 # `observe` は関係とちょうど一致する
 
-実行関数の結果は `ObserveResult` を満たし（sound）、関係を満たす結果は実行関数の結果と
+method 全体（`observeMethod`）の結果は `ObserveResult` を満たし（sound）、関係を満たす結果は実行関数の結果と
 等しい（complete）。一意性は complete から出る。
 -/
 
@@ -96,27 +96,28 @@ theorem registrationFor_resolve (mo : Nat) (target : NodeId) (o : MutationObserv
   unfold registrationFor
   rw [hcl, hst, haov, hfil, hcov, hb, hb, hb, hb]
 
-/-- **`observe` の結果は関係を満たす。** -/
+/-- **`observe` の method の結果は関係を満たす。** -/
 theorem observe_result_sound (s : DOMState) (mo : Nat) (target : NodeId) (o : MutationObserverInit) :
-    ObserveResult s mo target o (observe s mo target o) := by
+    ObserveResult s mo target o (observeMethod s mo target o) := by
+  unfold observeMethod
+  rcases observeOptionsError_spec o with ⟨hrej, he⟩ | ⟨hrej, he⟩
+  · rw [he]; exact Or.inl ⟨hrej, rfl⟩
+  rw [he]
+  show ObserveResult s mo target o (liftDom (observe s mo target o))
   unfold observe
   dsimp only
   cases hd : s.tree.get? target with
-  | none => exact Or.inl ⟨Or.inl hd, rfl⟩
+  | none => exact Or.inr ⟨hrej, Or.inl hd, rfl⟩
   | some d =>
     simp only [Option.isNone_some, Bool.false_eq_true, if_false]
     by_cases hmo : mo ≥ s.observers.length
-    · rw [if_pos hmo]; exact Or.inl ⟨Or.inr hmo, rfl⟩
+    · rw [if_pos hmo]; exact Or.inr ⟨hrej, Or.inr hmo, rfl⟩
     rw [if_neg hmo]
     have hmo' : mo < s.observers.length := by omega
-    rcases observeOptionsError_spec o with ⟨hrej, he⟩ | ⟨hrej, he⟩
-    · rw [he]; exact Or.inr ⟨⟨d, hd⟩, hmo', hrej, rfl⟩
-    rw [he]
-    dsimp only
     have hreg := registrationFor_resolve mo target o
     by_cases hex : (s.registrations.any fun r =>
         r.observer == mo && r.node == target && !r.transient) = true
-    · rw [if_pos hex]
+    · rw [if_pos hex, liftDom_ok]
       refine ⟨⟨d, hd⟩, hmo', hrej, _, _, attributesResolved_resolve o,
         characterDataResolved_resolve o, Or.inl ⟨?_, ?_⟩⟩
       · obtain ⟨r, hr, hc⟩ := List.any_eq_true.mp hex
@@ -139,7 +140,7 @@ theorem observe_result_sound (s : DOMState) (mo : Nat) (target : NodeId) (o : Mu
               simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_eq_eq_not, Bool.not_true]
               intro ⟨⟨a, b⟩, c⟩; exact h2 ⟨a, b, c⟩
             rw [if_neg e1, if_neg e2]
-    · rw [if_neg hex]
+    · rw [if_neg hex, liftDom_ok]
       obtain ⟨ob, hob⟩ : ∃ ob, s.observers[mo]? = some ob :=
         ⟨s.observers[mo], List.getElem?_eq_getElem hmo'⟩
       refine ⟨⟨d, hd⟩, hmo', hrej, _, _, attributesResolved_resolve o,
@@ -147,43 +148,39 @@ theorem observe_result_sound (s : DOMState) (mo : Nat) (target : NodeId) (o : Mu
           ⟨r, hr, by simp [h1, h2, h3]⟩), ob, hob, ?_⟩⟩
       rw [hreg, hob]
 
-/-- **関係を満たす結果は、`observe` の結果と等しい。** -/
+/-- **関係を満たす結果は、`observe` の method の結果と等しい。** -/
 theorem observe_result_complete {s : DOMState} {mo : Nat} {target : NodeId}
-    {o : MutationObserverInit} {r : Except DOMException DOMState} (h : ObserveResult s mo target o r) :
-    r = observe s mo target o := by
+    {o : MutationObserverInit} {r : Except IdlException DOMState}
+    (h : ObserveResult s mo target o r) : r = observeMethod s mo target o := by
   have hs := observe_result_sound s mo target o
   rcases r with e | s'
-  · cases hr : observe s mo target o with
+  · cases hr : observeMethod s mo target o with
     | error e' =>
       rw [hr] at hs
       congr 1
-      rcases h with ⟨hn, rfl⟩ | ⟨⟨d, hd⟩, hmo, hrej, rfl⟩ <;>
-        rcases hs with ⟨hn', rfl⟩ | ⟨⟨d', hd'⟩, hmo', hrej', rfl⟩
+      rcases h with ⟨hrej, rfl⟩ | ⟨hrej, -, rfl⟩ <;>
+        rcases hs with ⟨hrej', rfl⟩ | ⟨hrej', -, rfl⟩
       · rfl
-      · rcases hn with hn | hn
-        · rw [hn] at hd'; cases hd'
-        · omega
-      · rcases hn' with hn' | hn'
-        · rw [hn'] at hd; cases hd
-        · omega
+      · exact absurd hrej hrej'
+      · exact absurd hrej' hrej
       · rfl
     | ok s₂ =>
       rw [hr] at hs
       exfalso
       obtain ⟨⟨d, hd⟩, hmo, hrej, -⟩ := hs
-      rcases h with ⟨hn | hn, -⟩ | ⟨-, -, hrej', -⟩
+      rcases h with ⟨hrej', -⟩ | ⟨-, hn | hn, -⟩
+      · exact hrej hrej'
       · rw [hn] at hd; cases hd
       · omega
-      · exact hrej hrej'
-  · cases hr : observe s mo target o with
+  · cases hr : observeMethod s mo target o with
     | error e' =>
       rw [hr] at hs
       exfalso
       obtain ⟨⟨d, hd⟩, hmo, hrej, -⟩ := h
-      rcases hs with ⟨hn | hn, -⟩ | ⟨-, -, hrej', -⟩
+      rcases hs with ⟨hrej', -⟩ | ⟨-, hn | hn, -⟩
+      · exact hrej hrej'
       · rw [hn] at hd; cases hd
       · omega
-      · exact hrej hrej'
     | ok s₂ =>
       rw [hr] at hs
       congr 1

@@ -73,10 +73,10 @@ namespace MutationObserver
 /--
 DOM Standard §4.3 `MutationObserver.observe(target, options)` の step 3-6。
 
-解決後（step 1-2 の後）の options を検査する。
-検査だけを切り出してあるのは、失敗の条件を単体で述べられるようにするためである。
+解決後（step 1-2 の後）の options を検査する。本文はここで "throw a TypeError" と書くので、
+`DOMException` ではなく WebIDL の simple exception（`IdlException.typeError`）を返す。
 -/
-def observeOptionsError (opts₀ : MutationObserverInit) : Option DOMException :=
+def observeOptionsError (opts₀ : MutationObserverInit) : Option IdlException :=
   let opts := opts₀.resolve
   -- step 3
   if !(opts.childList || opts.attributes == some true || opts.characterData == some true) then
@@ -90,18 +90,10 @@ def observeOptionsError (opts₀ : MutationObserverInit) : Option DOMException :
   else none
 
 /--
-DOM Standard §4.3 `MutationObserver.observe(target, options)`。
+DOM Standard §4.3 `MutationObserver.observe(target, options)` の step 1-2 と step 7-8。
 
-step 1-2 は `MutationObserverInit.resolve`、step 3-6 は `observeOptionsError` が行う。
-TypeError は四通りある。
-
-* `childList` / `attributes` / `characterData` のどれも true でない（step 3）。
-* `attributeOldValue` が true で `attributes` が false（step 4）。
-* `attributeFilter` があって `attributes` が false（step 5）。
-* `characterDataOldValue` が true で `characterData` が false（step 6）。
-
-step 4-6 の「false である」は解決後の値なので、
-省略された場合（step 1-2 で true になる）は TypeError にならない。
+options を解決して registered observer を足すか差し替える。step 3-6 の検査は含まない。
+検査を含めた method 全体は `observeMethod` である。
 -/
 def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts₀ : MutationObserverInit) :
     Except DOMException DOMState :=
@@ -109,9 +101,7 @@ def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts₀ : MutationObser
   -- model の都合。仕様では target は実在する node、`this` は実在する observer である。
   if (s.tree.get? target).isNone then .error .notFoundError
   else if mo ≥ s.observers.length then .error .notFoundError
-  else match observeOptionsError opts₀ with
-  | some e => .error e
-  | none =>
+  else
     let reg : Registration :=
       { node := target, observer := mo, subtree := opts.subtree, childList := opts.childList,
         attributes := opts.attributes == some true,
@@ -135,6 +125,25 @@ def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts₀ : MutationObser
               observers := match s.observers[mo]? with
                 | none => s.observers
                 | some o => s.observers.set mo { o with nodeList := o.nodeList ++ [target] } }
+
+/--
+DOM Standard §4.3 `MutationObserver.observe(target, options)` の method steps 全体。
+
+step 3-6 の TypeError は四通りある。
+
+* `childList` / `attributes` / `characterData` のどれも true でない（step 3）。
+* `attributeOldValue` が true で `attributes` が false（step 4）。
+* `attributeFilter` があって `attributes` が false（step 5）。
+* `characterDataOldValue` が true で `characterData` が false（step 6）。
+
+step 4-6 の「false である」は解決後の値なので、省略された場合（step 1-2 で true になる）は
+TypeError にならない。検査を通れば `observe` が registered observer を扱う。
+-/
+def observeMethod (s : DOMState) (mo : Nat) (target : NodeId) (opts : MutationObserverInit) :
+    Except IdlException DOMState :=
+  match observeOptionsError opts with
+  | some e => .error e
+  | none => liftDom (observe s mo target opts)
 
 /--
 DOM Standard §4.3 `MutationObserver.disconnect()`。

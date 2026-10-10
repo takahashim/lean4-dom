@@ -102,11 +102,16 @@ def createAttributeNS (s : DOMState) (doc : NodeId) («namespace» : Option Stri
 
 /-! ## `Element` の method -/
 
-/-- 受け手が Element であることを確かめる。 -/
+/--
+受け手が Element であること。
+
+受け手の interface は WebIDL の検査として呼び出しの層（`Dom/Exec/Invoke.lean`）が先に確かめ、`TypeError` を返す。
+ここに残る検査は、model の都合で interface の違う node の id を渡された場合の guard で、木に無い id と同じく `NotFoundError` にする。
+-/
 def requireElement (t : Tree) (element : NodeId) : Except DOMException NodeData :=
   match t.get? element with
   | none => .error .notFoundError
-  | some d => if d.kind != .element then .error .typeError else .ok d
+  | some d => if d.kind != .element then .error .notFoundError else .ok d
 
 /-- DOM Standard §4.9 `Element.getAttributeNode(qualifiedName)`。 -/
 def getAttributeNode (t : Tree) (element : NodeId) (qualifiedName : String) :
@@ -149,8 +154,9 @@ def setAttributeNode (s : DOMState) (element : NodeId) (aid : AttrId) :
   | .error e => .error e
   | .ok d =>
     match findAttr s aid with
-    -- `Attr` でない引数。WebIDL の変換で TypeError になる。
-    | none => .error .typeError
+    -- `Attr` でない引数。WebIDL の変換は呼び出しの層が先に行い TypeError を返すので、
+    -- ここに来るのは model の都合で不正な id を渡された場合だけである。
+    | none => .error .notFoundError
     | some (a₀, owner) =>
       -- step 2
       if owner != none && owner != some element then .error .inUseAttributeError

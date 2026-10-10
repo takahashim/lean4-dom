@@ -23,11 +23,11 @@ def entries : List Entry := [
     approx := [("6.3", "node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる"),
                ("6.4", "callback は呼ばない。records が空でない observer と records の組を返り値に並べる")] },
   { alg := "dom-mutationobserver-observe"
-    impl := [``Dom.MutationObserver.observe, ``Dom.MutationObserverInit.resolve,
-             ``Dom.MutationObserver.observeOptionsError]
+    -- step 3-6 の TypeError は `DOMException` ではなく `IdlException.typeError`（`observeMethod`）。
+    impl := [``Dom.MutationObserver.observeMethod, ``Dom.MutationObserver.observe,
+             ``Dom.MutationObserverInit.resolve, ``Dom.MutationObserver.observeOptionsError]
     spec := [``Dom.Spec.ObserveResult, ``Dom.Spec.ObserveOptionsRejected]
-    approx := [("3-6", "TypeError を `DOMException.typeError` で表す"),
-               ("7", "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた"),
+    approx := [("7", "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた"),
                ("7.1", "node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す")] },
   { alg := "dom-mutationobserver-disconnect"
     impl := [``Dom.MutationObserver.disconnect]

@@ -68,8 +68,11 @@ example : adoptNode state ⟨0⟩ ⟨0⟩ = .error .notSupportedError := rfl
 /-- `remove_succeeds_iff` の「parent がある」を外すと失敗する。 -/
 example : remove state ⟨0⟩ = .error .notFoundError := rfl
 
-/-- `querySelector` の受け手が `ParentNode` でなければ `TypeError` になる。 -/
-example : querySelector state.tree "p" ⟨2⟩ = .error .typeError := rfl
+/--
+`querySelector` の受け手が `ParentNode` でなければ、algorithm の層の guard が `NotFoundError` を返す。
+JS から呼んだときの `TypeError` は、method を呼ぶ層（`Dom.Exec.invokeOperation`）が先に返す。
+-/
+example : querySelector state.tree "p" ⟨2⟩ = .error .notFoundError := rfl
 
 /-! ## selector の側
 
@@ -79,10 +82,10 @@ well-founded recursion を展開しない）。selector の実際の結果は
 ここで見られるのは、本体に入る前の検査だけである。
 -/
 
-/-- 受け手が `ParentNode` でなければ、selector を読む前に `TypeError` になる。 -/
-example : querySelector state.tree "p" ⟨2⟩ = .error .typeError := rfl
+/-- 受け手が `ParentNode` でなければ、selector を読む前に guard で止まる。 -/
+example : querySelector state.tree "p" ⟨2⟩ = .error .notFoundError := rfl
 
-/-- `matches()` の受け手が Element でなければ同じく `TypeError`。 -/
-example : matchesSelector state.tree "p" ⟨0⟩ = .error .typeError := rfl
+/-- `matches()` の受け手が Element でなければ同じく guard で止まる。 -/
+example : matchesSelector state.tree "p" ⟨0⟩ = .error .notFoundError := rfl
 
 end Dom.Witness

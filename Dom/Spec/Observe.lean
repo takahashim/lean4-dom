@@ -3,7 +3,7 @@ import Dom.Observer.Deliver
 /-!
 # `MutationObserver.observe` の関係意味論（§4.3）
 
-実行関数（`Dom/Observer/Deliver.lean` の `MutationObserver.observe`）がこの関係と
+method 全体（`Dom/Observer/Deliver.lean` の `MutationObserver.observeMethod`）がこの関係と
 ちょうど一致する（等号）ことは `Dom/Spec/ObserveSound.lean` で証明する。
 
 ## 読み
@@ -65,6 +65,8 @@ def reregistered (mo : Nat) (target : NodeId) (reg r : Registration) : Option Re
 /--
 **`observe(target, options)` の、結果まで含めた関係。**
 
+3-6. options が検査に落ちれば `TypeError`（本文の "throw a TypeError"。`DOMException` ではない）。
+
 target が木に無い、または observer が無いのは model の都合で `NotFoundError`。
 
 7. target の registered observer list にこの observer のものがあれば、
@@ -72,10 +74,10 @@ target が木に無い、または observer が無いのは model の都合で `
 8. 無ければ、registered observer を足し、target を node list に足す。
 -/
 def ObserveResult (s : DOMState) (mo : Nat) (target : NodeId) (o : MutationObserverInit) :
-    Except DOMException DOMState → Prop
-  | .error e => (((s.tree.get? target = none) ∨ s.observers.length ≤ mo) ∧ e = .notFoundError) ∨
-      ((∃ d, s.tree.get? target = some d) ∧ mo < s.observers.length ∧
-        ObserveOptionsRejected o ∧ e = .typeError)
+    Except IdlException DOMState → Prop
+  | .error e => (ObserveOptionsRejected o ∧ e = .typeError) ∨
+      (¬ ObserveOptionsRejected o ∧ ((s.tree.get? target = none) ∨ s.observers.length ≤ mo) ∧
+        e = .dom .notFoundError)
   | .ok s' => (∃ d, s.tree.get? target = some d) ∧ mo < s.observers.length ∧
       ¬ ObserveOptionsRejected o ∧
       ∃ a c, AttributesResolved o a ∧ CharacterDataResolved o c ∧

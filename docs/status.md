@@ -5990,6 +5990,35 @@ Dommy（`4fc3caa`）は本文どおりで、固定 scenario 185 件と生成 sce
   取り除く）の状態を別に書き、add・remove・dispatch で観測が一致することを示す必要がある。Event object を model に
   入れるときに合わせて行うのがよい。
 
+## WebIDL の検査を method を呼ぶ層に分けた
+
+`TypeError` を `DOMException` の constructor として持ち、WebIDL の this の検査を algorithm の実行関数の中で
+行っていた。`TypeError` は ECMAScript の error で `DOMException` ではなく、this の検査は method steps より前に
+WebIDL が行うものなので、二つとも algorithm の層から外した。
+
+* `DOMException` から `typeError` を外し、WebIDL の exception として `IdlException`（`dom` と `typeError`）を足した
+  （`Dom/Basic/Exception.lean`）。
+* method を呼ぶ層を置いた。`Dom.Exec.idlCheck`（`Dom/Exec/Invoke.lean`）が this の interface（ParentNode・Element・
+  Document ほか、reflect と dataset はその IDL attribute を持つ Element）と、`Range` の `Node` 引数の null、
+  `setAttributeNode` の `Attr` 引数を検査し、`Dom.Exec.invokeOperation` が通らなければ `TypeError` を返す。
+  差分テストと主定理（`run_preserves_admissibility`、`ReachableFrom`）はこの層を通る。
+* algorithm の層（`applyOperation` が呼ぶ実行関数）に残した受け手の検査は、model の都合で interface の違う node の
+  id を渡された場合の guard とし、木に無い id と同じく `NotFoundError` を返す。関係（`ReceiverError`・`MoveResult`・
+  `SetAttributeNodeResult`）も同じに直した。
+* `observe` の step 3-6 は、仕様の method steps 自身が "throw a TypeError" と書く所なので、algorithm の
+  `MutationObserver.observe`（step 1-2・7-8）から切り出し、method 全体の `observeMethod` が `IdlException.typeError`
+  を返す。関係 `ObserveResult` は method 全体について述べる形にした。
+* `applyOperation_of_invoke`：method を呼ぶ層が成功すれば algorithm の層も同じ状態で成功する。admissibility と
+  attribute の id の一意性の定理は、これを通して引き継いだ。
+
+振る舞いの変化は、model の都合の入力（木に無い id）でだけ起きる。木に無い Document や ParentNode を受け手に
+したときは `TypeError` から `NotFoundError` に変わり、`observe` は木に無い target より先に options を検査する。
+Dommy との差分テストは、固定 scenario 185 件、CI と同じ seed 1、夜間の最大設定の seed 1-3 で、変更前と同じ結果
+（不一致 0）だった。対応表の近似は 230 から 222 になった。
+
+WebIDL の型変換（ToUint32、DOMString、dictionary、可変長の引数と union、overload）はまだ無い。scenario が変換済みの
+値を運ぶので、これを入れるには scenario の形式と runner も変える必要がある（member ごとに進める）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

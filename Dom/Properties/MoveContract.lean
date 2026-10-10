@@ -211,12 +211,16 @@ theorem moveBefore_error_iff {s : DOMState} (hwf : WellFormed s.tree)
       simp at h
   · exact move_of_validity_error
 
-/-- **receiver 自身の二つの失敗。** 木に無ければ `NotFoundError`、`ParentNode` でなければ `TypeError`。 -/
+/--
+**receiver 自身の二つの失敗。** 木に無いか `ParentNode` でなければ `NotFoundError`（model の都合の guard）。
+
+`ParentNode` でない receiver に対する WebIDL の `TypeError` は、method を呼ぶ層が先に返す。
+-/
 theorem moveBefore_error_receiver {s : DOMState} {parent node : NodeId}
     {child : Option NodeId} {e : DOMException} :
     (s.tree.get? parent = none → (moveBefore s parent node child = .error e ↔ e = .notFoundError)) ∧
       (∀ pd, s.tree.get? parent = some pd → pd.kind.canHaveChildren = false →
-        (moveBefore s parent node child = .error e ↔ e = .typeError)) := by
+        (moveBefore s parent node child = .error e ↔ e = .notFoundError)) := by
   constructor
   · intro hp
     unfold moveBefore

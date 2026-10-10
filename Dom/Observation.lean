@@ -69,7 +69,7 @@ deriving DecidableEq, Repr, Inhabited
 /-- 操作の結果。 -/
 inductive OperationResult where
   | ok
-  | failed (e : DOMException)
+  | failed (e : IdlException)
 deriving DecidableEq, Repr, Inhabited
 
 /--

@@ -180,11 +180,7 @@ theorem attributeRemoved_deterministic {s o₁ o₂ : DOMState} {element : NodeI
 
 theorem receiverError_unique {s : DOMState} {element : NodeId} {e₁ e₂ : DOMException}
     (h₁ : ReceiverError s element e₁) (h₂ : ReceiverError s element e₂) : e₁ = e₂ := by
-  rcases h₁ with ⟨hn₁, rfl⟩ | ⟨d₁, hd₁, -, rfl⟩ <;> rcases h₂ with ⟨hn₂, rfl⟩ | ⟨d₂, hd₂, -, rfl⟩
-  · rfl
-  · rw [hn₁] at hd₂; cases hd₂
-  · rw [hn₂] at hd₁; cases hd₁
-  · rfl
+  rcases h₁ with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ <;> rcases h₂ with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ <;> rfl
 
 theorem not_receiverError {s : DOMState} {element : NodeId} {d : NodeData} {e : DOMException}
     (hd : IsElementData s element d) (h : ReceiverError s element e) : False := by

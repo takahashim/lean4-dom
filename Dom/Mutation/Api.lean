@@ -115,11 +115,10 @@ def moveBefore (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
   | none => .error .notFoundError
   | some pd =>
     -- `moveBefore` は `ParentNode` の method なので、receiver は IDL により
-    -- Document / DocumentFragment / Element に限られる。
-    -- move algorithm 自身にはこの検査が無いので（step 1-6 を参照）、
-    -- API の側で表す。`Dom/Basic/NodeId.lean` の `canHaveChildren` がその三つである。
-    -- IDL が method を持たない receiver に対して投げるのは WebIDL の TypeError である。
-    if !pd.kind.canHaveChildren then .error .typeError
+    -- Document / DocumentFragment / Element に限られる。method を持たない receiver に対する
+    -- WebIDL の TypeError は呼び出しの層（`Dom/Exec/Invoke.lean`）が先に返す。
+    -- ここに残るのは、model の都合で interface の違う node の id を渡された場合の guard である。
+    if !pd.kind.canHaveChildren then .error .notFoundError
     else
       -- step 1-2
       let referenceChild := if child = some node then nextSibling s.tree node else child

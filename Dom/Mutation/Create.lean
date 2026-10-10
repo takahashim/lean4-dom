@@ -35,11 +35,16 @@ theorem get?_insertNode_ne (t : Tree) {n m : NodeId} (h : m ≠ n) (d : NodeData
     (t.insertNode n d).get? m = t.get? m := by
   simp [Tree.insertNode, Tree.get?, NodeStore.get?_insert_ne _ h.symm]
 
-/-- 受け手が Document であることを確かめる。 -/
+/--
+受け手が Document であること。
+
+受け手の interface は WebIDL の検査として呼び出しの層（`Dom/Exec/Invoke.lean`）が先に確かめ、`TypeError` を返す。
+ここに残る検査は、model の都合で interface の違う node の id を渡された場合の guard で、木に無い id と同じく `NotFoundError` にする。
+-/
 def requireDocument (t : Tree) (doc : NodeId) : Except DOMException NodeData :=
   match t.get? doc with
-  | none => .error .typeError
-  | some dd => if dd.kind == .document then .ok dd else .error .typeError
+  | none => .error .notFoundError
+  | some dd => if dd.kind == .document then .ok dd else .error .notFoundError
 
 /-- 作った node を木に入れて、id と新しい状態を返す。 -/
 def withFresh (s : DOMState) (d : NodeData) : NodeId × DOMState :=

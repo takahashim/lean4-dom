@@ -692,38 +692,35 @@ theorem admissible_observe {s s' : DOMState} {mo : Nat} {target : NodeId}
       split at ho
       · simp at ho
       · next hmo =>
+        have htgt : (s.tree.get? target).isSome := by
+          cases hq : s.tree.get? target with
+          | none =>
+            exfalso
+            rw [hq] at hnone
+            exact hnone rfl
+          | some _ => rfl
+        have hmo' : mo < s.observers.length := by omega
         split at ho
-        · -- step 3-6 の TypeError
-          simp at ho
-        · have htgt : (s.tree.get? target).isSome := by
-            cases hq : s.tree.get? target with
-            | none =>
-              exfalso
-              rw [hq] at hnone
-              exact hnone rfl
-            | some _ => rfl
-          have hmo' : mo < s.observers.length := by omega
-          split at ho
-          · -- 既存の registration の options を差し替える
-            rw [← Except.ok.inj ho]
-            intro r hr
-            simp only at hr
-            obtain ⟨r₀, hr₀, hre⟩ := List.mem_filterMap.mp hr
-            split at hre
-            · simp at hre
-            · split at hre
-              · rw [← Option.some.inj hre]
-                exact ⟨hmo', htgt⟩
-              · rw [← Option.some.inj hre]
-                exact h.observerRegistrations r₀ hr₀
-          · -- 新しい registration を足す
-            rw [← Except.ok.inj ho]
-            intro r hr
-            simp only [List.mem_append, List.mem_singleton] at hr
-            rcases hr with hr | rfl
-            · obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
-              exact ⟨by simpa using g1, g2⟩
-            · exact ⟨by simpa using hmo', htgt⟩
+        · -- 既存の registration の options を差し替える
+          rw [← Except.ok.inj ho]
+          intro r hr
+          simp only at hr
+          obtain ⟨r₀, hr₀, hre⟩ := List.mem_filterMap.mp hr
+          split at hre
+          · simp at hre
+          · split at hre
+            · rw [← Option.some.inj hre]
+              exact ⟨hmo', htgt⟩
+            · rw [← Option.some.inj hre]
+              exact h.observerRegistrations r₀ hr₀
+        · -- 新しい registration を足す
+          rw [← Except.ok.inj ho]
+          intro r hr
+          simp only [List.mem_append, List.mem_singleton] at hr
+          rcases hr with hr | rfl
+          · obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
+            exact ⟨by simpa using g1, g2⟩
+          · exact ⟨by simpa using hmo', htgt⟩
 
 /-- `disconnect` は registration を減らすだけである。 -/
 theorem admissible_disconnect {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :

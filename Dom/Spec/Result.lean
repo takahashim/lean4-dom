@@ -393,8 +393,9 @@ theorem replaceResult_not_ok_of_validity_error {s s' : DOMState} (hwf : WellForm
 
 `moveBefore` は `ParentNode` の method なので、失敗しうる箇所が三つある。
 
-* receiver（`parent`）が木に無い（`NotFoundError`）
-* receiver が `ParentNode`（`canHaveChildren`）でない（`TypeError`、WebIDL による）
+* receiver（`parent`）が木に無い（`NotFoundError`、model の都合）
+* receiver が `ParentNode`（`canHaveChildren`）でない（`NotFoundError`、model の都合の guard。
+  JS から呼んだときの WebIDL の `TypeError` は method を呼ぶ層が先に返す）
 * step 1-2 が決める reference child のもとで、step 1-6 の validity が落ちる
 
 前の二つが無ければ、reference child は `child` が `node` 自身なら
@@ -417,7 +418,7 @@ def MoveResult (s : DOMState) (parent node : NodeId) (child : Option NodeId) :
   | .error e =>
       (s.tree.get? parent = none ∧ e = .notFoundError) ∨
       (∃ pd, s.tree.get? parent = some pd ∧ pd.kind.canHaveChildren = false ∧
-        e = .typeError) ∨
+        e = .notFoundError) ∨
       (∃ pd, s.tree.get? parent = some pd ∧ pd.kind.canHaveChildren = true ∧
         ∃ ref, (child = some node → ref = nextSibling s.tree node) ∧
           (child ≠ some node → ref = child) ∧
@@ -452,7 +453,7 @@ theorem move_result_sound {s : DOMState} (hwf : WellFormed s.tree) (parent node 
           fun hc => if_pos hc, fun hc => if_neg hc, ?_⟩)
         exact (moveValidity_iff hwf).mpr ((moveBefore_error_iff hwf hpd hk).mp hmv)
     · have hkf : pd.kind.canHaveChildren = false := by simpa using hk
-      have hmv0 : moveBefore s parent node child = .error .typeError := by
+      have hmv0 : moveBefore s parent node child = .error .notFoundError := by
         unfold moveBefore; rw [hpd]; simp [hkf]
       rw [hmv0]
       exact Or.inr (Or.inl ⟨pd, hpd, hkf, rfl⟩)

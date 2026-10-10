@@ -266,8 +266,8 @@ theorem run_preserves_attrIdsUnique :
     split at hr
     · simp at hr
     · next s₁ hop =>
-      exact run_preserves_attrIdsUnique ops (admissible_applyOperation h hop)
-        (attrIdsUnique_applyOperation h hu hop) hr
+      exact run_preserves_attrIdsUnique ops (admissible_applyOperation h (applyOperation_of_invoke hop))
+        (attrIdsUnique_applyOperation h hu (applyOperation_of_invoke hop)) hr
 
 /-- admissible で id が一意な初期状態から到達できる状態では、id は一意である。 -/
 theorem reachable_attrIdsUnique {initial : DOMState → Prop}
@@ -275,6 +275,8 @@ theorem reachable_attrIdsUnique {initial : DOMState → Prop}
     (hr : ReachableFrom initial s) : AdmissibleDOMState s ∧ AttrIdsUnique s := by
   induction hr with
   | base h => exact hinit _ h
-  | step _ hop ih => exact ⟨admissible_applyOperation ih.1 hop, attrIdsUnique_applyOperation ih.1 ih.2 hop⟩
+  | step _ hop ih =>
+    exact ⟨admissible_applyOperation ih.1 (applyOperation_of_invoke hop),
+      attrIdsUnique_applyOperation ih.1 ih.2 (applyOperation_of_invoke hop)⟩
 
 end Dom.Exec

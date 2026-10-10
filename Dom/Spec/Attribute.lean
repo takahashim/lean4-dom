@@ -16,8 +16,9 @@ import Dom.Attribute.Name
   とする。どの id を割り当てるかは仕様が決めない model の約束なので、関係もこれを語彙として使う。
 * "handle attribute changes" の step 2（custom element の callback reaction）と step 3
   （attribute change steps）は model では空である。step 1 の record だけを書く。
-* receiver が Element でなければ WebIDL の TypeError（`typeError`）、木に無ければ `NotFoundError`
-  （どちらも model の都合）。
+* receiver が木に無いか Element でなければ `NotFoundError`（model の都合）。
+  Element でない receiver に対する WebIDL の TypeError は、method を呼ぶ層（`Dom/Exec/Invoke.lean`）が
+  algorithm より先に返すので、この関係には現れない。
 -/
 
 namespace Dom.Spec
@@ -156,10 +157,14 @@ def AttributeRemoved (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr)
 
 /-! ## `Element` の method -/
 
-/-- receiver の検査（model の都合）：木に無ければ NotFoundError、Element でなければ TypeError。 -/
+/--
+receiver の guard（model の都合）：木に無いか Element でなければ NotFoundError。
+
+Element でない receiver の WebIDL の TypeError は method を呼ぶ層が先に返す。
+-/
 def ReceiverError (s : DOMState) (element : NodeId) (e : DOMException) : Prop :=
   (s.tree.get? element = none ∧ e = .notFoundError) ∨
-    (∃ d, s.tree.get? element = some d ∧ d.kind ≠ .element ∧ e = .typeError)
+    (∃ d, s.tree.get? element = some d ∧ d.kind ≠ .element ∧ e = .notFoundError)
 
 /-- receiver が木にある Element であること。 -/
 def IsElementData (s : DOMState) (element : NodeId) (d : NodeData) : Prop :=

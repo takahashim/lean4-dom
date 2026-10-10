@@ -99,7 +99,7 @@ def AttributeDetached (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr
 def SetAttributeNodeResult (s : DOMState) (element : NodeId) (aid : AttrId) :
     Except DOMException (Option AttrId × DOMState) → Prop
   | .error e => ReceiverError s element e ∨ ∃ d, IsElementData s element d ∧
-      ((AttrLocated s aid none ∧ e = .typeError) ∨
+      ((AttrLocated s aid none ∧ e = .notFoundError) ∨
         (∃ a m, AttrLocated s aid (some (a, some m)) ∧ m ≠ element ∧ e = .inUseAttributeError))
   | .ok (r, s') => ∃ d, IsElementData s element d ∧ ∃ a o, AttrLocated s aid (some (a, o)) ∧
       (o = none ∨ o = some element) ∧

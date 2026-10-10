@@ -10,8 +10,8 @@
 | 表に載せたもの | 221 |
 | 対象外としたもの | 170 |
 | 表に載せた algorithm の step | 980 |
-| そのうち実装したもの | 550 |
-| そのうち近似したもの | 230 |
+| そのうち実装したもの | 558 |
+| そのうち近似したもの | 222 |
 | そのうち外したもの | 200 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -133,7 +133,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 5/12（近似 7） | `Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
+| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 9/12（近似 3） | `Dom.MutationObserver.observeMethod`<br>`Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
 | [dom-mutationobserver-disconnect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-disconnect) | 1/2（近似 1） | `Dom.MutationObserver.disconnect` |  |
 | [dom-mutationobserver-takerecords](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-takerecords) | 3/3 | `Dom.MutationObserver.takeRecords` |  |
 
@@ -189,15 +189,15 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-compatmode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-compatmode) | 1/1 | `Dom.inQuirksModeOf` |  |
 | [dom-document-documentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-documentelement) | 1/1 | `Dom.documentElement` |  |
 | [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` |  |
-| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 1/5（近似 3） | `Dom.createElement`<br>`Dom.isValidElementLocalName` |  |
+| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 2/5（近似 2） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
 | [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` |  |
-| [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS` |  |
+| [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck` |  |
 | [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` |  |
 | [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` |  |
 | [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcomment) | 1/1 | `Dom.createComment` |  |
-| [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-importnode) | 2/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn` |  |
+| [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-importnode) | 2/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn`<br>`Dom.Exec.idlCheck` |  |
 | [concept-node-adopt](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-adopt) | 2/14（近似 4） | `Dom.adopt`<br>`Dom.setOwnerDocument`<br>`Dom.NodeData.withOwnerDocument`<br>`Dom.adoptAttr` | `Dom.Spec.AdoptSpec` |
-| [dom-document-adoptnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-adoptnode) | 2/4（近似 1） | `Dom.adoptNode`<br>`Dom.adoptAttr` |  |
+| [dom-document-adoptnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-adoptnode) | 3/4 | `Dom.adoptNode`<br>`Dom.adoptAttr`<br>`Dom.Exec.idlCheck` |  |
 | [dom-document-createattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createattribute) | 3/3 | `Dom.createAttribute`<br>`Dom.isValidAttributeLocalName`<br>`Dom.createAttributeIn` |  |
 | [dom-document-createattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createattributens) | 2/2 | `Dom.createAttributeNS`<br>`Dom.validateAndExtractAttribute`<br>`Dom.createAttributeIn` |  |
 
@@ -295,13 +295,13 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [exclusive-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#exclusive-text-node) | 1/1 | `Dom.isExclusiveText` | `Dom.Spec.ExclusiveText` |
 | [contiguous-exclusive-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-exclusive-text-nodes) | 0/1（近似 1） | `Dom.followingTexts`<br>`Dom.isExclusiveText` | `Dom.Spec.FollowingContiguousTexts` |
 | [concept-descendant-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-descendant-text-content) | 1/1 | `Dom.descendantTextContent` |  |
-| [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-text-node) | 2/3（近似 1） | `Dom.createTextNode`<br>`Dom.withFresh` |  |
+| [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-text-node) | 3/3 | `Dom.createTextNode`<br>`Dom.withFresh` |  |
 
 ### §4.14（`interface-comment`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [create-a-comment-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-comment-node) | 2/3（近似 1） | `Dom.createComment`<br>`Dom.withFresh` |  |
+| [create-a-comment-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-comment-node) | 3/3 | `Dom.createComment`<br>`Dom.withFresh` |  |
 
 ### §5.2（`boundary-points`）
 
@@ -530,7 +530,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | queue-a-mutation-observer-compound-microtask | 3 | microtask は積まず、flag を立てるだけである。notify mutation observers は harness の `notify` 操作として呼ぶ |
 | notify-mutation-observers | 6.3 | node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる |
 | notify-mutation-observers | 6.4 | callback は呼ばない。records が空でない observer と records の組を返り値に並べる |
-| dom-mutationobserver-observe | 3-6 | TypeError を `DOMException.typeError` で表す |
 | dom-mutationobserver-observe | 7 | target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた |
 | dom-mutationobserver-observe | 7.1 | node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す |
 | dom-mutationobserver-disconnect | 1 | node list の node に限らず、この observer の registered observer を全部外す |
@@ -550,15 +549,13 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-node-isequalnode | * | otherNode に null を受けない |
 | dom-node-contains | * | other に null を受けない |
 | dom-document-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
-| dom-document-createelement | 1 | step に入る前に、受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す） |
 | dom-document-createelement | 4 | content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない |
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |
 | internal-createelementns-steps | 3 | create an element を呼ばず、`NodeData` を直に作る（is・registry は無い） |
-| dom-document-createelementns | * | options を受けない。受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す） |
-| dom-document-importnode | 1 | Document だけを弾く。shadow root は model に無いので検査しない。その前に、受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す） |
+| dom-document-createelementns | * | options を受けない |
+| dom-document-importnode | 1 | Document だけを弾く。shadow root は model に無いので検査しない |
 | dom-document-importnode | 7 | fallbackRegistry を渡さない（custom element registry が無い） |
 | concept-node-adopt | 3 | shadow-including inclusive descendant ではなく inclusive descendant をたどる（shadow tree が無いので同じ集合） |
-| dom-document-adoptnode | 1 | step に入る前に、受け手が Document でなければ `TypeError` を返す（WebIDL の受け手検査に当たるもの。`DOMException` と同じ型で返す） |
 | concept-tree-host-including-inclusive-ancestor | * | host を見ない。shadow root が無いので inclusive ancestor と同じ |
 | concept-create-element | 6.1 | element interface を持たない。interface は namespace と local name から決まるものとして扱う |
 | create-an-element-internal | 1 | interface を持たない。node kind が element の `NodeData` を作る |
@@ -584,8 +581,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-cd-replace | 5-7 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
 | concept-cd-substring | 3-4 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
 | contiguous-exclusive-text-nodes | * | node より後ろの兄弟だけを集める（normalize が run の先頭から呼ぶので前側は空になる）。前後両側を集める関数は無い |
-| create-a-text-node | 1 | createTextNode は受け手が Document であることも確かめる（WebIDL の受け手検査。仕様の algorithm には無い） |
-| create-a-comment-node | 1 | createComment は受け手が Document であることも確かめる（WebIDL の受け手検査。仕様の algorithm には無い） |
 | concept-range-bp-position | 1 | assert は書かない。呼び出し側（`BoundaryLE`・`rangeNeedsCollapse` など）が root を別に比べる |
 | concept-range-bp-position | 3 | 自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段） |
 | range-collapsed | * | 専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く |

@@ -1,7 +1,13 @@
 /-!
-# `DOMException`
+# `DOMException` と、WebIDL の exception
 
-PLAN §3.4。失敗しうる操作は `Except DOMException` を返す。
+PLAN §3.4。失敗しうる algorithm は `Except DOMException` を返す。
+
+WebIDL の exception は、`DOMException` か、ECMAScript の error を表す simple exception（`TypeError` ほか）である。
+`TypeError` は `DOMException` ではないので、`DOMException` の constructor には入れない。
+`TypeError` を投げるのは、method を呼ぶ層（`Dom/Exec/Invoke.lean`）の WebIDL の検査
+（this の interface、引数の変換）と、仕様の method steps 自身が "throw a TypeError" と書く所
+（`MutationObserver.observe` の step 3-6）だけである。それらは `IdlException` を返す。
 
 例外の種類は differential testing の比較対象に含める。
 Dommy がどの例外を投げるかまで model と一致させるため、
@@ -27,14 +33,6 @@ inductive DOMException where
   | inUseAttributeError
   /-- §1.3 "scope-match a selectors string" step 2。selector を読めなかった場合。 -/
   | syntaxError
-  /--
-  WebIDL の `TypeError`。`DOMException` ではないが、
-  仕様が例外として投げ分けるので同じ型で扱う。
-
-  `MutationObserver.observe` の options 検査と、
-  `moveBefore` の receiver が `ParentNode` でない場合に使う。
-  -/
-  | typeError
   /--
   model の対象外。**仕様の例外ではない。**
 
@@ -63,11 +61,46 @@ def name : DOMException → String
   | namespaceError => "NamespaceError"
   | inUseAttributeError => "InUseAttributeError"
   | syntaxError => "SyntaxError"
-  | typeError => "TypeError"
   | outsideModel => "__outsideModel__"
 
 end DOMException
 
 instance : ToString DOMException := ⟨DOMException.name⟩
+
+/--
+WebIDL の exception（§3.14.1）のうち、本 model が投げうるもの。
+
+`dom` は `DOMException`、`typeError` は simple exception の `TypeError` である。
+-/
+inductive IdlException where
+  | dom (e : DOMException)
+  | typeError
+deriving DecidableEq, Repr, Inhabited
+
+namespace IdlException
+
+/-- 仕様および WPT で使われる名前。`TypeError` は ECMAScript の error の名前である。 -/
+def name : IdlException → String
+  | dom e => e.name
+  | typeError => "TypeError"
+
+end IdlException
+
+instance : ToString IdlException := ⟨IdlException.name⟩
+
+/-- algorithm の結果を、WebIDL の exception を返す層へ持ち上げる。 -/
+def liftDom {α : Type} (r : Except DOMException α) : Except IdlException α :=
+  match r with
+  | .error e => .error (.dom e)
+  | .ok a => .ok a
+
+@[simp] theorem liftDom_ok {α : Type} (a : α) : liftDom (.ok a : Except DOMException α) = .ok a := rfl
+
+@[simp] theorem liftDom_error {α : Type} (e : DOMException) :
+    liftDom (.error e : Except DOMException α) = .error (.dom e) := rfl
+
+theorem liftDom_eq_ok {α : Type} {r : Except DOMException α} {a : α} :
+    liftDom r = .ok a ↔ r = .ok a := by
+  cases r <;> simp [liftDom]
 
 end Dom
