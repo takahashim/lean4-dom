@@ -6439,6 +6439,21 @@ model と一致し、Firefox と jsdom は `customElementRegistry` を読まな�
 残りの二つは入れなかった。`EventInit` の `composed` は Shadow DOM が無いので観測できない。URLSearchParams の constructor の
 sequence と record の形は、配列でない iterable の表現と合わせて入れる別の作業である。
 
+## pin を Dommy `8faf1056` に上げた
+
+Dommy の PR #142（findings 59-61）、#143（findings 62・63）、#145（findings 64）が main に入ったので、pin を
+`8faf1056`（2026-10-10）に上げた。新しい Dommy は makiri 0.15.0 を要求するので、makiri の pin も上げた。
+
+| 確かめたこと | 結果 |
+| --- | --- |
+| 固定 scenario、Ruby の API を呼ぶ runner | 213 ok / 17 skip / 5 known / 0 mismatch |
+| 固定 scenario、JS の側から動かす runner | 209 ok / 21 skip / 5 known / 0 mismatch |
+| 生成 scenario、二つの runner × 3 設定 × 300 本 | mismatch 0 |
+| URL parser・setters（seed 1）、urlencoded | 全件一致（whatwg-url 17.1.2 も全件一致） |
+
+5 known は以前からの記録（仕様側が未決着の 19・20 と `dataset` の 2 本）である。JS の側から動かす runner の skip のうち 18 本は、
+MutationObserver の配送順を比べられないという harness の制約による。findings 59 から 64 は、これで Dommy の側ですべて直った。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
