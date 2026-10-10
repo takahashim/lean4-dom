@@ -59,10 +59,18 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | insertBefore p n c => exact (attrFrame_insertBefore hop).unique hu
   | replaceChild p n c => exact (attrFrame_replaceChild hop).unique hu
   | removeChild p n => exact (attrFrame_removeChild hop).unique hu
-  | replaceChildren p n => exact (attrFrame_replaceChildren hop).unique hu
-  | before tgt n => exact (attrFrame_before hop).unique hu
-  | after tgt n => exact (attrFrame_after hop).unique hu
-  | replaceWith tgt n => exact (attrFrame_replaceWith hop).unique hu
+  | replaceChildren p ns =>
+    exact ((closed_replaceChildrenNodes good_variadicClosed ⟨h, hu⟩ _ _).1 s' (dropState_ok hop)).2
+  | prepend p ns =>
+    exact ((closed_prependNodes good_variadicClosed ⟨h, hu⟩ _ _).1 s' (dropState_ok hop)).2
+  | append p ns =>
+    exact ((closed_appendNodes good_variadicClosed ⟨h, hu⟩ _ _).1 s' (dropState_ok hop)).2
+  | before tgt ns =>
+    exact ((closed_beforeNodes good_variadicClosed ⟨h, hu⟩ _ _).1 s' (dropState_ok hop)).2
+  | after tgt ns =>
+    exact ((closed_afterNodes good_variadicClosed ⟨h, hu⟩ _ _).1 s' (dropState_ok hop)).2
+  | replaceWith tgt ns =>
+    exact ((closed_replaceWithNodes good_variadicClosed ⟨h, hu⟩ _ _).1 s' (dropState_ok hop)).2
   | remove tgt => exact (attrFrame_nodeRemove hop).unique hu
   | moveBefore p n c => exact (attrFrame_moveBefore hop).unique hu
   | iteratorNext i => rw [← Except.ok.inj hop]; exact unique_stepIterator hu i _

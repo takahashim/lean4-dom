@@ -34,6 +34,8 @@ module DommyRunner
     "before" => :before,
     "after" => :after,
     "replaceWith" => :replace_with,
+    "prepend" => :prepend,
+    "append" => :append,
     "remove" => :remove,
     "moveBefore" => :move_before,
     "replaceData" => :replace_data,
@@ -445,6 +447,55 @@ module DommyRunner
     ctx[:kinds][id] = kind_name(node)
     children_of(node).each { |c| register_subtree(ctx, c) }
     id
+  end
+
+  # `(Node or DOMString)` の可変長引数。`nodes` が無ければ `node`（一つの id。null なら引数なし）。
+  def node_args(op)
+    return op["nodes"] if op.key?("nodes")
+
+    op["node"].nil? ? [] : [op["node"]]
+  end
+
+  # "convert nodes into a node" が作った node に、model（`convertNodesIntoNode`）と同じ規則で id を振る。
+  #
+  # model は文字列から作る Text node に引数の順で max+1, max+2, ... を振り、引数が一つでなければ
+  # 次の id で DocumentFragment を作る。木から辿れなくなった node は model の状態から消えるので、
+  # ここでも辿れる node だけを登録する。文字列の Text node は引数の順に fragment へ入るので、
+  # 辿れるものは tree order で先頭からの一部になる。
+  def register_converted(ctx, args, max_before)
+    objects = ctx[:objects]
+    k = args.count { |a| a.is_a?(String) }
+    known = {}.compare_by_identity
+    objects.each_value { |v| known[v] = true }
+    seen = {}.compare_by_identity
+    fresh = []
+    objects.values.each do |n|
+      root = n
+      root = parent_of(root) while parent_of(root)
+      collect_unknown(root, known, seen, fresh)
+    end
+    texts = fresh.select { |n| kind_name(n) == "text" }
+    frags = fresh.select { |n| kind_name(n) == "documentFragment" }
+    if texts.size + frags.size != fresh.size || texts.size > k || frags.size > 1
+      raise "変換で作られた node の形が想定と違う"
+    end
+
+    texts.each_with_index do |t, i|
+      objects[max_before + 1 + i] = t
+      ctx[:kinds][max_before + 1 + i] = "text"
+    end
+    frags.each do |f|
+      objects[max_before + k + 1] = f
+      ctx[:kinds][max_before + k + 1] = "documentFragment"
+    end
+  end
+
+  def collect_unknown(node, known, seen, fresh)
+    return if seen.key?(node)
+
+    seen[node] = true
+    fresh << node unless known.key?(node)
+    children_of(node).each { |c| collect_unknown(c, known, seen, fresh) }
   end
 
   # Dommy は class によって `parent_node` / `child_nodes` を持たないことがある。
@@ -1266,18 +1317,20 @@ module DommyRunner
       raise NotImplementedError, "missing node" if o[op["node"]].nil?
 
       receiver.remove_child(o[op["node"]])
-    when "replaceChildren"
-      if op["node"].nil?
-        receiver.replace_children
-      else
-        raise NotImplementedError, "missing node" if o[op["node"]].nil?
+    when "replaceChildren", "prepend", "append", "before", "after", "replaceWith"
+      args = node_args(op).map do |a|
+        next a if a.is_a?(String)
+        raise NotImplementedError, "missing node" if o[a].nil?
 
-        receiver.replace_children(o[op["node"]])
+        o[a]
       end
-    when "before", "after", "replaceWith"
-      raise NotImplementedError, "missing node" if o[op["node"]].nil?
-
-      receiver.public_send(method, o[op["node"]])
+      max_before = objects.keys.max.to_i
+      begin
+        receiver.public_send(method, *args)
+      ensure
+        # 失敗しても、変換で作られて木から辿れる node は観測に出る。
+        register_converted(ctx, args, max_before)
+      end
     when "remove"
       receiver.remove
     when "normalize"
@@ -1319,8 +1372,8 @@ module DommyRunner
                    "reason" => "#{e.class}: #{e.message}" }
         break
       rescue StandardError => e
-        # 失敗した操作は状態を変えてはならない。
-        # 変えていないことを比べられるように、失敗した step でも観測を出す。
+        # 失敗した step でも観測を出す。多くの method は失敗すれば状態を変えないが、
+        # 可変長の `(Node or DOMString)` 引数を取る method は変換で node を移した後で失敗しうる。
         recs = observers.empty? ? nil : queued_records(objects, observers)
         steps << snapshot(ctx, ranges, iterators, recs, walkers)
                  .merge("ok" => false, "exception" => exception_name(e),

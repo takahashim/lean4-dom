@@ -1247,3 +1247,23 @@ open Dom.Audit
   Dom.Idl.convertToIntUnsigned_ofNat
   Dom.Idl.toUnsignedLong_ofNat
   Dom.Idl.toUnsignedShort_ofNat
+
+-- 可変長の (Node or DOMString) 引数：参照されなくなった node を消しても妥当で、六つの method は成功しても
+-- 失敗しても admissibility と attribute の id の一意性を保ち、引数が node 一つなら一引数の関数と等しい
+#audit_axioms
+  Dom.admissible_discard
+  Dom.attrFrame_discard
+  Dom.admissible_variadicClosed
+  Dom.good_variadicClosed
+  Dom.closed_convert
+  Dom.closed_prependNodes
+  Dom.closed_appendNodes
+  Dom.closed_replaceChildrenNodes
+  Dom.closed_beforeNodes
+  Dom.closed_afterNodes
+  Dom.closed_replaceWithNodes
+  Dom.beforeNodes_single
+  Dom.afterNodes_single
+  Dom.replaceWithNodes_single
+  Dom.appendNodes_single
+  Dom.replaceChildrenNodes_single

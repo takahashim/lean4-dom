@@ -138,6 +138,10 @@ import Dom.Spec.ObserveSound
 import Dom.Spec.ValidateAndExtract
 import Dom.Spec.ScopeMatch
 import Dom.Idl.Number
+import Dom.Mutation.Variadic
+import Dom.Validity.Discard
+import Dom.Validity.Variadic
+import Dom.Properties.Variadic
 import Dom.Spec.RangeSet
 import Dom.Attribute.Reflect
 import Dom.Validity.Reflect

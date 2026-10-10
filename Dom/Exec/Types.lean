@@ -13,6 +13,7 @@ import Dom.CharacterData.ReplaceData
 import Dom.Observation
 import Dom.Observer.Deliver
 import Dom.Idl.Number
+import Dom.Mutation.Variadic
 
 /-!
 # scenario の型
@@ -88,6 +89,16 @@ inductive AttrSetter where
   | textContent
 deriving Repr, DecidableEq
 
+/-- `(Node or DOMString)` の引数。node は scenario の id で指す。 -/
+inductive NodeArg where
+  | node (n : Nat)
+  | string (data : String)
+deriving Repr, DecidableEq
+
+def NodeArg.toItem : NodeArg → NodeOrString
+  | .node n => .node ⟨n⟩
+  | .string d => .string d
+
 /--
 scenario が並べる操作。Phase 3 までの public API に対応する。
 
@@ -100,10 +111,18 @@ inductive Operation where
   | insertBefore (parent node : Nat) (child : Option Nat)
   | replaceChild (parent node child : Nat)
   | removeChild (parent node : Nat)
-  | replaceChildren (parent : Nat) (node : Option Nat)
-  | before (target node : Nat)
-  | after (target node : Nat)
-  | replaceWith (target node : Nat)
+  /-- `ParentNode.replaceChildren(...nodes)`。 -/
+  | replaceChildren (parent : Nat) (nodes : List NodeArg)
+  /-- `ParentNode.prepend(...nodes)`。 -/
+  | prepend (parent : Nat) (nodes : List NodeArg)
+  /-- `ParentNode.append(...nodes)`。 -/
+  | append (parent : Nat) (nodes : List NodeArg)
+  /-- `ChildNode.before(...nodes)`。 -/
+  | before (target : Nat) (nodes : List NodeArg)
+  /-- `ChildNode.after(...nodes)`。 -/
+  | after (target : Nat) (nodes : List NodeArg)
+  /-- `ChildNode.replaceWith(...nodes)`。 -/
+  | replaceWith (target : Nat) (nodes : List NodeArg)
   | remove (target : Nat)
   | moveBefore (parent node : Nat) (child : Option Nat)
   | iteratorNext (index : Nat)
@@ -319,6 +338,7 @@ Dommy は木をその場で書き換えるので、失敗した操作が状態�
 inductive StepResult where
   | ok (s : DOMState) (delivered : List (Nat × List MutationRecord)) (returned : ReturnValue)
       (invocations : List Invocation)
-  | failed (before : DOMState) (e : IdlException)
+  /-- 失敗した。状態は失敗した時点のもの（`failureStateOf`）。 -/
+  | failed (state : DOMState) (e : IdlException)
 
 end Dom.Exec

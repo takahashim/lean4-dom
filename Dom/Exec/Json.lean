@@ -96,6 +96,29 @@ private def jsNumberField (j : Json) (k : String) : Except String Idl.JsNumber :
     | .num n => pure ⟨n.mantissa, n.exponent⟩
     | _ => throw s!"field `{k}` が数でない"
 
+/--
+可変長の `(Node or DOMString)` 引数。`nodes` の配列の数は node の id、文字列はそのまま文字列である。
+`nodes` が無ければ `node`（一つの id、または null で空）を読む。
+-/
+private def nodeArgsField (j : Json) : Except String (List NodeArg) := do
+  match field? j "nodes" with
+  | some (.arr xs) =>
+    xs.toList.mapM fun x =>
+      match x with
+      | .str d => pure (.string d)
+      | .num n =>
+        if n.exponent == 0 && n.mantissa ≥ 0 then pure (.node n.mantissa.toNat)
+        else throw "nodes の数は node の id（0 以上の整数）でなければならない"
+      | _ => throw "nodes の要素は node の id か文字列でなければならない"
+  | some _ => throw "nodes は配列でなければならない"
+  | none =>
+    match field? j "node" with
+    | none | some .null => pure []
+    | some (.num n) =>
+      if n.exponent == 0 && n.mantissa ≥ 0 then pure [.node n.mantissa.toNat]
+      else throw "node は node の id（0 以上の整数）でなければならない"
+    | some _ => throw "node は node の id でなければならない"
+
 private def natField (j : Json) (k : String) : Except String Nat :=
   match field? j k with
   | none => .error s!"必須の field `{k}` がない"
@@ -217,10 +240,12 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "replaceChild" =>
     return .replaceChild (← natField j "parent") (← natField j "node") (← natField j "child")
   | "removeChild" => return .removeChild (← natField j "parent") (← natField j "node")
-  | "replaceChildren" => return .replaceChildren (← natField j "parent") (← natField? j "node")
-  | "before" => return .before (← natField j "target") (← natField j "node")
-  | "after" => return .after (← natField j "target") (← natField j "node")
-  | "replaceWith" => return .replaceWith (← natField j "target") (← natField j "node")
+  | "replaceChildren" => return .replaceChildren (← natField j "parent") (← nodeArgsField j)
+  | "prepend" => return .prepend (← natField j "parent") (← nodeArgsField j)
+  | "append" => return .append (← natField j "parent") (← nodeArgsField j)
+  | "before" => return .before (← natField j "target") (← nodeArgsField j)
+  | "after" => return .after (← natField j "target") (← nodeArgsField j)
+  | "replaceWith" => return .replaceWith (← natField j "target") (← nodeArgsField j)
   | "remove" => return .remove (← natField j "target")
   | "moveBefore" =>
     return .moveBefore (← natField j "parent") (← natField j "node") (← natField? j "child")

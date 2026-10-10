@@ -8,19 +8,18 @@ node の length、§4.2.2 shadow tree と slot、§4.2.4 `NonElementParentNode`�
 §4.2.5 `DocumentOrShadowRoot`、§4.2.6 `ParentNode`、§4.2.7 `NonDocumentTypeChildNode`、
 §4.2.8 `ChildNode`、§4.2.9 `Slottable`、§4.2.10 `HTMLCollection`。
 
-model の method は「convert nodes into a node」を呼び出し側で済ませた一つの node を受け取る
-（`Dom/Mutation/Api.lean`）。その step は各 entry の `approx` に書く。
+可変長の `(Node or DOMString)` 引数を取る method は `Dom/Mutation/Variadic.lean` にあり、
+「convert nodes into a node」を本文どおりに行う。失敗したときもその時点の状態を返し、変換が作って
+参照されなくなった node（空になった DocumentFragment など）は状態から消す（`Dom.discard`）。
 -/
 
 namespace Trace.Dom.ParentNode
 
 open Trace
 
-/-- 「convert nodes into a node」を呼び出し側で済ませる、という近似の説明。 -/
-private def convertedByCaller : String :=
-  "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る"
-
 def entries : List Entry := [
+  { alg := "convert-nodes-into-a-node"
+    impl := [``Dom.convertNodesIntoNode, ``Dom.textsFor, ``Dom.appendAll, ``Dom.discardAll] },
   { alg := "concept-node-length"
     impl := [``Dom.lengthOf, ``Dom.NodeData.length]
     approx := [("1", "Attr は木の node ではない（NodeKind に無い）ので、DocumentType だけが 0 になる")] },
@@ -33,13 +32,15 @@ def entries : List Entry := [
   { alg := "dom-parentnode-children"
     impl := [``Dom.elementChildrenOf]
     approx := [("*", "live な HTMLCollection は作らない。collection が表す element children をその時点の list として返す。harness に操作は無く、`childrenNamedItem` の中でだけ使う")] },
+  { alg := "dom-parentnode-prepend"
+    impl := [``Dom.prependNodes, ``Dom.convertNodesIntoNode, ``Dom.preInsert] },
   { alg := "dom-parentnode-append"
-    impl := [``Dom.append]
-    approx := [("1", convertedByCaller)] },
+    impl := [``Dom.appendNodes, ``Dom.convertNodesIntoNode, ``Dom.append] },
   { alg := "dom-parentnode-replacechildren"
-    impl := [``Dom.replaceChildren, ``Dom.ensurePreInsertionValidity, ``Dom.replaceAll]
-    spec := [``Dom.Spec.ReplaceChildrenResult]
-    approx := [("1", convertedByCaller)] },
+    impl := [``Dom.replaceChildrenNodes, ``Dom.convertNodesIntoNode, ``Dom.replaceChildren,
+             ``Dom.ensurePreInsertionValidity, ``Dom.replaceAll]
+    -- 関係 `ReplaceChildrenResult` は step 2-3 を変換済みの node について述べる（`replaceChildrenNodes_single`）。
+    spec := [``Dom.Spec.ReplaceChildrenResult] },
   { alg := "dom-parentnode-movebefore"
     impl := [``Dom.moveBefore, ``Dom.move]
     spec := [``Dom.Spec.MoveResult] },
@@ -50,18 +51,17 @@ def entries : List Entry := [
     approx := [("*", "static な NodeList ではなく、element の list を返す")] },
   -- §4.2.8
   { alg := "dom-childnode-before"
-    impl := [``Dom.before, ``Dom.viablePreviousSibling, ``Dom.preInsert]
-    spec := [``Dom.Spec.BeforeResult, ``Dom.Spec.ViablePreviousSibling]
-    approx := [("4", convertedByCaller ++ "。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる")] },
+    impl := [``Dom.beforeNodes, ``Dom.convertNodesIntoNode, ``Dom.viablePreviousSibling, ``Dom.preInsert]
+    -- 関係（`BeforeResult` ほか）は変換済みの一つの node を受け取る形で書いてあり、引数が node 一つのときは
+    -- `beforeNodes_single` ほかにより可変長の method と一致する。文字列や複数の node を含む場合の関係はまだ無い。
+    spec := [``Dom.Spec.BeforeResult, ``Dom.Spec.ViablePreviousSibling, ``Dom.beforeNodes_single] },
   { alg := "dom-childnode-after"
-    impl := [``Dom.after, ``Dom.viableNextSibling, ``Dom.preInsert]
-    spec := [``Dom.Spec.AfterResult, ``Dom.Spec.ViableNextSibling]
-    approx := [("4", convertedByCaller ++ "。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる")] },
+    impl := [``Dom.afterNodes, ``Dom.convertNodesIntoNode, ``Dom.viableNextSibling, ``Dom.preInsert]
+    spec := [``Dom.Spec.AfterResult, ``Dom.Spec.ViableNextSibling, ``Dom.afterNodes_single] },
   { alg := "dom-childnode-replacewith"
-    impl := [``Dom.replaceWith, ``Dom.viableNextSibling, ``Dom.replace, ``Dom.preInsert]
-    spec := [``Dom.Spec.ReplaceWithResult, ``Dom.Spec.ViableNextSibling]
-    approx := [("4", convertedByCaller ++ "。step 1-3 は変換の後の木で評価され、nodes は [node] になる"),
-               ("5-6", "step 1 と step 5 の間で木が変わらないので、step 5 の条件は常に真になる（this が nodes に入っていて fragment に移る場合を区別しない）")] },
+    impl := [``Dom.replaceWithNodes, ``Dom.convertNodesIntoNode, ``Dom.viableNextSibling, ``Dom.replace,
+             ``Dom.preInsert]
+    spec := [``Dom.Spec.ReplaceWithResult, ``Dom.Spec.ViableNextSibling, ``Dom.replaceWithNodes_single] },
   { alg := "dom-childnode-remove"
     impl := [``Dom.nodeRemove, ``Dom.remove]
     spec := [``Dom.Spec.NodeRemoveResult] },
@@ -79,10 +79,6 @@ def exclusions : List Exclusion := [
   -- §4.2.5
   { target := "dom-documentorshadowroot-customelementregistry", reason := .customElements },
   -- §4.2.6
-  { target := "convert-nodes-into-a-node"
-    reason := .todo "文字列から Text を作り、複数の node を DocumentFragment にまとめる変換。model の method は変換済みの一つの node を受け取る（呼び出し側で済ませる）" },
-  { target := "dom-parentnode-prepend"
-    reason := .todo "prepend に当たる関数（this の first child の前への pre-insert）が無い。harness にも操作が無い" },
   { target := "dom-parentnode-firstelementchild"
     reason := .todo "getter の実行関数も harness の操作も無い" },
   { target := "dom-parentnode-lastelementchild"

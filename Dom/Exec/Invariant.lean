@@ -8,6 +8,7 @@ import Dom.Validity.Clone
 import Dom.Validity.AttrNode
 import Dom.Validity.AttrAsNode
 import Dom.Properties.Import
+import Dom.Validity.Variadic
 import Dom.Validity.Reflect
 
 /-!
@@ -83,10 +84,14 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | insertBefore p n c => exact admissible_insertBefore h hop
   | replaceChild p n c => exact admissible_replaceChild h hop
   | removeChild p n => exact admissible_removeChild h hop
-  | replaceChildren p n => exact admissible_replaceChildren h hop
-  | before tgt n => exact admissible_before h hop
-  | after tgt n => exact admissible_after h hop
-  | replaceWith tgt n => exact admissible_replaceWith h hop
+  | replaceChildren p ns =>
+    exact (closed_replaceChildrenNodes admissible_variadicClosed h _ _).1 s' (dropState_ok hop)
+  | prepend p ns => exact (closed_prependNodes admissible_variadicClosed h _ _).1 s' (dropState_ok hop)
+  | append p ns => exact (closed_appendNodes admissible_variadicClosed h _ _).1 s' (dropState_ok hop)
+  | before tgt ns => exact (closed_beforeNodes admissible_variadicClosed h _ _).1 s' (dropState_ok hop)
+  | after tgt ns => exact (closed_afterNodes admissible_variadicClosed h _ _).1 s' (dropState_ok hop)
+  | replaceWith tgt ns =>
+    exact (closed_replaceWithNodes admissible_variadicClosed h _ _).1 s' (dropState_ok hop)
   | remove tgt => exact admissible_nodeRemove h hop
   | moveBefore p n c => exact admissible_moveBefore h hop
   | iteratorNext i =>

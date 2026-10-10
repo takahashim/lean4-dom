@@ -7,11 +7,11 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 221 |
-| 対象外としたもの | 170 |
-| 表に載せた algorithm の step | 980 |
-| そのうち実装したもの | 558 |
-| そのうち近似したもの | 222 |
+| 表に載せたもの | 223 |
+| 対象外としたもの | 168 |
+| 表に載せた algorithm の step | 987 |
+| そのうち実装したもの | 572 |
+| そのうち近似したもの | 215 |
 | そのうち外したもの | 200 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -100,9 +100,11 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
+| [convert-nodes-into-a-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#convert-nodes-into-a-node) | 5/5 | `Dom.convertNodesIntoNode`<br>`Dom.textsFor`<br>`Dom.appendAll`<br>`Dom.discardAll` |  |
 | [dom-parentnode-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-children) | 0/1（近似 1） | `Dom.elementChildrenOf` |  |
-| [dom-parentnode-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-append) | 1/2（近似 1） | `Dom.append` |  |
-| [dom-parentnode-replacechildren](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-replacechildren) | 2/3（近似 1） | `Dom.replaceChildren`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.replaceAll` | `Dom.Spec.ReplaceChildrenResult` |
+| [dom-parentnode-prepend](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-prepend) | 2/2 | `Dom.prependNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.preInsert` |  |
+| [dom-parentnode-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-append) | 2/2 | `Dom.appendNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.append` |  |
+| [dom-parentnode-replacechildren](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-replacechildren) | 3/3 | `Dom.replaceChildrenNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.replaceChildren`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.replaceAll` | `Dom.Spec.ReplaceChildrenResult` |
 | [dom-parentnode-movebefore](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-movebefore) | 3/3 | `Dom.moveBefore`<br>`Dom.move` | `Dom.Spec.MoveResult` |
 | [dom-parentnode-queryselector](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-queryselector) | 1/1 | `Dom.querySelector`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` |  |
 | [dom-parentnode-queryselectorall](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-queryselectorall) | 0/1（近似 1） | `Dom.querySelectorAll`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` |  |
@@ -111,9 +113,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-childnode-before](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-before) | 5/6（近似 1） | `Dom.before`<br>`Dom.viablePreviousSibling`<br>`Dom.preInsert` | `Dom.Spec.BeforeResult`<br>`Dom.Spec.ViablePreviousSibling` |
-| [dom-childnode-after](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-after) | 4/5（近似 1） | `Dom.after`<br>`Dom.viableNextSibling`<br>`Dom.preInsert` | `Dom.Spec.AfterResult`<br>`Dom.Spec.ViableNextSibling` |
-| [dom-childnode-replacewith](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-replacewith) | 3/6（近似 3） | `Dom.replaceWith`<br>`Dom.viableNextSibling`<br>`Dom.replace`<br>`Dom.preInsert` | `Dom.Spec.ReplaceWithResult`<br>`Dom.Spec.ViableNextSibling` |
+| [dom-childnode-before](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-before) | 6/6 | `Dom.beforeNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viablePreviousSibling`<br>`Dom.preInsert` | `Dom.Spec.BeforeResult`<br>`Dom.Spec.ViablePreviousSibling`<br>`Dom.beforeNodes_single` |
+| [dom-childnode-after](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-after) | 5/5 | `Dom.afterNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viableNextSibling`<br>`Dom.preInsert` | `Dom.Spec.AfterResult`<br>`Dom.Spec.ViableNextSibling`<br>`Dom.afterNodes_single` |
+| [dom-childnode-replacewith](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-replacewith) | 6/6 | `Dom.replaceWithNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viableNextSibling`<br>`Dom.replace`<br>`Dom.preInsert` | `Dom.Spec.ReplaceWithResult`<br>`Dom.Spec.ViableNextSibling`<br>`Dom.replaceWithNodes_single` |
 | [dom-childnode-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-remove) | 2/2 | `Dom.nodeRemove`<br>`Dom.remove` | `Dom.Spec.NodeRemoveResult` |
 
 ### §4.2.10.2（`interface-htmlcollection`）
@@ -519,13 +521,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-node-length | 1 | Attr は木の node ではない（NodeKind に無い）ので、DocumentType だけが 0 になる |
 | move | 1 | shadow-including root ではなく root で比べる（shadow tree が無いので同じ値） |
 | dom-parentnode-children | * | live な HTMLCollection は作らない。collection が表す element children をその時点の list として返す。harness に操作は無く、`childrenNamedItem` の中でだけ使う |
-| dom-parentnode-append | 1 | 可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る |
-| dom-parentnode-replacechildren | 1 | 可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る |
 | dom-parentnode-queryselectorall | * | static な NodeList ではなく、element の list を返す |
-| dom-childnode-before | 4 | 可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる |
-| dom-childnode-after | 4 | 可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる |
-| dom-childnode-replacewith | 4 | 可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。step 1-3 は変換の後の木で評価され、nodes は [node] になる |
-| dom-childnode-replacewith | 5-6 | step 1 と step 5 の間で木が変わらないので、step 5 の条件は常に真になる（this が nodes に入っていて fragment に移る場合を区別しない） |
 | dom-htmlcollection-nameditem | * | collection は `ParentNode.children` のものに限る（他の HTMLCollection は model に無い） |
 | queue-a-mutation-observer-compound-microtask | 3 | microtask は積まず、flag を立てるだけである。notify mutation observers は harness の `notify` 操作として呼ぶ |
 | notify-mutation-observers | 6.3 | node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる |
@@ -675,7 +671,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：node の connected を返す関数が無い（Attr だけ harness の attrQuery が false を返す） | dom-node-isconnected |
 | todo：node 以外の EventTarget を作れない（listener の target は NodeId） | dom-eventtarget-eventtarget |
 | todo：passive を持たない（判定には Window・Document の body も要る） | default-passive-value |
-| todo：prepend に当たる関数（this の first child の前への pre-insert）が無い。harness にも操作が無い | dom-parentnode-prepend |
 | todo：removeNamedItemNS() の関数が無い（removeAttributeNS は NotFoundError も `Attr` を返すことも無い） | dom-namednodemap-removenameditemns |
 | todo：returnValue の setter が無い（ListenerAction に無い） | dom-event-returnvalue/setter |
 | todo：set text content が無い（同上） | dom-node-textcontent/setter |
@@ -687,4 +682,3 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：value の setter が無い（className の reflect setter と同じ効果だが、DOMTokenList 側の API は無い） | dom-domtokenlist-value/setter |
 | todo：wholeText の getter が無い | dom-text-wholetext |
 | todo：文字列から Text node を作って replace all する関数が無い | string-replace-all |
-| todo：文字列から Text を作り、複数の node を DocumentFragment にまとめる変換。model の method は変換済みの一つの node を受け取る（呼び出し側で済ませる） | convert-nodes-into-a-node |

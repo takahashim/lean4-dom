@@ -67,7 +67,7 @@ step 2（ASCII lowercase）と step 4（HTML namespace）が効かない側（XM
 | 近似 | 影響 |
 | --- | --- |
 | `move` step 1 は shadow-including root ではなく root で判定する | shadow tree を含む木では仕様と違う。対象外なので実害は無い |
-| `convert nodes into a node` は呼び出し側で済ませた形で受け取る | `x.replaceWith(x)` のような「変換が node を動かす」場合を model 側で再現できない |
+| 参照されなくなった node を状態から消す | "convert nodes into a node" が作った DocumentFragment は挿入の後で空になり、どこからも参照されない。JavaScript では観測できないので、model は parent・children・attribute を持たず live object や record から指されていない node を消す（`Dom.discard`）。仕様は object の寿命を定めないので、これは仕様の step ではなく、観測の範囲を JavaScript から辿れるものに合わせる約束である |
 | WebIDL の層は this の interface と一部の引数の検査だけである | method を呼ぶ層（`Dom/Exec/Invoke.lean` の `idlCheck` と `Dom/Exec/Eval.lean` の `invokeOperation`）は、this が method を持つ interface を実装するか、`Range` の `Node` 引数が null でないか、`setAttributeNode` の引数が `Attr` かを検査し、`TypeError` を `DOMException` とは別の型（`IdlException.typeError`）で返す。整数型の引数（CharacterData と Range の offset・count、`compareBoundaryPoints` の `how`）は、scenario が変換前の JSON の数を運び、`Dom/Idl/Number.lean` の ConvertToInt で変換する。JS は数を倍精度に丸めてから変換し、model は十進のまま変換するので、両者が一致するのは数が倍精度で正確に表せるときに限る（生成器はそのような数だけを作る）。数以外の値の ToNumber、DOMString への変換、dictionary の member の型、可変長の引数と union、overload の選択は model に無い。interface の判定は node の kind で行う |
 | `NodeStore` は association list | 性能ではなく証明の都合。`keys` に重複が無いことは構造では保証していない（`observe` は id で正規化して吸収する） |
 | IDNA / UTS #46 は**相対的な保証**である | 写像表の正しさは証明していない。`IdnaTable.Resolved` を仮定に置き、実行時に `checkResolved` で検査する。NFC・Bidi・Joiner の code point は誤って扱うのではなく `none` で弾く（`outOfModel`）。**安全側に限定した model であって、UTS #46 適合ではない** |

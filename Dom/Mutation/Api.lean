@@ -8,9 +8,9 @@ PLAN §6.1。`appendChild` などの public API は §4.2.3 の algorithm の薄
 この一方向の依存が、`memo.md` の言う「どの API から始めても
 live object の調整が迂回されない」ことの土台になる。
 
-仕様の `before()` / `after()` / `replaceWith()` / `replaceChildren()` は
-可変長引数を "converting nodes into a node" で一つの node にまとめるが、
-本 model は node を生成しないので、まとめた結果の node を引数として受け取る形にする。
+`before()` / `after()` / `replaceWith()` / `replaceChildren()` は、ここでは変換済みの一つの node を
+受け取る。可変長の `(Node or DOMString)` 引数を "convert nodes into a node" でまとめる method は
+`Dom/Mutation/Variadic.lean` にあり、引数が node 一つならここの関数と一致する（`Dom/Properties/Variadic.lean`）。
 -/
 
 namespace Dom

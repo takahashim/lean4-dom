@@ -317,6 +317,8 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   -- **catch-all にしない。** そうすると戻り値を持つ操作を足したときに
   -- ここを直し忘れても通ってしまう。網羅性検査に見張らせる。
   | .replaceChildren _ _ => .unit
+  | .prepend _ _ => .unit
+  | .append _ _ => .unit
   | .before _ _ => .unit
   | .after _ _ => .unit
   | .replaceWith _ _ => .unit
@@ -536,10 +538,12 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .insertBefore p n c => insertBefore s ⟨p⟩ ⟨n⟩ (c.map NodeId.mk)
   | .replaceChild p n c => replaceChild s ⟨p⟩ ⟨n⟩ ⟨c⟩
   | .removeChild p n => removeChild s ⟨p⟩ ⟨n⟩
-  | .replaceChildren p n => replaceChildren s ⟨p⟩ (n.map NodeId.mk)
-  | .before tgt n => before s ⟨tgt⟩ ⟨n⟩
-  | .after tgt n => after s ⟨tgt⟩ ⟨n⟩
-  | .replaceWith tgt n => replaceWith s ⟨tgt⟩ ⟨n⟩
+  | .replaceChildren p ns => dropState (replaceChildrenNodes s ⟨p⟩ (ns.map NodeArg.toItem))
+  | .prepend p ns => dropState (prependNodes s ⟨p⟩ (ns.map NodeArg.toItem))
+  | .append p ns => dropState (appendNodes s ⟨p⟩ (ns.map NodeArg.toItem))
+  | .before tgt ns => dropState (beforeNodes s ⟨tgt⟩ (ns.map NodeArg.toItem))
+  | .after tgt ns => dropState (afterNodes s ⟨tgt⟩ (ns.map NodeArg.toItem))
+  | .replaceWith tgt ns => dropState (replaceWithNodes s ⟨tgt⟩ (ns.map NodeArg.toItem))
   | .remove tgt => nodeRemove s ⟨tgt⟩
   | .moveBefore p n c => moveBefore s ⟨p⟩ ⟨n⟩ (c.map NodeId.mk)
   | .iteratorNext i => .ok (stepIterator s i nextNode).1
@@ -681,6 +685,25 @@ theorem applyOperation_of_invoke {s s' : DOMState} {op : Operation}
   · cases h
 
 /--
+**失敗した step の状態。**
+
+多くの method は検査を済ませてから状態を変えるので、失敗すれば状態は変わらない。
+可変長の `(Node or DOMString)` 引数を取る method（`Dom/Mutation/Variadic.lean`）は、変換で node を
+DocumentFragment へ移した後で失敗しうるので、その時点の状態を返す。
+-/
+def failureStateOf (s : DOMState) (op : Operation) : DOMState :=
+  if idlCheck s op then
+    match op with
+    | .replaceChildren p ns => failureState s (replaceChildrenNodes s ⟨p⟩ (ns.map NodeArg.toItem))
+    | .prepend p ns => failureState s (prependNodes s ⟨p⟩ (ns.map NodeArg.toItem))
+    | .append p ns => failureState s (appendNodes s ⟨p⟩ (ns.map NodeArg.toItem))
+    | .before t ns => failureState s (beforeNodes s ⟨t⟩ (ns.map NodeArg.toItem))
+    | .after t ns => failureState s (afterNodes s ⟨t⟩ (ns.map NodeArg.toItem))
+    | .replaceWith t ns => failureState s (replaceWithNodes s ⟨t⟩ (ns.map NodeArg.toItem))
+    | _ => s
+  else s
+
+/--
 操作列を順に適用する。例外が起きた step で打ち切る（PLAN §7.2）。
 
 返り値の第二成分は、invariant が破れた step の番号（0 始まり）。
@@ -695,7 +718,7 @@ def runOperations : DOMState → List Operation → Nat → List StepResult × O
   | _, [], _ => ([], none)
   | s, op :: ops, i =>
     match invokeOperation s op with
-    | .error e => ([.failed s e], none)
+    | .error e => ([.failed (failureStateOf s op) e], none)
     | .ok s' =>
       let delivered := deliveredBy s op
       let returned := returnValueOf s op

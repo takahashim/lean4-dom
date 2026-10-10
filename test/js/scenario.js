@@ -71,7 +71,7 @@ function makeDocumentFactory(win) {
 const OP_METHOD = {
   appendChild: "appendChild", insertBefore: "insertBefore", replaceChild: "replaceChild",
   removeChild: "removeChild", replaceChildren: "replaceChildren", before: "before",
-  after: "after", replaceWith: "replaceWith", remove: "remove", moveBefore: "moveBefore",
+  after: "after", replaceWith: "replaceWith", prepend: "prepend", append: "append", remove: "remove", moveBefore: "moveBefore",
   replaceData: "replaceData", appendData: "appendData", insertData: "insertData",
   deleteData: "deleteData", setData: "data", setAttribute: "setAttribute",
   setAttributeNS: "setAttributeNS", removeAttribute: "removeAttribute",
@@ -279,6 +279,44 @@ function registerSubtree(ctx, node) {
   ctx.kinds.set(id, kindName(node));
   for (const c of [...(node.childNodes ?? [])]) registerSubtree(ctx, c);
   return id;
+}
+
+/** `(Node or DOMString)` の可変長引数。`nodes` が無ければ `node`（一つの id。null なら引数なし）。 */
+function nodeArgs(op) {
+  if (Array.isArray(op.nodes)) return op.nodes;
+  return op.node === null || op.node === undefined ? [] : [op.node];
+}
+
+/**
+ * "convert nodes into a node" が作った node に、model（`convertNodesIntoNode`）と同じ規則で id を振る。
+ *
+ * model は文字列から作る Text node に引数の順で max+1, max+2, ... を振り、引数が一つでなければ
+ * 次の id で DocumentFragment を作る。木から辿れなくなった node は model の状態から消えるので、
+ * ここでも辿れる node だけを登録する。
+ */
+function registerConverted(ctx, args, maxBefore) {
+  const k = args.filter((a) => typeof a === "string").length;
+  const known = new Set(ctx.objects.values());
+  const seen = new Set();
+  const fresh = [];
+  const visit = (n) => {
+    if (seen.has(n)) return;
+    seen.add(n);
+    if (!known.has(n)) fresh.push(n);
+    for (const c of [...(n.childNodes ?? [])]) visit(c);
+  };
+  for (const n of [...ctx.objects.values()]) {
+    let root = n;
+    while (root.parentNode) root = root.parentNode;
+    visit(root);
+  }
+  const texts = fresh.filter((n) => n.nodeType === 3);
+  const frags = fresh.filter((n) => n.nodeType === 11);
+  if (texts.length + frags.length !== fresh.length || texts.length > k || frags.length > 1) {
+    throw new Error("変換で作られた node の形が想定と違う");
+  }
+  texts.forEach((t, i) => { ctx.objects.set(maxBefore + 1 + i, t); ctx.kinds.set(maxBefore + 1 + i, "text"); });
+  for (const f of frags) { ctx.objects.set(maxBefore + k + 1, f); ctx.kinds.set(maxBefore + k + 1, "documentFragment"); }
 }
 
 function elementField(node, name) {
@@ -884,13 +922,18 @@ function apply(ctx, op) {
       return receiver.replaceChild(need(o(op.node), "missing node"),
         need(o(op.child), "missing child"));
     case "removeChild": return receiver.removeChild(need(o(op.node), "missing node"));
-    case "replaceChildren":
-      return op.node === null || op.node === undefined
-        ? receiver.replaceChildren()
-        : receiver.replaceChildren(need(o(op.node), "missing node"));
-    case "before": return receiver.before(need(o(op.node), "missing node"));
-    case "after": return receiver.after(need(o(op.node), "missing node"));
-    case "replaceWith": return receiver.replaceWith(need(o(op.node), "missing node"));
+    case "replaceChildren": case "prepend": case "append":
+    case "before": case "after": case "replaceWith": {
+      const args = nodeArgs(op).map((a) => typeof a === "string" ? a : need(o(a), "missing node"));
+      let maxBefore = -1;
+      for (const id of ctx.objects.keys()) if (id > maxBefore) maxBefore = id;
+      try {
+        return receiver[op.op](...args);
+      } finally {
+        // 失敗しても、変換で作られて木から辿れる node は観測に出る。
+        registerConverted(ctx, args, maxBefore);
+      }
+    }
     case "remove": return receiver.remove();
     case "normalize": return receiver.normalize();
     case "moveBefore": {
@@ -1132,7 +1175,8 @@ function run(win, scenario) {
         steps.push({ ok: false, exception: UNSUPPORTED, reason: `Unsupported: ${e.message}` });
         break;
       }
-      // 失敗した操作は状態を変えてはならない。比べられるように観測を出す。
+      // 失敗した step でも観測を出す。可変長の (Node or DOMString) 引数を取る method は、
+      // 変換で node を移した後で失敗しうる。
       if (observerSet) observerSet.drain();
       step = { ...snapshot(ctx), ok: false, exception: exceptionName(e),
         delivered: [], invocations: [...invocationLog] };

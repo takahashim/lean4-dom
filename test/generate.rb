@@ -22,7 +22,7 @@ module Generate
 
   # `moveBefore` は Dommy が未実装なので、既定では生成しない。
   OPS = %w[appendChild insertBefore replaceChild removeChild replaceChildren
-           before after replaceWith remove normalize
+           prepend append before after replaceWith remove normalize
            rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
            rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
            rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
@@ -526,9 +526,19 @@ module Generate
       { "op" => op, "parent" => pick.call, "node" => maybe.call, "child" => maybe.call }
     when "removeChild" then { "op" => op, "parent" => pick.call, "node" => maybe.call }
     when "replaceChildren"
-      { "op" => op, "parent" => pick.call, "node" => rng.rand < 0.3 ? nil : maybe.call }
+      if rng.rand < 0.3
+        { "op" => op, "parent" => pick.call, "nodes" => variadic_items(rng, pick) }
+      else
+        { "op" => op, "parent" => pick.call, "node" => rng.rand < 0.3 ? nil : maybe.call }
+      end
+    when "prepend", "append"
+      { "op" => op, "parent" => pick.call, "nodes" => variadic_items(rng, pick) }
     when "before", "after", "replaceWith"
-      { "op" => op, "target" => pick.call, "node" => maybe.call }
+      if rng.rand < 0.3
+        { "op" => op, "target" => pick.call, "nodes" => variadic_items(rng, pick) }
+      else
+        { "op" => op, "target" => pick.call, "node" => maybe.call }
+      end
     when "remove" then { "op" => op, "target" => pick.call }
     when "normalize" then { "op" => op, "target" => pick.call }
     when "compareDocumentPosition", "nodeContains", "isEqualNode"
@@ -1051,6 +1061,13 @@ module Generate
   #
   # `attributeFilter` は「存在するだけで」絞り込みになるので、
   # 空 list と非空 list の両方を混ぜる。
+  # 可変長の `(Node or DOMString)` 引数。node の id と文字列を 0〜3 個混ぜる。
+  # 文字列は Text node になり id を一つずつ使うので、以降の生成の id の予測はずれうるが、
+  # model と runner は同じ規則で id を振るので、ずれても比較は壊れない（別の node を指すだけである）。
+  def variadic_items(rng, pick)
+    Array.new(rng.rand(4)) { rng.rand < 0.5 ? pick.call : ["s", "tt", ""].sample(random: rng) }
+  end
+
   # WebIDL の整数型（`unsigned long` は 32、`unsigned short` は 16）への変換を撫でる数。
   # たまに `n` を、変換すると同じ値になるもの（n ± 2^bits、n + 0.5）か、端の値（−1、−0.5、2^bits）に変える。
   # model は JSON の十進をそのまま変換し、JS は倍精度に丸めてから変換するので、倍精度で正確に表せる数に限る。

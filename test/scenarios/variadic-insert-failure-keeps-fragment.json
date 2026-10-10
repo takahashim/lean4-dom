@@ -1,0 +1,27 @@
+{
+  "_note": "after の step 4 で二つの element を fragment にまとめてから、step 5 で Document に pre-insert しようとすると、Document が element を二つ持つことになるので HierarchyRequestError になる。変換で fragment へ移した element はそのまま残る。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "after",
+      "convert nodes into a node",
+      "ensure pre-insert validity"
+    ],
+    "steps": "after 4-5 / ensure pre-insert validity 6.1",
+    "note": "pre-insert の検査は変換の後に走る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 5, "kind": "documentType", "parent": 0 },
+    { "id": 1, "kind": "element", "parent": 0 },
+    { "id": 2, "kind": "element", "parent": 1 },
+    { "id": 3, "kind": "element", "parent": 1 }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "after", "target": 5, "nodes": [2, 3] }
+  ]
+}

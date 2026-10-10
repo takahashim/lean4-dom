@@ -1,0 +1,27 @@
+{
+  "_note": "convert nodes into a node の step 4 は各 node を fragment に append する。doctype は DocumentFragment の子になれないので HierarchyRequestError で止まるが、それまでに fragment へ移した node はそのまま残る。失敗しても状態は変わる。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "convert nodes into a node",
+      "ensure pre-insert validity",
+      "before"
+    ],
+    "steps": "convert nodes into a node 4 / ensure pre-insert validity 5.1",
+    "note": "例外は step 4 の append から伝わり、移した node は fragment に残る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 5, "kind": "documentType", "parent": 0 },
+    { "id": 1, "kind": "element", "parent": 0 },
+    { "id": 2, "kind": "element", "parent": 1 },
+    { "id": 3, "kind": "element", "parent": 1 }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "before", "target": 3, "nodes": ["x", 2, 5] }
+  ]
+}

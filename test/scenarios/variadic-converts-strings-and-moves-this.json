@@ -1,0 +1,32 @@
+{
+  "_note": "ParentNode と ChildNode の可変長 method は、引数を convert nodes into a node でまとめる。文字列は新しい Text node になり、引数が一つでなければ新しい DocumentFragment に append される。fragment は挿入の後で空になり、どこからも参照されないので観測されない。this 自身を引数に含めると、変換で this が fragment に移る。before は viable sibling を変換の前に、挿入先を変換の後に決め、replaceWith は this の parent が変わったので step 6 の pre-insert に進む。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "convert nodes into a node",
+      "append",
+      "prepend",
+      "before",
+      "replaceWith"
+    ],
+    "steps": "convert nodes into a node 1-5 / before 3-6 / replaceWith 3-6",
+    "note": "新しい node の id は model の freshId（木にある id の最大より一つ大きいもの）で、Text node を引数の順に作ってから fragment を作る。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0 },
+    { "id": 2, "kind": "element", "parent": 1 },
+    { "id": 3, "kind": "element", "parent": 1 },
+    { "id": 4, "kind": "element" }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "append", "parent": 2, "nodes": ["a", 4, "b"] },
+    { "op": "prepend", "parent": 3, "nodes": ["c"] },
+    { "op": "before", "target": 3, "nodes": [3, "d"] },
+    { "op": "replaceWith", "target": 2, "nodes": [2, "e"] }
+  ]
+}

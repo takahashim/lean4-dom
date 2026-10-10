@@ -35,6 +35,10 @@ def implementsIface (t : Tree) (n : Nat) (p : NodeData → Bool) : Bool :=
 /-- `ParentNode`（Document・DocumentFragment・Element）。 -/
 def isParentNode (d : NodeData) : Bool := d.kind.canHaveChildren
 
+/-- `ChildNode`（Element・CharacterData・DocumentType）。 -/
+def isChildNode (d : NodeData) : Bool :=
+  d.kind == .element || d.kind.isCharacterData || d.kind == .documentType
+
 /-- `Element`。 -/
 def isElement (d : NodeData) : Bool := d.kind == .element
 
@@ -60,6 +64,13 @@ def hasReflected (r : ReflectSpec) (d : NodeData) : Bool := isElement d && r.ifa
 def idlCheck (s : DOMState) : Operation → Bool
   -- ParentNode の method
   | .moveBefore p _ _ => implementsIface s.tree p isParentNode
+  | .replaceChildren p _ => implementsIface s.tree p isParentNode
+  | .prepend p _ => implementsIface s.tree p isParentNode
+  | .append p _ => implementsIface s.tree p isParentNode
+  -- ChildNode の method
+  | .before t _ => implementsIface s.tree t isChildNode
+  | .after t _ => implementsIface s.tree t isChildNode
+  | .replaceWith t _ => implementsIface s.tree t isChildNode
   | .querySelector n _ => implementsIface s.tree n isParentNode
   | .querySelectorAll n _ => implementsIface s.tree n isParentNode
   | .childrenNamedItem n _ => implementsIface s.tree n isParentNode

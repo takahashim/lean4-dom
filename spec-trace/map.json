@@ -941,6 +941,21 @@
       "approx": []
     },
     {
+      "alg": "convert-nodes-into-a-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.convertNodesIntoNode",
+        "Dom.textsFor",
+        "Dom.appendAll",
+        "Dom.discardAll"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
       "alg": "concept-node-length",
       "steps": [
         "*"
@@ -1003,21 +1018,32 @@
       ]
     },
     {
+      "alg": "dom-parentnode-prepend",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.prependNodes",
+        "Dom.convertNodesIntoNode",
+        "Dom.preInsert"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
       "alg": "dom-parentnode-append",
       "steps": [
         "*"
       ],
       "impl": [
+        "Dom.appendNodes",
+        "Dom.convertNodesIntoNode",
         "Dom.append"
       ],
       "spec": [],
       "omit": [],
-      "approx": [
-        {
-          "steps": "1",
-          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-parentnode-replacechildren",
@@ -1025,6 +1051,8 @@
         "*"
       ],
       "impl": [
+        "Dom.replaceChildrenNodes",
+        "Dom.convertNodesIntoNode",
         "Dom.replaceChildren",
         "Dom.ensurePreInsertionValidity",
         "Dom.replaceAll"
@@ -1033,12 +1061,7 @@
         "Dom.Spec.ReplaceChildrenResult"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "1",
-          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-parentnode-movebefore",
@@ -1096,21 +1119,18 @@
         "*"
       ],
       "impl": [
-        "Dom.before",
+        "Dom.beforeNodes",
+        "Dom.convertNodesIntoNode",
         "Dom.viablePreviousSibling",
         "Dom.preInsert"
       ],
       "spec": [
         "Dom.Spec.BeforeResult",
-        "Dom.Spec.ViablePreviousSibling"
+        "Dom.Spec.ViablePreviousSibling",
+        "Dom.beforeNodes_single"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "4",
-          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-childnode-after",
@@ -1118,21 +1138,18 @@
         "*"
       ],
       "impl": [
-        "Dom.after",
+        "Dom.afterNodes",
+        "Dom.convertNodesIntoNode",
         "Dom.viableNextSibling",
         "Dom.preInsert"
       ],
       "spec": [
         "Dom.Spec.AfterResult",
-        "Dom.Spec.ViableNextSibling"
+        "Dom.Spec.ViableNextSibling",
+        "Dom.afterNodes_single"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "4",
-          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。そのため step 1-3 は変換の後の木で評価され、nodes は [node] になる"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-childnode-replacewith",
@@ -1140,26 +1157,19 @@
         "*"
       ],
       "impl": [
-        "Dom.replaceWith",
+        "Dom.replaceWithNodes",
+        "Dom.convertNodesIntoNode",
         "Dom.viableNextSibling",
         "Dom.replace",
         "Dom.preInsert"
       ],
       "spec": [
         "Dom.Spec.ReplaceWithResult",
-        "Dom.Spec.ViableNextSibling"
+        "Dom.Spec.ViableNextSibling",
+        "Dom.replaceWithNodes_single"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "4",
-          "what": "可変長の nodes と文字列を node にまとめる変換はしない。呼び出し側がまとめた一つの node を受け取る。step 1-3 は変換の後の木で評価され、nodes は [node] になる"
-        },
-        {
-          "steps": "5-6",
-          "what": "step 1 と step 5 の間で木が変わらないので、step 5 の条件は常に真になる（this が nodes に入っていて fragment に移る場合を区別しない）"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-childnode-remove",
@@ -4488,20 +4498,6 @@
       "why": {
         "reason": "custom-elements",
         "detail": ""
-      }
-    },
-    {
-      "target": "convert-nodes-into-a-node",
-      "why": {
-        "reason": "todo",
-        "detail": "文字列から Text を作り、複数の node を DocumentFragment にまとめる変換。model の method は変換済みの一つの node を受け取る（呼び出し側で済ませる）"
-      }
-    },
-    {
-      "target": "dom-parentnode-prepend",
-      "why": {
-        "reason": "todo",
-        "detail": "prepend に当たる関数（this の first child の前への pre-insert）が無い。harness にも操作が無い"
       }
     },
     {

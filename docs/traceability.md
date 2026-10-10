@@ -407,7 +407,7 @@ node document が copy になるのは `append` の中の adopt による。
 | ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | 長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |
-| node 生成と可変長引数の変換 | 部分対応 | §4.5 の factory・§4.4 の `cloneNode`・§4.5 の `importNode` / `adoptNode` は model にあり、固定 scenario でも生成 scenario でも差分テストに出ている。生成側は必ず成功する形だけを作る。`convert nodes into a node` は呼び出し側で済ませた形で受け取る |
+| node 生成と可変長引数の変換 | 部分対応 | §4.5 の factory・§4.4 の `cloneNode`・§4.5 の `importNode` / `adoptNode` は model にあり、固定 scenario でも生成 scenario でも差分テストに出ている。生成側は必ず成功する形だけを作る。`convert nodes into a node` は `Dom/Mutation/Variadic.lean` が本文どおりに行い、生成器も文字列を混ぜた可変長の引数を作る |
 | method の戻り値 | 済 | `returnValueOf`（`Dom/Exec/Eval.lean`）。`Node?` / boolean / record 列を kind つきで観測する。`undefined` と `null` は区別する |
 | wrapper の object identity | 対象外 | model は wrapper を持たないので wrapper を作る API の同一性は観測できない。node を返す method の戻り値は `NodeId` で比べるので「返ってきたのは渡した node そのものか」は観測できる |
 | `normalize()` の record の並び | engine に合わせた | 仕様を字義どおり読むと run ごとに characterData が一つだが、Blink・WebCore・Gecko は兄弟ごとに積む。WPT が固定しているのは childList の側だけである。木と live range の最終状態はどちらの読みでも同じ |

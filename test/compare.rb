@@ -185,9 +185,11 @@ module Compare
           messages << "step #{i}: 例外が違う（lean=#{l['exception']} #{impl_label}=#{d['exception']}）"
           return [:mismatch, messages]
         end
-        # 失敗した操作は状態を変えてはならない。
+        # 失敗した step の状態を比べる。多くの method は失敗すれば状態を変えないが、可変長の
+        # `(Node or DOMString)` 引数を取る method は変換で node を移した後で失敗しうる。
+        # model はその時点の状態を出す（`Dom.Exec.failureStateOf`）。
         if d.key?("nodes") && (diff = diff_state(l, d))
-          messages << "step #{i}: 例外の後の状態が一致しない（失敗した操作が状態を変えている）:\n#{diff}"
+          messages << "step #{i}: 例外の後の状態が一致しない:\n#{diff}"
           return [:mismatch, messages]
         end
         next

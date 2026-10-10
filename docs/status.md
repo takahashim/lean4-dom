@@ -6038,6 +6038,43 @@ WebIDL の型変換を member ごとに入れる最初の段として、IDL の�
 Dommy（`4fc3caa`）は WebIDL の変換を実装しており、固定 scenario 187 件と生成 scenario（seed 1-4、
 `--ranges 4 --iterators 2 --observers 3 --move`）で不一致は無かった。jsdom とブラウザでは確かめていない。
 
+## 可変長の `(Node or DOMString)` 引数を入れた（findings 59）
+
+WebIDL の型変換を member ごとに入れる二つ目の段として、`ParentNode` の `prepend()`・`append()`・
+`replaceChildren()` と、`ChildNode` の `before()`・`after()`・`replaceWith()` の可変長の引数を扱った。
+それまでは変換済みの一つの node を受け取る形で、`x.replaceWith(x)` のような「変換が node を動かす」場合を
+表せず、`prepend()` は無かった。
+
+* `Dom/Mutation/Variadic.lean` に "convert nodes into a node" を本文の step どおりに書いた。文字列は引数の順に
+  新しい Text node になり、引数が一つでなければ新しい DocumentFragment に append される。各 method は
+  viable sibling を変換の前の木で、挿入先を変換の後の木で決める。
+* **失敗しても状態が変わる。** 変換の step 4 の append は doctype などで失敗し、それまでに fragment へ移した node は
+  残る。method の後半の pre-insert が失敗しても、変換で移した node は残る。そこでこれらの method は失敗にも
+  その時点の状態を持たせ（`Except (DOMException × DOMState) DOMState`）、差分テストは失敗した step の
+  状態としてそれを比べる（`Dom.Exec.failureStateOf`）。harness はそれまで「失敗した操作は状態を変えない」を
+  前提にしていた。
+* **参照されなくなった node を消す。** 変換が作った fragment は挿入の後で空になり、どこからも参照されない。
+  JavaScript から観測できないので、parent・children・attribute を持たず live object と record から指されて
+  いない node を状態から消す（`Dom.discard`）。消しても admissibility と attribute の id の一意性が保たれることを
+  証明した（`admissible_discard`、`attrFrame_discard`）。
+* 六つの method が、成功しても失敗しても admissibility と id の一意性を保つことを証明した
+  （`Dom/Validity/Variadic.lean`。部品で閉じている性質 `VariadicClosed` について一度だけ示し、二つに当てた）。
+  引数が node 一つなら既存の一引数の関数と等しい（`beforeNodes_single` ほか）ので、既存の関係はその場合に
+  そのまま使える。
+* WebIDL の検査に、`ParentNode` の三つと `ChildNode` の三つの受け手の interface を足した。
+* runner は、変換で作られた node に model と同じ規則（Text node に引数の順で max+1 から、fragment はその次）で
+  id を振り、木から辿れるものだけを登録する。生成器は node の id と文字列を混ぜた引数を作る。
+* 固定 scenario を三本足した（`variadic-converts-strings-and-moves-this`、
+  `variadic-conversion-failure-keeps-moved-nodes`、`variadic-insert-failure-keeps-fragment`）。
+
+**findings 59：Dommy の可変長の method は変換の前に挿入の検査をし、失敗しても node を動かさない。**
+Dommy（`4fc3caa`）の `child_node_before` ほか（`internal/child_node.rb`）は、`ensure_parent_insertion_validity!` を
+変換の前に呼び、DocumentFragment を作らずに node を直接挿入する。そのため失敗が原子的になり、本文では
+fragment へ移っているはずの node が元の位置に残る。上の固定 scenario のうち失敗する二本と、生成 scenario
+（seed 3・4・6）の三件がこれに当たる。成功する経路は、observer を混ぜた生成 scenario でも一致した。
+WPT（`dom/nodes/ParentNode-*.html`、`ChildNode-*.html`）は失敗の後の状態を確かめていない。ブラウザでは確かめて
+いない。方針どおり expected には落とさないので、Dommy が直すまで固定 scenario の job は赤になる。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
