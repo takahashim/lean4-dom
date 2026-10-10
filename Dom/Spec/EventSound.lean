@@ -1,4 +1,5 @@
 import Dom.Spec.Event
+import Dom.Spec.EventPassive
 import Dom.Properties.Tree
 import Dom.Util.List
 
@@ -70,15 +71,19 @@ theorem runAction_spec (s : DOMState) (e : EventState) (l : EventListener) :
   | stopImmediatePropagation => exact ⟨rfl, rfl⟩
   | preventDefault =>
     refine ⟨rfl, ?_⟩
-    cases hc : e.cancelable
-    · exact Or.inr ⟨rfl, by simp⟩
-    · exact Or.inl ⟨rfl, by simp⟩
+    unfold setCanceledFlag
+    cases hc : e.cancelable <;> cases hp : e.inPassiveListener
+    · exact Or.inr ⟨by simp, by simp⟩
+    · exact Or.inr ⟨by simp, by simp⟩
+    · exact Or.inl ⟨rfl, rfl, by simp⟩
+    · exact Or.inr ⟨by simp, by simp⟩
   | removeListener k => exact ⟨removeListenerAt_spec s k, rfl⟩
   | addListener tgt ty src cap =>
     dsimp only
     cases h : s.listeners[src]? with
     | none => exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-    | some source => exact ⟨rfl, Or.inr ⟨source, rfl, addListener_spec _ _⟩⟩
+    | some source =>
+      exact ⟨rfl, Or.inr ⟨source, _, rfl, defaultPassiveValue_spec _ _ _, addListener_spec _ _⟩⟩
 
 theorem callbackRan_eq {s s' : DOMState} {e e' : EventState} {l : EventListener}
     (h : CallbackRan s e l s' e') : (s', e') = runAction s e l := by
@@ -90,16 +95,20 @@ theorem callbackRan_eq {s s' : DOMState} {e e' : EventState} {l : EventListener}
   | stopImmediatePropagation => rw [ha] at h; obtain ⟨rfl, rfl⟩ := h; rfl
   | preventDefault =>
     rw [ha] at h
-    obtain ⟨rfl, ⟨hc, rfl⟩ | ⟨hc, rfl⟩⟩ := h <;> simp [hc]
+    unfold setCanceledFlag
+    obtain ⟨rfl, ⟨hc, hp, rfl⟩ | ⟨hn, rfl⟩⟩ := h
+    · simp [hc, hp]
+    · rw [if_neg (by simpa using hn)]
   | removeListener k =>
     rw [ha] at h
     obtain ⟨hr, rfl⟩ := h
     rw [listenerRemovedAt_eq hr]
   | addListener tgt ty src cap =>
     rw [ha] at h
-    obtain ⟨rfl, ⟨hn, rfl⟩ | ⟨source, hs, hadd⟩⟩ := h
+    obtain ⟨rfl, ⟨hn, rfl⟩ | ⟨source, p, hs, hp, hadd⟩⟩ := h
     · simp [hn]
     · simp only [hs]
+      rw [defaultPassive_eq hp] at hadd
       rw [listenerAdded_eq hadd]
 
 /-! ## step 2.5（once） -/
@@ -158,7 +167,8 @@ theorem innerInvoke_sound (capturing : Bool) (cur : NodeId) :
             have h' := hcap
             simp only [bne_iff_ne, ne_eq, Decidable.not_not] at h'
             exact h'.symm
-          have hcb := runAction_spec (if l.once then removeListenerAt s i else s) e l
+          have hcb := runAction_spec (if l.once then removeListenerAt s i else s)
+            (if l.passive then { e with inPassiveListener := true } else e) l
           by_cases hst : (invokeOne s e l i).2.stopImmediate = true
           · refine ⟨[⟨l.callback, cur, e.eventPhase⟩], ?_, ?_⟩ <;>
               simp only [innerInvoke, hl, if_neg hskip, if_neg hcap, if_pos hst]
@@ -201,7 +211,7 @@ theorem innerInvoke_complete {capturing : Bool} {cur : NodeId} {idxs : List Nat}
     have e₂' := callbackRan_eq hcb
     unfold invokeOne
     rw [← e₂']
-    simp only [hst, Bool.false_eq_true, if_false]
+    rw [if_neg (by simp [hst])]
     rw [ih]
     simp
   | @callStop s₀ s₁ s₂ e₀ e₂ i rest l hl hr ht hc ho hcb hst =>
@@ -431,21 +441,26 @@ theorem dispatchEvent_result_deterministic {s : DOMState} (hwf : WellFormed s.tr
 /-! ## `addEventListener` / `removeEventListener` -/
 
 theorem addEventListener_result_sound (s : DOMState) (target : NodeId) («type» : String)
-    (source : Nat) (capture once : Bool) :
-    AddEventListenerResult s target «type» source capture once
-      (addEventListener s target «type» source capture once) := by
+    (source : Nat) (capture : Bool) (passive : Option Bool) (once : Bool) :
+    AddEventListenerResult s target «type» source capture passive once
+      (addEventListener s target «type» source capture passive once) := by
   unfold addEventListener
   cases hd : s.tree.get? target with
   | none => exact ⟨Or.inl hd, rfl⟩
   | some d =>
     cases hs : s.listeners[source]? with
     | none => exact ⟨Or.inr hs, rfl⟩
-    | some src => exact ⟨⟨d, hd⟩, src, hs, addListener_spec _ _⟩
+    | some src =>
+      refine ⟨⟨d, hd⟩, src, _, hs, ?_, addListener_spec _ _⟩
+      cases passive with
+      | none => exact Or.inr ⟨rfl, defaultPassiveValue_spec _ _ _⟩
+      | some b => exact Or.inl rfl
 
 theorem addEventListener_result_complete {s : DOMState} {target : NodeId} {«type» : String}
-    {source : Nat} {capture once : Bool} {r : Except DOMException DOMState}
-    (h : AddEventListenerResult s target «type» source capture once r) :
-    r = addEventListener s target «type» source capture once := by
+    {source : Nat} {capture : Bool} {passive : Option Bool} {once : Bool}
+    {r : Except DOMException DOMState}
+    (h : AddEventListenerResult s target «type» source capture passive once r) :
+    r = addEventListener s target «type» source capture passive once := by
   unfold addEventListener
   rcases r with e | s'
   · obtain ⟨hn | hn, rfl⟩ := h
@@ -453,7 +468,12 @@ theorem addEventListener_result_complete {s : DOMState} {target : NodeId} {«typ
     · cases hd : s.tree.get? target with
       | none => rfl
       | some d => simp only [hn]
-  · obtain ⟨⟨d, hd⟩, src, hs, hadd⟩ := h
+  · obtain ⟨⟨d, hd⟩, src, p, hs, hp, hadd⟩ := h
+    have hpe : p = passive.getD (defaultPassiveValue s.tree «type» target) := by
+      rcases hp with rfl | ⟨rfl, hdp⟩
+      · rfl
+      · exact defaultPassive_eq hdp
+    subst hpe
     simp only [hd, hs]
     rw [listenerAdded_eq hadd]
 

@@ -14,6 +14,7 @@ import Dom.Observation
 import Dom.Observer.Deliver
 import Dom.Idl.Number
 import Dom.Mutation.Variadic
+import Dom.Event.Options
 
 /-!
 # scenario の型
@@ -184,9 +185,9 @@ inductive Operation where
   | lookupNamespaceURI (node : Nat) («prefix» : Option String)
   | lookupPrefix (node : Nat) («namespace» : Option String)
   | isDefaultNamespace (node : Nat) («namespace» : Option String)
-  /-- §2.7 `addEventListener` / `removeEventListener`、§2.9 `dispatchEvent`。 -/
-  | addEventListener (target : Nat) («type» : String) (source : Nat) (capture once : Bool)
-  | removeEventListener (target : Nat) («type» : String) (callback : Nat) (capture : Bool)
+  /-- §2.7 `addEventListener` / `removeEventListener`、§2.9 `dispatchEvent`。options は WebIDL の変換の前の値。 -/
+  | addEventListener (target : Nat) («type» : String) (source : Nat) (options : Idl.JsValue)
+  | removeEventListener (target : Nat) («type» : String) (callback : Nat) (options : Idl.JsValue)
   | dispatchEvent (target : Nat) («type» : String) (bubbles cancelable : Bool)
   /-- `Element.setAttribute(qualifiedName, value)`。 -/
   | setAttribute (element : Nat) (qualifiedName value : String)
@@ -325,6 +326,8 @@ structure Scenario where
   iterators : List IteratorState := []
   walkers : List WalkerState := []
   listeners : List EventListener := []
+  /-- 初期状態の listener の passive。無ければ default passive value にする。 -/
+  listenerPassive : List (Option Bool) := []
   observers : List ObserverSpec := []
   operations : List Operation
 deriving Repr

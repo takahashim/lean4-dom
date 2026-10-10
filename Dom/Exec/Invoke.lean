@@ -116,6 +116,8 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .getElementsByName n _ => implementsIface s.tree n isDocument
   | .getElementById n _ => implementsIface s.tree n isNonElementParentNode
   | .getElementsByClassName n _ => implementsIface s.tree n isDocumentOrElement
+  -- options の `(AddEventListenerOptions or boolean)` への変換（`signal` があれば TypeError）
+  | .addEventListener _ _ _ o => (Idl.toAddEventListenerOptions o).isSome
   -- `Range` の method の `Node` 引数（null は TypeError）
   | .rangeSetStart _ n _ => n.isSome
   | .rangeSetEnd _ n _ => n.isSome

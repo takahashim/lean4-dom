@@ -640,10 +640,17 @@ module DommyRunner
       target = objects[spec["target"]]
       raise NotImplementedError, "missing listener target" if target.nil?
 
-      target.add_event_listener(spec["type"].to_s, callbacks[i],
-                                { "capture" => !!spec["capture"], "once" => !!spec["once"] })
+      target.add_event_listener(spec["type"].to_s, callbacks[i], listener_options(spec))
     end
     callbacks
+  end
+
+  # listener の options。`options` があればその JavaScript の値（JSON をそのまま Ruby の値にしたもの）、
+  # 無ければ `capture`・`once`・`passive` のうち書いてあるものだけを持つ dictionary。
+  def listener_options(spec)
+    return spec["options"] if spec.key?("options")
+
+    spec.slice("capture", "once", "passive")
   end
 
   def make_listener_callback(objects, callbacks, specs, spec, callback_id, log)
@@ -674,7 +681,7 @@ module DommyRunner
       i = action["index"]
       spec = specs[i] or raise NotImplementedError, "listener index"
       objects[spec["target"]].remove_event_listener(spec["type"].to_s, callbacks[i],
-                                                    { "capture" => !!spec["capture"] })
+                                                    { "capture" => spec["capture"] })
     when "addListener"
       source = callbacks[action["source"]] or raise NotImplementedError, "listener index"
       objects[action["target"]].add_event_listener(action["type"].to_s, source,
@@ -1121,8 +1128,7 @@ module DommyRunner
       cb = (ctx[:callbacks] || [])[op["source"]]
       raise NotImplementedError, "listener index" if cb.nil?
 
-      return target.add_event_listener(op["type"].to_s, cb,
-                                       { "capture" => !!op["capture"], "once" => !!op["once"] })
+      return target.add_event_listener(op["type"].to_s, cb, listener_options(op))
     when "removeEventListener"
       target = objects[op["target"]]
       raise NotImplementedError, "missing node" if target.nil?
@@ -1130,7 +1136,7 @@ module DommyRunner
       cb = (ctx[:callbacks] || [])[op["callback"]]
       raise NotImplementedError, "listener index" if cb.nil?
 
-      return target.remove_event_listener(op["type"].to_s, cb, { "capture" => !!op["capture"] })
+      return target.remove_event_listener(op["type"].to_s, cb, listener_options(op))
     end
 
     if QUERY_OPS.include?(op["op"])

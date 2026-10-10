@@ -23,50 +23,50 @@ namespace Dom
 theorem runAction_stopPropagation (s : DOMState) (e : EventState) (l : EventListener)
     (h : l.action = .stopPropagation) :
     runAction s e l = (s, { e with stopPropagation := true }) := by
-  unfold runAction; rw [h]
+  unfold runAction setCanceledFlag; rw [h]
 
 theorem runAction_stopImmediate (s : DOMState) (e : EventState) (l : EventListener)
     (h : l.action = .stopImmediatePropagation) :
     runAction s e l = (s, { e with stopPropagation := true, stopImmediate := true }) := by
-  unfold runAction; rw [h]
+  unfold runAction setCanceledFlag; rw [h]
 
 theorem runAction_preventDefault_cancelable (s : DOMState) (e : EventState) (l : EventListener)
-    (h : l.action = .preventDefault) (hc : e.cancelable = true) :
+    (h : l.action = .preventDefault) (hc : e.cancelable = true) (hp : e.inPassiveListener = false) :
     runAction s e l = (s, { e with canceled := true }) := by
-  unfold runAction; rw [h]; simp [hc]
+  unfold runAction setCanceledFlag; rw [h]; simp [hc, hp]
 
 theorem runAction_preventDefault_not_cancelable (s : DOMState) (e : EventState)
     (l : EventListener) (h : l.action = .preventDefault) (hc : e.cancelable = false) :
     runAction s e l = (s, e) := by
-  unfold runAction; rw [h]; simp [hc]
+  unfold runAction setCanceledFlag; rw [h]; simp [hc]
 
 theorem runAction_type (s : DOMState) (e : EventState) (l : EventListener) :
     (runAction s e l).2.type = e.type := by
-  unfold runAction; split <;> (try split) <;> rfl
+  unfold runAction setCanceledFlag; split <;> (try split) <;> rfl
 
 theorem runAction_bubbles (s : DOMState) (e : EventState) (l : EventListener) :
     (runAction s e l).2.bubbles = e.bubbles := by
-  unfold runAction; split <;> (try split) <;> rfl
+  unfold runAction setCanceledFlag; split <;> (try split) <;> rfl
 
 theorem runAction_cancelable (s : DOMState) (e : EventState) (l : EventListener) :
     (runAction s e l).2.cancelable = e.cancelable := by
-  unfold runAction; split <;> (try split) <;> rfl
+  unfold runAction setCanceledFlag; split <;> (try split) <;> rfl
 
 theorem runAction_eventPhase (s : DOMState) (e : EventState) (l : EventListener) :
     (runAction s e l).2.eventPhase = e.eventPhase := by
-  unfold runAction; split <;> (try split) <;> rfl
+  unfold runAction setCanceledFlag; split <;> (try split) <;> rfl
 
 /-- **cancelable でなければ canceled は立たない。** -/
 theorem runAction_canceled_of_not_cancelable (s : DOMState) (e : EventState) (l : EventListener)
     (hc : e.cancelable = false) (he : e.canceled = false) :
     (runAction s e l).2.canceled = false := by
-  unfold runAction
+  unfold runAction setCanceledFlag
   split <;> (try split) <;> simp_all
 
 /-- **stop propagation flag は一度立つと落ちない。** -/
 theorem runAction_stopPropagation_mono (s : DOMState) (e : EventState) (l : EventListener)
     (h : e.stopPropagation = true) : (runAction s e l).2.stopPropagation = true := by
-  unfold runAction
+  unfold runAction setCanceledFlag
   split <;> (try split) <;> simp_all
 
 /-- **`innerInvoke` は log を伸ばすだけである。** -/
@@ -185,13 +185,16 @@ theorem eventPath_head (t : Tree) (target : NodeId) :
 theorem invokeOne_cancelable (s : DOMState) (e : EventState) (l : EventListener) (i : Nat) :
     (invokeOne s e l i).2.cancelable = e.cancelable := by
   unfold invokeOne
-  split <;> (unfold runAction; split <;> (try split) <;> rfl)
+  simp only [runAction_cancelable]
+  split <;> rfl
 
 theorem invokeOne_canceled_of_not_cancelable (s : DOMState) (e : EventState) (l : EventListener)
     (i : Nat) (hc : e.cancelable = false) (he : e.canceled = false) :
     (invokeOne s e l i).2.canceled = false := by
   unfold invokeOne
-  split <;> (unfold runAction; split <;> (try split) <;> simp_all)
+  simp only
+  exact runAction_canceled_of_not_cancelable _ _ _ (by split <;> simpa using hc)
+    (by split <;> simpa using he)
 
 /--
 **選別条件に合う listener が一つも無ければ、`innerInvoke` は何もしない。**
@@ -303,8 +306,20 @@ theorem dispatchEvent_not_cancelable (s : DOMState) (target : NodeId) (ty : Stri
 
 /-- **`once` の listener は呼ぶ前に外される（invoke の step 2.5）。** -/
 theorem invokeOne_once (s : DOMState) (e : EventState) (l : EventListener) (i : Nat)
-    (h : l.once = true) : invokeOne s e l i = runAction (removeListenerAt s i) e l := by
+    (h : l.once = true) :
+    (invokeOne s e l i).1 =
+      (runAction (removeListenerAt s i) (if l.passive then { e with inPassiveListener := true } else e) l).1 := by
   unfold invokeOne; rw [if_pos h]
+
+/--
+**passive な listener の `preventDefault()` は canceled flag を立てない（invoke の step 2.9、
+"set the canceled flag"）。** 呼んだ後の in passive listener flag は落ちている（step 2.12）。
+-/
+theorem invokeOne_passive_preventDefault (s : DOMState) (e : EventState) (l : EventListener) (i : Nat)
+    (hp : l.passive = true) (ha : l.action = .preventDefault) :
+    (invokeOne s e l i).2 = { e with inPassiveListener := false } := by
+  unfold invokeOne runAction setCanceledFlag
+  simp [hp, ha]
 
 /-- **外した listener には `removed` が立つ。** 以降の invoke はこれを見て飛ばす。 -/
 theorem removeListenerAt_removed (s : DOMState) (i : Nat) (l : EventListener)

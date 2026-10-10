@@ -557,13 +557,12 @@ module Generate
       return nil if listener_count.zero?
 
       { "op" => op, "target" => pick.call, "type" => EVENT_TYPES.sample(random: rng),
-        "source" => rng.rand(listener_count), "capture" => rng.rand < 0.4,
-        "once" => rng.rand < 0.3 }
+        "source" => rng.rand(listener_count), "options" => random_listener_options(rng, add: true) }
     when "removeEventListener"
       return nil if listener_count.zero?
 
       { "op" => op, "target" => pick.call, "type" => EVENT_TYPES.sample(random: rng),
-        "callback" => rng.rand(listener_count), "capture" => rng.rand < 0.4 }
+        "callback" => rng.rand(listener_count), "options" => random_listener_options(rng, add: false) }
     when "lookupNamespaceURI"
       { "op" => op, "node" => pick.call,
         "prefix" => [nil, "", "p", "xml", "xmlns", "q"].sample(random: rng) }
@@ -983,6 +982,30 @@ module Generate
   SHOW_COMMENT = 0x80
   SHOW_DOCUMENT = 0x100
 
+  # `addEventListener` / `removeEventListener` の options。WebIDL の変換の前の JavaScript の値で、
+  # boolean のほか、数・文字列・null（boolean と dictionary への変換）と dictionary を混ぜる。
+  #
+  # `once` は真偽値か ToBoolean で真になる値に限り、`signal` は入れない。どちらも Dommy の既知の
+  # 不一致（`once` を Ruby の真偽で読む、AbortSignal でない `signal` を TypeError にしない）を固定
+  # scenario で押さえてあるので、乱数の側では当てない。
+  def random_listener_options(rng, add:)
+    truthy = [true, 1, "x"]
+    falsy = [false, 0, "", nil]
+    pick = ->(xs) { xs.sample(random: rng) }
+    case rng.rand(6)
+    when 0 then pick.call(truthy + falsy)
+    when 1 then nil
+    else
+      o = {}
+      o["capture"] = pick.call(rng.rand < 0.4 ? truthy : falsy) if rng.rand < 0.8
+      if add
+        o["once"] = pick.call([true, false, 1, "x"]) if rng.rand < 0.4
+        o["passive"] = pick.call(truthy + falsy) if rng.rand < 0.3
+      end
+      o
+    end
+  end
+
   # event listener を宣言する。
   #
   # callback の副作用は scenario が決める（model には callback が無い）。
@@ -994,6 +1017,7 @@ module Generate
       spec = nodes.sample(random: rng)
       listener = { "target" => spec["id"], "type" => EVENT_TYPES.sample(random: rng),
                    "capture" => rng.rand < 0.4, "once" => rng.rand < 0.25 }
+      listener["passive"] = rng.rand < 0.5 if rng.rand < 0.3
       action =
         case rng.rand(10)
         when 0 then "stopPropagation"

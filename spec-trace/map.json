@@ -169,18 +169,14 @@
         "*"
       ],
       "impl": [
+        "Dom.setCanceledFlag",
         "Dom.runAction"
       ],
       "spec": [
         "Dom.Spec.CallbackRan"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "*",
-          "what": "in passive listener flag を持たない（passive を扱わない）ので、cancelable だけで決まる"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-event-preventdefault",
@@ -207,10 +203,14 @@
         "*"
       ],
       "impl": [
-        "Dom.addListener"
+        "Dom.addListener",
+        "Dom.addEventListener",
+        "Dom.defaultPassiveValue"
       ],
       "spec": [
-        "Dom.Spec.ListenerAdded"
+        "Dom.Spec.ListenerAdded",
+        "Dom.Spec.AddEventListenerResult",
+        "Dom.Spec.DefaultPassive"
       ],
       "omit": [
         {
@@ -235,13 +235,6 @@
           }
         },
         {
-          "steps": "4",
-          "why": {
-            "reason": "todo",
-            "detail": "passive を持たない"
-          }
-        },
-        {
           "steps": "6",
           "why": {
             "reason": "todo",
@@ -263,7 +256,9 @@
       ],
       "impl": [
         "Dom.addEventListener",
-        "Dom.addListener"
+        "Dom.addListener",
+        "Dom.flattenMoreOptions",
+        "Dom.Idl.toAddEventListenerOptions"
       ],
       "spec": [
         "Dom.Spec.AddEventListenerResult"
@@ -272,7 +267,7 @@
       "approx": [
         {
           "steps": "1",
-          "what": "options の flatten は harness が済ませ、capture と once を Bool で受け取る。passive と signal は無い"
+          "what": "signal を持たない。AbortSignal の値は表せないので、undefined でない signal は WebIDL の変換で TypeError になり、method steps に入らない"
         },
         {
           "steps": "2",
@@ -314,16 +309,75 @@
       ],
       "impl": [
         "Dom.removeEventListener",
-        "Dom.removeListenerAt"
+        "Dom.removeListenerAt",
+        "Dom.flattenOptions",
+        "Dom.Idl.toEventListenerOptions"
       ],
       "spec": [
         "Dom.Spec.RemoveEventListenerResult"
       ],
       "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-flatten-options",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.flattenOptions"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "event-flatten-more",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.flattenMoreOptions"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "4.3",
+          "why": {
+            "reason": "todo",
+            "detail": "AbortSignal と listener の signal を持たない（undefined でない signal は WebIDL の変換で TypeError になる）"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "3",
+          "what": "signal を持たないので passive だけを null（`none`）で始める"
+        },
+        {
+          "steps": "5",
+          "what": "signal を返さない"
+        }
+      ]
+    },
+    {
+      "alg": "default-passive-value",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.defaultPassiveValue",
+        "Dom.bodyElementOf"
+      ],
+      "spec": [
+        "Dom.Spec.DefaultPassive",
+        "Dom.Spec.BodyElement"
+      ],
+      "omit": [],
       "approx": [
         {
           "steps": "1",
-          "what": "options の flatten は harness が済ませ、capture を Bool で受け取る"
+          "what": "Window を持たないので、eventTarget が Window である場合は無い"
         }
       ]
     },
@@ -645,13 +699,6 @@
           }
         },
         {
-          "steps": "2.9",
-          "why": {
-            "reason": "todo",
-            "detail": "passive と in passive listener flag を持たない"
-          }
-        },
-        {
           "steps": "2.10",
           "why": {
             "reason": "host",
@@ -663,13 +710,6 @@
           "why": {
             "reason": "host",
             "detail": ""
-          }
-        },
-        {
-          "steps": "2.12",
-          "why": {
-            "reason": "todo",
-            "detail": "passive と in passive listener flag を持たない"
           }
         },
         {
@@ -4389,31 +4429,10 @@
       }
     },
     {
-      "target": "concept-flatten-options",
-      "why": {
-        "reason": "other",
-        "detail": "options の IDL 変換は harness が済ませ、capture・once を Bool で渡す"
-      }
-    },
-    {
-      "target": "event-flatten-more",
-      "why": {
-        "reason": "other",
-        "detail": "options の IDL 変換は harness が済ませる。passive と signal は持たない"
-      }
-    },
-    {
       "target": "dom-eventtarget-eventtarget",
       "why": {
         "reason": "todo",
         "detail": "node 以外の EventTarget を作れない（listener の target は NodeId）"
-      }
-    },
-    {
-      "target": "default-passive-value",
-      "why": {
-        "reason": "todo",
-        "detail": "passive を持たない（判定には Window・Document の body も要る）"
       }
     },
     {

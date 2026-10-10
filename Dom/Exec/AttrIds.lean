@@ -204,8 +204,8 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | attrLookupNamespaceURI a p => exact unique_requireRefs hu hop
   | attrLookupPrefix a ns => exact unique_requireRefs hu hop
   | attrIsDefaultNamespace a ns => exact unique_requireRefs hu hop
-  | addEventListener t ty src cap once => exact (attrFrame_addEventListener hop).unique hu
-  | removeEventListener t ty cb cap => exact (attrFrame_removeEventListener hop).unique hu
+  | addEventListener t ty src o => exact (attrFrame_addEventListener hop).unique hu
+  | removeEventListener t ty cb o => exact (attrFrame_removeEventListener hop).unique hu
   | dispatchEvent t ty b c =>
     simp only [applyOperation, Except.map] at hop
     split at hop

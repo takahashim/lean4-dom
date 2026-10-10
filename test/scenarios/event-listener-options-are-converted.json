@@ -1,0 +1,192 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "flatten",
+      "flatten more",
+      "add an event listener",
+      "remove an event listener",
+      "inner invoke"
+    ],
+    "steps": "flatten 1-2 / flatten more 1-4 / inner invoke 2.9, 2.12",
+    "note": "options は (AddEventListenerOptions or boolean) へ変換する。数と文字列は boolean へ ToBoolean で、null と object は dictionary へ変換する。dictionary の member も ToBoolean で読む。passive な listener の preventDefault は canceled flag を立てない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "body"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 3,
+      "type": "z"
+    },
+    {
+      "target": 3,
+      "type": "z",
+      "action": "preventDefault"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "addEventListener",
+      "target": 1,
+      "type": "a",
+      "source": 0,
+      "options": 1
+    },
+    {
+      "op": "addEventListener",
+      "target": 1,
+      "type": "a",
+      "source": 0,
+      "options": {
+        "capture": ""
+      }
+    },
+    {
+      "op": "addEventListener",
+      "target": 1,
+      "type": "a",
+      "source": 0,
+      "options": "x"
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "a",
+      "bubbles": true,
+      "cancelable": false
+    },
+    {
+      "op": "removeEventListener",
+      "target": 1,
+      "type": "a",
+      "callback": 0,
+      "options": {
+        "capture": 1
+      }
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "a",
+      "bubbles": true,
+      "cancelable": false
+    },
+    {
+      "op": "removeEventListener",
+      "target": 1,
+      "type": "a",
+      "callback": 0,
+      "options": null
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "a",
+      "bubbles": true,
+      "cancelable": false
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "b",
+      "source": 1,
+      "options": {
+        "passive": 1
+      }
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "b",
+      "bubbles": true,
+      "cancelable": true
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "c",
+      "source": 1,
+      "options": {
+        "passive": 0
+      }
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "c",
+      "bubbles": true,
+      "cancelable": true
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "d",
+      "source": 0,
+      "options": {
+        "once": 1
+      }
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "d",
+      "bubbles": true,
+      "cancelable": false
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "d",
+      "bubbles": true,
+      "cancelable": false
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "e",
+      "source": 0,
+      "options": null
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "e",
+      "source": 0,
+      "options": {}
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "e",
+      "bubbles": true,
+      "cancelable": false
+    }
+  ]
+}

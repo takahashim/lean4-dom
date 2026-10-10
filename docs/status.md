@@ -6075,6 +6075,49 @@ fragment へ移っているはずの node が元の位置に残る。上の固�
 WPT（`dom/nodes/ParentNode-*.html`、`ChildNode-*.html`）は失敗の後の状態を確かめていない。ブラウザでは確かめて
 いない。方針どおり expected には落とさないので、Dommy が直すまで固定 scenario の job は赤になる。
 
+## listener の options と passive を入れた（findings 60）
+
+WebIDL の型変換を member ごとに入れる三つ目の段として、`addEventListener` と `removeEventListener` の
+options を扱った。それまでは harness が flatten を済ませ、capture と once を真偽値で渡しており、passive は無かった。
+
+* `Dom/Idl/Value.lean` に JavaScript の値（undefined・null・真偽値・数・文字列・object）と、
+  `(EventListenerOptions or boolean)`・`(AddEventListenerOptions or boolean)` への変換を書いた。数と文字列は
+  ToBoolean で boolean に、null と object は dictionary になる。dictionary の member も ToBoolean で読む。
+  AbortSignal を表せないので、undefined でない `signal` は TypeError になる（WebIDL の検査の層、`idlCheck`）。
+* `Dom/Event/Options.lean` に "flatten" と "flatten more" を書いた。
+* listener に passive を、event に in passive listener flag を持たせた。inner invoke の step 2.9 と 2.12、
+  "set the canceled flag"、add an event listener の step 4（default passive value）を本文どおりに入れた。
+  default passive value の body element は HTML の定義（document element が HTML 名前空間の html で、その子の
+  うち最初の body か frameset）に従う。
+* 関係の側（`Dom/Spec/Event.lean`）に `DefaultPassive` と body element を本文から書き、実行関数が一致すること
+  （`defaultPassiveValue_spec`）と関係が値を一つに決めること（`defaultPassive_eq`）を証明した。
+  `CallbackRan` と `InnerInvoked` の関係も in passive listener flag を扱う形に直し、soundness と completeness を
+  通した。passive な listener の `preventDefault()` が canceled flag を立てないことを
+  `invokeOne_passive_preventDefault` として示した。
+* scenario の操作は options を JSON の値のまま運ぶ（`options` が無ければ `capture`・`once`・`passive` の field を
+  持つ dictionary とみなす）。初期状態の listener は `passive` を書かなければ default passive value になる。
+  runner は options をそのまま実装に渡す。生成器は真偽値・数・文字列・null・dictionary を混ぜる。
+* 固定 scenario を四本足した（`event-listener-options-are-converted`、`event-listener-once-uses-to-boolean`、
+  `event-listener-signal-must-be-an-abort-signal`、`default-passive-for-document-html-and-body`）。
+
+jsdom 27.0.1 は四本すべてで model と一致した。Dommy（`4fc3caa`）は `event-listener-options-are-converted` と、
+生成 scenario（seed 11、300 本）のうち findings 59 に当たる二件以外で一致した。ブラウザでは確かめていない。
+
+**findings 60：Dommy の listener の options は三点で本文と違う。**
+Dommy（`4fc3caa`）の `EventTarget::Listener`（`event.rb`）について、固定 scenario の三本が不一致になる。
+
+1. `once?` が member を Ruby の真偽で読むので、`{ once: 0 }` と `{ once: "" }` が once になる。WebIDL の boolean への
+   変換は ToBoolean なので、どちらも false である（`capture?` と `passive?` は ToBoolean で読んでいる）。
+2. `signal` が AbortSignal でなくても TypeError にならず、listener が足される。WebIDL の dictionary の変換は、
+   undefined でない member を member の型へ変換し、AbortSignal でない値は TypeError になる。
+3. default passive value が無い。Document、document element、body element に passive を書かずに足した
+   `touchstart`・`touchmove`・`wheel`・`mousewheel` の listener は passive になるはずだが、Dommy では
+   `preventDefault()` が効く。
+
+生成器は、1 と 2 の値と、3 の event type を作らない。どれも固定 scenario で押さえてあり、乱数の側で当てると
+同じ不一致が繰り返し出るだけだからである。方針どおり expected には落とさないので、Dommy が直すまで
+固定 scenario の job は赤になる。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

@@ -97,6 +97,34 @@ private def jsNumberField (j : Json) (k : String) : Except String Idl.JsNumber :
     | _ => throw s!"field `{k}` が数でない"
 
 /--
+JavaScript の値（WebIDL の変換の前の値）。JSON の null・真偽値・数・文字列・object をそのまま写す。
+配列は model に無いので失敗する。
+-/
+partial def jsValueOfJson : Json → Except String Idl.JsValue
+  | .null => pure .null
+  | .bool b => pure (.bool b)
+  | .num n => pure (.number ⟨n.mantissa, n.exponent⟩)
+  | .str s => pure (.string s)
+  | .obj kvs => do
+    let props ← kvs.toList.mapM fun (k, v) => do pure (k, ← jsValueOfJson v)
+    pure (.object props)
+  | .arr _ => throw "配列の JavaScript の値は表せない"
+
+/--
+listener の options。`options` があればその値、無ければ `capture`・`once`・`passive` の field を
+持つ object とみなす（どれも無ければ空の object で、既定値と同じになる）。
+-/
+private def listenerOptionsField (j : Json) : Except String Idl.JsValue := do
+  match field? j "options" with
+  | some v => jsValueOfJson v
+  | none =>
+    let props ← ["capture", "once", "passive"].filterMapM fun k => do
+      match field? j k with
+      | none => pure none
+      | some v => pure (some (k, ← jsValueOfJson v))
+    pure (.object props)
+
+/--
 可変長の `(Node or DOMString)` 引数。`nodes` の配列の数は node の id、文字列はそのまま文字列である。
 `nodes` が無ければ `node`（一つの id、または null で空）を読む。
 -/
@@ -413,11 +441,10 @@ def operationOfJson (j : Json) : Except String Operation := do
     | .attr a => return .attrIsDefaultNamespace a (← strField? j "namespace")
   | "addEventListener" =>
     return .addEventListener (← natField j "target") (← strField j "type" "")
-      (← natField j "source") ((← boolField? j "capture").getD false)
-      ((← boolField? j "once").getD false)
+      (← natField j "source") (← listenerOptionsField j)
   | "removeEventListener" =>
     return .removeEventListener (← natField j "target") (← strField j "type" "")
-      (← natField j "callback") ((← boolField? j "capture").getD false)
+      (← natField j "callback") (← listenerOptionsField j)
   | "dispatchEvent" =>
     return .dispatchEvent (← natField j "target") (← strField j "type" "")
       ((← boolField? j "bubbles").getD false) ((← boolField? j "cancelable").getD false)
@@ -529,15 +556,18 @@ def listenerActionOfJson (j : Option Json) : Except String ListenerAction :=
     | k => .error s!"知らない listener action: {k}"
   | some _ => .error "action は文字列か object でなければならない"
 
-/-- scenario の listener。`callback` を省略すると宣言順の番号になる。 -/
-def listenerOfJson (j : Json) (index : Nat) : Except String EventListener := do
+/--
+scenario の listener と、その passive（無ければ default passive value にする）。
+`callback` を省略すると宣言順の番号になる。
+-/
+def listenerOfJson (j : Json) (index : Nat) : Except String (EventListener × Option Bool) := do
   let action ← listenerActionOfJson (field? j "action")
-  return { target := ⟨← natField j "target"⟩
-           «type» := ← strField j "type" ""
-           callback := (← natField? j "callback").getD index
-           capture := (← boolField? j "capture").getD false
-           once := (← boolField? j "once").getD false
-           action := action }
+  return ({ target := ⟨← natField j "target"⟩
+            «type» := ← strField j "type" ""
+            callback := (← natField? j "callback").getD index
+            capture := (← boolField? j "capture").getD false
+            once := (← boolField? j "once").getD false
+            action := action }, ← boolField? j "passive")
 
 def rangeOfJson (j : Json) : Except String RangeState := do
   let some st := field? j "start" | .error "range に `start` がない"
@@ -585,10 +615,12 @@ def scenarioOfJson (j : Json) : Except String Scenario := do
   let ranges ← rangesJson.toList.mapM rangeOfJson
   let iterators ← itersJson.toList.mapM iteratorOfJson
   let walkers ← walkersJson.toList.mapM walkerOfJson
-  let listeners ← listenersJson.toList.zipIdx.mapM fun (l, i) => listenerOfJson l i
+  let listenersWithPassive ← listenersJson.toList.zipIdx.mapM fun (l, i) => listenerOfJson l i
+  let listeners := listenersWithPassive.map (·.1)
+  let listenerPassive := listenersWithPassive.map (·.2)
   let observers ← obsJson.toList.mapM observerOfJson
   let operations ← opsJson.toList.mapM operationOfJson
-  return { nodes, ranges, iterators, walkers, listeners, observers, operations }
+  return { nodes, ranges, iterators, walkers, listeners, listenerPassive, observers, operations }
 
 def scenarioOfString (s : String) : Except String Scenario := do
   scenarioOfJson (← Json.parse s)

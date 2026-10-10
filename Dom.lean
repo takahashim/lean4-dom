@@ -36,6 +36,7 @@ import Dom.Properties.PreInsertValidity
 import Dom.Properties.Algorithms
 import Dom.Properties.Path
 import Dom.Event.Dispatch
+import Dom.Event.Options
 import Dom.Properties.Event
 import Dom.Properties.NodeQuery
 import Dom.Properties.RangeDelete
@@ -130,6 +131,7 @@ import Dom.Spec.RangeInsertSound
 import Dom.Spec.RangeInsertCongr
 import Dom.Spec.Event
 import Dom.Spec.EventSound
+import Dom.Spec.EventPassive
 import Dom.Spec.Attribute
 import Dom.Spec.AttributeSound
 import Dom.Spec.AttributeCongr
@@ -138,6 +140,7 @@ import Dom.Spec.ObserveSound
 import Dom.Spec.ValidateAndExtract
 import Dom.Spec.ScopeMatch
 import Dom.Idl.Number
+import Dom.Idl.Value
 import Dom.Mutation.Variadic
 import Dom.Validity.Discard
 import Dom.Validity.Variadic

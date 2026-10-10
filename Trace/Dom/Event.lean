@@ -26,9 +26,8 @@ def entries : List Entry := [
     spec := [``Dom.Spec.CallbackRan]
     approx := [("*", "listener の `ListenerAction.stopImmediatePropagation` として走る")] },
   { alg := "set-the-canceled-flag"
-    impl := [``Dom.runAction]
-    spec := [``Dom.Spec.CallbackRan]
-    approx := [("*", "in passive listener flag を持たない（passive を扱わない）ので、cancelable だけで決まる")] },
+    impl := [``Dom.setCanceledFlag, ``Dom.runAction]
+    spec := [``Dom.Spec.CallbackRan] },
   { alg := "dom-event-preventdefault"
     impl := [``Dom.runAction]
     spec := [``Dom.Spec.CallbackRan]
@@ -36,17 +35,17 @@ def entries : List Entry := [
 
   /- ## §2.7 EventTarget -/
   { alg := "add-an-event-listener"
-    impl := [``Dom.addListener]
-    spec := [``Dom.Spec.ListenerAdded]
+    impl := [``Dom.addListener, ``Dom.addEventListener, ``Dom.defaultPassiveValue]
+    spec := [``Dom.Spec.ListenerAdded, ``Dom.Spec.AddEventListenerResult, ``Dom.Spec.DefaultPassive]
     omitted := [("1", .host), ("2", .todo "AbortSignal と listener の signal を持たない"),
                 ("3", .other "callback は scenario の番号で、null にならない"),
-                ("4", .todo "passive を持たない"),
                 ("6", .todo "AbortSignal と listener の signal を持たない")]
     approx := [("5", "listener list を EventTarget ごとではなく一本の list に `target` 付きで持つ。外した listener は `removed` を立てて残すので、それを除いて重複を探す")] },
   { alg := "dom-eventtarget-addeventlistener"
-    impl := [``Dom.addEventListener, ``Dom.addListener]
+    impl := [``Dom.addEventListener, ``Dom.addListener, ``Dom.flattenMoreOptions,
+             ``Dom.Idl.toAddEventListenerOptions]
     spec := [``Dom.Spec.AddEventListenerResult]
-    approx := [("1", "options の flatten は harness が済ませ、capture と once を Bool で受け取る。passive と signal は無い"),
+    approx := [("1", "signal を持たない。AbortSignal の値は表せないので、undefined でない signal は WebIDL の変換で TypeError になり、method steps に入らない"),
                ("2", "callback は scenario の `source` 番の listener のもの（番号と `ListenerAction`）を使い回す。target か source が無ければ（model の都合で）NotFoundError")] },
   { alg := "remove-an-event-listener"
     impl := [``Dom.removeListenerAt]
@@ -54,9 +53,20 @@ def entries : List Entry := [
     omitted := [("1", .host)]
     approx := [("2", "list から取り除かず `removed` を立てるだけにする。以後の検索と配送は `removed` の listener を飛ばす")] },
   { alg := "dom-eventtarget-removeeventlistener"
-    impl := [``Dom.removeEventListener, ``Dom.removeListenerAt]
-    spec := [``Dom.Spec.RemoveEventListenerResult]
-    approx := [("1", "options の flatten は harness が済ませ、capture を Bool で受け取る")] },
+    impl := [``Dom.removeEventListener, ``Dom.removeListenerAt, ``Dom.flattenOptions,
+             ``Dom.Idl.toEventListenerOptions]
+    spec := [``Dom.Spec.RemoveEventListenerResult] },
+  { alg := "concept-flatten-options"
+    impl := [``Dom.flattenOptions] },
+  { alg := "event-flatten-more"
+    impl := [``Dom.flattenMoreOptions]
+    omitted := [("4.3", .todo "AbortSignal と listener の signal を持たない（undefined でない signal は WebIDL の変換で TypeError になる）")]
+    approx := [("3", "signal を持たないので passive だけを null（`none`）で始める"),
+               ("5", "signal を返さない")] },
+  { alg := "default-passive-value"
+    impl := [``Dom.defaultPassiveValue, ``Dom.bodyElementOf]
+    spec := [``Dom.Spec.DefaultPassive, ``Dom.Spec.BodyElement]
+    approx := [("1", "Window を持たないので、eventTarget が Window である場合は無い")] },
   { alg := "dom-eventtarget-dispatchevent"
     impl := [``Dom.dispatchEvent]
     spec := [``Dom.Spec.DispatchResult]
@@ -100,9 +110,8 @@ def entries : List Entry := [
     spec := [``Dom.Spec.InnerInvoked, ``Dom.Spec.CallbackRan]
     omitted := [("1", .other "found を計算しない。使い道の invoke step 11 が isTrusted=false で起きない"),
                 ("2.2", .other "found を計算しない"),
-                ("2.6-2.8", .host), ("2.9", .todo "passive と in passive listener flag を持たない"),
+                ("2.6-2.8", .host),
                 ("2.10", .host), ("2.11.1-2.11.2", .host),
-                ("2.12", .todo "passive と in passive listener flag を持たない"),
                 ("2.13", .host),
                 ("3", .other "found を返さない")]
     approx := [("2.11", "callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない")] }
@@ -130,10 +139,7 @@ def exclusions : List Exclusion := [
   { target := "concept-event-create", reason := .host },
   { target := "inner-event-creation-steps", reason := .host },
   /- §2.7 -/
-  { target := "concept-flatten-options", reason := .other "options の IDL 変換は harness が済ませ、capture・once を Bool で渡す" },
-  { target := "event-flatten-more", reason := .other "options の IDL 変換は harness が済ませる。passive と signal は持たない" },
   { target := "dom-eventtarget-eventtarget", reason := .todo "node 以外の EventTarget を作れない（listener の target は NodeId）" },
-  { target := "default-passive-value", reason := .todo "passive を持たない（判定には Window・Document の body も要る）" },
   { target := "remove-all-event-listeners", reason := .other "HTML（document.open()）が使う道具。model の操作からは呼ばれず、実行関数も無い" },
   /- §2.8 -/
   { target := "observing-event-listeners", reason := .host },

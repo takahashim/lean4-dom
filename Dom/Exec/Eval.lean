@@ -157,7 +157,10 @@ def buildState (sc : Scenario) : Except String DOMState := do
   let observers : List ObserverState := sc.observers.map fun o =>
     { nodeList := match o.target with | none => [] | some t => [⟨t⟩] }
   let s : DOMState := { tree := t, ranges := sc.ranges, iterators := sc.iterators,
-                        walkers := sc.walkers, listeners := sc.listeners,
+                        walkers := sc.walkers,
+                        listeners := sc.listeners.zipIdx.map fun li =>
+                          let p := (sc.listenerPassive[li.2]?).bind id
+                          { li.1 with passive := p.getD (defaultPassiveValue t li.1.type li.1.target) },
                         observers, registrations }
   unless checkStructurallyValid t do
     throw "初期状態が構造上の制約（leaf に children、Document に parent など）を満たしていない"
@@ -449,7 +452,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .attrLookupNamespaceURI a p => .str (attrLookupNamespaceURI s ⟨a⟩ p)
   | .attrLookupPrefix a ns => .str (attrLookupPrefix s ⟨a⟩ ns)
   | .attrIsDefaultNamespace a ns => .bool (attrIsDefaultNamespace s ⟨a⟩ ns)
-  | .addEventListener _ _ _ _ _ => .unit
+  | .addEventListener _ _ _ _ => .unit
   | .removeEventListener _ _ _ _ => .unit
   | .dispatchEvent t ty b c =>
     match dispatchEvent s ⟨t⟩ ty b c with
@@ -605,8 +608,12 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .attrLookupNamespaceURI a _ => requireRefs s [.attr ⟨a⟩]
   | .attrLookupPrefix a _ => requireRefs s [.attr ⟨a⟩]
   | .attrIsDefaultNamespace a _ => requireRefs s [.attr ⟨a⟩]
-  | .addEventListener t ty src cap once => addEventListener s ⟨t⟩ ty src cap once
-  | .removeEventListener t ty cb cap => removeEventListener s ⟨t⟩ ty cb cap
+  | .addEventListener t ty src o =>
+    let (capture, passive, once) :=
+      flattenMoreOptions ((Idl.toAddEventListenerOptions o).getD (.boolean false))
+    addEventListener s ⟨t⟩ ty src capture passive once
+  | .removeEventListener t ty cb o =>
+    removeEventListener s ⟨t⟩ ty cb (flattenOptions (Idl.toEventListenerOptions o))
   | .dispatchEvent t ty b c => (dispatchEvent s ⟨t⟩ ty b c).map (·.1)
   | .setAttribute e qn v => setAttribute s ⟨e⟩ qn v
   | .setAttributeNS e ns qn v => setAttributeNS s ⟨e⟩ ns qn v

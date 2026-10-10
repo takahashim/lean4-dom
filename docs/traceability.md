@@ -208,9 +208,9 @@ target から根までの祖先列そのものである。`Window` が無いの�
 | dispatch | 1-5, 12-13, 14-18 | `dispatchEvent`, `eventPath`, `runPass` | relation `DispatchResult`（`EventPathSpec`・`PassRan`・`Invoked`・`InnerInvoked`）、`dispatchEvent_result_sound` / `_complete`（等号）、preservation `admissible_dispatchEvent`, `listenersOnly_dispatchEvent` | `event-dispatch-phases`, `event-dispatch-at-character-data-target` | `test_wpt_event_dispatch.rb` | 済（shadow / activation は対象外） |
 | invoke | 1-9 | `invokeItem` | 同上 | `event-listener-flags` | 同上 | 済 |
 | inner invoke | 1-3 | `innerInvoke`, `invokeOne` | 同上 | 同上 | 同上 | 済 |
-| add an event listener / `addEventListener` | add 5 | `addListener`, `addEventListener` | relation `AddEventListenerResult`（`ListenerAdded`）、`addEventListener_result_sound` / `_complete`、preservation `admissible_addEventListener` | `event-listener-add-and-remove` | 同上 | 済（`signal` / `passive` は対象外） |
+| add an event listener / `addEventListener` | add 4-5、flatten more 1-5 | `addListener`, `addEventListener`, `flattenMoreOptions`, `defaultPassiveValue` | relation `AddEventListenerResult`（`ListenerAdded`・`DefaultPassive`）、`addEventListener_result_sound` / `_complete`、`defaultPassiveValue_spec`、preservation `admissible_addEventListener` | `event-listener-add-and-remove`, `event-listener-options-are-converted`, `default-passive-for-document-html-and-body` | 同上 | 済（`signal` は対象外） |
 | remove an event listener / `removeEventListener` | remove 2 | `removeListenerAt`, `removeEventListener` | relation `RemoveEventListenerResult`（`ListenerRemovedAt`）、`removeEventListener_result_sound` / `_complete`、preservation `admissible_removeEventListener` | 同上 | 同上 | 済 |
-| `stopPropagation` / `stopImmediatePropagation` / `preventDefault` | — | `runAction` | relation `CallbackRan` | `event-listener-flags` | 同上 | 済 |
+| `stopPropagation` / `stopImmediatePropagation` / `preventDefault` | set the canceled flag | `runAction`, `setCanceledFlag` | relation `CallbackRan`、`invokeOne_passive_preventDefault` | `event-listener-flags`, `event-listener-options-are-converted` | 同上 | 済 |
 
 ## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.5 stringifier
 

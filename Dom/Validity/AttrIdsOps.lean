@@ -257,7 +257,8 @@ theorem attrFrame_walkerStep {s s' : DOMState} {i : Nat} {m : WalkerMethod} {r :
     | (cases h; done)
 
 theorem attrFrame_addEventListener {s s' : DOMState} {target : NodeId} {ty : String} {src : Nat}
-    {cap once : Bool} (h : addEventListener s target ty src cap once = .ok s') : AttrFrame s s' := by
+    {cap : Bool} {passive : Option Bool} {once : Bool}
+    (h : addEventListener s target ty src cap passive once = .ok s') : AttrFrame s s' := by
   unfold addEventListener at h
   repeat' split at h
   all_goals first

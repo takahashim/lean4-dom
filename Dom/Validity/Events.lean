@@ -61,7 +61,7 @@ theorem listenersOnly_invokeOne (s : DOMState) (e : EventState) (l : EventListen
     split
     · exact listenersOnly_removeListenerAt s i
     · exact ListenersOnly.refl s
-  exact h₁.trans (listenersOnly_runAction _ e l)
+  exact h₁.trans (listenersOnly_runAction _ _ l)
 
 theorem listenersOnly_innerInvoke (capturing : Bool) (cur : NodeId) :
     ∀ (idxs : List Nat) (s : DOMState) (e : EventState) (log : List Invocation),
@@ -136,8 +136,8 @@ theorem admissible_dispatchEvent {s s' : DOMState} {target : NodeId} {ty : Strin
 
 /-- `addEventListener` は admissibility を保つ。 -/
 theorem admissible_addEventListener {s s' : DOMState} {target : NodeId} {ty : String}
-    {src : Nat} {cap once : Bool} (h : AdmissibleDOMState s)
-    (ha : addEventListener s target ty src cap once = .ok s') : AdmissibleDOMState s' := by
+    {src : Nat} {cap : Bool} {passive : Option Bool} {once : Bool} (h : AdmissibleDOMState s)
+    (ha : addEventListener s target ty src cap passive once = .ok s') : AdmissibleDOMState s' := by
   unfold addEventListener at ha
   split at ha
   · simp at ha

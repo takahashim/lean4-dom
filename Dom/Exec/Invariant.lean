@@ -282,8 +282,8 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | attrLookupNamespaceURI a p => exact admissible_requireRefs h hop
   | attrLookupPrefix a ns => exact admissible_requireRefs h hop
   | attrIsDefaultNamespace a ns => exact admissible_requireRefs h hop
-  | addEventListener t ty src cap once => exact admissible_addEventListener h hop
-  | removeEventListener t ty cb cap => exact admissible_removeEventListener h hop
+  | addEventListener t ty src o => exact admissible_addEventListener h hop
+  | removeEventListener t ty cb o => exact admissible_removeEventListener h hop
   | dispatchEvent t ty b c =>
     -- `applyOperation` は戻り値と log を捨てるので、`Except.map` を剥がす。
     simp only [applyOperation, Except.map] at hop

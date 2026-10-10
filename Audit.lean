@@ -252,6 +252,9 @@ open Dom.Audit
   Dom.runAction_preventDefault_cancelable
   Dom.runAction_preventDefault_not_cancelable
   Dom.invokeOne_once
+  Dom.invokeOne_passive_preventDefault
+  Dom.Spec.defaultPassiveValue_spec
+  Dom.Spec.defaultPassive_eq
   Dom.innerInvoke_skip
   Dom.innerInvoke_log_prefix
   Dom.runPass_log_prefix

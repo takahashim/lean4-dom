@@ -1,5 +1,6 @@
 import Dom.Basic.Order
 import Dom.Basic.State
+import Dom.Attribute.Name
 
 /-!
 # event の配送（§2.9）
@@ -16,7 +17,7 @@ import Dom.Basic.State
 * `isTrusted` は常に false なので、legacy な type の付け替え（invoke の step 10）は起きない。
 * callback は model の外だが、**何をするか**は scenario が `ListenerAction` として宣言する。
   そのぶん配送の順序・打ち切り・listener list の変化は model で決まる。
-* `passive` と `signal` は扱わない（`preventDefault` は cancelable だけで決まる）。
+* `passive` は扱う。`signal`（AbortSignal）は扱わない。
 -/
 
 namespace Dom
@@ -44,6 +45,8 @@ structure EventState where
   stopImmediate : Bool := false
   /-- 仕様の canceled flag。 -/
   canceled : Bool := false
+  /-- 仕様の in passive listener flag。passive な listener の callback を呼んでいる間だけ立つ。 -/
+  inPassiveListener : Bool := false
 deriving DecidableEq, Repr, Inhabited
 
 /--
@@ -68,6 +71,46 @@ def addListener (s : DOMState) (l : EventListener) : DOMState :=
         x.callback == l.callback && x.capture == l.capture then s
   else { s with listeners := s.listeners ++ [l] }
 
+/-! ## passive -/
+
+/-- `t` の node `n` が、HTML namespace の要素で local name が `name` のものか。 -/
+def isHtmlElementNamed (t : Tree) (n : NodeId) (name : String) : Bool :=
+  match t.get? n with
+  | some d => d.kind == .element && d.namespace == some htmlNamespace && d.localName == name
+  | none => false
+
+/--
+HTML の "the body element"。document の html element（document element が HTML namespace の `html` なら
+それ）の children のうち、最初の `body` か `frameset` の要素。
+-/
+def bodyElementOf (t : Tree) (doc : NodeId) : Option NodeId :=
+  match (childrenOf t doc).find? (fun c => kindOf t c == some .element) with
+  | none => none
+  | some html =>
+    if isHtmlElementNamed t html "html" then
+      (childrenOf t html).find? fun c => isHtmlElementNamed t c "body" || isHtmlElementNamed t c "frameset"
+    else none
+
+/--
+**DOM Standard §2.7 "default passive value"。**
+
+type が `touchstart`・`touchmove`・`wheel`・`mousewheel` のどれかで、eventTarget が
+（`Window` は model に無いので）その node document 自身、node document の document element、
+node document の body element のどれかなら true。
+-/
+def defaultPassiveValue (t : Tree) («type» : String) (target : NodeId) : Bool :=
+  («type» == "touchstart" || «type» == "touchmove" || «type» == "wheel" || «type» == "mousewheel") &&
+    match ownerDocumentOf t target with
+    | none => false
+    | some doc =>
+      doc == target ||
+        (childrenOf t doc).find? (fun c => kindOf t c == some .element) == some target ||
+        bodyElementOf t doc == some target
+
+/-- DOM Standard §2.2 "set the canceled flag"。in passive listener flag が立っていれば何もしない。 -/
+def setCanceledFlag (e : EventState) : EventState :=
+  if e.cancelable && !e.inPassiveListener then { e with canceled := true } else e
+
 /-- callback の代わりの副作用を走らせる。 -/
 def runAction (s : DOMState) (e : EventState) (l : EventListener) : DOMState × EventState :=
   match l.action with
@@ -75,23 +118,28 @@ def runAction (s : DOMState) (e : EventState) (l : EventListener) : DOMState × 
   | .stopPropagation => (s, { e with stopPropagation := true })
   -- `stopImmediatePropagation()` は両方のフラグを立てる。
   | .stopImmediatePropagation => (s, { e with stopPropagation := true, stopImmediate := true })
-  | .preventDefault => (s, if e.cancelable then { e with canceled := true } else e)
+  | .preventDefault => (s, setCanceledFlag e)
   | .removeListener k => (removeListenerAt s k, e)
   | .addListener tgt ty src cap =>
     match s.listeners[src]? with
     | none => (s, e)
     | some source =>
+      -- `addEventListener(type, callback, capture)` の形なので passive は null で、default passive value になる。
       (addListener s { target := ⟨tgt⟩, «type» := ty, callback := source.callback,
-                       capture := cap, once := false, action := source.action }, e)
+                       capture := cap, once := false,
+                       passive := defaultPassiveValue s.tree ty ⟨tgt⟩, action := source.action }, e)
 
 /--
 listener を一つ走らせる。
 
-step 2.5 の「`once` は呼ぶ前に外す」と、callback の代わりの副作用をまとめたもの。
+step 2.5 の「`once` は呼ぶ前に外す」、step 2.9 の「passive なら in passive listener flag を立てる」、
+step 2.11 の callback の代わりの副作用、step 2.12 の「in passive listener flag を落とす」をまとめたもの。
 -/
 def invokeOne (s : DOMState) (e : EventState) (l : EventListener) (i : Nat) :
     DOMState × EventState :=
-  runAction (if l.once then removeListenerAt s i else s) e l
+  let r := runAction (if l.once then removeListenerAt s i else s)
+    (if l.passive then { e with inPassiveListener := true } else e) l
+  (r.1, { r.2 with inPassiveListener := false })
 
 /--
 DOM Standard §2.9 "inner invoke"。
@@ -176,9 +224,14 @@ def dispatchEvent (s : DOMState) (target : NodeId) («type» : String)
 
 /-! ## `addEventListener` / `removeEventListener` -/
 
-/-- DOM Standard §2.7 `addEventListener(type, callback, options)`。 -/
+/--
+DOM Standard §2.7 `addEventListener(type, callback, options)` の step 2 と "add an event listener"。
+
+options は "flatten more" した後の capture・passive・once で受け取る（`Dom/Idl/Value.lean`）。
+passive が null なら default passive value にする（add an event listener の step 4）。
+-/
 def addEventListener (s : DOMState) (target : NodeId) («type» : String) (source : Nat)
-    (capture once : Bool) : Except DOMException DOMState :=
+    (capture : Bool) (passive : Option Bool) (once : Bool) : Except DOMException DOMState :=
   match s.tree.get? target with
   | none => .error .notFoundError
   | some _ =>
@@ -186,7 +239,9 @@ def addEventListener (s : DOMState) (target : NodeId) («type» : String) (sourc
     | none => .error .notFoundError
     | some src =>
       .ok (addListener s { target := target, «type» := «type», callback := src.callback,
-                           capture := capture, once := once, action := src.action })
+                           capture := capture, once := once,
+                           passive := passive.getD (defaultPassiveValue s.tree «type» target),
+                           action := src.action })
 
 /-- DOM Standard §2.7 `removeEventListener(type, callback, options)`。 -/
 def removeEventListener (s : DOMState) (target : NodeId) («type» : String) (callback : Nat)

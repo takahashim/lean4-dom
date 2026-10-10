@@ -1,0 +1,85 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "flatten more",
+      "add an event listener"
+    ],
+    "steps": "flatten more 4",
+    "note": "once の member は WebIDL の boolean へ ToBoolean で変換する。0 と空文字列は false なので、once にならない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "body"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 3,
+      "type": "z"
+    },
+    {
+      "target": 3,
+      "type": "z",
+      "action": "preventDefault"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "d",
+      "source": 0,
+      "options": {
+        "once": 0
+      }
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "d",
+      "source": 1,
+      "options": {
+        "once": ""
+      }
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "d",
+      "bubbles": true,
+      "cancelable": false
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "d",
+      "bubbles": true,
+      "cancelable": false
+    }
+  ]
+}

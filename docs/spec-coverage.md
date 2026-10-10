@@ -7,12 +7,12 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 223 |
-| 対象外としたもの | 168 |
-| 表に載せた algorithm の step | 987 |
-| そのうち実装したもの | 572 |
-| そのうち近似したもの | 215 |
-| そのうち外したもの | 200 |
+| 表に載せたもの | 226 |
+| 対象外としたもの | 165 |
+| 表に載せた algorithm の step | 999 |
+| そのうち実装したもの | 585 |
+| そのうち近似したもの | 216 |
+| そのうち外したもの | 198 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
 「関係」の列は `Dom/Spec/` にある、仕様本文から独立に書いた関係である。
@@ -47,17 +47,20 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | --- | --- | --- | --- |
 | [dom-event-stoppropagation](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-event-stoppropagation) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
 | [dom-event-stopimmediatepropagation](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-event-stopimmediatepropagation) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
-| [set-the-canceled-flag](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#set-the-canceled-flag) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
+| [set-the-canceled-flag](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#set-the-canceled-flag) | 1/1 | `Dom.setCanceledFlag`<br>`Dom.runAction` | `Dom.Spec.CallbackRan` |
 | [dom-event-preventdefault](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-event-preventdefault) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
 
 ### §2.7（`interface-eventtarget`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [add-an-event-listener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#add-an-event-listener) | 0/7（近似 1） | `Dom.addListener` | `Dom.Spec.ListenerAdded` |
-| [dom-eventtarget-addeventlistener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-addeventlistener) | 0/2（近似 2） | `Dom.addEventListener`<br>`Dom.addListener` | `Dom.Spec.AddEventListenerResult` |
+| [concept-flatten-options](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-flatten-options) | 2/2 | `Dom.flattenOptions` |  |
+| [event-flatten-more](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#event-flatten-more) | 5/8（近似 2） | `Dom.flattenMoreOptions` |  |
+| [default-passive-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#default-passive-value) | 1/2（近似 1） | `Dom.defaultPassiveValue`<br>`Dom.bodyElementOf` | `Dom.Spec.DefaultPassive`<br>`Dom.Spec.BodyElement` |
+| [add-an-event-listener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#add-an-event-listener) | 1/7（近似 1） | `Dom.addListener`<br>`Dom.addEventListener`<br>`Dom.defaultPassiveValue` | `Dom.Spec.ListenerAdded`<br>`Dom.Spec.AddEventListenerResult`<br>`Dom.Spec.DefaultPassive` |
+| [dom-eventtarget-addeventlistener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-addeventlistener) | 0/2（近似 2） | `Dom.addEventListener`<br>`Dom.addListener`<br>`Dom.flattenMoreOptions`<br>`Dom.Idl.toAddEventListenerOptions` | `Dom.Spec.AddEventListenerResult` |
 | [remove-an-event-listener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#remove-an-event-listener) | 0/2（近似 1） | `Dom.removeListenerAt` | `Dom.Spec.ListenerRemovedAt` |
-| [dom-eventtarget-removeeventlistener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-removeeventlistener) | 1/2（近似 1） | `Dom.removeEventListener`<br>`Dom.removeListenerAt` | `Dom.Spec.RemoveEventListenerResult` |
+| [dom-eventtarget-removeeventlistener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-removeeventlistener) | 2/2 | `Dom.removeEventListener`<br>`Dom.removeListenerAt`<br>`Dom.flattenOptions`<br>`Dom.Idl.toEventListenerOptions` | `Dom.Spec.RemoveEventListenerResult` |
 | [dom-eventtarget-dispatchevent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-dispatchevent) | 0/3（近似 1） | `Dom.dispatchEvent` | `Dom.Spec.DispatchResult` |
 
 ### §2.9（`dispatching-events`）
@@ -67,7 +70,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [concept-event-dispatch](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-dispatch) | 1/58（近似 22） | `Dom.dispatchEvent`<br>`Dom.eventPath`<br>`Dom.runPass`<br>`Dom.invokeItem` | `Dom.Spec.DispatchResult`<br>`Dom.Spec.EventPathSpec`<br>`Dom.Spec.PassRan` |
 | [concept-event-path-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-path-append) | 0/5（近似 1） | `Dom.eventPath` | `Dom.Spec.EventPathSpec` |
 | [concept-event-listener-invoke](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-listener-invoke) | 2/15（近似 2） | `Dom.invokeItem`<br>`Dom.innerInvoke` | `Dom.Spec.Invoked`<br>`Dom.Spec.ListenersOf` |
-| [concept-event-listener-inner-invoke](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-listener-inner-invoke) | 6/21 | `Dom.innerInvoke`<br>`Dom.invokeOne`<br>`Dom.runAction`<br>`Dom.removeListenerAt` | `Dom.Spec.InnerInvoked`<br>`Dom.Spec.CallbackRan` |
+| [concept-event-listener-inner-invoke](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-listener-inner-invoke) | 8/21 | `Dom.innerInvoke`<br>`Dom.invokeOne`<br>`Dom.runAction`<br>`Dom.removeListenerAt` | `Dom.Spec.InnerInvoked`<br>`Dom.Spec.CallbackRan` |
 
 ### §4.2（`node-trees`）
 
@@ -402,10 +405,10 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | algorithm | step | 理由 |
 | --- | --- | --- |
 | validate-and-extract | 5 | other：assert。step 4.3 の分岐から従うので検査しない |
+| event-flatten-more | 4.3 | todo：AbortSignal と listener の signal を持たない（undefined でない signal は WebIDL の変換で TypeError になる） |
 | add-an-event-listener | 1 | host |
 | add-an-event-listener | 2 | todo：AbortSignal と listener の signal を持たない |
 | add-an-event-listener | 3 | other：callback は scenario の番号で、null にならない |
-| add-an-event-listener | 4 | todo：passive を持たない |
 | add-an-event-listener | 6 | todo：AbortSignal と listener の signal を持たない |
 | remove-an-event-listener | 1 | host |
 | dom-eventtarget-dispatchevent | 1 | other：Event object を持たず、配送ごとに新しい EventState を作るので、dispatch flag が立った event や初期化されていない event は渡せない |
@@ -434,10 +437,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-event-listener-inner-invoke | 1 | other：found を計算しない。使い道の invoke step 11 が isTrusted=false で起きない |
 | concept-event-listener-inner-invoke | 2.2 | other：found を計算しない |
 | concept-event-listener-inner-invoke | 2.6-2.8 | host |
-| concept-event-listener-inner-invoke | 2.9 | todo：passive と in passive listener flag を持たない |
 | concept-event-listener-inner-invoke | 2.10 | host |
 | concept-event-listener-inner-invoke | 2.11.1-2.11.2 | host |
-| concept-event-listener-inner-invoke | 2.12 | todo：passive と in passive listener flag を持たない |
 | concept-event-listener-inner-invoke | 2.13 | host |
 | concept-event-listener-inner-invoke | 3 | other：found を返さない |
 | concept-node-insert | 7.4-7.6 | shadow |
@@ -498,13 +499,14 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | scope-match-a-selectors-string | 1 | parse a selector は model の selector 文法（`parseSelector` が受け付ける部分集合）で行う。受け付けない構文は failure（SyntaxError）になる |
 | dom-event-stoppropagation | * | callback の中の呼び出しではなく、listener の `ListenerAction.stopPropagation` として callback の後に一度だけ走る |
 | dom-event-stopimmediatepropagation | * | listener の `ListenerAction.stopImmediatePropagation` として走る |
-| set-the-canceled-flag | * | in passive listener flag を持たない（passive を扱わない）ので、cancelable だけで決まる |
 | dom-event-preventdefault | * | listener の `ListenerAction.preventDefault` として走る |
+| event-flatten-more | 3 | signal を持たないので passive だけを null（`none`）で始める |
+| event-flatten-more | 5 | signal を返さない |
+| default-passive-value | 1 | Window を持たないので、eventTarget が Window である場合は無い |
 | add-an-event-listener | 5 | listener list を EventTarget ごとではなく一本の list に `target` 付きで持つ。外した listener は `removed` を立てて残すので、それを除いて重複を探す |
-| dom-eventtarget-addeventlistener | 1 | options の flatten は harness が済ませ、capture と once を Bool で受け取る。passive と signal は無い |
+| dom-eventtarget-addeventlistener | 1 | signal を持たない。AbortSignal の値は表せないので、undefined でない signal は WebIDL の変換で TypeError になり、method steps に入らない |
 | dom-eventtarget-addeventlistener | 2 | callback は scenario の `source` 番の listener のもの（番号と `ListenerAction`）を使い回す。target か source が無ければ（model の都合で）NotFoundError |
 | remove-an-event-listener | 2 | list から取り除かず `removed` を立てるだけにする。以後の検索と配送は `removed` の listener を飛ばす |
-| dom-eventtarget-removeeventlistener | 1 | options の flatten は harness が済ませ、capture を Bool で受け取る |
 | dom-eventtarget-dispatchevent | 3 | event は引数の type・bubbles・cancelable からその場で作る（`new Event(type, {bubbles, cancelable})` と dispatchEvent を合わせた形） |
 | concept-event-dispatch | 2 | legacy target override flag（Window の場合）が無いので targetOverride は target そのもの |
 | concept-event-dispatch | 6 | relatedTarget を持たない（null）ので、条件は常に真として step 6 の中身を走らせる |
@@ -605,8 +607,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | other：HTML（document.open()）が使う道具。model の操作からは呼ばれず、実行関数も無い | remove-all-event-listeners |
 | other：XPath（§8）は model の対象外。XPath の評価器を持たない | dom-xpathevaluatorbase-creatensresolver |
 | other：callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い | dom-mutationobserver-mutationobserver |
-| other：options の IDL 変換は harness が済ませ、capture・once を Bool で渡す | concept-flatten-options |
-| other：options の IDL 変換は harness が済ませる。passive と signal は持たない | event-flatten-more |
 | other：他の仕様（と §3 の abort steps）が使う道具。model の操作からは呼ばれない | concept-event-fire |
 | shadow | assign-a-slot, assign-slotables, assign-slotables-for-a-tree, concept-attach-a-shadow-root, dom-element-attachshadow, dom-element-shadowroot, dom-shadowroot-clonable, dom-shadowroot-delegatesfocus, dom-shadowroot-host, dom-shadowroot-mode, dom-shadowroot-serializable, dom-shadowroot-slotassignment, dom-slotable-assignedslot, exclusive-documentfragment-node, find-a-slot, find-flattened-slotables, find-slotables, retarget, signal-a-slot-change |
 | todo：AbortController と AbortSignal（abort reason・abort algorithms・dependent signal）が無い | abortcontroller-signal-abort, abortsignal-add, abortsignal-remove, abortsignal-signal-abort, create-a-dependent-abort-signal, dom-abortcontroller-abort, dom-abortcontroller-abortcontroller, dom-abortcontroller-signal, dom-abortsignal-abort, dom-abortsignal-aborted, dom-abortsignal-any, dom-abortsignal-reason, dom-abortsignal-throwifaborted, dom-abortsignal-timeout, run-the-abort-steps |
@@ -670,7 +670,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：list of elements with qualified name（getElementsByTagName）が無い | dom-element-getelementsbytagname |
 | todo：node の connected を返す関数が無い（Attr だけ harness の attrQuery が false を返す） | dom-node-isconnected |
 | todo：node 以外の EventTarget を作れない（listener の target は NodeId） | dom-eventtarget-eventtarget |
-| todo：passive を持たない（判定には Window・Document の body も要る） | default-passive-value |
 | todo：removeNamedItemNS() の関数が無い（removeAttributeNS は NotFoundError も `Attr` を返すことも無い） | dom-namednodemap-removenameditemns |
 | todo：returnValue の setter が無い（ListenerAction に無い） | dom-event-returnvalue/setter |
 | todo：set text content が無い（同上） | dom-node-textcontent/setter |

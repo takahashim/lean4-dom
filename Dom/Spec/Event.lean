@@ -61,6 +61,43 @@ def ListenersOf (s : DOMState) (item : NodeId) (idxs : List Nat) : Prop :=
   idxs.Pairwise (· < ·) ∧
     ∀ i, i ∈ idxs ↔ ∃ l, s.listeners[i]? = some l ∧ l.target = item ∧ l.removed = false
 
+/-! ## §2.7 default passive value -/
+
+/-- `c` は `p` の children のうち、最初の element である（document element）。 -/
+def FirstElementChild (t : Tree) (p c : NodeId) : Prop :=
+  ∃ pre post, childrenOf t p = pre ++ c :: post ∧ kindOf t c = some .element ∧
+    ∀ x ∈ pre, kindOf t x ≠ some .element
+
+/-- `n` は HTML namespace の要素で、local name が `name` である。 -/
+def IsHtmlNamed (t : Tree) (n : NodeId) (name : String) : Prop :=
+  ∃ d, t.get? n = some d ∧ d.kind = .element ∧ d.namespace = some htmlNamespace ∧ d.localName = name
+
+/-- HTML の body element か frameset element である。 -/
+def IsBodyOrFrameset (t : Tree) (n : NodeId) : Prop :=
+  IsHtmlNamed t n "body" ∨ IsHtmlNamed t n "frameset"
+
+/--
+HTML の "the body element"。document の html element（document element が HTML の `html` なら
+それ）の children のうち、最初の body か frameset の element。
+-/
+def BodyElement (t : Tree) (doc b : NodeId) : Prop :=
+  ∃ html, FirstElementChild t doc html ∧ IsHtmlNamed t html "html" ∧
+    ∃ pre post, childrenOf t html = pre ++ b :: post ∧ IsBodyOrFrameset t b ∧
+      ∀ x ∈ pre, ¬ IsBodyOrFrameset t x
+
+/--
+**§2.7 "default passive value"。**
+
+true になるのは、type が `touchstart`・`touchmove`・`wheel`・`mousewheel` のどれかで、eventTarget が
+（`Window` は無いので）node document が自分自身である node、node document の document element、
+node document の body element のどれかであるとき。
+-/
+def DefaultPassive (t : Tree) («type» : String) (target : NodeId) (b : Bool) : Prop :=
+  b = true ↔
+    ((«type» = "touchstart" ∨ «type» = "touchmove" ∨ «type» = "wheel" ∨ «type» = "mousewheel") ∧
+      ∃ doc, ownerDocumentOf t target = some doc ∧
+        (doc = target ∨ FirstElementChild t doc target ∨ BodyElement t doc target))
+
 /-! ## callback の副作用 -/
 
 /--
@@ -68,7 +105,8 @@ listener の callback を呼んだ効果。
 
 * `stopPropagation()` は stop propagation flag を立てる。
 * `stopImmediatePropagation()` は stop propagation flag と stop immediate propagation flag を立てる。
-* `preventDefault()` は cancelable なら canceled flag を立てる（passive は扱わない）。
+* `preventDefault()` は "set the canceled flag"：cancelable で、in passive listener flag が立っていなければ
+  canceled flag を立てる。
 * `removeEventListener` / `addEventListener` は §2.7 の操作。
 -/
 def CallbackRan (s : DOMState) (e : EventState) (l : EventListener) (s' : DOMState)
@@ -79,15 +117,15 @@ def CallbackRan (s : DOMState) (e : EventState) (l : EventListener) (s' : DOMSta
   | .stopImmediatePropagation =>
     s' = s ∧ e' = { e with stopPropagation := true, stopImmediate := true }
   | .preventDefault =>
-    s' = s ∧ ((e.cancelable = true ∧ e' = { e with canceled := true }) ∨
-      (e.cancelable = false ∧ e' = e))
+    s' = s ∧ ((e.cancelable = true ∧ e.inPassiveListener = false ∧ e' = { e with canceled := true }) ∨
+      (¬ (e.cancelable = true ∧ e.inPassiveListener = false) ∧ e' = e))
   | .removeListener k => ListenerRemovedAt s s' k ∧ e' = e
   | .addListener tgt ty src cap =>
     e' = e ∧ ((s.listeners[src]? = none ∧ s' = s) ∨
-      ∃ source, s.listeners[src]? = some source ∧
+      ∃ source p, s.listeners[src]? = some source ∧ DefaultPassive s.tree ty ⟨tgt⟩ p ∧
         ListenerAdded s s'
           { target := ⟨tgt⟩, «type» := ty, callback := source.callback, capture := cap,
-            once := false, action := source.action })
+            once := false, passive := p, action := source.action })
 
 /-! ## §2.9 inner invoke -/
 
@@ -98,7 +136,9 @@ def CallbackRan (s : DOMState) (e : EventState) (l : EventListener) (s' : DOMSta
 2.1. type が違えば飛ばす。
 2.3-2.4. phase が capturing で capture が false、bubbling で capture が true なら飛ばす。
 2.5. once なら、呼ぶ前に外す。
+2.9. passive なら in passive listener flag を立てる。
 2.11. callback を呼ぶ。呼ばれたことを記録する。
+2.12. in passive listener flag を落とす。
 2.14. stop immediate propagation flag が立てば終わる。
 -/
 inductive InnerInvoked (capturing : Bool) (cur : NodeId) :
@@ -118,10 +158,11 @@ inductive InnerInvoked (capturing : Bool) (cur : NodeId) :
       s.listeners[i]? = some l → l.removed = false → l.type = e.type → l.capture = capturing →
       -- step 2.5
       ((l.once = true ∧ ListenerRemovedAt s s₁ i) ∨ (l.once = false ∧ s₁ = s)) →
-      -- step 2.11
-      CallbackRan s₁ e l s₂ e₂ →
+      -- step 2.9 と 2.11
+      CallbackRan s₁ (if l.passive then { e with inPassiveListener := true } else e) l s₂ e₂ →
       e₂.stopImmediate = false →
-      InnerInvoked capturing cur s₂ e₂ rest s' e' log →
+      -- step 2.12
+      InnerInvoked capturing cur s₂ { e₂ with inPassiveListener := false } rest s' e' log →
       InnerInvoked capturing cur s e (i :: rest) s' e'
         (⟨l.callback, cur, e.eventPhase⟩ :: log)
   /-- step 2.14：stop immediate propagation flag が立てば、残りは呼ばない。 -/
@@ -129,9 +170,10 @@ inductive InnerInvoked (capturing : Bool) (cur : NodeId) :
       {l : EventListener} :
       s.listeners[i]? = some l → l.removed = false → l.type = e.type → l.capture = capturing →
       ((l.once = true ∧ ListenerRemovedAt s s₁ i) ∨ (l.once = false ∧ s₁ = s)) →
-      CallbackRan s₁ e l s₂ e₂ →
+      CallbackRan s₁ (if l.passive then { e with inPassiveListener := true } else e) l s₂ e₂ →
       e₂.stopImmediate = true →
-      InnerInvoked capturing cur s e (i :: rest) s₂ e₂ [⟨l.callback, cur, e.eventPhase⟩]
+      InnerInvoked capturing cur s e (i :: rest) s₂ { e₂ with inPassiveListener := false }
+        [⟨l.callback, cur, e.eventPhase⟩]
 
 /-! ## §2.9 invoke と dispatch -/
 
@@ -196,16 +238,19 @@ def DispatchResult (s : DOMState) (target : NodeId) («type» : String) (bubbles
 /--
 **`addEventListener(type, callback, options)` の、結果まで含めた関係。**
 
+capture・passive・once は options を "flatten more" したもの。passive が null なら
+"add an event listener" の step 4 で default passive value にする。
 callback は scenario の `source` 番の listener のものを使う。target か `source` が無ければ
 （model の都合）`NotFoundError`。
 -/
 def AddEventListenerResult (s : DOMState) (target : NodeId) («type» : String) (source : Nat)
-    (capture once : Bool) : Except DOMException DOMState → Prop
+    (capture : Bool) (passive : Option Bool) (once : Bool) : Except DOMException DOMState → Prop
   | .error e => (s.tree.get? target = none ∨ s.listeners[source]? = none) ∧ e = .notFoundError
-  | .ok s' => (∃ d, s.tree.get? target = some d) ∧ ∃ src, s.listeners[source]? = some src ∧
+  | .ok s' => (∃ d, s.tree.get? target = some d) ∧ ∃ src p, s.listeners[source]? = some src ∧
+      (passive = some p ∨ (passive = none ∧ DefaultPassive s.tree «type» target p)) ∧
       ListenerAdded s s'
         { target := target, «type» := «type», callback := src.callback, capture := capture,
-          once := once, action := src.action }
+          once := once, passive := p, action := src.action }
 
 /-- listener が target・type・callback・capture に当たること。 -/
 def ListenerMatches (l : EventListener) (target : NodeId) («type» : String) (callback : Nat)

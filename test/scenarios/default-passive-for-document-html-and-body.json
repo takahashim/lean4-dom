@@ -1,0 +1,139 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "default passive value",
+      "add an event listener",
+      "set the canceled flag"
+    ],
+    "steps": "default passive value 1 / add an event listener 4 / set the canceled flag",
+    "note": "passive を書かない listener は、type が touchstart・touchmove・wheel・mousewheel で、target が Document、document element、body element のどれかなら passive になる。passive な listener の preventDefault は効かない。明示した passive: false と、それ以外の target は効く。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "body"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 0,
+      "type": "touchstart",
+      "action": "preventDefault"
+    },
+    {
+      "target": 1,
+      "type": "touchmove",
+      "action": "preventDefault"
+    },
+    {
+      "target": 2,
+      "type": "mousewheel",
+      "action": "preventDefault"
+    },
+    {
+      "target": 0,
+      "type": "wheel",
+      "passive": false,
+      "action": "preventDefault"
+    },
+    {
+      "target": 3,
+      "type": "touchstart",
+      "action": "preventDefault"
+    },
+    {
+      "target": 3,
+      "type": "z",
+      "action": "preventDefault"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "dispatchEvent",
+      "target": 0,
+      "type": "touchstart",
+      "bubbles": false,
+      "cancelable": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 1,
+      "type": "touchmove",
+      "bubbles": false,
+      "cancelable": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "mousewheel",
+      "bubbles": false,
+      "cancelable": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 0,
+      "type": "wheel",
+      "bubbles": false,
+      "cancelable": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "touchstart",
+      "bubbles": false,
+      "cancelable": true
+    },
+    {
+      "op": "addEventListener",
+      "target": 2,
+      "type": "wheel",
+      "source": 5,
+      "options": {}
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 2,
+      "type": "wheel",
+      "bubbles": false,
+      "cancelable": true
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "wheel",
+      "source": 5,
+      "options": true
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "wheel",
+      "bubbles": false,
+      "cancelable": true
+    }
+  ]
+}

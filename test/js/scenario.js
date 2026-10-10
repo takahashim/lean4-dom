@@ -851,13 +851,12 @@ function apply(ctx, op) {
     case "addEventListener": {
       const target = need(objects.get(op.target), "missing node");
       const cb = need(ctx.callbacks[op.source], "listener index");
-      return target.addEventListener(String(op.type), cb,
-        { capture: !!op.capture, once: !!op.once });
+      return target.addEventListener(String(op.type), cb, listenerOptions(op));
     }
     case "removeEventListener": {
       const target = need(objects.get(op.target), "missing node");
       const cb = need(ctx.callbacks[op.callback], "listener index");
-      return target.removeEventListener(String(op.type), cb, { capture: !!op.capture });
+      return target.removeEventListener(String(op.type), cb, listenerOptions(op));
     }
   }
   if (QUERY_OPS.includes(op.op)) return applyQueryOp(ctx, op);
@@ -1012,10 +1011,18 @@ function buildListeners(objects, idOf, specs, log) {
   list.forEach((spec, i) => {
     const target = objects.get(spec.target);
     if (!target) throw new Unsupported("missing listener target");
-    target.addEventListener(String(spec.type), callbacks[i],
-      { capture: !!spec.capture, once: !!spec.once });
+    target.addEventListener(String(spec.type), callbacks[i], listenerOptions(spec));
   });
   return callbacks;
+}
+
+// listener の options。`options` があればその JavaScript の値、無ければ
+// `capture`・`once`・`passive` のうち書いてあるものだけを持つ dictionary。
+function listenerOptions(spec) {
+  if ("options" in spec) return spec.options;
+  const o = {};
+  for (const k of ["capture", "once", "passive"]) if (k in spec) o[k] = spec[k];
+  return o;
 }
 
 function runListenerAction(objects, callbacks, specs, action, event) {
@@ -1029,7 +1036,7 @@ function runListenerAction(objects, callbacks, specs, action, event) {
       const spec = specs[action.index];
       if (!spec) throw new Unsupported("listener index");
       objects.get(spec.target).removeEventListener(String(spec.type), callbacks[action.index],
-        { capture: !!spec.capture });
+        { capture: spec.capture });
       return;
     }
     case "addListener": {

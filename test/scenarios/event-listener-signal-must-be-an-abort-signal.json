@@ -1,0 +1,78 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "add an event listener"
+    ],
+    "steps": "WebIDL の dictionary への変換（AddEventListenerOptions の signal）",
+    "note": "signal は AbortSignal 型の member なので、undefined 以外の値で AbortSignal でないもの（null や普通の object）は TypeError になる。method steps に入らないので listener は足されない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "body"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 3,
+      "type": "z"
+    },
+    {
+      "target": 3,
+      "type": "z",
+      "action": "preventDefault"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "a",
+      "source": 0,
+      "options": {
+        "signal": null
+      }
+    },
+    {
+      "op": "addEventListener",
+      "target": 3,
+      "type": "a",
+      "source": 0,
+      "options": {
+        "signal": {},
+        "capture": true
+      }
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "a",
+      "bubbles": true,
+      "cancelable": false
+    }
+  ]
+}

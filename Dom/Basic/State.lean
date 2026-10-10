@@ -102,6 +102,8 @@ structure EventListener where
   callback : Nat
   capture : Bool := false
   once : Bool := false
+  /-- 仕様の passive。add するときに null なら default passive value にするので、ここでは Bool で持つ。 -/
+  passive : Bool := false
   action : ListenerAction := .none
   removed : Bool := false
 deriving DecidableEq, Repr, Inhabited
