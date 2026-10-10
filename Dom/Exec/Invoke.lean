@@ -134,4 +134,35 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .argumentTypeError _ => false
   | _ => true
 
+/--
+**op の method が必須とする引数の個数**（scenario の op 名で引く）（固定版の IDL の、`optional` でも可変長でもない引数の数）。
+`argc` を書ける op だけを挙げる。`Node?` のような nullable の引数も、`optional` でなければ必須である。
+-/
+def requiredArgs : String → Option Nat
+  | "appendChild" | "removeChild" | "adoptNode" | "importNode" => some 1
+  | "insertBefore" | "replaceChild" | "moveBefore" => some 2
+  | "replaceData" => some 3
+  | "insertData" | "deleteData" | "substringData" => some 2
+  | "appendData" => some 1
+  | "createElement" | "createTextNode" | "createComment" | "createAttribute" => some 1
+  | "createElementNS" | "createAttributeNS" => some 2
+  | "cloneNode" | "normalize" | "rangeCollapse" => some 0
+  | "getAttribute" | "hasAttribute" | "removeAttribute" | "getAttributeNode" | "toggleAttribute" => some 1
+  | "setAttribute" | "removeAttributeNS" | "getAttributeNodeNS" => some 2
+  | "setAttributeNS" => some 3
+  | "setAttributeNode" | "removeAttributeNode" => some 1
+  | "querySelector" | "querySelectorAll" | "matches" | "closest" => some 1
+  | "getElementById" | "getElementsByClassName" | "getElementsByName" => some 1
+  | "lookupNamespaceURI" | "lookupPrefix" | "isDefaultNamespace" => some 1
+  | "compareDocumentPosition" | "nodeContains" | "isEqualNode" => some 1
+  | "addEventListener" | "removeEventListener" => some 2
+  | "classListToggle" | "classListContains" => some 1
+  | "classListReplace" => some 2
+  | "observe" => some 1
+  | "rangeSetStart" | "rangeSetEnd" | "rangeIsPointInRange" | "rangeComparePoint"
+  | "rangeCompareBoundaryPoints" => some 2
+  | "rangeSetStartBefore" | "rangeSetStartAfter" | "rangeSetEndBefore" | "rangeSetEndAfter"
+  | "rangeSelectNode" | "rangeSelectNodeContents" | "rangeIntersectsNode" | "rangeInsertNode" => some 1
+  | _ => none
+
 end Dom.Exec

@@ -6382,6 +6382,24 @@ WebIDL の変換の性質の証明として、十進の値を倍精度に丸め�
 証明の範囲の外に残っているのは、`JsNum.ofDecimal` が巨大な指数を ∞ と ±0 にする近道、StringToNumber の文法の読み取り、
 Number::toString である。どれも例と、Node との突き合わせ（それぞれ 3000 件と 400 件）だけが根拠である。
 
+## 必須の引数が足りない呼び出しを TypeError にした
+
+WebIDL の overload resolution の、必須の引数の個数の検査を入れた。JavaScript では後ろの引数しか省けないので、
+scenario の field を個別に省く約束（省けば既定値）はそのまま残し、操作に任意の `"argc"`（渡した引数の個数）を足した。
+
+* `Dom/Exec/Invoke.lean` の `requiredArgs` に、op ごとの必須の引数の個数を固定版の IDL から書き写した。`Node?` のような
+  nullable の引数も、`optional` でなければ必須である。`argc` がそれより少なければ `argumentTypeError` になる。
+* JS の runner は `ARGC_CALLS`（受け手、method 名、必須の引数の field の順）で、引数を切り詰めて method を呼ぶ。Lean と
+  JS の二つの表が同じ個数を持つことは、書いたときに突き合わせて確かめた。Dommy は引数の個数の検査を JS の層で行うので、
+  Dommy の runner は `argc` の step を比べない。
+* WebIDL の対応表に overload resolution を載せた（それまでは todo として対象外）。model が扱う method に overload は無く、
+  effective overload set は省略できる引数の数だけ長さが違う一つの operation の entry なので、distinguishing argument
+  index の step は起きない。
+* 固定 scenario を八本足した（必須の引数が足りない七本と、`idl-optional-arguments-may-be-omitted`）。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2 は八本とも model と一致した（WebKit と jsdom は `moveBefore` を持たないので、
+既存の一本は比べられない）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

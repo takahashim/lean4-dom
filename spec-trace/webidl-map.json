@@ -342,6 +342,43 @@
       ]
     },
     {
+      "alg": "dfn-overload-resolution-algorithm",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Exec.requiredArgs",
+        "Dom.Exec.Operation.argumentTypeError"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "12",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う method に、distinguishing argument index で選ぶ overload は無い"
+          }
+        },
+        {
+          "steps": "14",
+          "why": {
+            "reason": "other",
+            "detail": "model が扱う method に、distinguishing argument index で選ぶ overload は無い"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1-5",
+          "what": "effective overload set は、省略できる引数の数だけ長さが違う一つの operation の entry なので、渡した引数の個数（scenario の `argc`）が必須の個数（`requiredArgs`）より少なければ TypeError とする"
+        },
+        {
+          "steps": "15-16",
+          "what": "引数の変換は op ごとに書く。渡さなかった optional の引数は field を書かないことで表し、既定値を使う"
+        }
+      ]
+    },
+    {
       "alg": "dfn-create-operation-function",
       "steps": [
         "*"
@@ -393,7 +430,7 @@
       "approx": [
         {
           "steps": "2.1.3-2.1.5",
-          "what": "overload の選択と引数の個数の検査は無い。引数の変換は操作ごとに、例外を投げないものは scenario の読み取りで、投げうるものは `idlCheck` と `invokeChecked` で行う"
+          "what": "effective overload set は op ごとの必須の引数の個数（`requiredArgs`）で表す。引数の変換は操作ごとに、例外を投げないものは scenario の読み取りで、投げうるものは `idlCheck` と `invokeChecked` で行う"
         },
         {
           "steps": "2.1.9",
@@ -478,13 +515,6 @@
       "why": {
         "reason": "other",
         "detail": "例外は object を作らず、名前（`IdlException.name`）で比べる"
-      }
-    },
-    {
-      "target": "dfn-overload-resolution-algorithm",
-      "why": {
-        "reason": "todo",
-        "detail": "overload の選択と、引数の個数が足りないときの TypeError"
       }
     }
   ]

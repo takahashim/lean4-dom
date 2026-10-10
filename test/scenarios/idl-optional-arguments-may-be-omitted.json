@@ -1,0 +1,66 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/webidl/blob/8c65329114411ebd3af025106c2267f5bc00faeb/index.bs",
+    "algorithm": [
+      "overload resolution algorithm"
+    ],
+    "steps": "overload resolution algorithm（引数の個数）",
+    "note": "optional の引数は省いてよい（toggleAttribute の force、cloneNode の subtree）。nullable でも optional でない引数（lookupPrefix の namespace、insertBefore の child）は、null を渡せば足りる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "abc"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "a",
+      "argc": 1
+    },
+    {
+      "op": "cloneNode",
+      "node": 2,
+      "argc": 0
+    },
+    {
+      "op": "lookupPrefix",
+      "node": 1,
+      "namespace": null,
+      "argc": 1
+    },
+    {
+      "op": "insertBefore",
+      "parent": 1,
+      "node": 2,
+      "child": null,
+      "argc": 2
+    }
+  ]
+}

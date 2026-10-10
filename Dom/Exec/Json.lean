@@ -1,5 +1,6 @@
 import Lean.Data.Json
 import Dom.Exec.Types
+import Dom.Exec.Invoke
 
 /-!
 # scenario の入出力
@@ -399,6 +400,16 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
 
 def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""
+  -- WebIDL の overload resolution：渡した引数（`argc`）が必須の個数より少なければ TypeError。
+  -- `argc` が無ければ、すべての引数を渡したことにする。必須の個数以上なら、渡さなかった後ろの引数は
+  -- field を書かない（省略した引数の既定値になる）約束である。
+  match j.getObjVal? "argc" with
+  | .ok v =>
+    let argc ← v.getNat?
+    match requiredArgs op with
+    | none => throw s!"op `{op}` には argc を書けない"
+    | some r => if argc < r then return .argumentTypeError op
+  | .error _ => pure ()
   match op with
   | "appendChild" =>
     let p ← refField j "parent"

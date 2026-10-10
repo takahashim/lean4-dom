@@ -772,8 +772,107 @@ function applyAttrNode(ctx, op) {
   }
 }
 
+// `argc`（渡した引数の個数）を書いた op の呼び方：受け手、method 名、必須の引数の field の順（長さが必須の個数）。
+// model（`Dom/Exec/Json.lean` の `requiredArgs`）は、argc が必須の個数より少なければ TypeError とする。
+// ここでは引数を argc 個に切り詰めて method を呼び、実装の overload resolution を見る。
+const ARGC_CALLS = {
+  appendChild: ["parent", "appendChild", ["node"]],
+  insertBefore: ["parent", "insertBefore", ["node", "child"]],
+  replaceChild: ["parent", "replaceChild", ["node", "child"]],
+  removeChild: ["parent", "removeChild", ["node"]],
+  moveBefore: ["parent", "moveBefore", ["node", "child"]],
+  replaceData: ["node", "replaceData", ["offset", "count", "data"]],
+  appendData: ["node", "appendData", ["data"]],
+  insertData: ["node", "insertData", ["offset", "data"]],
+  deleteData: ["node", "deleteData", ["offset", "count"]],
+  substringData: ["node", "substringData", ["offset", "count"]],
+  createElement: ["document", "createElement", ["localName"]],
+  createElementNS: ["document", "createElementNS", ["namespace", "name"]],
+  createTextNode: ["document", "createTextNode", ["data"]],
+  createComment: ["document", "createComment", ["data"]],
+  createAttribute: ["document", "createAttribute", ["name"]],
+  createAttributeNS: ["document", "createAttributeNS", ["namespace", "name"]],
+  importNode: ["document", "importNode", ["node"]],
+  adoptNode: ["document", "adoptNode", ["node"]],
+  getAttribute: ["element", "getAttribute", ["name"]],
+  hasAttribute: ["element", "hasAttribute", ["name"]],
+  removeAttribute: ["element", "removeAttribute", ["name"]],
+  getAttributeNode: ["element", "getAttributeNode", ["name"]],
+  toggleAttribute: ["element", "toggleAttribute", ["name"]],
+  setAttribute: ["element", "setAttribute", ["name", "value"]],
+  removeAttributeNS: ["element", "removeAttributeNS", ["namespace", "name"]],
+  getAttributeNodeNS: ["element", "getAttributeNodeNS", ["namespace", "name"]],
+  setAttributeNS: ["element", "setAttributeNS", ["namespace", "name", "value"]],
+  setAttributeNode: ["element", "setAttributeNode", ["attr"]],
+  removeAttributeNode: ["element", "removeAttributeNode", ["attr"]],
+  querySelector: ["node", "querySelector", ["selectors"]],
+  querySelectorAll: ["node", "querySelectorAll", ["selectors"]],
+  matches: ["element", "matches", ["selectors"]],
+  closest: ["element", "closest", ["selectors"]],
+  getElementById: ["node", "getElementById", ["elementId"]],
+  getElementsByClassName: ["node", "getElementsByClassName", ["classNames"]],
+  getElementsByName: ["node", "getElementsByName", ["elementName"]],
+  lookupNamespaceURI: ["node", "lookupNamespaceURI", ["prefix"]],
+  lookupPrefix: ["node", "lookupPrefix", ["namespace"]],
+  isDefaultNamespace: ["node", "isDefaultNamespace", ["namespace"]],
+  compareDocumentPosition: ["node", "compareDocumentPosition", ["other"]],
+  nodeContains: ["node", "contains", ["other"]],
+  isEqualNode: ["node", "isEqualNode", ["other"]],
+  addEventListener: ["target", "addEventListener", ["type", "source"]],
+  removeEventListener: ["target", "removeEventListener", ["type", "callback"]],
+  classListToggle: ["classList", "toggle", ["token"]],
+  classListContains: ["classList", "contains", ["token"]],
+  classListReplace: ["classList", "replace", ["token", "newToken"]],
+  observe: ["observer", "observe", ["target"]],
+  rangeSetStart: ["range", "setStart", ["node", "offset"]],
+  rangeSetEnd: ["range", "setEnd", ["node", "offset"]],
+  rangeIsPointInRange: ["range", "isPointInRange", ["node", "offset"]],
+  rangeComparePoint: ["range", "comparePoint", ["node", "offset"]],
+  rangeCompareBoundaryPoints: ["range", "compareBoundaryPoints", ["how", "source"]],
+  rangeSetStartBefore: ["range", "setStartBefore", ["node"]],
+  rangeSetStartAfter: ["range", "setStartAfter", ["node"]],
+  rangeSetEndBefore: ["range", "setEndBefore", ["node"]],
+  rangeSetEndAfter: ["range", "setEndAfter", ["node"]],
+  rangeSelectNode: ["range", "selectNode", ["node"]],
+  rangeSelectNodeContents: ["range", "selectNodeContents", ["node"]],
+  rangeIntersectsNode: ["range", "intersectsNode", ["node"]],
+  rangeInsertNode: ["range", "insertNode", ["node"]]
+};
+
+// `argc` の op の引数の値。node の field は `nodeValue`、Attr は id から引き、callback と range は番号から引く。
+function argcValue(ctx, op, field) {
+  const v = op[field];
+  switch (field) {
+    case "node": case "child": case "other": case "target": return nodeValue(ctx, v);
+    case "attr": return typeof v === "number" ? attrById(ctx, v) : v;
+    case "source":
+      return op.op === "rangeCompareBoundaryPoints" ? ctx.ranges[v] : ctx.callbacks[v];
+    case "callback": return ctx.callbacks[v];
+    default: return v;
+  }
+}
+
+function applyArgc(ctx, op) {
+  const call = ARGC_CALLS[op.op];
+  if (!call) throw new Unsupported(`argc の ${op.op}`);
+  const [where, method, fields] = call;
+  let receiver;
+  switch (where) {
+    case "range": receiver = need(ctx.ranges[op.range], "range index"); break;
+    case "observer": receiver = need(ctx.observerSet?.observers[op.observer], "observer index"); break;
+    case "classList": receiver = need(ctx.objects.get(op.element), "missing node").classList; break;
+    default: receiver = nodeValue(ctx, op[where]);
+  }
+  if (typeof receiver?.[method] !== "function") throw new Unsupported(method);
+  const args = fields.slice(0, op.argc).map((f) => argcValue(ctx, op, f));
+  return receiver[method](...args);
+}
+
 function apply(ctx, op) {
   const { objects, idOf } = ctx;
+  // 必須の引数が足りないときだけ切り詰めて呼ぶ。足りていれば、渡さなかった後ろの引数は field が無いので、
+  // ふだんの経路で同じ呼び出しになる。
+  if ("argc" in op && ARGC_CALLS[op.op] && op.argc < ARGC_CALLS[op.op][2].length) return applyArgc(ctx, op);
   switch (op.op) {
     case "iteratorNext": case "iteratorPrevious": {
       const it = need(ctx.iterators[op.iterator], "iterator index");

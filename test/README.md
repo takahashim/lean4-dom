@@ -207,6 +207,13 @@ Dommy を読み込んでいない process の仕事にしてある。
   "attributeOldValue": true, "attributeFilter": ["a"], "characterData": true,
   "characterDataOldValue": true}` の形で、`target` を省くと registration を持たない
   observer だけができる（scenario 側で `observe` 操作を使う場合はこちら）。
+* 操作の引数の field には JSON の任意の値を書ける。WebIDL の変換（ToString、ToBoolean、ToNumber、
+  dictionary・union・sequence、`Node` への変換）は model と実装の両方が行う。数は node の id、`{"attr": id}` は
+  `Attr` で、それ以外の値は `Node` の引数では node でない値（TypeError）になる。field を書かなければ、その引数を
+  既定値（文字列なら空文字列、`Node?` なら null）で渡したことにする。
+* 操作に `"argc": k` を書くと、method に渡す引数を前から k 個に切り詰める。必須の引数より少なければ
+  TypeError になる（`Dom/Exec/Invoke.lean` の `requiredArgs`。JS の runner は `ARGC_CALLS` で同じ呼び方をする）。
+  Dommy は引数の個数の検査を JS の層で行うので、Dommy の runner は比べない。
 * element の `namespace` / `prefix` / `localName` は、省略すると
   HTML namespace の `div` になる（Dommy の `createElement("div")` に合わせてある）。
   document の `isHTMLDocument` は省略すると true。

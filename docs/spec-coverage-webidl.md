@@ -7,12 +7,12 @@
 | 項目 | 数 |
 | --- | --- |
 | `index.bs` の algorithm | 191 |
-| 表に載せたもの | 13 |
-| 対象外としたもの | 178 |
-| 表に載せた algorithm の step | 149 |
-| そのうち実装したもの | 55 |
-| そのうち近似したもの | 22 |
-| そのうち外したもの | 72 |
+| 表に載せたもの | 14 |
+| 対象外としたもの | 177 |
+| 表に載せた algorithm の step | 213 |
+| そのうち実装したもの | 71 |
+| そのうち近似したもの | 40 |
+| そのうち外したもの | 102 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
 「関係」の列は、仕様本文から独立に書いた関係（`Dom/Spec/` ほか）である。
@@ -86,6 +86,12 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | --- | --- | --- | --- |
 | [js-to-union](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-union) | 10/52（近似 1） | `Dom.Idl.toEventListenerOptions`<br>`Dom.Idl.toAddEventListenerOptions`<br>`Dom.Idl.toImportNodeOptions`<br>`Dom.NodeOrString` |  |
 
+### §3.6（`js-overloads`）
+
+| algorithm | step | 実行関数 | 関係 |
+| --- | --- | --- | --- |
+| [dfn-overload-resolution-algorithm](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#dfn-overload-resolution-algorithm) | 16/64（近似 18） | `Dom.Exec.requiredArgs`<br>`Dom.Exec.Operation.argumentTypeError` |  |
+
 ### §3.7.7（`js-operations`）
 
 | algorithm | step | 実行関数 | 関係 |
@@ -115,6 +121,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | js-to-union | 16-17 | other：model が扱う union は numeric 型を含まない |
 | js-to-union | 19 | other：model が扱う union は bigint を含まない |
 | js-to-union | 20 | other：model が扱う union はどれも boolean か string 型を含むので、ここに来ない |
+| dfn-overload-resolution-algorithm | 12 | other：model が扱う method に、distinguishing argument index で選ぶ overload は無い |
+| dfn-overload-resolution-algorithm | 14 | other：model が扱う method に、distinguishing argument index で選ぶ overload は無い |
 | dfn-create-operation-function | 1 | other：関数 object を作らない。操作は scenario の op 名で呼ぶ |
 | dfn-create-operation-function | 2.1.2.1-2.1.2.2 | host |
 | dfn-create-operation-function | 2.1.7 | other：[Default] の付いた operation（toJSON）を扱わない |
@@ -134,7 +142,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | js-to-sequence | 2-3 | @@iterator を持つのは配列だけとみなす。Set などの配列でない iterable は表せない |
 | algorithm:create sequence from iterable | * | 配列の要素を順に読む。iterator object を作らず、利用者の iterator は表せない |
 | js-to-union | 5.1 | `(Node or DOMString)` の node は scenario の JSON の数（node の id）で表す |
-| dfn-create-operation-function | 2.1.3-2.1.5 | overload の選択と引数の個数の検査は無い。引数の変換は操作ごとに、例外を投げないものは scenario の読み取りで、投げうるものは `idlCheck` と `invokeChecked` で行う |
+| dfn-overload-resolution-algorithm | 1-5 | effective overload set は、省略できる引数の数だけ長さが違う一つの operation の entry なので、渡した引数の個数（scenario の `argc`）が必須の個数（`requiredArgs`）より少なければ TypeError とする |
+| dfn-overload-resolution-algorithm | 15-16 | 引数の変換は op ごとに書く。渡さなかった optional の引数は field を書かないことで表し、既定値を使う |
+| dfn-create-operation-function | 2.1.3-2.1.5 | effective overload set は op ごとの必須の引数の個数（`requiredArgs`）で表す。引数の変換は操作ごとに、例外を投げないものは scenario の読み取りで、投げうるものは `idlCheck` と `invokeChecked` で行う |
 | dfn-create-operation-function | 2.1.9 | 戻り値は `ReturnValue` として JSON に書き、JavaScript の値には変換しない |
 
 ## 対象外とした algorithm
@@ -150,4 +160,3 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | other：model が扱う member に付く拡張属性（[CEReactions] ほか）は観測に効かない。[LegacyNullToEmptyString] は DOMString の変換の step 1 で扱う | dfn-conditionally-exposed, dfn-exposed, dfn-exposure-set, exposure-set-intersection |
 | other：model の操作の引数に無い型からの変換と、IDL の値から JavaScript の値への変換（戻り値は `ReturnValue` として JSON で比べる） | USVString-to-js, a-new-promise, a-promise-rejected-with, a-promise-resolved-with, algorithm:convert a JavaScript value to IDL DataView, algorithm:convert a JavaScript value to IDL SharedArrayBuffer, algorithm:convert a JavaScript value to IDL typed array, algorithm:convert a JavaScript value to frozen array, algorithm:create frozen array from iterable, algorithm:observable array backing list, arraybuffer-create, arraybuffer-transfer, arraybuffer-write, arraybufferview-create, arraybufferview-write, async-iterator-close, async-iterator-get-next-value, async-sequence-open, async-sequence-to-js, bigint-to-js, buffer-source-to-js, buffersource-byte-length, buffersource-detached, buffersource-transferable, buffersource-underlying-buffer, dfn-create-frozen-array, dfn-detach, dfn-get-buffer-source-copy, dfn-perform-steps-once-promise-is-settled, dictionary-to-js, js-to-ByteString, js-to-USVString, js-to-any, js-to-async-iterable, js-to-bigint, js-to-bigint-or-numeric, js-to-buffer-source, js-to-byte, js-to-callback-function, js-to-callback-interface, js-to-double, js-to-enumeration, js-to-float, js-to-long, js-to-long-long, js-to-object, js-to-octet, js-to-promise, js-to-record, js-to-short, js-to-symbol, js-to-unrestricted-double, js-to-unrestricted-float, js-to-unsigned-long-long, mark-a-promise-as-handled, nullable-to-js, record-to-js, reject, resolve, sequence-to-js, sharedarraybuffer-create, unrestricted-double-to-js, unrestricted-float-to-js, upon-fulfillment, upon-rejection, wait-for-all, waiting-for-all-promise |
 | other：例外は object を作らず、名前（`IdlException.name`）で比べる | algorithm:throw an exception, algorithm:to create a DOMException, algorithm:to create a DOMException derived interface, algorithm:to create a simple exception |
-| todo：overload の選択と、引数の個数が足りないときの TypeError | dfn-overload-resolution-algorithm |

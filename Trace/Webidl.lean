@@ -90,6 +90,14 @@ def entries : List Entry := [
                 ("20", .other "model が扱う union はどれも boolean か string 型を含むので、ここに来ない")]
     approx := [("5.1", "`(Node or DOMString)` の node は scenario の JSON の数（node の id）で表す")] },
 
+  /- ## §3.6 overload resolution -/
+  { alg := "dfn-overload-resolution-algorithm"
+    impl := [``Dom.Exec.requiredArgs, ``Dom.Exec.Operation.argumentTypeError]
+    omitted := [("12", .other "model が扱う method に、distinguishing argument index で選ぶ overload は無い"),
+                ("14", .other "model が扱う method に、distinguishing argument index で選ぶ overload は無い")]
+    approx := [("1-5", "effective overload set は、省略できる引数の数だけ長さが違う一つの operation の entry なので、渡した引数の個数（scenario の `argc`）が必須の個数（`requiredArgs`）より少なければ TypeError とする"),
+               ("15-16", "引数の変換は op ごとに書く。渡さなかった optional の引数は field を書かないことで表し、既定値を使う")] },
+
   /- ## §3.7.5 operation の関数 -/
   { alg := "dfn-create-operation-function"
     impl := [``Dom.Exec.invokeOperation, ``Dom.Exec.idlCheck, ``Dom.Exec.invokeChecked,
@@ -99,7 +107,7 @@ def entries : List Entry := [
                 ("2.1.7", .other "[Default] の付いた operation（toJSON）を扱わない"),
                 ("2.2", .other "promise を返す operation を扱わない"),
                 ("3-6", .other "関数 object を作らない")]
-    approx := [("2.1.3-2.1.5", "overload の選択と引数の個数の検査は無い。引数の変換は操作ごとに、例外を投げないものは scenario の読み取りで、投げうるものは `idlCheck` と `invokeChecked` で行う"),
+    approx := [("2.1.3-2.1.5", "effective overload set は op ごとの必須の引数の個数（`requiredArgs`）で表す。引数の変換は操作ごとに、例外を投げないものは scenario の読み取りで、投げうるものは `idlCheck` と `invokeChecked` で行う"),
                ("2.1.9", "戻り値は `ReturnValue` として JSON に書き、JavaScript の値には変換しない")] }
 ]
 
@@ -114,8 +122,7 @@ def exclusions : List Exclusion := [
   { target := "js-user-objects", reason := .other "callback と利用者の object の呼び出しは model の外（listener の callback は `ListenerAction` で表す）" },
   { target := "js-invoking-callback-functions", reason := .other "callback function は model の外" },
   { target := "js-namespaces", reason := .other "model が扱う member に namespace は無い" },
-  { target := "js-exceptions", reason := .other "例外は object を作らず、名前（`IdlException.name`）で比べる" },
-  { target := "dfn-overload-resolution-algorithm", reason := .todo "overload の選択と、引数の個数が足りないときの TypeError" }
+  { target := "js-exceptions", reason := .other "例外は object を作らず、名前（`IdlException.name`）で比べる" }
 ]
 
 end Trace.Webidl
