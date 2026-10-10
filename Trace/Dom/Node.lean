@@ -95,16 +95,21 @@ def entries : List Entry := [
     -- other が null なら false（`nodeContainsNull`）。
     impl := [``Dom.nodeContains, ``Dom.nodeContainsRef, ``Dom.Exec.Operation.nodeContainsNull] },
   { alg := "locate-a-namespace-prefix"
-    impl := [``Dom.locateNamespacePrefixIn, ``Dom.elementChain] },
+    impl := [``Dom.locateNamespacePrefixIn, ``Dom.elementChain]
+    spec := [``Dom.Spec.LocatePrefixElem, ``Dom.Spec.locatePrefixIn_sound] },
   { alg := "locate-a-namespace"
     impl := [``Dom.locateNamespace, ``Dom.locateNamespaceIn, ``Dom.elementChain,
-             ``Dom.attrLookupNamespaceURI] },
+             ``Dom.attrLookupNamespaceURI]
+    spec := [``Dom.Spec.LocateNamespace, ``Dom.Spec.LocateNamespaceElem, ``Dom.Spec.locateNamespace_sound] },
   { alg := "dom-node-lookupprefix"
-    impl := [``Dom.lookupPrefix, ``Dom.attrLookupPrefix] },
+    impl := [``Dom.lookupPrefix, ``Dom.attrLookupPrefix]
+    spec := [``Dom.Spec.LookupPrefixResult, ``Dom.Spec.lookupPrefix_sound] },
   { alg := "dom-node-lookupnamespaceuri"
-    impl := [``Dom.lookupNamespaceURI, ``Dom.attrLookupNamespaceURI] },
+    impl := [``Dom.lookupNamespaceURI, ``Dom.attrLookupNamespaceURI]
+    spec := [``Dom.Spec.lookupNamespaceURI_sound] },
   { alg := "dom-node-isdefaultnamespace"
-    impl := [``Dom.isDefaultNamespace, ``Dom.attrIsDefaultNamespace] },
+    impl := [``Dom.isDefaultNamespace, ``Dom.attrIsDefaultNamespace]
+    spec := [``Dom.Spec.isDefaultNamespace_sound] },
   { alg := "dom-node-insertbefore"
     impl := [``Dom.insertBefore] },
   { alg := "dom-node-appendchild"

@@ -1968,7 +1968,10 @@
         "Dom.locateNamespacePrefixIn",
         "Dom.elementChain"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.LocatePrefixElem",
+        "Dom.Spec.locatePrefixIn_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1983,7 +1986,11 @@
         "Dom.elementChain",
         "Dom.attrLookupNamespaceURI"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.LocateNamespace",
+        "Dom.Spec.LocateNamespaceElem",
+        "Dom.Spec.locateNamespace_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1996,7 +2003,10 @@
         "Dom.lookupPrefix",
         "Dom.attrLookupPrefix"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.LookupPrefixResult",
+        "Dom.Spec.lookupPrefix_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2009,7 +2019,9 @@
         "Dom.lookupNamespaceURI",
         "Dom.attrLookupNamespaceURI"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.lookupNamespaceURI_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2022,7 +2034,9 @@
         "Dom.isDefaultNamespace",
         "Dom.attrIsDefaultNamespace"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.isDefaultNamespace_sound"
+      ],
       "omit": [],
       "approx": []
     },

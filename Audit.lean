@@ -1301,3 +1301,10 @@ open Dom.Audit
   Dom.Spec.nodeEquals_iff
   Dom.Spec.cloneOf_nodeEquals
   Dom.Spec.cloneNode_nodeEquals
+
+-- "locate a namespace" と "locate a namespace prefix"（§4.4）
+#audit_axioms
+  Dom.Spec.locateNamespace_sound
+  Dom.Spec.lookupNamespaceURI_sound
+  Dom.Spec.isDefaultNamespace_sound
+  Dom.Spec.lookupPrefix_sound

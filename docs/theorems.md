@@ -756,6 +756,21 @@ clone の関係 `CloneOf`（`Dom/Properties/Clone.lean`。copy の部分木と�
 （深さで induction する）。二つの別々の定式化（clone の側は `NodeData.shapeAnon` の一致、equals の側は本文の
 条件の並び）が整合することを示したもので、どちらかの読み違いがあればここで証明が通らなくなる。
 
+## 26. namespace の探索は本文の再帰を満たす
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.locateNamespace_sound` | `Dom/Spec/Namespace.lean` |
+| `Dom.Spec.lookupNamespaceURI_sound` | 同上 |
+| `Dom.Spec.isDefaultNamespace_sound` | 同上 |
+| `Dom.Spec.lookupPrefix_sound` | 同上 |
+
+本文の "locate a namespace" と "locate a namespace prefix" は、element から parent element へ再帰する。関係
+`LocateNamespaceElem`・`LocatePrefixElem` はその再帰を帰納的な関係の構成子（step ごとに一つ）で書き、node の
+interface による振り分け（Document なら document element、それ以外の非 element なら parent element）を
+`LocateNamespace`・`LookupPrefixResult` で書いた。実行関数は element chain（parent element をたどれるだけたどった列）を
+前から見るので、列の形と再帰の形が一致することを、祖先の数での induction で示した。`Attr` の枝は関係に入れていない。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

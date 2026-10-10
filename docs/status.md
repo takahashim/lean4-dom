@@ -6732,6 +6732,11 @@ TreeWalker の関係（`nextNode`・`previousNode`・"traverse children"・`pare
 （`cloneNode_nodeEquals`）。clone の対応表には `CloneOf` と既存の定理を関係として載せ、"clone a single node" の
 step 5.1 の近似の説明を、content type を写すようになったことに合わせて直した。
 
+## namespace の探索に関係を書いた
+
+"locate a namespace"・"locate a namespace prefix" を本文の再帰のまま帰納的な関係に書き、`lookupNamespaceURI`・
+`isDefaultNamespace`・`lookupPrefix` の実行関数がそれを満たすことを示した（`Dom/Spec/Namespace.lean`、`Attr` の枝を除く）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
