@@ -242,6 +242,8 @@ structure NodeData where
   systemId : String := ""
   /-- ProcessingInstruction の target。ProcessingInstruction 以外では空である。 -/
   piTarget : String := ""
+  /-- Document の content type。Document 以外では使わない。 -/
+  contentType : String := ""
 deriving DecidableEq, Repr, Inhabited
 
 namespace NodeData
@@ -302,11 +304,15 @@ def withOwnerDocument (d : NodeData) (doc : NodeId) : NodeData :=
     (d.withOwnerDocument doc).systemId = d.systemId := rfl
 @[simp] theorem withOwnerDocument_piTarget (d : NodeData) (doc : NodeId) :
     (d.withOwnerDocument doc).piTarget = d.piTarget := rfl
+@[simp] theorem withOwnerDocument_contentType (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).contentType = d.contentType := rfl
 
-/-- DocumentType の name・public ID・system ID と ProcessingInstruction の target が同じ。 -/
-abbrev SameDoctypePi (d d' : NodeData) : Prop :=
+/--
+DocumentType の name・public ID・system ID、ProcessingInstruction の target、Document の content type が同じ。
+-/
+abbrev SameExtraProps (d d' : NodeData) : Prop :=
   d'.doctypeName = d.doctypeName ∧ d'.publicId = d.publicId ∧ d'.systemId = d.systemId ∧
-    d'.piTarget = d.piTarget
+    d'.piTarget = d.piTarget ∧ d'.contentType = d.contentType
 @[simp] theorem withOwnerDocument_shape (d : NodeData) (doc : NodeId) :
     (d.withOwnerDocument doc).shape = d.shape := by
   simp [shape, withOwnerDocument, List.map_map, Function.comp_def]

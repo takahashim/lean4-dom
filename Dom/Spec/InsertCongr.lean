@@ -147,7 +147,7 @@ theorem treeInserted_unique (h₁ : TreeInserted t u parent node child)
       rw [childrenOf_eq hd₁, childrenOf_eq hd₂] at hq
       simpa using hq
     rw [hd₁, hd₂]
-    have : d₂ = d₁ := by cases d₁; cases d₂; simp_all [NodeData.SameDoctypePi]
+    have : d₂ = d₁ := by cases d₁; cases d₂; simp_all [NodeData.SameExtraProps]
     rw [this]
 
 theorem treeInserted_congr (h : TreeObsEq t tb) (h₁ : TreeInserted t u parent node child)

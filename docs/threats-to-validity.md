@@ -58,9 +58,10 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 失敗すると生成器の予測が実際とずれ、以降の操作が別の node を指してしまう。
 名前の検査に落ちる形と、`deep` な clone / import のあとの生成は出さない。
 
-**残る危険。** runner は HTML document しか作れないので、`createElement` の
-step 2（ASCII lowercase）と step 4（HTML namespace）が効かない側（XML document）は
-比べていない。名前の検査に落ちる形も固定 scenario の範囲だけである。
+**残る危険。** runner は XML document を `createDocument` で作るので、`createElement` の
+step 2（ASCII lowercase）と step 4（content type で決まる namespace）は XML document の側も比べるが、
+その content type は `createDocument` が namespace から決める三つ（application/xhtml+xml、image/svg+xml、
+application/xml）に限られる。名前の検査に落ちる形も固定 scenario の範囲だけである。
 
 ## 4. model 側の既知の近似
 

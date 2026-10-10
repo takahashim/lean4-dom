@@ -10,8 +10,8 @@
 | 表に載せたもの | 226 |
 | 対象外としたもの | 165 |
 | 表に載せた algorithm の step | 999 |
-| そのうち実装したもの | 592 |
-| そのうち近似したもの | 211 |
+| そのうち実装したもの | 593 |
+| そのうち近似したもの | 210 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -194,7 +194,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-compatmode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-compatmode) | 1/1 | `Dom.inQuirksModeOf` |  |
 | [dom-document-documentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-documentelement) | 1/1 | `Dom.documentElement` |  |
 | [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` |  |
-| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 2/5（近似 2） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
+| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
 | [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` |  |
 | [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck`<br>`Dom.Idl.elementCreationOptionsOk` |  |
 | [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` |  |
@@ -541,7 +541,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | clone-a-single-node | 2.4 | create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い） |
 | clone-a-single-node | 5.1 | Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い |
 | dom-document-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
-| dom-document-createelement | 4 | content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない |
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |
 | internal-createelementns-steps | 3 | create an element を呼ばず、`NodeData` を直に作る（is・registry は無い） |
 | dom-document-createelementns | * | options は WebIDL の変換だけを行い（`customElementRegistry` を持つ dictionary は TypeError）、is と registry は使わない |

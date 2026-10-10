@@ -197,6 +197,18 @@ module DommyRunner
       doc
     end
 
+    XML_NAMESPACE_OF = { "application/xhtml+xml" => "http://www.w3.org/1999/xhtml",
+                         "image/svg+xml" => "http://www.w3.org/2000/svg", "application/xml" => nil }.freeze
+
+    def new_xml_document(content_type)
+      raise NotImplementedError, "content type #{content_type}" unless XML_NAMESPACE_OF.key?(content_type)
+
+      doc = new_empty_document.implementation.create_document(XML_NAMESPACE_OF[content_type], "", nil)
+      raise NotImplementedError, "content type #{doc.content_type}" unless doc.content_type == content_type
+
+      doc
+    end
+
     attr_reader :documents
 
     def build
@@ -232,14 +244,13 @@ module DommyRunner
       id = spec["id"]
       data = spec["data"].to_s
       if spec["kind"] == "document"
-        # この harness は `Window` の document しか作れないので、必ず HTML document になる。
-        # scenario が非 HTML document を求めたら黙って HTML document を返さず、断る。
-        # そうしないと `createElement` の step 2 / 4 が偽の不一致になる。
-        if spec["isHTMLDocument"] == false
-          raise "node #{id}: 非 HTML document はこの harness では作れない"
-        end
-
-        doc = new_empty_document(spec["mode"] || "no-quirks")
+        # 非 HTML document は `createDocument(namespace, "", nil)` で作る。content type は namespace で決まる。
+        doc =
+          if spec["isHTMLDocument"] == false
+            new_xml_document(spec["contentType"] || "application/xml")
+          else
+            new_empty_document(spec["mode"] || "no-quirks")
+          end
         @documents[id] = doc
         @objects[id] = doc
         return

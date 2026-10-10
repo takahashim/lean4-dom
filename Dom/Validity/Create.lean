@@ -338,7 +338,8 @@ theorem createElement_creates {s s' : DOMState} {doc n : NodeId} {localName : St
     ∃ dd, s.tree.get? doc = some dd ∧ dd.kind = .document ∧
       CreatesNode s n s'
         { kind := .element, ownerDocument := doc,
-          «namespace» := if dd.isHTMLDocument then some htmlNamespace else none,
+          «namespace» :=
+            if dd.isHTMLDocument || dd.contentType == "application/xhtml+xml" then some htmlNamespace else none,
           localName := if dd.isHTMLDocument then asciiLowercase localName else localName } := by
   unfold createElement at h
   split at h

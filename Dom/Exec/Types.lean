@@ -66,6 +66,11 @@ structure NodeSpec where
   publicId : String := ""
   systemId : String := ""
   piTarget : String := "pi"
+  /--
+  Document の content type。省略すると、HTML document なら `text/html`、そうでなければ `application/xml`。
+  `application/xhtml+xml` の XML document では、`createElement` が HTML namespace の element を作る。
+  -/
+  contentType : Option String := none
 deriving Repr
 
 /-- `Node` を受ける引数。JSON では node の id（数）か `{"attr": id}`。 -/

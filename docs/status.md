@@ -6500,7 +6500,7 @@ model が持たない件を直した。それまでは clone がこれらを写�
 * `NodeData` に `doctypeName`・`publicId`・`systemId`・`piTarget` を、既定値付きで足した。clone は `{ d with … }` で
   写すので、そのまま写る。`equals` は DocumentType の三つと、ProcessingInstruction の target と data を比べる。
 * 本文から書いた木の関係（`TreeInserted`・`TreeRemoved`）の「各 node の持ち物は変わらない」に、四つの field をまとめた
-  `NodeData.SameDoctypePi` を足し、証明を直した。
+  `NodeData.SameDoctypePi`（いまは `NodeData.SameExtraProps`）を足し、証明を直した。
 * 観測の型に `doctype`（name・publicId・systemId）と `target` を足した。scenario の node は `name`・`publicId`・
   `systemId`・`target` を書ける。書かなければ、runner がそれまで作っていた値（`createDocumentType("html", "", "")`、
   `createProcessingInstruction("pi", …)`）になるので、既存の scenario の意味は変わらない。生成器は PI の target を
@@ -6517,6 +6517,23 @@ Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、こ
 parent に child 以外の element の子があるか、child より前に doctype があるときだけ例外にし、置き換える doctype 自身は
 child なので当たらない。三つのブラウザは本文どおりである。固定 scenario を二本足した
 （`replace-child-doctype-with-element`、`replace-with-doctype-with-element`）。
+
+## `createElement` の namespace を content type で決めるようにした
+
+notes の「観測できる違い」にあった、`createElement` が namespace を content type ではなく document の種類で決める件を
+直した（§4.5 `createElement()` step 4）。それまでは、content type が application/xhtml+xml の XML document でも
+namespace が null になった。
+
+* `NodeData` に `contentType` を足し、`createElement` は「HTML document か、content type が application/xhtml+xml なら
+  HTML namespace」とした。`createElement_creates` の主張も同じ条件に直した。
+* 本文から書いた木の関係の「各 node の持ち物は変わらない」は、前の節の四つの field に `contentType` を加えて
+  `NodeData.SameExtraProps` にまとめた。
+* scenario の document は `contentType` を書ける。書かなければ、HTML document は text/html、XML document は
+  application/xml になる。runner は XML document を `createDocument` で作り、content type に合わせて namespace を
+  渡す（application/xhtml+xml なら HTML namespace、image/svg+xml なら SVG namespace、application/xml なら null）。
+* 固定 scenario `create-element-namespace-follows-content-type` を足した。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、この scenario で model と同じ結果だった。
 
 ## 未着手
 

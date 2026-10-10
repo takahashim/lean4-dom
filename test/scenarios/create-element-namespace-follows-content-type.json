@@ -1,0 +1,51 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "createElement"
+    ],
+    "steps": "createElement 2, 4",
+    "note": "createElement は、this が HTML document なら localName を ASCII lowercase にする（step 2）。namespace は、this が HTML document か、this の content type が application/xhtml+xml なら HTML namespace、そうでなければ null である（step 4）。XHTML の XML document では、小文字にしないまま HTML namespace の element になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "document",
+      "isHTMLDocument": false,
+      "contentType": "application/xhtml+xml"
+    },
+    {
+      "id": 2,
+      "kind": "document",
+      "isHTMLDocument": false,
+      "contentType": "application/xml"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": "Foo"
+    },
+    {
+      "op": "createElement",
+      "document": 1,
+      "localName": "Foo"
+    },
+    {
+      "op": "createElement",
+      "document": 2,
+      "localName": "Foo"
+    }
+  ]
+}

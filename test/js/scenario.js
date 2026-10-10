@@ -180,6 +180,14 @@ class Builder {
     return this.objects;
   }
 
+  newXmlDocument(contentType) {
+    const ns = { "application/xhtml+xml": HTML_NS, "image/svg+xml": "http://www.w3.org/2000/svg" }[contentType] ?? null;
+    if (ns === null && contentType !== "application/xml") throw new Unsupported(`content type ${contentType}`);
+    const doc = this.win.document.implementation.createDocument(ns, "", null);
+    if (doc.contentType !== contentType) throw new Unsupported(`content type ${doc.contentType}`);
+    return doc;
+  }
+
   ownerDocument(spec, defaultDocId) {
     const id = spec.ownerDocument ?? (spec.kind === "document" ? spec.id : defaultDocId);
     const doc = this.documents.get(id);
@@ -190,7 +198,11 @@ class Builder {
   create(spec, defaultDocId) {
     const data = String(spec.data ?? "");
     if (spec.kind === "document") {
-      const doc = this.newDocument(spec.mode ?? "no-quirks");
+      // 非 HTML document は `createDocument(namespace, "", null)` で作る。content type は namespace で決まる
+      // （HTML namespace なら application/xhtml+xml、SVG なら image/svg+xml、それ以外は application/xml）。
+      const doc = spec.isHTMLDocument === false
+        ? this.newXmlDocument(spec.contentType ?? "application/xml")
+        : this.newDocument(spec.mode ?? "no-quirks");
       this.documents.set(spec.id, doc);
       this.objects.set(spec.id, doc);
       return;

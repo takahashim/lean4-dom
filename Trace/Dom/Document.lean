@@ -28,8 +28,7 @@ def entries : List Entry := [
   { alg := "dom-document-createelement"
     impl := [``Dom.createElement, ``Dom.isValidElementLocalName, ``Dom.Exec.idlCheck]
     omitted := [("3", .customElements)]
-    approx := [("4", "content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない"),
-               ("5", "create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い）")] },
+    approx := [("5", "create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い）")] },
   { alg := "internal-createelementns-steps"
     impl := [``Dom.createElementNS, ``Dom.validateAndExtractElement]
     omitted := [("2", .customElements)]

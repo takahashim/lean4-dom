@@ -409,7 +409,8 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
            doctypeName := ← strField j "name" "html"
            publicId := ← strField j "publicId" ""
            systemId := ← strField j "systemId" ""
-           piTarget := ← strField j "target" "pi" }
+           piTarget := ← strField j "target" "pi"
+           contentType := ← strField? j "contentType" }
 
 def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""

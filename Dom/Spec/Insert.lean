@@ -105,7 +105,7 @@ structure TreeInserted (t t' : Tree) (parent node : NodeId) (child : Option Node
     d'.kind = d.kind ∧ d'.data = d.data ∧ d'.attributes = d.attributes ∧
       d'.ownerDocument = d.ownerDocument ∧ d'.namespace = d.namespace ∧
       d'.prefix = d.prefix ∧ d'.localName = d.localName ∧
-      d'.isHTMLDocument = d.isHTMLDocument ∧ d'.mode = d.mode ∧ NodeData.SameDoctypePi d d'
+      d'.isHTMLDocument = d.isHTMLDocument ∧ d'.mode = d.mode ∧ NodeData.SameExtraProps d d'
 
 /-- 仕様の step 7。各 node を adopt してから木に入れる。 -/
 inductive InsertedEach (parent : NodeId) (child : Option NodeId) (doc : NodeId) :

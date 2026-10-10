@@ -88,7 +88,11 @@ def buildTree (specs : List NodeSpec) : Except String Tree := do
         doctypeName := if s.kind == .documentType then s.doctypeName else ""
         publicId := if s.kind == .documentType then s.publicId else ""
         systemId := if s.kind == .documentType then s.systemId else ""
-        piTarget := if s.kind == .processingInstruction then s.piTarget else "" })
+        piTarget := if s.kind == .processingInstruction then s.piTarget else ""
+        contentType :=
+          if s.kind == .document then
+            s.contentType.getD (if s.isHTMLDocument.getD true then "text/html" else "application/xml")
+          else "" })
   let entries ← specs.mapM entry
   let t : Tree := { nodes := entries.foldl (fun st p => st.insert p.1 p.2) NodeStore.empty }
   unless t.checkWellFormed do

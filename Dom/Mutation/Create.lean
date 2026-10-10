@@ -91,10 +91,12 @@ def createElement (s : DOMState) (doc : NodeId) (localName : String) :
     -- step 1
     if !isValidElementLocalName localName then .error .invalidCharacterError
     else
-      -- step 2 と step 4。どちらも「this が HTML document か」で決まる。
+      -- step 2 は「this が HTML document か」、step 4 は「HTML document か、content type が
+      -- application/xhtml+xml か」で決まる。
       .ok (withFresh s
         { kind := .element, ownerDocument := doc,
-          «namespace» := if dd.isHTMLDocument then some htmlNamespace else none,
+          «namespace» :=
+            if dd.isHTMLDocument || dd.contentType == "application/xhtml+xml" then some htmlNamespace else none,
           localName := if dd.isHTMLDocument then asciiLowercase localName else localName })
 
 /--

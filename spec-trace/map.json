@@ -1987,10 +1987,6 @@
       ],
       "approx": [
         {
-          "steps": "4",
-          "what": "content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない"
-        },
-        {
           "steps": "5",
           "what": "create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い）"
         }
