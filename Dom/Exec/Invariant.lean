@@ -268,6 +268,9 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | compareDocumentPositionRef n o => exact admissible_requireRefs h hop
   | nodeContainsRef n o => exact admissible_requireRefs h hop
   | isEqualNodeRef n o => exact admissible_requireRefs h hop
+  | nodeContainsNull n => exact admissible_requireRefs h hop
+  | isEqualNodeNull n => exact admissible_requireRefs h hop
+  | argumentTypeError _ => cases hop; exact h
   | appendChildRef p n => exact admissible_appendChildRef h hop
   | adoptAttr d a =>
     obtain ⟨r, hr⟩ := dropAttr_ok hop

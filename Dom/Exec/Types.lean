@@ -296,6 +296,17 @@ inductive Operation where
   | attrIsDefaultNamespace (attr : Nat) («namespace» : Option String)
   /-- microtask checkpoint。"notify mutation observers" を走らせる。 -/
   | notify
+  /--
+  WebIDL の interface 型（`Node`・`Attr`）への引数の変換が失敗する呼び出し。null 不可の `Node` に null や
+  node でない値を、`Node?` に null でも node でもない値を渡した場合である。WebIDL の層が TypeError を返す。
+  変換は副作用を持たず、ほかの引数の変換も TypeError 以外の例外を投げないので、どの method か（`method` は
+  記録のためだけに持つ）と残りの引数は観測に効かない。
+  -/
+  | argumentTypeError (method : String)
+  /-- §4.4 `contains(null)`。`other` が `Node?` で、null なら false を返す。 -/
+  | nodeContainsNull (node : RefArg)
+  /-- §4.4 `isEqualNode(null)`。`otherNode` が `Node?` で、null なら false を返す。 -/
+  | isEqualNodeNull (node : RefArg)
 deriving Repr
 
 /--

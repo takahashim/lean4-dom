@@ -130,6 +130,8 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .rangeIntersectsNode _ n => n.isSome
   | .rangeComparePoint _ n _ => n.isSome
   | .rangeInsertNode _ n => n.isSome
+  -- interface 型への引数の変換の失敗
+  | .argumentTypeError _ => false
   | _ => true
 
 end Dom.Exec

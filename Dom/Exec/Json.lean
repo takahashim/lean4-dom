@@ -132,6 +132,11 @@ private def listenerOptionsField (j : Json) : Except String Idl.JsValue := do
       | some v => pure (some (k, ← jsValueOfJson v))
     pure (.object props)
 
+/-- WebIDL の変換の結果を読み取りの結果にする。model の対象外の値（桁の多い数）は読み取りの失敗にする。 -/
+private def idlValue {α : Type} (k : String) : Except IdlException α → Except String α
+  | .ok a => .ok a
+  | .error e => .error s!"field `{k}` の値は WebIDL の変換で {e} になる（model の対象外）"
+
 /--
 可変長の `(Node or DOMString)` 引数。`nodes` の配列の数は node の id、文字列はそのまま文字列である。
 `nodes` が無ければ `node`（一つの id、または null で空）を読む。
@@ -145,7 +150,11 @@ private def nodeArgsField (j : Json) : Except String (List NodeArg) := do
       | .num n =>
         if n.exponent == 0 && n.mantissa ≥ 0 then pure (.node n.mantissa.toNat)
         else throw "nodes の数は node の id（0 以上の整数）でなければならない"
-      | _ => throw "nodes の要素は node の id か文字列でなければならない"
+      | .obj kvs =>
+        if kvs.contains "attr" then throw "nodes の要素に Attr を渡す形は扱わない"
+        else do pure (.string (← idlValue "nodes" (Idl.toDOMString (← jsValueOfJson x))))
+      -- `(Node or DOMString)` の union への変換：node でない値は DOMString になる（null は "null"）。
+      | x => do pure (.string (← idlValue "nodes" (Idl.toDOMString (← jsValueOfJson x))))
   | some _ => throw "nodes は配列でなければならない"
   | none =>
     match field? j "node" with
@@ -180,13 +189,72 @@ private def natField? (j : Json) (k : String) : Except String (Option Nat) :=
 /--
 WebIDL の non-nullable な `Node` 引数。
 
-JSON の `null` は「Node でないもの」を表し、`none` になる。field そのものが無いのは
+JSON の `null` と、数でも `{"attr": id}` でもない値は「Node でないもの」を表し、`none` になる。field そのものが無いのは
 scenario の書き誤りなので error にする（省略できる引数とは別物である）。
 -/
 private def nodeField (j : Json) (k : String) : Except String (Option Nat) :=
   match j.getObjVal? k with
   | .error _ => .error s!"必須の field `{k}` がない"
-  | .ok v => if v.isNull then .ok none else (v.getNat?).map some
+  | .ok v =>
+    match v.getNat? with
+    | .ok n => .ok (some n)
+    | .error _ =>
+      match v.getObjVal? "attr" with
+      | .ok _ => .error s!"field `{k}` に Attr を渡す形は Range の操作では扱わない"
+      | .error _ => .ok none
+
+/-!
+### interface 型（`Node`・`Attr`）の引数
+
+JSON の数は node の id、`{"attr": id}` は `Attr` である。それ以外の値（null、文字列、真偽値、普通の object、
+配列）は JavaScript では node でない値で、`Node` への変換は TypeError になる。`Node?` は null（と field が無い
+こと）を null として受ける。
+-/
+
+/-- `Node` の引数。node でない値なら `none`（TypeError）。field が無いのは scenario の書き誤り。 -/
+private def nodeArg? (j : Json) (k : String) : Except String (Option RefArg) :=
+  match j.getObjVal? k with
+  | .error _ => .error s!"必須の field `{k}` がない"
+  | .ok v =>
+    match v.getNat? with
+    | .ok n => .ok (some (.node n))
+    | .error _ =>
+      match v with
+      | .obj _ =>
+        match v.getObjVal? "attr" with
+        | .ok a => (a.getNat?).map (some ∘ .attr)
+        | .error _ => .ok none
+      | _ => .ok none
+
+/-- `Node?` の引数の読み取りの結果。 -/
+private inductive NullableArg where
+  | null
+  | node (r : RefArg)
+  | notANode
+
+/-- `Node?` の引数。field が無いか null なら null。 -/
+private def nullableNodeArg (j : Json) (k : String) : Except String NullableArg :=
+  match j.getObjVal? k with
+  | .error _ => .ok .null
+  | .ok .null => .ok .null
+  | .ok _ => do
+    match ← nodeArg? j k with
+    | some r => pure (.node r)
+    | none => pure .notANode
+
+/-- `Attr` の引数。数は `Attr` の id で、それ以外は `Attr` でない値（TypeError）。 -/
+private def attrArg? (j : Json) (k : String) : Except String (Option Nat) :=
+  match j.getObjVal? k with
+  | .error _ => .error s!"必須の field `{k}` がない"
+  | .ok v =>
+    match v.getNat? with
+    | .ok n => .ok (some n)
+    | .error _ => .ok none
+
+/-- node の id だけを受ける操作で、`Attr` を渡したもの。model の対象外として読み取りを失敗させる。 -/
+private def onlyNode (k : String) : RefArg → Except String Nat
+  | .node n => .ok n
+  | .attr _ => .error s!"field `{k}` に Attr を渡す形はこの操作では扱わない"
 
 private def strField (j : Json) (k : String) (dflt : String) : Except String String :=
   match field? j k with
@@ -197,11 +265,6 @@ private def strField? (j : Json) (k : String) : Except String (Option String) :=
   match field? j k with
   | none => .ok none
   | some v => (v.getStr?).map some
-
-/-- WebIDL の変換の結果を読み取りの結果にする。model の対象外の値（桁の多い数）は読み取りの失敗にする。 -/
-private def idlValue {α : Type} (k : String) : Except IdlException α → Except String α
-  | .ok a => .ok a
-  | .error e => .error s!"field `{k}` の値は WebIDL の変換で {e} になる（model の対象外）"
 
 /-!
 ### DOMString の引数
@@ -338,14 +401,29 @@ def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""
   match op with
   | "appendChild" =>
-    match ← refField j "parent", ← refField j "node" with
-    | .node p, .node n => return .appendChild p n
-    | p, n => return .appendChildRef p n
+    let p ← refField j "parent"
+    match ← nodeArg? j "node" with
+    | none => return .argumentTypeError "appendChild"
+    | some n =>
+      match p, n with
+      | .node p, .node n => return .appendChild p n
+      | p, n => return .appendChildRef p n
   | "insertBefore" =>
-    return .insertBefore (← natField j "parent") (← natField j "node") (← natField? j "child")
+    let parent ← natField j "parent"
+    match ← nodeArg? j "node", ← nullableNodeArg j "child" with
+    | none, _ | _, .notANode => return .argumentTypeError "insertBefore"
+    | some n, .null => return .insertBefore parent (← onlyNode "node" n) none
+    | some n, .node c => return .insertBefore parent (← onlyNode "node" n) (some (← onlyNode "child" c))
   | "replaceChild" =>
-    return .replaceChild (← natField j "parent") (← natField j "node") (← natField j "child")
-  | "removeChild" => return .removeChild (← natField j "parent") (← natField j "node")
+    let parent ← natField j "parent"
+    match ← nodeArg? j "node", ← nodeArg? j "child" with
+    | some n, some c => return .replaceChild parent (← onlyNode "node" n) (← onlyNode "child" c)
+    | _, _ => return .argumentTypeError "replaceChild"
+  | "removeChild" =>
+    let parent ← natField j "parent"
+    match ← nodeArg? j "node" with
+    | some n => return .removeChild parent (← onlyNode "node" n)
+    | none => return .argumentTypeError "removeChild"
   | "replaceChildren" => return .replaceChildren (← natField j "parent") (← nodeArgsField j)
   | "prepend" => return .prepend (← natField j "parent") (← nodeArgsField j)
   | "append" => return .append (← natField j "parent") (← nodeArgsField j)
@@ -354,7 +432,11 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "replaceWith" => return .replaceWith (← natField j "target") (← nodeArgsField j)
   | "remove" => return .remove (← natField j "target")
   | "moveBefore" =>
-    return .moveBefore (← natField j "parent") (← natField j "node") (← natField? j "child")
+    let parent ← natField j "parent"
+    match ← nodeArg? j "node", ← nullableNodeArg j "child" with
+    | none, _ | _, .notANode => return .argumentTypeError "moveBefore"
+    | some n, .null => return .moveBefore parent (← onlyNode "node" n) none
+    | some n, .node c => return .moveBefore parent (← onlyNode "node" n) (some (← onlyNode "child" c))
   | "iteratorNext" => return .iteratorNext (← natField j "iterator")
   | "iteratorPrevious" => return .iteratorPrevious (← natField j "iterator")
   | "replaceData" =>
@@ -382,13 +464,17 @@ def operationOfJson (j : Json) : Except String Operation := do
     | .node n => return .cloneNode n (← boolArgField j "deep" false)
     | .attr a => return .cloneAttr a
   | "importNode" =>
-    match ← refField j "node" with
-    | .node n => return .importNode (← natField j "document") n (← importOptionsField j)
-    | .attr a => return .importAttr (← natField j "document") a
+    let doc ← natField j "document"
+    match ← nodeArg? j "node" with
+    | none => return .argumentTypeError "importNode"
+    | some (.node n) => return .importNode doc n (← importOptionsField j)
+    | some (.attr a) => return .importAttr doc a
   | "adoptNode" =>
-    match ← refField j "node" with
-    | .node n => return .adoptNode (← natField j "document") n
-    | .attr a => return .adoptAttr (← natField j "document") a
+    let doc ← natField j "document"
+    match ← nodeArg? j "node" with
+    | none => return .argumentTypeError "adoptNode"
+    | some (.node n) => return .adoptNode doc n
+    | some (.attr a) => return .adoptAttr doc a
   | "createAttribute" =>
     return .createAttribute (← natField j "document") (← domStrField j "name" "")
   | "createAttributeNS" =>
@@ -400,9 +486,15 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .getAttributeNodeNS (← natField j "element") (← nullableDomStrField j "namespace")
       (← domStrField j "name" "")
   | "setAttributeNode" =>
-    return .setAttributeNode (← natField j "element") (← natField j "attr")
+    let e ← natField j "element"
+    match ← attrArg? j "attr" with
+    | some a => return .setAttributeNode e a
+    | none => return .argumentTypeError "setAttributeNode"
   | "removeAttributeNode" =>
-    return .removeAttributeNode (← natField j "element") (← natField j "attr")
+    let e ← natField j "element"
+    match ← attrArg? j "attr" with
+    | some a => return .removeAttributeNode e a
+    | none => return .argumentTypeError "removeAttributeNode"
   | "removeNamedItem" =>
     return .removeNamedItem (← natField j "element") (← domStrField j "name" "")
   | "rangeSetStart" =>
@@ -444,21 +536,29 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "walkerNextNode" => return .walkerMove (← natField j "walker") .nextNode
   | "rangeToString" => return .rangeToString (← natField j "range")
   | "compareDocumentPosition" =>
-    match ← refField j "node", ← refField j "other" with
-    | .node n, .node o => return .compareDocumentPosition n o
-    | n, o => return .compareDocumentPositionRef n o
+    let n ← refField j "node"
+    match n, ← nodeArg? j "other" with
+    | _, none => return .argumentTypeError "compareDocumentPosition"
+    | .node n, some (.node o) => return .compareDocumentPosition n o
+    | n, some o => return .compareDocumentPositionRef n o
   | "nodeContains" =>
-    match ← refField j "node", ← refField j "other" with
-    | .node n, .node o => return .nodeContains n o
-    | n, o => return .nodeContainsRef n o
+    let n ← refField j "node"
+    match n, ← nullableNodeArg j "other" with
+    | _, .notANode => return .argumentTypeError "contains"
+    | n, .null => return .nodeContainsNull n
+    | .node n, .node (.node o) => return .nodeContains n o
+    | n, .node o => return .nodeContainsRef n o
   | "getRootNode" =>
     match ← refField j "node" with
     | .node n => return .getRootNode n
     | .attr a => return .attrQuery a .getRootNode
   | "isEqualNode" =>
-    match ← refField j "node", ← refField j "other" with
-    | .node n, .node o => return .isEqualNode n o
-    | n, o => return .isEqualNodeRef n o
+    let n ← refField j "node"
+    match n, ← nullableNodeArg j "other" with
+    | _, .notANode => return .argumentTypeError "isEqualNode"
+    | n, .null => return .isEqualNodeNull n
+    | .node n, .node (.node o) => return .isEqualNode n o
+    | n, .node o => return .isEqualNodeRef n o
   | "getTextContent" =>
     match ← refField j "node" with
     | .node n => return .getTextContent n
@@ -581,7 +681,10 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "childrenNamedItem" =>
     return .childrenNamedItem (← natField j "node") (← domStrField j "key" "")
   | "observe" =>
-    return .observe (← natField j "observer") (← natField j "target") (← observeOptionsField j)
+    let mo ← natField j "observer"
+    match ← nodeArg? j "target" with
+    | some t => return .observe mo (← onlyNode "target" t) (← observeOptionsField j)
+    | none => return .argumentTypeError "observe"
   | "disconnect" => return .disconnect (← natField j "observer")
   | "takeRecords" => return .takeRecords (← natField j "observer")
   | "notify" => return .notify

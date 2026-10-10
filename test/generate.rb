@@ -543,7 +543,10 @@ module Generate
     when "remove" then { "op" => op, "target" => pick.call }
     when "normalize" then { "op" => op, "target" => pick.call }
     when "compareDocumentPosition", "nodeContains", "isEqualNode"
-      { "op" => op, "node" => pick.call, "other" => pick.call }
+      # `contains` と `isEqualNode` の引数は `Node?` で、null なら false を返す。`compareDocumentPosition` の
+      # null は TypeError で、Dommy の既知の不一致（findings 63）なので乱数の側では当てない。
+      other = op != "compareDocumentPosition" && rng.rand < 0.1 ? nil : pick.call
+      { "op" => op, "node" => pick.call, "other" => other }
     when "getRootNode", "getTextContent", "getNodeValue" then { "op" => op, "node" => pick.call }
     when "substringData"
       { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)),

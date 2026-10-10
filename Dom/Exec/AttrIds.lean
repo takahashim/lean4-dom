@@ -186,6 +186,9 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | compareDocumentPositionRef n o => exact unique_requireRefs hu hop
   | nodeContainsRef n o => exact unique_requireRefs hu hop
   | isEqualNodeRef n o => exact unique_requireRefs hu hop
+  | nodeContainsNull n => exact unique_requireRefs hu hop
+  | isEqualNodeNull n => exact unique_requireRefs hu hop
+  | argumentTypeError _ => cases hop; exact hu
   | appendChildRef p n =>
     simp only [applyOperation] at hop
     unfold appendChildRef at hop

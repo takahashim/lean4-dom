@@ -1,0 +1,60 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "setAttributeNode"
+    ],
+    "steps": "WebIDL の interface 型への変換",
+    "note": "引数の IDL の型が Node（null 不可）か Attr なので、null や node でない値は WebIDL の interface 型への変換で TypeError になる。method steps に入らないので状態は変わらない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "t"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "setAttributeNode",
+      "element": 1,
+      "attr": null
+    }
+  ]
+}

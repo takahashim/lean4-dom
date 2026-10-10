@@ -10,8 +10,8 @@
 | 表に載せたもの | 226 |
 | 対象外としたもの | 165 |
 | 表に載せた algorithm の step | 999 |
-| そのうち実装したもの | 587 |
-| そのうち近似したもの | 216 |
+| そのうち実装したもの | 589 |
+| そのうち近似したもの | 214 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -174,9 +174,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#clone-a-single-node) | 11/18（近似 3） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` |  |
 | [dom-node-clonenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-clonenode) | 1/2 | `Dom.cloneNode`<br>`Dom.cloneAttr` |  |
 | [concept-node-equals](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-equals) | 0/1（近似 1） | `Dom.nodeEqualsFuel`<br>`Dom.nodeOwnPropertiesEqual`<br>`Dom.attrEquals`<br>`Dom.nodeRefEquals` |  |
-| [dom-node-isequalnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isequalnode) | 0/1（近似 1） | `Dom.nodeEquals`<br>`Dom.nodeRefEquals` |  |
+| [dom-node-isequalnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isequalnode) | 1/1 | `Dom.nodeEquals`<br>`Dom.nodeRefEquals`<br>`Dom.Exec.Operation.isEqualNodeNull` |  |
 | [dom-node-comparedocumentposition](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-comparedocumentposition) | 15/15 | `Dom.compareDocumentPosition`<br>`Dom.compareDocumentPositionRef` | `Dom.Spec.DocumentPositionSpec` |
-| [dom-node-contains](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-contains) | 0/1（近似 1） | `Dom.nodeContains`<br>`Dom.nodeContainsRef` |  |
+| [dom-node-contains](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-contains) | 1/1 | `Dom.nodeContains`<br>`Dom.nodeContainsRef`<br>`Dom.Exec.Operation.nodeContainsNull` |  |
 | [locate-a-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#locate-a-namespace-prefix) | 4/4 | `Dom.locateNamespacePrefixIn`<br>`Dom.elementChain` |  |
 | [locate-a-namespace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#locate-a-namespace) | 6/6 | `Dom.locateNamespace`<br>`Dom.locateNamespaceIn`<br>`Dom.elementChain`<br>`Dom.attrLookupNamespaceURI` |  |
 | [dom-node-lookupprefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-lookupprefix) | 8/8 | `Dom.lookupPrefix`<br>`Dom.attrLookupPrefix` |  |
@@ -543,8 +543,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | clone-a-single-node | 5 | DocumentType の name・public ID・system ID と ProcessingInstruction の target を model が持たないので写さない |
 | clone-a-single-node | 5.1 | Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い |
 | concept-node-equals | * | DocumentType の name・public ID・system ID と ProcessingInstruction の target は model に無いので比べない（harness はどちらも固定値で作る） |
-| dom-node-isequalnode | * | otherNode に null を受けない |
-| dom-node-contains | * | other に null を受けない |
 | dom-document-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-document-createelement | 4 | content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない |
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |

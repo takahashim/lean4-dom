@@ -1783,16 +1783,12 @@
       ],
       "impl": [
         "Dom.nodeEquals",
-        "Dom.nodeRefEquals"
+        "Dom.nodeRefEquals",
+        "Dom.Exec.Operation.isEqualNodeNull"
       ],
       "spec": [],
       "omit": [],
-      "approx": [
-        {
-          "steps": "*",
-          "what": "otherNode に null を受けない"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-node-comparedocumentposition",
@@ -1816,16 +1812,12 @@
       ],
       "impl": [
         "Dom.nodeContains",
-        "Dom.nodeContainsRef"
+        "Dom.nodeContainsRef",
+        "Dom.Exec.Operation.nodeContainsNull"
       ],
       "spec": [],
       "omit": [],
-      "approx": [
-        {
-          "steps": "*",
-          "what": "other に null を受けない"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "locate-a-namespace-prefix",

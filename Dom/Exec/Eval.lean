@@ -447,6 +447,10 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .compareDocumentPositionRef n o => .int (compareDocumentPositionRef s n.toRef o.toRef)
   | .nodeContainsRef n o => .bool (nodeContainsRef s n.toRef o.toRef)
   | .isEqualNodeRef n o => .bool (nodeRefEquals s n.toRef o.toRef)
+  -- §4.4 `contains` の step 1 と `isEqualNode` の step 1：null なら false。
+  | .nodeContainsNull _ => .bool false
+  | .isEqualNodeNull _ => .bool false
+  | .argumentTypeError _ => .unit
   -- どちらも node のときだけ成功し、入れた node を返す。
   | .appendChildRef _ n =>
     match n with
@@ -607,6 +611,10 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .compareDocumentPositionRef n o => requireRefs s [n.toRef, o.toRef]
   | .nodeContainsRef n o => requireRefs s [n.toRef, o.toRef]
   | .isEqualNodeRef n o => requireRefs s [n.toRef, o.toRef]
+  | .nodeContainsNull n => requireRefs s [n.toRef]
+  | .isEqualNodeNull n => requireRefs s [n.toRef]
+  -- WebIDL の層（`idlCheck`）が TypeError を返すので、algorithm の層には来ない。
+  | .argumentTypeError _ => .ok s
   | .appendChildRef p n => appendChildRef s p.toRef n.toRef
   | .adoptAttr d a => dropAttr (adoptAttr s ⟨d⟩ ⟨a⟩)
   | .importAttr d a => dropAttr (importAttr s ⟨d⟩ ⟨a⟩)

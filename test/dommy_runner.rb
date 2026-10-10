@@ -1027,8 +1027,8 @@ module DommyRunner
     when "setAttributeNode"
       raise NotImplementedError, op["op"] unless receiver.respond_to?(:set_attribute_node)
 
-      a = find_attr(ctx, op["attr"])
-      raise NotImplementedError, "missing attr" if a.nil?
+      a = op["attr"].is_a?(Integer) ? find_attr(ctx, op["attr"]) : op["attr"]
+      raise NotImplementedError, "missing attr" if a.nil? && op["attr"].is_a?(Integer)
 
       old = receiver.set_attribute_node(a)
       detached.reject! { |x| x.equal?(a) }
@@ -1037,8 +1037,8 @@ module DommyRunner
     when "removeAttributeNode"
       raise NotImplementedError, op["op"] unless receiver.respond_to?(:remove_attribute_node)
 
-      a = find_attr(ctx, op["attr"])
-      raise NotImplementedError, "missing attr" if a.nil?
+      a = op["attr"].is_a?(Integer) ? find_attr(ctx, op["attr"]) : op["attr"]
+      raise NotImplementedError, "missing attr" if a.nil? && op["attr"].is_a?(Integer)
 
       removed = receiver.remove_attribute_node(a)
       detached << removed if removed
@@ -1065,6 +1065,15 @@ module DommyRunner
   # `Node` を受ける field が `{"attr": id}`（`Attr`）か。
   def attr_ref?(value)
     value.is_a?(Hash) && value.key?("attr")
+  end
+
+  # `Node` の引数。数は node の id、`{"attr": id}` は `Attr` で、それ以外（nil、文字列、真偽値、Hash、配列）は
+  # node でない値としてそのまま渡す。Dommy は `Node` への変換（`Internal::WebIDL.node!` ほか）を Ruby の側で
+  # 行うので、TypeError はそこで起きる。
+  def node_value(ctx, value)
+    return resolve_ref(ctx, value) if value.is_a?(Integer) || attr_ref?(value)
+
+    value
   end
 
   # `Node` を受ける field を object にする。数なら node、`{"attr": id}` なら `Attr`。
@@ -1104,9 +1113,7 @@ module DommyRunner
     when "observe"
       obs = (ctx[:observers] || [])[op["observer"]]
       raise NotImplementedError, "observer index" if obs.nil?
-      raise NotImplementedError, "missing target" if objects[op["target"]].nil?
-
-      return obs.__js_call__("observe", [objects[op["target"]], observe_options(op)])
+      return obs.__js_call__("observe", [node_value(ctx, op["target"]), observe_options(op)])
     when "disconnect"
       obs = (ctx[:observers] || [])[op["observer"]]
       raise NotImplementedError, "observer index" if obs.nil?
@@ -1138,7 +1145,7 @@ module DommyRunner
       if attr_ref?(op["parent"]) || attr_ref?(op["node"])
         parent = resolve_ref(ctx, op["parent"])
         # `Attr` は `appendChild` を bridge（`__js_call__`）にだけ持つ。
-        return js_call(parent, "appendChild", [resolve_ref(ctx, op["node"])])
+        return js_call(parent, "appendChild", [node_value(ctx, op["node"])])
       end
     when *CREATE_OPS
       doc = objects[op["document"]]
@@ -1146,7 +1153,7 @@ module DommyRunner
       raise NotImplementedError, op["op"] unless doc.respond_to?(OP_METHOD.fetch(op["op"]))
 
       src = nil
-      src = resolve_ref(ctx, op["node"]) if %w[importNode adoptNode].include?(op["op"])
+      src = node_value(ctx, op["node"]) if %w[importNode adoptNode].include?(op["op"])
       node =
         case op["op"]
         when "createElement" then doc.create_element(op["localName"].to_s)
@@ -1230,7 +1237,7 @@ module DommyRunner
 
       return case op["op"]
              when "compareDocumentPosition", "nodeContains", "isEqualNode"
-               js_call(receiver, name, [resolve_ref(ctx, op["other"])])
+               js_call(receiver, name, [op.key?("other") ? node_value(ctx, op["other"]) : nil])
              when "getRootNode" then js_call(receiver, name, [])
              when "substringData" then js_call(receiver, name, [op["offset"], op["count"]])
              when "getAttribute", "hasAttribute" then js_call(receiver, name, [op["name"]])
@@ -1261,13 +1268,7 @@ module DommyRunner
       # `"node": null` は「Node でない引数」である。WebIDL は step に入る前に
       # 引数を変換するので、そのまま渡して TypeError を見る。
       # 存在しない id はこちらでは作りようが無いので、従来どおり比較から外す。
-      node =
-        if !op.key?("node") || op["node"].nil?
-          nil
-        else
-          objects[op["node"]] ||
-            raise(NotImplementedError, "missing node")
-        end
+      node = op.key?("node") ? node_value(ctx, op["node"]) : nil
 
       return case op["op"]
              when "rangeSetStart" then range.set_start(node, op["offset"])
@@ -1374,25 +1375,19 @@ module DommyRunner
     # `--capabilities` が示す実装漏れとは別で、これは harness 側の都合である。
     case op["op"]
     when "appendChild"
-      raise NotImplementedError, "missing node" if o[op["node"]].nil?
-
-      receiver.append_child(o[op["node"]])
+      receiver.append_child(node_value(ctx, op["node"]))
     when "insertBefore"
-      raise NotImplementedError, "missing node" if o[op["node"]].nil?
-      raise NotImplementedError, "missing child" if op["child"] && o[op["child"]].nil?
-
-      receiver.insert_before(o[op["node"]], o[op["child"]])
+      receiver.insert_before(node_value(ctx, op["node"]), op.key?("child") ? node_value(ctx, op["child"]) : nil)
     when "replaceChild"
-      raise NotImplementedError, "missing node" if o[op["node"]].nil? || o[op["child"]].nil?
-
-      receiver.replace_child(o[op["node"]], o[op["child"]])
+      receiver.replace_child(node_value(ctx, op["node"]), node_value(ctx, op["child"]))
     when "removeChild"
-      raise NotImplementedError, "missing node" if o[op["node"]].nil?
-
-      receiver.remove_child(o[op["node"]])
+      receiver.remove_child(node_value(ctx, op["node"]))
     when "replaceChildren", "prepend", "append", "before", "after", "replaceWith"
       args = node_args(op).map do |a|
         next a if a.is_a?(String)
+        # node でも文字列でもない値は `(Node or DOMString)` の DOMString への変換を通るが、Dommy のその変換は
+        # JS の層にあり、この runner は通らない。
+        raise NotImplementedError, "可変長の引数の DOMString への変換は Dommy の JS の層にある" unless a.is_a?(Integer)
         raise NotImplementedError, "missing node" if o[a].nil?
 
         o[a]
@@ -1409,10 +1404,7 @@ module DommyRunner
     when "normalize"
       receiver.normalize
     when "moveBefore"
-      raise NotImplementedError, "missing node" if o[op["node"]].nil?
-      raise NotImplementedError, "missing child" if op["child"] && o[op["child"]].nil?
-
-      receiver.move_before(o[op["node"]], o[op["child"]])
+      receiver.move_before(node_value(ctx, op["node"]), op.key?("child") ? node_value(ctx, op["child"]) : nil)
     end
   end
 

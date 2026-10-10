@@ -1,0 +1,80 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "contains",
+      "isEqualNode",
+      "insertBefore",
+      "moveBefore"
+    ],
+    "steps": "contains 1 / isEqualNode 1 / WebIDL の nullable 型への変換",
+    "note": "contains と isEqualNode の引数は Node? で、null なら false を返す。insertBefore と moveBefore の child も Node? で、null なら末尾に入れる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "t"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "nodeContains",
+      "node": 1,
+      "other": null
+    },
+    {
+      "op": "isEqualNode",
+      "node": 1,
+      "other": null
+    },
+    {
+      "op": "insertBefore",
+      "parent": 1,
+      "node": 4,
+      "child": null
+    },
+    {
+      "op": "moveBefore",
+      "parent": 1,
+      "node": 2,
+      "child": null
+    }
+  ]
+}

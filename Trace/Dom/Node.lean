@@ -73,14 +73,14 @@ def entries : List Entry := [
     impl := [``Dom.nodeEqualsFuel, ``Dom.nodeOwnPropertiesEqual, ``Dom.attrEquals, ``Dom.nodeRefEquals]
     approx := [("*", "DocumentType の name・public ID・system ID と ProcessingInstruction の target は model に無いので比べない（harness はどちらも固定値で作る）")] },
   { alg := "dom-node-isequalnode"
-    impl := [``Dom.nodeEquals, ``Dom.nodeRefEquals]
-    approx := [("*", "otherNode に null を受けない")] },
+    -- otherNode が null なら false（`isEqualNodeNull`）。
+    impl := [``Dom.nodeEquals, ``Dom.nodeRefEquals, ``Dom.Exec.Operation.isEqualNodeNull] },
   { alg := "dom-node-comparedocumentposition"
     impl := [``Dom.compareDocumentPosition, ``Dom.compareDocumentPositionRef]
     spec := [``Dom.Spec.DocumentPositionSpec] },
   { alg := "dom-node-contains"
-    impl := [``Dom.nodeContains, ``Dom.nodeContainsRef]
-    approx := [("*", "other に null を受けない")] },
+    -- other が null なら false（`nodeContainsNull`）。
+    impl := [``Dom.nodeContains, ``Dom.nodeContainsRef, ``Dom.Exec.Operation.nodeContainsNull] },
   { alg := "locate-a-namespace-prefix"
     impl := [``Dom.locateNamespacePrefixIn, ``Dom.elementChain] },
   { alg := "locate-a-namespace"

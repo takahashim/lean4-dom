@@ -6305,6 +6305,44 @@ live range の二本を含めてすべて一致した。生成 scenario の seed
 など）を TypeError にする。scenario の値は JSON なので配列と普通の object しか表せず、この差は比較に出ない。対応は
 要らないが、iterable の object を scenario に入れるときに Dommy が一致しないことを threats-to-validity に書いた。
 
+## `Node` と `Attr` の引数の変換を入れた（findings 63）
+
+WebIDL の型変換を member ごとに入れる八つ目の段として、interface 型（`Node`・`Attr`）の引数を扱った。それまでは
+`Range` の `Node` 引数の null だけを検査し、ほかの引数に null や node でない値を書くと scenario の読み取りが
+失敗していた（`contains(null)` と `isEqualNode(null)` を表せなかった）。
+
+* 引数の JSON の値が数（node の id）でも `{"attr": id}`（`Attr`）でもなければ、JavaScript の node でない値とみなす。
+  null 不可の `Node`・`Attr` の引数（`appendChild`、`insertBefore` の node、`replaceChild`、`removeChild`、
+  `moveBefore` の node、`compareDocumentPosition`、`adoptNode`、`importNode`、`observe` の target、
+  `setAttributeNode`、`removeAttributeNode`）にそれが来れば、操作 `argumentTypeError` にする。WebIDL の層が
+  TypeError を返す。interface 型への変換は副作用を持たず、ほかの引数の変換も TypeError 以外を投げないので、
+  どの method かと残りの引数は観測に効かない。
+* `Node?` の引数は null を受ける。`contains(null)` と `isEqualNode(null)` は false を返す（`nodeContainsNull`、
+  `isEqualNodeNull`）。対応表の二つの近似「null を受けない」が外れた。`insertBefore` と `moveBefore` の child に
+  null でも node でもない値が来れば TypeError である。
+* 可変長の `(Node or DOMString)` の引数は、node でない値を DOMString に変換する（null は "null"）。
+* 二つの runner は、node でない値をそのまま実装に渡す。Dommy は interface 型の変換を Ruby の側
+  （`Internal::WebIDL.node!` ほか）で行い、JS の層の signature は引数の個数しか持たないので、そのまま比べられる。
+  可変長の引数の DOMString への変換だけは JS の層にあるので、Dommy とは比べない。
+* 生成器は、`contains` と `isEqualNode` の引数にたまに null を入れる。
+* 固定 scenario を八本足した（TypeError になる六本、`idl-nullable-node-arguments-accept-null`、
+  `idl-variadic-non-node-values-become-strings`）。
+
+Chromium、Firefox、WebKit は八本とも model と一致した（WebKit と jsdom は `moveBefore` を持たないので一本は
+比べられない）。
+
+**findings 63：Dommy は四つの method で、node でない引数を TypeError にしない。** Dommy（`4fc3caa`、修正 branch の
+`83995377` も同じ）について、固定 scenario の四本が不一致になる。
+
+1. `compareDocumentPosition(null)` が例外にならず値を返す。
+2. `insertBefore(node, "x")` が TypeError ではなく NotFoundError になる（child の変換をせず、child として探す）。
+3. `observe(true, ...)` が例外にならない。
+4. `setAttributeNode(null)` が例外にならない。
+
+`appendChild(null)` と `removeChild({})` は本文どおり TypeError になる。生成器はこの四つの値を作らない。
+Dommy の修正 branch で流した生成 scenario（seed 61、300 本、`--ranges 4 --iterators 2 --observers 3 --move`）は
+不一致 0 だった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

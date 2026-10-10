@@ -295,7 +295,8 @@ function nodeArgs(op) {
  * 消えるので、ここでも辿れる node だけを登録する。
  */
 function registerConverted(ctx, args, maxBefore) {
-  const k = args.filter((a) => typeof a === "string").length;
+  // node でない引数（文字列のほか、DOMString に変換される null や真偽値）は Text node になる。
+  const k = args.filter((a) => !isNodeObject(a)).length;
   const known = new Set(ctx.objects.values());
   const seen = new Set();
   const fresh = [];
@@ -539,6 +540,18 @@ function isAttrRef(v) {
 }
 
 /** `Node` を受ける field を object にする。数なら node、`{"attr": id}` なら `Attr`。 */
+// `Node` の引数。数は node の id、`{"attr": id}` は `Attr` で、それ以外（null、文字列、真偽値、普通の object、
+// 配列）は node でない値としてそのまま渡し、WebIDL の変換（TypeError）は実装に任せる。
+function nodeValue(ctx, v) {
+  if (typeof v === "number") return need(ctx.objects.get(v), "missing node");
+  if (isAttrRef(v)) return need(attrById(ctx, v.attr), "missing attr");
+  return v;
+}
+
+function isNodeObject(a) {
+  return a !== null && typeof a === "object" && typeof a.nodeType === "number";
+}
+
 function resolveRef(ctx, v) {
   if (isAttrRef(v)) return need(attrById(ctx, v.attr), "missing attr");
   return need(ctx.objects.get(v), "missing node");
@@ -604,10 +617,7 @@ function applyRangeOp(ctx, op) {
   // `"node": null` は「Node でない引数」である。WebIDL は step に入る前に引数を
   // 変換するので、そのまま渡して TypeError を見る。存在しない id は作りようが
   // 無いので、従来どおり比較から外す。
-  let node = null;
-  if ("node" in op && op.node !== null && op.node !== undefined) {
-    node = need(ctx.objects.get(op.node), "missing node");
-  }
+  const node = "node" in op ? nodeValue(ctx, op.node) : null;
   switch (op.op) {
     case "rangeSetStart": return range.setStart(node, op.offset);
     case "rangeSetEnd": return range.setEnd(node, op.offset);
@@ -657,7 +667,7 @@ function applyQueryOp(ctx, op) {
   if (typeof receiver[name] !== "function") throw new Unsupported(name);
   switch (op.op) {
     case "compareDocumentPosition": case "nodeContains": case "isEqualNode":
-      return receiver[name](resolveRef(ctx, op.other));
+      return "other" in op ? receiver[name](nodeValue(ctx, op.other)) : receiver[name](null);
     case "getRootNode": case "getAttributeNames": return receiver[name]();
     case "substringData": return receiver[name](op.offset, op.count);
     case "getAttribute": case "hasAttribute": return receiver[name](arg(op, "name"));
@@ -735,8 +745,8 @@ function applyAttrNode(ctx, op) {
       return receiver.getAttributeNodeNS(op.namespace ?? null, arg(op, "name"));
     case "setAttributeNode": {
       if (!has("setAttributeNode")) throw new Unsupported(op.op);
-      const a = attrById(ctx, op.attr);
-      if (a === null) throw new Unsupported("missing attr");
+      const a = typeof op.attr === "number" ? attrById(ctx, op.attr) : op.attr;
+      if (a === null && typeof op.attr === "number") throw new Unsupported("missing attr");
       const old = receiver.setAttributeNode(a);
       ctx.detached = ctx.detached.filter((x) => x !== a);
       if (old && old !== a) ctx.detached.push(old);
@@ -744,8 +754,8 @@ function applyAttrNode(ctx, op) {
     }
     case "removeAttributeNode": {
       if (!has("removeAttributeNode")) throw new Unsupported(op.op);
-      const a = attrById(ctx, op.attr);
-      if (a === null) throw new Unsupported("missing attr");
+      const a = typeof op.attr === "number" ? attrById(ctx, op.attr) : op.attr;
+      if (a === null && typeof op.attr === "number") throw new Unsupported("missing attr");
       const removed = receiver.removeAttributeNode(a);
       if (removed) ctx.detached.push(removed);
       return removed ?? null;
@@ -771,8 +781,7 @@ function apply(ctx, op) {
     }
     case "observe": {
       const mo = need(ctx.observerSet?.observers[op.observer], "observer index");
-      const target = need(objects.get(op.target), "missing target");
-      return mo.observe(target, observeOptions(op));
+      return mo.observe(nodeValue(ctx, op.target), observeOptions(op));
     }
     case "disconnect": {
       const mo = need(ctx.observerSet?.observers[op.observer], "observer index");
@@ -804,7 +813,7 @@ function apply(ctx, op) {
       const doc = need(objects.get(op.document), "missing node");
       if (typeof doc[OP_METHOD[op.op]] !== "function") throw new Unsupported(op.op);
       const src = (op.op === "importNode" || op.op === "adoptNode")
-        ? resolveRef(ctx, op.node)
+        ? nodeValue(ctx, op.node)
         : null;
       let made;
       switch (op.op) {
@@ -844,7 +853,7 @@ function apply(ctx, op) {
       if (isAttrRef(op.parent) || isAttrRef(op.node)) {
         const parent = resolveRef(ctx, op.parent);
         if (typeof parent.appendChild !== "function") throw new Unsupported("appendChild");
-        return parent.appendChild(resolveRef(ctx, op.node));
+        return parent.appendChild(nodeValue(ctx, op.node));
       }
       break;
     case "dispatchEvent": {
@@ -910,25 +919,18 @@ function apply(ctx, op) {
   const m = OP_METHOD[op.op];
   if (m === undefined) throw new Error(`未知の op ${op.op}`);
   if (typeof receiver[m] !== "function") throw new Unsupported(op.op);
-  // 存在しない id を指した引数は、実装側では undefined になる。仕様では
-  // 「Node でない値」なので TypeError 相当だが、model 側は notFoundError を
-  // 返すので、そのままでは意味のある比較にならない。harness 側の都合である。
-  const o = (key) => (key === null || key === undefined ? null : objects.get(key));
+  // 引数の node は `nodeValue` で読む。存在しない id は比較から外す（model は notFoundError を返すが、
+  // 実装では undefined になり、意味のある比較にならない。harness の都合である）。
   switch (op.op) {
-    case "appendChild": return receiver.appendChild(need(o(op.node), "missing node"));
-    case "insertBefore": {
-      const node = need(o(op.node), "missing node");
-      const child = op.child === null || op.child === undefined
-        ? null : need(o(op.child), "missing child");
-      return receiver.insertBefore(node, child);
-    }
+    case "appendChild": return receiver.appendChild(nodeValue(ctx, op.node));
+    case "insertBefore":
+      return receiver.insertBefore(nodeValue(ctx, op.node), "child" in op ? nodeValue(ctx, op.child) : null);
     case "replaceChild":
-      return receiver.replaceChild(need(o(op.node), "missing node"),
-        need(o(op.child), "missing child"));
-    case "removeChild": return receiver.removeChild(need(o(op.node), "missing node"));
+      return receiver.replaceChild(nodeValue(ctx, op.node), nodeValue(ctx, op.child));
+    case "removeChild": return receiver.removeChild(nodeValue(ctx, op.node));
     case "replaceChildren": case "prepend": case "append":
     case "before": case "after": case "replaceWith": {
-      const args = nodeArgs(op).map((a) => typeof a === "string" ? a : need(o(a), "missing node"));
+      const args = nodeArgs(op).map((a) => nodeValue(ctx, a));
       let maxBefore = -1;
       for (const id of ctx.objects.keys()) if (id > maxBefore) maxBefore = id;
       try {
@@ -941,10 +943,7 @@ function apply(ctx, op) {
     case "remove": return receiver.remove();
     case "normalize": return receiver.normalize();
     case "moveBefore": {
-      const node = need(o(op.node), "missing node");
-      const child = op.child === null || op.child === undefined
-        ? null : need(o(op.child), "missing child");
-      return receiver.moveBefore(node, child);
+      return receiver.moveBefore(nodeValue(ctx, op.node), "child" in op ? nodeValue(ctx, op.child) : null);
     }
   }
   throw new Error(`未知の op ${op.op}`);
