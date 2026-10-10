@@ -107,7 +107,8 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .createTextNode d _ => implementsIface s.tree d isDocument
   | .createComment d _ => implementsIface s.tree d isDocument
   | .createDocumentFragment d => implementsIface s.tree d isDocument
-  | .importNode d _ _ => implementsIface s.tree d isDocument
+  -- options の `(boolean or ImportNodeOptions)` への変換（`customElementRegistry` があれば TypeError）
+  | .importNode d _ o => implementsIface s.tree d isDocument && (Idl.toImportNodeOptions o).isSome
   | .adoptNode d _ => implementsIface s.tree d isDocument
   | .createAttribute d _ => implementsIface s.tree d isDocument
   | .createAttributeNS d _ _ => implementsIface s.tree d isDocument

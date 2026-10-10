@@ -1,0 +1,126 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "cloneNode",
+      "toggleAttribute",
+      "classList toggle",
+      "Range collapse",
+      "dispatchEvent"
+    ],
+    "steps": "WebIDL の boolean への変換",
+    "note": "boolean の引数は ToBoolean で変換する。0、空文字列、null は false、0 でない数、空でない文字列、object は true である。null は引数の省略ではないので、既定値の無い force に null を渡すと false を渡したことになる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "t"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 0
+      },
+      "end": {
+        "node": 3,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [
+    {
+      "target": 1,
+      "type": "e",
+      "action": "preventDefault"
+    }
+  ],
+  "observers": [],
+  "operations": [
+    {
+      "op": "cloneNode",
+      "node": 2,
+      "deep": 1
+    },
+    {
+      "op": "cloneNode",
+      "node": 2,
+      "deep": ""
+    },
+    {
+      "op": "cloneNode",
+      "node": 2,
+      "deep": null
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 2,
+      "name": "a",
+      "force": 0
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 2,
+      "name": "b",
+      "force": "x"
+    },
+    {
+      "op": "toggleAttribute",
+      "element": 2,
+      "name": "b",
+      "force": null
+    },
+    {
+      "op": "classListToggle",
+      "element": 2,
+      "token": "c",
+      "force": 1
+    },
+    {
+      "op": "classListToggle",
+      "element": 2,
+      "token": "c",
+      "force": null
+    },
+    {
+      "op": "rangeCollapse",
+      "range": 0,
+      "toStart": 0
+    },
+    {
+      "op": "dispatchEvent",
+      "target": 3,
+      "type": "e",
+      "bubbles": 1,
+      "cancelable": "x"
+    }
+  ]
+}

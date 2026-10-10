@@ -93,7 +93,7 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
     obtain ⟨n, hr⟩ := dropNode_ok hop; exact unique_createDocumentFragment hu hr
   | cloneNode n deep =>
     obtain ⟨c, hr⟩ := dropNode_ok hop; exact unique_cloneNode hu hr
-  | importNode doc n deep =>
+  | importNode doc n o =>
     obtain ⟨c, hr⟩ := dropNode_ok hop; exact unique_importNode hu hr
   | adoptNode doc n =>
     obtain ⟨c, hr⟩ := dropNode_ok hop; exact (attrFrame_adoptNode hr).unique hu

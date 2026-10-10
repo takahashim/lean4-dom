@@ -6186,6 +6186,46 @@ jsdom 30.1.2 は二本とも model と一致し、既存の固定 scenario の�
 ままだった。boolean の引数（`toggleAttribute` と `classList.toggle` の `force`、`cloneNode` の `deep` など）の
 ToBoolean はまだ入れていない。
 
+## boolean の引数を WebIDL で変換した
+
+WebIDL の型変換を member ごとに入れる六つ目の段として、boolean の引数を扱った。対象は `cloneNode` の
+`subtree`、Range の `collapse` の `toStart`、`toggleAttribute` と `classList.toggle` の `force`、boolean の reflect の
+setter、`dispatchEvent` の event を作る `EventInit` の `bubbles` と `cancelable` である。
+
+* ToBoolean は失敗も副作用も無いので、DOMString と同じく scenario を読むときに変換する。field が無ければ引数の
+  省略で、null は false を渡したことになる。それまでは null を省略の意味で使っていたので、生成器と runner の
+  `force` を「key を書かない」形に直した。
+* `importNode` の options は固定版の IDL では `(boolean or ImportNodeOptions)` で、TypeError になりうる
+  （CustomElementRegistry を表せないので、undefined でない `customElementRegistry` は TypeError）。そこで
+  `addEventListener` と同じく操作に変換の前の値を持たせ、WebIDL の検査の層で変換する。method の step 2、4、5.1
+  （boolean ならその値、dictionary なら `selfOnly` の否定が subtree）を `importNodeSubtree` に書いた。
+  対応表の step 5.1 の「todo」が外れた。
+* 固定 scenario を二本足した（`boolean-arguments-use-to-boolean`、`import-node-options-are-converted`）。
+  `domstring-legacy-null-and-nullable-arguments` の `lookupNamespaceURI(null)` は Firefox の既知の不一致に当たって
+  いたので、目的（`DOMString?` の null）に合う `createElementNS` に差し替えた。
+
+**ブラウザで確かめた。** Playwright 1.63.0（Chromium、Firefox、WebKit）で固定 scenario をすべて流した。
+Chromium と WebKit は、この段と前の四つの段で足した固定 scenario のすべてで model と一致した。Firefox は二本で
+本文と違い、既知の不一致として記録した。
+
+* default passive value を Document の `touchstart` に当てない（`default-passive-for-document-html-and-body`）。
+* `importNode` の `customElementRegistry` を読まず、TypeError にしない（`import-node-options-are-converted`）。
+  scoped な custom element registry を実装していないためと考えられる。
+
+jsdom 30.1.2 も ImportNodeOptions を実装しておらず（`importNode(node, deep)` の形）、`{selfOnly: 1}` を
+深い複製にする。
+
+**findings 59 の scenario はブラウザで三通りに分かれた。** 可変長の引数の変換が途中で失敗する二本
+（`variadic-conversion-failure-keeps-moved-nodes`、`variadic-insert-failure-keeps-fragment`）について、Firefox は
+本文と model どおり、node を変換が作った DocumentFragment に残す。Chromium と WebKit は、node を元の親から
+外したまま、どこにも属さない状態にする。fragment に入れられないはずの doctype まで Document から外れる。
+Dommy は失敗を原子的にし、node を元の位置に残す。Chromium と WebKit の分は既知の不一致として記録した。
+変換の append が検査を経ず、挿入が fragment の子を外してから検査していると考えれば説明がつくが、ソースは
+確かめていない。三つのブラウザとも、記録に無い不一致は 0 件だった。
+
+Dommy は新しい二本が「比べられない」になり、既存の固定 scenario と生成 scenario（seed 41、200 本、不一致 0）の
+結果は変わらなかった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

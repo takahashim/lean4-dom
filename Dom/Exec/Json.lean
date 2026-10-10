@@ -241,6 +241,35 @@ private def legacyNullDomStrField (j : Json) (k : String) (dflt : String) : Exce
   | .error _ => .ok dflt
   | .ok v => do idlValue k (Idl.toLegacyNullDOMString (← jsValueOfJson v))
 
+/-!
+### boolean の引数
+
+boolean の引数も JSON の任意の値を受け、ECMAScript の ToBoolean で変換する。ToBoolean は失敗も副作用も無いので、
+DOMString と同じく読むときに変換してよい。field が無ければ引数を省略したことにする（`optional` なら既定値、
+既定値が無ければ `none`）。null は省略ではなく、false を渡したことになる。
+-/
+
+/-- 既定値の無い `optional boolean` の引数。 -/
+private def boolArgField? (j : Json) (k : String) : Except String (Option Bool) :=
+  match j.getObjVal? k with
+  | .error _ => .ok none
+  | .ok v => do pure (some (← jsValueOfJson v).toBoolean)
+
+/-- 既定値のある `optional boolean` の引数（と dictionary の boolean の member）。 -/
+private def boolArgField (j : Json) (k : String) (dflt : Bool) : Except String Bool := do
+  pure ((← boolArgField? j k).getD dflt)
+
+/--
+`importNode` の options。`options` があればその値、無ければ `deep` の値、どちらも無ければ引数の既定値の false。
+-/
+private def importOptionsField (j : Json) : Except String Idl.JsValue :=
+  match j.getObjVal? "options" with
+  | .ok v => jsValueOfJson v
+  | .error _ =>
+    match j.getObjVal? "deep" with
+    | .ok v => jsValueOfJson v
+    | .error _ => pure (.bool false)
+
 /-- 可変長の `DOMString...` の引数。配列の要素をそれぞれ DOMString に変換する。 -/
 private def domStrListField (j : Json) (k : String) : Except String (List String) :=
   match field? j k with
@@ -344,11 +373,11 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "createDocumentFragment" => return .createDocumentFragment (← natField j "document")
   | "cloneNode" =>
     match ← refField j "node" with
-    | .node n => return .cloneNode n ((← boolField? j "deep").getD false)
+    | .node n => return .cloneNode n (← boolArgField j "deep" false)
     | .attr a => return .cloneAttr a
   | "importNode" =>
     match ← refField j "node" with
-    | .node n => return .importNode (← natField j "document") n ((← boolField? j "deep").getD false)
+    | .node n => return .importNode (← natField j "document") n (← importOptionsField j)
     | .attr a => return .importAttr (← natField j "document") a
   | "adoptNode" =>
     match ← refField j "node" with
@@ -383,7 +412,7 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "rangeSetEndAfter" =>
     return .rangeSetEndSibling (← natField j "range") (← nodeField j "node") true
   | "rangeCollapse" =>
-    return .rangeCollapse (← natField j "range") ((← boolField? j "toStart").getD false)
+    return .rangeCollapse (← natField j "range") (← boolArgField j "toStart" false)
   | "rangeSelectNode" => return .rangeSelectNode (← natField j "range") (← nodeField j "node")
   | "rangeSelectNodeContents" =>
     return .rangeSelectNodeContents (← natField j "range") (← nodeField j "node")
@@ -495,7 +524,7 @@ def operationOfJson (j : Json) : Except String Operation := do
       (← natField j "callback") (← listenerOptionsField j)
   | "dispatchEvent" =>
     return .dispatchEvent (← natField j "target") (← domStrField j "type" "")
-      ((← boolField? j "bubbles").getD false) ((← boolField? j "cancelable").getD false)
+      (← boolArgField j "bubbles" false) (← boolArgField j "cancelable" false)
   | "setAttribute" =>
     return .setAttribute (← natField j "element") (← domStrField j "name" "")
       (← domStrField j "value" "")
@@ -509,7 +538,7 @@ def operationOfJson (j : Json) : Except String Operation := do
       (← domStrField j "name" "")
   | "toggleAttribute" =>
     return .toggleAttribute (← natField j "element") (← domStrField j "name" "")
-      (← boolField? j "force")
+      (← boolArgField? j "force")
   | "getReflected" =>
     let p ← strField j "property" ""
     match reflectSpec p with
@@ -522,7 +551,7 @@ def operationOfJson (j : Json) : Except String Operation := do
       match r.kind with
       | .string => return .setReflected (← natField j "element") p r (← domStrField j "value" "")
       | .boolean =>
-        match ← boolField? j "value" with
+        match ← boolArgField? j "value" with
         | some b => return .setReflectedBool (← natField j "element") p r b
         | none => throw s!"boolean の reflect `{p}` には boolean の value が要る"
     | none => throw s!"model が持たない reflect `{p}`"
@@ -537,7 +566,7 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .classListRemove (← natField j "element") (← domStrListField j "tokens")
   | "classListToggle" =>
     return .classListToggle (← natField j "element") (← domStrField j "token" "")
-      (← boolField? j "force")
+      (← boolArgField? j "force")
   | "classListReplace" =>
     return .classListReplace (← natField j "element") (← domStrField j "token" "")
       (← domStrField j "newToken" "")

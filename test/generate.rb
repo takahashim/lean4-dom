@@ -602,8 +602,7 @@ module Generate
         "name" => ATTR_NAMES.sample(random: rng) }
     when "toggleAttribute"
       names = rng.rand < INVALID_NAME_PROB ? BAD_ATTR_NAMES : ATTR_OP_NAMES
-      { "op" => op, "element" => pick.call, "name" => names.sample(random: rng),
-        "force" => [nil, true, false].sample(random: rng) }
+      with_force(rng, { "op" => op, "element" => pick.call, "name" => names.sample(random: rng) })
     when "moveBefore"
       { "op" => op, "parent" => pick.call, "node" => maybe.call,
         "child" => rng.rand < 0.5 ? nil : maybe.call }
@@ -625,8 +624,7 @@ module Generate
         "tokens" => Array.new(rng.rand(3)) { pool.sample(random: rng) } }
     when "classListToggle"
       pool = rng.rand < INVALID_NAME_PROB ? BAD_CLASS_TOKENS : CLASS_TOKENS
-      { "op" => op, "element" => pick.call, "token" => pool.sample(random: rng),
-        "force" => [nil, true, false].sample(random: rng) }
+      with_force(rng, { "op" => op, "element" => pick.call, "token" => pool.sample(random: rng) })
     when "classListReplace"
       pool = rng.rand < INVALID_NAME_PROB ? CLASS_TOKENS + BAD_CLASS_TOKENS : CLASS_TOKENS
       { "op" => op, "element" => pick.call, "token" => pool.sample(random: rng),
@@ -982,6 +980,16 @@ module Generate
   SHOW_TEXT = 0x4
   SHOW_COMMENT = 0x80
   SHOW_DOCUMENT = 0x100
+
+  # `toggleAttribute` と `classList.toggle` の `force`（既定値の無い `optional boolean`）。
+  # 省略は key を書かないことで表す。null は WebIDL では false を渡したことになるので、省略の意味では使わない。
+  def with_force(rng, op)
+    case rng.rand(3)
+    when 0 then op
+    when 1 then op.merge("force" => true)
+    else op.merge("force" => false)
+    end
+  end
 
   # `addEventListener` / `removeEventListener` の options。WebIDL の変換の前の JavaScript の値で、
   # boolean のほか、数・文字列・null（boolean と dictionary への変換）と dictionary を混ぜる。

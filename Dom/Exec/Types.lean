@@ -241,7 +241,7 @@ inductive Operation where
   /-- §4.4 `cloneNode(deep)`。 -/
   | cloneNode (node : Nat) (deep : Bool)
   /-- §4.5 `importNode(node, deep)`。 -/
-  | importNode (document node : Nat) (deep : Bool)
+  | importNode (document node : Nat) (options : Idl.JsValue)
   /-- §4.5 `adoptNode(node)`。 -/
   | adoptNode (document node : Nat)
   /--

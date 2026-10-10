@@ -222,6 +222,30 @@ def toAddEventListenerOptions (v : JsValue) : Option AddEventListenerOptionsOrBo
   | .bool b => some (.boolean b)
   | .number _ | .string _ => some (.boolean v.toBoolean)
 
+/-! ## `(boolean or ImportNodeOptions)` -/
+
+/-- IDL の `(boolean or ImportNodeOptions)` の値。`customElementRegistry` は model に無い。 -/
+inductive ImportNodeOptionsOrBoolean where
+  | boolean (b : Bool)
+  /-- `dictionary ImportNodeOptions { CustomElementRegistry customElementRegistry; boolean selfOnly = false; }` -/
+  | dict (selfOnly : Bool)
+deriving DecidableEq, Repr
+
+/--
+**JavaScript の値を `(boolean or ImportNodeOptions)` に変換する。**
+
+null、undefined、object は dictionary、boolean はそのまま、数と文字列は boolean へ変換する。dictionary は
+`customElementRegistry`、`selfOnly` の順に読む。CustomElementRegistry を表せないので、undefined でない
+`customElementRegistry` は TypeError（`none`）になる。
+-/
+def toImportNodeOptions (v : JsValue) : Option ImportNodeOptionsOrBoolean :=
+  match v with
+  | .undefined | .null | .object _ | .array _ =>
+    if (v.get "customElementRegistry").isUndefined then some (.dict (boolMember v "selfOnly" false))
+    else none
+  | .bool b => some (.boolean b)
+  | .number _ | .string _ => some (.boolean v.toBoolean)
+
 /-! ## 例 -/
 
 example : toAddEventListenerOptions (.bool true) = some (.boolean true) := by decide

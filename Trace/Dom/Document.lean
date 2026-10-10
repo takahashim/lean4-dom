@@ -44,9 +44,9 @@ def entries : List Entry := [
   { alg := "dom-document-createcomment"
     impl := [``Dom.createComment] },
   { alg := "dom-document-importnode"
-    impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn, ``Dom.Exec.idlCheck]
-    omitted := [("3", .customElements), ("5.1", .todo "ImportNodeOptions の dictionary の形を受けない（boolean の形だけ）"),
-             ("5.2-5.3", .customElements), ("6", .customElements)]
+    impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn, ``Dom.Exec.idlCheck,
+             ``Dom.importNodeSubtree, ``Dom.Idl.toImportNodeOptions]
+    omitted := [("3", .customElements), ("5.2-5.3", .customElements), ("6", .customElements)]
     approx := [("1", "Document だけを弾く。shadow root は model に無いので検査しない"),
                ("7", "fallbackRegistry を渡さない（custom element registry が無い）")] },
   { alg := "concept-node-adopt"

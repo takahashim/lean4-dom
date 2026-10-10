@@ -182,6 +182,13 @@ def buildState (sc : Scenario) : Except String DOMState := do
     throw "初期状態の attribute の id が重複している、または namespace が正規化されていない"
   return s
 
+/--
+`importNode` の options（変換の前の値）から subtree を決める。変換が TypeError になる値は WebIDL の検査
+（`idlCheck`）が先に弾くので、ここでは既定の false を使う。
+-/
+def importNodeSubtreeOf (o : Idl.JsValue) : Bool :=
+  importNodeSubtree ((Idl.toImportNodeOptions o).getD (.boolean false))
+
 /-- node と状態を返す操作の戻り値。失敗した step の戻り値は観測に出ない。 -/
 def createdNode (r : Except DOMException (NodeId × DOMState)) : ReturnValue :=
   match r with
@@ -301,7 +308,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .createComment doc d => createdNode (createComment s ⟨doc⟩ d)
   | .createDocumentFragment doc => createdNode (createDocumentFragment s ⟨doc⟩)
   | .cloneNode n deep => createdNode (cloneNode s ⟨n⟩ deep)
-  | .importNode doc n deep => createdNode (importNode s ⟨doc⟩ ⟨n⟩ deep)
+  | .importNode doc n o => createdNode (importNode s ⟨doc⟩ ⟨n⟩ (importNodeSubtreeOf o))
   | .adoptNode doc n => createdNode (adoptNode s ⟨doc⟩ ⟨n⟩)
   | .createAttribute doc ln => createdAttr (createAttribute s ⟨doc⟩ ln)
   | .createAttributeNS doc ns qn => createdAttr (createAttributeNS s ⟨doc⟩ ns qn)
@@ -643,7 +650,7 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .createComment doc d => dropNode (createComment s ⟨doc⟩ d)
   | .createDocumentFragment doc => dropNode (createDocumentFragment s ⟨doc⟩)
   | .cloneNode n deep => dropNode (cloneNode s ⟨n⟩ deep)
-  | .importNode doc n deep => dropNode (importNode s ⟨doc⟩ ⟨n⟩ deep)
+  | .importNode doc n o => dropNode (importNode s ⟨doc⟩ ⟨n⟩ (importNodeSubtreeOf o))
   | .adoptNode doc n => dropNode (adoptNode s ⟨doc⟩ ⟨n⟩)
   | .createAttribute doc ln => dropAttr (createAttribute s ⟨doc⟩ ln)
   | .createAttributeNS doc ns qn => dropAttr (createAttributeNS s ⟨doc⟩ ns qn)

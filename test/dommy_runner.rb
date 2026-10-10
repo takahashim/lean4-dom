@@ -672,9 +672,27 @@ module DommyRunner
 
       raise NotImplementedError, "DOMString? の引数 `#{k}` が文字列でも null でもない"
     end
-    return unless op.key?("tokens") && !Array(op["tokens"]).all?(String)
+    if op.key?("tokens") && !Array(op["tokens"]).all?(String)
+      raise NotImplementedError, "DOMString の可変長引数 `tokens` に文字列でない値がある"
+    end
+    require_plain_booleans!(op)
+  end
 
-    raise NotImplementedError, "DOMString の可変長引数 `tokens` に文字列でない値がある"
+  # boolean の引数の field。
+  BOOLEAN_KEYS = %w[deep toStart bubbles cancelable force].freeze
+
+  # boolean の引数に真偽値でない値があれば、この step は比べない。理由は DOMString と同じで、Dommy の
+  # ToBoolean は JS の層にあり、runner が Ruby の真偽（0 と "" が真）で読むと runner の都合の不一致になる。
+  # `importNode` の `options`（`(boolean or ImportNodeOptions)`）も同じ理由で比べない。
+  def require_plain_booleans!(op)
+    BOOLEAN_KEYS.each do |k|
+      next unless op.key?(k) && ![true, false].include?(op[k])
+
+      raise NotImplementedError, "boolean の引数 `#{k}` が真偽値でない（Dommy の変換は JS の層にあり、この runner は通らない）"
+    end
+    return unless op["op"] == "importNode" && op.key?("options")
+
+    raise NotImplementedError, "importNode の options は Dommy の JS の層で変換する"
   end
 
   # listener の options。`options` があればその JavaScript の値（JSON をそのまま Ruby の値にしたもの）、
@@ -1302,7 +1320,7 @@ module DommyRunner
                when "classListRemove" then js_call(list, "remove", (op["tokens"] || []).map(&:to_s))
                when "classListToggle"
                  args = [op["token"].to_s]
-                 args << op["force"] if op.key?("force") && !op["force"].nil?
+                 args << op["force"] if op.key?("force")
                  js_call(list, "toggle", args)
                when "classListReplace"
                  js_call(list, "replace", [op["token"].to_s, op["newToken"].to_s])
@@ -1323,7 +1341,7 @@ module DommyRunner
              when "removeAttribute" then element.remove_attribute(name)
              when "removeAttributeNS" then element.remove_attribute_ns(op["namespace"], name)
              when "toggleAttribute"
-               if op.key?("force") && !op["force"].nil?
+               if op.key?("force")
                  element.toggle_attribute(name, op["force"])
                else
                  element.toggle_attribute(name)

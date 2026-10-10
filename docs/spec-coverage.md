@@ -10,9 +10,9 @@
 | 表に載せたもの | 226 |
 | 対象外としたもの | 165 |
 | 表に載せた algorithm の step | 999 |
-| そのうち実装したもの | 585 |
+| そのうち実装したもの | 587 |
 | そのうち近似したもの | 216 |
-| そのうち外したもの | 198 |
+| そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
 「関係」の列は `Dom/Spec/` にある、仕様本文から独立に書いた関係である。
@@ -200,7 +200,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` |  |
 | [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` |  |
 | [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcomment) | 1/1 | `Dom.createComment` |  |
-| [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-importnode) | 2/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn`<br>`Dom.Exec.idlCheck` |  |
+| [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-importnode) | 4/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn`<br>`Dom.Exec.idlCheck`<br>`Dom.importNodeSubtree`<br>`Dom.Idl.toImportNodeOptions` |  |
 | [concept-node-adopt](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-adopt) | 2/14（近似 4） | `Dom.adopt`<br>`Dom.setOwnerDocument`<br>`Dom.NodeData.withOwnerDocument`<br>`Dom.adoptAttr` | `Dom.Spec.AdoptSpec` |
 | [dom-document-adoptnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-adoptnode) | 3/4 | `Dom.adoptNode`<br>`Dom.adoptAttr`<br>`Dom.Exec.idlCheck` |  |
 | [dom-document-createattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createattribute) | 3/3 | `Dom.createAttribute`<br>`Dom.isValidAttributeLocalName`<br>`Dom.createAttributeIn` |  |
@@ -466,7 +466,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-document-createelement | 3 | custom-elements |
 | internal-createelementns-steps | 2 | custom-elements |
 | dom-document-importnode | 3 | custom-elements |
-| dom-document-importnode | 5.1 | todo：ImportNodeOptions の dictionary の形を受けない（boolean の形だけ） |
 | dom-document-importnode | 5.2-5.3 | custom-elements |
 | dom-document-importnode | 6 | custom-elements |
 | concept-node-adopt | 3.2 | shadow |

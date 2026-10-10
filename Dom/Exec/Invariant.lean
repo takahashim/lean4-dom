@@ -128,7 +128,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
   | cloneNode n deep =>
     obtain ⟨c, hr⟩ := dropNode_ok hop
     exact admissible_cloneNode h hr
-  | importNode doc n deep =>
+  | importNode doc n o =>
     obtain ⟨c, hr⟩ := dropNode_ok hop
     exact admissible_importNode h hr
   | adoptNode doc n =>

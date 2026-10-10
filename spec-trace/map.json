@@ -2107,7 +2107,9 @@
         "Dom.importNode",
         "Dom.importAttr",
         "Dom.cloneNodeIn",
-        "Dom.Exec.idlCheck"
+        "Dom.Exec.idlCheck",
+        "Dom.importNodeSubtree",
+        "Dom.Idl.toImportNodeOptions"
       ],
       "spec": [],
       "omit": [
@@ -2116,13 +2118,6 @@
           "why": {
             "reason": "custom-elements",
             "detail": ""
-          }
-        },
-        {
-          "steps": "5.1",
-          "why": {
-            "reason": "todo",
-            "detail": "ImportNodeOptions の dictionary の形を受けない（boolean の形だけ）"
           }
         },
         {

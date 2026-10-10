@@ -5,7 +5,7 @@
     "algorithm": [
       "CharacterData data",
       "setAttributeNS",
-      "lookupNamespaceURI",
+      "createElementNS",
       "Attr value",
       "Attr nodeValue"
     ],
@@ -75,9 +75,16 @@
       "value": "v"
     },
     {
-      "op": "lookupNamespaceURI",
-      "node": 2,
-      "prefix": null
+      "op": "createElementNS",
+      "document": 0,
+      "namespace": null,
+      "name": "x"
+    },
+    {
+      "op": "createElementNS",
+      "document": 0,
+      "namespace": "null",
+      "name": "y"
     },
     {
       "op": "setAttrValue",

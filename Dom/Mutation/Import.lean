@@ -1,4 +1,5 @@
 import Dom.Mutation.Clone
+import Dom.Idl.Value
 
 /-!
 # 別の document から node を持ってくる（§4.5）
@@ -23,8 +24,8 @@ namespace Dom
 /--
 DOM Standard §4.5 `importNode(node, options)`。
 
-`options` が boolean のときの形だけを扱う。`subtree` はその値である。
-custom element registry を指定する dictionary の形は model の対象外である。
+`subtree` は options から `importNodeSubtree` で決めた値である。custom element registry を指定する
+dictionary の形は model の対象外である（WebIDL の変換で TypeError になる）。
 
 step 1 で Document を弾いてから、"clone a node" を document = this、parent = null で呼ぶ。
 -/
@@ -39,6 +40,17 @@ def importNode (s : DOMState) (doc : NodeId) (n : NodeId) (subtree : Bool) :
       -- step 1
       if d.kind == .document then .error .notSupportedError
       else cloneNodeIn s n doc subtree
+
+/--
+DOM Standard §4.5 `importNode(node, options)` の step 2、4、5.1。options から subtree を決める。
+
+2. subtree を false とする。
+4. options が boolean なら、subtree をその値にする。
+5.1. そうでなければ、subtree を options["selfOnly"] の否定にする。
+-/
+def importNodeSubtree : Idl.ImportNodeOptionsOrBoolean → Bool
+  | .boolean b => b
+  | .dict selfOnly => !selfOnly
 
 /--
 DOM Standard §4.5 `adoptNode(node)`。

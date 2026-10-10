@@ -527,3 +527,59 @@
     HTML §3.2.6.8 の deleter は remove an attribute by name（qualified name の
     最初の一致）。Dommy は namespace が null の `data-a` を消し、先にある namespace 付きの
     `data-a` を残す。Firefox と同じ。上の entry と同じ変更でこの形になった。
+
+- impl: firefox
+  scenario: default-passive-for-document-html-and-body
+  digest: a8161e09526a09c0
+  reason: |
+    DOM §2.7 "default passive value" は、type が touchstart・touchmove・wheel・mousewheel で
+    target が Document・document element・body element なら true を返す。touch events を
+    実装しているかどうかの条件は無い。Firefox は passive を書かずに Document へ足した
+    touchstart の listener を passive にせず、`preventDefault()` が効く。desktop の build で
+    touch events が無効なことが関係しているかもしれないが、確かめていない。
+    Chromium と WebKit は本文どおり。
+    https://dom.spec.whatwg.org/#default-passive-value
+
+- impl: firefox
+  scenario: import-node-options-are-converted
+  digest: c05fb02fda81387d
+  reason: |
+    DOM §4.5 の `importNode(node, options)` の options は `(boolean or ImportNodeOptions)` で、
+    ImportNodeOptions の `customElementRegistry` は CustomElementRegistry 型の member である。
+    null はその型へ変換できないので、WebIDL の dictionary の変換が TypeError を投げる。
+    Firefox は scoped な custom element registry を実装しておらず、この member を読まないので
+    TypeError にならない。`selfOnly` は本文どおりに読む。Chromium と WebKit は本文どおり。
+    https://dom.spec.whatwg.org/#dom-document-importnode
+
+- impl: chromium
+  scenario: variadic-conversion-failure-keeps-moved-nodes
+  digest: 95eb72a0d00182e5
+  reason: &variadic_detached |
+    DOM §4.2.6 "convert nodes into a node" の step 4 は、node を一つずつ新しい DocumentFragment に
+    append する。append は pre-insert なので、DocumentFragment の子になれない doctype は
+    "ensure pre-insert validity" の step 5 で HierarchyRequestError になり、doctype は元の位置に
+    残る。それまでに fragment へ移した node は fragment に残る。変換の後の挿入が失敗した
+    場合も、validity の検査（fragment の element が二つ、など）は insert が fragment の子を
+    外す前に起きるので、node は fragment に残る。
+    Chromium と WebKit は、どちらの場合も node を元の親から外したまま、どこにも属さない状態に
+    する（parentNode が null）。doctype も Document から外れる。変換の append が検査を経ず、
+    挿入が fragment の子を外してから検査していると考えれば説明がつくが、ソースは確かめて
+    いない。Firefox は本文どおり。Dommy は第三の振る舞い（失敗が原子的で、node が元の位置に
+    残る。`docs/status.md` の findings 59）である。WPT の `dom/nodes/ParentNode-*.html`・
+    `ChildNode-*.html` は失敗の後の状態を確かめていない。
+    https://dom.spec.whatwg.org/#converting-nodes-into-a-node
+
+- impl: chromium
+  scenario: variadic-insert-failure-keeps-fragment
+  digest: b74c09bcf57ceb9e
+  reason: *variadic_detached
+
+- impl: webkit
+  scenario: variadic-conversion-failure-keeps-moved-nodes
+  digest: 71a69767d65ee9f1
+  reason: *variadic_detached
+
+- impl: webkit
+  scenario: variadic-insert-failure-keeps-fragment
+  digest: bd7eae9c17f775c9
+  reason: *variadic_detached

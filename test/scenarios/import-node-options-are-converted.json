@@ -1,0 +1,88 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "importNode"
+    ],
+    "steps": "importNode 2, 4, 5.1 / WebIDL の union と dictionary への変換",
+    "note": "importNode の options は (boolean or ImportNodeOptions) である。boolean、数、文字列は boolean になり、その値が subtree になる。null と object は ImportNodeOptions になり、subtree は selfOnly の否定になる。CustomElementRegistry でない customElementRegistry は TypeError になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "t"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "importNode",
+      "document": 0,
+      "node": 2,
+      "options": {}
+    },
+    {
+      "op": "importNode",
+      "document": 0,
+      "node": 2,
+      "options": {
+        "selfOnly": 1
+      }
+    },
+    {
+      "op": "importNode",
+      "document": 0,
+      "node": 2,
+      "options": "x"
+    },
+    {
+      "op": "importNode",
+      "document": 0,
+      "node": 2,
+      "options": 0
+    },
+    {
+      "op": "importNode",
+      "document": 0,
+      "node": 2,
+      "options": null
+    },
+    {
+      "op": "importNode",
+      "document": 0,
+      "node": 2,
+      "options": {
+        "customElementRegistry": null
+      }
+    }
+  ]
+}

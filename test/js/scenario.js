@@ -611,7 +611,7 @@ function applyRangeOp(ctx, op) {
     case "rangeSetStartAfter": return range.setStartAfter(node);
     case "rangeSetEndBefore": return range.setEndBefore(node);
     case "rangeSetEndAfter": return range.setEndAfter(node);
-    case "rangeCollapse": return range.collapse(!!op.toStart);
+    case "rangeCollapse": return range.collapse(op.toStart);
     case "rangeSelectNode": return range.selectNode(node);
     case "rangeSelectNodeContents": return range.selectNodeContents(node);
     case "rangeIsPointInRange": return range.isPointInRange(node, op.offset);
@@ -693,7 +693,7 @@ function applyReflectOp(ctx, op) {
     case "classListAdd": return list.add(...(op.tokens ?? []));
     case "classListRemove": return list.remove(...(op.tokens ?? []));
     case "classListToggle":
-      return "force" in op && op.force !== null
+      return "force" in op
         ? list.toggle(arg(op, "token"), op.force)
         : list.toggle(arg(op, "token"));
     case "classListReplace": return list.replace(arg(op, "token"), arg(op, "newToken"));
@@ -810,7 +810,7 @@ function apply(ctx, op) {
         case "createTextNode": made = doc.createTextNode(arg(op, "data")); break;
         case "createComment": made = doc.createComment(arg(op, "data")); break;
         case "createDocumentFragment": made = doc.createDocumentFragment(); break;
-        case "importNode": made = doc.importNode(src, !!op.deep); break;
+        case "importNode": made = doc.importNode(src, importOptions(op)); break;
         default: made = doc.adoptNode(src); break;
       }
       if (made?.nodeType === 2) {
@@ -831,7 +831,7 @@ function apply(ctx, op) {
     case "cloneNode": {
       const src = resolveRef(ctx, op.node);
       if (typeof src.cloneNode !== "function") throw new Unsupported("cloneNode");
-      const copy = src.cloneNode(!!op.deep);
+      const copy = src.cloneNode(op.deep);
       if (copy?.nodeType === 2) { ctx.detached.push(copy); return copy; }
       registerSubtree(ctx, copy);
       return copy;
@@ -846,7 +846,7 @@ function apply(ctx, op) {
     case "dispatchEvent": {
       const target = need(objects.get(op.target), "missing node");
       const event = new ctx.win.Event(arg(op, "type"),
-        { bubbles: !!op.bubbles, cancelable: !!op.cancelable });
+        { bubbles: op.bubbles, cancelable: op.cancelable });
       return target.dispatchEvent(event);
     }
     case "addEventListener": {
@@ -897,7 +897,7 @@ function apply(ctx, op) {
       case "removeAttribute": return el.removeAttribute(name);
       case "removeAttributeNS": return el.removeAttributeNS(op.namespace ?? null, name);
       case "toggleAttribute":
-        return "force" in op && op.force !== null
+        return "force" in op
           ? el.toggleAttribute(name, op.force)
           : el.toggleAttribute(name);
     }
@@ -1021,6 +1021,14 @@ function buildListeners(objects, idOf, specs, log) {
 // WebIDL の変換（ToString、null なら "null"）は実装に任せる。
 function arg(op, key) {
   return key in op ? op[key] : "";
+}
+
+// boolean の引数は JSON の値をそのまま渡し、ToBoolean は実装に任せる。field が無ければ undefined
+// （引数の省略と同じく既定値になる）。`importNode` の options は `options`、無ければ `deep`、どちらも無ければ
+// 既定値の false。
+function importOptions(op) {
+  if ("options" in op) return op.options;
+  return "deep" in op ? op.deep : false;
 }
 
 // listener の options。`options` があればその JavaScript の値、無ければ
