@@ -92,6 +92,7 @@ def idlCheck (s : DOMState) : Operation → Bool
   -- 引数の `Element` も変換する。Element でなければ TypeError。
   | .insertAdjacentElement e _ n => implementsIface s.tree e isElement && implementsIface s.tree n isElement
   | .insertAdjacentText e _ _ => implementsIface s.tree e isElement
+  | .splitText n _ => implementsIface s.tree n fun d => d.kind.isText
   | .getAttributeNS e _ _ => implementsIface s.tree e isElement
   | .hasAttributeNS e _ _ => implementsIface s.tree e isElement
   | .hasAttributes e => implementsIface s.tree e isElement
@@ -161,6 +162,7 @@ def requiredArgs : String → Option Nat
   | "getAttributeNS" | "hasAttributeNS" | "removeNamedItemNS" | "getElementsByTagNameNS" => some 2
   | "hasAttributes" => some 0
   | "insertAdjacentElement" | "insertAdjacentText" => some 2
+  | "splitText" => some 1
   | "getElementsByTagName" => some 1
   | "setAttributeNS" => some 3
   | "setAttributeNode" | "removeAttributeNode" => some 1

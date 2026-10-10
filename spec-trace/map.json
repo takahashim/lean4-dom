@@ -3492,6 +3492,74 @@
       ]
     },
     {
+      "alg": "concept-text-split",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.splitText",
+        "Dom.splitTextAdjust",
+        "Dom.splitTextRange",
+        "Dom.splitTextBP",
+        "Dom.splitTextMoved",
+        "Dom.guardBP"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す"
+        },
+        {
+          "steps": "7.1",
+          "what": "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ"
+        },
+        {
+          "steps": "7.2-7.5",
+          "what": "動かした先の boundary point が妥当でなければ動かさない（admissible な状態では必ず妥当なので、観測できる振る舞いは同じ。妥当性の保存を insert 後の木の形を追わずに示すための検査）"
+        }
+      ]
+    },
+    {
+      "alg": "dom-text-splittext",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.splitText"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "contiguous-text-nodes",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.contiguousTextNodes",
+        "Dom.contiguousTextNodes.isTextNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-text-wholetext",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.wholeText",
+        "Dom.contiguousTextNodes"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
       "alg": "concept-cd-substring",
       "steps": [
         "*"
@@ -5089,13 +5157,6 @@
       }
     },
     {
-      "target": "contiguous-text-nodes",
-      "why": {
-        "reason": "todo",
-        "detail": "contiguous Text nodes（CDATASection を含む前後両側）を集める関数が無い。使う側の wholeText も未実装"
-      }
-    },
-    {
       "target": "concept-child-text-content",
       "why": {
         "reason": "todo",
@@ -5107,27 +5168,6 @@
       "why": {
         "reason": "host",
         "detail": ""
-      }
-    },
-    {
-      "target": "concept-text-split",
-      "why": {
-        "reason": "todo",
-        "detail": "split a Text node が無い（docs/status.md の未着手。固定 scenario でも skip）"
-      }
-    },
-    {
-      "target": "dom-text-splittext",
-      "why": {
-        "reason": "todo",
-        "detail": "splitText() が無い（split a Text node が未実装）"
-      }
-    },
-    {
-      "target": "dom-text-wholetext",
-      "why": {
-        "reason": "todo",
-        "detail": "wholeText の getter が無い"
       }
     },
     {

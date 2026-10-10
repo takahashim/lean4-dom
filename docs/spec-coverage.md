@@ -7,11 +7,11 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 249 |
-| 対象外としたもの | 142 |
-| 表に載せた algorithm の step | 1030 |
-| そのうち実装したもの | 616 |
-| そのうち近似したもの | 218 |
+| 表に載せたもの | 253 |
+| 対象外としたもの | 138 |
+| 表に載せた algorithm の step | 1047 |
+| そのうち実装したもの | 627 |
+| そのうち近似したもの | 224 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -326,9 +326,13 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
 | [exclusive-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#exclusive-text-node) | 1/1 | `Dom.isExclusiveText` | `Dom.Spec.ExclusiveText` |
+| [contiguous-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-text-nodes) | 1/1 | `Dom.contiguousTextNodes`<br>`Dom.contiguousTextNodes.isTextNode` |  |
 | [contiguous-exclusive-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-exclusive-text-nodes) | 0/1（近似 1） | `Dom.followingTexts`<br>`Dom.isExclusiveText` | `Dom.Spec.FollowingContiguousTexts` |
 | [concept-descendant-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-descendant-text-content) | 1/1 | `Dom.descendantTextContent` |  |
 | [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-text-node) | 3/3 | `Dom.createTextNode`<br>`Dom.withFresh` |  |
+| [concept-text-split](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-text-split) | 8/14（近似 6） | `Dom.splitText`<br>`Dom.splitTextAdjust`<br>`Dom.splitTextRange`<br>`Dom.splitTextBP`<br>`Dom.splitTextMoved`<br>`Dom.guardBP` |  |
+| [dom-text-splittext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-splittext) | 1/1 | `Dom.splitText` |  |
+| [dom-text-wholetext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-wholetext) | 1/1 | `Dom.wholeText`<br>`Dom.contiguousTextNodes` |  |
 
 ### §4.14（`interface-comment`）
 
@@ -608,6 +612,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-cd-replace | 5-7 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
 | concept-cd-substring | 3-4 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
 | contiguous-exclusive-text-nodes | * | node より後ろの兄弟だけを集める（normalize が run の先頭から呼ぶので前側は空になる）。前後両側を集める関数は無い |
+| concept-text-split | 4 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
+| concept-text-split | 7.1 | insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ |
+| concept-text-split | 7.2-7.5 | 動かした先の boundary point が妥当でなければ動かさない（admissible な状態では必ず妥当なので、観測できる振る舞いは同じ。妥当性の保存を insert 後の木の形を追わずに示すための検査） |
 | concept-range-bp-position | 1 | assert は書かない。呼び出し側（`BoundaryLE`・`rangeNeedsCollapse` など）が root を別に比べる |
 | concept-range-bp-position | 3 | 自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段） |
 | range-collapsed | * | 専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く |
@@ -671,7 +678,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：common ancestor を求める定義が無い（使う extract・clone the contents が未実装） | get-the-common-ancestor |
 | todo：commonAncestorContainer getter が無い | dom-range-commonancestorcontainer |
 | todo：composedPath() が無い（shadow tree が無いので event path を逆順に invocation target を並べたものになるはずだが、実行関数が無い） | dom-event-composedpath |
-| todo：contiguous Text nodes（CDATASection を含む前後両側）を集める関数が無い。使う側の wholeText も未実装 | contiguous-text-nodes |
 | todo：createCDATASection が無い（`Dom/Mutation/Create.lean` の注） | dom-document-createcdatasection |
 | todo：createProcessingInstruction が無い。target の Name production と ProcessingInstruction の target を model が持たない | dom-document-createprocessinginstruction |
 | todo：currentNode を設定する操作が harness に無い（初期状態の current だけを与えられる） | dom-treewalker-currentnode/setter |
@@ -686,10 +692,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：length の getter が無い（token set は classTokenSet で読めるが API が無い） | dom-domtokenlist-length |
 | todo：node 以外の EventTarget を作れない（listener の target は NodeId） | dom-eventtarget-eventtarget |
 | todo：returnValue の setter が無い（ListenerAction に無い） | dom-event-returnvalue/setter |
-| todo：split a Text node が無い（docs/status.md の未着手。固定 scenario でも skip） | concept-text-split |
-| todo：splitText() が無い（split a Text node が未実装） | dom-text-splittext |
 | todo：supports() が無い（validation steps が未実装） | dom-domtokenlist-supports |
 | todo：validation steps（supported tokens）が無い。classList の class は supported tokens を定めないので TypeError になるはずの所 | concept-domtokenlist-validation |
 | todo：value の getter が無い（値は className の reflect getter と同じだが、DOMTokenList 側の API は無い） | dom-domtokenlist-value |
 | todo：value の setter が無い（className の reflect setter と同じ効果だが、DOMTokenList 側の API は無い） | dom-domtokenlist-value/setter |
-| todo：wholeText の getter が無い | dom-text-wholetext |

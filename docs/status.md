@@ -6640,6 +6640,32 @@ Dommy の Ruby の API は Text に `node_value=` を持たないので、Ruby �
 
 Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、この scenario のすべての step で model と一致した。
 
+## `splitText` と `wholeText` を足した（findings 69）
+
+対応表で `.todo` の除外だった "split a Text node"・`splitText()`・"contiguous Text nodes"・`wholeText` を実行関数にした
+（`Dom/CharacterData/SplitText.lean`）。
+
+* `splitText` は offset から後ろの data（`substringData`）で `createTextNode` し、parent があればその Text を node の次の
+  兄弟の前に pre-insert して、node を指す live range の offset より大きい端点を新しい Text へ移し、parent を指す index + 1
+  の端点を一つ進め、最後に node の data を replace data で切る。parent が無ければ入れずに返す。
+* step 7.1 は insert の代わりに pre-insert で書いた。parent は Text の親なので検査は通り、参照する child は新しい Text では
+  ないので同じ振る舞いである。step 7.2–7.5 の端点の移動は、移した先が妥当（node が木にあり offset が length 以下）で
+  なければ動かさない形に書いた。admissible な状態では必ず妥当なので観測できる振る舞いは本文と同じで、妥当性の保存を
+  insert の後の木の形を追わずに示すための検査である。どちらも対応表に近似として書いた。
+* `wholeText` は `getProperty` の property で、contiguous Text nodes（CDATASection を含む前後の Text の兄弟）の data の連結。
+* 固定 scenario `split-text-moves-ranges` を足した（四つの live range の調整、parent の無い Text、offset が length の
+  空の Text、IndexSizeError）。生成器は `splitText` を出す。
+
+木・live range・data・返り値は六つの実装すべてで model と一致した。違うのは MutationObserver の record の並びである。
+
+**Chromium・Firefox・WebKit は、`splitText` の characterData の record を childList の record より先に積む。** 本文は
+新しい Text を insert してから（step 7.1）node の data を切る（step 8）ので、childList が先である。三つのブラウザは data を
+先に切ってから新しい Text を入れる。jsdom は本文どおり。`test/known-divergences.yml` に記録した。`normalize` の record の
+並びでは engine の読みを選んだが（`docs/status.md` の「MutationObserver の配送」）、ここでは本文に従っている。
+
+**findings 69：Dommy も、`splitText` の characterData の record を childList の record より先に積む。** ブラウザと同じ
+順で、本文の順ではない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

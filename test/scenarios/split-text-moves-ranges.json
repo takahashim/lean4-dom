@@ -1,0 +1,193 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "split a Text node",
+      "splitText",
+      "wholeText",
+      "contiguous Text nodes"
+    ],
+    "steps": "split a Text node step 1-9 / wholeText getter",
+    "note": "splitText は offset から後ろの data で新しい Text を作って次の兄弟の前に入れ、node を指す live range の offset より大きい端点を新しい Text へ移し、parent を指す index + 1 の端点を一つ進め、node の data を切る。parent が無ければ新しい Text は入れないが返る。offset が length なら空の Text。offset が length より大きければ IndexSizeError で、scenario はそこで終わる。wholeText は前後に連続する Text の data の連結で、Comment は持たない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "abcdef"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 2,
+      "data": "gh"
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c"
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 2,
+      "data": "ij"
+    },
+    {
+      "id": 7,
+      "kind": "element",
+      "parent": 2,
+      "localName": "span"
+    },
+    {
+      "id": 8,
+      "kind": "text",
+      "data": "kl"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 1
+      },
+      "end": {
+        "node": 3,
+        "offset": 5
+      }
+    },
+    {
+      "start": {
+        "node": 3,
+        "offset": 4
+      },
+      "end": {
+        "node": 2,
+        "offset": 1
+      }
+    },
+    {
+      "start": {
+        "node": 2,
+        "offset": 1
+      },
+      "end": {
+        "node": 2,
+        "offset": 2
+      }
+    },
+    {
+      "start": {
+        "node": 3,
+        "offset": 4
+      },
+      "end": {
+        "node": 4,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [
+    {
+      "target": 0,
+      "subtree": true,
+      "childList": true,
+      "characterData": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "wholeText"
+    },
+    {
+      "op": "getProperty",
+      "node": 6,
+      "property": "wholeText"
+    },
+    {
+      "op": "getProperty",
+      "node": 5,
+      "property": "wholeText"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "wholeText"
+    },
+    {
+      "op": "splitText",
+      "node": 3,
+      "offset": 4
+    },
+    {
+      "op": "getProperty",
+      "node": 3,
+      "property": "wholeText"
+    },
+    {
+      "op": "getProperty",
+      "node": 9,
+      "property": "data"
+    },
+    {
+      "op": "getProperty",
+      "node": 2,
+      "property": "childNodes"
+    },
+    {
+      "op": "splitText",
+      "node": 8,
+      "offset": 1
+    },
+    {
+      "op": "getProperty",
+      "node": 10,
+      "property": "parentNode"
+    },
+    {
+      "op": "getProperty",
+      "node": 8,
+      "property": "data"
+    },
+    {
+      "op": "splitText",
+      "node": 4,
+      "offset": 2
+    },
+    {
+      "op": "getProperty",
+      "node": 11,
+      "property": "data"
+    },
+    {
+      "op": "splitText",
+      "node": 3,
+      "offset": 7
+    }
+  ]
+}

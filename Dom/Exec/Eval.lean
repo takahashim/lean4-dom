@@ -281,6 +281,7 @@ def propertyValue (t : Tree) (n : NodeId) (p : NodeProp) : ReturnValue :=
     | .publicId => if k == .documentType then .str (some d.publicId) else .unit
     | .systemId => if k == .documentType then .str (some d.systemId) else .unit
     | .target => if k == .processingInstruction then .str (some d.piTarget) else .unit
+    | .wholeText => if k.isText then .str (some (wholeText t n)) else .unit
 
 /-- `Attr` と状態を返す操作を、状態だけを返す形にする。 -/
 def dropAttr (r : Except DOMException (AttrId × DOMState)) : Except DOMException DOMState :=
@@ -458,6 +459,10 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
     | .error _ => .unit
     | .ok (r, _) => .node r
   | .insertAdjacentText _ _ _ => .unit
+  | .splitText n o =>
+    match splitText s ⟨n⟩ (Idl.toUnsignedLong o) with
+    | .error _ => .unit
+    | .ok (t, _) => .node (some t)
   | .isEqualNode n o => .bool (nodeEquals s.tree ⟨n⟩ ⟨o⟩)
   | .getTextContent n => .str (getTextContent s.tree ⟨n⟩)
   | .getNodeValue n => .str (getNodeValue s.tree ⟨n⟩)
@@ -684,6 +689,7 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
   | .setNodeValue n v => setNodeValue s ⟨n⟩ v
   | .insertAdjacentElement e w n => dropRet (insertAdjacentElement s ⟨e⟩ w ⟨n⟩)
   | .insertAdjacentText e w d => insertAdjacentText s ⟨e⟩ w d
+  | .splitText n o => dropNode (splitText s ⟨n⟩ (Idl.toUnsignedLong o))
   | .isEqualNode n o => requireNodes s [⟨n⟩, ⟨o⟩]
   | .getTextContent n => requireNodes s [⟨n⟩]
   | .getNodeValue n => requireNodes s [⟨n⟩]

@@ -264,6 +264,7 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `insertData` | `node`, `offset`, `data` |
 | `deleteData` | `node`, `offset`, `count` |
 | `setData` | `node`, `data` |
+| `splitText` | `node`, `offset` |
 | `insertAdjacentElement` | `element`, `where`, `node` |
 | `insertAdjacentText` | `element`, `where`, `data` |
 | `setTextContent` / `setNodeValue` | `node`（`{"attr": id}` 可）, `value`（null 可。null は空文字列） |
@@ -294,7 +295,7 @@ Dommy を読み込んでいない process の仕事にしてある。
 | `hasAttributes` | `element` |
 | `getElementsByTagName` | `node`, `name`（qualified name。`*` 可） |
 | `getElementsByTagNameNS` | `node`, `namespace`（null 可。`*` 可）, `name`（local name。`*` 可） |
-| `getProperty` | `node`, `property`（値を読むだけの getter：`nodeType`・`nodeName`・`isConnected`・`parentNode`・`parentElement`・`firstChild`・`lastChild`・`previousSibling`・`nextSibling`・`childNodes`・`tagName`・`namespaceURI`・`prefix`・`localName`・`firstElementChild`・`lastElementChild`・`childElementCount`・`children`・`previousElementSibling`・`nextElementSibling`・`doctype`・`documentElement`・`contentType`・`compatMode`・`length`・`data`・`name`・`publicId`・`systemId`・`target`）。受け手の interface に無い getter は undefined を返す。`node` に `{"attr": id}` を書けるのは `attrQuery` にもあるものだけ |
+| `getProperty` | `node`, `property`（値を読むだけの getter：`nodeType`・`nodeName`・`isConnected`・`parentNode`・`parentElement`・`firstChild`・`lastChild`・`previousSibling`・`nextSibling`・`childNodes`・`tagName`・`namespaceURI`・`prefix`・`localName`・`firstElementChild`・`lastElementChild`・`childElementCount`・`children`・`previousElementSibling`・`nextElementSibling`・`doctype`・`documentElement`・`contentType`・`compatMode`・`length`・`data`・`name`・`publicId`・`systemId`・`target`・`wholeText`）。受け手の interface に無い getter は undefined を返す。`node` に `{"attr": id}` を書けるのは `attrQuery` にもあるものだけ |
 | `attrQuery` | `attr`, `query`（`ownerDocument`・`parentNode`・`parentElement`・`ownerElement`・`getRootNode`・`nodeName`・`nodeValue`・`textContent`・`isConnected`・`hasChildNodes`・`firstChild`） |
 | `setAttrValue` | `attr`, `value`, `via`（`value`・`nodeValue`・`textContent` のどの setter を使うか） |
 

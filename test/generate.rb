@@ -30,7 +30,7 @@ module Generate
            rangeInsertNode rangeToString
            compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
            getTextContent getNodeValue substringData getProperty setTextContent setNodeValue
-           insertAdjacentElement insertAdjacentText
+           insertAdjacentElement insertAdjacentText splitText
            getAttribute hasAttribute getAttributeNames
            getAttributeNS hasAttributeNS hasAttributes getElementsByTagName getElementsByTagNameNS
            lookupNamespaceURI lookupPrefix isDefaultNamespace
@@ -61,7 +61,7 @@ module Generate
                   previousSibling nextSibling childNodes tagName namespaceURI prefix localName
                   firstElementChild lastElementChild childElementCount children
                   previousElementSibling nextElementSibling doctype documentElement contentType
-                  compatMode length data name publicId systemId target].freeze
+                  compatMode length data name publicId systemId target wholeText].freeze
   ATTR_PROPERTIES = %w[nodeName isConnected parentNode parentElement firstChild].freeze
   # `insertAdjacentElement` / `insertAdjacentText` の where。ASCII case-insensitive なので大文字も混ぜ、
   # どれでもない文字列（SyntaxError）も出す。
@@ -252,10 +252,10 @@ module Generate
     "element" => NODE_OPS + PARENT_NODE_OPS + CHILD_NODE_OPS + ATTRIBUTE_OPS + ATTR_ELEMENT_OPS +
                  SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS + REFLECT_ELEMENT_OPS + TAG_NAME_OPS +
                  INSERT_ADJACENT_OPS + %w[getElementsByClassName childrenNamedItem],
-    "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
+    "text" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS + %w[splitText],
     "comment" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
     "processingInstruction" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
-    "cdataSection" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS,
+    "cdataSection" => NODE_OPS + CHILD_NODE_OPS + CHARACTER_DATA_OPS + %w[splitText],
     "documentType" => NODE_OPS + CHILD_NODE_OPS
   }.freeze
 
@@ -574,6 +574,8 @@ module Generate
       { "op" => op, "node" => pick.call }
     when "getProperty"
       { "op" => op, "node" => pick.call, "property" => PROPERTIES.sample(random: rng) }
+    when "splitText"
+      { "op" => op, "node" => pick.call, "offset" => idl_number(rng, rng.rand(5)) }
     when "insertAdjacentElement"
       { "op" => op, "element" => pick.call, "where" => ADJACENT_WHERE.sample(random: rng), "node" => maybe.call }
     when "insertAdjacentText"

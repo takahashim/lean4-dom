@@ -48,6 +48,7 @@ module DommyRunner
     "setAttribute" => :set_attribute,
     "insertAdjacentElement" => :insert_adjacent_element,
     "insertAdjacentText" => :insert_adjacent_text,
+    "splitText" => :split_text,
     "setAttributeNS" => :set_attribute_ns,
     "removeAttribute" => :remove_attribute,
     "removeAttributeNS" => :remove_attribute_ns,
@@ -163,7 +164,7 @@ module DommyRunner
     "children" => "nodes", "previousElementSibling" => "node", "nextElementSibling" => "node",
     "doctype" => "node", "documentElement" => "node", "contentType" => "string", "compatMode" => "string",
     "length" => "number", "data" => "string", "name" => "string", "publicId" => "string",
-    "systemId" => "string", "target" => "string"
+    "systemId" => "string", "target" => "string", "wholeText" => "string"
   }.freeze
   # その getter を持つ interface の nodeType。無いものは `Node` の getter。
   PROPERTY_NODE_TYPES = {
@@ -173,7 +174,7 @@ module DommyRunner
     "nextElementSibling" => [1, 3, 4, 7, 8],
     "doctype" => [9], "documentElement" => [9], "contentType" => [9], "compatMode" => [9],
     "length" => [3, 4, 7, 8], "data" => [3, 4, 7, 8], "name" => [2, 10], "publicId" => [10],
-    "systemId" => [10], "target" => [7]
+    "systemId" => [10], "target" => [7], "wholeText" => [3, 4]
   }.freeze
   # interface に無い getter を読んだ結果（JavaScript の undefined）。
   UNDEFINED = Object.new.freeze
@@ -354,7 +355,7 @@ module DommyRunner
   # `undefined` と `null` を取り違えないよう kind を添える
   # （`removeChild` が null を返したら不一致、`remove()` が undefined を返すのは正しい）。
   NODE_RETURNING_OPS = %w[appendChild insertBefore replaceChild removeChild
-                          iteratorNext iteratorPrevious getRootNode getOwnerDocument insertAdjacentElement
+                          iteratorNext iteratorPrevious getRootNode getOwnerDocument insertAdjacentElement splitText
                           walkerParentNode walkerFirstChild walkerLastChild
                           walkerPreviousSibling walkerNextSibling
                           walkerPreviousNode walkerNextNode
@@ -1067,7 +1068,7 @@ module DommyRunner
   # 操作の受け手（method を呼ぶ相手）の id。
   def receiver_id(op)
     return op["node"] if CHARACTER_DATA_OPS.include?(op["op"])
-    return op["node"] if %w[setTextContent setNodeValue getProperty].include?(op["op"])
+    return op["node"] if %w[setTextContent setNodeValue getProperty splitText].include?(op["op"])
     return op["node"] if QUERY_OPS.include?(op["op"]) && op.key?("node")
     return op["element"] if ATTRIBUTE_OPS.include?(op["op"])
     return op["element"] if %w[insertAdjacentElement insertAdjacentText].include?(op["op"])
@@ -1401,6 +1402,15 @@ module DommyRunner
              when "rangeInsertNode" then range.insert_node(node)
              when "rangeToString" then range.to_s
              end
+    end
+    if op["op"] == "splitText"
+      node = objects[op["node"]]
+      raise NotImplementedError, op["op"] if node.nil? || !node.respond_to?(:split_text)
+
+      made = node.split_text(op["offset"])
+      # 新しい Text に、model（`createTextNode` の `freshId`）と同じ規則で id を振る。
+      register_subtree(ctx, made)
+      return made
     end
     if %w[setTextContent setNodeValue].include?(op["op"])
       node = resolve_ref(ctx, op["node"])

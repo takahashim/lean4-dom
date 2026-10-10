@@ -172,6 +172,8 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | insertAdjacentElement e w n =>
     obtain ⟨r, hr⟩ := dropRet_ok hop; exact unique_insertAdjacentElement hu hr
   | insertAdjacentText e w d => exact unique_insertAdjacentText hu hop
+  | splitText n o =>
+    obtain ⟨t, hr⟩ := dropNode_ok hop; exact unique_splitText hu hr
   | setNodeValue n v => exact unique_setNodeValue hu hop
   | isEqualNode n o => exact unique_requireNodes hu hop
   | getTextContent n => exact unique_requireNodes hu hop

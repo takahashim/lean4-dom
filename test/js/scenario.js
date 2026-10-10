@@ -76,6 +76,7 @@ const OP_METHOD = {
   deleteData: "deleteData", setData: "data", setTextContent: "textContent", setNodeValue: "nodeValue",
   setAttribute: "setAttribute",
   insertAdjacentElement: "insertAdjacentElement", insertAdjacentText: "insertAdjacentText",
+  splitText: "splitText",
   setAttributeNS: "setAttributeNS", removeAttribute: "removeAttribute",
   removeAttributeNS: "removeAttributeNS", toggleAttribute: "toggleAttribute",
   dispatchEvent: "dispatchEvent", addEventListener: "addEventListener",
@@ -145,14 +146,15 @@ const PROPERTY_KIND = {
   previousElementSibling: "node", nextElementSibling: "node",
   doctype: "node", documentElement: "node", contentType: "string", compatMode: "string",
   length: "number", data: "string", name: "string", publicId: "string", systemId: "string",
-  target: "string"
+  target: "string", wholeText: "string"
 };
 const PROPERTY_NODE_TYPES = {
   tagName: [1], namespaceURI: [1, 2], prefix: [1, 2], localName: [1, 2],
   firstElementChild: [1, 9, 11], lastElementChild: [1, 9, 11], childElementCount: [1, 9, 11],
   children: [1, 9, 11], previousElementSibling: [1, 3, 4, 7, 8], nextElementSibling: [1, 3, 4, 7, 8],
   doctype: [9], documentElement: [9], contentType: [9], compatMode: [9],
-  length: [3, 4, 7, 8], data: [3, 4, 7, 8], name: [2, 10], publicId: [10], systemId: [10], target: [7]
+  length: [3, 4, 7, 8], data: [3, 4, 7, 8], name: [2, 10], publicId: [10], systemId: [10], target: [7],
+  wholeText: [3, 4]
 };
 const QUERY_GETTERS = ["getTextContent", "getNodeValue", "getOwnerDocument"];
 
@@ -181,7 +183,7 @@ const SETTER_PROPS = { setData: "data", setTextContent: "textContent", setNodeVa
 const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
   "removeAttributeNS", "toggleAttribute"];
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
-  "iteratorNext", "iteratorPrevious", "getRootNode", "getOwnerDocument", "insertAdjacentElement",
+  "iteratorNext", "iteratorPrevious", "getRootNode", "getOwnerDocument", "insertAdjacentElement", "splitText",
   ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
   "querySelector", "closest", "getElementById"];
 const ATTR_RETURNING_OPS = ATTR_NODE_OPS;
@@ -595,7 +597,10 @@ function exceptionName(e) {
 /* ------------------------------------------------------------------ 操作の適用 */
 
 function receiverId(op) {
-  if (CHARACTER_DATA_OPS.includes(op.op) || op.op in SETTER_PROPS || op.op === "getProperty") return op.node;
+  if (CHARACTER_DATA_OPS.includes(op.op) || op.op in SETTER_PROPS || op.op === "getProperty" ||
+      op.op === "splitText") {
+    return op.node;
+  }
   if (QUERY_OPS.includes(op.op) && "node" in op) return op.node;
   if (ATTRIBUTE_OPS.includes(op.op) || op.op === "insertAdjacentElement" || op.op === "insertAdjacentText") {
     return op.element;
@@ -869,6 +874,7 @@ const ARGC_CALLS = {
   insertData: ["node", "insertData", ["offset", "data"]],
   deleteData: ["node", "deleteData", ["offset", "count"]],
   substringData: ["node", "substringData", ["offset", "count"]],
+  splitText: ["node", "splitText", ["offset"]],
   createElement: ["document", "createElement", ["localName"]],
   createElementNS: ["document", "createElementNS", ["namespace", "name"]],
   createTextNode: ["document", "createTextNode", ["data"]],
@@ -1076,6 +1082,14 @@ function apply(ctx, op) {
     return w[m]();
   }
   if (RANGE_OPS.includes(op.op)) return applyRangeOp(ctx, op);
+  if (op.op === "splitText") {
+    const node = need(objects.get(op.node), "missing node");
+    if (typeof node.splitText !== "function") throw new Unsupported("splitText");
+    const made = node.splitText(op.offset);
+    // 新しい Text に、model（`createTextNode` の `freshId`）と同じ規則で id を振る。
+    registerSubtree(ctx, made);
+    return made;
+  }
   if (op.op === "setTextContent" || op.op === "setNodeValue") {
     const node = resolveRef(ctx, op.node);
     const prop = SETTER_PROPS[op.op];

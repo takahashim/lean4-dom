@@ -11,6 +11,7 @@ import Dom.Query.NodeQuery
 import Dom.Query.Property
 import Dom.Mutation.SetText
 import Dom.Mutation.InsertAdjacent
+import Dom.CharacterData.SplitText
 import Dom.Event.Dispatch
 import Dom.CharacterData.ReplaceData
 import Dom.Observation
@@ -112,7 +113,7 @@ inductive NodeProp where
   | firstElementChild | lastElementChild | childElementCount | children
   | previousElementSibling | nextElementSibling
   | doctype | documentElement | contentType | compatMode
-  | length | data | name | publicId | systemId | target
+  | length | data | name | publicId | systemId | target | wholeText
 deriving Repr, DecidableEq
 
 def NodeProp.ofString? : String → Option NodeProp
@@ -131,6 +132,7 @@ def NodeProp.ofString? : String → Option NodeProp
   | "contentType" => some .contentType | "compatMode" => some .compatMode
   | "length" => some .length | "data" => some .data | "name" => some .name
   | "publicId" => some .publicId | "systemId" => some .systemId | "target" => some .target
+  | "wholeText" => some .wholeText
   | _ => none
 
 /-- `Attr` を受け手にしたとき、`attrQuery` で読めるもの。 -/
@@ -237,6 +239,8 @@ inductive Operation where
   | insertAdjacentElement (element : Nat) (where_ : String) (node : Nat)
   /-- §4.9 `insertAdjacentText(where, data)`。 -/
   | insertAdjacentText (element : Nat) (where_ : String) (data : String)
+  /-- §4.11 `splitText(offset)`。新しい Text を返す。 -/
+  | splitText (node : Nat) (offset : Idl.JsNum)
   /-- §4.4 `textContent` の setter（`Attr` は `setAttrValue` に読み替える）。null は空文字列。 -/
   | setTextContent (node : Nat) (value : String)
   /-- §4.4 `nodeValue` の setter（`Attr` は `setAttrValue` に読み替える）。null は空文字列。 -/

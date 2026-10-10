@@ -12,6 +12,7 @@ import Dom.Validity.Variadic
 import Dom.Validity.Reflect
 import Dom.Validity.SetText
 import Dom.Validity.InsertAdjacent
+import Dom.Validity.SplitText
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -257,6 +258,9 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
     obtain ⟨r, hr⟩ := dropRet_ok hop
     exact admissible_insertAdjacentElement h hr
   | insertAdjacentText e w d => exact admissible_insertAdjacentText h hop
+  | splitText n o =>
+    obtain ⟨t, hr⟩ := dropNode_ok hop
+    exact admissible_splitText h hr
   | setNodeValue n v => exact admissible_setNodeValue h hop
   | isEqualNode n o => exact admissible_requireNodes h hop
   | getTextContent n => exact admissible_requireNodes h hop

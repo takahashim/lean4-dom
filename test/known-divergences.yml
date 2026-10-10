@@ -661,3 +661,24 @@
     document に doctype を足すと "CSS1Compat" を返す。三つのブラウザと Dommy は本文どおり。
     https://dom.spec.whatwg.org/#dom-document-compatmode
     https://html.spec.whatwg.org/multipage/parsing.html#the-initial-insertion-mode
+
+- impl: chromium
+  scenario: split-text-moves-ranges
+  digest: 74ef07822aa80697
+  reason: &split_text_record_order |
+    DOM §4.11 "split a Text node" は、新しい Text を node の次の兄弟の前に insert してから（step 7.1、
+    childList の record）、node の data を replace data で切る（step 8、characterData の record）。本文の順では
+    childList の record が先に積まれる。Chromium・Firefox・WebKit は node の data を先に切ってから新しい Text を
+    入れるので、characterData の record が先になる。木・live range・data の最終状態は本文どおりで、違うのは
+    MutationObserver に届く record の並びだけである。jsdom は本文どおり。
+    https://dom.spec.whatwg.org/#concept-text-split
+
+- impl: firefox
+  scenario: split-text-moves-ranges
+  digest: 8ddcc591da784447
+  reason: *split_text_record_order
+
+- impl: webkit
+  scenario: split-text-moves-ranges
+  digest: b87d3a2a3ac91b8f
+  reason: *split_text_record_order

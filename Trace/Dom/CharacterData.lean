@@ -23,6 +23,19 @@ def entries : List Entry := [
     omitted := [("12", .todo "ProcessingInstruction の attribute map（update attributes from data）が model に無い"),
              ("13", .hook)]
     approx := [("5-7", loneSurrogate)] },
+  /- §4.11 Text -/
+  { alg := "concept-text-split"
+    impl := [``Dom.splitText, ``Dom.splitTextAdjust, ``Dom.splitTextRange, ``Dom.splitTextBP,
+             ``Dom.splitTextMoved, ``Dom.guardBP]
+    approx := [("4", loneSurrogate),
+               ("7.1", "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ"),
+               ("7.2-7.5", "動かした先の boundary point が妥当でなければ動かさない（admissible な状態では必ず妥当なので、観測できる振る舞いは同じ。妥当性の保存を insert 後の木の形を追わずに示すための検査）")] },
+  { alg := "dom-text-splittext"
+    impl := [``Dom.splitText] },
+  { alg := "contiguous-text-nodes"
+    impl := [``Dom.contiguousTextNodes, ``Dom.contiguousTextNodes.isTextNode] },
+  { alg := "dom-text-wholetext"
+    impl := [``Dom.wholeText, ``Dom.contiguousTextNodes] },
   { alg := "concept-cd-substring"
     impl := [``Dom.substringData, ``Dom.adjustedCount]
     approx := [("3-4", loneSurrogate)] },
@@ -65,17 +78,9 @@ def entries : List Entry := [
 ]
 
 def exclusions : List Exclusion := [
-  { target := "contiguous-text-nodes",
-    reason := .todo "contiguous Text nodes（CDATASection を含む前後両側）を集める関数が無い。使う側の wholeText も未実装" },
   { target := "concept-child-text-content",
     reason := .todo "child text content を計算する関数が無い" },
   { target := "dom-text-text", reason := .host },
-  { target := "concept-text-split",
-    reason := .todo "split a Text node が無い（docs/status.md の未着手。固定 scenario でも skip）" },
-  { target := "dom-text-splittext",
-    reason := .todo "splitText() が無い（split a Text node が未実装）" },
-  { target := "dom-text-wholetext",
-    reason := .todo "wholeText の getter が無い" },
   -- §4.13。model の NodeData は target も attribute map も持たず、PI を作る関数も無い。
   { target := "interface-processinginstruction",
     reason := .todo "ProcessingInstruction の target は持ち `getProperty` で読める（`piTarget`）が、attribute map と createProcessingInstruction が無い（XML Name production も無い）" },

@@ -655,6 +655,7 @@ def operationOfJson (j : Json) : Except String Operation := do
       | .value => domStrField j "value" ""
       | _ => do pure ((← nullableDomStrField j "value").getD "")
     return .setAttrValue (← natField j "attr") value via
+  | "splitText" => return .splitText (← natField j "node") (← numArgField j "offset")
   | "substringData" =>
     return .substringData (← natField j "node") (← numArgField j "offset") (← numArgField j "count")
   | "getAttribute" => return .getAttribute (← natField j "element") (← domStrField j "name" "")
