@@ -340,6 +340,15 @@ private def importOptionsField (j : Json) : Except String Idl.JsValue :=
     | .ok v => jsValueOfJson v
     | .error _ => pure (.bool false)
 
+/--
+`createElement` と `createElementNS` の `options`（`(DOMString or ElementCreationOptions)`）。変換に副作用は無く、
+TypeError になる値（`customElementRegistry` を持つ dictionary）以外は観測に効かないので、変換が通るかだけを返す。
+-/
+private def elementOptionsOk (j : Json) : Except String Bool :=
+  match j.getObjVal? "options" with
+  | .error _ => .ok true
+  | .ok v => do pure (Idl.elementCreationOptionsOk (← jsValueOfJson v))
+
 /-- 可変長の `DOMString...` の引数。配列の要素をそれぞれ DOMString に変換する。 -/
 private def domStrListField (j : Json) (k : String) : Except String (List String) :=
   match field? j k with
@@ -461,10 +470,16 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "setData" => return .setData (← natField j "node") (← legacyNullDomStrField j "data" "")
   | "normalize" => return .normalize (← natField j "target")
   | "createElement" =>
-    return .createElement (← natField j "document") (← domStrField j "localName" "")
+    let doc ← natField j "document"
+    let ln ← domStrField j "localName" ""
+    if !(← elementOptionsOk j) then return .argumentTypeError "createElement"
+    return .createElement doc ln
   | "createElementNS" =>
-    return .createElementNS (← natField j "document") (← nullableDomStrField j "namespace")
-      (← domStrField j "name" "")
+    let doc ← natField j "document"
+    let ns ← nullableDomStrField j "namespace"
+    let qn ← domStrField j "name" ""
+    if !(← elementOptionsOk j) then return .argumentTypeError "createElementNS"
+    return .createElementNS doc ns qn
   | "createTextNode" =>
     return .createTextNode (← natField j "document") (← domStrField j "data" "")
   | "createComment" =>

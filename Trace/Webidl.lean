@@ -76,7 +76,7 @@ def entries : List Entry := [
   /- ## §3.2.25 union -/
   { alg := "js-to-union"
     impl := [``Dom.Idl.toEventListenerOptions, ``Dom.Idl.toAddEventListenerOptions,
-             ``Dom.Idl.toImportNodeOptions, ``Dom.NodeOrString]
+             ``Dom.Idl.toImportNodeOptions, ``Dom.Idl.elementCreationOptionsOk, ``Dom.NodeOrString]
     omitted := [("1", .other "model が扱う union は undefined を含まない"),
                 ("2", .other "model が扱う union は nullable 型を含まない"),
                 ("5.2", .other "model が扱う union は object を含まない"),

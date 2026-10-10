@@ -916,9 +916,14 @@ function apply(ctx, op) {
         : null;
       let made;
       switch (op.op) {
-        case "createElement": made = doc.createElement(arg(op, "localName")); break;
+        case "createElement":
+          made = "options" in op ? doc.createElement(arg(op, "localName"), op.options)
+            : doc.createElement(arg(op, "localName"));
+          break;
         case "createElementNS":
-          made = doc.createElementNS(op.namespace ?? null, arg(op, "name")); break;
+          made = "options" in op ? doc.createElementNS(op.namespace ?? null, arg(op, "name"), op.options)
+            : doc.createElementNS(op.namespace ?? null, arg(op, "name"));
+          break;
         case "createTextNode": made = doc.createTextNode(arg(op, "data")); break;
         case "createComment": made = doc.createComment(arg(op, "data")); break;
         case "createDocumentFragment": made = doc.createDocumentFragment(); break;

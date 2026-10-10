@@ -269,6 +269,24 @@ theorem toImportNodeOptions_eq_none_iff (v : JsValue) :
       v.isObjectOrNullish = true ∧ (v.get "customElementRegistry").isUndefined = false := by
   cases v <;> simp [toImportNodeOptions, JsValue.isObjectOrNullish] <;> split <;> simp_all
 
+/-! ## `(DOMString or ElementCreationOptions)` -/
+
+/--
+**`(DOMString or ElementCreationOptions)` への変換が通るか。** null、undefined、object は
+`dictionary ElementCreationOptions { CustomElementRegistry? customElementRegistry; DOMString is; }` に、それ以外は
+DOMString に変換する。DOMString への変換は失敗せず、`customElementRegistry` は nullable なので null も受ける。
+TypeError になるのは、dictionary として読む値に undefined でも null でもない `customElementRegistry` があるとき
+（CustomElementRegistry を表せない）だけである。`ImportNodeOptions` の同名の member は nullable でないので、
+そちらは null も TypeError になる（`toImportNodeOptions`）。
+
+`is` と registry は custom element の仕組みで、model は使わない。`is` と null の registry を両方書くと、
+"flatten element creation options" の step 3.2.1 が NotSupportedError を投げるが、この step は対象外である。
+-/
+def elementCreationOptionsOk (v : JsValue) : Bool :=
+  match v.get "customElementRegistry" with
+  | .undefined | .null => true
+  | _ => !v.isObjectOrNullish
+
 /-! ## 例 -/
 
 example : toAddEventListenerOptions (.bool true) = some (.boolean true) := by decide

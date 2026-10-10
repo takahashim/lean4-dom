@@ -6423,6 +6423,22 @@ JS の層を通すと本文どおり TypeError になった。生成 scenario（
    "replace data"（offset 0、count は長さ）で、node の中の range は (node, 0) へ移る。`replaceData()` を呼べば動く。
    range が node の長さを超えたまま残るので、影響が大きい。
 
+## `createElement` の options の変換を入れた
+
+model に入れていなかった引数のうち、観測できるものとして `createElement` と `createElementNS` の options
+（`(DOMString or ElementCreationOptions)`）の変換を入れた。`is` と registry は custom element の仕組みなので使わず、
+変換が TypeError になる場合だけを扱う。変換に副作用は無いので、`Node` の引数と同じく読み取りで `argumentTypeError` にする。
+
+**最初は model の読みが誤っていた。** `ImportNodeOptions` の `customElementRegistry` が nullable でないのに合わせて、
+`ElementCreationOptions` の同名の member も null で TypeError にしていた。Chromium、Firefox、WebKit、jsdom の四つがそろって
+例外を投げなかったので固定版の IDL を見直したところ、こちらは `CustomElementRegistry?` で null を受ける。読みを直し、
+CustomElementRegistry でない object だけを TypeError にした。直した後は Chromium、WebKit、JS の側から見た Dommy が
+model と一致し、Firefox と jsdom は `customElementRegistry` を読まないので TypeError にしない（Firefox は既知の不一致として
+記録した。`importNode` と同じ理由）。
+
+残りの二つは入れなかった。`EventInit` の `composed` は Shadow DOM が無いので観測できない。URLSearchParams の constructor の
+sequence と record の形は、配列でない iterable の表現と合わせて入れる別の作業である。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

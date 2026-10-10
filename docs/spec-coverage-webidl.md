@@ -84,7 +84,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-union](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-union) | 10/52（近似 1） | `Dom.Idl.toEventListenerOptions`<br>`Dom.Idl.toAddEventListenerOptions`<br>`Dom.Idl.toImportNodeOptions`<br>`Dom.NodeOrString` |  |
+| [js-to-union](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-union) | 10/52（近似 1） | `Dom.Idl.toEventListenerOptions`<br>`Dom.Idl.toAddEventListenerOptions`<br>`Dom.Idl.toImportNodeOptions`<br>`Dom.Idl.elementCreationOptionsOk`<br>`Dom.NodeOrString` |  |
 
 ### §3.6（`js-overloads`）
 

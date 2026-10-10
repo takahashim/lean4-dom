@@ -1,0 +1,39 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "createElement",
+      "flatten element creation options"
+    ],
+    "steps": "WebIDL の (DOMString or ElementCreationOptions) への変換",
+    "note": "ElementCreationOptions の customElementRegistry は CustomElementRegistry? 型なので、null は受けるが、CustomElementRegistry でない object は WebIDL の dictionary の変換で TypeError になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": "p",
+      "options": {
+        "customElementRegistry": {}
+      }
+    }
+  ]
+}

@@ -252,6 +252,7 @@
         "Dom.Idl.toEventListenerOptions",
         "Dom.Idl.toAddEventListenerOptions",
         "Dom.Idl.toImportNodeOptions",
+        "Dom.Idl.elementCreationOptionsOk",
         "Dom.NodeOrString"
       ],
       "spec": [],

@@ -1431,6 +1431,9 @@ module DommyRunner
       begin
         # 必須の引数の個数の検査（WebIDL の overload resolution）は Dommy では JS の層にあり、この runner は通らない。
         raise NotImplementedError, "argc の検査は Dommy の JS の層にある" if op.key?("argc")
+        if %w[createElement createElementNS].include?(op["op"]) && op.key?("options")
+          raise NotImplementedError, "createElement の options は Dommy の JS の層で変換する"
+        end
         require_plain_strings!(op)
         op = js_numbers(op)
         returned = apply(objects, op, iterators, ctx)

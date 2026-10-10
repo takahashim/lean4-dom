@@ -639,3 +639,14 @@
   digest: 3b584008decfcfcd
   reason: |
     impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。
+
+- impl: firefox
+  scenario: idl-create-element-rejects-a-non-registry
+  digest: 4b9511ba25696f6e
+  reason: |
+    DOM §4.5 の `createElement(localName, options)` の options は `(DOMString or ElementCreationOptions)` で、
+    ElementCreationOptions の `customElementRegistry` は `CustomElementRegistry?` 型の member である。null は
+    受けるが、CustomElementRegistry でない object は WebIDL の dictionary の変換で TypeError になる。Firefox は
+    scoped な custom element registry を実装しておらず、この member を読まないので TypeError にならない
+    （`import-node-options-are-converted` と同じ理由）。Chromium と WebKit は本文どおり。
+    https://dom.spec.whatwg.org/#dom-document-createelement

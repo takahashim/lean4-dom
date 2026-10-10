@@ -1,0 +1,66 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "createElement",
+      "flatten element creation options"
+    ],
+    "steps": "WebIDL の (DOMString or ElementCreationOptions) への変換",
+    "note": "options は (DOMString or ElementCreationOptions) である。文字列はそのまま DOMString に、null と object は dictionary になる。is と customElementRegistry は custom element の仕組みで、ここでは要素の作り方に効かない。 customElementRegistry は CustomElementRegistry? なので null を受ける。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": "p",
+      "options": {}
+    },
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": "p",
+      "options": "x-foo"
+    },
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": "p",
+      "options": null
+    },
+    {
+      "op": "createElementNS",
+      "document": 0,
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "name": "b",
+      "options": {
+        "is": "x-bar"
+      }
+    },
+    {
+      "op": "createElement",
+      "document": 0,
+      "localName": "p",
+      "options": {
+        "customElementRegistry": null
+      }
+    }
+  ]
+}

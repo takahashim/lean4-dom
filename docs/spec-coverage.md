@@ -196,7 +196,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` |  |
 | [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 2/5（近似 2） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` |  |
 | [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` |  |
-| [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck` |  |
+| [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck`<br>`Dom.Idl.elementCreationOptionsOk` |  |
 | [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` |  |
 | [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` |  |
 | [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcomment) | 1/1 | `Dom.createComment` |  |
@@ -547,7 +547,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-document-createelement | 4 | content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない |
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |
 | internal-createelementns-steps | 3 | create an element を呼ばず、`NodeData` を直に作る（is・registry は無い） |
-| dom-document-createelementns | * | options を受けない |
+| dom-document-createelementns | * | options は WebIDL の変換だけを行い（`customElementRegistry` を持つ dictionary は TypeError）、is と registry は使わない |
 | dom-document-importnode | 1 | Document だけを弾く。shadow root は model に無いので検査しない |
 | dom-document-importnode | 7 | fallbackRegistry を渡さない（custom element registry が無い） |
 | concept-node-adopt | 3 | shadow-including inclusive descendant ではなく inclusive descendant をたどる（shadow tree が無いので同じ集合） |
