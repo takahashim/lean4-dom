@@ -46,7 +46,7 @@ theorem forbidden_iff (c : Char) :
 theorem isEmpty_eq_false_iff (s : String) : s.isEmpty = false ↔ s.toList ≠ [] := by
   cases h : s.isEmpty
   · simp only [true_iff]
-    intro hl; simp [String.isEmpty_iff, ← String.toList_inj, hl] at h
+    intro hl; simp [← String.toList_inj, hl] at h
   · simp only [Bool.true_eq_false, false_iff, ne_eq, Decidable.not_not]
     simp [String.isEmpty_iff] at h; simp [h]
 
