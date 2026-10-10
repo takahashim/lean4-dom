@@ -1,6 +1,7 @@
 import Dom.Validity.Discard
 import Dom.Validity.Admissible
 import Dom.Validity.AttrIdsAttr
+import Dom.Validity.RangeApi
 
 /-!
 # 可変長の引数を取る method は、成功しても失敗しても状態を妥当に保つ
@@ -11,7 +12,7 @@ admissibility と attribute の id の一意性が保たれることを示す。
 
 部品はどれも既存の結果である。Text node と DocumentFragment を作ること（`admissible_createTextNode` ほか）、
 pre-insert・replace・replace all（`admissible_preInsert` ほか）、参照されなくなった node を消すこと
-（`admissible_discard`）。証明は、この部品で閉じている性質 `P` について一度だけ書き（`VariadicClosed`）、
+（`admissible_discard`）、fragment を部分木ごと消すときの remove（`admissible_removeEach`）。証明は、この部品で閉じている性質 `P` について一度だけ書き（`VariadicClosed`）、
 admissibility と、それに id の一意性を加えたもの（`Good`）に当てる。
 -/
 
@@ -34,6 +35,8 @@ structure VariadicClosed (P : DOMState → Prop) : Prop where
   replaceChildren : ∀ {s s' : DOMState} {parent : NodeId} {node : Option NodeId}, P s →
     replaceChildren s parent node = .ok s' → P s'
   discard : ∀ {s : DOMState} (n : NodeId), P s → P (discard s n)
+  /-- fragment を部分木ごと消すときに、子を suppress observers flag 付きの remove で外す。 -/
+  removeEach : ∀ {s s' : DOMState} (ns : List NodeId), P s → removeEach s ns true = .ok s' → P s'
   nodeDocument : ∀ {s : DOMState} {this : NodeId} {td : NodeData}, P s →
     s.tree.get? this = some td → IsDocumentIn s (nodeDocumentOf s this)
 
@@ -88,6 +91,24 @@ theorem closed_discardAll {s : DOMState} (h : P s) : ∀ ns, P (discardAll s ns)
   | nil => exact h
   | cons n rest ih => exact ih (hc.discard n h)
 
+theorem closed_discardFragment {s : DOMState} (h : P s) (frag : NodeId) (created : List NodeId) :
+    P (discardFragment s frag created) := by
+  unfold discardFragment
+  split
+  · dsimp only
+    cases hr : removeEach s (childrenOf s.tree frag) true with
+    | ok s' => exact closed_discardAll hc (hc.removeEach _ h hr) _
+    | error _ => exact h
+  · exact h
+
+theorem closed_discardConverted {s : DOMState} (h : P s) (created : List NodeId) :
+    P (discardConverted s created) := by
+  unfold discardConverted
+  have h' := closed_discardAll hc h created
+  split
+  · exact closed_discardFragment hc h' _ _
+  · exact h'
+
 /-- step 1：Text node を作っても `P` で、`doc` は Document のままである。 -/
 theorem closed_textsFor {doc : NodeId} :
     ∀ (items : List NodeOrString) {s : DOMState}, P s → IsDocumentIn s doc →
@@ -129,7 +150,7 @@ theorem closed_convert {s : DOMState} {doc : NodeId} (h : P s) (hdoc : IsDocumen
     generalize appendAll _ _ ns = r at ha
     rcases r with ⟨e, s₃⟩ | s₃
     · exact ⟨fun a hq => (by cases hq),
-        fun e' s' hq => (by cases hq; exact closed_discardAll hc (ha.2 e s₃ rfl) _)⟩
+        fun e' s' hq => (by cases hq; exact closed_discardConverted hc (ha.2 e s₃ rfl) _)⟩
     · exact ⟨fun a hq => (by cases hq; exact ha.1 s₃ rfl), fun e' s' hq => (by cases hq)⟩
 
 /-- 変換の後の手順が `P` を保てば、回収を含めて成功でも失敗でも `P` である。 -/
@@ -138,9 +159,9 @@ theorem closed_afterConvert {created : List NodeId} {s₁ : DOMState}
     (hk : ∀ s₂, k s₁ = .ok s₂ → P s₂) : ResultHolds P P (afterConvert created s₁ k) := by
   unfold afterConvert
   split
-  · exact ⟨fun a ha => (by cases ha), fun e s' ha => (by cases ha; exact closed_discardAll hc h₁ _)⟩
+  · exact ⟨fun a ha => (by cases ha), fun e s' ha => (by cases ha; exact closed_discardConverted hc h₁ _)⟩
   · rename_i s₂ hs₂
-    exact ⟨fun a ha => (by cases ha; exact closed_discardAll hc (hk s₂ hs₂) _),
+    exact ⟨fun a ha => (by cases ha; exact closed_discardConverted hc (hk s₂ hs₂) _),
       fun e s' ha => (by cases ha)⟩
 
 /-- 変換から後半の手順までの組み立て。 -/
@@ -241,6 +262,7 @@ theorem admissible_variadicClosed : VariadicClosed AdmissibleDOMState where
   replace h hp := admissible_replace h hp
   replaceChildren h hp := admissible_replaceChildren h hp
   discard n h := admissible_discard h n
+  removeEach ns h hr := admissible_removeEach ns h hr
   nodeDocument h ht := isDocumentIn_nodeDocumentOf h.wellFormed ht
 
 /-- admissible で、attribute の id も一意な状態。 -/
@@ -257,6 +279,7 @@ theorem good_variadicClosed : VariadicClosed Good where
   replace h hp := ⟨admissible_replace h.1 hp, (attrFrame_replaceChild hp).unique h.2⟩
   replaceChildren h hp := ⟨admissible_replaceChildren h.1 hp, (attrFrame_replaceChildren hp).unique h.2⟩
   discard n h := ⟨admissible_discard h.1 n, (attrFrame_discard _ n).unique h.2⟩
+  removeEach ns h hr := ⟨admissible_removeEach ns h.1 hr, (attrFrame_removeEach ns hr).unique h.2⟩
   nodeDocument h ht := isDocumentIn_nodeDocumentOf h.1.wellFormed ht
 
 end Dom

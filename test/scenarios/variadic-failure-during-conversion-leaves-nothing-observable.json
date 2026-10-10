@@ -1,0 +1,39 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "convert nodes into a node",
+      "ensure pre-insert validity"
+    ],
+    "steps": "convert nodes into a node 4 / ensure pre-insert validity 4",
+    "note": "変換が新しい DocumentFragment を作り、文字列から作った Text node をそこへ append した後で失敗する。失敗の後、fragment と Text node は部分木の外のどこからも指されず、JavaScript から観測できない（例外にも載らず、引数の node も fragment に入っていない）。観測できる状態は、失敗の前と同じである。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "before",
+      "target": 1,
+      "nodes": [
+        "tt",
+        0
+      ]
+    }
+  ]
+}

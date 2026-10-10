@@ -27,6 +27,7 @@ pre-insert が失敗した場合も、変換で fragment へ移した node は�
 失敗したときに fragment へ入らなかった Text node も同じである。JavaScript からは観測できないので、
 model の状態からも消す（`discard`）。消すのは、parent も children も持たず、live range・
 iterator・walker・listener・registered observer・record のどれからも指されていないときだけである。
+失敗した変換が残す「文字列の Text node だけが入った fragment」は、部分木ごと消す（`discardFragment`）。
 -/
 
 namespace Dom
@@ -77,6 +78,59 @@ def discard (s : DOMState) (n : NodeId) : DOMState :=
 /-- 作った node を順に、参照されなくなっていれば消す。 -/
 def discardAll (s : DOMState) (ns : List NodeId) : DOMState := ns.foldl discard s
 
+/--
+**node を、木の親子のほかに指すものが無いか。** attribute を持たず、Document でなく、live range・iterator・
+walker・listener・registered observer・observer の node list と record のどれからも指されていない。
+-/
+def notPointedTo (s : DOMState) (n : NodeId) : Bool :=
+  match s.tree.get? n with
+  | none => false
+  | some d =>
+    d.attributes.isEmpty && d.kind != .document &&
+    s.ranges.all (fun r => r.start.node != n && r.«end».node != n) &&
+    s.iterators.all (fun it => it.root != n && it.reference != n) &&
+    s.walkers.all (fun w => w.root != n && w.current != n) &&
+    s.listeners.all (fun l => l.target != n) &&
+    s.registrations.all (fun r => r.node != n && r.source != some n) &&
+    s.observers.all (fun o => !o.nodeList.contains n && o.records.all (fun r => !r.mentions n))
+
+/--
+**変換が作った fragment を、部分木ごと消せるか。** parent が無く、子はどれも変換が作った node で子を持たず、
+fragment も子も木の親子のほかに指されていない。変換が失敗すると、文字列から作った Text node だけが入った
+fragment が残ることがある。Text node と fragment は互いを parent と child として指すので、`unreferenced` は
+どちらにも成り立たないが、部分木の外からは辿れず、JavaScript から観測できない。
+-/
+def fragmentDiscardable (s : DOMState) (frag : NodeId) (created : List NodeId) : Bool :=
+  match s.tree.get? frag with
+  | none => false
+  | some fd =>
+    fd.kind == .documentFragment && fd.parent.isNone && notPointedTo s frag &&
+    fd.children.all fun c =>
+      created.contains c && notPointedTo s c && (childrenOf s.tree c).isEmpty
+
+/--
+**変換が作った fragment を部分木ごと消す。** 消せるときは、子を suppress observers flag 付きの "remove" で
+fragment から外し（record は積まず、指すものが無いので live object も動かない）、子と fragment を `discard` で
+一つずつ消す。消せなければ何もしない（観測できる状態を変えない）。
+-/
+def discardFragment (s : DOMState) (frag : NodeId) (created : List NodeId) : DOMState :=
+  if fragmentDiscardable s frag created then
+    let kids := childrenOf s.tree frag
+    match removeEach s kids true with
+    | .ok s' => discardAll s' (kids ++ [frag])
+    | .error _ => s
+  else s
+
+/--
+**変換が作った node のうち、観測できなくなったものを消す。** 一つずつ `discard` で消してから、作った列の
+最後が fragment なら、部分木ごと消せるかを見る。
+-/
+def discardConverted (s : DOMState) (created : List NodeId) : DOMState :=
+  let s' := discardAll s created
+  match created.getLast? with
+  | some f => discardFragment s' f created
+  | none => s'
+
 /-! ## convert nodes into a node -/
 
 /--
@@ -122,7 +176,7 @@ def convertNodesIntoNode (s : DOMState) (items : List NodeOrString) (doc : NodeI
     let (frag, s₂) := withFresh s₁ { kind := .documentFragment, ownerDocument := doc }
     -- step 4
     match appendAll s₂ frag ns with
-    | .error (e, s₃) => .error (e, discardAll s₃ (created ++ [frag]))
+    | .error (e, s₃) => .error (e, discardConverted s₃ (created ++ [frag]))
     -- step 5
     | .ok s₃ => .ok (frag, created ++ [frag], s₃)
 
@@ -139,8 +193,8 @@ def withState {α : Type} (s : DOMState) (r : Except DOMException α) :
 def afterConvert (created : List NodeId) (s₁ : DOMState)
     (k : DOMState → Except DOMException DOMState) : Except (DOMException × DOMState) DOMState :=
   match k s₁ with
-  | .error e => .error (e, discardAll s₁ created)
-  | .ok s₂ => .ok (discardAll s₂ created)
+  | .error e => .error (e, discardConverted s₁ created)
+  | .ok s₂ => .ok (discardConverted s₂ created)
 
 /-- 失敗の状態を落とす。algorithm の層（`Except DOMException`）へ渡すときに使う。 -/
 def dropState (r : Except (DOMException × DOMState) DOMState) : Except DOMException DOMState :=

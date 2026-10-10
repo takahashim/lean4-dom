@@ -6278,6 +6278,33 @@ live range の境界からも辿って id を振るようにした（空にな�
 三つのブラウザとも、固定 scenario で記録に無い不一致は 0 件である。Dommy の固定 scenario の不一致は findings 59
 から 62 の十二本で、生成 scenario（seed 51、300 本）の不一致は findings 59 に当たる五件だった。
 
+## 失敗した変換が残す、観測できない fragment を消した
+
+Dommy の側で findings 59 から 61 を直した branch（`fix/lean4-dom-findings-59-61`、`83995377`）について、Dommy の側の
+ノート（`notes/dommy-findings-59-61-followup.md`）が二点を挙げていた。
+
+**1. 変換が失敗した後の fragment が model にだけ残る（model 側の不備）。** "convert nodes into a node" が文字列から作った
+Text node を新しい fragment に append した後で失敗すると、fragment と Text node は部分木の外のどこからも指されず、
+JavaScript から観測できない。model の `discard` は parent も children も持たない node だけを消すので、互いを parent と
+child として指す fragment と Text node はどちらも消えず、状態に残っていた。runner は木からも live range からも辿れない
+node に id を振らないので、どの実装と比べても不一致になる（生成 scenario の seed 21 の二件）。
+
+そこで `Dom/Mutation/Variadic.lean` に `discardFragment` を足した。fragment が、変換が作って子を持たない node だけを子に
+持ち、fragment も子も木の親子のほかに指されていなければ、子を suppress observers flag 付きの "remove" で外してから、
+既存の `discard` で一つずつ消す。条件を満たさなければ何もしないので、観測できる状態は変えない（移した既存の node や
+live range が残る fragment は消さない）。証明は `VariadicClosed` に「`removeEach` で閉じている」を足し、既存の
+`admissible_removeEach`・`attrFrame_removeEach` で閉じた。固定 scenario を二本足した
+（`variadic-failure-after-pre-insert-leaves-nothing-observable`、`variadic-failure-during-conversion-leaves-nothing-observable`）。
+
+Chromium、Firefox、WebKit は二本とも一致し、三つとも記録に無い不一致は 0 件である。Dommy の修正 branch は、固定
+scenario では findings 62（この branch より後に見つけた ToNumber）の二本だけが不一致で、可変長の引数の scenario は
+live range の二本を含めてすべて一致した。生成 scenario の seed 21（200 本、`--ranges 4 --iterators 2 --observers 3
+--move`）は不一致 0 になった。
+
+**2. 配列以外の iterable の `attributeFilter`（比べていない）。** Dommy の修正 branch は、配列でない iterable（`Set`
+など）を TypeError にする。scenario の値は JSON なので配列と普通の object しか表せず、この差は比較に出ない。対応は
+要らないが、iterable の object を scenario に入れるときに Dommy が一致しないことを threats-to-validity に書いた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
