@@ -56,29 +56,36 @@ theorem exists_data_of_walkerNextNode {w : WalkerState} {n : NodeId}
   split at h
   · simp at h
   · next before after hs =>
-    have hmem : n ∈ after := List.mem_of_find?_eq_some h
-    have := splitAt?_eq_some hs
-    exact exists_data_of_mem_preorder' (by rw [this]; simp [hmem])
+    split at h
+    · simp at h
+    · have hmem : n ∈ after := mem_takeUntilIncl (List.mem_of_find?_eq_some h)
+      have := splitAt?_eq_some hs
+      exact exists_data_of_mem_preorder' (by unfold treeOrder at this; rw [this]; simp [hmem])
 
 theorem exists_data_of_walkerPreviousNode {w : WalkerState} {n : NodeId}
     (h : walkerPreviousNode t w = some n) : ∃ d, t.get? n = some d := by
   unfold walkerPreviousNode at h
   split at h
   · simp at h
-  · next before after hs =>
-    have hmem : n ∈ before := List.mem_reverse.mp (List.mem_of_find?_eq_some h)
-    have := splitAt?_eq_some hs
-    exact exists_data_of_mem_preorder' (by rw [this]; simp [hmem])
+  · split at h
+    · simp at h
+    · next before after hs =>
+      have hmem : n ∈ before :=
+        List.mem_reverse.mp (mem_takeUntilIncl (List.mem_of_find?_eq_some h))
+      have := splitAt?_eq_some hs
+      exact exists_data_of_mem_preorder' (by unfold treeOrder at this; rw [this]; simp [hmem])
 
 theorem exists_data_of_walkerFirstChild {w : WalkerState} {n : NodeId}
     (h : walkerFirstChild t w = some n) : ∃ d, t.get? n = some d := by
   unfold walkerFirstChild at h
-  exact exists_data_of_mem_preorder' (List.drop_subset 1 _ (List.mem_of_find?_eq_some h))
+  exact exists_data_of_mem_preorder'
+    (List.drop_subset 1 _ (mem_takeUntilIncl (List.mem_of_find?_eq_some h)))
 
 theorem exists_data_of_walkerLastChild {w : WalkerState} {n : NodeId}
     (h : walkerLastChild t w = some n) : ∃ d, t.get? n = some d := by
   unfold walkerLastChild at h
-  exact exists_data_of_mem_mirrorPreorder (List.drop_subset 1 _ (List.mem_of_find?_eq_some h))
+  exact exists_data_of_mem_mirrorPreorder
+    (List.drop_subset 1 _ (mem_takeUntilIncl (List.mem_of_find?_eq_some h)))
 
 theorem exists_data_of_walkerParentNode (hwf : WellFormed t) {w : WalkerState} {n : NodeId}
     (h : walkerParentNode t w = some n) : ∃ d, t.get? n = some d := by
@@ -156,22 +163,6 @@ theorem walkerAccepts_zero (t : Tree) (w : WalkerState) (n : NodeId)
     | some k => w.whatToShow.testBit (k.nodeType - 1)) = false
   rw [h]
   cases kindOf t n <;> simp
-
-/--
-**走査の上限は、`current` が `root` の下にあるなら `root` である。**
-
-そうでなければ `current` 側の木の根になる（`root` が外された後の状態）。
--/
-theorem walkerBase_of_inclusiveAncestor {t : Tree} {w : WalkerState}
-    (h : isInclusiveAncestorOf t w.root w.current = true) : walkerBase t w = w.root := by
-  unfold walkerBase
-  rw [if_pos h]
-
-theorem walkerBase_of_not_inclusiveAncestor {t : Tree} {w : WalkerState}
-    (h : isInclusiveAncestorOf t w.root w.current = false) :
-    walkerBase t w = root t w.current := by
-  unfold walkerBase
-  rw [if_neg (by rw [h]; simp)]
 
 /-! ## 実行時の検査の健全性・完全性 -/
 

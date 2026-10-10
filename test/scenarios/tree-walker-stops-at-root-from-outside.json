@@ -1,0 +1,134 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "traverse children",
+      "firstChild",
+      "lastChild",
+      "nextNode",
+      "previousNode"
+    ],
+    "steps": "traverse children step 3.4.4 / nextNode step 3.4.1 / previousNode step 2, 2.3-2.5",
+    "note": "current が root の外にある TreeWalker。traverse children と nextNode は、親へ上がったときにそれが root なら null を返すので、root の部分木を見終えた先には届かない（Text を探す walker は p の中の Text を返さない）。previousNode は root に達したら root を見て止まるので、root より前の Comment には届かない。root の部分木を通らない lastChild は p の中の Text を返す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "body"
+    },
+    {
+      "id": 7,
+      "kind": "comment",
+      "parent": 2,
+      "data": "c"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "div"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 3,
+      "localName": "span"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 2,
+      "localName": "p"
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 5,
+      "data": "t"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "listeners": [],
+  "observers": [],
+  "walkers": [
+    {
+      "root": 3,
+      "current": 2,
+      "whatToShow": 4
+    },
+    {
+      "root": 3,
+      "current": 2,
+      "whatToShow": 4
+    },
+    {
+      "root": 3,
+      "current": 4,
+      "whatToShow": 4
+    },
+    {
+      "root": 3,
+      "current": 2,
+      "whatToShow": 4
+    },
+    {
+      "root": 3,
+      "current": 5,
+      "whatToShow": 128
+    },
+    {
+      "root": 3,
+      "current": 3,
+      "whatToShow": 128
+    },
+    {
+      "root": 3,
+      "current": 7,
+      "whatToShow": 4
+    }
+  ],
+  "operations": [
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 1
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 2
+    },
+    {
+      "op": "walkerLastChild",
+      "walker": 3
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 4
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 5
+    },
+    {
+      "op": "walkerNextNode",
+      "walker": 6
+    }
+  ]
+}

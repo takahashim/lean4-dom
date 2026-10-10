@@ -399,7 +399,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-nodeiterator-referencenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-referencenode) | 1/1 | `Dom.IteratorState.reference`<br>`Dom.observe` |  |
 | [dom-nodeiterator-pointerbeforereferencenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-pointerbeforereferencenode) | 1/1 | `Dom.IteratorState.pointerBeforeReference`<br>`Dom.observe` |  |
 | [dom-nodeiterator-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-whattoshow) | 1/1 | `Dom.IteratorState.whatToShow`<br>`Dom.observe` |  |
-| [concept-nodeiterator-traverse](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-nodeiterator-traverse) | 1/21（近似 20） | `Dom.nextNode`<br>`Dom.previousNode`<br>`Dom.iteratorCollection`<br>`Dom.showsNode`<br>`Dom.Exec.stepIterator` |  |
+| [concept-nodeiterator-traverse](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-nodeiterator-traverse) | 1/21（近似 20） | `Dom.nextNode`<br>`Dom.previousNode`<br>`Dom.iteratorCollection`<br>`Dom.showsNode`<br>`Dom.Exec.stepIterator` | `Dom.Spec.NextNodeResult`<br>`Dom.Spec.PreviousNodeResult`<br>`Dom.Spec.NextCandidate`<br>`Dom.Spec.PreviousCandidate` |
 | [dom-nodeiterator-nextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-nextnode) | 1/1 | `Dom.nextNode`<br>`Dom.Exec.stepIterator` |  |
 | [dom-nodeiterator-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-previousnode) | 1/1 | `Dom.previousNode`<br>`Dom.Exec.stepIterator` |  |
 
@@ -411,14 +411,14 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-treewalker-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-whattoshow) | 1/1 | `Dom.WalkerState.whatToShow`<br>`Dom.observe` |  |
 | [dom-treewalker-currentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-currentnode) | 1/1 | `Dom.WalkerState.current`<br>`Dom.observe` |  |
 | [dom-treewalker-parentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-parentnode) | 2/5（近似 3） | `Dom.walkerParentNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
-| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
+| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
 | [dom-treewalker-firstchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-firstchild) | 1/1 | `Dom.walkerFirstChild`<br>`Dom.walkerStep` |  |
 | [dom-treewalker-lastchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-lastchild) | 1/1 | `Dom.walkerLastChild`<br>`Dom.walkerStep` |  |
 | [concept-traverse-siblings](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-siblings) | 2/13（近似 11） | `Dom.walkerSibling`<br>`Dom.walkerSiblingSearch`<br>`Dom.siblingCandidates`<br>`Dom.followingSiblings`<br>`Dom.precedingSiblings`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
 | [dom-treewalker-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextsibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` |  |
 | [dom-treewalker-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previoussibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` |  |
-| [dom-treewalker-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previousnode) | 2/15（近似 13） | `Dom.walkerPreviousNode`<br>`Dom.walkerBase`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
-| [dom-treewalker-nextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextnode) | 2/18（近似 16） | `Dom.walkerNextNode`<br>`Dom.walkerBase`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
+| [dom-treewalker-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previousnode) | 2/15（近似 13） | `Dom.walkerPreviousNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
+| [dom-treewalker-nextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextnode) | 2/18（近似 16） | `Dom.walkerNextNode`<br>`Dom.lastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
 
 ### §7.1（`interface-domtokenlist`）
 
@@ -626,10 +626,10 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-node-filter | 4 | filter は常に null として扱うので、ここで必ず FILTER_ACCEPT を返す |
 | concept-nodeiterator-traverse | 1-4 | candidate reference を持たず、iterator collection を reference で二つに分けて、pointer before に応じて reference 自身を候補に足した列から whatToShow を満たす最初の node を探す。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
 | dom-treewalker-parentnode | 2 | current の祖先を root まで（root を含む）並べ、accept される最初のものを取る |
-| concept-traverse-children | 2-4 | current の（自身を除く）部分木を tree order（last なら鏡像）に並べた列で探す。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
+| concept-traverse-children | 2-4 | current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
 | concept-traverse-siblings | 3 | 段ごとに兄弟の部分木を順に並べた列で探し、見つからなければ親へ上がる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
-| dom-treewalker-previousnode | 2 | `walkerBase`（current が root の外なら current 側の木の根）を根とする preorder を current の手前から逆にたどる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
-| dom-treewalker-nextnode | 3 | `walkerBase` を根とする preorder を current の次からたどる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
+| dom-treewalker-previousnode | 2 | current の木の tree order を current の手前から逆にたどり、root まで（root を含む）で切る。current が root なら何も見ない。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
+| dom-treewalker-nextnode | 3 | current の木の tree order を current の次からたどり、root の最後の inclusive descendant で切る（step 3.4.1 の「temporary が root」）。current がその node なら何も見ない。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
 | concept-dtl-update | * | DOMTokenList は classList だけで、element と attribute name は（受け手の element, "class"）に固定 |
 | concept-dtl-serialize | * | DOMTokenList は classList だけで、element と attribute name は（受け手の element, "class"）に固定。value の getter が無いので、serialize steps を直接呼ぶ所は無い |
 | algorithm:DOMTokenList/attribute change steps | * | token set を状態に持たない。attribute change steps で更新する代わりに、使うたびに attribute の値から読み直す（値が無ければ空文字列なので空の set になる） |

@@ -6682,6 +6682,34 @@ Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、こ
 
 六つの実装すべてが、四本の scenario のすべての step で model と一致した。
 
+## tree order の関係と NodeIterator の traverse の関係を書いた。TreeWalker が root の外から走査すると止まらなかった
+
+関係（`Dom/Spec/`）の無かった走査に、tree order の上の関係を書いた。
+
+* `Dom/Spec/TreeOrder.lean`：`TreeOrderList t r l`（`r` の inclusive descendant を §4.2 の tree order
+  `PrecedesStruct` で並べた列）、`FirstIn`（tree order で最初のもの）、`Accepts`（filter が null のときの §6 "filter"）。
+  `preorder` がその列であること（`treeOrderList_preorder`）と、列が一つしかないこと（`treeOrderList_unique`）を示した。
+  整列した列での `find?` が「最初のもの」を返すことも一般の補題にした。
+* `Dom/Spec/Traverse.lean`：NodeIterator の traverse を「reference に後続する（pointer before なら reference 自身も）
+  accept される node のうち tree order で最初のもの」（previous はその鏡像で最後のもの）として書き、`nextNode` と
+  `previousNode` がそれを満たすこと（`nextNode_result_sound`・`previousNode_result_sound`）を示した。対応表の近似
+  （列を reference で分けて探す）は、この定理で裏づけられる。
+
+**TreeWalker の走査が root の外から始まると、root の部分木を抜けても止まらなかった。** 関係を書くために本文の loop を
+読み直して見つけた。model は `nextNode`・`previousNode` の走査の上限を「current が root の中なら root、外なら current の木の根」
+（`walkerBase`）としていたが、本文は親へ上がったときにそれが root なら止まる（`nextNode` step 3.4.1、"traverse children"
+step 3.4.4）ので、current が root の祖先でも、走査が root の部分木を通ればそこで止まる。`previousNode` も root に達すると
+root を見て止まる（step 2.3-2.5）。model は root の部分木を抜けた先の node を返していた。`firstChild` も同じで、
+`lastChild` は root の部分木を最後に通るので影響が無い。
+
+current が root の外に出るのは、`currentNode` の setter か root を外す remove の後で、harness は初期状態で current を
+与えられるので作れる。実行関数を、root の最後の inclusive descendant（`lastDescendant`。`lastChild` では鏡像）で列を切る
+形に直した。固定 scenario `tree-walker-stops-at-root-from-outside` を足した。六つの実装すべてが本文どおりで、直した model と
+一致した。直す前の model は四つの step で違う値を返していた。
+
+TreeWalker の関係（`nextNode`・`previousNode`・"traverse children"・`parentNode`）も書きかけたが、soundness の証明が
+まだ無いので入れていない。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

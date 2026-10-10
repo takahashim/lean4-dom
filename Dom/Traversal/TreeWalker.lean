@@ -31,13 +31,17 @@ def walkerAccepts (t : Tree) (w : WalkerState) (n : NodeId) : Bool :=
   showsNode t w.whatToShow n
 
 /--
-走査の上限。
+`root` の inclusive descendant のうち tree order で最後のもの（`root` に children が無ければ `root`）。
 
-`current` が `root` の inclusive descendant なら `root`、
-そうでなければ `current` 側の木の根である。
+`nextNode()` と "traverse children" の走査は、親へ上がったときにそれが `root` なら止まる。
+それは tree order で見ると、この node を見終えたところで止まることである。
 -/
-def walkerBase (t : Tree) (w : WalkerState) : NodeId :=
-  if isInclusiveAncestorOf t w.root w.current then w.root else root t w.current
+def lastDescendant (t : Tree) (n : NodeId) : NodeId :=
+  (preorder t n).getLastD n
+
+/-- `lastDescendant` の鏡像：`mirrorPreorder` で最後のもの。 -/
+def mirrorLastDescendant (t : Tree) (n : NodeId) : NodeId :=
+  (mirrorPreorder t n).getLastD n
 
 /-- `n` の後ろの兄弟を順に。 -/
 def followingSiblings (t : Tree) (n : NodeId) : List NodeId :=
@@ -67,45 +71,54 @@ def takeUntilIncl {α : Type} (p : α → Bool) : List α → List α
 /--
 DOM Standard §6.2 `nextNode()`。
 
-FILTER_REJECT が無いので、走査は `walkerBase` を根とする部分木の tree order を
-`current` の次から順に見ていくことに等しい。
-仕様の step 3.4.1「temporary が root なら null」が、`walkerBase` で列を切ることにあたる。
+FILTER_REJECT が無いので、走査は `current` の木の tree order を `current` の次から順に見ていくことに
+等しい。仕様の step 3.4.1「temporary が root なら null」は、`root` の最後の inclusive descendant を
+見終えたところで止まることである（`current` が `root` の外にあっても、走査が `root` の部分木を通れば
+そこで止まる）。`current` がその node なら、何も見ずに止まる。
 -/
 def walkerNextNode (t : Tree) (w : WalkerState) : Option NodeId :=
-  match Dom.ListUtil.splitAt? (preorder t (walkerBase t w)) w.current with
+  match Dom.ListUtil.splitAt? (treeOrder t w.current) w.current with
   | none => none
-  | some (_, after) => after.find? (walkerAccepts t w)
+  | some (_, after) =>
+    if w.current == lastDescendant t w.root then none
+    else (takeUntilIncl (· == lastDescendant t w.root) after).find? (walkerAccepts t w)
 
 /--
 DOM Standard §6.2 `previousNode()`。
 
 仕様の step 2.2.3 は「前の兄弟の、最後の子をたどれるだけたどった先」へ降りる。
 これは tree order のひとつ前の node であり、step 2.4-2.5 の親へ上がる枝と合わせると
-「tree order を逆にたどる」ことになる。`root` 自身も候補に入る。
+「tree order を逆にたどる」ことになる。step 2 の while 条件と step 2.3 により、`current` が `root` なら
+何も見ず、走査が `root` に達すれば `root` を見て止まる（`current` が `root` の外にあっても同じ）。
 -/
 def walkerPreviousNode (t : Tree) (w : WalkerState) : Option NodeId :=
-  match Dom.ListUtil.splitAt? (preorder t (walkerBase t w)) w.current with
-  | none => none
-  | some (before, _) => before.reverse.find? (walkerAccepts t w)
+  if w.current == w.root then none
+  else
+    match Dom.ListUtil.splitAt? (treeOrder t w.current) w.current with
+    | none => none
+    | some (before, _) => (takeUntilIncl (· == w.root) before.reverse).find? (walkerAccepts t w)
 
 /--
 DOM Standard §6.2 `firstChild()`（"traverse children" の type=first）。
 
 SKIP された子には降りるので、候補は `current` の（自身を除く）子孫を tree order に
-並べたものになる。仕様の step 3.4.4「parent が root か current なら null」が、
-`current` の部分木で列を切ることにあたる。
+並べたものになる。仕様の step 3.4.4「parent が null か root か current なら null」は、
+`current` の部分木で列を切り、さらに `root` が `current` の子孫なら `root` の最後の inclusive descendant で
+切ることにあたる。
 -/
 def walkerFirstChild (t : Tree) (w : WalkerState) : Option NodeId :=
-  ((preorder t w.current).drop 1).find? (walkerAccepts t w)
+  (takeUntilIncl (· == lastDescendant t w.root) ((preorder t w.current).drop 1)).find?
+    (walkerAccepts t w)
 
 /--
 DOM Standard §6.2 `lastChild()`（"traverse children" の type=last）。
 
 `firstChild()` の鏡像で、子を後ろから見て、降りるときも最後の子へ降りる。
-候補の順序は `mirrorPreorder` である。
+候補の順序は `mirrorPreorder` で、`root` で切る位置もその鏡像である。
 -/
 def walkerLastChild (t : Tree) (w : WalkerState) : Option NodeId :=
-  ((mirrorPreorder t w.current).drop 1).find? (walkerAccepts t w)
+  (takeUntilIncl (· == mirrorLastDescendant t w.root) ((mirrorPreorder t w.current).drop 1)).find?
+    (walkerAccepts t w)
 
 /--
 DOM Standard §6.2 `parentNode()`。

@@ -47,6 +47,8 @@ def entries : List Entry := [
   { alg := "concept-nodeiterator-traverse"
     impl := [``Dom.nextNode, ``Dom.previousNode, ``Dom.iteratorCollection, ``Dom.showsNode,
              ``Dom.Exec.stepIterator]
+    spec := [``Dom.Spec.NextNodeResult, ``Dom.Spec.PreviousNodeResult, ``Dom.Spec.NextCandidate,
+             ``Dom.Spec.PreviousCandidate]
     approx := [("1-4", "candidate reference を持たず、iterator collection を reference で二つに分けて、pointer before に応じて reference 自身を候補に足した列から whatToShow を満たす最初の node を探す。" ++ filterNull)] },
   { alg := "dom-nodeiterator-nextnode"
     impl := [``Dom.nextNode, ``Dom.Exec.stepIterator] },
@@ -64,8 +66,9 @@ def entries : List Entry := [
     approx := [("2", "current の祖先を root まで（root を含む）並べ、accept される最初のものを取る")] },
   { alg := "concept-traverse-children"
     impl := [``Dom.walkerFirstChild, ``Dom.walkerLastChild, ``Dom.mirrorPreorder,
+             ``Dom.lastDescendant, ``Dom.mirrorLastDescendant, ``Dom.takeUntilIncl,
              ``Dom.walkerStep, ``Dom.walkerRun]
-    approx := [("2-4", "current の（自身を除く）部分木を tree order（last なら鏡像）に並べた列で探す。" ++ filterNull)] },
+    approx := [("2-4", "current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。" ++ filterNull)] },
   { alg := "dom-treewalker-firstchild"
     impl := [``Dom.walkerFirstChild, ``Dom.walkerStep] },
   { alg := "dom-treewalker-lastchild"
@@ -79,11 +82,12 @@ def entries : List Entry := [
   { alg := "dom-treewalker-previoussibling"
     impl := [``Dom.walkerSibling, ``Dom.walkerStep] },
   { alg := "dom-treewalker-previousnode"
-    impl := [``Dom.walkerPreviousNode, ``Dom.walkerBase, ``Dom.walkerStep, ``Dom.walkerRun]
-    approx := [("2", "`walkerBase`（current が root の外なら current 側の木の根）を根とする preorder を current の手前から逆にたどる。" ++ filterNull)] },
+    impl := [``Dom.walkerPreviousNode, ``Dom.takeUntilIncl, ``Dom.walkerStep, ``Dom.walkerRun]
+    approx := [("2", "current の木の tree order を current の手前から逆にたどり、root まで（root を含む）で切る。current が root なら何も見ない。" ++ filterNull)] },
   { alg := "dom-treewalker-nextnode"
-    impl := [``Dom.walkerNextNode, ``Dom.walkerBase, ``Dom.walkerStep, ``Dom.walkerRun]
-    approx := [("3", "`walkerBase` を根とする preorder を current の次からたどる。" ++ filterNull)] }
+    impl := [``Dom.walkerNextNode, ``Dom.lastDescendant, ``Dom.takeUntilIncl, ``Dom.walkerStep,
+             ``Dom.walkerRun]
+    approx := [("3", "current の木の tree order を current の次からたどり、root の最後の inclusive descendant で切る（step 3.4.1 の「temporary が root」）。current がその node なら何も見ない。" ++ filterNull)] }
 ]
 
 def exclusions : List Exclusion := [

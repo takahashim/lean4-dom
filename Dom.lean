@@ -168,6 +168,8 @@ import Dom.Validity.AttrIdsAttr
 import Dom.Exec.AttrIds
 import Dom.Spec.AttributeNode
 import Dom.Spec.AttributeNodeSound
+import Dom.Spec.TreeOrder
+import Dom.Spec.Traverse
 
 /-!
 # Lean 4 による WHATWG DOM Standard の形式化
