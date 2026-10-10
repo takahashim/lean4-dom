@@ -349,6 +349,12 @@ function attributeNodes(node) {
  */
 function refreshAttrIds(ctx) {
   const old = ctx.attrIds ?? new Map();
+  // 名前で消した `Attr` も object は残る（"remove an attribute" は element を null にするだけ）。
+  // 前の step で id を振った `Attr` が element から外れていれば、detach された一覧に足す（model と同じ）。
+  const lost = [...old.entries()]
+    .filter(([a]) => !a.ownerElement && !ctx.detached.includes(a))
+    .sort((x, y) => x[1] - y[1]);
+  for (const [a] of lost) ctx.detached.push(a);
   const ordered = [];
   for (const nid of [...ctx.objects.keys()].sort((a, b) => a - b)) {
     for (const a of attributeNodes(ctx.objects.get(nid))) ordered.push(a);

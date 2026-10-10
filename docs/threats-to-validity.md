@@ -42,7 +42,6 @@ Dommy との一致は **有限の生成 trace 上の観測の一致** である�
 | lone surrogate | offset と長さは UTF-16 の code unit で数えるが、surrogate pair を割った切り出しは Lean の `Char` で表せない。その操作は `__outsideModel__` を返し、比較から外れる。Dommy も同じところで断るが、それは仕様適合の証拠にならない |
 | MutationObserver の callback 本体 | callback は model の外。どの observer にどの record が配送されるかまでは比べる |
 | `NodeFilter` の callback | 同じく callback なので filter は常に null。`whatToShow` は純粋なので扱う |
-| 名前で消した attribute | 仕様の "remove an attribute" は element を null にするだけで `Attr` object は残る。model は `removeAttribute` などで消した `Attr` を持たず、`removeAttributeNode` など呼び出し側に返るものだけを `detachedAttrs` に持つ。**先に `getAttributeNode` で参照を取ってから名前で消すと、仕様と観測が食い違う**（`Attr` が見つからない。値を書くと NotFoundError、同じ element への `setAttributeNode` が TypeError になる。仕様ではどちらも成功する）。`removeAttributeNS`・`toggleAttribute`・boolean の reflect の setter・dataset の削除も同じ経路を通る |
 | Dommy の DOMString と boolean の変換（Ruby の runner） | Dommy の WebIDL の変換は JS の実行環境の側にあり、`dommy_runner.rb` は通らない。文字列でない値を DOMString の引数に、真偽値でない値を boolean の引数に書いた step、`importNode` の options、`argc` は、この runner では比べない。JS の側から動かす `dommy_js_runner.rb` で比べる |
 | Shadow tree | 対象外 |
 | custom element / insertion steps / removing steps | hook の位置だけを保っている |

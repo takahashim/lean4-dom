@@ -282,9 +282,13 @@ theorem removeAttributeFrom_spec {s : DOMState} (hwf : WellFormed s.tree) {eleme
   have hlist : ListUtil.eraseFirst (fun b => b.key == a.key) d.attributes = pre ++ post := by
     rw [hsplit]
     exact eraseFirst_split pre post (fun x hx => by simpa using hpre x hx) (by simp)
+  have hfind : d.attributes.find? (fun b => b.key == a.key) = some a :=
+    List.find?_eq_some_iff_append.mpr ⟨by simp, pre, post, hsplit, fun x hx => by simpa using hpre x hx⟩
   unfold removeAttributeFrom
+  simp only [hfind, Option.toList]
   let T := setAttributes s.tree element d (ListUtil.eraseFirst (fun b => b.key == a.key) d.attributes)
-  refine ⟨pre, post, { s with tree := T }, hd, hsplit, hpre, ?_, treeOnly_withTree _ _, ?_⟩
+  refine ⟨pre, post, { s with tree := T, detachedAttrs := s.detachedAttrs ++ [a] }, hd, hsplit, hpre, ?_,
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, ?_⟩
   · rw [← hlist]; exact attributesReplaced_setAttributes hd _
   · exact handleAttributeChanges_spec
       (wellFormed_of_attributesOnly (attributesOnly_setAttributes hd _) hwf) element a _

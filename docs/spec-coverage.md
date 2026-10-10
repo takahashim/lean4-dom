@@ -557,7 +557,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | create-an-element-internal | 2 | custom element registry・custom element state・is value は持たない（custom element は対象外）。namespace・prefix・local name・node document だけを置く |
 | concept-element-attributes-change | 2 | attribute は element の状態なので、attribute list の中の同じ鍵の要素を差し替える |
 | concept-element-attributes-append | 2 | attribute の element は持たず、attribute list に入っていることで表す |
-| concept-element-attributes-remove | 3 | element を null にした `Attr` は detachedAttrs に足して表す。ただし名前で消す経路（removeAttributeFrom：removeAttribute・removeAttributeNS・toggleAttribute・reflect の boolean setter・dataset の deleter）は `Attr` を捨てる |
+| concept-element-attributes-remove | 3 | element を null にした `Attr` は detachedAttrs の末尾に足して表す（名前で消す経路 removeAttributeFrom も、`Attr` を返す経路 detachAttribute も同じ） |
 | concept-element-attributes-replace | 3 | newAttribute の element は attribute list に入っていることで表す |
 | concept-element-attributes-replace | 5 | oldAttribute の element を null にすることを、detachedAttrs の末尾に足して表す |
 | concept-element-attributes-set | 5 | step 1 が無いので verifiedValue は attr の value と同じで、書き換えは何もしない |

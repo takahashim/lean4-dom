@@ -250,17 +250,6 @@ theorem unique_shrink {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId
     obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hp
     exact hu.normalized_of_mem hd (hsub.subset ha)
 
-theorem unique_removeAttributeFrom {s : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
-    {d : NodeData} (hd : s.tree.get? element = some d) (a : Attr) :
-    AttrIdsUnique (removeAttributeFrom s element d a) := by
-  unfold removeAttributeFrom
-  refine (attrFrame_handleAttributeChanges ..).unique ?_
-  let T := setAttributes s.tree element d (eraseFirst (fun b => b.key == a.key) d.attributes)
-  refine unique_shrink (s' := { s with tree := T }) hu hd
-    (eraseFirst (fun b => b.key == a.key) d.attributes) (fun m => ?_) rfl (eraseFirst_sublist _)
-  show attrSigAt (setAttributes s.tree element d _) m = _
-  rw [attrSigAt_setAttributes hd]
-
 /-! ## 既存の `Attr` を動かす -/
 
 /-- id に重複の無い list の中の `a` は、その id の最初の位置で切れる。 -/
@@ -304,12 +293,13 @@ theorem findAttr_attached {s : DOMState} {aid : AttrId} {a : Attr} {n : NodeId}
     obtain ⟨_, _, _, h⟩ := h
     cases h
 
-theorem unique_detachAttribute {s : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
+/-- element の attribute list から `a` を外して detach された list の末尾に移しても、id は一意のままである。 -/
+theorem unique_detachInner {s : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
     {element : NodeId}
     {d : NodeData} (hd : s.tree.get? element = some d) {a : Attr} (ha : a ∈ d.attributes) :
-    AttrIdsUnique (detachAttribute s element d a) := by
-  unfold detachAttribute
-  refine (attrFrame_handleAttributeChanges ..).unique ?_
+    AttrIdsUnique { s with
+      tree := setAttributes s.tree element d (eraseFirst (fun b => b.id == a.id) d.attributes),
+      detachedAttrs := s.detachedAttrs ++ [a] } := by
   have hold := hu.within element
   rw [attrIdsAt_of_get? hd] at hold
   obtain ⟨pre, post, hsplit, hpre⟩ := split_of_mem_id ha hold
@@ -363,6 +353,75 @@ theorem unique_detachAttribute {s : DOMState} (hu : AttrIdsUnique s) (hav : Attr
     rcases List.mem_append.mp hb with h | h
     · exact hu.normalForm_detached h
     · simp at h; rw [h]; exact hu.normalForm_of_mem hav hd ha
+
+theorem unique_detachAttribute {s : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
+    {element : NodeId}
+    {d : NodeData} (hd : s.tree.get? element = some d) {a : Attr} (ha : a ∈ d.attributes) :
+    AttrIdsUnique (detachAttribute s element d a) := by
+  unfold detachAttribute
+  exact (attrFrame_handleAttributeChanges ..).unique (unique_detachInner hu hav hd ha)
+
+/-- 条件に合う要素が無ければ、`eraseFirst` は何も外さない。 -/
+theorem eraseFirst_of_find?_none {α : Type _} {p : α → Bool} :
+    ∀ {l : List α}, l.find? p = none → eraseFirst p l = l
+  | [], _ => rfl
+  | x :: xs, h => by
+    simp only [List.find?_cons] at h
+    split at h
+    · cases h
+    · rename_i hx
+      simp only [eraseFirst, hx, Bool.false_eq_true, if_false]
+      rw [eraseFirst_of_find?_none h]
+
+/-- 同じ list の二つの分け方は、`a` がどちらの前半にも無ければ一致する。 -/
+theorem split_unique {α : Type _} {a : α} :
+    ∀ {pre₁ post₁ pre₂ post₂ : List α}, pre₁ ++ a :: post₁ = pre₂ ++ a :: post₂ →
+      a ∉ pre₁ → a ∉ pre₂ → pre₁ = pre₂ ∧ post₁ = post₂
+  | [], _, [], _, h, _, _ => ⟨rfl, by simpa using h⟩
+  | [], _, b :: _, _, h, _, h₂ => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (by rw [h.1]; simp) h₂
+  | b :: _, _, [], _, h, h₁, _ => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (by rw [← h.1]; simp) h₁
+  | b :: pre₁, post₁, c :: pre₂, post₂, h, h₁, h₂ => by
+    simp only [List.cons_append, List.cons.injEq] at h
+    obtain ⟨rfl, h⟩ := h
+    obtain ⟨hp, hq⟩ := split_unique h (fun hm => h₁ (by simp [hm])) (fun hm => h₂ (by simp [hm]))
+    exact ⟨by rw [hp], hq⟩
+
+theorem unique_removeAttributeFrom {s : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
+    {element : NodeId} {d : NodeData} (hd : s.tree.get? element = some d) (a : Attr) :
+    AttrIdsUnique (removeAttributeFrom s element d a) := by
+  unfold removeAttributeFrom
+  refine (attrFrame_handleAttributeChanges ..).unique ?_
+  cases hf : d.attributes.find? (fun b => b.key == a.key) with
+  | none =>
+    have hl : eraseFirst (fun b => b.key == a.key) d.attributes = d.attributes :=
+      eraseFirst_of_find?_none hf
+    simp only [Option.toList, List.append_nil, hl]
+    let T := setAttributes s.tree element d d.attributes
+    refine unique_shrink (s' := { s with tree := T }) hu hd d.attributes (fun m => ?_) rfl (List.Sublist.refl _)
+    show attrSigAt (setAttributes s.tree element d _) m = _
+    rw [attrSigAt_setAttributes hd]
+  | some b =>
+    have hb : b ∈ d.attributes := List.mem_of_find?_eq_some hf
+    have hold := hu.within element
+    rw [attrIdsAt_of_get? hd] at hold
+    -- key で外す list と、id で外す list は同じ（どちらも `b` の位置で切れる）
+    obtain ⟨hbk, pre, post, hsplit, hpre⟩ := List.find?_eq_some_iff_append.mp hf
+    have hk : eraseFirst (fun x => x.key == a.key) d.attributes = pre ++ post := by
+      rw [hsplit]; exact Dom.Spec.eraseFirst_split pre post (fun x hx => by simpa using hpre x hx) hbk
+    obtain ⟨pre', post', hsplit', hpre'⟩ := split_of_mem_id hb hold
+    have hi : eraseFirst (fun x => x.id == b.id) d.attributes = pre' ++ post' := by
+      rw [hsplit']; exact Dom.Spec.eraseFirst_split pre' post' (fun x hx => by simpa using hpre' x hx) (by simp)
+    have heq : pre ++ post = pre' ++ post' := by
+      obtain ⟨rfl, rfl⟩ := split_unique (hsplit.symm.trans hsplit')
+        (fun hm => by have := hpre b hm; simp_all) (fun hm => hpre' b hm rfl)
+      rfl
+    simp only [Option.toList]
+    rw [hk, heq, ← hi]
+    exact unique_detachInner hu hav hd hb
 
 /-- 鍵に重複の無い list で、同じ鍵の要素は同じである。 -/
 theorem eq_of_key_eq {β : Type _} {f : Attr → β} : ∀ {l : List Attr}, (l.map f).Nodup →
@@ -847,7 +906,7 @@ theorem unique_setAttributeNS {s s' : DOMState} (hu : AttrIdsUnique s) {element 
   · simp at h
   · exact unique_setAttributeValue hu h
 
-theorem unique_removeAttribute {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_removeAttribute {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree) {element : NodeId}
     {qn : String} (h : removeAttribute s element qn = .ok s') : AttrIdsUnique s' := by
   unfold removeAttribute at h
   split at h
@@ -857,9 +916,9 @@ theorem unique_removeAttribute {s s' : DOMState} (hu : AttrIdsUnique s) {element
     · simp at h
     · split at h
       · rw [← Except.ok.inj h]; exact hu
-      · rw [← Except.ok.inj h]; exact unique_removeAttributeFrom hu hd _
+      · rw [← Except.ok.inj h]; exact unique_removeAttributeFrom hu hav hd _
 
-theorem unique_removeAttributeNS {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_removeAttributeNS {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree) {element : NodeId}
     {ns : Option String} {ln : String} (h : removeAttributeNS s element ns ln = .ok s') :
     AttrIdsUnique s' := by
   unfold removeAttributeNS at h
@@ -870,9 +929,9 @@ theorem unique_removeAttributeNS {s s' : DOMState} (hu : AttrIdsUnique s) {eleme
     · simp at h
     · split at h
       · rw [← Except.ok.inj h]; exact hu
-      · rw [← Except.ok.inj h]; exact unique_removeAttributeFrom hu hd _
+      · rw [← Except.ok.inj h]; exact unique_removeAttributeFrom hu hav hd _
 
-theorem unique_toggleAttribute {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_toggleAttribute {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree) {element : NodeId}
     {qn : String} {force : Option Bool} {b : Bool}
     (h : toggleAttribute s element qn force = .ok (s', b)) : AttrIdsUnique s' := by
   unfold toggleAttribute at h
@@ -889,7 +948,7 @@ theorem unique_toggleAttribute {s s' : DOMState} (hu : AttrIdsUnique s) {element
           · cases h; exact unique_appendAttribute hu hd _ rfl rfl
         · split at h
           · cases h; exact hu
-          · cases h; exact unique_removeAttributeFrom hu hd _
+          · cases h; exact unique_removeAttributeFrom hu hav hd _
 
 /-! ## reflect・dataset・classList -/
 
@@ -977,7 +1036,7 @@ theorem unique_setReflectedProp {s s' : DOMState} (hu : AttrIdsUnique s) {elemen
   · simp at h
   · exact unique_setAttributeValue hu h
 
-theorem unique_setReflectedBool {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_setReflectedBool {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree) {element : NodeId}
     {r : ReflectSpec} {b : Bool} (h : setReflectedBool s element r b = .ok s') :
     AttrIdsUnique s' := by
   unfold setReflectedBool at h
@@ -986,7 +1045,7 @@ theorem unique_setReflectedBool {s s' : DOMState} (hu : AttrIdsUnique s) {elemen
   · simp at h
   · split at h
     · exact unique_setAttributeValue hu h
-    · exact unique_removeAttributeNS hu h
+    · exact unique_removeAttributeNS hu hav h
 
 theorem unique_datasetSet {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
     {name v : String} (h : datasetSet s element name v = .ok s') : AttrIdsUnique s' := by
@@ -1000,7 +1059,7 @@ theorem unique_datasetSet {s s' : DOMState} (hu : AttrIdsUnique s) {element : No
       · simp [throw, throwThe, MonadExceptOf.throw] at h
       · exact unique_setAttributeValue hu h
 
-theorem unique_datasetDelete {s s' : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
+theorem unique_datasetDelete {s s' : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree) {element : NodeId}
     {name : String} (h : datasetDelete s element name = .ok s') : AttrIdsUnique s' := by
   unfold datasetDelete at h
   simp only [bind, Except.bind] at h
@@ -1009,7 +1068,7 @@ theorem unique_datasetDelete {s s' : DOMState} (hu : AttrIdsUnique s) {element :
   · split at h
     · simp only [pure, Except.pure, Except.ok.injEq] at h
       rw [← h]; exact hu
-    · exact unique_removeAttribute hu h
+    · exact unique_removeAttribute hu hav h
 
 /-! ## node を新しく作る -/
 

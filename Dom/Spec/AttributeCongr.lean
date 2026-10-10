@@ -168,13 +168,27 @@ theorem attributeAppended_deterministic {s o₁ o₂ : DOMState} {element : Node
   obtain ⟨s₂, -, hr₂, ht₂, hh₂⟩ := h₂
   exact attributeChangeHandled_congr (obsEq_of_replaced hd hr₁ hr₂ ht₁ ht₂) hh₁ hh₂
 
+/-- 同じ木から同じ list に差し替え、detach された list も同じにした状態どうしは観測が一致する。 -/
+theorem obsEq_of_treeDetached {s : DOMState} {t : Tree} {s₁ s₁' : DOMState} {element : NodeId}
+    {as : List Attr} {d : NodeData} {D : List Attr} (hd : t.get? element = some d)
+    (h₁ : AttributesReplaced t s₁.tree element as) (h₂ : AttributesReplaced t s₁'.tree element as)
+    (ho₁ : TreeDetachedOnly s s₁ D) (ho₂ : TreeDetachedOnly s s₁' D) : ObsEq s₁ s₁' := by
+  obtain ⟨r₁, i₁, g₁, b₁, p₁, m₁, w₁, l₁, d₁⟩ := ho₁
+  obtain ⟨r₂, i₂, g₂, b₂, p₂, m₂, w₂, l₂, d₂⟩ := ho₂
+  refine ⟨fun m => ?_, by rw [r₁, r₂], by rw [i₁, i₂], fun r => by rw [g₁, g₂],
+    fun mo => by rw [b₁, b₂], fun mo => by rw [p₁, p₂], by rw [m₁, m₂],
+    by rw [w₁, w₂], by rw [l₁, l₂], by rw [d₁, d₂]⟩
+  by_cases hm : m = element
+  · subst hm; rw [h₁.changed d hd, h₂.changed d hd]
+  · rw [h₁.others m hm, h₂.others m hm]
+
 theorem attributeRemoved_deterministic {s o₁ o₂ : DOMState} {element : NodeId} {d : NodeData}
     {a : Attr} (h₁ : AttributeRemoved s element d a o₁) (h₂ : AttributeRemoved s element d a o₂) :
     ObsEq o₁ o₂ := by
   obtain ⟨pre₁, post₁, s₁, hd, hs₁, hk₁, hr₁, ht₁, hh₁⟩ := h₁
   obtain ⟨pre₂, post₂, s₂, -, hs₂, hk₂, hr₂, ht₂, hh₂⟩ := h₂
   obtain ⟨rfl, rfl⟩ := attrList_split_unique (hs₁.symm.trans hs₂) (not_mem_of_keys hk₁) (not_mem_of_keys hk₂)
-  exact attributeChangeHandled_congr (obsEq_of_replaced hd hr₁ hr₂ ht₁ ht₂) hh₁ hh₂
+  exact attributeChangeHandled_congr (obsEq_of_treeDetached hd hr₁ hr₂ ht₁ ht₂) hh₁ hh₂
 
 /-! ## `Element` の method -/
 

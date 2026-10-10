@@ -220,8 +220,8 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
       exact (attrFrame_dispatchEvent he).unique hu
   | setAttribute e qn v => exact unique_setAttribute hu hop
   | setAttributeNS e ns qn v => exact unique_setAttributeNS hu hop
-  | removeAttribute e qn => exact unique_removeAttribute hu hop
-  | removeAttributeNS e ns ln => exact unique_removeAttributeNS hu hop
+  | removeAttribute e qn => exact unique_removeAttribute hu h.attributes hop
+  | removeAttributeNS e ns ln => exact unique_removeAttributeNS hu h.attributes hop
   | toggleAttribute e qn f =>
     simp only [applyOperation, Except.map] at hop
     split at hop
@@ -230,13 +230,13 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
       obtain ⟨s₁, b⟩ := res
       have : s₁ = s' := by simpa using hop
       subst this
-      exact unique_toggleAttribute hu he
+      exact unique_toggleAttribute hu h.attributes he
   | getReflected e p r => exact unique_mapConst hu hop
   | setReflected e p r v => exact unique_setReflectedProp hu hop
-  | setReflectedBool e p r b => exact unique_setReflectedBool hu hop
+  | setReflectedBool e p r b => exact unique_setReflectedBool hu h.attributes hop
   | datasetGet e n => exact unique_mapConst hu hop
   | datasetSet e n v => exact unique_datasetSet hu hop
-  | datasetDelete e n => exact unique_datasetDelete hu hop
+  | datasetDelete e n => exact unique_datasetDelete hu h.attributes hop
   | datasetKeys e => exact unique_mapConst hu hop
   | classListAdd e ts => exact unique_classListAdd hu hop
   | classListRemove e ts => exact unique_classListRemove hu hop

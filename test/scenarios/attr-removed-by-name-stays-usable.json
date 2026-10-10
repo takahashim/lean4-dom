@@ -1,0 +1,77 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "remove an attribute",
+      "removeAttribute",
+      "setAttributeNode"
+    ],
+    "steps": "remove an attribute 2-3",
+    "note": "remove an attribute は attribute list から取り除き、attribute の element を null にするだけで、Attr object は残る。先に参照を取っていた Attr は、名前で消した後も値を書けて、同じ element に setAttributeNode で付け直せる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "getAttributeNode",
+      "element": 1,
+      "name": "a"
+    },
+    {
+      "op": "removeAttribute",
+      "element": 1,
+      "name": "a"
+    },
+    {
+      "op": "attrQuery",
+      "attr": 1,
+      "query": "ownerElement"
+    },
+    {
+      "op": "setAttrValue",
+      "attr": 1,
+      "via": "value",
+      "value": "z"
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 1,
+      "attr": 1
+    },
+    {
+      "op": "getAttribute",
+      "element": 1,
+      "name": "a"
+    }
+  ]
+}

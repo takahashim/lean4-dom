@@ -227,11 +227,15 @@ def appendAttribute (s : DOMState) (element : NodeId) (d : NodeData) (a₀ : Att
 /--
 DOM Standard §4.9 "remove an attribute"。
 
-`a` は取り除く attribute。oldValue は仕様どおり attribute の value である。
+`a` は取り除く attribute。oldValue は仕様どおり attribute の value である。step 3 は attribute の element を null に
+するだけで `Attr` は残るので、どの element にも付いていない `Attr` として `detachedAttrs` に入れる。名前で消した後も、
+先に参照を取っていた `Attr` に値を書いたり、`setAttributeNode` で付け直したりできる。
 -/
 def removeAttributeFrom (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr) : DOMState :=
   let t := setAttributes s.tree element d (eraseFirst (fun b => b.key == a.key) d.attributes)
-  handleAttributeChanges { s with tree := t } element a (some a.value)
+  -- 実際に list から外した `Attr`（妥当な状態では `a` そのもの）を detach された側に移す。
+  let removed := (d.attributes.find? fun b => b.key == a.key).toList
+  handleAttributeChanges { s with tree := t, detachedAttrs := s.detachedAttrs ++ removed } element a (some a.value)
 
 /--
 DOM Standard §4.9 "set an attribute value"。

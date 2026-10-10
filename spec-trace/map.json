@@ -2423,7 +2423,7 @@
       "approx": [
         {
           "steps": "3",
-          "what": "element を null にした `Attr` は detachedAttrs に足して表す。ただし名前で消す経路（removeAttributeFrom：removeAttribute・removeAttributeNS・toggleAttribute・reflect の boolean setter・dataset の deleter）は `Attr` を捨てる"
+          "what": "element を null にした `Attr` は detachedAttrs の末尾に足して表す（名前で消す経路 removeAttributeFrom も、`Attr` を返す経路 detachAttribute も同じ）"
         }
       ]
     },

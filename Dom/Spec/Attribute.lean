@@ -142,9 +142,17 @@ def AttributeAppended (s : DOMState) (element : NodeId) (d : NodeData) (a₀ : A
     TreeOnly s s₁ ∧
     AttributeChangeHandled s₁ s' element { a₀ with ownerDocument := d.ownerDocument } none
 
+/-- 木と detach された list（`D` になる）だけを差し替えた状態。 -/
+def TreeDetachedOnly (s s₁ : DOMState) (D : List Attr) : Prop :=
+  s₁.ranges = s.ranges ∧ s₁.iterators = s.iterators ∧ s₁.registrations = s.registrations ∧
+    s₁.observers = s.observers ∧ s₁.pendingObservers = s.pendingObservers ∧
+    s₁.microtaskQueued = s.microtaskQueued ∧ s₁.walkers = s.walkers ∧
+    s₁.listeners = s.listeners ∧ s₁.detachedAttrs = D
+
 /--
-**"remove an attribute"。** list から取り除き、handle attribute changes
-（oldValue は attribute の value）。
+**"remove an attribute"。** 2. list から取り除く。3. attribute の element を null にする（`Attr` は残り、どの
+element にも付いていない `Attr` として detach された list に入る）。1. handle attribute changes（oldValue は
+attribute の value）。
 -/
 def AttributeRemoved (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr)
     (s' : DOMState) : Prop :=
@@ -152,7 +160,7 @@ def AttributeRemoved (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr)
     s.tree.get? element = some d ∧
     d.attributes = pre ++ a :: post ∧ (∀ x ∈ pre, x.key ≠ a.key) ∧
     AttributesReplaced s.tree s₁.tree element (pre ++ post) ∧
-    TreeOnly s s₁ ∧
+    TreeDetachedOnly s s₁ (s.detachedAttrs ++ [a]) ∧
     AttributeChangeHandled s₁ s' element a (some a.value)
 
 /-! ## `Element` の method -/

@@ -6458,6 +6458,29 @@ MutationObserver の配送順を比べられないという harness の制約に
 dommy-js-quickjs（`a0f1776`）と quickjs（0.22.0）を pin に足した。CI と同じ Ruby 3.4 で bundle を組み、固定 scenario
 （209 ok / 21 skip / 5 known / 0 mismatch）と seed 1 の生成 scenario（100 本、mismatch 0）が通ることを手元で確かめた。
 
+## 名前で消した `Attr` を残すようにした
+
+notes の「観測できる違い」にあった「名前で消した `Attr` が失われる」を直した。本文の "remove an attribute" は attribute list
+から取り除き、attribute の element を null にするだけで、`Attr` object は残る。model の `removeAttributeFrom`（名前で消す
+`removeAttribute`・`removeAttributeNS`・`toggleAttribute`・boolean の reflect の setter・`dataset` の deleter が通る）は
+`Attr` を捨てていたので、先に `getAttributeNode` で参照を取っていた `Attr` に値を書くと NotFoundError、同じ element に
+`setAttributeNode` で付け直すと TypeError になっていた。
+
+* `removeAttributeFrom` は、取り除いた `Attr` を `detachedAttrs`（どの element にも付いていない `Attr`）の末尾に移す。
+  `removeAttributeNode` が使う `detachAttribute` と同じ形である。移すのは key で実際に外した `Attr`（妥当な状態では
+  渡された `Attr` そのもの）である。
+* 関係 `AttributeRemoved` の「detach された list は変わらない」を「末尾にその `Attr` が足される」に直し、soundness と
+  決定性の証明を直した。id の一意性（`unique_removeAttributeFrom`）は、`detachAttribute` の証明の中心部分を補題に
+  切り出し、key で外す list と id で外す list が一致することから帰着させた。正規形の条件に `AttributesValid` が要るので、
+  名前で消す method の一意性の定理にこの仮定を足した。admissibility の証明は変わらなかった。
+* 消した `Attr` の id は、後で作る `Attr` に使い回されなくなった。
+* 二つの runner は、前の step で id を振った `Attr` が element から外れていれば、detach された一覧に足す（model と同じ）。
+* 固定 scenario を二本足した（`attr-removed-by-name-stays-usable`、`attr-removed-by-other-paths-stays-usable`）。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy（Ruby の API と JS の側からの二つの runner）は、二本とも model と一致し、
+既存の固定 scenario にも新しい不一致は出なかった。生成 scenario（Dommy の二つの runner で 2 設定 × 300 本、Chromium で
+150 本）でも、名前で消す操作による不一致は無かった（Chromium の一件は可変長の引数の既知の不一致）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

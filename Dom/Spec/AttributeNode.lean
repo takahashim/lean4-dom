@@ -43,13 +43,6 @@ def AttrTakenFromDetached (s s₀ : DOMState) (a : Attr) : Prop :=
   ∃ pre post, s.detachedAttrs = pre ++ a :: post ∧ (∀ x ∈ pre, x.id ≠ a.id) ∧
     s₀ = { s with detachedAttrs := pre ++ post }
 
-/-- 木と detach された list（`D` になる）だけを差し替えた状態。 -/
-def TreeDetachedOnly (s s₁ : DOMState) (D : List Attr) : Prop :=
-  s₁.ranges = s.ranges ∧ s₁.iterators = s.iterators ∧ s₁.registrations = s.registrations ∧
-    s₁.observers = s.observers ∧ s₁.pendingObservers = s.pendingObservers ∧
-    s₁.microtaskQueued = s.microtaskQueued ∧ s₁.walkers = s.walkers ∧
-    s₁.listeners = s.listeners ∧ s₁.detachedAttrs = D
-
 /--
 **"replace an attribute" `old` with `new`。**
 

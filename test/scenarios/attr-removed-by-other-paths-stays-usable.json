@@ -1,0 +1,75 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "remove an attribute",
+      "toggleAttribute",
+      "removeAttributeNS"
+    ],
+    "steps": "remove an attribute 2-3",
+    "note": "remove an attribute は attribute list から取り除き、attribute の element を null にするだけで、Attr object は残る。先に参照を取っていた Attr は、名前で消した後も値を書けて、同じ element に setAttributeNode で付け直せる。 toggleAttribute と removeAttributeNS も同じ algorithm を通る。消した Attr の id は、後で作る Attr に使い回されない。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        },
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "b",
+          "value": "2"
+        }
+      ]
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "toggleAttribute",
+      "element": 1,
+      "name": "b",
+      "force": false
+    },
+    {
+      "op": "setAttrValue",
+      "attr": 2,
+      "via": "nodeValue",
+      "value": "y"
+    },
+    {
+      "op": "removeAttributeNS",
+      "element": 1,
+      "namespace": null,
+      "name": "a"
+    },
+    {
+      "op": "setAttribute",
+      "element": 1,
+      "name": "c",
+      "value": "3"
+    },
+    {
+      "op": "setAttributeNode",
+      "element": 1,
+      "attr": 2
+    }
+  ]
+}

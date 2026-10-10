@@ -874,6 +874,11 @@ module DommyRunner
   # 木にも detach された list にも無い attribute の id は覚えない（model 側の最大も現在の状態だけで決まる）。
   def refresh_attr_ids(ctx)
     old = ctx[:attr_ids] || {}.compare_by_identity
+    # 名前で消した `Attr` も object は残る。前の step で id を振った `Attr` が element から外れていれば、
+    # detach された一覧に足す（model と同じ）。
+    ctx[:detached] ||= []
+    old.select { |a, _| a.owner_element.nil? && ctx[:detached].none? { |x| x.equal?(a) } }
+       .sort_by { |_, id| id }.each { |a, _| ctx[:detached] << a }
     ordered = ctx[:objects].keys.sort.flat_map { |nid| attribute_nodes(ctx[:objects][nid]) }
     ordered += (ctx[:detached] || [])
     fresh = {}.compare_by_identity
