@@ -7,11 +7,10 @@ import Dom.Attribute.Name
 木も live object も変えないので、どれも `Tree` の上の純関数である。
 差分テストでは「操作の戻り値」としてだけ観測される。
 
-## model が持たない持ち物
+## DocumentType と ProcessingInstruction
 
-`equals` は DocumentType の name / public ID / system ID と
-ProcessingInstruction の target を見るが、model の `NodeData` はどちらも持たない。harness はどちらも固定値（`"html"` と `"pi"`）で作るので、
-その二つの比較は常に真になり、判定は変わらない。
+`equals` は DocumentType の name・public ID・system ID と、ProcessingInstruction の target と data を見る
+（`NodeData` の `doctypeName`・`publicId`・`systemId`・`piTarget`）。
 -/
 
 namespace Dom
@@ -89,9 +88,9 @@ def nodeOwnPropertiesEqual (a b : NodeData) : Bool :=
     a.namespace == b.namespace && a.prefix == b.prefix && a.localName == b.localName &&
       a.attributes.length == b.attributes.length &&
       a.attributes.all fun x => b.attributes.any fun y => attrEquals x y
-  | .text | .cdataSection | .comment | .processingInstruction => a.data == b.data
-  -- DocumentType の name / public ID / system ID は model の対象外（上の注）。
-  | .documentType => true
+  | .text | .cdataSection | .comment => a.data == b.data
+  | .processingInstruction => a.piTarget == b.piTarget && a.data == b.data
+  | .documentType => a.doctypeName == b.doctypeName && a.publicId == b.publicId && a.systemId == b.systemId
   | .document | .documentFragment => true
 
 /-- `equals` の本体。fuel は木の高さの上界。 -/

@@ -100,11 +100,11 @@ def exclusions : List Exclusion := [
   { target := "dom-document-createtreewalker", reason := .todo "TreeWalker を作る API が無い（walker は scenario が与える）" },
   /- §4.5.1 -/
   { target := "interface-domimplementation",
-    reason := .todo "DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document を作る関数も、DocumentType の name・public ID・system ID も model に無い" },
+    reason := .todo "DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document と DocumentType を作る関数が無い（DocumentType の name・public ID・system ID は scenario の初期状態で与える）" },
   { target := "dom-domimplementation-hasfeature", reason := .legacy },
   /- §4.6 -/
   { target := "interface-documenttype",
-    reason := .todo "DocumentType の name・public ID・system ID を持たない（create a doctype と三つの getter）" },
+    reason := .todo "DocumentType の name・public ID・system ID は持つ（`doctypeName`・`publicId`・`systemId`）が、create a doctype と三つの getter が無い" },
   /- §4.7 -/
   { target := "exclusive-documentfragment-node",
     reason := .shadow },

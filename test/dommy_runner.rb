@@ -251,10 +251,12 @@ module DommyRunner
         when "element" then create_element(doc, spec)
         when "text" then doc.create_text_node(data)
         when "comment" then doc.create_comment(data)
-        when "processingInstruction" then doc.create_processing_instruction("pi", data)
+        when "processingInstruction" then doc.create_processing_instruction(spec["target"] || "pi", data)
         when "cdataSection" then doc.create_cdata_section(data)
         when "documentFragment" then doc.create_document_fragment
-        when "documentType" then doc.implementation.create_document_type("html", "", "")
+        when "documentType"
+          doc.implementation.create_document_type(spec["name"] || "html", spec["publicId"] || "",
+                                                  spec["systemId"] || "")
         else raise "未知の kind #{spec['kind'].inspect}"
         end
       apply_initial_attributes(node, spec["attributes"])
@@ -978,7 +980,12 @@ module DommyRunner
         "namespace" => element_field(node, "namespaceURI"),
         "prefix" => element_field(node, "prefix"),
         "localName" => element_field(node, "localName") || "",
-        "tagName" => element_field(node, "tagName")
+        "tagName" => element_field(node, "tagName"),
+        "doctype" => if kinds[id] == "documentType"
+                       { "name" => js_get(node, "name").to_s, "publicId" => js_get(node, "publicId").to_s,
+                         "systemId" => js_get(node, "systemId").to_s }
+                     end,
+        "target" => (js_get(node, "target").to_s if kinds[id] == "processingInstruction")
       }
     end
     out = { "nodes" => nodes, "ranges" => range_snapshot(objects, ranges),

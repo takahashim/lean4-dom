@@ -1721,10 +1721,6 @@
           "what": "create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い）"
         },
         {
-          "steps": "5",
-          "what": "DocumentType の name・public ID・system ID と ProcessingInstruction の target を model が持たないので写さない"
-        },
-        {
           "steps": "5.1",
           "what": "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い"
         }
@@ -1764,12 +1760,7 @@
       ],
       "spec": [],
       "omit": [],
-      "approx": [
-        {
-          "steps": "*",
-          "what": "DocumentType の name・public ID・system ID と ProcessingInstruction の target は model に無いので比べない（harness はどちらも固定値で作る）"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-node-isequalnode",
@@ -4570,7 +4561,7 @@
       "target": "dom-node-nodename",
       "why": {
         "reason": "todo",
-        "detail": "Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target も model に無い"
+        "detail": "Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target は持つ（`doctypeName`・`piTarget`）が、それを読む操作が無い"
       }
     },
     {
@@ -4759,7 +4750,7 @@
       "target": "interface-domimplementation",
       "why": {
         "reason": "todo",
-        "detail": "DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document を作る関数も、DocumentType の name・public ID・system ID も model に無い"
+        "detail": "DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document と DocumentType を作る関数が無い（DocumentType の name・public ID・system ID は scenario の初期状態で与える）"
       }
     },
     {
@@ -4773,7 +4764,7 @@
       "target": "interface-documenttype",
       "why": {
         "reason": "todo",
-        "detail": "DocumentType の name・public ID・system ID を持たない（create a doctype と三つの getter）"
+        "detail": "DocumentType の name・public ID・system ID は持つ（`doctypeName`・`publicId`・`systemId`）が、create a doctype と三つの getter が無い"
       }
     },
     {

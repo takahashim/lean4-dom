@@ -1,0 +1,41 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "ensure pre-insert validity",
+      "replace"
+    ],
+    "steps": "ensure pre-insert validity 6（childrenToExclude が child）",
+    "note": "replace の validity の検査（ensure pre-insert validity の step 6 の element の場合）は、parent に child 以外の element の子があるか、child より前に doctype があるときだけ HierarchyRequestError にする。置き換える doctype 自身は child なので当たらず、doctype だけを子に持つ Document の doctype を element に置き換えられる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "replaceChild",
+      "parent": 0,
+      "node": 2,
+      "child": 1
+    }
+  ]
+}

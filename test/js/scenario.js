@@ -201,10 +201,12 @@ class Builder {
       case "element": node = this.createElement(doc, spec); break;
       case "text": node = doc.createTextNode(data); break;
       case "comment": node = doc.createComment(data); break;
-      case "processingInstruction": node = doc.createProcessingInstruction("pi", data); break;
+      case "processingInstruction": node = doc.createProcessingInstruction(spec.target ?? "pi", data); break;
       case "cdataSection": node = doc.createCDATASection(data); break;
       case "documentFragment": node = doc.createDocumentFragment(); break;
-      case "documentType": node = doc.implementation.createDocumentType("html", "", ""); break;
+      case "documentType":
+        node = doc.implementation.createDocumentType(spec.name ?? "html", spec.publicId ?? "", spec.systemId ?? "");
+        break;
       default: throw new Error(`未知の kind ${spec.kind}`);
     }
     applyInitialAttributes(node, spec.attributes);
@@ -421,7 +423,10 @@ function snapshot(ctx) {
       namespace: elementField(node, "namespaceURI"),
       prefix: elementField(node, "prefix"),
       localName: elementField(node, "localName") ?? "",
-      tagName: elementField(node, "tagName")
+      tagName: elementField(node, "tagName"),
+      doctype: node.nodeType === 10
+        ? { name: node.name, publicId: node.publicId, systemId: node.systemId } : null,
+      target: node.nodeType === 7 ? node.target : null
     };
   });
   const out = {

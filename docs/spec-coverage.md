@@ -10,8 +10,8 @@
 | 表に載せたもの | 226 |
 | 対象外としたもの | 165 |
 | 表に載せた algorithm の step | 999 |
-| そのうち実装したもの | 590 |
-| そのうち近似したもの | 213 |
+| そのうち実装したもの | 592 |
+| そのうち近似したもの | 211 |
 | そのうち外したもの | 196 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -171,9 +171,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-node-textcontent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-textcontent) | 1/1 | `Dom.getTextContent`<br>`Dom.Exec.attrQueryValue` |  |
 | [dom-node-normalize](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-normalize) | 3/13（近似 10） | `Dom.normalize`<br>`Dom.normalizeList`<br>`Dom.normalizeRun`<br>`Dom.normalizeMergeOne`<br>`Dom.normalizeMergeRange`<br>`Dom.normalizeMergeBP`<br>`Dom.followingTexts` | `Dom.Spec.NormalizeSpec`<br>`Dom.Spec.NormalizeResult` |
 | [concept-node-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-clone) | 5/14 | `Dom.cloneNodeIn`<br>`Dom.cloneMany`<br>`Dom.cloneAppend` |  |
-| [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#clone-a-single-node) | 11/18（近似 3） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` |  |
+| [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#clone-a-single-node) | 12/18（近似 2） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` |  |
 | [dom-node-clonenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-clonenode) | 1/2 | `Dom.cloneNode`<br>`Dom.cloneAttr` |  |
-| [concept-node-equals](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-equals) | 0/1（近似 1） | `Dom.nodeEqualsFuel`<br>`Dom.nodeOwnPropertiesEqual`<br>`Dom.attrEquals`<br>`Dom.nodeRefEquals` |  |
+| [concept-node-equals](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-equals) | 1/1 | `Dom.nodeEqualsFuel`<br>`Dom.nodeOwnPropertiesEqual`<br>`Dom.attrEquals`<br>`Dom.nodeRefEquals` |  |
 | [dom-node-isequalnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isequalnode) | 1/1 | `Dom.nodeEquals`<br>`Dom.nodeRefEquals`<br>`Dom.Exec.Operation.isEqualNodeNull` |  |
 | [dom-node-comparedocumentposition](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-comparedocumentposition) | 15/15 | `Dom.compareDocumentPosition`<br>`Dom.compareDocumentPositionRef` | `Dom.Spec.DocumentPositionSpec` |
 | [dom-node-contains](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-contains) | 1/1 | `Dom.nodeContains`<br>`Dom.nodeContainsRef`<br>`Dom.Exec.Operation.nodeContainsNull` |  |
@@ -539,9 +539,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-node-normalize | 6 | 兄弟ごとに boundary point を渡してからその兄弟を remove する。step 6 と step 7 を兄弟ごとに交互に行う |
 | dom-node-normalize | 7 | 兄弟ごとに step 6 の直後に remove する（上と同じ） |
 | clone-a-single-node | 2.4 | create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い） |
-| clone-a-single-node | 5 | DocumentType の name・public ID・system ID と ProcessingInstruction の target を model が持たないので写さない |
 | clone-a-single-node | 5.1 | Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い |
-| concept-node-equals | * | DocumentType の name・public ID・system ID と ProcessingInstruction の target は model に無いので比べない（harness はどちらも固定値で作る） |
 | dom-document-getelementsbyclassname | * | live な HTMLCollection ではなく、呼んだ時点の element の列を返す |
 | dom-document-createelement | 4 | content type を持たないので、namespace は「HTML document なら HTML namespace、そうでなければ null」で決める。content type が application/xhtml+xml の XML document でも null になる。runner は HTML document しか作れないので、XML document の側は差分テストで比べていない |
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |
@@ -607,9 +605,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | shadow | assign-a-slot, assign-slotables, assign-slotables-for-a-tree, concept-attach-a-shadow-root, dom-element-attachshadow, dom-element-shadowroot, dom-shadowroot-clonable, dom-shadowroot-delegatesfocus, dom-shadowroot-host, dom-shadowroot-mode, dom-shadowroot-serializable, dom-shadowroot-slotassignment, dom-slotable-assignedslot, exclusive-documentfragment-node, find-a-slot, find-flattened-slotables, find-slotables, retarget, signal-a-slot-change |
 | todo：AbortController と AbortSignal（abort reason・abort algorithms・dependent signal）が無い | abortcontroller-signal-abort, abortsignal-add, abortsignal-remove, abortsignal-signal-abort, create-a-dependent-abort-signal, dom-abortcontroller-abort, dom-abortcontroller-abortcontroller, dom-abortcontroller-signal, dom-abortsignal-abort, dom-abortsignal-aborted, dom-abortsignal-any, dom-abortsignal-reason, dom-abortsignal-throwifaborted, dom-abortsignal-timeout, run-the-abort-steps |
 | todo：DOMImplementation object を持たない | dom-document-implementation |
-| todo：DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document を作る関数も、DocumentType の name・public ID・system ID も model に無い | dom-domimplementation-createdocument, dom-domimplementation-createdocumenttype, dom-domimplementation-createhtmldocument |
+| todo：DOMImplementation（createDocumentType・createDocument・createHTMLDocument）が無い。document と DocumentType を作る関数が無い（DocumentType の name・public ID・system ID は scenario の初期状態で与える） | dom-domimplementation-createdocument, dom-domimplementation-createdocumenttype, dom-domimplementation-createhtmldocument |
 | todo：Document を作る関数が無い（clone a single node の step 3 だけは `cloneSingle` が `NodeData` を写して作る）。harness の document は scenario が与える | create-a-document |
-| todo：DocumentType の name・public ID・system ID を持たない（create a doctype と三つの getter） | create-a-doctype, dom-documenttype-name, dom-documenttype-publicid, dom-documenttype-systemid |
+| todo：DocumentType の name・public ID・system ID は持つ（`doctypeName`・`publicId`・`systemId`）が、create a doctype と三つの getter が無い | create-a-doctype, dom-documenttype-name, dom-documenttype-publicid, dom-documenttype-systemid |
 | todo：Element・DocumentFragment の枝（string replace all）が無い。Attr の枝は `setAttrValue`（via = textContent）、CharacterData の枝は `setData` と同じ処理だが、set text content として振り分ける関数は無い | set-text-content |
 | todo：Event object を作る API が無い（`dispatchEvent` が型・bubbles・cancelable から event を組む）。step 7 の timeStamp は host | dom-document-createevent |
 | todo：Event object を持たず、composed flag も無い | dom-event-composed |
@@ -626,7 +624,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：NamedNodeMap object を持たない（length が無い） | dom-namednodemap-length |
 | todo：NamedNodeMap object（element の attributes getter）を持たない | dom-element-attributes |
 | todo：NamedNodeMap の named property が無い | interface-namednodemap/supported-property-names |
-| todo：Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target も model に無い | dom-node-nodename |
+| todo：Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target は持つ（`doctypeName`・`piTarget`）が、それを読む操作が無い | dom-node-nodename |
 | todo：NodeIterator を作る API が無い（iterator は scenario が与える） | dom-document-createnodeiterator |
 | todo：ProcessingInstruction の target・attribute map・createProcessingInstruction が無い（XML Name production も無い） | create-a-processing-instruction-node, dom-processinginstruction-getattribute, dom-processinginstruction-getattributenames, dom-processinginstruction-hasattribute, dom-processinginstruction-hasattributes, dom-processinginstruction-processinginstruction, dom-processinginstruction-removeattribute, dom-processinginstruction-setattribute, dom-processinginstruction-target, dom-processinginstruction-toggleattribute, get-a-processing-instruction-attribute, processinginstruction-initialize, update-attributes-from-data, update-data-from-attributes |
 | todo：Range object を作る API が無い（range は scenario が与える。`Dom/Range/Api.lean` の注） | dom-document-createrange |

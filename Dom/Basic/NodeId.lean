@@ -236,6 +236,12 @@ structure NodeData where
   localName : String := ""
   isHTMLDocument : Bool := false
   mode : DocumentMode := .noQuirks
+  /-- DocumentType の name・public ID・system ID。DocumentType 以外では空である。 -/
+  doctypeName : String := ""
+  publicId : String := ""
+  systemId : String := ""
+  /-- ProcessingInstruction の target。ProcessingInstruction 以外では空である。 -/
+  piTarget : String := ""
 deriving DecidableEq, Repr, Inhabited
 
 namespace NodeData
@@ -288,6 +294,19 @@ def withOwnerDocument (d : NodeData) (doc : NodeId) : NodeData :=
     (d.withOwnerDocument doc).isHTMLDocument = d.isHTMLDocument := rfl
 @[simp] theorem withOwnerDocument_mode (d : NodeData) (doc : NodeId) :
     (d.withOwnerDocument doc).mode = d.mode := rfl
+@[simp] theorem withOwnerDocument_doctypeName (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).doctypeName = d.doctypeName := rfl
+@[simp] theorem withOwnerDocument_publicId (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).publicId = d.publicId := rfl
+@[simp] theorem withOwnerDocument_systemId (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).systemId = d.systemId := rfl
+@[simp] theorem withOwnerDocument_piTarget (d : NodeData) (doc : NodeId) :
+    (d.withOwnerDocument doc).piTarget = d.piTarget := rfl
+
+/-- DocumentType の name・public ID・system ID と ProcessingInstruction の target が同じ。 -/
+abbrev SameDoctypePi (d d' : NodeData) : Prop :=
+  d'.doctypeName = d.doctypeName ∧ d'.publicId = d.publicId ∧ d'.systemId = d.systemId ∧
+    d'.piTarget = d.piTarget
 @[simp] theorem withOwnerDocument_shape (d : NodeData) (doc : NodeId) :
     (d.withOwnerDocument doc).shape = d.shape := by
   simp [shape, withOwnerDocument, List.map_map, Function.comp_def]

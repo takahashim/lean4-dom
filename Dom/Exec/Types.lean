@@ -58,6 +58,14 @@ structure NodeSpec where
   省略すると no-quirks（`createHTMLDocument` などで作った document と同じ）。
   -/
   mode : DocumentMode := .noQuirks
+  /--
+  DocumentType の name・public ID・system ID と、ProcessingInstruction の target。省略すると runner が作る値
+  （`createDocumentType("html", "", "")` と `createProcessingInstruction("pi", …)`）になる。
+  -/
+  doctypeName : String := "html"
+  publicId : String := ""
+  systemId : String := ""
+  piTarget : String := "pi"
 deriving Repr
 
 /-- `Node` を受ける引数。JSON では node の id（数）か `{"attr": id}`。 -/

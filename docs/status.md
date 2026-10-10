@@ -6491,6 +6491,33 @@ node document を返す。model には node document を返す `ownerDocumentOf`
 固定 scenario `owner-document-is-null-for-a-document` は、Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner の
 すべてで一致した。生成 scenario（Dommy、seed 21、300 本）でも不一致は無かった。
 
+## DocumentType と ProcessingInstruction の値を持たせた（findings 65）
+
+notes の「観測できる違い」にあった、DocumentType の name・public ID・system ID と、ProcessingInstruction の target を
+model が持たない件を直した。それまでは clone がこれらを写さず、`isEqualNode` がこれらを比べなかった（name の違う doctype
+どうしが等しいと判定された）。
+
+* `NodeData` に `doctypeName`・`publicId`・`systemId`・`piTarget` を、既定値付きで足した。clone は `{ d with … }` で
+  写すので、そのまま写る。`equals` は DocumentType の三つと、ProcessingInstruction の target と data を比べる。
+* 本文から書いた木の関係（`TreeInserted`・`TreeRemoved`）の「各 node の持ち物は変わらない」に、四つの field をまとめた
+  `NodeData.SameDoctypePi` を足し、証明を直した。
+* 観測の型に `doctype`（name・publicId・systemId）と `target` を足した。scenario の node は `name`・`publicId`・
+  `systemId`・`target` を書ける。書かなければ、runner がそれまで作っていた値（`createDocumentType("html", "", "")`、
+  `createProcessingInstruction("pi", …)`）になるので、既存の scenario の意味は変わらない。生成器は PI の target を
+  id から決める（乱数は引かない）。
+* 固定 scenario `equals-compares-doctype-and-pi-values` を足した。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2、Dommy の二つの runner は、この scenario と既存の固定 scenario のすべてで
+これまでどおりの結果だった。
+
+**findings 65：Dommy は、doctype だけを子に持つ Document の doctype を element に置き換えられない。** doctype を
+多めに作る設定（`--doctype-prob 0.5`）の生成 scenario で見つかった。Dommy（`8faf1056`）は `replaceChild` と
+`replaceWith` で doctype を element に置き換えると HierarchyRequestError を投げる（`insertBefore(element, doctype)` は
+本文どおり HierarchyRequestError）。本文の replace の検査（ensure pre-insert validity の step 6 の element の場合）は、
+parent に child 以外の element の子があるか、child より前に doctype があるときだけ例外にし、置き換える doctype 自身は
+child なので当たらない。三つのブラウザは本文どおりである。固定 scenario を二本足した
+（`replace-child-doctype-with-element`、`replace-with-doctype-with-element`）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

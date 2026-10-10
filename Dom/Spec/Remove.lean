@@ -165,7 +165,7 @@ structure TreeRemoved (t t' : Tree) (node parent : NodeId) : Prop where
     d'.kind = d.kind ∧ d'.data = d.data ∧ d'.attributes = d.attributes ∧
       d'.ownerDocument = d.ownerDocument ∧ d'.namespace = d.namespace ∧
       d'.prefix = d.prefix ∧ d'.localName = d.localName ∧
-      d'.isHTMLDocument = d.isHTMLDocument ∧ d'.mode = d.mode
+      d'.isHTMLDocument = d.isHTMLDocument ∧ d'.mode = d.mode ∧ NodeData.SameDoctypePi d d'
 
 /-! ## step 20：transient registered observer -/
 

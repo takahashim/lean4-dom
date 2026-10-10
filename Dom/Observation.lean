@@ -64,6 +64,10 @@ structure ObservedNode where
   localName : String
   /-- `tagName`。Element 以外では `none`。 -/
   tagName : Option String
+  /-- DocumentType の name・public ID・system ID。DocumentType 以外では `none`。 -/
+  doctype : Option (String × String × String)
+  /-- ProcessingInstruction の target。ProcessingInstruction 以外では `none`。 -/
+  target : Option String
 deriving DecidableEq, Repr, Inhabited
 
 /-- 操作の結果。 -/
@@ -153,6 +157,8 @@ def observedNodeOf (t : Tree) (n : NodeId) (d : NodeData) : ObservedNode where
   «prefix» := d.prefix
   localName := d.localName
   tagName := Dom.tagName t n
+  doctype := if d.kind == .documentType then some (d.doctypeName, d.publicId, d.systemId) else none
+  target := if d.kind == .processingInstruction then some d.piTarget else none
 
 /-- 木の観測。node は id の昇順に並べ、store の表現には依存させない。 -/
 def observedNodes (s : DOMState) : List ObservedNode :=

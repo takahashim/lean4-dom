@@ -63,14 +63,12 @@ def entries : List Entry := [
     impl := [``Dom.cloneSingle, ``Dom.cloneData, ``Dom.cloneDocumentOf, ``Dom.cloneAttrIn]
     omitted := [("2.1-2.3", .customElements), ("5.2", .customElements)]
     approx := [("2.4", "create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い）"),
-               ("5", "DocumentType の name・public ID・system ID と ProcessingInstruction の target を model が持たないので写さない"),
                ("5.1", "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）と mode だけで、それを写す。encoding・content type・URL・origin・allow declarative shadow roots は無い")] },
   { alg := "dom-node-clonenode"
     impl := [``Dom.cloneNode, ``Dom.cloneAttr]
     omitted := [("1", .shadow)] },
   { alg := "concept-node-equals"
-    impl := [``Dom.nodeEqualsFuel, ``Dom.nodeOwnPropertiesEqual, ``Dom.attrEquals, ``Dom.nodeRefEquals]
-    approx := [("*", "DocumentType の name・public ID・system ID と ProcessingInstruction の target は model に無いので比べない（harness はどちらも固定値で作る）")] },
+    impl := [``Dom.nodeEqualsFuel, ``Dom.nodeOwnPropertiesEqual, ``Dom.attrEquals, ``Dom.nodeRefEquals] },
   { alg := "dom-node-isequalnode"
     -- otherNode が null なら false（`isEqualNodeNull`）。
     impl := [``Dom.nodeEquals, ``Dom.nodeRefEquals, ``Dom.Exec.Operation.isEqualNodeNull] },
@@ -103,7 +101,7 @@ def entries : List Entry := [
 
 def exclusions : List Exclusion := [
   { target := "dom-node-nodename",
-    reason := .todo "Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target も model に無い" },
+    reason := .todo "Node の nodeName を返す関数が無い（Element は `tagName`、Attr は harness の attrQuery で qualified name を読むだけ）。DocumentType の name と ProcessingInstruction の target は持つ（`doctypeName`・`piTarget`）が、それを読む操作が無い" },
   { target := "dom-node-baseuri", reason := .todo "document の URL（document base URL）を持たない" },
   { target := "dom-node-isconnected",
     reason := .todo "node の connected を返す関数が無い（Attr だけ harness の attrQuery が false を返す）" },

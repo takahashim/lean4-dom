@@ -355,6 +355,9 @@ module Generate
       b.add(kind, parent: parent, data: data_for(kind, "t#{b.ids.size}", rng))
     end
     b.nodes.each do |spec|
+      # ProcessingInstruction の target を id から決める（乱数は引かないので、既存の seed の scenario は変わらない）。
+      # `isEqualNode` は target も比べる。
+      spec["target"] = spec["id"].even? ? "pi" : "xml-stylesheet" if spec["kind"] == "processingInstruction"
       next unless spec["kind"] == "element"
 
       spec.merge!(element_identity(rng))

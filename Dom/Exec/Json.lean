@@ -405,7 +405,11 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
     | some "limited-quirks" => pure .limitedQuirks
     | some m => .error s!"未知の mode `{m}`（node {id}）"
   return { id, kind, parent, ownerDocument, data, attributes,
-           «namespace», «prefix», localName, isHTMLDocument, mode }
+           «namespace», «prefix», localName, isHTMLDocument, mode
+           doctypeName := ← strField j "name" "html"
+           publicId := ← strField j "publicId" ""
+           systemId := ← strField j "systemId" ""
+           piTarget := ← strField j "target" "pi" }
 
 def operationOfJson (j : Json) : Except String Operation := do
   let op ← strField j "op" ""
@@ -878,7 +882,12 @@ def observedNodeJson (n : ObservedNode) : Json :=
     , ("namespace", optStrJson n.namespace)
     , ("prefix", optStrJson n.prefix)
     , ("localName", Json.str n.localName)
-    , ("tagName", optStrJson n.tagName) ]
+    , ("tagName", optStrJson n.tagName)
+    , ("doctype", match n.doctype with
+        | none => Json.null
+        | some (name, pub, sys) =>
+          Json.mkObj [("name", Json.str name), ("publicId", Json.str pub), ("systemId", Json.str sys)])
+    , ("target", optStrJson n.target) ]
 
 def boundaryPointJson (bp : BoundaryPoint) : Json :=
   Json.mkObj [("node", natJson bp.node.id), ("offset", natJson bp.offset)]

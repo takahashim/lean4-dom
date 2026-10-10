@@ -1,0 +1,115 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "concept-node-equals",
+      "clone a single node"
+    ],
+    "steps": "equals（DocumentType・ProcessingInstruction） / clone a single node 5",
+    "note": "equals は DocumentType の name・public ID・system ID と、ProcessingInstruction の target と data を比べる。clone a single node はこれらを写す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentType",
+      "parent": 0,
+      "name": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 3,
+      "kind": "documentType",
+      "name": "svg"
+    },
+    {
+      "id": 4,
+      "kind": "documentType",
+      "name": "html",
+      "publicId": "-//W3C//DTD HTML 4.01//EN"
+    },
+    {
+      "id": 5,
+      "kind": "documentType",
+      "name": "html"
+    },
+    {
+      "id": 6,
+      "kind": "processingInstruction",
+      "parent": 2,
+      "target": "xml-stylesheet",
+      "data": "href=a"
+    },
+    {
+      "id": 7,
+      "kind": "processingInstruction",
+      "target": "other",
+      "data": "href=a"
+    },
+    {
+      "id": 8,
+      "kind": "processingInstruction",
+      "target": "xml-stylesheet",
+      "data": "href=a"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "isEqualNode",
+      "node": 1,
+      "other": 3
+    },
+    {
+      "op": "isEqualNode",
+      "node": 1,
+      "other": 4
+    },
+    {
+      "op": "isEqualNode",
+      "node": 1,
+      "other": 5
+    },
+    {
+      "op": "isEqualNode",
+      "node": 6,
+      "other": 7
+    },
+    {
+      "op": "isEqualNode",
+      "node": 6,
+      "other": 8
+    },
+    {
+      "op": "cloneNode",
+      "node": 4
+    },
+    {
+      "op": "cloneNode",
+      "node": 7
+    },
+    {
+      "op": "isEqualNode",
+      "node": 4,
+      "other": 9
+    },
+    {
+      "op": "isEqualNode",
+      "node": 7,
+      "other": 10
+    }
+  ]
+}

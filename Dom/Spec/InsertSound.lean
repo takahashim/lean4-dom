@@ -85,16 +85,16 @@ theorem treeInserted_insertAt {t t' : Tree} {parent node : NodeId} {child : Opti
       rw [he, hnd] at hm
       cases hm
       cases hm'
-      exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
     · split at hm'
       · next he =>
         rw [he, hpd] at hm
         cases hm
         cases hm'
-        exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+        exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
       · rw [hm] at hm'
         cases hm'
-        exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+        exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-! ## step 7：一つずつ入れる -/
 

@@ -174,7 +174,7 @@ theorem treeRemoved_unique {t t₁ t₂ : Tree} {node parent : NodeId}
     rw [hd₁, hd₂]
     have : d₁ = d₂ := by
       cases d₁; cases d₂
-      simp_all
+      simp_all [NodeData.SameDoctypePi]
     rw [this]
 
 /-- live range も一つに決まる。 -/
