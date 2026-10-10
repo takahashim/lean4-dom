@@ -86,17 +86,6 @@ private def field? (j : Json) (k : String) : Option Json :=
   | .error _ => none
 
 /--
-JavaScript の Number として運ぶ数（WebIDL の変換の前の値）。JSON の数をそのまま `mantissa × 10^(-exponent)` で持つ。
--/
-private def jsNumberField (j : Json) (k : String) : Except String Idl.JsNumber := do
-  match field? j k with
-  | none => throw s!"field `{k}` が無い"
-  | some v =>
-    match v with
-    | .num n => pure ⟨n.mantissa, n.exponent⟩
-    | _ => throw s!"field `{k}` が数でない"
-
-/--
 JavaScript の値（WebIDL の変換の前の値）。JSON の null・真偽値・数・文字列・object をそのまま写す。
 配列は組み込みの `Array` として写す。
 -/
@@ -242,6 +231,23 @@ private def legacyNullDomStrField (j : Json) (k : String) (dflt : String) : Exce
   | .ok v => do idlValue k (Idl.toLegacyNullDOMString (← jsValueOfJson v))
 
 /-!
+### 整数型の引数
+
+`unsigned long` と `unsigned short` の引数は、JSON の任意の値を受け、ToNumber で Number の値にする
+（`Dom/Idl/ToNumber.lean`）。ToNumber は失敗も副作用も無いので読むときに変換してよく、ConvertToInt の残りは
+`applyOperation` が行う。結果が一つに決まらない値（有効数字が 20 桁を超える十進表記など）は model の対象外で、
+読み取りの失敗にする。field が無いのも失敗である（必須の引数）。
+-/
+
+private def numArgField (j : Json) (k : String) : Except String Idl.JsNum :=
+  match j.getObjVal? k with
+  | .error _ => throw s!"field `{k}` が無い"
+  | .ok v => do
+    match (← jsValueOfJson v).toNumber with
+    | some x => pure x
+    | none => throw s!"field `{k}` の値は ToNumber の結果が一つに決まらない（model の対象外）"
+
+/-!
 ### boolean の引数
 
 boolean の引数も JSON の任意の値を受け、ECMAScript の ToBoolean で変換する。ToBoolean は失敗も副作用も無いので、
@@ -352,13 +358,13 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "iteratorNext" => return .iteratorNext (← natField j "iterator")
   | "iteratorPrevious" => return .iteratorPrevious (← natField j "iterator")
   | "replaceData" =>
-    return .replaceData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
+    return .replaceData (← natField j "node") (← numArgField j "offset") (← numArgField j "count")
       (← domStrField j "data" "")
   | "appendData" => return .appendData (← natField j "node") (← domStrField j "data" "")
   | "insertData" =>
-    return .insertData (← natField j "node") (← jsNumberField j "offset") (← domStrField j "data" "")
+    return .insertData (← natField j "node") (← numArgField j "offset") (← domStrField j "data" "")
   | "deleteData" =>
-    return .deleteData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
+    return .deleteData (← natField j "node") (← numArgField j "offset") (← numArgField j "count")
   | "setData" => return .setData (← natField j "node") (← legacyNullDomStrField j "data" "")
   | "normalize" => return .normalize (← natField j "target")
   | "createElement" =>
@@ -400,9 +406,9 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "removeNamedItem" =>
     return .removeNamedItem (← natField j "element") (← domStrField j "name" "")
   | "rangeSetStart" =>
-    return .rangeSetStart (← natField j "range") (← nodeField j "node") (← jsNumberField j "offset")
+    return .rangeSetStart (← natField j "range") (← nodeField j "node") (← numArgField j "offset")
   | "rangeSetEnd" =>
-    return .rangeSetEnd (← natField j "range") (← nodeField j "node") (← jsNumberField j "offset")
+    return .rangeSetEnd (← natField j "range") (← nodeField j "node") (← numArgField j "offset")
   | "rangeSetStartBefore" =>
     return .rangeSetStartSibling (← natField j "range") (← nodeField j "node") false
   | "rangeSetStartAfter" =>
@@ -418,15 +424,15 @@ def operationOfJson (j : Json) : Except String Operation := do
     return .rangeSelectNodeContents (← natField j "range") (← nodeField j "node")
   | "rangeIsPointInRange" =>
     return .rangeIsPointInRange (← natField j "range") (← nodeField j "node")
-      (← jsNumberField j "offset")
+      (← numArgField j "offset")
   | "rangeIntersectsNode" =>
     return .rangeIntersectsNode (← natField j "range") (← nodeField j "node")
   | "rangeCompareBoundaryPoints" =>
-    return .rangeCompareBoundaryPoints (← natField j "range") (← jsNumberField j "how")
+    return .rangeCompareBoundaryPoints (← natField j "range") (← numArgField j "how")
       (← natField j "source")
   | "rangeComparePoint" =>
     return .rangeComparePoint (← natField j "range") (← nodeField j "node")
-      (← jsNumberField j "offset")
+      (← numArgField j "offset")
   | "rangeDeleteContents" => return .rangeDeleteContents (← natField j "range")
   | "rangeInsertNode" => return .rangeInsertNode (← natField j "range") (← nodeField j "node")
   | "walkerParentNode" => return .walkerMove (← natField j "walker") .parentNode
@@ -489,7 +495,7 @@ def operationOfJson (j : Json) : Except String Operation := do
       | _ => do pure ((← nullableDomStrField j "value").getD "")
     return .setAttrValue (← natField j "attr") value via
   | "substringData" =>
-    return .substringData (← natField j "node") (← jsNumberField j "offset") (← jsNumberField j "count")
+    return .substringData (← natField j "node") (← numArgField j "offset") (← numArgField j "count")
   | "getAttribute" => return .getAttribute (← natField j "element") (← domStrField j "name" "")
   | "hasAttribute" => return .hasAttribute (← natField j "element") (← domStrField j "name" "")
   | "getAttributeNames" => return .getAttributeNames (← natField j "element")

@@ -1,0 +1,68 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "convert nodes into a node",
+      "insert",
+      "live range pre-remove steps",
+      "append"
+    ],
+    "steps": "convert nodes into a node 4 / insert 4 / live range pre-remove steps 4-5",
+    "note": "convert nodes into a node は、引数が二つ以上なら node を新しい DocumentFragment に append する。挿入（insert の step 4）は fragment の子を順に取り除くので、live range pre-remove steps が、取り除く node の中にある live range を fragment へ移す。木に無い p の中にある range は、p が fragment から取り除かれるときに (fragment, 0) へ移り、fragment が空になった後もそこに残る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "span"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "localName": "p"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "localName": "b"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 3,
+        "offset": 0
+      },
+      "end": {
+        "node": 3,
+        "offset": 0
+      }
+    }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "append",
+      "parent": 1,
+      "nodes": [
+        "x",
+        3
+      ]
+    }
+  ]
+}

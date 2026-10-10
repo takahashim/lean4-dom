@@ -459,8 +459,8 @@ module DommyRunner
   # "convert nodes into a node" が作った node に、model（`convertNodesIntoNode`）と同じ規則で id を振る。
   #
   # model は文字列から作る Text node に引数の順で max+1, max+2, ... を振り、引数が一つでなければ
-  # 次の id で DocumentFragment を作る。木から辿れなくなった node は model の状態から消えるので、
-  # ここでも辿れる node だけを登録する。文字列の Text node は引数の順に fragment へ入るので、
+  # 次の id で DocumentFragment を作る。木からも live range からも辿れなくなった node は model の状態から
+  # 消えるので、ここでも辿れる node だけを登録する。文字列の Text node は引数の順に fragment へ入るので、
   # 辿れるものは tree order で先頭からの一部になる。
   def register_converted(ctx, args, max_before)
     objects = ctx[:objects]
@@ -469,7 +469,10 @@ module DommyRunner
     objects.each_value { |v| known[v] = true }
     seen = {}.compare_by_identity
     fresh = []
-    objects.values.each do |n|
+    # 木から辿れる node のほか、live range の境界の node からも辿る（変換が作った空の fragment に
+    # live range が移れば観測できる。JS の runner と同じ規則である）。
+    starts = objects.values + (ctx[:ranges] || []).flat_map { |r| [r.start_container, r.end_container] }
+    starts.each do |n|
       root = n
       root = parent_of(root) while parent_of(root)
       collect_unknown(root, known, seen, fresh)
@@ -643,6 +646,18 @@ module DommyRunner
       target.add_event_listener(spec["type"].to_s, callbacks[i], listener_options(spec))
     end
     callbacks
+  end
+
+  # JSON の数を JavaScript の Number と同じ値にする。Ruby の JSON は 2^53 を超える整数を丸めずに Integer で
+  # 読むが、JavaScript の Number は倍精度に丸めた値なので、Float にする（`to_f` は最近接・偶数への丸め）。
+  # 小数は Ruby の JSON も倍精度に丸めて読む。
+  def js_numbers(value)
+    case value
+    when Integer then value.abs > 2**53 ? value.to_f : value
+    when Array then value.map { |v| js_numbers(v) }
+    when Hash then value.transform_values { |v| js_numbers(v) }
+    else value
+    end
   end
 
   # DOMString の引数の field。
@@ -1423,6 +1438,7 @@ module DommyRunner
       invocation_log.clear
       begin
         require_plain_strings!(op)
+        op = js_numbers(op)
         returned = apply(objects, op, iterators, ctx)
       rescue NotImplementedError, NoMethodError => e
         # この harness で比べられない step。理由を残しておくと、

@@ -583,3 +583,29 @@
   scenario: variadic-insert-failure-keeps-fragment
   digest: bd7eae9c17f775c9
   reason: *variadic_detached
+
+- impl: chromium
+  scenario: variadic-child-node-moves-live-range-into-the-fragment
+  digest: 4c2a3bd17729bde3
+  reason: &variadic_range |
+    DOM §4.2.6 "convert nodes into a node" は、引数が二つ以上なら node を新しい DocumentFragment に
+    append し、§4.2.3 insert の step 4 はその fragment の子を順に取り除く。取り除くときの
+    live range pre-remove steps（§5.5）が、取り除く node の中にある live range を (fragment, index)
+    へ移す。木に無い node の中の range は、その node が fragment から取り除かれると fragment へ
+    移り、fragment が空になった後もそこに残る。
+    確かめた method は `replaceWith`・`append`・`replaceChildren` である。Chromium はどれでも range を
+    動かさない。WebKit は `replaceWith` では本文どおりに動かし、`append` と `replaceChildren` では
+    動かさない。Firefox はどれも本文どおり。
+    fragment を経由しない挿入をしていると考えれば説明がつくが、ソースは確かめていない。
+    Dommy も fragment を作らないので動かさない（`docs/status.md` の findings 59）。
+    https://dom.spec.whatwg.org/#converting-nodes-into-a-node
+
+- impl: chromium
+  scenario: variadic-parent-node-moves-live-range-into-the-fragment
+  digest: 02aec0ed6b5dead4
+  reason: *variadic_range
+
+- impl: webkit
+  scenario: variadic-parent-node-moves-live-range-into-the-fragment
+  digest: cd80dc1e85170066
+  reason: *variadic_range

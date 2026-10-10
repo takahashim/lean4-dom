@@ -48,12 +48,17 @@ def get : JsValue → String → JsValue
     | none => .undefined
   | _, _ => .undefined
 
-/-- ECMAScript の ToBoolean。NaN は JSON に無いので、数は 0 かどうかだけで決まる。 -/
+/--
+ECMAScript の ToBoolean。数は Number の値に丸めてから 0 か（NaN は JSON に無い）を見る。1e-400 のように
+0 に丸まる数は false である。
+-/
 def toBoolean : JsValue → Bool
   | .undefined => false
   | .null => false
   | .bool b => b
-  | .number n => !n.isZero
+  | .number n => match n.toNum? with
+    | some (.finite _ 0 _) => false
+    | _ => true
   | .string s => !s.isEmpty
   | .object _ => true
   | .array _ => true

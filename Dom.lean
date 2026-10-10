@@ -143,6 +143,7 @@ import Dom.Idl.Number
 import Dom.Idl.Value
 import Dom.Idl.NumberString
 import Dom.Idl.ObserverInit
+import Dom.Idl.ToNumber
 import Dom.Mutation.Variadic
 import Dom.Validity.Discard
 import Dom.Validity.Variadic

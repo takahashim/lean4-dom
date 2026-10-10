@@ -1103,12 +1103,20 @@ module Generate
 
   # WebIDL の整数型（`unsigned long` は 32、`unsigned short` は 16）への変換を撫でる数。
   # たまに `n` を、変換すると同じ値になるもの（n ± 2^bits、n + 0.5）か、端の値（−1、−0.5、2^bits）に変える。
-  # model は JSON の十進をそのまま変換し、JS は倍精度に丸めてから変換するので、倍精度で正確に表せる数に限る。
+  # model は JS と同じく倍精度に丸めてから変換するので、2^53 を超える整数も混ぜる（runner は Dommy にも
+  # JS と同じ丸めた値を渡す）。
   def idl_number(rng, n, bits = 32)
-    return n unless rng.rand < 0.15
+    r = rng.rand
+    return n if r >= 0.25
 
     m = 2**bits
-    [n + m, n - m, n + 0.5, -1, -0.5, m].sample(random: rng)
+    return [n + m, n - m, n + 0.5, -1, -0.5, m, 2**53 + 1 + n].sample(random: rng) if r < 0.15
+
+    # ToNumber を通る数以外の値。Dommy と本文が一致する形に限る（findings 62 の真偽値・配列・0b と 0o・
+    # 数字の区切り・符号付きの 16 進・ASCII 以外の空白は固定 scenario で押さえてある）。
+    choices = [n.to_s, " #{n}\t", "0x#{n.to_s(16)}", "#{n}e0", "#{n}.", "+#{n}"]
+    choices += [nil, false, "", "x", {}] if n.zero?
+    choices.sample(random: rng)
   end
 
   # `observe` 操作の options から、既定値の無い member を落としたり、

@@ -6226,6 +6226,58 @@ Dommy は失敗を原子的にし、node を元の位置に残す。Chromium と
 Dommy は新しい二本が「比べられない」になり、既存の固定 scenario と生成 scenario（seed 41、200 本、不一致 0）の
 結果は変わらなかった。
 
+## 整数型の引数の ToNumber と倍精度への丸めを入れた（findings 62）
+
+WebIDL の型変換を member ごとに入れる七つ目の段として、`unsigned long` と `unsigned short` の引数（CharacterData と
+Range の offset・count、`compareBoundaryPoints` の `how`）の ConvertToInt を、ToNumber から通すようにした。
+
+* `Dom/Idl/Number.lean` に ECMAScript の Number の値（NaN、±∞、(−1)^s × k × 2^j）を置き、十進の値を最も近い倍精度の
+  値に丸める関数（偶数への丸め、非正規化数、∞ への溢れ）を書いた。ConvertToInt はこの値に当てる。それまでは
+  十進のまま変換していたので、2^53 + 1 や 4294967295.9999999999 で JavaScript と結果が違いえた（threats-to-validity
+  の近似として記録していたもの）。有効数字が 20 桁を超える十進表記は、ECMAScript が丸めを実装に任せるので受けない。
+* `Dom/Idl/ToNumber.lean` に ToNumber と StringToNumber を書いた。null は 0、boolean は 0 か 1、文字列は
+  StringNumericLiteral の文法（Unicode の空白、0b・0o・0x、Infinity、指数）、object は "[object Object]"、配列は
+  join した文字列で読む。StringToNumber と丸めは、Node の `Number(...)` と 3000 件の乱数（非正規化数、ちょうど中間の値、
+  倍精度の最大値の境界、16 進、空白を含む）で一致することを確かめた。
+* ToNumber は失敗も副作用も無いので、scenario を読むときに行う。`Operation` は Number の値を持ち、既存の定理
+  （`convertToIntUnsigned_lt`・`toUnsignedLong_ofNat` ほか）は新しい型の上で証明し直した。
+* ToBoolean も、数を倍精度に丸めてから 0 かを見るようにした（1e-400 は false）。
+* Dommy の runner は、2^53 を超える JSON の整数を Float にして渡す。Ruby の JSON は丸めずに Integer で読むが、
+  JavaScript からはそのような値は来ないからである。
+* 生成器は、たまに 2^53 を超える整数と、Dommy と本文が一致する形の数以外の値（数の文字列、前後の ASCII の空白、
+  16 進、null、false、空文字列、普通の object）を混ぜる。
+* 固定 scenario を三本足した（`idl-to-number-converts-primitives`、`idl-to-number-rounds-to-double`、
+  `idl-string-to-number-grammar`）。
+
+Chromium、Firefox、WebKit、jsdom 30.1.2 は三本とも model と一致した。
+
+**findings 62：Dommy の ToNumber は本文と違う。** Dommy（`4fc3caa`）は整数型の変換を Ruby の側で行い
+（CharacterData は `CharacterData#to_uint32`、Range は `Internal::WebIDL.unsigned_long`）、文字列を Ruby の `Float()` で
+読む。固定 scenario の二本が不一致になる。値ごとに Dommy の method を直接呼んで確かめた違いは次のとおりである。
+
+| 値 | 本文 | Dommy（CharacterData） | Dommy（Range） |
+| --- | --- | --- | --- |
+| `true` | 1 | 0 | 1 |
+| `[2]` | 2 | 0 | 0 |
+| `"0b11"`、`"0o7"` | 3、7 | 0 | 0 |
+| `"1_0"` | NaN なので 0 | 10 | 10 |
+| `"-0x1"` | NaN なので 0 | −1（2^32 − 1） | −1（2^32 − 1） |
+| U+00A0・U+3000・U+FEFF の空白を含む数 | 空白を除いて読む | 0 | 0 |
+
+**変換の途中の fragment を通る live range も、ブラウザで分かれた。** 生成 scenario（seed 51、`--ranges 4`）で、
+可変長の引数を取る method が成功する経路の不一致が出た。"convert nodes into a node" は引数が二つ以上なら node を
+新しい DocumentFragment に append し、insert の step 4 がその子を順に取り除く。そのとき live range pre-remove steps が、
+取り除く node の中の live range を fragment へ移す。木に無い node の中の range は、fragment が空になった後もそこに残る。
+Firefox は本文と model どおりである。Chromium は `replaceWith`・`append`・`replaceChildren` のどれでも range を動かさず、
+WebKit は `replaceWith` では動かし、`append` と `replaceChildren` では動かさない。Dommy は fragment を作らないので
+動かさない（findings 59 と同じ原因が、成功する経路でも live range を通して観測できる）。固定 scenario を二本足し
+（`variadic-child-node-moves-live-range-into-the-fragment`、`variadic-parent-node-moves-live-range-into-the-fragment`）、
+Chromium と WebKit の分は既知の不一致として記録した。あわせて二つの runner は、変換が作った node を木からだけでなく
+live range の境界からも辿って id を振るようにした（空になった fragment に range が移ると、木からは辿れない）。
+
+三つのブラウザとも、固定 scenario で記録に無い不一致は 0 件である。Dommy の固定 scenario の不一致は findings 59
+から 62 の十二本で、生成 scenario（seed 51、300 本）の不一致は findings 59 に当たる五件だった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

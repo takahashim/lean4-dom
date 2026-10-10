@@ -1,0 +1,106 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "substringData"
+    ],
+    "steps": "WebIDL の ConvertToInt step 4（ToNumber）",
+    "note": "unsigned long の引数は ToNumber で数にしてから ConvertToInt する。null は 0、true は 1、文字列は StringToNumber（前後の空白を除き、空文字列は 0、読めなければ NaN で 0）、普通の object は \"[object Object]\" で NaN、配列は join した文字列になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abcdefgh"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": null,
+      "count": "2"
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": true,
+      "count": 2
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": " 1 ",
+      "count": "0x2"
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "",
+      "count": "1e1"
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "x",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": [
+        2
+      ],
+      "count": []
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": {},
+      "count": 3
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "Infinity",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": [],
+      "count": [
+        3
+      ]
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "-1",
+      "count": 1
+    }
+  ]
+}

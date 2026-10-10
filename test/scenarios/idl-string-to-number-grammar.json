@@ -1,0 +1,120 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "substringData"
+    ],
+    "steps": "ECMAScript StringToNumber",
+    "note": "StringToNumber は StringNumericLiteral の文法で読む。0b・0o・0x の整数（符号は付けられない）、小数点の前後のどちらかが空の小数、指数を受ける。数字の区切りの _ は無い。空白は Unicode の Zs と BOM と改行も含む。読めなければ NaN で、ConvertToInt は 0 にする。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abcdefgh"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "0b11",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "0o7",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "1_0",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "　 2﻿",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": ".5e1",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "5.",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "+1",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "-0",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "1e",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "0x",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "-0x1",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "0X3",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "3e0\n",
+      "count": 1
+    }
+  ]
+}

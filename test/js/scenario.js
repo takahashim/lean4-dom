@@ -291,8 +291,8 @@ function nodeArgs(op) {
  * "convert nodes into a node" が作った node に、model（`convertNodesIntoNode`）と同じ規則で id を振る。
  *
  * model は文字列から作る Text node に引数の順で max+1, max+2, ... を振り、引数が一つでなければ
- * 次の id で DocumentFragment を作る。木から辿れなくなった node は model の状態から消えるので、
- * ここでも辿れる node だけを登録する。
+ * 次の id で DocumentFragment を作る。木からも live range からも辿れなくなった node は model の状態から
+ * 消えるので、ここでも辿れる node だけを登録する。
  */
 function registerConverted(ctx, args, maxBefore) {
   const k = args.filter((a) => typeof a === "string").length;
@@ -305,7 +305,11 @@ function registerConverted(ctx, args, maxBefore) {
     if (!known.has(n)) fresh.push(n);
     for (const c of [...(n.childNodes ?? [])]) visit(c);
   };
-  for (const n of [...ctx.objects.values()]) {
+  // 木から辿れる node のほか、live range の境界の node からも辿る。変換が作った fragment は挿入の後で空になり
+  // 木からは辿れないが、その子を取り除くときに live range が fragment へ移れば観測できる（model も残す）。
+  const starts = [...ctx.objects.values()];
+  for (const r of ctx.ranges ?? []) starts.push(r.startContainer, r.endContainer);
+  for (const n of starts) {
     let root = n;
     while (root.parentNode) root = root.parentNode;
     visit(root);

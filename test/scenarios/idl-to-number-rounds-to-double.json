@@ -1,0 +1,97 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "substringData",
+      "Range setStart",
+      "compareBoundaryPoints"
+    ],
+    "steps": "WebIDL の ConvertToInt step 4、9-10",
+    "note": "JavaScript は数を倍精度に丸めてから ConvertToInt する。2^53 + 1 は 2^53 に丸まるので 2^32 の剰余は 0、4294967295.9999999999 は 2^32 に丸まるので 0 になる（十進のまま整数部を取れば 1 と 4294967295）。文字列の数も同じく丸める。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abcdefgh"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 2,
+        "offset": 0
+      },
+      "end": {
+        "node": 2,
+        "offset": 8
+      }
+    }
+  ],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": 9007199254740993,
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": "9007199254740993",
+      "count": 1
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": 4294967295.9999999999,
+      "count": 1
+    },
+    {
+      "op": "rangeSetStart",
+      "range": 0,
+      "node": 2,
+      "offset": "9007199254740995"
+    },
+    {
+      "op": "rangeCompareBoundaryPoints",
+      "range": 0,
+      "how": "65537.9",
+      "source": 0
+    },
+    {
+      "op": "rangeCompareBoundaryPoints",
+      "range": 0,
+      "how": true,
+      "source": 0
+    },
+    {
+      "op": "substringData",
+      "node": 2,
+      "offset": 4294967296.0000002,
+      "count": 1
+    }
+  ]
+}
