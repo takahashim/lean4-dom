@@ -1216,3 +1216,22 @@ open Dom.Audit
   Dom.lookupNamespaceURI_lookupPrefix_own
   Dom.lookup_round_trip_fails
   Dom.find?_xmlnsDecl_eq
+
+-- 近似として記録していた step を、本文の順に書いた関係・関数との一致で閉じたもの
+-- （validate and extract の step 順、scope-match の候補の取り方、deleteContents の step 8 の位置、
+-- observe の options の省略と false の区別）
+#audit_axioms
+  Dom.Spec.validateAndExtractAttribute_eq_steps
+  Dom.Spec.validateAndExtractElement_eq_steps
+  Dom.Spec.matchTree_spec
+  Dom.Spec.matchAgainstTree_unique
+  Dom.Spec.scopeMatch_result_sound
+  Dom.Spec.scopeMatch_result_complete
+  Dom.Spec.replaceData_withRange
+  Dom.Spec.removeEach_withRange
+  Dom.Spec.newBP_fixed_removeEach
+  Dom.Spec.rangeDeleteContents_result_sound
+  Dom.Spec.deleteContents_result_deterministic
+  Dom.Spec.rangeDeleteContents_result_complete
+  Dom.Spec.observe_result_sound
+  Dom.Spec.observe_result_complete

@@ -5936,6 +5936,60 @@ undefined で、そこから名前を引くと TypeError になる、と runner 
 * URL：seed 1 の parser 3,777 件・setter 3,167 件が whatwg-url 17.1.2 とともに全件一致し、
   urlencoded の 4,380 件も一致した（`docs/url-status.md`）。
 
+## `observe()` の options で省略と false を区別した（**model 側の不具合**、findings 58）
+
+仕様の step と Lean の定義の対応表（`Trace/`、`docs/spec-version.md`）を作る途中で見つけた。
+
+IDL の `MutationObserverInit` が既定値を与えるのは `childList` と `subtree` だけで、
+`attributeOldValue` と `characterDataOldValue` には既定値が無い。
+`observe()` の step 1 は「`attributeOldValue` か `attributeFilter` が存在し、`attributes` が存在しない」とき
+`attributes` を true にする（step 2 も同じ形）。
+model はこの二つを `Bool`（既定 false）で持ち、「true である」ことで代用していた。
+`resolve` の注は「IDL の既定値が false なので結論は変わらない」としていたが、前提の既定値は IDL に無い。
+
+その結果、`{attributeOldValue: false}` だけを渡すと、本文は step 3 を通って登録し、
+model は `attributes` を埋めずに step 3 で TypeError を返していた。
+
+差分テストで見つからなかったのは、runner が `attributes` と `characterData` を含む全 key を
+常に明示して渡していたからである。step 1-2 の「存在しない」枝は比較で一度も通っていなかった。
+関係意味論（`Dom.Spec.ObserveResult`）も同じ読みで書いてあり、一致の証明はこの誤りを検出しなかった。
+
+直したもの：
+
+* `MutationObserverInit` の `attributeOldValue` と `characterDataOldValue` を `Option Bool` にし、
+  `resolve` は存在（`isSome`）で、step 4・6 は `some true` で判定する。関係と証明も合わせて直した。
+* runner（`test/dommy_runner.rb`、`test/js/scenario.js`）は、`observe` 操作には scenario にある key だけを渡す。
+  初期状態の observer は model が registration を直接組み立てるので、従来どおり全 key を明示する。
+* 生成器は `observe` 操作の options から既定値の無い key を落としたり、old value を明示の false にしたりする。
+* 固定 scenario `observe-old-value-false-implies-type` を足した。
+
+Dommy（`4fc3caa`）は本文どおりで、固定 scenario 185 件と生成 scenario（seed 1、`--ranges 4 --iterators 2
+--observers 3 --move`）はどちらも不一致 0 だった。
+
+## 近似として記録していた step を証明で閉じた
+
+対応表（`Trace/`）を作ったとき「近似」とした step のうち、結果は同じだと論じるだけで定理が無かったものを洗い、
+次のものを閉じた。表の近似は 245 から 230 になった（`docs/spec-coverage.md`）。
+
+| 箇所 | 閉じ方 |
+| --- | --- |
+| validate and extract（§1.4）の step 1・6・7 | 本文の step 順（正規化を先に、context で step 6・7 を切り替える）に書いた `Dom.Spec.validateAndExtractSteps` と、attribute 版・element 版の実行関数が等しい（`validateAndExtractAttribute_eq_steps` ほか、`Dom/Spec/ValidateAndExtract.lean`） |
+| scope-match a selectors string（§1.3）の step 3 | Selectors §17 の "match a selector against a tree"（root 以下の element を tree order に並べ、scoping root の descendant に絞る）を関係 `MatchAgainstTree` に書き、node の部分木を列挙する `matchTree` が列として一致する（`scopeMatch_result_sound`・`_complete`、`Dom/Spec/ScopeMatch.lean`） |
+| `deleteContents()`（§5.5）の step 8 | 関係 `DeleteContentsResult` を本文の順（step 8 で点を置いてから step 9-11）に書き直した。それまでの関係は点を最後に置いていて、実行関数と同じ読みだった。実行関数がそれを満たすことは、range を一つ差し替えても replace data と remove の進み方が変わらないこと（`Dom/Spec/RangePassive.lean`）と、step 9-11 の調整が点を動かさないこと（`newBP_fixed_removeEach`・`newBP_ne_start`・`newBP_ne_end`）から出る |
+| queue a tree mutation record の step 1、live range pre-remove steps の step 2（assert） | 既存の証明で閉じていた。呼び出し元の関係の soundness が assert の条件を示している（前者は `treeRecordQueued_of_queue` の仮定、後者は remove と move の関係） |
+| Range の insert（§5.5）の step 10-11 | 既存の証明で閉じていた。関係 `InsertNodeTail` は本文どおり newOffset を先に数える形で、`rangeInsertNode_result_sound` がある |
+
+`deleteContents()` の関係を書き直す途中で、実行関数のコメントの step 番号を固定版に合わせた（step 7-10 は固定版の step 9-11 と step 8）。
+
+見送ったものは二つある。
+
+* contiguous exclusive Text nodes を後ろ側だけで集めること。normalize の各段で「処理中の node の前に exclusive Text の
+  兄弟が残っていない」をループ全体の不変条件として示す必要がある。normalize の関係そのものが engine の読み
+  （`Dom/CharacterData/Normalize.lean`）なので、得られる保証は限られる。
+* remove an event listener で listener を list から取り除かず印を付けること。本文どおりの表現（target ごとの list から
+  取り除く）の状態を別に書き、add・remove・dispatch で観測が一致することを示す必要がある。Event object を model に
+  入れるときに合わせて行うのがよい。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

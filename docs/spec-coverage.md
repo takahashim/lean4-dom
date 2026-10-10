@@ -10,8 +10,8 @@
 | 表に載せたもの | 221 |
 | 対象外としたもの | 170 |
 | 表に載せた algorithm の step | 980 |
-| そのうち実装したもの | 535 |
-| そのうち近似したもの | 245 |
+| そのうち実装したもの | 550 |
+| そのうち近似したもの | 230 |
 | そのうち外したもの | 200 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -30,7 +30,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [scope-match-a-selectors-string](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#scope-match-a-selectors-string) | 1/3（近似 2） | `Dom.scopeMatch`<br>`Dom.matchTree`<br>`Selectors.parseSelector`<br>`Dom.matchSelList` | `Dom.Spec.SelectorListMatches` |
+| [scope-match-a-selectors-string](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#scope-match-a-selectors-string) | 2/3（近似 1） | `Dom.scopeMatch`<br>`Dom.matchTree`<br>`Selectors.parseSelector`<br>`Dom.matchSelList` | `Dom.Spec.ScopeMatchResult`<br>`Dom.Spec.MatchAgainstTree`<br>`Dom.Spec.SelectorListMatches` |
 
 ### §1.4（`namespaces`）
 
@@ -39,7 +39,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [valid-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-namespace-prefix) | 1/1 | `Dom.isValidNamespacePrefix` |  |
 | [valid-attribute-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-attribute-local-name) | 1/1 | `Dom.isValidAttributeLocalName` |  |
 | [valid-element-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-element-local-name) | 7/7 | `Dom.isValidElementLocalName` |  |
-| [validate-and-extract](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#validate-and-extract) | 11/15（近似 3） | `Dom.validateAndExtractAttribute`<br>`Dom.validateAndExtractElement`<br>`Dom.validateAndExtractError`<br>`Dom.splitAtFirstColon`<br>`Dom.normalizeNamespace` |  |
+| [validate-and-extract](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#validate-and-extract) | 14/15 | `Dom.validateAndExtractAttribute`<br>`Dom.validateAndExtractElement`<br>`Dom.validateAndExtractError`<br>`Dom.splitAtFirstColon`<br>`Dom.normalizeNamespace` | `Dom.Spec.validateAndExtractSteps`<br>`Dom.Spec.validateAndExtractAttribute_eq_steps`<br>`Dom.Spec.validateAndExtractElement_eq_steps` |
 
 ### §2.2（`interface-event`）
 
@@ -133,7 +133,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 3/12（近似 9） | `Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
+| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 5/12（近似 7） | `Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
 | [dom-mutationobserver-disconnect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-disconnect) | 1/2（近似 1） | `Dom.MutationObserver.disconnect` |  |
 | [dom-mutationobserver-takerecords](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-takerecords) | 3/3 | `Dom.MutationObserver.takeRecords` |  |
 
@@ -142,7 +142,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
 | [queue-a-mutation-record](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#queue-a-mutation-record) | 13/13 | `Dom.queueMutationRecord`<br>`Dom.interestedObservers`<br>`Dom.Registration.interestedIn`<br>`Dom.addInterested`<br>`Dom.enqueueRecord`<br>`Dom.addPendingObserver`<br>`Dom.queueMutationObserverMicrotask` | `Dom.Spec.TreeRecordQueued`<br>`Dom.Spec.CharacterDataRecordQueued`<br>`Dom.Spec.AttributeRecordQueued` |
-| [queue-a-tree-mutation-record](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#queue-a-tree-mutation-record) | 1/2（近似 1） | `Dom.queueTreeMutationRecord`<br>`Dom.queueMutationRecord` | `Dom.Spec.TreeRecordQueued` |
+| [queue-a-tree-mutation-record](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#queue-a-tree-mutation-record) | 2/2 | `Dom.queueTreeMutationRecord`<br>`Dom.queueMutationRecord` | `Dom.Spec.TreeRecordQueued`<br>`Dom.Spec.treeRecordQueued_of_queue` |
 
 ### §4.4（`interface-node`）
 
@@ -323,7 +323,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [live-range-pre-remove-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#live-range-pre-remove-steps) | 2/7（近似 5） | `Dom.liveRangePreRemove`<br>`Dom.liveRangePreRemoveRange`<br>`Dom.liveRangePreRemoveBP`<br>`Dom.rangeMoveOutOfSubtree`<br>`Dom.rangeShiftAfterRemove` | `Dom.Spec.RangeAdjusted`<br>`Dom.Spec.BoundaryAdjusted` |
+| [live-range-pre-remove-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#live-range-pre-remove-steps) | 7/7 | `Dom.liveRangePreRemove`<br>`Dom.liveRangePreRemoveRange`<br>`Dom.liveRangePreRemoveBP`<br>`Dom.rangeMoveOutOfSubtree`<br>`Dom.rangeShiftAfterRemove` | `Dom.Spec.RangeAdjusted`<br>`Dom.Spec.BoundaryAdjusted`<br>`Dom.liveRangePreRemoveBP_comm` |
 | [concept-range-bp-set](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-bp-set) | 3/8（近似 5） | `Dom.setStartBP`<br>`Dom.setEndBP`<br>`Dom.rangeBoundaryError`<br>`Dom.rangeNeedsCollapse` | `Dom.Spec.StartSet`<br>`Dom.Spec.EndSet`<br>`Dom.Spec.BoundaryPointError`<br>`Dom.Spec.BoundaryPointOk` |
 | [dom-range-setstart](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setstart) | 1/1 | `Dom.rangeSetStart` | `Dom.Spec.SetStartResult` |
 | [dom-range-setend](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setend) | 1/1 | `Dom.rangeSetEnd` | `Dom.Spec.SetEndResult` |
@@ -336,8 +336,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-range-selectnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-selectnode) | 1/1 | `Dom.rangeSelectNode` | `Dom.Spec.SelectNodeResult` |
 | [dom-range-selectnodecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-selectnodecontents) | 4/4 | `Dom.rangeSelectNodeContents` | `Dom.Spec.SelectNodeContentsResult` |
 | [dom-range-compareboundarypoints](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-compareboundarypoints) | 5/5 | `Dom.rangeCompareBoundaryPoints`<br>`Dom.bpPosition` | `Dom.Spec.CompareBoundaryPointsResult`<br>`Dom.Spec.compareHowPoints`<br>`Dom.Spec.PositionResult` |
-| [dom-range-deletecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-deletecontents) | 15/16（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.nodesToRemove`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.removeEach`<br>`Dom.replaceData` | `Dom.Spec.DeleteContentsResult`<br>`Dom.Spec.NodesToRemove`<br>`Dom.Spec.Contained`<br>`Dom.Spec.DeleteNewBP` |
-| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-insert) | 10/13（近似 2） | `Dom.rangeInsertNode`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset` |
+| [dom-range-deletecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-deletecontents) | 16/16 | `Dom.rangeDeleteContents`<br>`Dom.nodesToRemove`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.removeEach`<br>`Dom.replaceData` | `Dom.Spec.DeleteContentsResult`<br>`Dom.Spec.NodesToRemove`<br>`Dom.Spec.Contained`<br>`Dom.Spec.DeleteNewBP`<br>`Dom.Spec.rangeDeleteContents_result_sound` |
+| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-insert) | 12/13 | `Dom.rangeInsertNode`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset` |
 | [dom-range-insertnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-insertnode) | 1/1 | `Dom.rangeInsertNode` | `Dom.Spec.InsertNodeResult` |
 | [dom-range-ispointinrange](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-ispointinrange) | 5/5 | `Dom.rangeIsPointInRange` | `Dom.Spec.IsPointInRangeResult` |
 | [dom-range-comparepoint](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-comparepoint) | 6/6 | `Dom.rangeComparePoint` | `Dom.Spec.ComparePointResult` |
@@ -494,9 +494,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-ordered-set-parser | 2-3 | ordered set を List String で持ち、`eraseDups` で後から重複を落とす（最初の出現を残すので append を繰り返したのと同じ列） |
 | concept-ordered-set-serializer | * | 専用の関数は無く、DOMTokenList の update steps（`tokenListUpdate`）の中で `" ".intercalate` として書いている |
 | scope-match-a-selectors-string | 1 | parse a selector は model の selector 文法（`parseSelector` が受け付ける部分集合）で行う。受け付けない構文は failure（SyntaxError）になる |
-| scope-match-a-selectors-string | 3 | root の全 element ではなく node の descendant element だけを候補にする（scoping root が node なので、それ以外は scoping で落ちるという前提。node 自身は候補に入れない） |
-| validate-and-extract | 1 | namespace の正規化（空文字列を null に）を step 4.3 の後で一度だけ行う。step 1-4 の間で namespace は読まないので結果は同じ |
-| validate-and-extract | 6-7 | context の代わりに attribute 版と element 版の二つの関数を持ち、local name の検査関数だけを差し替える |
 | dom-event-stoppropagation | * | callback の中の呼び出しではなく、listener の `ListenerAction.stopPropagation` として callback の後に一度だけ走る |
 | dom-event-stopimmediatepropagation | * | listener の `ListenerAction.stopImmediatePropagation` として走る |
 | set-the-canceled-flag | * | in passive listener flag を持たない（passive を扱わない）ので、cancelable だけで決まる |
@@ -533,12 +530,10 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | queue-a-mutation-observer-compound-microtask | 3 | microtask は積まず、flag を立てるだけである。notify mutation observers は harness の `notify` 操作として呼ぶ |
 | notify-mutation-observers | 6.3 | node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる |
 | notify-mutation-observers | 6.4 | callback は呼ばない。records が空でない observer と records の組を返り値に並べる |
-| dom-mutationobserver-observe | 1-2 | options の attributeOldValue / characterDataOldValue は「存在する」ではなく「true である」で見る（IDL の既定値が false なので、step 4・6 を通すと結論は同じ） |
 | dom-mutationobserver-observe | 3-6 | TypeError を `DOMException.typeError` で表す |
-| dom-mutationobserver-observe | 7 | target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む |
+| dom-mutationobserver-observe | 7 | target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた |
 | dom-mutationobserver-observe | 7.1 | node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す |
 | dom-mutationobserver-disconnect | 1 | node list の node に限らず、この observer の registered observer を全部外す |
-| queue-a-tree-mutation-record | 1 | assert の代わりに、addedNodes と removedNodes が両方空なら何もしない |
 | create-a-node | 2 | realm を持たない。node document を与えた `NodeData` を `freshId` の位置に置く |
 | dom-node-nodetype | * | `NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型）。harness に getter の操作は無い |
 | dom-node-ownerdocument | * | `ownerDocumentOf` は Document に対して null ではなく自分自身を返す（model の Document は自分を node document に持つ） |
@@ -594,11 +589,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-range-bp-position | 1 | assert は書かない。呼び出し側（`BoundaryLE`・`rangeNeedsCollapse` など）が root を別に比べる |
 | concept-range-bp-position | 3 | 自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段） |
 | range-collapsed | * | 専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く |
-| live-range-pre-remove-steps | 2 | assert の代わりに、parent が無ければ何もしない |
-| live-range-pre-remove-steps | 4-7 | range ごとに step 4・6（start）と step 5・7（end）を合成して一度に当てる。step 4-5 で移した点の offset は index なので step 6-7 に掛からず、結果は同じ |
 | concept-range-bp-set | 4 | set the start では range の root を start node ではなく end node の root で比べる（妥当な range では同じ。spec 側は start node の root で書き、定理が RangeValid を仮定する） |
-| dom-range-deletecontents | 8 | (newNode, newOffset) を step 9-11 の後で置く。step 9-11 の live range 調整はこの点を動かさないので同じ値になるが、実行関数はその点が最終の木で妥当かを検査し、妥当でなければ調整後の start を使う |
-| concept-range-insert | 10-11 | newOffset を step 12 の前に数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める。空の DocumentFragment なら end を置き直さない |
 | dom-range-stringifier | 2-5 | UTF-16 の code unit で切り出す。surrogate pair の途中を指すと outsideModel になる |
 | concept-node-filter | 4 | filter は常に null として扱うので、ここで必ず FILTER_ACCEPT を返す |
 | concept-nodeiterator-traverse | 1-4 | candidate reference を持たず、iterator collection を reference で二つに分けて、pointer before に応じて reference 自身を候補に足した列から whatToShow を満たす最初の node を探す。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |

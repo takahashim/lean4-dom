@@ -3,6 +3,7 @@ import Dom.Properties.RangeDelete
 import Dom.Validity.RangeApi
 import Dom.Validity.Derived
 import Dom.Spec.NormalizeResult
+import Dom.Spec.RangePassive
 
 /-!
 # `deleteContents` は `DeleteContentsResult` を満たす
@@ -405,9 +406,247 @@ theorem deleteContentsNewBP_valid {s s₃ : DOMState} (h : AdmissibleDOMState s)
       exact not_contained_of_before hwf hs hcd hrc
         (Or.inr (Or.inr (Or.inr ⟨p, c, ref, j, i, hcp, hp, hj, hi, hji, Or.inl rfl, hrs⟩)))
 
+/-! ## step 8 の点は step 9-11 で動かない
+
+固定版の本文は step 8 で `this` を (newNode, newOffset) に置いてから、step 9-11 の replace data と
+remove を走らせる。実行関数は step 9-11 を先に走らせてから点を置く。二つが同じになるのは、
+step 9-11 の live range の調整がこの点を動かさないからである。
+
+* replace data（step 9・11）は、対象の node を指す点しか動かさない。新しい点の node は
+  original start node でも original end node でもない（それらが CharacterData のとき）。
+* remove（step 10）は、外す node の中を指す点と、外す node の parent を指し offset が index より大きい点
+  しか動かさない。新しい点の node は start node の inclusive ancestor なので contained な node の中にない。
+  また new node の、new offset より前の子は contained でないので外されず、外す子の index は
+  どの時点でも new offset 以上である。
+-/
+
+section Fixed
+
+variable {s : DOMState}
+
+/-- 新しい点は、step 6 なら original start、step 7 なら reference node の parent の (index + 1)。 -/
+theorem newBP_cases (hwf : WellFormed s.tree)
+    (hroot : root s.tree r.start.node = root s.tree r.«end».node) :
+    (deleteContentsNewBP s.tree r = r.start ∧ InclusiveAncestor s.tree r.start.node r.«end».node) ∨
+    (∃ ref i, parentOf s.tree ref = some (deleteContentsNewBP s.tree r).node ∧
+      InclusiveAncestor s.tree ref r.start.node ∧ index s.tree ref = some i ∧
+      (deleteContentsNewBP s.tree r).offset = i + 1) := by
+  rcases deleteContentsNewBP_spec hwf hroot with ⟨hia, hbp⟩ | ⟨-, ref, p, i, hrs, -, hp, -, hi, hbp⟩
+  · exact Or.inl ⟨hbp, hia⟩
+  · refine Or.inr ⟨ref, i, ?_, hrs, hi, ?_⟩ <;> rw [hbp]
+    exact hp
+
+/-- 新しい点の node は original start node の inclusive ancestor である。 -/
+theorem newBP_inclusiveAncestor_start (hwf : WellFormed s.tree)
+    (hroot : root s.tree r.start.node = root s.tree r.«end».node) :
+    InclusiveAncestor s.tree (deleteContentsNewBP s.tree r).node r.start.node := by
+  rcases newBP_cases hwf hroot with ⟨hbp, -⟩ | ⟨ref, i, hp, hrs, -, -⟩
+  · rw [hbp]; exact Or.inl rfl
+  · exact InclusiveAncestor.trans_inclusive (Or.inr (Ancestor.step hp)) hrs
+
+/-- original start node が CharacterData なら、新しい点の node はそれではない（step 9 が点を動かさない）。 -/
+theorem newBP_ne_start (h : AdmissibleDOMState s)
+    (hroot : root s.tree r.start.node = root s.tree r.«end».node)
+    (hn3 : ¬ (r.start.node = r.«end».node ∧ IsCharacterData s.tree r.start.node))
+    (hcd : IsCharacterData s.tree r.start.node) :
+    (deleteContentsNewBP s.tree r).node ≠ r.start.node := by
+  intro heq
+  obtain ⟨d, hd, hk⟩ := hcd
+  rcases newBP_cases h.wellFormed hroot with ⟨-, hia⟩ | ⟨ref, i, hp, -, -, -⟩
+  · rcases hia with he | hanc
+    · exact hn3 ⟨he, d, hd, hk⟩
+    · obtain ⟨c, hcp, -⟩ := hanc.exists_child
+      have := (h.childCountKind hcp d hd).1
+      rw [hk] at this
+      cases this
+  · rw [heq] at hp
+    have := (h.childCountKind hp d hd).1
+    rw [hk] at this
+    cases this
+
+/-- original end node が CharacterData なら、新しい点の node はそれではない（step 11 が点を動かさない）。 -/
+theorem newBP_ne_end (h : AdmissibleDOMState s)
+    (hroot : root s.tree r.start.node = root s.tree r.«end».node)
+    (hn3 : ¬ (r.start.node = r.«end».node ∧ IsCharacterData s.tree r.start.node))
+    (hcd : IsCharacterData s.tree r.«end».node) :
+    (deleteContentsNewBP s.tree r).node ≠ r.«end».node := by
+  intro heq
+  obtain ⟨d, hd, hk⟩ := hcd
+  rcases newBP_cases h.wellFormed hroot with ⟨hbp, -⟩ | ⟨ref, i, hp, -, -, -⟩
+  · rw [hbp] at heq
+    exact hn3 ⟨heq, d, by rw [heq]; exact hd, hk⟩
+  · rw [heq] at hp
+    have := (h.childCountKind hp d hd).1
+    rw [hk] at this
+    cases this
+
+/-- new node の、new offset より前の子は contained でない。 -/
+theorem not_contained_before_newBP (h : AdmissibleDOMState s) (hrv : RangeValid s.tree r)
+    {c : NodeId} {j : Nat} (hcp : parentOf s.tree c = some (deleteContentsNewBP s.tree r).node)
+    (hj : index s.tree c = some j) (hjk : j < (deleteContentsNewBP s.tree r).offset) :
+    ¬ Contained s.tree r c := by
+  have hwf := h.wellFormed
+  obtain ⟨⟨sd, hs, -⟩, -, hroot, -⟩ := id hrv
+  rcases newBP_cases hwf hroot with ⟨hbp, -⟩ | ⟨ref, i, hp, hrs, hi, hoff⟩
+  · rw [hbp] at hcp hjk
+    obtain ⟨cd, hcd, -⟩ := parentOf_eq_some hcp
+    exact not_contained_of_before hwf hs hcd (root_eq_of_parentOf hwf hcp)
+      (Or.inr (Or.inr (Or.inl ⟨c, j, hcp, hj, Or.inl rfl, hjk⟩)))
+  · rw [hoff] at hjk
+    by_cases hcr : c = ref
+    · subst hcr
+      exact not_contained_of_inclusiveAncestor hwf hs hrs
+    · have hji : j < i := by
+        have := index_ne_of_ne hcp hp hj hi hcr
+        omega
+      obtain ⟨cd, hcd, -⟩ := parentOf_eq_some hcp
+      have hrc : root s.tree c = root s.tree r.start.node := by
+        rw [root_eq_of_parentOf hwf hcp, ← root_eq_of_parentOf hwf hp]
+        rcases hrs with he' | ha'
+        · rw [he']
+        · exact (root_eq_of_ancestor hwf ha').symm
+      exact not_contained_of_before hwf hs hcd hrc
+        (Or.inr (Or.inr (Or.inr ⟨_, c, ref, j, i, hcp, hp, hj, hi, hji, Or.inl rfl, hrs⟩)))
+
+/-- new node が子を持つなら、new offset は子の数以下である。 -/
+theorem newBP_offset_le (h : AdmissibleDOMState s) (hrv : RangeValid s.tree r) {c : NodeId}
+    (hc : parentOf s.tree c = some (deleteContentsNewBP s.tree r).node) :
+    (deleteContentsNewBP s.tree r).offset ≤
+      (childrenOf s.tree (deleteContentsNewBP s.tree r).node).length := by
+  obtain ⟨⟨sd, hs, hso⟩, -, hroot, -⟩ := id hrv
+  rcases newBP_cases h.wellFormed hroot with ⟨hbp, -⟩ | ⟨ref, i, hp, -, hi, hoff⟩
+  · rw [hbp] at hc ⊢
+    have hlen := lengthOf_eq_children (h.childCountKind hc)
+    unfold lengthOf at hlen
+    rw [hs] at hlen
+    dsimp only at hlen
+    rw [← hlen]
+    exact hso
+  · rw [hoff]
+    have := index_lt_children_length hp hi
+    omega
+
+/-- 列の先頭 `A` に入らない要素は、`A` の長さ以上の位置にある。 -/
+theorem mem_of_append_eq {α : Type} {A B u v : List α} {m : α} (h : A ++ B = u ++ m :: v)
+    (hl : u.length < A.length) : m ∈ A := by
+  have h1 : (u ++ m :: v)[u.length]? = some m := by simp
+  rw [← h, List.getElem?_append_left hl, List.getElem?_eq_some_iff] at h1
+  obtain ⟨hlt, heq⟩ := h1
+  rw [← heq]
+  exact List.getElem_mem hlt
+
+/--
+**remove を続けても、`A` にも `P` にも当たらない node しか外さなければ、`P` の children は `A` で始まったままである。**
+-/
+theorem removeEach_children_prefix {P : NodeId} {A : List NodeId} {b : Bool} :
+    ∀ (ns : List NodeId) {s₀ s' : DOMState}, WellFormed s₀.tree → removeEach s₀ ns b = .ok s' →
+      (∀ m ∈ ns, m ∉ A ∧ m ≠ P) → ∀ {B : List NodeId}, childrenOf s₀.tree P = A ++ B →
+      ∃ B', childrenOf s'.tree P = A ++ B'
+  | [], s₀, s', _, h, _, B, hB => by
+    rw [removeEach] at h
+    cases h
+    exact ⟨B, hB⟩
+  | m :: rest, s₀, s', hwf, h, hns, B, hB => by
+    rw [removeEach] at h
+    split at h
+    · cases h
+    · rename_i s₁ hr
+      have hwf₁ := remove_preserves_wellformed hwf hr
+      have hd := (remove_ok hr).2
+      obtain ⟨hmA, -⟩ := hns m (by simp)
+      have hc₁ : ∃ B₁, childrenOf s₁.tree P = A ++ B₁ := by
+        rcases detach_ok_cases hd with ⟨d, -, -, ht⟩ | ⟨d, p, pd, hdd, hdp, hpd, ht⟩
+        · exact ⟨B, by rw [ht, hB]⟩
+        · have hpm : parentOf s₀.tree m = some p := by rw [parentOf_eq, hdd]; exact hdp
+          have hpn : p ≠ m := fun he => ancestor_irrefl hwf m (Ancestor.step (he ▸ hpm))
+          rw [ht, childrenOf_detachFrom hdd hpd hpn]
+          split
+          · rename_i hPp
+            refine ⟨Dom.ListUtil.removeAll B m, ?_⟩
+            rw [← hPp, hB]
+            unfold Dom.ListUtil.removeAll
+            rw [List.filter_append]
+            congr 1
+            exact List.filter_eq_self.mpr (fun x hx => decide_eq_true (fun he => hmA (he ▸ hx)))
+          · exact ⟨B, hB⟩
+      obtain ⟨B₁, hB₁⟩ := hc₁
+      exact removeEach_children_prefix rest hwf₁ h (fun x hx => hns x (by simp [hx])) hB₁
+
+/--
+**step 10 の各 remove は、step 8 で置いた点を動かさない。**
+
+`s₁` は step 9 の後の状態で、木の形は `s` と同じである（replace data は data しか変えない）。
+-/
+theorem newBP_fixed_removeEach (h : AdmissibleDOMState s) (hrv : RangeValid s.tree r)
+    {s₁ : DOMState} (hwf₁ : WellFormed s₁.tree)
+    (hpar₁ : ∀ x, parentOf s₁.tree x = parentOf s.tree x)
+    (hch₁ : ∀ x, childrenOf s₁.tree x = childrenOf s.tree x) :
+    ∀ pre m post s', nodesToRemove s.tree r = pre ++ m :: post → removeEach s₁ pre false = .ok s' →
+      PreRemoveFixes s'.tree m ⟨deleteContentsNewBP s.tree r, deleteContentsNewBP s.tree r⟩ := by
+  intro pre m post s' hsplit hpre p hp
+  have hwf := h.wellFormed
+  obtain ⟨⟨sd, hs, -⟩, ⟨ed, he, -⟩, hroot, -⟩ := id hrv
+  have hc := containedInRange_iff hwf hs he hroot
+  have hwf' := removeEach_preserves_wellformed pre hwf₁ hpre
+  have hnd := nodesToRemove_nodup (r := r) hwf
+  rw [hsplit] at hnd
+  have hmpre : m ∉ pre := fun hm => (List.nodup_append.mp hnd).2.2 m hm m (by simp) rfl
+  have contained_of_mem : ∀ x ∈ nodesToRemove s.tree r, Contained s.tree r x :=
+    fun x hx => (hc x).mp ((mem_nodesToRemove_iff x).mp hx).2.1
+  have hmC : Contained s.tree r m := contained_of_mem m (by rw [hsplit]; simp)
+  have hpm : parentOf s.tree m = some p := by
+    rw [← hpar₁, ← parentOf_removeEach_of_not_mem pre hpre hmpre]
+    exact hp
+  have hanc : ∀ {a x : NodeId}, Ancestor s'.tree a x → Ancestor s.tree a x := fun ha =>
+    ancestor_of_parentOf_subset (fun x y hxy => by rw [← hpar₁]; exact hxy)
+      (ancestor_of_removeEach pre hpre ha)
+  have hstart := newBP_inclusiveAncestor_start hwf hroot
+  -- A：new node の、new offset より前の子。contained でないので外されない。
+  have notA : ∀ x, Contained s.tree r x →
+      x ∉ (childrenOf s.tree (deleteContentsNewBP s.tree r).node).take
+        (deleteContentsNewBP s.tree r).offset := by
+    intro x hxC hxA
+    obtain ⟨hxp, j, hjk, hj⟩ := index_lt_of_mem_take hwf hxA
+    exact not_contained_before_newBP h hrv hxp hj hjk hxC
+  have key : liveRangePreRemoveBP s'.tree m p ((index s'.tree m).getD 0)
+      (deleteContentsNewBP s.tree r) = deleteContentsNewBP s.tree r := by
+    rw [liveRangePreRemoveBP_neg]
+    · unfold rangeShiftAfterRemove
+      rw [if_neg]
+      rintro ⟨hP, hlt⟩
+      subst hP
+      obtain ⟨j', hj'⟩ := index_isSome hwf' hp
+      rw [hj', Option.getD_some] at hlt
+      obtain ⟨B', hB'⟩ := removeEach_children_prefix pre hwf₁ hpre
+        (fun x hx => ⟨notA x (contained_of_mem x (by rw [hsplit]; simp [hx])),
+          fun hxe => not_contained_of_inclusiveAncestor hwf hs (hxe ▸ hstart)
+            (contained_of_mem x (by rw [hsplit]; simp [hx]))⟩)
+        (B := (childrenOf s.tree (deleteContentsNewBP s.tree r).node).drop
+          (deleteContentsNewBP s.tree r).offset)
+        (by rw [hch₁]; exact (List.take_append_drop _ _).symm)
+      obtain ⟨u, v, huv, hul, -⟩ := (index_eq_some_iff_split hp).mp hj'
+      rw [hB'] at huv
+      have hle := newBP_offset_le h hrv hpm
+      apply notA m hmC
+      refine mem_of_append_eq huv ?_
+      rw [List.length_take]
+      omega
+    · cases hia : isInclusiveAncestorOf s'.tree m (deleteContentsNewBP s.tree r).node with
+      | false => rfl
+      | true =>
+        exfalso
+        have h1 := (isInclusiveAncestorOf_iff hwf' m _).mp hia
+        have h2 : InclusiveAncestor s.tree m (deleteContentsNewBP s.tree r).node :=
+          h1.imp id hanc
+        exact not_contained_of_inclusiveAncestor hwf hs (h2.trans_inclusive hstart) hmC
+  unfold liveRangePreRemoveRange
+  simp only [key]
+
+end Fixed
+
 /-! ## 全体 -/
 
-/-- 実行関数の step 8-10。 -/
+/-- 実行関数の step 10-11 と、step 8 の点を置く所。 -/
 private def deleteTail (s₁ : DOMState) (i : Nat) (toRemove : List NodeId) (en : NodeId)
     (eo : Nat) (deChar : Bool) (newBP : BoundaryPoint) : Except DOMException DOMState :=
   match removeEach s₁ toRemove with
@@ -422,45 +661,56 @@ private def deleteTail (s₁ : DOMState) (i : Nat) (toRemove : List NodeId) (en 
         let bp := if checkValidBoundaryPoint s₃.tree newBP then newBP else r₃.start
         .ok (withRange s₃ i { start := bp, «end» := bp })
 
-/-- replace data は kind を変えず、parent を変えず、live range の数を変えない。 -/
+/-- replace data は kind を変えず、parent も children も変えず、live range の数を変えない。 -/
 theorem replaceData_frame {s s' : DOMState} {n : NodeId} {offset count : Nat} {data : String}
     (hwf : WellFormed s.tree) (h : replaceData s n offset count data = .ok s') :
     WellFormed s'.tree ∧ ShapePreserving s.tree s'.tree ∧
-      (∀ x, parentOf s'.tree x = parentOf s.tree x) ∧ s'.ranges.length = s.ranges.length := by
+      (∀ x, parentOf s'.tree x = parentOf s.tree x) ∧ s'.ranges.length = s.ranges.length ∧
+      (∀ x, childrenOf s'.tree x = childrenOf s.tree x) := by
   obtain ⟨d, sp, hd, -, -, -, ht, hrg, -⟩ := replaceData_ok h
   refine ⟨replaceData_preserves_wellformed hwf h, shapePreserving_replaceData h,
-    fun x => by rw [ht, parentOf_withData hd], by rw [hrg, List.length_map]⟩
+    fun x => by rw [ht, parentOf_withData hd], by rw [hrg, List.length_map],
+    fun x => by rw [ht, childrenOf_withData hd]⟩
 
-/-- step 8-10。step 7 の後の状態 `s₁` が kind・parent・range の数を保っていれば、関係が立つ。 -/
+/--
+step 10-11。step 9 の後の状態 `s₁`（実行関数の側）が木の形と range の数を保っていれば、
+step 8 で点を置いた状態から本文の順に進めたものが関係を満たし、実行関数の結果と一致する。
+-/
 private theorem deleteTail_spec {s s₁ : DOMState} {i : Nat} {r : RangeState} {ed : NodeData}
     (h : AdmissibleDOMState s) (hr : s.ranges[i]? = some r) (hrv : RangeValid s.tree r)
     (hn3 : ¬ (r.start.node = r.«end».node ∧ IsCharacterData s.tree r.start.node))
     (he : s.tree.get? r.«end».node = some ed)
     (hwf₁ : WellFormed s₁.tree) (hsp₁ : ShapePreserving s.tree s₁.tree)
     (hpar₁ : ∀ x, parentOf s₁.tree x = parentOf s.tree x)
-    (hlen₁ : s₁.ranges.length = s.ranges.length) :
-    ∃ s₂, RemoveEachSpec s₁ (nodesToRemove s.tree r) false s₂ ∧
+    (hlen₁ : s₁.ranges.length = s.ranges.length)
+    (hch₁ : ∀ x, childrenOf s₁.tree x = childrenOf s.tree x) :
+    ∃ s₂, RemoveEachSpec (withRange s₁ i ⟨deleteContentsNewBP s.tree r, deleteContentsNewBP s.tree r⟩)
+        (nodesToRemove s.tree r) false s₂ ∧
       AndThen (ReplaceDataIfCharacterData s₂ r.«end».node 0 r.«end».offset)
-        (fun s₃ res₃ => res₃ = .ok { s₃ with
-          ranges := s₃.ranges.set i ⟨deleteContentsNewBP s.tree r, deleteContentsNewBP s.tree r⟩ })
+        (fun s₃ res₃ => res₃ = .ok s₃)
         (deleteTail s₁ i (nodesToRemove s.tree r) r.«end».node r.«end».offset
           ed.kind.isCharacterData (deleteContentsNewBP s.tree r)) := by
   have hwf := h.wellFormed
   obtain ⟨⟨sd, hs, -⟩, -, hroot, -⟩ := id hrv
   have hc := containedInRange_iff hwf hs he hroot
-  -- step 8 は失敗しない
+  -- step 8 の点
+  let x : RangeState := ⟨deleteContentsNewBP s.tree r, deleteContentsNewBP s.tree r⟩
+  -- step 10 は失敗しない
   obtain ⟨s₂, hre⟩ := removeEach_isOk_of_parents (b := false) (nodesToRemove s.tree r) hwf₁
     (nodesToRemove_nodup hwf) (fun n hn => by
       obtain ⟨p, hp⟩ := parentOf_isSome_of_contained hwf hs
         ((hc n).mp ((mem_nodesToRemove_iff n).mp hn).2.1)
       exact ⟨p, by rw [hpar₁]; exact hp⟩)
+  have hre' : removeEach (withRange s₁ i x) (nodesToRemove s.tree r) false = .ok (withRange s₂ i x) := by
+    rw [removeEach_withRange _ _ (newBP_fixed_removeEach h hrv hwf₁ hpar₁ hch₁), hre]
+    rfl
   have hwf₂ := removeEach_preserves_wellformed _ hwf₁ hre
   have hsp₂ := hsp₁.trans (shapePreserving_removeEach _ hre)
   have hpar₂ : ∀ x, x ∉ nodesToRemove s.tree r → parentOf s₂.tree x = parentOf s.tree x :=
     fun x hx => by rw [parentOf_removeEach_of_not_mem _ hre hx, hpar₁]
   have hlen₂ : s₂.ranges.length = s.ranges.length := by
     rw [removeEach_ranges_length _ hre, hlen₁]
-  -- step 10
+  -- 実行関数の最後：点は最終の木でも妥当なので、そのまま置かれる
   have final : ∀ s₃ : DOMState, WellFormed s₃.tree → ShapePreserving s.tree s₃.tree →
       (∀ x, x ∉ nodesToRemove s.tree r → parentOf s₃.tree x = parentOf s.tree x) →
       s₃.ranges.length = s.ranges.length →
@@ -470,16 +720,14 @@ private theorem deleteTail_spec {s s₁ : DOMState} {i : Nat} {r : RangeState} {
           let bp := if checkValidBoundaryPoint s₃.tree (deleteContentsNewBP s.tree r)
             then deleteContentsNewBP s.tree r else r₃.start
           (.ok (withRange s₃ i { start := bp, «end» := bp }) : Except DOMException DOMState)) =
-        .ok { s₃ with
-          ranges := s₃.ranges.set i ⟨deleteContentsNewBP s.tree r, deleteContentsNewBP s.tree r⟩ } := by
+        .ok (withRange s₃ i x) := by
     intro s₃ hwf₃ hsp₃ hpar₃ hlen₃
     have hi : i < s₃.ranges.length := by
       rw [hlen₃]; exact (List.getElem?_eq_some_iff.mp hr).1
     rw [List.getElem?_eq_getElem hi]
     simp only []
     rw [if_pos (deleteContentsNewBP_valid h hrv hn3 hwf₃ hsp₃ hpar₃)]
-    rfl
-  refine ⟨s₂, removeEach_sound _ hwf₁ hre, ?_⟩
+  refine ⟨withRange s₂ i x, removeEach_sound _ hwf₁ hre', ?_⟩
   unfold deleteTail
   rw [hre]
   simp only []
@@ -487,15 +735,18 @@ private theorem deleteTail_spec {s s₁ : DOMState} {i : Nat} {r : RangeState} {
   by_cases hk : ed.kind.isCharacterData = true
   · rw [if_pos hk]
     have hch : IsCharacterData s₂.tree r.«end».node := ⟨ed₂, hed₂, by rw [hk₂]; exact hk⟩
-    have hsound := replaceData_result_sound hwf₂ r.«end».node 0 r.«end».offset ""
-    cases h9 : replaceData s₂ r.«end».node 0 r.«end».offset "" with
+    have hne := newBP_ne_end h hroot hn3 ⟨ed, he, hk⟩
+    have hsound := replaceData_result_sound (s := withRange s₂ i x) hwf₂ r.«end».node 0
+      r.«end».offset ""
+    rw [replaceData_withRange hne hne] at hsound
+    cases h11 : replaceData s₂ r.«end».node 0 r.«end».offset "" with
     | error e =>
-      rw [h9] at hsound
+      rw [h11] at hsound
       exact Or.inl ⟨e, Or.inr ⟨hch, hsound⟩, rfl⟩
     | ok s₃ =>
-      rw [h9] at hsound
-      obtain ⟨hwf₃, hsp₃, hpar₃, hlen₃⟩ := replaceData_frame hwf₂ h9
-      refine Or.inr ⟨s₃, Or.inr ⟨hch, hsound⟩, ?_⟩
+      rw [h11] at hsound
+      obtain ⟨hwf₃, hsp₃, hpar₃, hlen₃, -⟩ := replaceData_frame hwf₂ h11
+      refine Or.inr ⟨withRange s₃ i x, Or.inr ⟨hch, hsound⟩, ?_⟩
       exact final s₃ hwf₃ (hsp₂.trans hsp₃) (fun x hx => by rw [hpar₃, hpar₂ x hx])
         (by rw [hlen₃, hlen₂])
   · rw [if_neg hk]
@@ -505,10 +756,13 @@ private theorem deleteTail_spec {s s₁ : DOMState} {i : Nat} {r : RangeState} {
       cases hd
       rw [hk₂] at hdk
       exact hk hdk
-    exact Or.inr ⟨s₂, Or.inl ⟨hch, rfl⟩, final s₂ hwf₂ hsp₂ hpar₂ hlen₂⟩
+    exact Or.inr ⟨withRange s₂ i x, Or.inl ⟨hch, rfl⟩, final s₂ hwf₂ hsp₂ hpar₂ hlen₂⟩
 
 /--
 **`deleteContents` の結果は、成否によらず関係を満たす。**
+
+関係は固定版の本文の順（step 8 で点を置いてから step 9-11）で書いてある。実行関数は点を最後に置くが、
+step 9-11 の調整が点を動かさないので同じ結果になる。
 
 `this` が live range として妥当（`RangeValid`）であることを仮定する。仕様の live range が
 常に満たしている前提である。
@@ -540,28 +794,33 @@ theorem rangeDeleteContents_result_sound {s : DOMState} {i : Nat} {r : RangeStat
     exact h3 (by simp [heq, hdk])
   refine Or.inr (Or.inr ⟨hcol, hn3, _, _, nodesToRemove_spec hwf hs he hroot,
     deleteContentsNewBP_spec hwf hroot, ?_⟩)
-  -- step 7
+  -- step 8 で置く点
+  let x : RangeState := ⟨deleteContentsNewBP s.tree r, deleteContentsNewBP s.tree r⟩
+  show AndThen (ReplaceDataIfCharacterData (withRange s i x) _ _ _) _ _
+  -- step 9
   rw [lengthOf_of_get? hs]
-  by_cases hk7 : sd.kind.isCharacterData = true
-  · rw [if_pos hk7]
-    have hsound := replaceData_result_sound hwf r.start.node r.start.offset
+  by_cases hk9 : sd.kind.isCharacterData = true
+  · rw [if_pos hk9]
+    have hne := newBP_ne_start h hroot hn3 ⟨sd, hs, hk9⟩
+    have hsound := replaceData_result_sound (s := withRange s i x) hwf r.start.node r.start.offset
       (sd.length - r.start.offset) ""
-    cases h7 : replaceData s r.start.node r.start.offset (sd.length - r.start.offset) "" with
+    rw [replaceData_withRange hne hne] at hsound
+    cases h9 : replaceData s r.start.node r.start.offset (sd.length - r.start.offset) "" with
     | error e =>
-      rw [h7] at hsound
-      exact Or.inl ⟨e, Or.inr ⟨⟨sd, hs, hk7⟩, hsound⟩, rfl⟩
+      rw [h9] at hsound
+      exact Or.inl ⟨e, Or.inr ⟨⟨sd, hs, hk9⟩, hsound⟩, rfl⟩
     | ok s₁ =>
-      rw [h7] at hsound
-      obtain ⟨hwf₁, hsp₁, hpar₁, hlen₁⟩ := replaceData_frame hwf h7
-      exact Or.inr ⟨s₁, Or.inr ⟨⟨sd, hs, hk7⟩, hsound⟩,
-        deleteTail_spec h hr hrv hn3 he hwf₁ hsp₁ hpar₁ hlen₁⟩
-  · rw [if_neg hk7]
+      rw [h9] at hsound
+      obtain ⟨hwf₁, hsp₁, hpar₁, hlen₁, hch₁⟩ := replaceData_frame hwf h9
+      exact Or.inr ⟨withRange s₁ i x, Or.inr ⟨⟨sd, hs, hk9⟩, hsound⟩,
+        deleteTail_spec h hr hrv hn3 he hwf₁ hsp₁ hpar₁ hlen₁ hch₁⟩
+  · rw [if_neg hk9]
     have hch : ¬ IsCharacterData s.tree r.start.node := by
       rintro ⟨d, hd, hdk⟩
       rw [hs] at hd
       cases hd
-      exact hk7 hdk
-    exact Or.inr ⟨s, Or.inl ⟨hch, rfl⟩,
-      deleteTail_spec h hr hrv hn3 he hwf (ShapePreserving.refl _) (fun _ => rfl) rfl⟩
+      exact hk9 hdk
+    exact Or.inr ⟨withRange s i x, Or.inl ⟨hch, rfl⟩,
+      deleteTail_spec h hr hrv hn3 he hwf (ShapePreserving.refl _) (fun _ => rfl) rfl (fun _ => rfl)⟩
 
 end Dom.Spec

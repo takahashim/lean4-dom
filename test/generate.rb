@@ -478,7 +478,7 @@ module Generate
 
       # `observe` の options は `random_observed_types` が作る。
       return { "op" => op, "observer" => mo, "target" => ids.sample(random: rng),
-               "subtree" => rng.rand < 0.6 }.merge(random_observed_types(rng))
+               "subtree" => rng.rand < 0.6 }.merge(omit_observed_types(rng, random_observed_types(rng)))
     end
     if RANGE_OPS.include?(op)
       return nil if range_count.zero?
@@ -1047,6 +1047,21 @@ module Generate
   #
   # `attributeFilter` は「存在するだけで」絞り込みになるので、
   # 空 list と非空 list の両方を混ぜる。
+  # `observe` 操作の options から、既定値の無い member を落としたり、
+  # old value を明示の false にしたりする。step 1-2 は「存在するか」で分岐するので、
+  # 省略と false の区別を差分テストに通す（初期状態の observer には使わない）。
+  def omit_observed_types(rng, opts)
+    opts = opts.dup
+    %w[attributes characterData].each { |k| opts.delete(k) if rng.rand < 0.3 }
+    %w[attributeOldValue characterDataOldValue].each do |k|
+      r = rng.rand
+      if r < 0.3 then opts.delete(k)
+      elsif r < 0.45 then opts[k] = false
+      end
+    end
+    opts
+  end
+
   def random_observed_types(rng)
     child_list = rng.rand < 0.6
     attributes = rng.rand < 0.6

@@ -174,16 +174,17 @@ theorem deleteContents_result_deterministic {s : DOMState} {i : Nat}
     subst hle
     have hbe := deleteNewBP_unique hbp₁ hbp₂
     subst hbe
-    refine andThen_congr (fun _ _ ha hb => replaceDataIfCharacterData_congr (ObsEq.refl s) ha hb)
+    refine andThen_congr (fun _ _ ha hb => replaceDataIfCharacterData_congr (ObsEq.refl _) ha hb)
       ?_ hch₁ hch₂
     intro s₁ s₁' ha₁ hobs₁ q₁ q₂ ⟨s₂, hre₂, hq₁⟩ ⟨s₂', hre₂', hq₂⟩
-    have hwf₁ := replaceDataIfCharacterData_wellFormed hwf ha₁
+    have hwf₁ := replaceDataIfCharacterData_wellFormed (s := { s with ranges := s.ranges.set i _ })
+      hwf ha₁
     have hobs₂ := removeEachSpec_congr hwf₁ hobs₁ hre₂ hre₂'
     refine andThen_congr (fun _ _ ha hb => replaceDataIfCharacterData_congr hobs₂ ha hb)
       ?_ hq₁ hq₂
     intro s₃ s₃' _ hobs₃ q₃ q₄ hq₃ hq₄
     subst hq₃ hq₄
-    exact { hobs₃ with ranges := by show s₃'.ranges.set i _ = s₃.ranges.set i _; rw [hobs₃.ranges] }
+    exact hobs₃
 
 /-- **`deleteContents` の完全性。** -/
 theorem rangeDeleteContents_result_complete {s : DOMState} {i : Nat}

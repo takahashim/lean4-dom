@@ -6,13 +6,15 @@ import Infra.Ascii
 
 DOM Standard §1.3 "Name validation" と "validate and extract"。
 
-attribute を扱うために要るのは次の三つである。
+次のものを扱う。
 
 * valid namespace prefix
 * valid attribute local name
-* validate and extract（context は "attribute"）
+* valid element local name
+* validate and extract（context は "attribute" と "element" の二つの関数に分ける）
 
-valid element local name は element の local name を model が持たないので扱わない。
+本文の step 順に書いた "validate and extract" と、ここの二つの関数が等しいことは
+`Dom/Spec/ValidateAndExtract.lean` にある。
 -/
 
 namespace Dom

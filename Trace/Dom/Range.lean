@@ -37,9 +37,10 @@ def entries : List Entry := [
   { alg := "live-range-pre-remove-steps"
     impl := [``Dom.liveRangePreRemove, ``Dom.liveRangePreRemoveRange, ``Dom.liveRangePreRemoveBP,
              ``Dom.rangeMoveOutOfSubtree, ``Dom.rangeShiftAfterRemove]
-    spec := [``Dom.Spec.RangeAdjusted, ``Dom.Spec.BoundaryAdjusted]
-    approx := [("2", "assert の代わりに、parent が無ければ何もしない"),
-               ("4-7", "range ごとに step 4・6（start）と step 5・7（end）を合成して一度に当てる。step 4-5 で移した点の offset は index なので step 6-7 に掛からず、結果は同じ")] },
+    -- step 2 の assert の代わりに、parent が無ければ何もしない。呼び出し元は remove（step 1-2 で parent を確かめる）と
+    -- move（step 7-8）だけで、どちらの関係の soundness も parent のある場合に限って調整を述べる。
+    -- step 4-7 は range ごとに合成して一度に当てる。二つの調整が可換であることは `liveRangePreRemoveBP_comm`。
+    spec := [``Dom.Spec.RangeAdjusted, ``Dom.Spec.BoundaryAdjusted, ``Dom.liveRangePreRemoveBP_comm] },
   { alg := "concept-range-bp-set"
     impl := [``Dom.setStartBP, ``Dom.setEndBP, ``Dom.rangeBoundaryError, ``Dom.rangeNeedsCollapse]
     spec := [``Dom.Spec.StartSet, ``Dom.Spec.EndSet, ``Dom.Spec.BoundaryPointError,
@@ -82,16 +83,21 @@ def entries : List Entry := [
   { alg := "dom-range-deletecontents"
     impl := [``Dom.rangeDeleteContents, ``Dom.nodesToRemove, ``Dom.containedInRange,
              ``Dom.deleteContentsNewBP, ``Dom.removeEach, ``Dom.replaceData]
+    -- 実行関数は step 8 の点を step 9-11 の後で置き、最終の木で妥当でなければ調整後の start を使う。
+    -- 関係は本文の順（step 8 で置いてから step 9-11）で書いてあり、点が step 9-11 で動かないこと
+    -- （`newBP_fixed_removeEach`、`newBP_ne_start`、`newBP_ne_end`）と、点が妥当であること
+    -- （`deleteContentsNewBP_valid`）から、実行関数がそれを満たす（`rangeDeleteContents_result_sound`）。
     spec := [``Dom.Spec.DeleteContentsResult, ``Dom.Spec.NodesToRemove, ``Dom.Spec.Contained,
-             ``Dom.Spec.DeleteNewBP]
-    approx := [("8", "(newNode, newOffset) を step 9-11 の後で置く。step 9-11 の live range 調整はこの点を動かさないので同じ値になるが、実行関数はその点が最終の木で妥当かを検査し、妥当でなければ調整後の start を使う")] },
+             ``Dom.Spec.DeleteNewBP, ``Dom.Spec.rangeDeleteContents_result_sound] },
   { alg := "concept-range-insert"
     impl := [``Dom.rangeInsertNode, ``Dom.ensurePreInsertionValidity, ``Dom.preInsert,
              ``Dom.remove, ``Dom.siblingBP]
     spec := [``Dom.Spec.InsertNodeResult, ``Dom.Spec.InsertNodeTail, ``Dom.Spec.NewOffset,
              ``Dom.Spec.InsertNodeHierarchyError, ``Dom.Spec.ChildAtOffset]
-    omitted := [("7", .todo "Text node の split（§4.11 split a Text node）が model に無い。start node が Text なら step 6 の validity を通った後で outsideModel を返す")]
-    approx := [("10-11", "newOffset を step 12 の前に数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める。空の DocumentFragment なら end を置き直さない")] },
+    -- 実行関数は newOffset を前もって数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める。
+    -- 関係 `InsertNodeTail` は本文どおり step 10-11 で数えて step 13 で使う形で書いてあり、
+    -- `rangeInsertNode_result_sound` が実行関数がそれを満たすことを示す。
+    omitted := [("7", .todo "Text node の split（§4.11 split a Text node）が model に無い。start node が Text なら step 6 の validity を通った後で outsideModel を返す")] },
   { alg := "dom-range-insertnode"
     impl := [``Dom.rangeInsertNode]
     spec := [``Dom.Spec.InsertNodeResult] },

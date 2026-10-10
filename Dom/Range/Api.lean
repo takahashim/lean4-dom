@@ -218,7 +218,7 @@ def nodesToRemove (t : Tree) (r : RangeState) : List NodeId :=
         | none => false)
 
 /--
-DOM Standard §5.5 `deleteContents` の step 5-6。
+DOM Standard §5.5 `deleteContents` の step 5-7。
 
 start node が end node の inclusive ancestor ならその場に潰れる。
 そうでなければ、start 側の祖先を「end node の inclusive ancestor の子」になるまで上り、
@@ -238,10 +238,13 @@ def deleteContentsNewBP (t : Tree) (r : RangeState) : BoundaryPoint :=
 /--
 DOM Standard §5.5 `Range.deleteContents()`。
 
-step 10 が置く boundary point は、range が妥当（start と end が同じ木にあり、start が
-end の前か等しい）なら最終状態でも妥当である（`Dom.Spec.deleteContentsNewBP_valid`）。
-妥当でない range も admissible な状態には現れうるので、実行時の検査は残し、
-妥当でなければ live range の調整が残した端点を使う
+本文は step 8 で `this` を (newNode, newOffset) に置いてから step 9-11（replace data と remove）を走らせる。
+ここでは step 9-11 を先に走らせ、最後に点を置く。step 9-11 の live range の調整はこの点を動かさないので
+結果は同じである（`Dom.Spec.rangeDeleteContents_result_sound` が本文の順の関係を満たすことを示す）。
+
+点は range が妥当（start と end が同じ木にあり、start が end の前か等しい）なら最終状態でも妥当である
+（`Dom.Spec.deleteContentsNewBP_valid`）。妥当でない range も admissible な状態には現れうるので、
+実行時の検査は残し、妥当でなければ live range の調整が残した端点を使う
 （そちらは `remove_preserves_endpoints` などで妥当である）。
 -/
 def rangeDeleteContents (s : DOMState) (i : Nat) : Except DOMException DOMState :=
@@ -259,23 +262,23 @@ def rangeDeleteContents (s : DOMState) (i : Nat) : Except DOMException DOMState 
         else
           let newBP := deleteContentsNewBP s.tree r
           let toRemove := nodesToRemove s.tree r
-          -- step 7
+          -- step 9
           match (if ds.kind.isCharacterData then
                    replaceData s r.start.node r.start.offset (ds.length - r.start.offset) ""
                  else .ok s) with
           | .error e => .error e
           | .ok s₁ =>
-            -- step 8
+            -- step 10
             match removeEach s₁ toRemove with
             | .error e => .error e
             | .ok s₂ =>
-              -- step 9
+              -- step 11
               match (if de.kind.isCharacterData then
                        replaceData s₂ r.«end».node 0 r.«end».offset ""
                      else .ok s₂) with
               | .error e => .error e
               | .ok s₃ =>
-                -- step 10
+                -- step 8 の点を置く
                 match s₃.ranges[i]? with
                 | none => .error .notFoundError
                 | some r₃ =>

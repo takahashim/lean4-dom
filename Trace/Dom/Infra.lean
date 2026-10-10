@@ -19,9 +19,10 @@ def entries : List Entry := [
     approx := [("*", "専用の関数は無く、DOMTokenList の update steps（`tokenListUpdate`）の中で `\" \".intercalate` として書いている")] },
   { alg := "scope-match-a-selectors-string"
     impl := [``Dom.scopeMatch, ``Dom.matchTree, ``Selectors.parseSelector, ``Dom.matchSelList]
-    spec := [``Dom.Spec.SelectorListMatches]
-    approx := [("1", "parse a selector は model の selector 文法（`parseSelector` が受け付ける部分集合）で行う。受け付けない構文は failure（SyntaxError）になる"),
-               ("3", "root の全 element ではなく node の descendant element だけを候補にする（scoping root が node なので、それ以外は scoping で落ちるという前提。node 自身は候補に入れない）")] },
+    -- step 3 の "match a selector against a tree" は、root ではなく node の部分木を列挙する。
+    -- 結果が Selectors §17 の定義と列として等しいことは `ScopeMatchResult` の sound と complete。
+    spec := [``Dom.Spec.ScopeMatchResult, ``Dom.Spec.MatchAgainstTree, ``Dom.Spec.SelectorListMatches]
+    approx := [("1", "parse a selector は model の selector 文法（`parseSelector` が受け付ける部分集合）で行う。受け付けない構文は failure（SyntaxError）になる")] },
   { alg := "valid-namespace-prefix"
     impl := [``Dom.isValidNamespacePrefix] },
   { alg := "valid-attribute-local-name"
@@ -31,9 +32,9 @@ def entries : List Entry := [
   { alg := "validate-and-extract"
     impl := [``Dom.validateAndExtractAttribute, ``Dom.validateAndExtractElement,
              ``Dom.validateAndExtractError, ``Dom.splitAtFirstColon, ``Dom.normalizeNamespace]
-    omitted := [("5", .other "assert。step 4.3 の分岐から従うので検査しない")]
-    approx := [("1", "namespace の正規化（空文字列を null に）を step 4.3 の後で一度だけ行う。step 1-4 の間で namespace は読まないので結果は同じ"),
-               ("6-7", "context の代わりに attribute 版と element 版の二つの関数を持ち、local name の検査関数だけを差し替える")] }
+    spec := [``Dom.Spec.validateAndExtractSteps, ``Dom.Spec.validateAndExtractAttribute_eq_steps,
+             ``Dom.Spec.validateAndExtractElement_eq_steps]
+    omitted := [("5", .other "assert。step 4.3 の分岐から従うので検査しない")] }
 ]
 
 def exclusions : List Exclusion := []
