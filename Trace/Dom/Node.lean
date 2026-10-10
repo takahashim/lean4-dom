@@ -49,19 +49,24 @@ def entries : List Entry := [
     impl := [``Dom.getNodeValue, ``Dom.Exec.attrQueryValue] },
   { alg := "dom-node-nodevalue/setter"
     impl := [``Dom.setNodeValue, ``Dom.setAttrValue]
+    spec := [``Dom.Spec.SetNodeValueResult, ``Dom.Spec.setNodeValue_result_sound]
     approx := [("*", "Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setNodeValue` を via = nodeValue に読み替える）。null → 空文字列は scenario を読むときに行う")] },
   { alg := "set-text-content"
     impl := [``Dom.setTextContent, ``Dom.stringReplaceAll, ``Dom.setAttrValue]
+    spec := [``Dom.Spec.SetTextContentResult, ``Dom.Spec.setTextContent_result_sound]
     approx := [("*", "Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setTextContent` を via = textContent に読み替える）。null → 空文字列は scenario を読むときに行う")] },
   { alg := "string-replace-all"
-    impl := [``Dom.stringReplaceAll, ``Dom.createTextNode, ``Dom.replaceAll] },
+    impl := [``Dom.stringReplaceAll, ``Dom.createTextNode, ``Dom.replaceAll]
+    spec := [``Dom.Spec.StringReplaceAllResult, ``Dom.Spec.stringReplaceAll_result_sound] },
   { alg := "dom-node-textcontent/setter"
-    impl := [``Dom.setTextContent, ``Dom.setAttrValue] },
+    impl := [``Dom.setTextContent, ``Dom.setAttrValue]
+    spec := [``Dom.Spec.setTextContent_result_sound] },
   { alg := "get-text-content"
     impl := [``Dom.getTextContent, ``Dom.descendantTextContent, ``Dom.Exec.attrQueryValue]
     spec := [``Dom.Spec.descendantTextContent_spec] },
   { alg := "dom-node-textcontent"
-    impl := [``Dom.getTextContent, ``Dom.Exec.attrQueryValue] },
+    impl := [``Dom.getTextContent, ``Dom.Exec.attrQueryValue]
+    spec := [``Dom.Spec.descendantTextContent_spec] },
   { alg := "dom-node-normalize"
     impl := [``Dom.normalize, ``Dom.normalizeList, ``Dom.normalizeRun, ``Dom.normalizeMergeOne,
              ``Dom.normalizeMergeRange, ``Dom.normalizeMergeBP, ``Dom.followingTexts]
@@ -81,6 +86,7 @@ def entries : List Entry := [
                ("5.1", "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）・mode・content type だけで、それを写す。encoding・URL・origin・allow declarative shadow roots は無い")] },
   { alg := "dom-node-clonenode"
     impl := [``Dom.cloneNode, ``Dom.cloneAttr]
+    spec := [``Dom.cloneNode_cloneOf, ``Dom.Spec.cloneNode_nodeEquals]
     omitted := [("1", .shadow)] },
   { alg := "concept-node-equals"
     impl := [``Dom.nodeEqualsFuel, ``Dom.nodeOwnPropertiesEqual, ``Dom.attrEquals, ``Dom.nodeRefEquals]
@@ -113,13 +119,17 @@ def entries : List Entry := [
     impl := [``Dom.isDefaultNamespace, ``Dom.attrIsDefaultNamespace]
     spec := [``Dom.Spec.isDefaultNamespace_sound] },
   { alg := "dom-node-insertbefore"
-    impl := [``Dom.insertBefore] },
+    impl := [``Dom.insertBefore]
+    spec := [``Dom.Spec.insertBefore_result_sound] },
   { alg := "dom-node-appendchild"
-    impl := [``Dom.appendChild, ``Dom.appendChildRef] },
+    impl := [``Dom.appendChild, ``Dom.appendChildRef]
+    spec := [``Dom.Spec.appendChild_result_sound] },
   { alg := "dom-node-replacechild"
-    impl := [``Dom.replaceChild] },
+    impl := [``Dom.replaceChild]
+    spec := [``Dom.Spec.replaceChild_result_sound] },
   { alg := "dom-node-removechild"
-    impl := [``Dom.removeChild] }
+    impl := [``Dom.removeChild]
+    spec := [``Dom.Spec.removeChild_result_sound] }
 ]
 
 def exclusions : List Exclusion := [

@@ -1330,3 +1330,28 @@ open Dom.Audit
 #audit_axioms
   Dom.Spec.descendantTextContent_spec
   Dom.Spec.substringData_result_sound
+
+-- 既存の関係を呼ぶだけの method
+#audit_axioms
+  Dom.Spec.preRemove_result_sound
+  Dom.Spec.removeChild_result_sound
+  Dom.Spec.insertBefore_result_sound
+  Dom.Spec.appendChild_result_sound
+  Dom.Spec.replaceChild_result_sound
+  Dom.Spec.prepend_single_result_sound
+  Dom.Spec.append_single_result_sound
+  Dom.Spec.stringReplaceAll_result_sound
+  Dom.Spec.setTextContent_result_sound
+  Dom.Spec.setNodeValue_result_sound
+  Dom.Spec.adoptNode_sound
+  Dom.Spec.importNode_eq_clone
+  Dom.Spec.querySelectorAll_result_sound
+  Dom.Spec.querySelector_result_sound
+  Dom.Spec.matches_result_sound
+  Dom.Spec.closest_result_sound
+  Dom.Spec.insertAdjacent_result_sound
+  Dom.Spec.getAttribute_spec
+  Dom.Spec.getAttributeNS_spec
+  Dom.Spec.getAttributeNode_spec
+  Dom.Spec.getAttributeNodeNS_spec
+  Dom.Spec.removeNamedItemNS_result_sound

@@ -71,6 +71,7 @@ def entries : List Entry := [
   { alg := "dom-document-importnode"
     impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn, ``Dom.Exec.idlCheck,
              ``Dom.importNodeSubtree, ``Dom.Idl.toImportNodeOptions]
+    spec := [``Dom.Spec.importNode_eq_clone, ``Dom.cloneNodeIn_deep_spec, ``Dom.cloneNodeIn_shallow_spec]
     omitted := [("3", .customElements), ("5.2-5.3", .customElements), ("6", .customElements)]
     approx := [("1", "Document だけを弾く。shadow root は model に無いので検査しない"),
                ("7", "fallbackRegistry を渡さない（custom element registry が無い）")] },
@@ -82,6 +83,7 @@ def entries : List Entry := [
     approx := [("3", "shadow-including inclusive descendant ではなく inclusive descendant をたどる（shadow tree が無いので同じ集合）")] },
   { alg := "dom-document-adoptnode"
     impl := [``Dom.adoptNode, ``Dom.adoptAttr, ``Dom.Exec.idlCheck]
+    spec := [``Dom.Spec.adoptNode_sound]
     omitted := [("2", .shadow)] },
   { alg := "dom-document-createattribute"
     impl := [``Dom.createAttribute, ``Dom.isValidAttributeLocalName, ``Dom.createAttributeIn] },

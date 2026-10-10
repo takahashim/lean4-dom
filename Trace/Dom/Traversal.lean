@@ -51,9 +51,11 @@ def entries : List Entry := [
              ``Dom.Spec.PreviousCandidate]
     approx := [("1-4", "candidate reference を持たず、iterator collection を reference で二つに分けて、pointer before に応じて reference 自身を候補に足した列から whatToShow を満たす最初の node を探す。" ++ filterNull)] },
   { alg := "dom-nodeiterator-nextnode"
-    impl := [``Dom.nextNode, ``Dom.Exec.stepIterator] },
+    impl := [``Dom.nextNode, ``Dom.Exec.stepIterator]
+    spec := [``Dom.Spec.NextNodeResult, ``Dom.Spec.nextNode_result_sound] },
   { alg := "dom-nodeiterator-previousnode"
-    impl := [``Dom.previousNode, ``Dom.Exec.stepIterator] },
+    impl := [``Dom.previousNode, ``Dom.Exec.stepIterator]
+    spec := [``Dom.Spec.PreviousNodeResult, ``Dom.Spec.previousNode_result_sound] },
   -- §6.2 TreeWalker
   { alg := "dom-treewalker-root"
     impl := [``Dom.WalkerState.root, ``Dom.observe] },
@@ -72,7 +74,8 @@ def entries : List Entry := [
     spec := [``Dom.Spec.WalkerFirstChildResult]
     approx := [("2-4", "current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。" ++ filterNull)] },
   { alg := "dom-treewalker-firstchild"
-    impl := [``Dom.walkerFirstChild, ``Dom.walkerStep] },
+    impl := [``Dom.walkerFirstChild, ``Dom.walkerStep]
+    spec := [``Dom.Spec.WalkerFirstChildResult, ``Dom.Spec.walkerFirstChild_result_sound] },
   { alg := "dom-treewalker-lastchild"
     impl := [``Dom.walkerLastChild, ``Dom.walkerStep] },
   { alg := "concept-traverse-siblings"

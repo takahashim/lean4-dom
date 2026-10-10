@@ -834,7 +834,9 @@
       "impl": [
         "Dom.append"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.append_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -926,7 +928,10 @@
       "impl": [
         "Dom.preRemove"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.PreRemoveResult",
+        "Dom.Spec.preRemove_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1141,7 +1146,9 @@
         "Dom.convertNodesIntoNode",
         "Dom.preInsert"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.prepend_single_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1155,7 +1162,9 @@
         "Dom.convertNodesIntoNode",
         "Dom.append"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.append_single_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1203,7 +1212,9 @@
         "Dom.matchTree",
         "Dom.requireParentNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.querySelector_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1218,7 +1229,9 @@
         "Dom.matchTree",
         "Dom.requireParentNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.querySelectorAll_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -1693,7 +1706,10 @@
         "Dom.setNodeValue",
         "Dom.setAttrValue"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.SetNodeValueResult",
+        "Dom.Spec.setNodeValue_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -1712,7 +1728,10 @@
         "Dom.stringReplaceAll",
         "Dom.setAttrValue"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.SetTextContentResult",
+        "Dom.Spec.setTextContent_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -1731,7 +1750,10 @@
         "Dom.createTextNode",
         "Dom.replaceAll"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.StringReplaceAllResult",
+        "Dom.Spec.stringReplaceAll_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1744,7 +1766,9 @@
         "Dom.setTextContent",
         "Dom.setAttrValue"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.setTextContent_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1773,7 +1797,9 @@
         "Dom.getTextContent",
         "Dom.Exec.attrQueryValue"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.descendantTextContent_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -1894,7 +1920,10 @@
         "Dom.cloneNode",
         "Dom.cloneAttr"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.cloneNode_cloneOf",
+        "Dom.Spec.cloneNode_nodeEquals"
+      ],
       "omit": [
         {
           "steps": "1",
@@ -2061,7 +2090,9 @@
       "impl": [
         "Dom.insertBefore"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.insertBefore_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2074,7 +2105,9 @@
         "Dom.appendChild",
         "Dom.appendChildRef"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.appendChild_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2086,7 +2119,9 @@
       "impl": [
         "Dom.replaceChild"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.replaceChild_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2098,7 +2133,9 @@
       "impl": [
         "Dom.removeChild"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.removeChild_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -2387,7 +2424,11 @@
         "Dom.importNodeSubtree",
         "Dom.Idl.toImportNodeOptions"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.importNode_eq_clone",
+        "Dom.cloneNodeIn_deep_spec",
+        "Dom.cloneNodeIn_shallow_spec"
+      ],
       "omit": [
         {
           "steps": "3",
@@ -2483,7 +2524,9 @@
         "Dom.adoptAttr",
         "Dom.Exec.idlCheck"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.adoptNode_sound"
+      ],
       "omit": [
         {
           "steps": "2",
@@ -2938,7 +2981,9 @@
         "Dom.classListContains",
         "Dom.classListAdd"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.tokenSetOk_classTokenSet"
+      ],
       "omit": [],
       "approx": [
         {
@@ -2968,7 +3013,9 @@
         "Dom.getAttribute",
         "Dom.getAttributeByName"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttribute_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3057,7 +3104,9 @@
         "Dom.hasAttribute",
         "Dom.getAttributeByName"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttribute_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3070,7 +3119,9 @@
         "Dom.getAttributeNS",
         "Dom.getAttributeByKey"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttributeNS_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3083,7 +3134,9 @@
         "Dom.hasAttributeNS",
         "Dom.getAttributeByKey"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttributeNS_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3109,7 +3162,10 @@
         "Dom.adjacentPosition?",
         "Dom.preInsert"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.InsertAdjacentResult",
+        "Dom.Spec.insertAdjacent_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3122,7 +3178,9 @@
         "Dom.insertAdjacentElement",
         "Dom.insertAdjacent"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.insertAdjacent_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3136,7 +3194,9 @@
         "Dom.createTextNode",
         "Dom.insertAdjacent"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.insertAdjacent_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3210,7 +3270,9 @@
       "impl": [
         "Dom.getAttributeNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttributeNode_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3222,7 +3284,9 @@
       "impl": [
         "Dom.getAttributeNodeNS"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttributeNodeNS_spec"
+      ],
       "omit": [],
       "approx": []
     },
@@ -3264,7 +3328,10 @@
         "Dom.closest",
         "Dom.inclusiveAncestorElements"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.ClosestResult",
+        "Dom.Spec.closest_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3281,7 +3348,9 @@
       "impl": [
         "Dom.matchesSelector"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.matches_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3298,7 +3367,9 @@
       "impl": [
         "Dom.matchesSelector"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.matches_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3337,7 +3408,9 @@
         "Dom.getAttributeNode",
         "Dom.getAttributeByName"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttributeNode_spec"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3355,7 +3428,9 @@
         "Dom.getAttributeNodeNS",
         "Dom.getAttributeByKey"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.getAttributeNodeNS_spec"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3372,7 +3447,9 @@
       "impl": [
         "Dom.setAttributeNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.setAttributeNode_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3389,7 +3466,9 @@
       "impl": [
         "Dom.setAttributeNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.setAttributeNode_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3423,7 +3502,10 @@
         "Dom.getAttributeByKey",
         "Dom.removeAttributeNode"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.RemoveNamedItemNSResult",
+        "Dom.Spec.removeNamedItemNS_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -4472,7 +4554,10 @@
         "Dom.nextNode",
         "Dom.Exec.stepIterator"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.NextNodeResult",
+        "Dom.Spec.nextNode_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4485,7 +4570,10 @@
         "Dom.previousNode",
         "Dom.Exec.stepIterator"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.PreviousNodeResult",
+        "Dom.Spec.previousNode_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4585,7 +4673,10 @@
         "Dom.walkerFirstChild",
         "Dom.walkerStep"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerFirstChildResult",
+        "Dom.Spec.walkerFirstChild_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4706,7 +4797,9 @@
         "Dom.getAttributeByKey",
         "Dom.setAttributeValue"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.orderedSetParse_serialize"
+      ],
       "omit": [],
       "approx": [
         {
@@ -4779,7 +4872,9 @@
         "Dom.classListContains",
         "Dom.classTokenSet"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.mem_orderedSetParse_iff"
+      ],
       "omit": [],
       "approx": []
     },

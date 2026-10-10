@@ -6759,6 +6759,13 @@ transient node set を持たせてこの掃除を書き直しているので、�
 実行関数がそれを満たすことを示した（`Dom/Spec/TextQuery.lean`）。`contains()` と host-including inclusive ancestor の
 対応表に既存の定理（`nodeContains_eq_true_iff`・`isInclusiveAncestorOf_iff`）を載せた。
 
+## 既存の関係を呼ぶだけの method を対応表に結びつけた
+
+pre-insert・replace・remove などを呼ぶだけの method について、結果を呼び先の関係で述べる定理を足し
+（`Dom/Spec/Wrappers.lean`、`docs/theorems.md` の §30）、対応表に載せた。関係を持つ algorithm は 133 件から 174 件
+（255 件中）に増えた。残りは、木の field を読むだけの getter、`lastChild()` と traverse siblings、splitText、
+MutationObserver の method、attribute の作成と値の設定、Range の getter などである。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

@@ -19,6 +19,7 @@ private def classOnly : String :=
 def entries : List Entry := [
   { alg := "concept-dtl-update"
     impl := [``Dom.tokenListUpdate, ``Dom.getAttributeByKey, ``Dom.setAttributeValue]
+    spec := [``Dom.Spec.orderedSetParse_serialize]
     approx := [("*", classOnly)] },
   { alg := "concept-dtl-serialize"
     impl := [``Dom.getAttributeValue]
@@ -31,7 +32,8 @@ def entries : List Entry := [
     impl := [``Dom.classTokenSet]
     approx := [("*", "DOMTokenList object を作らない。token set は使うたびに attribute の値から読み直す")] },
   { alg := "dom-domtokenlist-contains"
-    impl := [``Dom.classListContains, ``Dom.classTokenSet] },
+    impl := [``Dom.classListContains, ``Dom.classTokenSet]
+    spec := [``Dom.Spec.mem_orderedSetParse_iff] },
   { alg := "dom-domtokenlist-add"
     impl := [``Dom.classListAdd, ``Dom.validateTokens, ``Dom.validateToken,
              ``Dom.orderedSetAppend, ``Dom.tokenListUpdate]

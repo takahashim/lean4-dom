@@ -818,6 +818,27 @@ HTML document か content type が application/xhtml+xml なら HTML namespace�
 （replace data の `DataSpliced` と同じ）で書き、そう分けられない（surrogate pair の途中で切る）ときだけ model の対象外
 （`outsideModel`）になることも述べる。
 
+## 30. 別の algorithm を呼ぶだけの method は、その algorithm の関係を満たす
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.preRemove_result_sound`・`removeChild_result_sound` | `Dom/Spec/Wrappers.lean` |
+| `Dom.Spec.insertBefore_result_sound`・`appendChild_result_sound`・`replaceChild_result_sound` | 同上 |
+| `Dom.Spec.prepend_single_result_sound`・`append_single_result_sound` | 同上 |
+| `Dom.Spec.stringReplaceAll_result_sound`・`setTextContent_result_sound`・`setNodeValue_result_sound` | 同上 |
+| `Dom.Spec.adoptNode_sound`・`importNode_eq_clone` | 同上 |
+| `Dom.Spec.querySelector_result_sound`・`querySelectorAll_result_sound`・`matches_result_sound`・`closest_result_sound` | 同上 |
+| `Dom.Spec.insertAdjacent_result_sound` | 同上 |
+| `Dom.Spec.getAttribute_spec`・`getAttributeNS_spec`・`getAttributeNode_spec`・`getAttributeNodeNS_spec`・`removeNamedItemNS_result_sound` | 同上 |
+
+本文の method の多くは、pre-insert・replace・remove・replace all・replace data・adopt・scope-match・get an attribute などを
+呼んで結果を返すだけである。それぞれの method の結果を、呼ぶ algorithm の関係（`PreInsertResult`・`ReplaceResult`・
+`RemoveResult`・`ReplaceAllSpec`・`ReplaceDataResult`・`AdoptSpec`・`ScopeMatchResult`・`SelectorListMatches`・
+`AttrByName`・`AttrByKey`）で述べた。pre-remove（`PreRemoveResult`）、string replace all と set text content
+（`StringReplaceAllResult`・`SetTextContentResult`）、`closest()`（`ClosestResult`：element から root へ向かって最初に
+当たるもの）、insert adjacent（`InsertAdjacentResult`）、`removeNamedItemNS()` は、振り分けや「最初の」を関係に書いた。
+`prepend()`・`append()` は node 一つの場合（文字列の変換を含まない場合）に限る。
+
 ## 契約
 
 例外の検査順序と成功条件は `Dom/Properties/Contract.lean` にある。

@@ -46,9 +46,11 @@ def entries : List Entry := [
   { alg := "dom-nondocumenttypechildnode-nextelementsibling"
     impl := [``Dom.nextElementSibling] },
   { alg := "dom-parentnode-prepend"
-    impl := [``Dom.prependNodes, ``Dom.convertNodesIntoNode, ``Dom.preInsert] },
+    impl := [``Dom.prependNodes, ``Dom.convertNodesIntoNode, ``Dom.preInsert]
+    spec := [``Dom.Spec.prepend_single_result_sound] },
   { alg := "dom-parentnode-append"
-    impl := [``Dom.appendNodes, ``Dom.convertNodesIntoNode, ``Dom.append] },
+    impl := [``Dom.appendNodes, ``Dom.convertNodesIntoNode, ``Dom.append]
+    spec := [``Dom.Spec.append_single_result_sound] },
   { alg := "dom-parentnode-replacechildren"
     impl := [``Dom.replaceChildrenNodes, ``Dom.convertNodesIntoNode, ``Dom.replaceChildren,
              ``Dom.ensurePreInsertionValidity, ``Dom.replaceAll]
@@ -58,9 +60,11 @@ def entries : List Entry := [
     impl := [``Dom.moveBefore, ``Dom.move]
     spec := [``Dom.Spec.MoveResult] },
   { alg := "dom-parentnode-queryselector"
-    impl := [``Dom.querySelector, ``Dom.scopeMatch, ``Dom.matchTree, ``Dom.requireParentNode] },
+    impl := [``Dom.querySelector, ``Dom.scopeMatch, ``Dom.matchTree, ``Dom.requireParentNode]
+    spec := [``Dom.Spec.querySelector_result_sound] },
   { alg := "dom-parentnode-queryselectorall"
     impl := [``Dom.querySelectorAll, ``Dom.scopeMatch, ``Dom.matchTree, ``Dom.requireParentNode]
+    spec := [``Dom.Spec.querySelectorAll_result_sound]
     approx := [("*", "static な NodeList ではなく、element の list を返す")] },
   -- §4.2.8
   { alg := "dom-childnode-before"
