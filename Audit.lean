@@ -235,7 +235,6 @@ open Dom.Audit
   Url.protocol_eq
   Dom.walkerAccepts_eq
   Dom.walkerAccepts_eq_false_of_get?_eq_none
-  Dom.walkerBase_of_inclusiveAncestor
   Dom.mem_splitWs_iff
   Dom.Spec.wordIn_append_ws
   Dom.Spec.wordIn_of_no_ws
