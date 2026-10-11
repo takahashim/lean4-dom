@@ -22,6 +22,7 @@ filter が null なら、`nextNode()`・`previousNode()`・"traverse children"�
 
 実行関数がこれらを満たすことは `walkerNextNode_result_sound`・`walkerPreviousNode_result_sound`・
 `walkerFirstChild_result_sound`・`walkerParentNode_result_sound` が示す（`ValidWalker` を仮定する）。
+関係が結果を一つに決めること（completeness）は `Dom/Spec/WalkerComplete.lean` にある。
 -/
 
 namespace Dom.Spec

@@ -1268,6 +1268,13 @@ open Dom.Audit
   Dom.Spec.walkerLastChild_result_sound
   Dom.Spec.walkerNextSibling_result_sound
   Dom.Spec.walkerPreviousSibling_result_sound
+  Dom.Spec.walkerNextNode_result_complete
+  Dom.Spec.walkerPreviousNode_result_complete
+  Dom.Spec.walkerFirstChild_result_complete
+  Dom.Spec.walkerLastChild_result_complete
+  Dom.Spec.walkerParentNode_result_complete
+  Dom.Spec.walkerNextSibling_result_complete
+  Dom.Spec.walkerPreviousSibling_result_complete
   Dom.Spec.observe_result_sound
   Dom.Spec.observe_result_complete
 

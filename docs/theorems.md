@@ -1130,3 +1130,16 @@ node list にある（`ListedIn`）ので、二つは同じになる。この条
 等しい（`walkerLastChild_eq`・`walkerPreviousSibling_eq`）。証明はその等式と、反転した木の語彙と元の木の語彙の対応から出す。
 `nextSibling()` は、段ごとの候補を止まる所まで並べた列（`sibLevels`）が関係の候補と一致し（`mem_sibLevels`）、tree order に
 整列している（`sibLevels_pairwise`）ことから示す。
+
+## 34. TreeWalker の走査の関係は結果を一つに決める（completeness）
+
+| 定理 | 内容 | module |
+| --- | --- | --- |
+| `Dom.Spec.result_unique` | 「最初の候補か、候補が無ければ null」の形の関係は、順序が候補の上で全順序なら結果を一つに決める | `Dom/Spec/WalkerComplete.lean` |
+| `Dom.Spec.walkerNextNodeResult_unique` ほか七つ | 七つの走査の関係はどれも結果を一つに決める | 同上 |
+| `Dom.Spec.walkerNextNode_result_complete` ほか七つ | 関係を満たす結果は実行関数の結果に等しい | 同上 |
+
+候補はどれも current の木（current の root の inclusive descendant）にあり、そこでは tree order が全順序なので、
+条件を満たす node は高々一つで、null とも両立しない。`lastChild()` と `previousSibling()` は鏡像の tree order で書いて
+あるので、子の列を反転した木の `firstChild()`・`nextSibling()` の関係と同値であること（`walkerLastChildResult_iff`・
+`walkerPreviousSiblingResult_iff`）を通して、その一意性を使う。仮定は soundness と同じ `WellFormed` と `ValidWalker` である。

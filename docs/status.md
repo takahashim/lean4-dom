@@ -6920,6 +6920,17 @@ seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）を流し、mismatc
 
 これで TreeWalker の走査七つと NodeIterator の走査二つは、すべて関係を満たすことが示された。
 
+## TreeWalker の走査に completeness を足した
+
+TreeWalker の七つの走査（`nextNode()`・`previousNode()`・`firstChild()`・`lastChild()`・`parentNode()`・`nextSibling()`・
+`previousSibling()`）の関係が結果を一つに決めることを示し、soundness と合わせて completeness にした
+（`Dom/Spec/WalkerComplete.lean`）。
+
+* どの関係も「候補のうち accept されるもので、ある順序で最初（または最後）のもの、無ければ null」なので、順序が候補の上で
+  全順序なら結果は一つに決まる（`result_unique`）。候補は current の木にあり、そこでは tree order は全順序である。
+* `lastChild()` と `previousSibling()` は、子の列を反転した木の `firstChild()`・`nextSibling()` の関係と同値なので、
+  その一意性を使う。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

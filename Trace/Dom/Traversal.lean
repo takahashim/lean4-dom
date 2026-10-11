@@ -65,7 +65,8 @@ def entries : List Entry := [
     impl := [``Dom.WalkerState.current, ``Dom.observe] },
   { alg := "dom-treewalker-parentnode"
     impl := [``Dom.walkerParentNode, ``Dom.takeUntilIncl, ``Dom.walkerStep, ``Dom.walkerRun]
-    spec := [``Dom.Spec.WalkerParentNodeResult]
+    spec := [``Dom.Spec.WalkerParentNodeResult, ``Dom.Spec.walkerParentNode_result_sound,
+             ``Dom.Spec.walkerParentNode_result_complete]
     approx := [("2", "current の祖先を root まで（root を含む）並べ、accept される最初のものを取る")] },
   { alg := "concept-traverse-children"
     impl := [``Dom.walkerFirstChild, ``Dom.walkerLastChild, ``Dom.mirrorPreorder,
@@ -76,13 +77,13 @@ def entries : List Entry := [
     approx := [("2-4", "current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。" ++ filterNull)] },
   { alg := "dom-treewalker-firstchild"
     impl := [``Dom.walkerFirstChild, ``Dom.walkerStep]
-    spec := [``Dom.Spec.WalkerFirstChildResult, ``Dom.Spec.walkerFirstChild_result_sound] },
+    spec := [``Dom.Spec.WalkerFirstChildResult, ``Dom.Spec.walkerFirstChild_result_sound, ``Dom.Spec.walkerFirstChild_result_complete] },
   -- lastChild と previousSibling は、子の列を反転した木（`mirrorTree`）で firstChild と nextSibling を
   -- 走らせたものに等しい（`walkerLastChild_eq`・`walkerPreviousSibling_eq`）。その木の tree order は
   -- 鏡像の tree order（`precedesStruct_mirrorTree_iff`）である。
   { alg := "dom-treewalker-lastchild"
     impl := [``Dom.walkerLastChild, ``Dom.walkerStep]
-    spec := [``Dom.Spec.WalkerLastChildResult, ``Dom.Spec.walkerLastChild_result_sound] },
+    spec := [``Dom.Spec.WalkerLastChildResult, ``Dom.Spec.walkerLastChild_result_sound, ``Dom.Spec.walkerLastChild_result_complete] },
   { alg := "concept-traverse-siblings"
     impl := [``Dom.walkerSibling, ``Dom.walkerSiblingSearch, ``Dom.siblingCandidates,
              ``Dom.followingSiblings, ``Dom.precedingSiblings, ``Dom.walkerStep, ``Dom.walkerRun]
@@ -91,18 +92,20 @@ def entries : List Entry := [
     approx := [("3", "段ごとに兄弟の部分木を順に並べた列で探し、見つからなければ親へ上がる。" ++ filterNull)] },
   { alg := "dom-treewalker-nextsibling"
     impl := [``Dom.walkerSibling, ``Dom.walkerStep]
-    spec := [``Dom.Spec.WalkerNextSiblingResult, ``Dom.Spec.walkerNextSibling_result_sound] },
+    spec := [``Dom.Spec.WalkerNextSiblingResult, ``Dom.Spec.walkerNextSibling_result_sound, ``Dom.Spec.walkerNextSibling_result_complete] },
   { alg := "dom-treewalker-previoussibling"
     impl := [``Dom.walkerSibling, ``Dom.walkerStep]
-    spec := [``Dom.Spec.WalkerPreviousSiblingResult, ``Dom.Spec.walkerPreviousSibling_result_sound] },
+    spec := [``Dom.Spec.WalkerPreviousSiblingResult, ``Dom.Spec.walkerPreviousSibling_result_sound, ``Dom.Spec.walkerPreviousSibling_result_complete] },
   { alg := "dom-treewalker-previousnode"
     impl := [``Dom.walkerPreviousNode, ``Dom.takeUntilIncl, ``Dom.walkerStep, ``Dom.walkerRun]
-    spec := [``Dom.Spec.WalkerPreviousNodeResult]
+    spec := [``Dom.Spec.WalkerPreviousNodeResult, ``Dom.Spec.walkerPreviousNode_result_sound,
+             ``Dom.Spec.walkerPreviousNode_result_complete]
     approx := [("2", "current の木の tree order を current の手前から逆にたどり、root まで（root を含む）で切る。current が root なら何も見ない。" ++ filterNull)] },
   { alg := "dom-treewalker-nextnode"
     impl := [``Dom.walkerNextNode, ``Dom.lastDescendant, ``Dom.takeUntilIncl, ``Dom.walkerStep,
              ``Dom.walkerRun]
-    spec := [``Dom.Spec.WalkerNextNodeResult]
+    spec := [``Dom.Spec.WalkerNextNodeResult, ``Dom.Spec.walkerNextNode_result_sound,
+             ``Dom.Spec.walkerNextNode_result_complete]
     approx := [("3", "current の木の tree order を current の次からたどり、root の最後の inclusive descendant で切る（step 3.4.1 の「temporary が root」）。current がその node なら何も見ない。" ++ filterNull)] }
 ]
 

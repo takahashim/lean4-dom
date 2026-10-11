@@ -150,6 +150,7 @@ import Dom.Spec.Notify
 import Dom.Spec.NotifySound
 import Dom.Spec.WalkerMirror
 import Dom.Spec.WalkerSibling
+import Dom.Spec.WalkerComplete
 import Dom.Spec.Event
 import Dom.Spec.EventSound
 import Dom.Spec.EventPassive

@@ -4870,7 +4870,9 @@
         "Dom.walkerRun"
       ],
       "spec": [
-        "Dom.Spec.WalkerParentNodeResult"
+        "Dom.Spec.WalkerParentNodeResult",
+        "Dom.Spec.walkerParentNode_result_sound",
+        "Dom.Spec.walkerParentNode_result_complete"
       ],
       "omit": [],
       "approx": [
@@ -4920,7 +4922,8 @@
       ],
       "spec": [
         "Dom.Spec.WalkerFirstChildResult",
-        "Dom.Spec.walkerFirstChild_result_sound"
+        "Dom.Spec.walkerFirstChild_result_sound",
+        "Dom.Spec.walkerFirstChild_result_complete"
       ],
       "omit": [],
       "approx": []
@@ -4936,7 +4939,8 @@
       ],
       "spec": [
         "Dom.Spec.WalkerLastChildResult",
-        "Dom.Spec.walkerLastChild_result_sound"
+        "Dom.Spec.walkerLastChild_result_sound",
+        "Dom.Spec.walkerLastChild_result_complete"
       ],
       "omit": [],
       "approx": []
@@ -4981,7 +4985,8 @@
       ],
       "spec": [
         "Dom.Spec.WalkerNextSiblingResult",
-        "Dom.Spec.walkerNextSibling_result_sound"
+        "Dom.Spec.walkerNextSibling_result_sound",
+        "Dom.Spec.walkerNextSibling_result_complete"
       ],
       "omit": [],
       "approx": []
@@ -4997,7 +5002,8 @@
       ],
       "spec": [
         "Dom.Spec.WalkerPreviousSiblingResult",
-        "Dom.Spec.walkerPreviousSibling_result_sound"
+        "Dom.Spec.walkerPreviousSibling_result_sound",
+        "Dom.Spec.walkerPreviousSibling_result_complete"
       ],
       "omit": [],
       "approx": []
@@ -5014,7 +5020,9 @@
         "Dom.walkerRun"
       ],
       "spec": [
-        "Dom.Spec.WalkerPreviousNodeResult"
+        "Dom.Spec.WalkerPreviousNodeResult",
+        "Dom.Spec.walkerPreviousNode_result_sound",
+        "Dom.Spec.walkerPreviousNode_result_complete"
       ],
       "omit": [],
       "approx": [
@@ -5037,7 +5045,9 @@
         "Dom.walkerRun"
       ],
       "spec": [
-        "Dom.Spec.WalkerNextNodeResult"
+        "Dom.Spec.WalkerNextNodeResult",
+        "Dom.Spec.walkerNextNode_result_sound",
+        "Dom.Spec.walkerNextNode_result_complete"
       ],
       "omit": [],
       "approx": [
