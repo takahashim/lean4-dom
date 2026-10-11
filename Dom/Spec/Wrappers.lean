@@ -98,29 +98,53 @@ Text を作って replace all する。
 -/
 def StringReplaceAllResult (s : DOMState) (string : String) (parent : NodeId)
     (r : Except DOMException DOMState) : Prop :=
-  ∃ pd, s.tree.get? parent = some pd ∧
-    ((string = "" ∧ ∀ s', r = .ok s' → ReplaceAllSpec s none parent s') ∨
-     (string ≠ "" ∧ ∀ s', r = .ok s' → ∃ n s₁,
+  ∃ pd, s.tree.get? parent = some pd ∧ ∃ s', r = .ok s' ∧
+    ((string = "" ∧ ReplaceAllSpec s none parent s') ∨
+     (string ≠ "" ∧ ∃ n s₁,
         CreatesNode s n s₁ { kind := .text, ownerDocument := pd.ownerDocument, data := string } ∧
         ReplaceAllSpec s₁ (some n) parent s'))
+
+/-- 木にある node に対する string replace all は例外を返さない。 -/
+theorem stringReplaceAllResult_not_error {s : DOMState} {str : String} {parent : NodeId}
+    {e : DOMException} : ¬ StringReplaceAllResult s str parent (.error e) := by
+  rintro ⟨_, _, _, he, _⟩
+  cases he
 
 theorem stringReplaceAll_result_sound {s : DOMState} (hv : AdmissibleDOMState s) {parent : NodeId}
     {pd : NodeData} (hp : s.tree.get? parent = some pd) (string : String) :
     StringReplaceAllResult s string parent (stringReplaceAll s string parent) := by
-  refine ⟨pd, hp, ?_⟩
   unfold stringReplaceAll
   rw [hp]
   simp only
   by_cases he : string.isEmpty = true
   · rw [if_pos he]
-    exact Or.inl ⟨by simpa using he, fun s' h => replaceAll_sound hv.wellFormed h⟩
+    obtain ⟨out, hout⟩ := replaceAll_isOk (node := none) (parent := parent) hv.wellFormed
+      (fun n hn => by cases hn)
+    exact ⟨pd, hp, out, hout, Or.inl ⟨by simpa using he, replaceAll_sound hv.wellFormed hout⟩⟩
   · rw [if_neg he]
-    refine Or.inr ⟨by simpa using he, fun s' h => ?_⟩
-    split at h
-    · cases h
-    · next n s₁ hc =>
-      exact ⟨n, s₁, createTextNode_creates hc,
-        replaceAll_sound (admissible_createTextNode hv hc).wellFormed h⟩
+    obtain ⟨dd, hdd, hk⟩ := hv.wellFormed.ownerDocument_is_document parent pd hp
+    have hc : createTextNode s pd.ownerDocument string =
+        .ok (withFresh s { kind := .text, ownerDocument := pd.ownerDocument, data := string }) := by
+      simp [createTextNode, requireDocument, hdd, hk]
+    obtain ⟨n, s₁, hcreate⟩ : ∃ n s₁, createTextNode s pd.ownerDocument string = .ok (n, s₁) :=
+      ⟨_, _, hc⟩
+    rw [hcreate]
+    have hcn := createTextNode_creates hcreate
+    have hv₁ := admissible_createTextNode hv hcreate
+    have hp₁ : s₁.tree.get? parent = some pd := by
+      rw [hcn.1.others parent (hcn.1.ne_of_mem hp)]; exact hp
+    have hna : ¬ InclusiveAncestor s₁.tree n parent := by
+      intro ha
+      rcases ha with heq | ha
+      · exact hcn.1.ne_of_mem hp heq.symm
+      · obtain ⟨nd, hnd⟩ := exists_data_of_inclusiveAncestor hv.wellFormed
+          (Or.inr (hcn.1.ancestor_of hcn.2.1.parent ha)) hp
+        rw [hcn.1.fresh] at hnd
+        cases hnd
+    obtain ⟨out, hout⟩ := replaceAll_isOk (node := some n) (parent := parent) hv₁.wellFormed
+      (fun n' hn' => by cases hn'; exact ⟨⟨pd, hp₁⟩, ⟨_, hcn.1.created⟩, hna⟩)
+    exact ⟨pd, hp, out, hout, Or.inr ⟨by simpa using he,
+      n, s₁, hcn, replaceAll_sound hv₁.wellFormed hout⟩⟩
 
 /-- §4.4 "set text content"（`Attr` 以外）。 -/
 def SetTextContentResult (s : DOMState) (n : NodeId) (value : String)

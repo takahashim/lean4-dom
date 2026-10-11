@@ -279,17 +279,23 @@ theorem requireDocument_ok {t : Tree} {doc : NodeId} {dd : NodeData}
 def CreatesNode (s : DOMState) (n : NodeId) (s' : DOMState) (d : NodeData) : Prop :=
   AddsNode s.tree s'.tree n d ∧ FreshNodeData s.tree n d ∧
     s'.ranges = s.ranges ∧ s'.iterators = s.iterators ∧
-    s'.registrations = s.registrations ∧ s'.observers = s.observers
+    s'.registrations = s.registrations ∧ s'.observers = s.observers ∧
+    s'.pendingObservers = s.pendingObservers ∧ s'.microtaskQueued = s.microtaskQueued ∧
+    Untouched s s'
+
+/-- node を作っても、walker・listener・detach された attribute は変わらない。 -/
+theorem CreatesNode.untouched {s s' : DOMState} {n : NodeId} {d : NodeData}
+    (h : CreatesNode s n s' d) : Untouched s s' := h.2.2.2.2.2.2.2.2
 
 theorem createsNode_withFresh {s : DOMState} {d : NodeData}
     (hd : FreshNodeData s.tree (withFresh s d).1 d) :
     CreatesNode s (withFresh s d).1 (withFresh s d).2 d :=
-  ⟨withFresh_addsNode s d, hd, rfl, rfl, rfl, rfl⟩
+  ⟨withFresh_addsNode s d, hd, rfl, rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩⟩
 
 /-- **作っても妥当性は保たれる。** -/
 theorem admissible_createsNode {s s' : DOMState} {n : NodeId} {d : NodeData}
     (hv : AdmissibleDOMState s) (h : CreatesNode s n s' d) : AdmissibleDOMState s' :=
-  h.1.admissible h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2.1 h.2.2.2.2.2 hv
+  h.1.admissible h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2.1 h.2.2.2.2.2.1 hv
 
 /-- `withFresh` が返した組を、名前で受けた `n` と `s'` へ移す。 -/
 theorem creates_of_withFresh {s s' : DOMState} {n : NodeId} {d : NodeData}
