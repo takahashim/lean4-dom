@@ -183,14 +183,29 @@ def SameObserverOptions (a b : Registration) : Prop :=
 それを source とする transient registered observer が `node` に足される。
 元の registration は残る。
 
-**並びは決めない。** registration list の順序は観測に出ない
-（record は observer ごとの queue に積まれる）ので、集合として書く。
+**並びも決める。** registered observer list の順は、後でこの node（あるいはその下）が target になったとき、
+"queue a mutation record" が interested observers を並べる順、つまり pending mutation observers の順と
+配送の順に出る。本文は ancestor を下から上へ、各 ancestor の registered observer list を list の順に回って
+`node` の registered observer list の末尾に足すので、`node` の list は元の list にその順の transient を
+続けたものになる（`TransientOrdered`）。ほかの node の list は変わらない。
 
 observer の node list（`ObserverState.nodeList`）については何も言わない。
 仕様の step 20 は registered observer list にしか触れないが、model は配送時の掃除が
 届くように node list にも足している（`Dom/Observer/Record.lean` の doc comment）。
 その差は record の中身には出ないので、ここでは扱わない。
 -/
+def transientsFor (regs : List Registration) (nodes : List NodeId) (node : NodeId) :
+    List Registration :=
+  nodes.flatMap fun a => ((regsOn regs a).filter (·.subtree)).map fun r =>
+    { r with node := node, transient := true, source := some r.node }
+
+/-- step 20 の順：`node` の registered observer list の末尾に、`parent` の inclusive ancestor の順に transient を足す。 -/
+def TransientOrdered (s s' : DOMState) (node parent : NodeId) : Prop :=
+  ∃ nodes, InclusiveAncestorsUp s.tree parent nodes ∧
+    ∀ n, regsOn s'.registrations n =
+      if n = node then regsOn s.registrations node ++ transientsFor s.registrations nodes node
+      else regsOn s.registrations n
+
 def TransientAdded (s s' : DOMState) (node parent : NodeId) : Prop :=
   (∀ r ∈ s.registrations, r ∈ s'.registrations) ∧
   (∀ src ∈ s.registrations, src.subtree = true → InclusiveAncestor s.tree src.node parent →
@@ -199,7 +214,8 @@ def TransientAdded (s s' : DOMState) (node parent : NodeId) : Prop :=
   (∀ r ∈ s'.registrations, r ∉ s.registrations →
     ∃ src ∈ s.registrations, SameObserverOptions r src ∧ src.subtree = true ∧
       InclusiveAncestor s.tree src.node parent ∧ r.node = node ∧
-      r.transient = true ∧ r.source = some src.node)
+      r.transient = true ∧ r.source = some src.node) ∧
+  TransientOrdered s s' node parent
 
 /-! ## step 21：mutation record -/
 

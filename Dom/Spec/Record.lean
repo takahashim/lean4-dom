@@ -1,5 +1,6 @@
 import Dom.Basic.State
 import Dom.Basic.Order
+import Dom.Spec.ObserverOrder
 
 /-!
 # childList の mutation record を積む step の関係意味論（§4.3.4）
@@ -39,7 +40,8 @@ def TreeRecordQueued (s s' : DOMState) (target : NodeId) (added removed : List N
     (∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
       s'.observers[mo]? = some o' → o'.records = o.records) ∧
     (∀ mo : Nat, mo ∈ s'.pendingObservers ↔ mo ∈ s.pendingObservers) ∧
-    s'.microtaskQueued = s.microtaskQueued
+    s'.microtaskQueued = s.microtaskQueued ∧
+    s'.pendingObservers = s.pendingObservers
   else
     let rec' : MutationRecord :=
       { type := .childList, target := target, addedNodes := added, removedNodes := removed,
@@ -52,7 +54,10 @@ def TreeRecordQueued (s s' : DOMState) (target : NodeId) (added removed : List N
     (∀ mo, InterestedInChildList s mo target → mo ∈ s'.pendingObservers) ∧
     (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
     (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInChildList s mo target) ∧
-    s'.microtaskQueued = true
+    s'.microtaskQueued = true ∧
+    -- step 4.3 の順。interested observers の順に pending mutation observers の末尾へ足す。
+    PendingAppended s s' target (childListInterest target)
+
 /--
 record を積む step の frame。
 
@@ -122,7 +127,8 @@ def CharacterDataRecordQueued (s s' : DOMState) (target : NodeId) (oldValue : St
   (∀ mo, InterestedInCharacterData s mo target → mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInCharacterData s mo target) ∧
-  s'.microtaskQueued = true
+  s'.microtaskQueued = true ∧
+  PendingAppended s s' target (characterDataInterest target)
 
 /-! ## record を積む段の一意性が共通に使う形 -/
 

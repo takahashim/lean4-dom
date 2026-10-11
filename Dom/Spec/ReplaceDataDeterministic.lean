@@ -94,10 +94,11 @@ theorem characterDataRecordQueued_unique {s s₁ s₂ : DOMState} {target : Node
     (h₂ : CharacterDataRecordQueued s s₂ target oldValue) :
     (∀ mo : Nat, (s₁.observers[mo]?).map (·.records) = (s₂.observers[mo]?).map (·.records)) ∧
       (∀ mo : Nat, mo ∈ s₁.pendingObservers ↔ mo ∈ s₂.pendingObservers) ∧
-      s₁.microtaskQueued = s₂.microtaskQueued := by
-  obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁⟩ := h₁
-  obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂⟩ := h₂
-  refine ⟨records_map_congr hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_, by rw [hm₁, hm₂]⟩
+      s₁.microtaskQueued = s₂.microtaskQueued ∧ s₂.pendingObservers = s₁.pendingObservers := by
+  obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁, hpa₁⟩ := h₁
+  obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂, hpa₂⟩ := h₂
+  refine ⟨records_map_congr hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_, by rw [hm₁, hm₂],
+    pendingAppended_unique (fun _ => rfl) (RegistrationsObsEq.refl _) rfl hpa₁ hpa₂⟩
   · by_cases hint : InterestedInCharacterData s mo target
     · by_cases hold : CharacterDataOldValueWanted s mo target
       · rw [(hr₁ mo o oa ho hoa).1 hint hold, (hr₂ mo o ob ho hob).1 hint hold]
@@ -125,7 +126,7 @@ theorem characterDataRecordQueued_unique {s s₁ s₂ : DOMState} {target : Node
 theorem replaceDataSpec_deterministic {s o₁ o₂ : DOMState} {node : NodeId}
     {offset count : Nat} {data : String}
     (h₁ : ReplaceDataSpec s node offset count data o₁)
-    (h₂ : ReplaceDataSpec s node offset count data o₂) : MutationObsEq o₁ o₂ := by
+    (h₂ : ReplaceDataSpec s node offset count data o₂) : ObsEq o₁ o₂ := by
   obtain ⟨d₁, c₁, new₁, sa, hd₁, -, -, hcc₁, hds₁, hcr₁, hdr₁, hlen₁, hadj₁,
     hob₁, hpe₁, hmt₁, hreg₁, hit₁, hun₁⟩ := h₁
   obtain ⟨d₂, c₂, new₂, sb, hd₂, -, -, hcc₂, hds₂, hcr₂, hdr₂, hlen₂, hadj₂,
@@ -136,11 +137,12 @@ theorem replaceDataSpec_deterministic {s o₁ o₂ : DOMState} {node : NodeId}
   subst hce
   have hne : new₂ = new₁ := dataSpliced_unique hds₂ hds₁
   subst hne
-  obtain ⟨hrecu, hpendu, hmtu⟩ := characterDataRecordQueued_unique hcr₁ hcr₂
-  refine ⟨dataReplaced_unique hd₁ hdr₁ hdr₂, ?_, by rw [hit₂, hit₁], ?_, ?_, ?_, ?_,
+  obtain ⟨hrecu, hpendu, hmtu, hpo⟩ := characterDataRecordQueued_unique hcr₁ hcr₂
+  refine ⟨⟨dataReplaced_unique hd₁ hdr₁ hdr₂, ?_, by rw [hit₂, hit₁], ?_, ?_, ?_, ?_,
     hun₂.walkers.trans hun₁.walkers.symm,
     hun₂.listeners.trans hun₁.listeners.symm,
-    hun₂.detachedAttrs.trans hun₁.detachedAttrs.symm⟩
+    hun₂.detachedAttrs.trans hun₁.detachedAttrs.symm⟩,
+    fun m => by rw [hreg₂, hreg₁], by rw [hpe₂, hpe₁, hpo]⟩
   · -- range は index ごとに決まる
     refine List.ext_getElem (by rw [hlen₂, hlen₁]) (fun i hi₂ hi₁ => ?_)
     have hs : i < s.ranges.length := by omega
@@ -185,7 +187,7 @@ theorem replaceData_isOk_of_spec {s s' : DOMState} {node : NodeId} {offset count
 theorem replaceData_complete {s s' : DOMState} {node : NodeId} {offset count : Nat}
     {data : String} (hwf : WellFormed s.tree)
     (h : ReplaceDataSpec s node offset count data s') :
-    ∃ out, replaceData s node offset count data = .ok out ∧ MutationObsEq s' out := by
+    ∃ out, replaceData s node offset count data = .ok out ∧ ObsEq s' out := by
   obtain ⟨out, hok⟩ := replaceData_isOk_of_spec h
   exact ⟨out, hok, replaceDataSpec_deterministic h (replaceData_sound hwf hok)⟩
 

@@ -214,9 +214,9 @@ theorem insertedEach_wellFormed {doc : NodeId} : ∀ (ns : List NodeId) {s out :
 /-- **step 7 の congruence。** -/
 theorem insertedEach_congr {doc : NodeId} : ∀ (ns : List NodeId) {s sb o₁ o₂ : DOMState},
     WellFormed s.tree → IsDocument s.tree doc →
-    (∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent) → MutationObsEq s sb →
+    (∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent) → ObsEq s sb →
     InsertedEach parent child doc s ns o₁ → InsertedEach parent child doc sb ns o₂ →
-    MutationObsEq o₁ o₂ := by
+    ObsEq o₁ o₂ := by
   intro ns
   induction ns with
   | nil =>
@@ -229,8 +229,8 @@ theorem insertedEach_congr {doc : NodeId} : ∀ (ns : List NodeId) {s sb o₁ o�
       cases h₂ with
       | cons ha₂ hi₂ hl₂ hrest₂ =>
         obtain ⟨-, -, hwfb, hdocb, hacycb⟩ := insertedEach_step hwf hdoc hacyc ha₁ hi₁
-        have hobsa : MutationObsEq _ _ := adoptSpec_congr hwf h ha₁ ha₂
-        have hobsb : MutationObsEq _ _ :=
+        have hobsa : ObsEq _ _ := adoptSpec_congr hwf h ha₁ ha₂
+        have hobsb : ObsEq _ _ :=
           { tree := treeInserted_congr hobsa.tree hi₁ hi₂
             ranges := by rw [hl₂.ranges, hobsa.ranges, hl₁.ranges]
             iterators := by rw [hl₂.iterators, hobsa.iterators, hl₁.iterators]
@@ -248,7 +248,11 @@ theorem insertedEach_congr {doc : NodeId} : ∀ (ns : List NodeId) {s sb o₁ o�
               rw [hl₂.untouched.listeners, hobsa.listeners, hl₁.untouched.listeners]
             detachedAttrs := by
               rw [hl₂.untouched.detachedAttrs, hobsa.detachedAttrs,
-                hl₁.untouched.detachedAttrs] }
+                hl₁.untouched.detachedAttrs]
+            registrationOrder := fun m => by
+              rw [hl₂.registrations, hl₁.registrations]; exact hobsa.registrationOrder m
+            pendingOrder := by
+              rw [hl₂.pendingObservers, hobsa.pendingOrder, hl₁.pendingObservers] }
         exact ih hwfb hdocb hacycb hobsb hrest₁ hrest₂
 
 /-! ## step 1・5・6：入れる列と位置 -/
@@ -311,9 +315,9 @@ theorem insertShifted_unique {idx count : Nat} {bp b₁ b₂ : BoundaryPoint}
   · rw [he₁, he₂]
 
 /-- **step 5 の congruence。** -/
-theorem rangeInsertAdjusted_congr {s sb o₁ o₂ : DOMState} {idx count : Nat} (h : MutationObsEq s sb)
+theorem rangeInsertAdjusted_congr {s sb o₁ o₂ : DOMState} {idx count : Nat} (h : ObsEq s sb)
     (h₁ : RangeInsertAdjusted s o₁ parent child idx count)
-    (h₂ : RangeInsertAdjusted sb o₂ parent child idx count) : MutationObsEq o₁ o₂ := by
+    (h₂ : RangeInsertAdjusted sb o₂ parent child idx count) : ObsEq o₁ o₂ := by
   have hranges : o₂.ranges = o₁.ranges := by
     refine Dom.ListUtil.ext_of_pointwise (by rw [h₂.length, h.ranges, h₁.length]) ?_
     intro i r₂ r₁ hr₂ hr₁
@@ -350,7 +354,11 @@ theorem rangeInsertAdjusted_congr {s sb o₁ o₂ : DOMState} {idx count : Nat} 
       walkers := by rw [h₂.live.untouched.walkers, h.walkers, h₁.live.untouched.walkers]
       listeners := by rw [h₂.live.untouched.listeners, h.listeners, h₁.live.untouched.listeners]
       detachedAttrs := by
-        rw [h₂.live.untouched.detachedAttrs, h.detachedAttrs, h₁.live.untouched.detachedAttrs] }
+        rw [h₂.live.untouched.detachedAttrs, h.detachedAttrs, h₁.live.untouched.detachedAttrs]
+      registrationOrder := fun m => by
+        rw [h₂.live.registrations, h₁.live.registrations]; exact h.registrationOrder m
+      pendingOrder := by
+        rw [h₂.live.pendingObservers, h.pendingOrder, h₁.live.pendingObservers] }
 
 /-! ## step 4：DocumentFragment を空にする -/
 
@@ -373,9 +381,9 @@ theorem fragmentPrepared_facts {s s₁ : DOMState} {nodes : List NodeId}
 
 /-- **step 4 の congruence。** -/
 theorem fragmentPrepared_congr {s sb s₁ s₂ : DOMState} {nodes : List NodeId}
-    (hwf : WellFormed s.tree) (h : MutationObsEq s sb)
+    (hwf : WellFormed s.tree) (h : ObsEq s sb)
     (h₁ : FragmentPrepared s s₁ node nodes) (h₂ : FragmentPrepared sb s₂ node nodes) :
-    MutationObsEq s₁ s₂ := by
+    ObsEq s₁ s₂ := by
   obtain ⟨d₁, hd₁, hc₁⟩ := h₁
   obtain ⟨d₂, hd₂, hc₂⟩ := h₂
   have hde : d₂ = d₁ := by
@@ -402,11 +410,11 @@ theorem fragmentPrepared_congr {s sb s₁ s₂ : DOMState} {nodes : List NodeId}
 pre-insertion validity が保証するもので、`insert` 本体は仮定として受け取る。
 -/
 theorem insertSpec_congr {s sb o₁ o₂ : DOMState} {suppress : Bool}
-    (hwf : WellFormed s.tree) (h : MutationObsEq s sb)
+    (hwf : WellFormed s.tree) (h : ObsEq s sb)
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h₁ : InsertSpec s node parent child suppress o₁)
-    (h₂ : InsertSpec sb node parent child suppress o₂) : MutationObsEq o₁ o₂ := by
+    (h₂ : InsertSpec sb node parent child suppress o₂) : ObsEq o₁ o₂ := by
   obtain ⟨ns₁, hn₁, hcase₁⟩ := h₁
   obtain ⟨ns₂, hn₂, hcase₂⟩ := h₂
   have hnse : ns₁ = ns₂ := nodesToInsert_unique h.tree hn₁ hn₂
@@ -420,7 +428,7 @@ theorem insertSpec_congr {s sb o₁ o₂ : DOMState} {suppress : Bool}
         hpd₂, hie₂, hrec₂, hfr₂⟩
     · exact absurd hnil hne
     -- step 4
-    have hobs₁ : MutationObsEq s₁ s₁' := fragmentPrepared_congr hwf h hfp₁ hfp₂
+    have hobs₁ : ObsEq s₁ s₁' := fragmentPrepared_congr hwf h hfp₁ hfp₂
     obtain ⟨hwf₁, hanc₁⟩ := fragmentPrepared_facts hwf hfp₁
     -- step 5-6 の位置は入力の観測から決まる。
     have hidx : idx = idx' := childIndex_unique hobs₁.tree hci₁ hci₂
@@ -434,7 +442,7 @@ theorem insertSpec_congr {s sb o₁ o₂ : DOMState} {suppress : Bool}
       exact Option.some.inj he
     subst hpde
     -- step 5
-    have hobs₂ : MutationObsEq s₂ s₂' := rangeInsertAdjusted_congr hobs₁ hri₁ hri₂
+    have hobs₂ : ObsEq s₂ s₂' := rangeInsertAdjusted_congr hobs₁ hri₁ hri₂
     have hwf₂ : WellFormed s₂.tree := by rw [hri₁.tree]; exact hwf₁
     have hdoc₂ : IsDocument s₂.tree pd'.ownerDocument := by
       refine isDocument_ownerDocument (m := parent) hwf₂ ?_
@@ -448,7 +456,7 @@ theorem insertSpec_congr {s sb o₁ o₂ : DOMState} {suppress : Bool}
       · rw [hri₁.tree] at ha
         exact Or.inr (hanc₁ m parent ha)
     -- step 7
-    have hobs₃ : MutationObsEq s₃ s₃' :=
+    have hobs₃ : ObsEq s₃ s₃' :=
       insertedEach_congr ns₁ hwf₂ hdoc₂ hacyc₂ hobs₂ hie₁ hie₂
     -- step 9
     exact treeRecordQueued_congr hobs₃ hrec₁ hrec₂ hfr₁ hfr₂
@@ -464,7 +472,7 @@ theorem insertSpec_deterministic {s o₁ o₂ : DOMState} {suppress : Bool}
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h₁ : InsertSpec s node parent child suppress o₁)
-    (h₂ : InsertSpec s node parent child suppress o₂) : MutationObsEq o₁ o₂ :=
-  insertSpec_congr hwf (MutationObsEq.refl s) hacyc h₁ h₂
+    (h₂ : InsertSpec s node parent child suppress o₂) : ObsEq o₁ o₂ :=
+  insertSpec_congr hwf (ObsEq.refl s) hacyc h₁ h₂
 
 end Dom.Spec

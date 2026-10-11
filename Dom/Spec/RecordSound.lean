@@ -1,5 +1,6 @@
 import Dom.Spec.Record
 import Dom.Properties.Record
+import Dom.Spec.ObserverOrderSound
 
 /-!
 # record を積む step は関係意味論を満たす
@@ -19,7 +20,7 @@ theorem treeRecordQueued_of_suppress (s : DOMState) (target : NodeId)
   unfold TreeRecordQueued
   rw [if_pos rfl]
   exact ⟨rfl, fun mo o o' ho ho' => by rw [ho] at ho'; cases ho'; rfl,
-    fun _ => Iff.rfl, rfl⟩
+    fun _ => Iff.rfl, rfl, rfl⟩
 
 /-- 一つの observer が受け取る record は、interested なら一つ、そうでなければ無い。 -/
 theorem records_after_tree_queue {s : DOMState} {rec : MutationRecord} {mo : Nat}
@@ -93,7 +94,7 @@ theorem treeRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tree) (targ
                previousSibling := prev, nextSibling := next } : MutationRecord)) rfl rfl rfl mo
   unfold TreeRecordQueued
   rw [if_neg (by simp), hq]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact queueMutationRecord_observers_length ..
   · intro mo o o' ho ho'
     have hr := records_after_tree_queue (mo := mo) rfl ho ho'
@@ -108,6 +109,8 @@ theorem treeRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tree) (targ
     · exact Or.inl hm
     · exact Or.inr ((hbridge mo).mp hm)
   · exact microtaskQueued_queueMutationRecord ..
+  · exact pendingAppended_queueMutationRecord hwf _ none _
+      (fun r => interestedIn_childList target r)
 
 /-! ## characterData の record -/
 
@@ -187,7 +190,8 @@ theorem characterDataRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tr
     (rec := ({ type := .characterData, target := target } : MutationRecord)) rfl old mo
   unfold queueCharacterDataRecord
   refine ⟨queueMutationRecord_observers_length .., ?_, ?_, ?_, ?_,
-    microtaskQueued_queueMutationRecord ..⟩
+    microtaskQueued_queueMutationRecord .., pendingAppended_queueMutationRecord hwf _ _ _
+      (fun r => interestedIn_characterData target r)⟩
   · intro mo o o' ho ho'
     rw [observers_queueMutationRecord] at ho'
     have hfold := records_foldl_enqueue

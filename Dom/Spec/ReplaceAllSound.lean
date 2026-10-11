@@ -143,7 +143,7 @@ theorem replaceAllSpec_deterministic {s o₁ o₂ : DOMState} {node : Option Nod
       ∀ ns : List NodeId, NodesToInsert s.tree n ns →
         ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h₁ : ReplaceAllSpec s node parent o₁) (h₂ : ReplaceAllSpec s node parent o₂) :
-    MutationObsEq o₁ o₂ := by
+    ObsEq o₁ o₂ := by
   obtain ⟨r₁, a₁, s₁, s₂, rfl, ha₁, hre₁, hin₁, hrec₁⟩ := h₁
   obtain ⟨r₂, a₂, s₁', s₂', hr₂, ha₂, hre₂, hin₂, hrec₂⟩ := h₂
   subst hr₂
@@ -157,10 +157,10 @@ theorem replaceAllSpec_deterministic {s o₁ o₂ : DOMState} {node : Option Nod
       exact nodesToInsert_unique (TreeObsEq.refl _) hn₂ hn₁
   subst hae
   -- step 4
-  have hobs₁ : MutationObsEq s₁ s₁' := removeEachSpec_congr hwf (MutationObsEq.refl s) hre₁ hre₂
+  have hobs₁ : ObsEq s₁ s₁' := removeEachSpec_congr hwf (ObsEq.refl s) hre₁ hre₂
   have hwf₁ : WellFormed s₁.tree := removeEachSpec_wellFormed hwf hre₁
   -- step 5
-  have hobs₂ : MutationObsEq s₂ s₂' := by
+  have hobs₂ : ObsEq s₂ s₂' := by
     rcases hin₁ with ⟨rfl, rfl⟩ | ⟨n, rfl, hi₁⟩ <;> rcases hin₂ with ⟨he, rfl⟩ | ⟨n', he, hi₂⟩
     · exact hobs₁
     · cases he

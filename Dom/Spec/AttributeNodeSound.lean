@@ -258,7 +258,7 @@ end Sound
 /-- 戻り値と状態の組の結果が一致する（戻り値は等しく、状態は観測が一致する）。 -/
 def AttrResultObsEq {α : Type} :
     Except DOMException (α × DOMState) → Except DOMException (α × DOMState) → Prop
-  | .ok (r, a), .ok (r', b) => r = r' ∧ MutationObsEq a b
+  | .ok (r, a), .ok (r', b) => r = r' ∧ ObsEq a b
   | .error e, .error e' => e = e'
   | _, _ => False
 
@@ -272,7 +272,7 @@ theorem attrTaken_unique {s s₀ s₀' : DOMState} {a : Attr} (h₁ : AttrTakenF
 
 theorem attributeReplacedWith_deterministic {s o₁ o₂ : DOMState} {element : NodeId}
     {d : NodeData} {old new : Attr} (h₁ : AttributeReplacedWith s element d old new o₁)
-    (h₂ : AttributeReplacedWith s element d old new o₂) : MutationObsEq o₁ o₂ := by
+    (h₂ : AttributeReplacedWith s element d old new o₂) : ObsEq o₁ o₂ := by
   obtain ⟨pre₁, post₁, s₁, hd, hs₁, hk₁, hr₁, ht₁, hh₁⟩ := h₁
   obtain ⟨pre₂, post₂, s₂, -, hs₂, hk₂, hr₂, ht₂, hh₂⟩ := h₂
   obtain ⟨rfl, rfl⟩ := attrList_split_unique (hs₁.symm.trans hs₂)
@@ -281,7 +281,7 @@ theorem attributeReplacedWith_deterministic {s o₁ o₂ : DOMState} {element : 
 
 theorem attributeDetached_deterministic {s o₁ o₂ : DOMState} {element : NodeId}
     {d : NodeData} {a : Attr} (h₁ : AttributeDetached s element d a o₁)
-    (h₂ : AttributeDetached s element d a o₂) : MutationObsEq o₁ o₂ := by
+    (h₂ : AttributeDetached s element d a o₂) : ObsEq o₁ o₂ := by
   obtain ⟨pre₁, post₁, s₁, hd, hs₁, hk₁, hr₁, ht₁, hh₁⟩ := h₁
   obtain ⟨pre₂, post₂, s₂, -, hs₂, hk₂, hr₂, ht₂, hh₂⟩ := h₂
   obtain ⟨rfl, rfl⟩ := attrList_split_unique (hs₁.symm.trans hs₂)
@@ -368,7 +368,7 @@ theorem setAttributeNode_result_deterministic {element : NodeId} {aid : AttrId}
         ⟨hk₁, -, rfl, t₁, ht₁, ha₁⟩ <;>
       rcases hx₂ with ⟨old₂, hk₂, hid₂, rfl, rfl⟩ | ⟨old₂, hk₂, hid₂, -, rfl, t₂, ht₂, hr₂⟩ |
         ⟨hk₂, -, rfl, t₂, ht₂, ha₂⟩
-    · exact ⟨rfl, MutationObsEq.refl _⟩
+    · exact ⟨rfl, ObsEq.refl _⟩
     · cases attrByKey_unique hk₁ hk₂; exact absurd hid₁ hid₂
     · cases attrByKey_unique hk₁ hk₂
     · cases attrByKey_unique hk₁ hk₂; exact absurd hid₂ hid₁

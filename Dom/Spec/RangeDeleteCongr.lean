@@ -90,7 +90,7 @@ theorem deleteNewBP_unique {bp₁ bp₂ : BoundaryPoint}
 /-! ## step 7・9 -/
 
 /-- replace data の失敗の条件は木の観測だけで決まる。 -/
-theorem replaceDataResult_error_congr {s sb : DOMState} (h : MutationObsEq s sb) {n : NodeId}
+theorem replaceDataResult_error_congr {s sb : DOMState} (h : ObsEq s sb) {n : NodeId}
     {offset count : Nat} {data : String} {e : DOMException} :
     ReplaceDataResult sb n offset count data (.error e) ↔
       ReplaceDataResult s n offset count data (.error e) := by
@@ -98,7 +98,7 @@ theorem replaceDataResult_error_congr {s sb : DOMState} (h : MutationObsEq s sb)
   rw [h.tree n]
 
 /-- **replace data の結果の関係の congruence。** -/
-theorem replaceDataResult_congr {s sb : DOMState} (h : MutationObsEq s sb) {n : NodeId}
+theorem replaceDataResult_congr {s sb : DOMState} (h : ObsEq s sb) {n : NodeId}
     {offset count : Nat} {data : String} {r₁ r₂ : Except DOMException DOMState}
     (h₁ : ReplaceDataResult s n offset count data r₁)
     (h₂ : ReplaceDataResult sb n offset count data r₂) : ResultObsEq r₁ r₂ := by
@@ -112,12 +112,12 @@ theorem replaceDataResult_congr {s sb : DOMState} (h : MutationObsEq s sb) {n : 
     | ok o₂ => exact replaceData_result_deterministic ((replaceDataResult_error_congr h).mpr h₁) h₂
     | error e₂ => exact replaceData_result_deterministic h₁ ((replaceDataResult_error_congr h).mp h₂)
 
-theorem isCharacterData_congr {s sb : DOMState} (h : MutationObsEq s sb) (n : NodeId) :
+theorem isCharacterData_congr {s sb : DOMState} (h : ObsEq s sb) (n : NodeId) :
     IsCharacterData sb.tree n ↔ IsCharacterData s.tree n := by
   unfold IsCharacterData
   rw [h.tree n]
 
-theorem replaceDataIfCharacterData_congr {s sb : DOMState} (h : MutationObsEq s sb) {n : NodeId}
+theorem replaceDataIfCharacterData_congr {s sb : DOMState} (h : ObsEq s sb) {n : NodeId}
     {offset count : Nat} {r₁ r₂ : Except DOMException DOMState}
     (h₁ : ReplaceDataIfCharacterData s n offset count r₁)
     (h₂ : ReplaceDataIfCharacterData sb n offset count r₂) : ResultObsEq r₁ r₂ := by
@@ -142,7 +142,7 @@ theorem andThen_congr {A A' : Except DOMException DOMState → Prop}
     {next next' : DOMState → Except DOMException DOMState → Prop}
     {res₁ res₂ : Except DOMException DOMState}
     (hA : ∀ r₁ r₂, A r₁ → A' r₂ → ResultObsEq r₁ r₂)
-    (hnext : ∀ s₁ s₁', A (.ok s₁) → MutationObsEq s₁ s₁' → ∀ q₁ q₂, next s₁ q₁ → next' s₁' q₂ →
+    (hnext : ∀ s₁ s₁', A (.ok s₁) → ObsEq s₁ s₁' → ∀ q₁ q₂, next s₁ q₁ → next' s₁' q₂ →
       ResultObsEq q₁ q₂)
     (h₁ : AndThen A next res₁) (h₂ : AndThen A' next' res₂) : ResultObsEq res₁ res₂ := by
   rcases h₁ with ⟨e₁, ha₁, rfl⟩ | ⟨s₁, ha₁, hn₁⟩ <;>
@@ -174,7 +174,7 @@ theorem deleteContents_result_deterministic {s : DOMState} {i : Nat}
     subst hle
     have hbe := deleteNewBP_unique hbp₁ hbp₂
     subst hbe
-    refine andThen_congr (fun _ _ ha hb => replaceDataIfCharacterData_congr (MutationObsEq.refl _) ha hb)
+    refine andThen_congr (fun _ _ ha hb => replaceDataIfCharacterData_congr (ObsEq.refl _) ha hb)
       ?_ hch₁ hch₂
     intro s₁ s₁' ha₁ hobs₁ q₁ q₂ ⟨s₂, hre₂, hq₁⟩ ⟨s₂', hre₂', hq₂⟩
     have hwf₁ := replaceDataIfCharacterData_wellFormed (s := { s with ranges := s.ranges.set i _ })

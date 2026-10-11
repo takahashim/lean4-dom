@@ -89,7 +89,8 @@ theorem attributeRecordQueued_of_queue (oldValue : Option String) :
       ({ arec target name ns with oldValue := v } : MutationRecord) = attrRecord target name ns v :=
     fun _ => rfl
   refine ⟨queueMutationRecord_observers_length .., ?_, ?_, ?_, ?_,
-    microtaskQueued_queueMutationRecord ..⟩
+    microtaskQueued_queueMutationRecord .., pendingAppended_queueMutationRecord hwf _ _ _
+      (fun r => interestedIn_attributes target name ns r)⟩
   · intro mo o o' ho ho'
     rw [observers_queueMutationRecord] at ho'
     have hfold := records_foldl_enqueue (arec target name ns) _ s.observers mo o o' ho ho'

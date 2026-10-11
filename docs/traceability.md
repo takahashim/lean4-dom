@@ -90,10 +90,11 @@ range の両端が木にあることしか保証しないので、仮定とし�
 `outsideModel` を返すとする。ここでの「Text」は CDATASection を含む。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
-同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.MutationObsEq`
-（木は `get?`、registration と pending observer は所属、observer は record queue）の一致である。
-所属の一致は配送順を保存しない。順序を加えた `ObsEq` には配送結果の一致の定理があるが、
-既存の completeness をこの強い関係で証明したわけではない。
+同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq` の一致である。
+木は `get?`、observer は record queue、registration は node ごとの registered observer list の列、
+pending mutation observers は列で比べる。関係は pending への append の順（`PendingAppended`）と
+transient の並び（`TransientOrdered`）を決めるので、completeness からそのまま配送結果の一致が出る
+（`Dom/Spec/ObserverComplete.lean`）。
 
 `insert` のように関係を繋いだものの一意性には、`_deterministic` だけでは足りない。
 途中の状態は観測としてしか一致しないので、
@@ -264,11 +265,11 @@ scenario が最初から walker を与える形にしてある。
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| queue a mutation record | 1-2 inclusive ancestor を辿って observer を集める / 2.3 registration ごとの条件（型・scope・attributeFilter）/ 2.3.3 oldValue / 3-6 record を積む | `queueMutationRecord`, `interestedObservers`, `Registration.interestedIn` | preservation `preservesRegs_*` | `observer-uninterested-registration-does-not-shadow`, `observer-attribute-filter-does-not-shadow`, `observer-attribute-filter-skips-namespaced`, `observer-old-value-from-any-registration` | `test_wpt_mutation_record_details.rb`, `test_wpt_mutation_observer_order.rb`, `test_wpt_mutation_observer_attribute_options.rb` | 済 |
+| queue a mutation record | 1-2 inclusive ancestor を辿って observer を集める / 2.3 registration ごとの条件（型・scope・attributeFilter）/ 2.3.3 oldValue / 3-6 record を積む | `queueMutationRecord`, `interestedObservers`, `Registration.interestedIn` | relation `PendingAppended`（step 3-4 の順）、`pendingAppended_queueMutationRecord`、`pendingAppended_unique`、preservation `preservesRegs_*` | `observer-uninterested-registration-does-not-shadow`, `observer-attribute-filter-does-not-shadow`, `observer-attribute-filter-skips-namespaced`, `observer-old-value-from-any-registration` | `test_wpt_mutation_record_details.rb`, `test_wpt_mutation_observer_order.rb`, `test_wpt_mutation_observer_attribute_options.rb` | 済 |
 | queue a tree mutation record | 1 assert / 2 queue | `queueTreeMutationRecord` | 同上 | 同上 | `test_wpt_mutation_record_insertion_point.rb` | 済 |
-| transient registered observer | remove step 20 | `addTransientObservers` | `preservesRegs_remove` | `observer-transient-follows-existing-registration` | `test_wpt_transient_registered_observer.rb` | 済 |
+| transient registered observer | remove step 20 | `addTransientObservers` | relation `TransientOrdered`（並び）、`transientOrdered_unique`、`preservesRegs_remove` | `observer-transient-follows-existing-registration` | `test_wpt_transient_registered_observer.rb` | 済 |
 | queue a mutation observer microtask | 1-3 | `queueMutationObserverMicrotask`, `addPendingObserver` | preservation `admissible_*`（配送は木を触らない） | `observer-delivery` | `test_wpt_mutation_observer_order.rb` | 済 |
-| notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | `admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
+| notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | congruence `notifyMutationObservers_delivered_congr`、`*_complete_delivered`、`admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
 | `observe(target, options)` | 1-8（step 1-2 の省略の解決と step 3-6 の TypeError を含む。既定値の無い member は省略と false を区別する） | `MutationObserver.observeMethod`（step 3-6 の TypeError は `IdlException.typeError`）, `MutationObserver.observe`, `MutationObserverInit.resolve`, `observeOptionsError` | relation `ObserveResult`（`AttributesResolved`・`CharacterDataResolved`・`ObserveOptionsRejected`、等号で complete）、`admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow`, `observe-old-value-false-implies-type` | 同上 | 済 |
 | `disconnect()` | 1-2 | `MutationObserver.disconnect` | `admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
 | `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | `admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |

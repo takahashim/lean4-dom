@@ -79,6 +79,8 @@ import Dom.Properties.Import
 import Dom.Properties.CloneOk
 import Dom.Attribute.Node
 import Dom.Validity.AttrNode
+import Dom.Spec.ObserverOrder
+import Dom.Spec.ObserverOrderSound
 import Dom.Spec.Remove
 import Dom.Spec.RemoveSound
 import Dom.Spec.RemoveDeterministic
@@ -93,6 +95,7 @@ import Dom.Spec.ReplaceDataSound
 import Dom.Spec.ReplaceDataDeterministic
 import Dom.Spec.ObsEq
 import Dom.Spec.ObserverCongr
+import Dom.Spec.ObserverComplete
 import Dom.Spec.RemoveCongr
 import Dom.Spec.AdoptCongr
 import Dom.Spec.InsertCongr

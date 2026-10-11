@@ -1,5 +1,6 @@
 import Dom.Basic.State
 import Dom.Properties.TreeOrder
+import Dom.Spec.ObserverOrder
 
 /-!
 # 観測が等しいこと
@@ -205,7 +206,7 @@ end TreeObsEq
 
 Mutation algorithms の合成に用いる同値関係である。
 配送順を含む一般の操作列の等価性ではない（下の `ObsEq` を参照）。
-木は表現ではなく `get?` で、registered observer list は順序を決めていないので所属で、
+木は表現ではなく `get?` で、registered observer list と pending は所属で、
 observer は record queue だけで比べる（`ObserverState.nodeList` は観測に出ない）。
 
 `walkers` / `listeners` / `detachedAttrs` も入れる。§4.2.3 の algorithm はこの三つに
@@ -348,26 +349,29 @@ end MutationObsEq
 
 /-! ## 順序まで含めた観測
 
-mutation の関係は、registration と pending の observer を意図して「含まれるかどうか」で書いている。
-`MutationObsEq` はその合成の証明のためだけのものである。observer の操作一般は配送の順序も見せるので、
-その同値では二つの列を順序ごと保つ。
+`MutationObsEq` は registration と pending の observer を「含まれるかどうか」で比べる。
+observer の操作は配送の順序も見せるので、`ObsEq` はそれに二つの順序を足す。
+
+* pending mutation observers の列そのもの（notify はこの順に回る）
+* node ごとの registered observer list（`RegistrationsObsEq`。"queue a mutation record" の interested observers の
+  順はこれで決まる）。異なる node の list のあいだの順は本文に無いので比べない
 -/
 
 /-- observer の配送の順序まで保つ状態の同値。observer の nodeList は補助のもので、比べない。 -/
 structure ObsEq (s s' : DOMState) : Prop extends MutationObsEq s s' where
-  registrationOrder : s'.registrations = s.registrations
+  registrationOrder : RegistrationsObsEq s.registrations s'.registrations
   pendingOrder : s'.pendingObservers = s.pendingObservers
 
 namespace ObsEq
 
-theorem refl (s : DOMState) : ObsEq s s := ⟨MutationObsEq.refl s, rfl, rfl⟩
+theorem refl (s : DOMState) : ObsEq s s := ⟨MutationObsEq.refl s, RegistrationsObsEq.refl _, rfl⟩
 
 theorem symm {s s' : DOMState} (h : ObsEq s s') : ObsEq s' s :=
   ⟨h.toMutationObsEq.symm, h.registrationOrder.symm, h.pendingOrder.symm⟩
 
 theorem trans {s s' s'' : DOMState} (h : ObsEq s s') (h' : ObsEq s' s'') : ObsEq s s'' :=
   ⟨h.toMutationObsEq.trans h'.toMutationObsEq,
-    h'.registrationOrder.trans h.registrationOrder, h'.pendingOrder.trans h.pendingOrder⟩
+    h.registrationOrder.trans h'.registrationOrder, h'.pendingOrder.trans h.pendingOrder⟩
 
 /-- 異なる二つの pending observer を入れ替えると観測できる（配送を示すまでもない）。 -/
 theorem pendingOrder_ne {s : DOMState} {a b : Nat} (hab : a ≠ b)
@@ -385,34 +389,33 @@ end ObsEq
 /--
 **結果の観測が等しいこと。**
 
-成功どうしなら `MutationObsEq` で等しいこと、失敗どうしなら同じ例外であること。
-observer の配送順まで比較する関係ではない。
+成功どうしなら `ObsEq` で等しいこと（observer の配送順まで含む）、失敗どうしなら同じ例外であること。
 成功と失敗は等しくない。
 
 例外まで含めた関係意味論（`Dom/Spec/Result.lean`）の一意性はこの形で述べる。
 -/
 def ResultObsEq : Except DOMException DOMState → Except DOMException DOMState → Prop
-  | .ok a, .ok b => MutationObsEq a b
+  | .ok a, .ok b => ObsEq a b
   | .error e, .error e' => e = e'
   | _, _ => False
 
 namespace ResultObsEq
 
 theorem refl : ∀ r : Except DOMException DOMState, ResultObsEq r r
-  | .ok a => MutationObsEq.refl a
+  | .ok a => ObsEq.refl a
   | .error _ => rfl
 
 theorem symm {r r' : Except DOMException DOMState} (h : ResultObsEq r r') :
     ResultObsEq r' r := by
-  cases r <;> cases r' <;> first | exact Eq.symm h | exact MutationObsEq.symm h | exact h.elim
+  cases r <;> cases r' <;> first | exact Eq.symm h | exact ObsEq.symm h | exact h.elim
 
 theorem trans {r r' r'' : Except DOMException DOMState}
     (h : ResultObsEq r r') (h' : ResultObsEq r' r'') : ResultObsEq r r'' := by
   cases r <;> cases r' <;> cases r'' <;>
-    first | exact Eq.trans h h' | exact MutationObsEq.trans h h' | exact h.elim | exact h'.elim
+    first | exact Eq.trans h h' | exact ObsEq.trans h h' | exact h.elim | exact h'.elim
 
 /-- 成功どうしなら状態の観測が等しい。 -/
-theorem of_ok {a b : DOMState} (h : ResultObsEq (.ok a) (.ok b)) : MutationObsEq a b := h
+theorem of_ok {a b : DOMState} (h : ResultObsEq (.ok a) (.ok b)) : ObsEq a b := h
 
 /-- 失敗どうしなら同じ例外である。 -/
 theorem of_error {e e' : DOMException} (h : ResultObsEq (.error e) (.error e')) : e = e' := h

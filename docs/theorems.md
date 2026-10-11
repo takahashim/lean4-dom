@@ -277,9 +277,10 @@ theorem removeSpec_deterministic {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool
 ```
 
 木の表現そのものは決まらない（store が association list なので、同じ `get?` を持つ表現が
-複数ある）。決まるのは **観測**である。registered observer list は順序を決めていないので
-所属の一致になる。soundness と合わせると「`remove` の結果は、関係が許す唯一の観測である」
-と言える。
+複数ある）。決まるのは **観測**である。この定理は registration と pending observer を所属で比べる。
+列の順は `removeSpec_order_unique`（同じ module）が決める。node ごとの registered observer list
+（step 20 の transient の並びを含む）と pending mutation observers の列は一つに決まる。
+soundness と合わせると「`remove` の結果は、関係が許す唯一の観測である」と言える。
 
 completeness（関係を満たす状態があるなら実行関数は成功して同じ観測を作ること）も
 **六つの関係すべてにある**。
@@ -314,7 +315,7 @@ theorem insertSpec_deterministic {s o₁ o₂ : DOMState} {suppress : Bool}
     (hacyc : ∀ ns, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h₁ : InsertSpec s node parent child suppress o₁)
-    (h₂ : InsertSpec s node parent child suppress o₂) : MutationObsEq o₁ o₂
+    (h₂ : InsertSpec s node parent child suppress o₂) : ObsEq o₁ o₂
 ```
 
 `hacyc`（入れる node が `parent` の inclusive ancestor でない）は §4.2.1 の
@@ -322,14 +323,45 @@ pre-insertion validity が保証するもので、`insert` 本体は前提とし
 これが無いと木が循環し、`TreeInserted` の結果が well-formed でなくなる。
 
 `MutationObsEq` は十成分を見るが、registration と pending observer は所属だけを比較する。
-これは mutation 関係の合成に用いる同値関係で、任意の将来の操作列で区別できないことを保証しない。
-既存の determinism・completeness・`ResultObsEq` はこの関係について述べる。
+これは mutation 関係の合成に用いる補助の同値関係で、observer の配送の順を区別しない。
 `walkers` / `listeners` / `detachedAttrs` は frame 条件 `Untouched` により保持する。
 
-`ObsEq` はこれに registration と pending observer の列の一致を加える。
-`notifyMutationObservers_delivered_congr`（`Dom/Spec/ObserverCongr.lean`）は、
-この関係で等しい状態からの配送結果が順序を含めて等しいことを証明する。
-`pendingOrder_ne` は異なる ID の `[a,b]` と `[b,a]` を区別する。
+`ObsEq` はこれに二つの順を加える。
+
+* **registration の順**（`RegistrationsObsEq`）：node ごとの registered observer list が列として等しい。
+  model は registration を一つの列で持つが、異なる node の list のあいだの順は本文に無いので、node ごとに比べる。
+* **pending の順**：pending mutation observers の列が等しい。
+
+determinism・congruence・completeness と `ResultObsEq` は `ObsEq` について述べる。
+remove・adopt・insert・replace・move・replace data・attribute の変更・normalize・range の
+`deleteContents` / `insertNode` と、それらを呼ぶ method の結果の関係がこれに当たる。
+
+関係の側で順を決めているのは次の二つである。
+
+| 定義 | module | 本文 |
+| --- | --- | --- |
+| `Dom.Spec.PendingAppended` | `Dom/Spec/ObserverOrder.lean` | "queue a mutation record" step 3-4。inclusive ancestor を下から上へ、各 node の list の順に interested observers を並べ、その順に pending へ append する |
+| `Dom.Spec.TransientOrdered` | `Dom/Spec/Remove.lean` | remove step 20。parent の inclusive ancestor を下から上へ、各 list の順に transient を removed node の list の末尾へ足す |
+
+childList・characterData・attributes の record を積む関係（`TreeRecordQueued` /
+`CharacterDataRecordQueued` / `AttributeRecordQueued`）は `PendingAppended` を含み、
+`TransientAdded` は `TransientOrdered` を含む。実行関数がこれを満たすことは
+`pendingAppended_queueMutationRecord`（`Dom/Spec/ObserverOrderSound.lean`）と `remove_sound` が示す。
+
+| 定理 | module |
+| --- | --- |
+| `Dom.Spec.pendingAppended_unique` | `Dom/Spec/ObserverOrder.lean` |
+| `Dom.Spec.pendingAppended_queueMutationRecord` | `Dom/Spec/ObserverOrderSound.lean` |
+| `Dom.Spec.transientOrdered_unique` / `removeSpec_order_unique` | `Dom/Spec/RemoveDeterministic.lean` |
+| `Dom.Spec.notifyMutationObservers_delivered_congr` | `Dom/Spec/ObserverCongr.lean` |
+| `Dom.Spec.ResultObsEq.delivered` | `Dom/Spec/ObserverComplete.lean` |
+| `Dom.Spec.remove_complete_delivered` / `insert_complete_delivered` | `Dom/Spec/ObserverComplete.lean` |
+| `Dom.Spec.replaceData_result_complete_delivered` / `setAttribute_result_complete_delivered` | `Dom/Spec/ObserverComplete.lean` |
+
+`notifyMutationObservers_delivered_congr` は、`ObsEq` で等しい状態から notify したときの配送結果
+（observer の順と各 observer の records の列）が等しいことを示す。completeness と合成すると、
+関係を満たす状態を notify したときの配送は、実行関数の結果を notify したときと同じになる
+（`*_complete_delivered`）。`pendingOrder_ne` は異なる ID の `[a,b]` と `[b,a]` を区別する。
 
 ## 14. oracle は自分の invariant を破らない
 

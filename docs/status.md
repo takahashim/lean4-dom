@@ -6787,6 +6787,26 @@ Dommy の PR #150（findings 65-68 の修正）が main に入ったので、`te
   seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）。
 * URL：parser 3777 件、setters 3167 件（whatwg-url 17.1.2 と Dommy の両方）、urlencoded 4380 件。
 
+## 関係が observer の順を決めるようにし、mutation の一意性と completeness を順まで含めて示した
+
+observer の配送は順が観測に出る（notify は pending mutation observers を列の順に回る）。ところが関係は順を決めていなかった。
+record を積む関係は pending の所属だけを書き、remove step 20 の transient は所属だけを書いていた（`TransientAdded` の doc は
+順を決めると書いていたが、本体は所属だけだった）。そのため completeness は所属の一致（`MutationObsEq`）までしか言えず、
+そこから配送結果の一致は出なかった。
+
+次のように直した。
+
+* **関係**：`PendingAppended`（`Dom/Spec/ObserverOrder.lean`）を足し、childList・characterData・attributes の record を積む関係に含めた。
+  "queue a mutation record" step 3-4 の順（inclusive ancestor を下から上へ、各 node の registered observer list の順）で pending へ append する。
+  remove step 20 には `TransientOrdered` を足した。
+* **soundness**：実行関数がこの順を満たすことを示した（`pendingAppended_queueMutationRecord`、`remove_sound`）。
+* **ObsEq**：`MutationObsEq` に node ごとの registered observer list の列の一致と pending の列の一致を加えたものにした。
+  model は registration を一つの列で持つが、本文の list は node ごとにあり、node のあいだの順は観測に出ないので、node ごとに比べる。
+* **congruence・determinism・completeness**：remove・adopt・insert・replace・move・replace data・attribute の変更・normalize・
+  range の `deleteContents` / `insertNode` と、それらを呼ぶ method の結果の関係を、すべて `ObsEq` で示し直した。
+* **配送**：completeness と `notifyMutationObservers_delivered_congr` を合成し、関係を満たす状態の配送が実行関数の結果の配送と
+  等しいことを示した（`Dom/Spec/ObserverComplete.lean`）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

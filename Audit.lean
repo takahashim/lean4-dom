@@ -1360,6 +1360,19 @@ open Dom.Audit
   Dom.CreatesNode.untouched
   Dom.Spec.ObsEq.pendingOrder_ne
   Dom.Spec.notifyMutationObservers_delivered_congr
+  Dom.Spec.inclusiveAncestorsUp_unique
+  Dom.Spec.inclusiveAncestorsUp_of_wf
+  Dom.Spec.pendingAppended_unique
+  Dom.Spec.pendingAppended_queueMutationRecord
+  Dom.Spec.pending_queueMutationRecord
+  Dom.Spec.transientOrdered_unique
+  Dom.Spec.removeSpec_order_unique
+  Dom.Spec.attributeChangeHandled_congr
+  Dom.Spec.ResultObsEq.delivered
+  Dom.Spec.remove_complete_delivered
+  Dom.Spec.insert_complete_delivered
+  Dom.Spec.replaceData_result_complete_delivered
+  Dom.Spec.setAttribute_result_complete_delivered
   Dom.Spec.descendantExclusiveTexts_unique
   Dom.Spec.splitAtFirstColon_spec
   Dom.Spec.firstColonSplit_unique

@@ -4,6 +4,7 @@ import Dom.Properties.Range
 import Dom.Properties.Algorithms
 import Dom.Properties.Record
 import Dom.Properties.TreeOrder
+import Dom.Spec.ObserverOrderSound
 
 /-!
 # `remove` は関係意味論を満たす（soundness）
@@ -175,13 +176,49 @@ theorem remove_registrations {s s' : DOMState} {n p : NodeId} {b : Bool}
   show s₁.registrations ++ _ = _
   rw [hreg]
 
+/-- 足される transient はどれも `node` の上にあるので、node ごとの list は `node` だけが伸びる。 -/
+theorem regsOn_append_transients (regs : List Registration) (nodes : List NodeId) (node m : NodeId) :
+    regsOn (regs ++ (nodes.flatMap fun a =>
+        (regs.filter fun r => r.node == a && r.subtree).map fun r =>
+          { r with node := node, transient := true, source := some r.node })) m =
+      if m = node then regsOn regs node ++ transientsFor regs nodes node else regsOn regs m := by
+  generalize hB : (nodes.flatMap fun a =>
+      (regs.filter fun r => r.node == a && r.subtree).map fun r =>
+        ({ r with node := node, transient := true, source := some r.node } : Registration)) = B
+  have hall : ∀ x ∈ B, x.node = node := by
+    intro x hx
+    rw [← hB] at hx
+    obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
+    obtain ⟨r, -, rfl⟩ := List.mem_map.mp hx
+    rfl
+  have htr : transientsFor regs nodes node = B := by
+    rw [← hB]
+    unfold transientsFor regsOn
+    congr 1
+    funext a
+    rw [List.filter_filter]
+    congr 2
+    funext r
+    simp [Bool.and_comm]
+  unfold regsOn
+  rw [List.filter_append, htr]
+  by_cases hm : m = node
+  · subst hm
+    rw [if_pos rfl]
+    congr 1
+    exact List.filter_eq_self.mpr (fun x hx => by simp [hall x hx])
+  · rw [if_neg hm]
+    have : B.filter (fun r => r.node == m) = [] :=
+      List.filter_eq_nil_iff.mpr (fun x hx => by simp [hall x hx, Ne.symm hm])
+    rw [this, List.append_nil]
+
 /-- **step 20 の soundness。** -/
 theorem remove_sound_transient {s s' : DOMState} {n p : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     TransientAdded s s' n p := by
   obtain ⟨s₁, hd, hreg⟩ := remove_registrations hp h
   rw [ancestors_eq_after_detach hwf hp hd] at hreg
-  refine ⟨fun r hr => by rw [hreg]; exact List.mem_append_left _ hr, ?_, ?_⟩
+  refine ⟨fun r hr => by rw [hreg]; exact List.mem_append_left _ hr, ?_, ?_, ?_⟩
   · intro src hsrc hsub hanc'
     refine ⟨{ src with node := n, transient := true, source := some src.node }, ?_, ?_, rfl, rfl, rfl⟩
     · rw [hreg]
@@ -203,6 +240,9 @@ theorem remove_sound_transient {s s' : DOMState} {n p : NodeId} {b : Bool}
       rcases List.mem_cons.mp hm with he | hm'
       · exact Or.inl (by rw [hcond.1, he])
       · exact Or.inr (by rw [hcond.1]; exact (mem_ancestors_iff hwf p m).mp hm')
+  · refine ⟨_, inclusiveAncestorsUp_of_wf hwf p, fun m => ?_⟩
+    rw [hreg]
+    exact regsOn_append_transients _ _ n m
 
 /-! ## step 21：mutation record -/
 
@@ -322,8 +362,7 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
     · intro mo
       have hp' : (addTransientObservers s₁ n p).pendingObservers = s.pendingObservers := hpend₁
       rw [hp']
-    · show (addTransientObservers s₁ n p).microtaskQueued = _
-      exact hmt₁
+    · exact ⟨hmt₁, hpend₁⟩
   · rw [if_neg (by simpa using hb)]
     have hqueue : queueTreeMutationRecord (addTransientObservers s₁ n p) p [] [n]
         (previousSibling s.tree n) (nextSibling s.tree n)
@@ -363,7 +402,24 @@ theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
         rw [hpend₁] at hm'
         exact hm'
       · exact Or.inr ((hbridge mo).mp hm)
-    · exact microtaskQueued_queueMutationRecord _ _ _
+    · refine ⟨microtaskQueued_queueMutationRecord _ _ _, p :: ancestors s.tree p,
+        inclusiveAncestorsUp_of_wf hwf p, ?_⟩
+      rw [pending_queueMutationRecord _ _ none (childListInterest p)
+        (fun r => interestedIn_childList p r)]
+      have hanc : ancestors s₁.tree p = ancestors s.tree p := ancestors_eq_after_detach hwf hp hd
+      have hnot : n ∉ p :: ancestors s.tree p := by
+        intro hm
+        have hpn : Ancestor s.tree p n := Ancestor.step hp
+        rcases List.mem_cons.mp hm with he | hm
+        · subst he; exact ancestor_irrefl hwf _ hpn
+        · exact ancestor_asymm hwf hpn ((mem_ancestors_iff hwf p n).mp hm)
+      show appendNew s₁.pendingObservers (interestedOrder (s₁.registrations ++ _)
+          (p :: ancestors s₁.tree p) (childListInterest p)) = _
+      rw [hpend₁, hanc, remove_registrations_before_transient hd, interestedOrder_append_off]
+      intro x hx
+      obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
+      obtain ⟨r, -, rfl⟩ := List.mem_map.mp hx
+      exact hnot
 
 /-! ## step 4：NodeIterator pre-remove steps -/
 

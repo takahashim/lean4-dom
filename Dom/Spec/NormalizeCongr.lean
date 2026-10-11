@@ -86,9 +86,9 @@ theorem bpHandedOff_unique {survivor sib parent : NodeId} {idx len : Nat}
 
 /-- **step 6 の congruence。** -/
 theorem rangesHandedOff_congr {s₁ sb₁ s₂ sb₂ : DOMState} {survivor sib parent : NodeId}
-    {idx len : Nat} (hne : sib ≠ parent) (h : MutationObsEq s₁ sb₁)
+    {idx len : Nat} (hne : sib ≠ parent) (h : ObsEq s₁ sb₁)
     (h₁ : RangesHandedOff s₁ s₂ survivor sib parent idx len)
-    (h₂ : RangesHandedOff sb₁ sb₂ survivor sib parent idx len) : MutationObsEq s₂ sb₂ := by
+    (h₂ : RangesHandedOff sb₁ sb₂ survivor sib parent idx len) : ObsEq s₂ sb₂ := by
   obtain ⟨rs₁, rfl, hl₁, hh₁⟩ := h₁
   obtain ⟨rs₂, rfl, hl₂, hh₂⟩ := h₂
   have hr : sb₁.ranges = s₁.ranges := h.ranges
@@ -108,9 +108,9 @@ theorem rangesHandedOff_congr {s₁ sb₁ s₂ sb₂ : DOMState} {survivor sib p
 
 /-- **`SiblingMerged` の congruence。** well-formedness も運ぶ。 -/
 theorem siblingMerged_congr {s sb o₁ o₂ : DOMState} {survivor sib : NodeId}
-    (hwf : WellFormed s.tree) (h : MutationObsEq s sb)
+    (hwf : WellFormed s.tree) (h : ObsEq s sb)
     (h₁ : SiblingMerged s survivor sib o₁) (h₂ : SiblingMerged sb survivor sib o₂) :
-    MutationObsEq o₁ o₂ ∧ WellFormed o₁.tree := by
+    ObsEq o₁ o₂ ∧ WellFormed o₁.tree := by
   obtain ⟨dsurv, dsib, parent, pre, post, s₁, s₂, hsurv, hsib, hp, hc, hst, hro, hrm⟩ := h₁
   obtain ⟨dsurv', dsib', parent', pre', post', sb₁, sb₂, hsurv', hsib', hp', hc', hst', hro',
     hrm'⟩ := h₂
@@ -129,7 +129,7 @@ theorem siblingMerged_congr {s sb o₁ o₂ : DOMState} {survivor sib : NodeId}
     rw [he] at hp
     exact hwf.acyclic parent (Ancestor.step hp)
   -- step 3-4
-  have hobs₁ : MutationObsEq s₁ sb₁ ∧ WellFormed s₁.tree := by
+  have hobs₁ : ObsEq s₁ sb₁ ∧ WellFormed s₁.tree := by
     rcases hst with ⟨he, rfl⟩ | ⟨he, hr⟩ <;> rcases hst' with ⟨he', rfl⟩ | ⟨he', hr'⟩
     · exact ⟨h, hwf⟩
     · exact absurd he he'
@@ -147,8 +147,8 @@ theorem siblingMerged_congr {s sb o₁ o₂ : DOMState} {survivor sib : NodeId}
 /-- **`RunMerged` の congruence。** -/
 theorem runMerged_congr {s o₁ : DOMState} {survivor : NodeId} {sibs : List NodeId}
     (h₁ : RunMerged s survivor sibs o₁) :
-    ∀ {sb o₂ : DOMState}, WellFormed s.tree → MutationObsEq s sb → RunMerged sb survivor sibs o₂ →
-      MutationObsEq o₁ o₂ ∧ WellFormed o₁.tree := by
+    ∀ {sb o₂ : DOMState}, WellFormed s.tree → ObsEq s sb → RunMerged sb survivor sibs o₂ →
+      ObsEq o₁ o₂ ∧ WellFormed o₁.tree := by
   induction h₁ with
   | nil =>
     intro sb o₂ hwf h h₂
@@ -166,8 +166,8 @@ theorem runMerged_congr {s o₁ : DOMState} {survivor : NodeId} {sibs : List Nod
 /-- **`NormalizedEach` の congruence。** -/
 theorem normalizedEach_congr {this : NodeId} {s o₁ : DOMState} {cands : List NodeId}
     (h₁ : NormalizedEach this s cands o₁) :
-    ∀ {sb o₂ : DOMState}, WellFormed s.tree → MutationObsEq s sb → NormalizedEach this sb cands o₂ →
-      MutationObsEq o₁ o₂ := by
+    ∀ {sb o₂ : DOMState}, WellFormed s.tree → ObsEq s sb → NormalizedEach this sb cands o₂ →
+      ObsEq o₁ o₂ := by
   induction h₁ with
   | nil =>
     intro sb o₂ _ h h₂
@@ -220,11 +220,11 @@ theorem descendantExclusiveTexts_unique {t : Tree} {this : NodeId}
 /-- engine の読みの normalize は、mutation の観測を除いて結果を一つに決める。 -/
 theorem normalizeSpec_deterministic {s o₁ o₂ : DOMState} {this : NodeId}
     (hwf : WellFormed s.tree) (h₁ : NormalizeEngineSpec s this o₁)
-    (h₂ : NormalizeEngineSpec s this o₂) : MutationObsEq o₁ o₂ := by
+    (h₂ : NormalizeEngineSpec s this o₂) : ObsEq o₁ o₂ := by
   obtain ⟨⟨d, hd⟩, xs, hx, hrun⟩ := h₁
   obtain ⟨_, ys, hy, hrun'⟩ := h₂
   have he := descendantExclusiveTexts_unique hwf hd hx hy
   subst he
-  exact normalizedEach_congr hrun hwf (MutationObsEq.refl s) hrun'
+  exact normalizedEach_congr hrun hwf (ObsEq.refl s) hrun'
 
 end Dom.Spec

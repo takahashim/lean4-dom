@@ -69,7 +69,8 @@ def AttributeRecordQueued (s s' : DOMState) (target : NodeId) (name : String)
   (∀ mo, InterestedInAttribute s mo target name ns → mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInAttribute s mo target name ns) ∧
-  s'.microtaskQueued = true
+  s'.microtaskQueued = true ∧
+  PendingAppended s s' target (attributeInterest target name ns)
 
 /-! ## attribute list の探索 -/
 

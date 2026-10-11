@@ -13,7 +13,7 @@ import Dom.Properties.TreeOrder
 * 各 node の `get?`
 * live range と NodeIterator
 * observer ごとの record queue と pending / microtask
-* registered observer list（順序は決めていないので、所属の一致）
+* registered observer list（`removeSpec_deterministic` は所属の一致、`removeSpec_order_unique` は node ごとの列の一致）
 -/
 
 namespace Dom.Spec
@@ -250,7 +250,7 @@ theorem transientAdded_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
     intro sa sb ha hb r hr
     by_cases hold : r ∈ s.registrations
     · exact hb.1 r hold
-    · obtain ⟨src, hsrc, hsame, hsub, hanc, hnode, htr, hsrcnode⟩ := ha.2.2 r hr hold
+    · obtain ⟨src, hsrc, hsame, hsub, hanc, hnode, htr, hsrcnode⟩ := ha.2.2.1 r hr hold
       obtain ⟨r', hr', hsame', hnode', htr', hsrcnode'⟩ := hb.2.1 src hsrc hsub hanc
       -- 同じ src から作った transient は、field がすべて一致する。
       have : r = r' := by
@@ -261,6 +261,66 @@ theorem transientAdded_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
       rw [this]
       exact hr'
   exact fun r => ⟨key s₁ s₂ h₁ h₂ r, key s₂ s₁ h₂ h₁ r⟩
+
+/-! ## 順序 -/
+
+theorem transientsFor_congr {regs regs' : List Registration} (hr : RegistrationsObsEq regs regs')
+    (nodes : List NodeId) (node : NodeId) :
+    transientsFor regs' nodes node = transientsFor regs nodes node := by
+  unfold transientsFor
+  have : (fun a => ((regsOn regs' a).filter (·.subtree)).map fun r =>
+        ({ r with node := node, transient := true, source := some r.node } : Registration)) =
+      (fun a => ((regsOn regs a).filter (·.subtree)).map fun r =>
+        ({ r with node := node, transient := true, source := some r.node } : Registration)) := by
+    funext a; rw [hr a]
+  rw [this]
+
+/-- step 20 の順を、観測の等しい入力へ差し替える。 -/
+theorem transientOrdered_transport {s s' out : DOMState} {node parent : NodeId}
+    (ht : ∀ m, parentOf s'.tree m = parentOf s.tree m)
+    (hr : RegistrationsObsEq s.registrations s'.registrations)
+    (h : TransientOrdered s' out node parent) : TransientOrdered s out node parent := by
+  obtain ⟨nodes, hn, he⟩ := h
+  refine ⟨nodes, inclusiveAncestorsUp_congr (fun m => (ht m).symm) hn, fun m => ?_⟩
+  rw [he m, transientsFor_congr hr, hr node, hr m]
+
+/-- **step 20 の後の node ごとの registered observer list は一つに決まる。** -/
+theorem transientOrdered_unique {s o₁ o₂ : DOMState} {node parent : NodeId}
+    (h₁ : TransientOrdered s o₁ node parent) (h₂ : TransientOrdered s o₂ node parent) :
+    RegistrationsObsEq o₁.registrations o₂.registrations := by
+  obtain ⟨n₁, hn₁, he₁⟩ := h₁
+  obtain ⟨n₂, hn₂, he₂⟩ := h₂
+  have := inclusiveAncestorsUp_unique hn₁ hn₂
+  subst this
+  intro m
+  rw [he₁ m, he₂ m]
+
+/-- **step 21 の後の pending mutation observers の列は一つに決まる。** -/
+theorem treeRecordQueued_pending_unique {s s₁ s₂ : DOMState} {target : NodeId}
+    {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
+    (h₁ : TreeRecordQueued s s₁ target added removed oldPrev oldNext suppress)
+    (h₂ : TreeRecordQueued s s₂ target added removed oldPrev oldNext suppress) :
+    s₁.pendingObservers = s₂.pendingObservers := by
+  unfold TreeRecordQueued at h₁ h₂
+  split at h₁
+  · next hsup =>
+    rw [if_pos hsup] at h₂
+    rw [h₁.2.2.2.2, h₂.2.2.2.2]
+  · next hsup =>
+    rw [if_neg hsup] at h₂
+    exact (pendingAppended_unique (fun _ => rfl) (RegistrationsObsEq.refl _) rfl
+      h₁.2.2.2.2.2.2 h₂.2.2.2.2.2.2).symm
+
+/-- **`RemoveSpec` は node ごとの registered observer list と pending の列も一つに決める。** -/
+theorem removeSpec_order_unique {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool}
+    (h₁ : RemoveSpec s n b s₁) (h₂ : RemoveSpec s n b s₂) :
+    RegistrationsObsEq s₁.registrations s₂.registrations ∧
+      s₁.pendingObservers = s₂.pendingObservers := by
+  obtain ⟨p₁, i₁, hp₁, -, -, -, -, htr₁, hrec₁, -⟩ := h₁
+  obtain ⟨p₂, i₂, hp₂, -, -, -, -, htr₂, hrec₂, -⟩ := h₂
+  have hpe : p₁ = p₂ := Option.some.inj (hp₁ ▸ hp₂ : some p₁ = some p₂)
+  subst hpe
+  exact ⟨transientOrdered_unique htr₁.2.2.2 htr₂.2.2.2, treeRecordQueued_pending_unique hrec₁ hrec₂⟩
 
 /-- record queue・pending・microtask も一つに決まる。 -/
 theorem treeRecordQueued_unique {s s₁ s₂ : DOMState} {target : NodeId}
@@ -283,16 +343,16 @@ theorem treeRecordQueued_unique {s s₁ s₂ : DOMState} {target : NodeId}
   split at h₁
   · next hsup =>
     rw [if_pos hsup] at h₂
-    obtain ⟨hl₁, hr₁, hp₁, hm₁⟩ := h₁
-    obtain ⟨hl₂, hr₂, hp₂, hm₂⟩ := h₂
+    obtain ⟨hl₁, hr₁, hp₁, hm₁, -⟩ := h₁
+    obtain ⟨hl₂, hr₂, hp₂, hm₂, -⟩ := h₂
     refine ⟨common s₁ s₂ hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_, ?_⟩
     · rw [hr₁ mo o oa ho hoa, hr₂ mo o ob ho hob]
     · exact fun mo => (hp₁ mo).trans (hp₂ mo).symm
     · rw [hm₁, hm₂]
   · next hsup =>
     rw [if_neg hsup] at h₂
-    obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁⟩ := h₁
-    obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂⟩ := h₂
+    obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁, -⟩ := h₁
+    obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂, -⟩ := h₂
     refine ⟨common s₁ s₂ hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_, ?_⟩
     · by_cases hint : InterestedInChildList s mo target
       · rw [(hr₁ mo o oa ho hoa).1 hint, (hr₂ mo o ob ho hob).1 hint]
@@ -325,8 +385,8 @@ theorem recordQueued_unique {s s₁ s₂ : DOMState} {node parent : NodeId}
 **`RemoveSpec` は観測を一つに決める。**
 
 木の表現そのものは決まらない（association list なので同じ `get?` を持つ表現が複数ある）が、
-観測できるものはすべて一致する。registered observer list だけは順序を決めていないので
-所属の一致である。
+観測できるものはすべて一致する。ここでは registered observer list と pending を所属で比べる。
+列の一致は `removeSpec_order_unique` が示す。
 
 soundness（`Dom/Spec/RemoveSound.lean`）と合わせると、
 `remove` の結果は関係が許す唯一の観測になっている、と言える。

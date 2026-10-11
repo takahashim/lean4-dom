@@ -101,33 +101,35 @@ theorem interestedInChildList_iff (h : MutationObsEq s s') {mo : Nat} {target : 
   · rintro ⟨r, hr, ho, hc, ha, hs⟩
     exact ⟨r, (h.registrations r).mpr hr, ho, hc, h.tree.inclusiveAncestor_iff.mpr ha, hs⟩
 
-theorem treeRecordQueued_transport (h : MutationObsEq s s') {out : DOMState} {target : NodeId}
+theorem treeRecordQueued_transport (h : ObsEq s s') {out : DOMState} {target : NodeId}
     {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
     (hq : TreeRecordQueued s' out target added removed oldPrev oldNext suppress) :
     TreeRecordQueued s out target added removed oldPrev oldNext suppress := by
   cases suppress with
   | true =>
-    obtain ⟨hlen, hrec, hpend, hmt⟩ := hq
-    refine ⟨by rw [hlen, h.observers_length], ?_, ?_, ?_⟩
+    obtain ⟨hlen, hrec, hpend, hmt, hpo⟩ := hq
+    refine ⟨by rw [hlen, h.observers_length], ?_, ?_, ?_, ?_⟩
     · intro mo o o' ho ho'
       obtain ⟨o₂, ho₂, hre⟩ := h.exists_observer ho
       rw [hrec mo o₂ o' ho₂ ho', hre]
     · exact fun mo => (hpend mo).trans (h.pendingObservers mo)
     · rw [hmt, h.microtaskQueued]
+    · rw [hpo, h.pendingOrder]
   | false =>
-    obtain ⟨hlen, hrec, hin, hkeep, hout, hmt⟩ := hq
-    refine ⟨by rw [hlen, h.observers_length], ?_, ?_, ?_, ?_, hmt⟩
+    obtain ⟨hlen, hrec, hin, hkeep, hout, hmt, hpa⟩ := hq
+    refine ⟨by rw [hlen, h.observers_length], ?_, ?_, ?_, ?_, hmt,
+      pendingAppended_transport h.tree.parentOf h.registrationOrder h.pendingOrder hpa⟩
     · intro mo o o' ho ho'
       obtain ⟨o₂, ho₂, hre⟩ := h.exists_observer ho
       obtain ⟨h1, h2⟩ := hrec mo o₂ o' ho₂ ho'
-      refine ⟨fun hi => by rw [h1 (interestedInChildList_iff h |>.mpr hi), hre], ?_⟩
-      exact fun hi => by rw [h2 fun hc => hi (interestedInChildList_iff h |>.mp hc), hre]
-    · exact fun mo hi => hin mo ((interestedInChildList_iff h).mpr hi)
+      refine ⟨fun hi => by rw [h1 (interestedInChildList_iff h.toMutationObsEq |>.mpr hi), hre], ?_⟩
+      exact fun hi => by rw [h2 fun hc => hi (interestedInChildList_iff h.toMutationObsEq |>.mp hc), hre]
+    · exact fun mo hi => hin mo ((interestedInChildList_iff h.toMutationObsEq).mpr hi)
     · exact fun mo hm => hkeep mo ((h.pendingObservers mo).mpr hm)
     · intro mo hm
       rcases hout mo hm with hc | hc
       · exact Or.inl ((h.pendingObservers mo).mp hc)
-      · exact Or.inr ((interestedInChildList_iff h).mp hc)
+      · exact Or.inr ((interestedInChildList_iff h.toMutationObsEq).mp hc)
 
 theorem rangeAdjusted_transport (h : MutationObsEq s s') {out : DOMState} {node parent : NodeId}
     {index : Nat} (hq : RangeAdjusted s' out node parent index) :
@@ -154,10 +156,11 @@ theorem iteratorAdjusted_transport (hwf : WellFormed s.tree) (h : MutationObsEq 
     rw [if_neg hc] at hrest
     exact hrest
 
-theorem transientAdded_transport (h : MutationObsEq s s') {out : DOMState} {node parent : NodeId}
+theorem transientAdded_transport (h : ObsEq s s') {out : DOMState} {node parent : NodeId}
     (hq : TransientAdded s' out node parent) : TransientAdded s out node parent := by
-  obtain ⟨hkeep, hin, hnew⟩ := hq
-  refine ⟨fun r hr => hkeep r ((h.registrations r).mpr hr), ?_, ?_⟩
+  obtain ⟨hkeep, hin, hnew, hord⟩ := hq
+  refine ⟨fun r hr => hkeep r ((h.registrations r).mpr hr), ?_, ?_,
+    transientOrdered_transport h.tree.parentOf h.registrationOrder hord⟩
   · intro src hsrc hsub ha
     exact hin src ((h.registrations src).mpr hsrc) hsub (h.tree.inclusiveAncestor_iff.mpr ha)
   · intro r hr hnot
@@ -278,12 +281,12 @@ theorem removeSpec_wellFormed {out : DOMState} {node : NodeId} {suppress : Bool}
 /-! ## まとめ -/
 
 /-- **`RemoveSpec` は観測の等しい入力に差し替えられる。** -/
-theorem removeSpec_transport (hwf : WellFormed s.tree) (h : MutationObsEq s s') {out : DOMState}
+theorem removeSpec_transport (hwf : WellFormed s.tree) (h : ObsEq s s') {out : DOMState}
     {node : NodeId} {suppress : Bool} (hq : RemoveSpec s' node suppress out) :
     RemoveSpec s node suppress out := by
   obtain ⟨parent, index, hpre, hidx, hr, hit, htr, htn, hrec, hun⟩ := hq
-  refine ⟨parent, index, ?_, ?_, rangeAdjusted_transport h hr,
-    iteratorAdjusted_transport hwf h hit, treeRemoved_transport h.tree htr,
+  refine ⟨parent, index, ?_, ?_, rangeAdjusted_transport h.toMutationObsEq hr,
+    iteratorAdjusted_transport hwf h.toMutationObsEq hit, treeRemoved_transport h.tree htr,
     transientAdded_transport h htn, ?_, h.untouched.trans hun⟩
   · show parentOf s.tree node = some parent
     rw [← h.tree.parentOf]; exact hpre
@@ -297,15 +300,17 @@ theorem removeSpec_transport (hwf : WellFormed s.tree) (h : MutationObsEq s s') 
 入力の観測が等しければ、出力の観測も等しい。
 `insert` のように `remove` を途中に持つ関係の一意性は、これを繰り返して示す。
 -/
-theorem removeSpec_congr (hwf : WellFormed s.tree) (h : MutationObsEq s s')
+theorem removeSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s s')
     {s₁ s₂ : DOMState} {node : NodeId} {suppress : Bool}
     (h₁ : RemoveSpec s node suppress s₁) (h₂ : RemoveSpec s' node suppress s₂) :
-    MutationObsEq s₁ s₂ := by
+    ObsEq s₁ s₂ := by
   have h₂' : RemoveSpec s node suppress s₂ := removeSpec_transport hwf h h₂
   obtain ⟨htree, hrng, hit, hreg, hrec, hpend, hmt, hw, hl, ha⟩ :=
     removeSpec_deterministic hwf h₁ h₂'
-  exact ⟨fun m => (htree m).symm, hrng.symm, hit.symm, fun r => (hreg r).symm,
-    fun mo => (hrec mo).symm, fun mo => (hpend mo).symm, hmt.symm, hw.symm, hl.symm, ha.symm⟩
+  obtain ⟨hro, hpo⟩ := removeSpec_order_unique h₁ h₂'
+  exact ⟨⟨fun m => (htree m).symm, hrng.symm, hit.symm, fun r => (hreg r).symm,
+    fun mo => (hrec mo).symm, fun mo => (hpend mo).symm, hmt.symm, hw.symm, hl.symm, ha.symm⟩,
+    hro, hpo.symm⟩
 
 
 /--
@@ -315,8 +320,8 @@ theorem removeSpec_congr (hwf : WellFormed s.tree) (h : MutationObsEq s s')
 次の段の前提として `removeSpec_wellFormed` を渡す。
 -/
 theorem removeEachSpec_congr {ns : List NodeId} {b : Bool} :
-    ∀ {s s' s₁ s₂ : DOMState}, WellFormed s.tree → MutationObsEq s s' →
-      RemoveEachSpec s ns b s₁ → RemoveEachSpec s' ns b s₂ → MutationObsEq s₁ s₂ := by
+    ∀ {s s' s₁ s₂ : DOMState}, WellFormed s.tree → ObsEq s s' →
+      RemoveEachSpec s ns b s₁ → RemoveEachSpec s' ns b s₂ → ObsEq s₁ s₂ := by
   induction ns with
   | nil =>
     intro s s' s₁ s₂ _ h h₁ h₂
@@ -346,12 +351,16 @@ theorem removeEachSpec_wellFormed {ns : List NodeId} {b : Bool} :
 `TreeRecordQueued` は observer についてしか言わないので、
 木や range が動かないことは `ObserverOnly` から取る。
 -/
-theorem treeRecordQueued_congr (h : MutationObsEq s s') {o₁ o₂ : DOMState} {target : NodeId}
+theorem treeRecordQueued_congr (h : ObsEq s s') {o₁ o₂ : DOMState} {target : NodeId}
     {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
     (h₁ : TreeRecordQueued s o₁ target added removed oldPrev oldNext suppress)
     (h₂ : TreeRecordQueued s' o₂ target added removed oldPrev oldNext suppress)
-    (f₁ : ObserverOnly s o₁) (f₂ : ObserverOnly s' o₂) : MutationObsEq o₁ o₂ := by
-  obtain ⟨hrec, hpend, hmt⟩ := treeRecordQueued_unique h₁ (treeRecordQueued_transport h h₂)
+    (f₁ : ObserverOnly s o₁) (f₂ : ObserverOnly s' o₂) : ObsEq o₁ o₂ := by
+  have h₂' := treeRecordQueued_transport h h₂
+  obtain ⟨hrec, hpend, hmt⟩ := treeRecordQueued_unique h₁ h₂'
+  have hpo := treeRecordQueued_pending_unique h₁ h₂'
+  refine ⟨?_, fun m => by rw [f₂.registrations, f₁.registrations]; exact h.registrationOrder m,
+    hpo.symm⟩
   exact
     { tree := fun m => by rw [f₂.tree, f₁.tree]; exact h.tree m
       ranges := by rw [f₂.ranges, h.ranges, f₁.ranges]

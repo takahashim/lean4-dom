@@ -32,7 +32,7 @@ theorem preInsertValidity_congr {t t' : Tree} (h : TreeObsEq t t') {node parent 
   simp only [e₁, e₂, e₃, e₄, e₅, e₆, e₇]
 
 /-- **pre-insert の結果の関係の congruence。** -/
-theorem preInsertResult_congr {s sb : DOMState} (hwf : WellFormed s.tree) (h : MutationObsEq s sb)
+theorem preInsertResult_congr {s sb : DOMState} (hwf : WellFormed s.tree) (h : ObsEq s sb)
     {node parent : NodeId} {child : Option NodeId} {r₁ r₂ : Except DOMException DOMState}
     (h₁ : PreInsertResult s node parent child r₁) (h₂ : PreInsertResult sb node parent child r₂) :
     ResultObsEq r₁ r₂ := by
@@ -155,12 +155,12 @@ theorem insertNode_result_deterministic {s : DOMState} {i : Nat} {r : RangeState
       · rfl
     subst hre'
     -- step 9
-    have hobs₁ : MutationObsEq s₁ s₁' ∧ WellFormed s₁.tree := by
+    have hobs₁ : ObsEq s₁ s₁' ∧ WellFormed s₁.tree := by
       rcases h9₁ with ⟨hp, rfl⟩ | ⟨⟨p, hp⟩, hrm⟩ <;> rcases h9₂ with ⟨hp', rfl⟩ | ⟨⟨p', hp'⟩, hrm'⟩
-      · exact ⟨MutationObsEq.refl _, hwf⟩
+      · exact ⟨ObsEq.refl _, hwf⟩
       · rw [hp] at hp'; cases hp'
       · rw [hp] at hp'; cases hp'
-      · exact ⟨removeSpec_congr hwf (MutationObsEq.refl s) hrm hrm', removeSpec_wellFormed hwf hrm⟩
+      · exact ⟨removeSpec_congr hwf (ObsEq.refl s) hrm hrm', removeSpec_wellFormed hwf hrm⟩
     obtain ⟨hobs₁, hwf₁⟩ := hobs₁
     have hoe : no₁ = no₂ := newOffset_congr hobs₁.tree hno₁ hno₂
     subst hoe
