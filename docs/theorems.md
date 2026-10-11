@@ -668,6 +668,7 @@ element で、"locate a namespace prefix" は step 1 を外れて step 2 の属�
 | 定理 | module |
 | --- | --- |
 | `Dom.Spec.roundPos_spec` | `Dom/Spec/DoubleSound.lean` |
+| `Dom.Spec.roundPos_globally_nearest` / `roundPos_binary64_nearest` / `roundPos_global_tie` | `Dom/Spec/DoubleNearest.lean` |
 | `Dom.Spec.round_spec` | 同上 |
 | `Dom.Idl.toAddEventListenerOptions_eq_none_iff` | `Dom/Idl/Value.lean` |
 | `Dom.Idl.toImportNodeOptions_eq_none_iff` | 同上 |
@@ -680,8 +681,12 @@ ECMA-262 の「the Number value for x」は、x に最も近い IEEE 754 binary6
 取り、2^1024 − 2^970 以上は +∞ である。関係 `NearestDouble`（`Dom/Spec/Double.lean`）は、正の有理数 n/d について
 これを binade（`Binade`：正規数なら 2^(e+52) ≤ n/d < 2^(e+53)、非正規化数なら e = −1074）と、その中での丸め
 （`RoundsAt`：2^e の倍数のうち最も近いもの、中間なら偶数）で書く。仮数が 2^53 になれば 2^52 × 2^(e+1) と書き直し、
-指数が 971 を超えれば +∞ である。binade の中で最も近い値が全体で最も近い値であること（区間の外の値のほうが遠いこと）は
-散文の議論で、定理にはしていない。
+指数が 971 を超えれば +∞ である。
+
+`roundPos_globally_nearest` は、実装の binade 選択を使わない `FiniteDouble` の全非負有限候補について
+距離が最小になることを証明する。距離は最小非正規化数 2^-1074 と分母で整数に尺度変換した
+`scaledDistance` で比較する。`roundPos_binary64_nearest` は `FiniteBinary64` の負の有限候補も含めて比較する。下の binade の候補、上の binade の候補、仮数の桁上がりも含む。
+`roundPos_global_tie` は、異なる有限候補が同距離の場合に返す仮数が偶数であることを証明する。
 
 整数型の引数の ConvertToInt、ToNumber、StringToNumber は、この丸めの上にある。`JsNum.ofDecimal` が巨大な指数を
 冪を計算せずに ∞ と ±0 にする二つの近道は、この定理の範囲の外である。

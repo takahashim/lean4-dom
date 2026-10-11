@@ -261,7 +261,11 @@
         "Dom.Idl.JsNum.roundPos"
       ],
       "spec": [
-        "Dom.Spec.NearestDouble"
+        "Dom.Spec.NearestDouble",
+        "Dom.Spec.roundPos_spec",
+        "Dom.Spec.FiniteBinary64",
+        "Dom.Spec.roundPos_binary64_nearest",
+        "Dom.Spec.roundPos_global_tie"
       ],
       "omit": [
         {

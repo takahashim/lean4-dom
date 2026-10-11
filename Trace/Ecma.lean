@@ -69,7 +69,9 @@ def entries : List Entry := [
   { alg := "sec-roundmvresult"
     -- 𝔽(n)（最も近い倍精度の値、偶数への丸め）は `JsNum.ofRat` と `JsNum.roundPos`。
     impl := [``Dom.Idl.JsNum.ofDecimal?, ``Dom.Idl.JsNum.ofDecimal, ``Dom.Idl.JsNum.ofRat, ``Dom.Idl.JsNum.roundPos]
-    spec := [``Dom.Spec.NearestDouble]
+    spec := [``Dom.Spec.NearestDouble, ``Dom.Spec.roundPos_spec,
+             ``Dom.Spec.FiniteBinary64, ``Dom.Spec.roundPos_binary64_nearest,
+             ``Dom.Spec.roundPos_global_tie]
     omitted := [("2-5", .other "有効数字が 20 桁を超える十進表記は、丸めが実装に任されて結果が一つに決まらないので、model の対象外とする")] },
 
   /- ## §7.1.19 ToString -/
