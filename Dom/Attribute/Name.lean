@@ -63,13 +63,16 @@ def xmlnsNamespace : String := "http://www.w3.org/2000/xmlns/"
 /--
 最初の U+003A (`:`) で分ける。colon が無ければ `none`。
 
-`splitOn` は colon ごとに分けるので、二個目以降は後半に戻す。
+code point の列を先頭から調べ、最初の colon で止める。
 -/
-def splitAtFirstColon (s : String) : Option (String × String) :=
-  match s.splitOn ":" with
+-- 最初のコロンまで読む。それより後ろのコロンは後半にそのまま残す。
+def splitFirstColonChars : List Char → Option (List Char × List Char)
   | [] => none
-  | [_] => none
-  | p :: rest => some (p, String.intercalate ":" rest)
+  | c :: cs => if c = ':' then some ([], cs)
+      else (splitFirstColonChars cs).map fun (pre, post) => (c :: pre, post)
+
+def splitAtFirstColon (s : String) : Option (String × String) :=
+  (splitFirstColonChars s.toList).map fun (pre, post) => (String.ofList pre, String.ofList post)
 
 /--
 DOM Standard §1.3 valid element local name。

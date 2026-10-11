@@ -8,25 +8,26 @@ import Dom.Properties.Tree
 §1.3 の名前検査と §4.9 の attribute 探索について、差分テストからは出てこない
 性質を書く。名前検査どうしの包含と、`findAttr` が返す owner element の整合が中心である。
 
-`splitAtFirstColon` の round-trip（`p ++ ":" ++ l = s`）は
-`String.intercalate sep (s.splitOn sep) = s` が要るが、この Lean の標準 library には
-無く、Mathlib も使わない方針なので今は書いていない。
+最初の colon での分解と round-trip は `Dom/Spec/ValidateAndExtract.lean` で証明する。
 -/
 
 namespace Dom
 
 /-! ## `splitAtFirstColon` -/
 
-/-- colon が無ければ分けられない。 -/
+private theorem splitFirstColonChars_eq_none_iff (cs : List Char) :
+    splitFirstColonChars cs = none ↔ ':' ∉ cs := by
+  induction cs with
+  | nil => simp [splitFirstColonChars]
+  | cons c cs ih =>
+    by_cases hc : c = ':'
+    · subst hc; simp [splitFirstColonChars]
+    · simpa [splitFirstColonChars, hc, Ne.symm hc] using ih
+
+/-- 分けられなかったなら、名前はコロンを含まない。 -/
 theorem splitAtFirstColon_eq_none_iff {s : String} :
-    splitAtFirstColon s = none ↔ (s.splitOn ":").length ≤ 1 := by
-  unfold splitAtFirstColon
-  cases hs : s.splitOn ":" with
-  | nil => simp
-  | cons a rest =>
-    cases rest with
-    | nil => simp
-    | cons b rest' => simp
+    splitAtFirstColon s = none ↔ ':' ∉ s.toList := by
+  simpa [splitAtFirstColon] using splitFirstColonChars_eq_none_iff s.toList
 
 /-! ## 名前の検査 -/
 

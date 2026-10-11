@@ -36,7 +36,10 @@ def entries : List Entry := [
     impl := [``Dom.validateAndExtractAttribute, ``Dom.validateAndExtractElement,
              ``Dom.validateAndExtractError, ``Dom.splitAtFirstColon, ``Dom.normalizeNamespace]
     spec := [``Dom.Spec.validateAndExtractSteps, ``Dom.Spec.validateAndExtractAttribute_eq_steps,
-             ``Dom.Spec.validateAndExtractElement_eq_steps]
+             ``Dom.Spec.validateAndExtractElement_eq_steps,
+             ``Dom.Spec.FirstColonSplit, ``Dom.Spec.splitAtFirstColon_spec,
+             ``Dom.Spec.ValidateAndExtractResult, ``Dom.Spec.validateAndExtractAttribute_spec,
+             ``Dom.Spec.validateAndExtractElement_spec]
     omitted := [("5", .other "assert。step 4.3 の分岐から従うので検査しない")] }
 ]
 
