@@ -457,6 +457,90 @@ theorem foldl_transient_observers_length :
     · rfl
     · split <;> simp
 
+/-- transient を足す一歩。observer の node list は伸びるだけで、その observer の node list には node が入る。 -/
+def transientStep (node : NodeId) (obs : List ObserverState) (r : Registration) : List ObserverState :=
+  match obs[r.observer]? with
+  | none => obs
+  | some o =>
+    if o.nodeList.contains node then obs
+    else obs.set r.observer { o with nodeList := o.nodeList ++ [node] }
+
+theorem transientStep_grow (node : NodeId) (obs : List ObserverState) (r : Registration)
+    {i : Nat} {o : ObserverState} (h : obs[i]? = some o) :
+    ∃ o', (transientStep node obs r)[i]? = some o' ∧ ∀ x ∈ o.nodeList, x ∈ o'.nodeList := by
+  unfold transientStep
+  split
+  · exact ⟨o, h, fun _ hx => hx⟩
+  · next o₀ h₀ =>
+    split
+    · exact ⟨o, h, fun _ hx => hx⟩
+    · rw [List.getElem?_set]
+      by_cases hk : r.observer = i
+      · subst hk
+        rw [h₀] at h
+        cases h
+        have hlt := (List.getElem?_eq_some_iff.mp h₀).1
+        refine ⟨{ o with nodeList := o.nodeList ++ [node] }, by simp [hlt], fun x hx => ?_⟩
+        simp [hx]
+      · exact ⟨o, by simp [hk, h], fun _ hx => hx⟩
+
+theorem transientStep_listed (node : NodeId) (obs : List ObserverState) (r : Registration)
+    (hlt : r.observer < obs.length) :
+    ∃ o', (transientStep node obs r)[r.observer]? = some o' ∧ node ∈ o'.nodeList := by
+  unfold transientStep
+  obtain ⟨o, ho⟩ : ∃ o, obs[r.observer]? = some o := ⟨_, List.getElem?_eq_getElem hlt⟩
+  rw [ho]
+  simp only []
+  split
+  · next hc => exact ⟨o, ho, by simpa using hc⟩
+  · exact ⟨{ o with nodeList := o.nodeList ++ [node] }, by simp [hlt], by simp⟩
+
+theorem transientStep_length (node : NodeId) (obs : List ObserverState) (r : Registration) :
+    (transientStep node obs r).length = obs.length := by
+  unfold transientStep
+  split
+  · rfl
+  · split <;> simp
+
+theorem foldl_transientStep_grow (node : NodeId) :
+    ∀ (l : List Registration) (obs : List ObserverState) {i : Nat} {o : ObserverState},
+      obs[i]? = some o →
+      ∃ o', (l.foldl (transientStep node) obs)[i]? = some o' ∧ ∀ x ∈ o.nodeList, x ∈ o'.nodeList
+  | [], obs, i, o, h => ⟨o, h, fun _ hx => hx⟩
+  | r :: l, obs, i, o, h => by
+    obtain ⟨o₁, h₁, hs₁⟩ := transientStep_grow node obs r h
+    obtain ⟨o₂, h₂, hs₂⟩ := foldl_transientStep_grow node l (transientStep node obs r) h₁
+    exact ⟨o₂, h₂, fun x hx => hs₂ x (hs₁ x hx)⟩
+
+theorem foldl_transientStep_length (node : NodeId) :
+    ∀ (l : List Registration) (obs : List ObserverState),
+      (l.foldl (transientStep node) obs).length = obs.length
+  | [], _ => rfl
+  | r :: l, obs => by
+    show (l.foldl _ (transientStep node obs r)).length = _
+    rw [foldl_transientStep_length node l, transientStep_length]
+
+theorem foldl_transientStep_listed (node : NodeId) :
+    ∀ (l : List Registration) (obs : List ObserverState) (r : Registration), r ∈ l →
+      r.observer < obs.length →
+      ∃ o', (l.foldl (transientStep node) obs)[r.observer]? = some o' ∧ node ∈ o'.nodeList
+  | [], _, _, h, _ => by cases h
+  | x :: l, obs, r, h, hlt => by
+    rcases List.mem_cons.mp h with rfl | hm
+    · obtain ⟨o₁, h₁, hn₁⟩ := transientStep_listed node obs r hlt
+      obtain ⟨o₂, h₂, hs₂⟩ := foldl_transientStep_grow node l (transientStep node obs r) h₁
+      exact ⟨o₂, h₂, hs₂ node hn₁⟩
+    · exact foldl_transientStep_listed node l (transientStep node obs x) r hm
+        (by rw [transientStep_length]; exact hlt)
+
+/-- `addTransientObservers` の observer 列は、元の列に `transientStep` を当てたもの。 -/
+theorem addTransientObservers_observers (s : DOMState) (n p : NodeId) :
+    (addTransientObservers s n p).observers =
+      ((p :: ancestors s.tree p).flatMap fun m =>
+        (s.registrations.filter fun r => r.node == m && r.subtree).map fun r =>
+          { r with node := n, transient := true, source := some r.node }).foldl
+        (transientStep n) s.observers := rfl
+
 @[simp] theorem addTransientObservers_observers_length (s : DOMState) (n p : NodeId) :
     (addTransientObservers s n p).observers.length = s.observers.length := by
   unfold addTransientObservers
@@ -509,6 +593,53 @@ theorem foldl_enqueue_length :
     (v : String) :
     (queueCharacterDataRecord s t v).observers.length = s.observers.length :=
   queueMutationRecord_observers_length ..
+
+/-! ## record を積んでも node list は変わらない -/
+
+theorem enqueueRecord_nodeLists (obs : List ObserverState) (mo : Nat) (rec : MutationRecord) :
+    (enqueueRecord obs mo rec).map (·.nodeList) = obs.map (·.nodeList) := by
+  unfold enqueueRecord
+  split
+  · rfl
+  · next o ho =>
+    rw [List.map_set]
+    apply List.ext_getElem?
+    intro k
+    rw [List.getElem?_set]
+    by_cases hk : mo = k
+    · subst hk
+      obtain ⟨hlt, he⟩ := List.getElem?_eq_some_iff.mp ho
+      simp [hlt, he]
+    · simp [hk]
+
+theorem foldl_enqueue_nodeLists :
+    ∀ (l : List (Nat × Option String)) (obs : List ObserverState) (rec : MutationRecord),
+      (l.foldl (fun o p => enqueueRecord o p.1 { rec with oldValue := p.2 }) obs).map (·.nodeList)
+        = obs.map (·.nodeList)
+  | [], _, _ => rfl
+  | x :: xs, obs, rec => by
+    show (xs.foldl _ (enqueueRecord obs x.1 _)).map _ = _
+    rw [foldl_enqueue_nodeLists xs, enqueueRecord_nodeLists]
+
+@[simp] theorem queueMutationRecord_nodeLists (s : DOMState) (rec : MutationRecord)
+    (ov : Option String) :
+    (queueMutationRecord s rec ov).observers.map (·.nodeList) = s.observers.map (·.nodeList) := by
+  unfold queueMutationRecord
+  rw [queueMutationObserverMicrotask_observers, foldl_addPendingObserver_observers]
+  exact foldl_enqueue_nodeLists _ _ _
+
+@[simp] theorem queueTreeMutationRecord_nodeLists (s : DOMState) (t : NodeId)
+    (a r : List NodeId) (p n : Option NodeId) :
+    (queueTreeMutationRecord s t a r p n).observers.map (·.nodeList) =
+      s.observers.map (·.nodeList) := by
+  unfold queueTreeMutationRecord
+  split
+  · rfl
+  · exact queueMutationRecord_nodeLists ..
+
+@[simp] theorem queueCharacterDataRecord_nodeLists (s : DOMState) (t : NodeId) (v : String) :
+    (queueCharacterDataRecord s t v).observers.map (·.nodeList) = s.observers.map (·.nodeList) :=
+  queueMutationRecord_nodeLists ..
 
 /-- transient registration の observer index は、元の registration から受け継ぐ。 -/
 theorem addTransientObservers_observer_lt (s : DOMState) (n p : NodeId) {r : Registration}

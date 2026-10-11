@@ -24,7 +24,7 @@ theorem attrOpResult_modifyAttr (s : DOMState) (aid : AttrId) (f : Attr → Attr
     · next d hd =>
       split
       · next hk =>
-        refine ⟨attributesOnly_setAttributes hd _, rfl, rfl, rfl, rfl, fun h => ?_⟩
+        refine ⟨attributesOnly_setAttributes hd _, rfl, rfl, rfl, rfl, rfl, fun h => ?_⟩
         refine attributesValid_setAttributes hd h hk ?_ ?_
         · have : (d.attributes.map fun b => if b.id == aid then f b else b).map Attr.key =
               d.attributes.map Attr.key := by
@@ -42,11 +42,11 @@ theorem attrOpResult_modifyAttr (s : DOMState) (aid : AttrId) (f : Attr → Attr
           · simp only [hb', Bool.false_eq_true, if_false] at hp ⊢
             exact h.prefixHasNamespace n d hd b hb hp
       · exact AttrOpResult.refl _
-  · exact ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, id⟩
+  · exact ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, rfl, id⟩
 
 theorem attrOpResult_cloneAttrIn (s : DOMState) (a : Attr) (doc : NodeId) :
     AttrOpResult s (cloneAttrIn s a doc).2 :=
-  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, id⟩
+  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, rfl, id⟩
 
 theorem attrOpResult_adoptAttr {s s' : DOMState} {doc : NodeId} {aid ret : AttrId}
     (hr : adoptAttr s doc aid = .ok (ret, s')) : AttrOpResult s s' := by

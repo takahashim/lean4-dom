@@ -451,8 +451,8 @@ theorem admissible_of_attrOp {s s' : DOMState} (h : AdmissibleDOMState s)
     exact validIterator_of_attributesOnly hr.tree (h.iterators it hit)
   · intro r hrg
     rw [hr.registrations] at hrg
-    obtain ⟨g1, g2⟩ := h.observerRegistrations r hrg
-    refine ⟨by rw [hr.observersLength]; exact g1, ?_⟩
+    obtain ⟨g1, g2, g3⟩ := h.observerRegistrations r hrg
+    refine ⟨by rw [hr.observersLength]; exact g1, ?_, g3.mono (grow_of_nodeLists hr.nodeLists)⟩
     obtain ⟨d, hd⟩ := Option.isSome_iff_exists.mp g2
     cases hd' : s'.tree.get? r.node with
     | none => exfalso; rw [hr.tree.get?_eq_none hd'] at hd; simp at hd
@@ -702,7 +702,16 @@ theorem admissible_observe {s s' : DOMState} {mo : Nat} {target : NodeId}
         have hmo' : mo < s.observers.length := by omega
         split at ho
         · -- 既存の registration の options を差し替える
+          next hex =>
           rw [← Except.ok.inj ho]
+          -- target は既にこの observer の node list にある
+          have htl : ∃ o, s.observers[mo]? = some o ∧ target ∈ o.nodeList := by
+            obtain ⟨r₁, hr₁, hc⟩ := List.any_eq_true.mp hex
+            simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hc
+            obtain ⟨⟨hmo₁, hnode₁⟩, -⟩ := hc
+            obtain ⟨-, -, o, ho₁, hm₁⟩ := h.observerRegistrations r₁ hr₁
+            rw [hmo₁] at ho₁
+            exact ⟨o, ho₁, hnode₁ ▸ hm₁⟩
           intro r hr
           simp only at hr
           obtain ⟨r₀, hr₀, hre⟩ := List.mem_filterMap.mp hr
@@ -710,17 +719,51 @@ theorem admissible_observe {s s' : DOMState} {mo : Nat} {target : NodeId}
           · simp at hre
           · split at hre
             · rw [← Option.some.inj hre]
-              exact ⟨hmo', htgt⟩
+              exact ⟨hmo', htgt, htl⟩
             · rw [← Option.some.inj hre]
               exact h.observerRegistrations r₀ hr₀
         · -- 新しい registration を足す
           rw [← Except.ok.inj ho]
+          have hgrow : NodeListsGrow s.observers
+              (match s.observers[mo]? with
+                | none => s.observers
+                | some o => s.observers.set mo { o with nodeList := o.nodeList ++ [target] }) := by
+            intro i o hi
+            split
+            · exact ⟨o, hi, fun _ hx => hx⟩
+            · next o₀ ho₀ =>
+              rw [List.getElem?_set]
+              by_cases hk : mo = i
+              · subst hk
+                rw [ho₀] at hi
+                cases hi
+                exact ⟨{ o with nodeList := o.nodeList ++ [target] }, by simp [hmo'],
+                  fun x hx => by simp [hx]⟩
+              · exact ⟨o, by simp [hk, hi], fun _ hx => hx⟩
           intro r hr
           simp only [List.mem_append, List.mem_singleton] at hr
           rcases hr with hr | rfl
-          · obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
-            exact ⟨by simpa using g1, g2⟩
-          · exact ⟨by simpa using hmo', htgt⟩
+          · obtain ⟨g1, g2, g3⟩ := h.observerRegistrations r hr
+            exact ⟨by simpa using g1, g2, g3.mono hgrow⟩
+          · refine ⟨by simpa using hmo', htgt, ?_⟩
+            obtain ⟨o, ho⟩ : ∃ o, s.observers[mo]? = some o := ⟨_, List.getElem?_eq_getElem hmo'⟩
+            refine ⟨{ o with nodeList := o.nodeList ++ [target] }, ?_, by simp⟩
+            simp only [ho]
+            simp [hmo']
+
+/-- record queue を差し替えても node list は変わらない。 -/
+theorem setRecords_nodeLists {obs : List ObserverState} {mo : Nat} {o : ObserverState}
+    {rs : List MutationRecord} (ho : obs[mo]? = some o) :
+    (obs.set mo { o with records := rs }).map (·.nodeList) = obs.map (·.nodeList) := by
+  rw [List.map_set]
+  apply List.ext_getElem?
+  intro k
+  rw [List.getElem?_set]
+  by_cases hk : mo = k
+  · subst hk
+    obtain ⟨hlt, he⟩ := List.getElem?_eq_some_iff.mp ho
+    simp [hlt, he]
+  · simp [hk]
 
 /-- `disconnect` は registration を減らすだけである。 -/
 theorem admissible_disconnect {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :
@@ -730,8 +773,13 @@ theorem admissible_disconnect {s : DOMState} (h : AdmissibleDOMState s) (mo : Na
   intro r hr
   unfold MutationObserver.disconnect at hr
   simp only at hr
-  obtain ⟨g1, g2⟩ := h.observerRegistrations r (List.mem_filter.mp hr).1
-  exact ⟨by simpa using g1, g2⟩
+  obtain ⟨g1, g2, g3⟩ := h.observerRegistrations r (List.mem_filter.mp hr).1
+  refine ⟨by simpa using g1, g2, g3.mono (grow_of_nodeLists ?_)⟩
+  unfold MutationObserver.disconnect
+  simp only []
+  split
+  · rfl
+  · next o ho => exact setRecords_nodeLists ho
 
 /-- `takeRecords` は record queue を空にするだけである。 -/
 theorem admissible_takeRecords {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :
@@ -742,8 +790,8 @@ theorem admissible_takeRecords {s : DOMState} (h : AdmissibleDOMState s) (mo : N
   · refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_,
     h.attributes⟩
     intro r hr
-    obtain ⟨g1, g2⟩ := h.observerRegistrations r hr
-    exact ⟨by simpa using g1, g2⟩
+    obtain ⟨g1, g2, g3⟩ := h.observerRegistrations r hr
+    exact ⟨by simpa using g1, g2, g3.mono (grow_of_nodeLists (setRecords_nodeLists (by assumption)))⟩
 
 /-- transient registration を外しても妥当である。 -/
 theorem admissible_removeTransients {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :

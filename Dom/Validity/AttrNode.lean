@@ -25,17 +25,18 @@ theorem AttrOpResult.trans {s s' s'' : DOMState} (h₁ : AttrOpResult s s')
   iterators := by rw [h₂.iterators, h₁.iterators]
   registrations := by rw [h₂.registrations, h₁.registrations]
   observersLength := by rw [h₂.observersLength, h₁.observersLength]
+  nodeLists := by rw [h₂.nodeLists, h₁.nodeLists]
   attributes := fun h => h₂.attributes (h₁.attributes h)
 
 /-- detach された list を触っても木も live object も変わらない。 -/
 theorem attrOpResult_removeDetached (s : DOMState) (aid : AttrId) :
     AttrOpResult s (removeDetached s aid) :=
-  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, id⟩
+  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, rfl, id⟩
 
 /-- `createAttribute` は detach された list に足すだけである。 -/
 theorem attrOpResult_createAttributeIn (s : DOMState) (doc : NodeId) (ns pfx : Option String)
     (ln : String) : AttrOpResult s (createAttributeIn s doc ns pfx ln).2 :=
-  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, id⟩
+  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, rfl, id⟩
 
 /-! ## "replace an attribute" -/
 
@@ -44,6 +45,12 @@ theorem attrOpResult_createAttributeIn (s : DOMState) (doc : NodeId) (ns pfx : O
       setAttributes s.tree element d
         (updateFirst (fun b => b.key == old.key) (fun _ => { new with ownerDocument := d.ownerDocument })
           d.attributes) := by
+  unfold replaceAttributeWith; simp
+
+@[simp] theorem replaceAttributeWith_nodeLists (s : DOMState) (element : NodeId)
+    (d : NodeData) (old new : Attr) :
+    (replaceAttributeWith s element d old new).observers.map (·.nodeList) =
+      s.observers.map (·.nodeList) := by
   unfold replaceAttributeWith; simp
 
 @[simp] theorem replaceAttributeWith_ranges (s : DOMState) (element : NodeId) (d : NodeData)
@@ -88,6 +95,7 @@ theorem attrOpResult_replace {s : DOMState} {element : NodeId} {d : NodeData} {o
   ⟨by rw [replaceAttributeWith_tree]; exact attributesOnly_setAttributes hd _,
     replaceAttributeWith_ranges .., replaceAttributeWith_iterators ..,
     replaceAttributeWith_registrations .., replaceAttributeWith_observers_length ..,
+    replaceAttributeWith_nodeLists ..,
     fun h => by rw [replaceAttributeWith_tree]; exact attributesValid_replace hd h hk hkey hpfx⟩
 
 /-- 鍵で引いた attribute の鍵は、引いた鍵そのものである。 -/
@@ -103,6 +111,11 @@ theorem getAttributeByKey_key {d : NodeData} {ns : Option String} {ln : String} 
 @[simp] theorem detachAttribute_tree (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr) :
     (detachAttribute s element d a).tree =
       setAttributes s.tree element d (eraseFirst (fun b => b.id == a.id) d.attributes) := by
+  unfold detachAttribute; simp
+
+@[simp] theorem detachAttribute_nodeLists (s : DOMState) (element : NodeId)
+    (d : NodeData) (a : Attr) :
+    (detachAttribute s element d a).observers.map (·.nodeList) = s.observers.map (·.nodeList) := by
   unfold detachAttribute; simp
 
 @[simp] theorem detachAttribute_ranges (s : DOMState) (element : NodeId) (d : NodeData)
@@ -128,6 +141,7 @@ theorem attrOpResult_detach {s : DOMState} {element : NodeId} {d : NodeData} {a 
   ⟨by rw [detachAttribute_tree]; exact attributesOnly_setAttributes hd _,
     detachAttribute_ranges .., detachAttribute_iterators ..,
     detachAttribute_registrations .., detachAttribute_observers_length ..,
+    detachAttribute_nodeLists ..,
     fun h => by rw [detachAttribute_tree]; exact attributesValid_erase hd h hk⟩
 
 /-! ## 各 API -/

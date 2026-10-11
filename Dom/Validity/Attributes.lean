@@ -278,6 +278,12 @@ theorem attributesValid_setAttributes {t : Tree} {n : NodeId} {d : NodeData} {as
     (handleAttributeChanges s element a ov).observers.length = s.observers.length := by
   unfold handleAttributeChanges; simp
 
+@[simp] theorem handleAttributeChanges_nodeLists (s : DOMState) (element : NodeId)
+    (a : Attr) (ov : Option String) :
+    (handleAttributeChanges s element a ov).observers.map (·.nodeList) =
+      s.observers.map (·.nodeList) := by
+  unfold handleAttributeChanges; simp
+
 /-!
 ## attribute list の三つの変更が妥当性を保つこと
 
@@ -349,6 +355,11 @@ theorem attributesValid_erase {t : Tree} {n : NodeId} {d : NodeData} {p : Attr �
     (changeAttribute s element d a value).observers.length = s.observers.length := by
   unfold changeAttribute; simp
 
+@[simp] theorem changeAttribute_nodeLists (s : DOMState) (element : NodeId) (d : NodeData)
+    (a : Attr) (value : String) :
+    (changeAttribute s element d a value).observers.map (·.nodeList) = s.observers.map (·.nodeList) := by
+  unfold changeAttribute; simp
+
 @[simp] theorem appendAttribute_tree (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr) :
     (appendAttribute s element d a).tree =
       setAttributes s.tree element d (d.attributes ++ [{ a with ownerDocument := d.ownerDocument }]) := by
@@ -368,6 +379,11 @@ theorem attributesValid_erase {t : Tree} {n : NodeId} {d : NodeData} {p : Attr �
 
 @[simp] theorem appendAttribute_observers_length (s : DOMState) (element : NodeId) (d : NodeData)
     (a : Attr) : (appendAttribute s element d a).observers.length = s.observers.length := by
+  unfold appendAttribute; simp
+
+@[simp] theorem appendAttribute_nodeLists (s : DOMState) (element : NodeId) (d : NodeData)
+    (a : Attr) :
+    (appendAttribute s element d a).observers.map (·.nodeList) = s.observers.map (·.nodeList) := by
   unfold appendAttribute; simp
 
 @[simp] theorem removeAttributeFrom_tree (s : DOMState) (element : NodeId) (d : NodeData)
@@ -390,6 +406,11 @@ theorem attributesValid_erase {t : Tree} {n : NodeId} {d : NodeData} {p : Attr �
 @[simp] theorem removeAttributeFrom_observers_length (s : DOMState) (element : NodeId)
     (d : NodeData) (a : Attr) :
     (removeAttributeFrom s element d a).observers.length = s.observers.length := by
+  unfold removeAttributeFrom; simp
+
+@[simp] theorem removeAttributeFrom_nodeLists (s : DOMState) (element : NodeId)
+    (d : NodeData) (a : Attr) :
+    (removeAttributeFrom s element d a).observers.map (·.nodeList) = s.observers.map (·.nodeList) := by
   unfold removeAttributeFrom; simp
 
 /-! ## 鍵が使われていないこと -/
@@ -449,17 +470,18 @@ structure AttrOpResult (s s' : DOMState) : Prop where
   iterators : s'.iterators = s.iterators
   registrations : s'.registrations = s.registrations
   observersLength : s'.observers.length = s.observers.length
+  nodeLists : s'.observers.map (·.nodeList) = s.observers.map (·.nodeList)
   attributes : AttributesValid s.tree → AttributesValid s'.tree
 
 theorem AttrOpResult.refl (s : DOMState) : AttrOpResult s s :=
-  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, id⟩
+  ⟨AttributesOnly.refl _, rfl, rfl, rfl, rfl, rfl, id⟩
 
 theorem attrOpResult_change {s : DOMState} {element : NodeId} {d : NodeData} {a : Attr}
     {value : String} (hd : s.tree.get? element = some d) (hk : d.kind = .element) :
     AttrOpResult s (changeAttribute s element d a value) :=
   ⟨by rw [changeAttribute_tree]; exact attributesOnly_setAttributes hd _,
     changeAttribute_ranges .., changeAttribute_iterators .., changeAttribute_registrations ..,
-    changeAttribute_observers_length ..,
+    changeAttribute_observers_length .., changeAttribute_nodeLists ..,
     fun h => by rw [changeAttribute_tree]; exact attributesValid_change hd h hk⟩
 
 theorem attrOpResult_append {s : DOMState} {element : NodeId} {d : NodeData} {a : Attr}
@@ -469,7 +491,7 @@ theorem attrOpResult_append {s : DOMState} {element : NodeId} {d : NodeData} {a 
     AttrOpResult s (appendAttribute s element d a) :=
   ⟨by rw [appendAttribute_tree]; exact attributesOnly_setAttributes hd _,
     appendAttribute_ranges .., appendAttribute_iterators .., appendAttribute_registrations ..,
-    appendAttribute_observers_length ..,
+    appendAttribute_observers_length .., appendAttribute_nodeLists ..,
     fun h => by rw [appendAttribute_tree]; exact attributesValid_append hd h hk (hnew h) hpfx⟩
 
 theorem attrOpResult_remove {s : DOMState} {element : NodeId} {d : NodeData} {a : Attr}
@@ -478,6 +500,7 @@ theorem attrOpResult_remove {s : DOMState} {element : NodeId} {d : NodeData} {a 
   ⟨by rw [removeAttributeFrom_tree]; exact attributesOnly_setAttributes hd _,
     removeAttributeFrom_ranges .., removeAttributeFrom_iterators ..,
     removeAttributeFrom_registrations .., removeAttributeFrom_observers_length ..,
+    removeAttributeFrom_nodeLists ..,
     fun h => by rw [removeAttributeFrom_tree]; exact attributesValid_erase hd h hk⟩
 
 theorem attrOpResult_setAttribute {s s' : DOMState} {element : NodeId} {qn value : String}

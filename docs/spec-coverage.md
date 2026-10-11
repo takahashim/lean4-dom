@@ -142,15 +142,15 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
 | [queue-a-mutation-observer-compound-microtask](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#queue-a-mutation-observer-compound-microtask) | 2/3（近似 1） | `Dom.queueMutationObserverMicrotask` |  |
-| [notify-mutation-observers](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#notify-mutation-observers) | 6/11（近似 2） | `Dom.notifyMutationObservers`<br>`Dom.notifyEach`<br>`Dom.notifyOne`<br>`Dom.MutationObserver.takeRecords`<br>`Dom.removeTransients` |  |
+| [notify-mutation-observers](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#notify-mutation-observers) | 6/11（近似 2） | `Dom.notifyMutationObservers`<br>`Dom.notifyEach`<br>`Dom.notifyOne`<br>`Dom.MutationObserver.takeRecords`<br>`Dom.removeTransients` | `Dom.Spec.NotifyResult`<br>`Dom.Spec.NotifiedEach`<br>`Dom.Spec.ObserverNotified`<br>`Dom.Spec.notifyMutationObservers_sound`<br>`Dom.Spec.notifyMutationObservers_complete` |
 
 ### §4.3.1（`interface-mutationobserver`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
 | [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 9/12（近似 3） | `Dom.MutationObserver.observeMethod`<br>`Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError`<br>`Dom.Idl.toMutationObserverInit` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
-| [dom-mutationobserver-disconnect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-disconnect) | 1/2（近似 1） | `Dom.MutationObserver.disconnect` |  |
-| [dom-mutationobserver-takerecords](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-takerecords) | 3/3 | `Dom.MutationObserver.takeRecords` |  |
+| [dom-mutationobserver-disconnect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-disconnect) | 1/2（近似 1） | `Dom.MutationObserver.disconnect` | `Dom.Spec.DisconnectResult`<br>`Dom.Spec.disconnect_sound`<br>`Dom.Spec.disconnect_complete` |
+| [dom-mutationobserver-takerecords](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-takerecords) | 3/3 | `Dom.MutationObserver.takeRecords` | `Dom.Spec.TakeRecordsResult`<br>`Dom.Spec.takeRecords_sound`<br>`Dom.Spec.takeRecords_complete` |
 
 ### §4.3.2（`queueing-a-mutation-record`）
 
@@ -418,12 +418,12 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-treewalker-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-whattoshow) | 1/1 | `Dom.WalkerState.whatToShow`<br>`Dom.observe` |  |
 | [dom-treewalker-currentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-currentnode) | 1/1 | `Dom.WalkerState.current`<br>`Dom.observe` |  |
 | [dom-treewalker-parentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-parentnode) | 2/5（近似 3） | `Dom.walkerParentNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerParentNodeResult` |
-| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerFirstChildResult` |
+| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.MirrorPrecedes`<br>`Dom.Spec.MirrorLastDescendantOf` |
 | [dom-treewalker-firstchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-firstchild) | 1/1 | `Dom.walkerFirstChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.walkerFirstChild_result_sound` |
-| [dom-treewalker-lastchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-lastchild) | 1/1 | `Dom.walkerLastChild`<br>`Dom.walkerStep` |  |
-| [concept-traverse-siblings](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-siblings) | 2/13（近似 11） | `Dom.walkerSibling`<br>`Dom.walkerSiblingSearch`<br>`Dom.siblingCandidates`<br>`Dom.followingSiblings`<br>`Dom.precedingSiblings`<br>`Dom.walkerStep`<br>`Dom.walkerRun` |  |
-| [dom-treewalker-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextsibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` |  |
-| [dom-treewalker-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previoussibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` |  |
+| [dom-treewalker-lastchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-lastchild) | 1/1 | `Dom.walkerLastChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.walkerLastChild_result_sound` |
+| [concept-traverse-siblings](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-siblings) | 2/13（近似 11） | `Dom.walkerSibling`<br>`Dom.walkerSiblingSearch`<br>`Dom.siblingCandidates`<br>`Dom.followingSiblings`<br>`Dom.precedingSiblings`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.SiblingClimb`<br>`Dom.Spec.FollowingSibling`<br>`Dom.Spec.PrecedingSibling` |
+| [dom-treewalker-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextsibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.walkerNextSibling_result_sound` |
+| [dom-treewalker-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previoussibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.walkerPreviousSibling_result_sound` |
 | [dom-treewalker-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previousnode) | 2/15（近似 13） | `Dom.walkerPreviousNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerPreviousNodeResult` |
 | [dom-treewalker-nextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextnode) | 2/18（近似 16） | `Dom.walkerNextNode`<br>`Dom.lastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextNodeResult` |
 
@@ -565,11 +565,11 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-parentnode-queryselectorall | * | static な NodeList ではなく、element の list を返す |
 | dom-htmlcollection-nameditem | * | collection は `ParentNode.children` のものに限る（他の HTMLCollection は model に無い） |
 | queue-a-mutation-observer-compound-microtask | 3 | microtask は積まず、flag を立てるだけである。notify mutation observers は harness の `notify` 操作として呼ぶ |
-| notify-mutation-observers | 6.3 | node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる |
+| notify-mutation-observers | 6.3 | node list の node に限らず、その observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`。remove が transient を置いた node を node list にも足す）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`） |
 | notify-mutation-observers | 6.4 | callback は呼ばない。records が空でない observer と records の組を返り値に並べる |
 | dom-mutationobserver-observe | 7 | target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた |
 | dom-mutationobserver-observe | 7.1 | node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す |
-| dom-mutationobserver-disconnect | 1 | node list の node に限らず、この observer の registered observer を全部外す |
+| dom-mutationobserver-disconnect | 1 | node list の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`） |
 | create-a-node | 2 | realm を持たない。node document を与えた `NodeData` を `freshId` の位置に置く |
 | dom-node-nodetype | * | `NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型で、`getProperty` も `Attr` の nodeType を読まない） |
 | dom-node-isconnected | * | shadow tree が無いので、shadow-including root の代わりに root を見る |

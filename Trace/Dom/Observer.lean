@@ -19,8 +19,10 @@ def entries : List Entry := [
   { alg := "notify-mutation-observers"
     impl := [``Dom.notifyMutationObservers, ``Dom.notifyEach, ``Dom.notifyOne,
              ``Dom.MutationObserver.takeRecords, ``Dom.removeTransients]
+    spec := [``Dom.Spec.NotifyResult, ``Dom.Spec.NotifiedEach, ``Dom.Spec.ObserverNotified,
+             ``Dom.Spec.notifyMutationObservers_sound, ``Dom.Spec.notifyMutationObservers_complete]
     omitted := [("4-5", .shadow), ("7", .shadow)]
-    approx := [("6.3", "node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる"),
+    approx := [("6.3", "node list の node に限らず、その observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`。remove が transient を置いた node を node list にも足す）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`）"),
                ("6.4", "callback は呼ばない。records が空でない observer と records の組を返り値に並べる")] },
   { alg := "dom-mutationobserver-observe"
     -- step 3-6 の TypeError は `DOMException` ではなく `IdlException.typeError`（`observeMethod`）。
@@ -32,9 +34,11 @@ def entries : List Entry := [
                ("7.1", "node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す")] },
   { alg := "dom-mutationobserver-disconnect"
     impl := [``Dom.MutationObserver.disconnect]
-    approx := [("1", "node list の node に限らず、この observer の registered observer を全部外す")] },
+    spec := [``Dom.Spec.DisconnectResult, ``Dom.Spec.disconnect_sound, ``Dom.Spec.disconnect_complete]
+    approx := [("1", "node list の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`）")] },
   { alg := "dom-mutationobserver-takerecords"
-    impl := [``Dom.MutationObserver.takeRecords] },
+    impl := [``Dom.MutationObserver.takeRecords]
+    spec := [``Dom.Spec.TakeRecordsResult, ``Dom.Spec.takeRecords_sound, ``Dom.Spec.takeRecords_complete] },
   { alg := "queue-a-mutation-record"
     impl := [``Dom.queueMutationRecord, ``Dom.interestedObservers, ``Dom.Registration.interestedIn,
              ``Dom.addInterested, ``Dom.enqueueRecord, ``Dom.addPendingObserver,

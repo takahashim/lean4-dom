@@ -53,7 +53,11 @@ ALLOWED = [
   ["Event.lean", "CallbackRan", "addListener"],
   # 関係ではなく、soundness の帰納法の仮定（再帰した実行関数の結果が関係を満たすこと）。
   # 実行関数の結果を述べるので、失敗の状態を落とす `dropErr` を使う。
-  ["RangeExtractSound.lean", "RecurSound", "dropErr"]
+  ["RangeExtractSound.lean", "RecurSound", "dropErr"],
+  # 関係ではなく、実行関数 `walkerSiblingSearch` が見る候補を止まる所まで並べた列（soundness の証明の道具）。
+  # 関係 `WalkerNextSiblingResult` は `SiblingClimb`・`FollowingSibling` と tree order で書いてある。
+  ["WalkerSibling.lean", "sibLevels", "siblingCandidates"],
+  ["WalkerSibling.lean", "sibLevels", "walkerAccepts"]
 ].freeze
 
 URL_IMPL = defs(["Url/Parser.lean", "Url/Api.lean", "Url/Urlencoded.lean",

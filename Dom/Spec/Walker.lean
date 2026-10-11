@@ -18,7 +18,7 @@ filter が null なら、`nextNode()`・`previousNode()`・"traverse children"�
 * "traverse children"（first）：current の子孫。親へ上がったときにそれが root か current なら止まる（step 3.4.4）。
 * `parentNode()`：current の祖先を近いほうから root まで。
 
-`lastChild()` と "traverse siblings" は鏡像の順序（`mirrorPreorder`）を使うので、ここでは扱わない。
+`lastChild()` と "traverse siblings" は `Dom/Spec/WalkerMirror.lean`・`Dom/Spec/WalkerSibling.lean` にある。
 
 実行関数がこれらを満たすことは `walkerNextNode_result_sound`・`walkerPreviousNode_result_sound`・
 `walkerFirstChild_result_sound`・`walkerParentNode_result_sound` が示す（`ValidWalker` を仮定する）。

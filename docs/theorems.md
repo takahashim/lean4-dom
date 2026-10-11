@@ -19,6 +19,8 @@ theorem checkAdmissibleDOMState_iff (s : DOMState) :
 
 `AdmissibleDOMState` は七つの成分（構造・node document・Document の children・
 Range の端点・NodeIterator・observer registration・attribute list）の連言である。
+observer registration の成分は、registration の observer があり、node が木にあり、node がその observer の
+node list にある（`ListedIn`）ことを要求する。
 boolean の checker と `Prop` が一致するので、
 evaluator は実行時に同じ条件を検査できる。
 
@@ -1107,3 +1109,24 @@ clone へ直接入れる形で書く。この同値は証明していない（`n
 node を作る関係（split、extract、clone the contents）は、作る node の id を決めない。だから一意性と completeness は、
 id の付け替えを除いてしか成り立たず、ここでは示さない。
 
+## 33. MutationObserver の配送と TreeWalker の残りの走査は関係を満たす
+
+| 定理 | 内容 | module |
+| --- | --- | --- |
+| `Dom.Spec.notifyMutationObservers_sound`・`_complete` | "notify mutation observers" は `NotifyResult` を満たし、関係は状態と配送の列を一つに決める | `Dom/Spec/NotifySound.lean` |
+| `Dom.Spec.disconnect_sound`・`_complete` | `disconnect()` は `DisconnectResult` を満たし、関係は状態を一つに決める | 同上 |
+| `Dom.Spec.takeRecords_sound`・`_complete` | `takeRecords()` は `TakeRecordsResult` を満たし、関係は結果を一つに決める | 同上 |
+| `Dom.Spec.precedesStruct_mirrorTree_iff` | 子の列を反転した木の tree order は、鏡像の tree order（`MirrorPrecedes`）である | `Dom/Spec/WalkerMirror.lean` |
+| `Dom.Spec.walkerLastChild_result_sound` | `lastChild()` は `WalkerLastChildResult` を満たす | 同上 |
+| `Dom.Spec.walkerNextSibling_result_sound` | `nextSibling()` は `WalkerNextSiblingResult` を満たす | `Dom/Spec/WalkerSibling.lean` |
+| `Dom.Spec.walkerPreviousSibling_result_sound` | `previousSibling()` は `WalkerPreviousSiblingResult` を満たす | 同上 |
+
+notify と `disconnect()` の関係は、本文どおり「observer の node list の node から」registered observer を外す形で書く。
+実行関数は「その observer の registration を全部」外す。admissible な状態では registration の node が必ずその observer の
+node list にある（`ListedIn`）ので、二つは同じになる。この条件は admissibility の成分として、すべての操作で保存を示してある
+（`observe()` は target を、remove は transient を置いた node を node list に足す）。
+
+`lastChild()` と `previousSibling()` は、子の列を反転した木（`mirrorTree`）で `firstChild()` と `nextSibling()` を走らせたものに
+等しい（`walkerLastChild_eq`・`walkerPreviousSibling_eq`）。証明はその等式と、反転した木の語彙と元の木の語彙の対応から出す。
+`nextSibling()` は、段ごとの候補を止まる所まで並べた列（`sibLevels`）が関係の候補と一致し（`mem_sibLevels`）、tree order に
+整列している（`sibLevels_pairwise`）ことから示す。

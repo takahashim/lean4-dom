@@ -1365,7 +1365,13 @@
         "Dom.MutationObserver.takeRecords",
         "Dom.removeTransients"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.NotifyResult",
+        "Dom.Spec.NotifiedEach",
+        "Dom.Spec.ObserverNotified",
+        "Dom.Spec.notifyMutationObservers_sound",
+        "Dom.Spec.notifyMutationObservers_complete"
+      ],
       "omit": [
         {
           "steps": "4-5",
@@ -1385,7 +1391,7 @@
       "approx": [
         {
           "steps": "6.3",
-          "what": "node list の node に限らず、その observer の transient registered observer を全部外す。remove が transient を置いた node を node list にも足す（`addTransientObservers`）ので同じ結果になる"
+          "what": "node list の node に限らず、その observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`。remove が transient を置いた node を node list にも足す）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`）"
         },
         {
           "steps": "6.4",
@@ -1429,12 +1435,16 @@
       "impl": [
         "Dom.MutationObserver.disconnect"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.DisconnectResult",
+        "Dom.Spec.disconnect_sound",
+        "Dom.Spec.disconnect_complete"
+      ],
       "omit": [],
       "approx": [
         {
           "steps": "1",
-          "what": "node list の node に限らず、この observer の registered observer を全部外す"
+          "what": "node list の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`）"
         }
       ]
     },
@@ -1446,7 +1456,11 @@
       "impl": [
         "Dom.MutationObserver.takeRecords"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.TakeRecordsResult",
+        "Dom.Spec.takeRecords_sound",
+        "Dom.Spec.takeRecords_complete"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4882,7 +4896,10 @@
         "Dom.walkerRun"
       ],
       "spec": [
-        "Dom.Spec.WalkerFirstChildResult"
+        "Dom.Spec.WalkerFirstChildResult",
+        "Dom.Spec.WalkerLastChildResult",
+        "Dom.Spec.MirrorPrecedes",
+        "Dom.Spec.MirrorLastDescendantOf"
       ],
       "omit": [],
       "approx": [
@@ -4917,7 +4934,10 @@
         "Dom.walkerLastChild",
         "Dom.walkerStep"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerLastChildResult",
+        "Dom.Spec.walkerLastChild_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4935,7 +4955,13 @@
         "Dom.walkerStep",
         "Dom.walkerRun"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerNextSiblingResult",
+        "Dom.Spec.WalkerPreviousSiblingResult",
+        "Dom.Spec.SiblingClimb",
+        "Dom.Spec.FollowingSibling",
+        "Dom.Spec.PrecedingSibling"
+      ],
       "omit": [],
       "approx": [
         {
@@ -4953,7 +4979,10 @@
         "Dom.walkerSibling",
         "Dom.walkerStep"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerNextSiblingResult",
+        "Dom.Spec.walkerNextSibling_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4966,7 +4995,10 @@
         "Dom.walkerSibling",
         "Dom.walkerStep"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.WalkerPreviousSiblingResult",
+        "Dom.Spec.walkerPreviousSibling_result_sound"
+      ],
       "omit": [],
       "approx": []
     },

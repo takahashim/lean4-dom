@@ -1258,6 +1258,16 @@ open Dom.Audit
   Dom.Spec.rangeExtractContents_result_sound
   Dom.Spec.rangeCloneContents_result_sound
   Dom.Spec.rangeSurroundContents_result_sound
+  Dom.Spec.notifyMutationObservers_sound
+  Dom.Spec.notifyMutationObservers_complete
+  Dom.Spec.disconnect_sound
+  Dom.Spec.disconnect_complete
+  Dom.Spec.takeRecords_sound
+  Dom.Spec.takeRecords_complete
+  Dom.Spec.precedesStruct_mirrorTree_iff
+  Dom.Spec.walkerLastChild_result_sound
+  Dom.Spec.walkerNextSibling_result_sound
+  Dom.Spec.walkerPreviousSibling_result_sound
   Dom.Spec.observe_result_sound
   Dom.Spec.observe_result_complete
 

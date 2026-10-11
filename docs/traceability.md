@@ -255,8 +255,8 @@ FILTER_REJECT が出ないぶん、仕様の pointer 走査は
 | `nextNode()` | 3.1-3.5 | `walkerNextNode`, `walkerBase` | `exists_data_of_walkerNextNode` | `walker-basic-traversal`, `walker-not-adjusted-by-remove` | `test_wpt_tree_walker.rb` | 済（filter は null） |
 | `previousNode()` | 2.1-2.5 | `walkerPreviousNode` | `exists_data_of_walkerPreviousNode` | 同上 | 同上 | 済 |
 | `parentNode()` | 1-3 | `walkerParentNode`, `takeUntilIncl` | `exists_data_of_walkerParentNode` | `walker-parent-node-leaves-root` | 同上 | 済 |
-| `firstChild()` / `lastChild()`（traverse children） | 1-4 | `walkerFirstChild`, `walkerLastChild`, `mirrorPreorder` | `exists_data_of_walkerFirstChild` ほか | `walker-whattoshow-skips`, `walker-last-child-mirrors-order` | 同上 | 済 |
-| `nextSibling()` / `previousSibling()`（traverse siblings） | 1-3 | `walkerSibling`, `walkerSiblingSearch`, `siblingCandidates` | `exists_data_of_walkerSibling` | 同上 | 同上 | 済 |
+| `firstChild()` / `lastChild()`（traverse children） | 1-4 | `walkerFirstChild`, `walkerLastChild`, `mirrorPreorder` | relation `WalkerFirstChildResult`・`WalkerLastChildResult`（`MirrorPrecedes`）、`walkerFirstChild_result_sound`・`walkerLastChild_result_sound`（反転した木の `firstChild()`、`walkerLastChild_eq`）、`exists_data_of_walkerFirstChild` ほか | `walker-whattoshow-skips`, `walker-last-child-mirrors-order` | 同上 | 済 |
+| `nextSibling()` / `previousSibling()`（traverse siblings） | 1-3 | `walkerSibling`, `walkerSiblingSearch`, `siblingCandidates` | relation `WalkerNextSiblingResult`・`WalkerPreviousSiblingResult`（`SiblingClimb`・`FollowingSibling`・`PrecedingSibling`）、`walkerNextSibling_result_sound`・`walkerPreviousSibling_result_sound`（反転した木の `nextSibling()`、`walkerPreviousSibling_eq`）、`exists_data_of_walkerSibling` | 同上 | 同上 | 済 |
 | filter（`whatToShow`、filter は null） | filter 1-3 | `walkerAccepts`, `showsNode` | — | `walker-whattoshow-skips` | 同上 | 済 |
 | walker の保存 | — | `walkerStep` | `walkersValid_walkerStep`, `admissible_walkerStep` | — | — | 済 |
 
@@ -272,10 +272,10 @@ scenario が最初から walker を与える形にしてある。
 | queue a tree mutation record | 1 assert / 2 queue | `queueTreeMutationRecord` | 同上 | 同上 | `test_wpt_mutation_record_insertion_point.rb` | 済 |
 | transient registered observer | remove step 20 | `addTransientObservers` | relation `TransientOrdered`（並び）、`transientOrdered_unique`、`preservesRegs_remove` | `observer-transient-follows-existing-registration` | `test_wpt_transient_registered_observer.rb` | 済 |
 | queue a mutation observer microtask | 1-3 | `queueMutationObserverMicrotask`, `addPendingObserver` | preservation `admissible_*`（配送は木を触らない） | `observer-delivery` | `test_wpt_mutation_observer_order.rb` | 済 |
-| notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | congruence `notifyMutationObservers_delivered_congr`、`*_complete_delivered`、`admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
+| notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | relation `NotifyResult`（`ObserverNotified`・`NotifiedEach`）、`notifyMutationObservers_sound`・`_complete`、congruence `notifyMutationObservers_delivered_congr`、`*_complete_delivered`、`admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
 | `observe(target, options)` | 1-8（step 1-2 の省略の解決と step 3-6 の TypeError を含む。既定値の無い member は省略と false を区別する） | `MutationObserver.observeMethod`（step 3-6 の TypeError は `IdlException.typeError`）, `MutationObserver.observe`, `MutationObserverInit.resolve`, `observeOptionsError` | relation `ObserveResult`（`AttributesResolved`・`CharacterDataResolved`・`ObserveOptionsRejected`、等号で complete）、`admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow`, `observe-old-value-false-implies-type` | 同上 | 済 |
-| `disconnect()` | 1-2 | `MutationObserver.disconnect` | `admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
-| `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | `admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |
+| `disconnect()` | 1-2 | `MutationObserver.disconnect` | relation `DisconnectResult`、`disconnect_sound`・`disconnect_complete`、`admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
+| `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | relation `TakeRecordsResult`、`takeRecords_sound`・`takeRecords_complete`、`admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |
 
 ## §4.9 Attr / §1.3 名前の検査
 

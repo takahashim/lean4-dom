@@ -20,17 +20,26 @@ Range については両端が木の中にあることだけを要求する。
 
 namespace Dom
 
+/-- registration の node が、その observer の node list にある。 -/
+def ListedIn (s : DOMState) (r : Registration) : Prop :=
+  ∃ o, s.observers[r.observer]? = some o ∧ r.node ∈ o.nodeList
+
 /--
 MutationObserver の登録の整合性。
 
 * registration が指す observer は `observers` の範囲内にある。
 * registration が指す node は木の中にある。
+* registration が指す node は、その observer の node list にある（`ListedIn`）。`observe()` は target を
+  node list に足し、remove step 15 は transient を置いた node を node list に足す（model の読み。
+  `Dom/Observer/Deliver.lean` の冒頭）。notify step 6.3 と `disconnect()` step 1 は「node list の node から」
+  外すので、この条件があれば「その observer の registration を全部外す」と同じになる。
 
 transient registration は配送（"notify mutation observers" step 5）まで残るので、
 その間も指す先が壊れていないことをここで要求する。
 -/
 def ObserverRegistrationsValid (s : DOMState) : Prop :=
-  ∀ r ∈ s.registrations, r.observer < s.observers.length ∧ (s.tree.get? r.node).isSome
+  ∀ r ∈ s.registrations, r.observer < s.observers.length ∧ (s.tree.get? r.node).isSome ∧
+    ListedIn s r
 
 /-- 対象範囲の局所不変条件をすべて満たす状態。 -/
 structure AdmissibleDOMState (s : DOMState) : Prop where
@@ -66,14 +75,24 @@ theorem checkIteratorsValid_iff {s : DOMState} (hwf : WellFormed s.tree) :
     checkIteratorsValid s = true ↔ IteratorsValid s := by
   simp only [checkIteratorsValid, IteratorsValid, List.all_eq_true, checkValidIterator_iff hwf]
 
+def checkListedIn (s : DOMState) (r : Registration) : Bool :=
+  match s.observers[r.observer]? with
+  | none => false
+  | some o => o.nodeList.contains r.node
+
+theorem checkListedIn_iff (s : DOMState) (r : Registration) :
+    checkListedIn s r = true ↔ ListedIn s r := by
+  unfold checkListedIn ListedIn
+  cases s.observers[r.observer]? <;> simp
+
 def checkObserverRegistrationsValid (s : DOMState) : Bool :=
   s.registrations.all fun r =>
-    r.observer < s.observers.length && (s.tree.get? r.node).isSome
+    r.observer < s.observers.length && (s.tree.get? r.node).isSome && checkListedIn s r
 
 theorem checkObserverRegistrationsValid_iff (s : DOMState) :
     checkObserverRegistrationsValid s = true ↔ ObserverRegistrationsValid s := by
   simp only [checkObserverRegistrationsValid, ObserverRegistrationsValid, List.all_eq_true,
-    Bool.and_eq_true, decide_eq_true_eq]
+    Bool.and_eq_true, decide_eq_true_eq, checkListedIn_iff, and_assoc]
 
 def checkAdmissibleDOMState (s : DOMState) : Bool :=
   checkStructurallyValid s.tree && checkNodeDocumentsValid s.tree &&

@@ -190,8 +190,8 @@ theorem admissible_discard {s : DOMState} (hv : AdmissibleDOMState s) (n : NodeI
       · exact Or.inr (hanc.mpr ha)
     -- ObserverRegistrationsValid
     · intro r hrm
-      obtain ⟨hlt, hsm⟩ := hv.observerRegistrations r hrm
-      refine ⟨hlt, ?_⟩
+      obtain ⟨hlt, hsm, hl⟩ := hv.observerRegistrations r hrm
+      refine ⟨hlt, ?_, hl⟩
       show ((s.tree.eraseNode n).get? r.node).isSome = true
       rw [get?_eraseNode_ne (hreg r hrm)]
       exact hsm

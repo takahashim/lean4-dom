@@ -6886,6 +6886,40 @@ record を積む関係は pending の所属だけを書き、remove step 20 の 
 生成 scenario は Dommy の Ruby の API で 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、
 seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）を流し、mismatch 0 だった。新しい操作は 300 本あたり 30-40 回ずつ出る。
 
+## notify・`disconnect()`・`takeRecords()` と TreeWalker の残り三つに関係を書いた
+
+関係が無かった "notify mutation observers"・`disconnect()`・`takeRecords()` と、TreeWalker の `lastChild()`・`nextSibling()`・
+`previousSibling()` に、本文から書いた関係と soundness を付けた。"split a Text node" は前の節で関係を付けてある。
+
+### MutationObserver
+
+* `NotifyResult`・`DisconnectResult`・`TakeRecordsResult`（`Dom/Spec/Notify.lean`）。notify step 6.3 と `disconnect()` step 1 は
+  本文どおり「observer の node list の各 node から」外す形で書いた。model の registered observer list は一本の列なので、
+  「observer が mo で、node が mo の node list にある registration」を外す。
+* 実行関数は「その observer の（transient の）registration を全部」外す。二つが一致するには、registration の node が
+  その observer の node list にある必要がある。これを admissibility の `ObserverRegistrationsValid` に足し（`ListedIn`）、
+  すべての操作で保存を示した。`observe()` は target を node list に足し、remove の transient の追加は置いた node を
+  node list に足し、record を積む操作は node list を変えない。scenario の初期状態は observer の target を node list に
+  入れるので、固定 scenario 289 本は強めた実行時の検査も通る。
+* soundness と、関係が結果を一つに決めること（completeness）を示した（`Dom/Spec/NotifySound.lean`）。
+  `notifyMutationObservers_complete` は、関係を満たす状態と配送の列が実行関数の結果に等しいことを述べる。
+* 対応表の notify step 6.3 と `disconnect()` step 1 の近似は、同じ結果になることが証明で裏付けられた。
+
+### TreeWalker
+
+* `lastChild()` と `previousSibling()` は、子を後ろから見る鏡像の順序で動く。関係は鏡像の tree order `MirrorPrecedes`
+  （ancestor であるか、共通の parent の下で index の大きい子の側にいる）で書いた（`Dom/Spec/WalkerMirror.lean`）。
+* 証明は、各 node の children を反転した木（`mirrorTree`）を使う。反転した木の tree order は `MirrorPrecedes` であり
+  （`precedesStruct_mirrorTree_iff`）、`walkerLastChild` と `walkerSibling … false` は反転した木の `walkerFirstChild` と
+  `walkerSibling … true` に等しい（`walkerLastChild_eq`・`walkerPreviousSibling_eq`）。だから既にある `firstChild()` の
+  soundness と新しい `nextSibling()` の soundness から出る。
+* `nextSibling()` の関係（`Dom/Spec/WalkerSibling.lean`）：current から上がれる inclusive ancestor（`SiblingClimb`：間の node が
+  root でも accept されるものでもない）の後ろの兄弟の inclusive descendant が候補で、そのうち accept されるもので tree order で
+  最初のもの。soundness は、実行関数が見る候補の列（`sibLevels`）が候補と一致し（`mem_sibLevels`）、tree order に整列している
+  （`sibLevels_pairwise`）ことから示した。
+
+これで TreeWalker の走査七つと NodeIterator の走査二つは、すべて関係を満たすことが示された。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

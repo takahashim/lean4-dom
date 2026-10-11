@@ -219,8 +219,8 @@ theorem observerRegistrationsValid (h : AddsNode s.tree s'.tree n d)
     (hv : ObserverRegistrationsValid s) : ObserverRegistrationsValid s' := by
   intro r hmem
   rw [hreg] at hmem
-  obtain ⟨hlt, hnode⟩ := hv r hmem
-  refine ⟨by rw [hobs]; exact hlt, ?_⟩
+  obtain ⟨hlt, hnode, hl⟩ := hv r hmem
+  refine ⟨by rw [hobs]; exact hlt, ?_, by unfold ListedIn; rw [hobs]; exact hl⟩
   obtain ⟨nd, hnd⟩ := Option.isSome_iff_exists.mp hnode
   rw [h.get?_of hnd]
   rfl

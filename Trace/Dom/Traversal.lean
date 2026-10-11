@@ -71,21 +71,30 @@ def entries : List Entry := [
     impl := [``Dom.walkerFirstChild, ``Dom.walkerLastChild, ``Dom.mirrorPreorder,
              ``Dom.lastDescendant, ``Dom.mirrorLastDescendant, ``Dom.takeUntilIncl,
              ``Dom.walkerStep, ``Dom.walkerRun]
-    spec := [``Dom.Spec.WalkerFirstChildResult]
+    spec := [``Dom.Spec.WalkerFirstChildResult, ``Dom.Spec.WalkerLastChildResult,
+             ``Dom.Spec.MirrorPrecedes, ``Dom.Spec.MirrorLastDescendantOf]
     approx := [("2-4", "current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。" ++ filterNull)] },
   { alg := "dom-treewalker-firstchild"
     impl := [``Dom.walkerFirstChild, ``Dom.walkerStep]
     spec := [``Dom.Spec.WalkerFirstChildResult, ``Dom.Spec.walkerFirstChild_result_sound] },
+  -- lastChild と previousSibling は、子の列を反転した木（`mirrorTree`）で firstChild と nextSibling を
+  -- 走らせたものに等しい（`walkerLastChild_eq`・`walkerPreviousSibling_eq`）。その木の tree order は
+  -- 鏡像の tree order（`precedesStruct_mirrorTree_iff`）である。
   { alg := "dom-treewalker-lastchild"
-    impl := [``Dom.walkerLastChild, ``Dom.walkerStep] },
+    impl := [``Dom.walkerLastChild, ``Dom.walkerStep]
+    spec := [``Dom.Spec.WalkerLastChildResult, ``Dom.Spec.walkerLastChild_result_sound] },
   { alg := "concept-traverse-siblings"
     impl := [``Dom.walkerSibling, ``Dom.walkerSiblingSearch, ``Dom.siblingCandidates,
              ``Dom.followingSiblings, ``Dom.precedingSiblings, ``Dom.walkerStep, ``Dom.walkerRun]
+    spec := [``Dom.Spec.WalkerNextSiblingResult, ``Dom.Spec.WalkerPreviousSiblingResult,
+             ``Dom.Spec.SiblingClimb, ``Dom.Spec.FollowingSibling, ``Dom.Spec.PrecedingSibling]
     approx := [("3", "段ごとに兄弟の部分木を順に並べた列で探し、見つからなければ親へ上がる。" ++ filterNull)] },
   { alg := "dom-treewalker-nextsibling"
-    impl := [``Dom.walkerSibling, ``Dom.walkerStep] },
+    impl := [``Dom.walkerSibling, ``Dom.walkerStep]
+    spec := [``Dom.Spec.WalkerNextSiblingResult, ``Dom.Spec.walkerNextSibling_result_sound] },
   { alg := "dom-treewalker-previoussibling"
-    impl := [``Dom.walkerSibling, ``Dom.walkerStep] },
+    impl := [``Dom.walkerSibling, ``Dom.walkerStep]
+    spec := [``Dom.Spec.WalkerPreviousSiblingResult, ``Dom.Spec.walkerPreviousSibling_result_sound] },
   { alg := "dom-treewalker-previousnode"
     impl := [``Dom.walkerPreviousNode, ``Dom.takeUntilIncl, ``Dom.walkerStep, ``Dom.walkerRun]
     spec := [``Dom.Spec.WalkerPreviousNodeResult]
