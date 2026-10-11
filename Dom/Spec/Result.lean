@@ -85,7 +85,7 @@ theorem remove_result_deterministic {s : DOMState} (hwf : WellFormed s.tree)
   cases r₁ with
   | ok s₁ =>
     cases r₂ with
-    | ok s₂ => exact removeSpec_congr hwf (ObsEq.refl s) h₁ h₂
+    | ok s₂ => exact removeSpec_congr hwf (MutationObsEq.refl s) h₁ h₂
     | error e₂ =>
       exfalso
       have := removeResult_parentOf_isSome h₁

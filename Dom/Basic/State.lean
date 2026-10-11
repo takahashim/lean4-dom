@@ -242,7 +242,7 @@ algorithm のどれも読まないし書かない（`Dom/Validity/Walkers.lean` 
 `Dom/Validity/Events.lean` がその理由を書いている）。
 
 触れないことを**関係意味論の側に書いておかないと**、関係は「その三つが何であっても
-よい」という意味になる。すると `Dom/Spec/ObsEq.lean` の `ObsEq` にその三つを
+よい」という意味になる。すると `Dom/Spec/ObsEq.lean` の `MutationObsEq` にその三つを
 入れられず、determinism も completeness も「将来の操作から区別できない」ことを
 意味しなくなる。
 

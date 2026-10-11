@@ -38,7 +38,7 @@ step 単位の対応は `Trace/Dom/` の表が持ち、CI が網羅を検査す�
 | replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | `replaceSpec_deterministic` / `replaceSpec_congr` | `replace_complete` |
 | move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
 | replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic` / `replaceDataSpec_congr` | `replaceData_complete` |
-| normalize（§4.4） | `Dom.Spec.NormalizeSpec` | `normalize_sound` | `normalizeSpec_deterministic` / `normalizedEach_congr` | `normalize_isOk`（`this` が木にあれば成功） |
+| normalize（§4.4） | `Dom.Spec.NormalizeEngineSpec` | `normalize_sound` | `normalizeSpec_deterministic` / `normalizedEach_congr` | `normalize_isOk`（`this` が木にあれば成功） |
 | replace all | `Dom.Spec.ReplaceAllSpec` | `replaceAll_sound` | `replaceAllSpec_deterministic` | `replaceAll_isOk`（step 5 の事実があれば成功） |
 | ensure pre-insert validity | `Dom.Spec.PreInsertValidity` | `ensurePreInsertionValidity_spec`（仮定なし） | `preInsertValidity_deterministic` | `preInsertValidity_iff` |
 | move の pre-move validity（§4.2.4） | `Dom.Spec.MoveValidity` | `moveValidity_spec`（仮定なし） | `moveValidity_deterministic` | `moveValidity_iff` |
@@ -70,10 +70,11 @@ soundness が `= .ok s'` を仮定しない（`Dom/Spec/Result.lean`）。`repla
 `moveBefore` は receiver 自身の失敗（木に無い・`ParentNode` でない）が二つある分、
 `MoveResult` の失敗側は三枝になる。
 
-`normalize` の関係（`Dom/Spec/Normalize.lean`）は、兄弟ごとに「data を足す・boundary point を
-渡す・外す」を繰り返す engine の読みで書く（record の並びがそれで決まる）。
-step 3 と step 7 の「contiguous exclusive Text nodes」は後ろ側だけを使う。
-tree order で処理すると、前側は処理の時点で残っていないからである。
+`normalize` の証明対象は `NormalizeEngineSpec` であり、兄弟ごとに結合・range の移送・削除を行う。
+標準本文の一括連結・全 range 移送・全削除は別の `NormalizeStandardSpec` に書く。
+record queue が異なりうるため、実装が後者を満たすとは主張しない。
+候補列は両関係とも strict ancestor と exclusive Text の条件、構造的 tree order で定義する。
+実装の preorder/drop/filter がこの条件を満たすことは `normalize_sound` が証明する。
 
 `ChildNode` / `ParentNode` の method と `CharacterData` の method は、仕様が
 pre-insert・replace・remove・replace all・replace data への委譲として書いているので、
@@ -89,8 +90,10 @@ range の両端が木にあることしか保証しないので、仮定とし�
 `outsideModel` を返すとする。ここでの「Text」は CDATASection を含む。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
-同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq`
-（木は `get?`、registered observer は所属、observer は record queue）の一致である。
+同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.MutationObsEq`
+（木は `get?`、registration と pending observer は所属、observer は record queue）の一致である。
+所属の一致は配送順を保存しない。順序を加えた `ObsEq` には配送結果の一致の定理があるが、
+既存の completeness をこの強い関係で証明したわけではない。
 
 `insert` のように関係を繋いだものの一意性には、`_deterministic` だけでは足りない。
 途中の状態は観測としてしか一致しないので、

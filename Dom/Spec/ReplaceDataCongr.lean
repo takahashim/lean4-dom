@@ -16,7 +16,7 @@ open Dom
 variable {s sb : DOMState}
 
 /-- record を積むかどうかは registration の所属と祖先関係だけで決まる。 -/
-theorem interestedInCharacterData_congr (h : ObsEq s sb) (mo : Nat) (target : NodeId) :
+theorem interestedInCharacterData_congr (h : MutationObsEq s sb) (mo : Nat) (target : NodeId) :
     InterestedInCharacterData sb mo target ↔ InterestedInCharacterData s mo target := by
   unfold InterestedInCharacterData
   constructor
@@ -25,7 +25,7 @@ theorem interestedInCharacterData_congr (h : ObsEq s sb) (mo : Nat) (target : No
   · rintro ⟨r, hr, h1, h2, h3, h4⟩
     exact ⟨r, (h.registrations r).mpr hr, h1, h2, h.tree.inclusiveAncestor_iff.mpr h3, h4⟩
 
-theorem characterDataOldValueWanted_congr (h : ObsEq s sb) (mo : Nat) (target : NodeId) :
+theorem characterDataOldValueWanted_congr (h : MutationObsEq s sb) (mo : Nat) (target : NodeId) :
     CharacterDataOldValueWanted sb mo target ↔ CharacterDataOldValueWanted s mo target := by
   unfold CharacterDataOldValueWanted
   constructor
@@ -35,7 +35,7 @@ theorem characterDataOldValueWanted_congr (h : ObsEq s sb) (mo : Nat) (target : 
     exact ⟨r, (h.registrations r).mpr hr, h1, h2, h3, h.tree.inclusiveAncestor_iff.mpr h4, h5⟩
 
 /-- `records_map_congr` の、入力が観測として等しい二つの状態である版。 -/
-theorem records_map_congr_obs (h : ObsEq s sb) {sa sb' : DOMState}
+theorem records_map_congr_obs (h : MutationObsEq s sb) {sa sb' : DOMState}
     (hla : sa.observers.length = s.observers.length)
     (hlb : sb'.observers.length = sb.observers.length)
     (hrec : ∀ (mo : Nat) (o oa ob ob' : ObserverState), s.observers[mo]? = some o →
@@ -48,7 +48,7 @@ theorem records_map_congr_obs (h : ObsEq s sb) {sa sb' : DOMState}
   exact hrec mo o oa ob ob' ho hoa hob hob'
 
 /-- **characterData の record を積む段の congruence。** -/
-theorem characterDataRecordQueued_congr (h : ObsEq s sb) {s₁ s₂ : DOMState} {target : NodeId}
+theorem characterDataRecordQueued_congr (h : MutationObsEq s sb) {s₁ s₂ : DOMState} {target : NodeId}
     {oldValue : String}
     (h₁ : CharacterDataRecordQueued s s₁ target oldValue)
     (h₂ : CharacterDataRecordQueued sb s₂ target oldValue) :
@@ -84,12 +84,12 @@ theorem characterDataRecordQueued_congr (h : ObsEq s sb) {s₁ s₂ : DOMState} 
 /--
 **`ReplaceDataSpec` の congruence。**
 
-`replaceDataSpec_deterministic` と同じ組み立てで、入力側の一致を `ObsEq` から取る。
+`replaceDataSpec_deterministic` と同じ組み立てで、入力側の一致を `MutationObsEq` から取る。
 -/
-theorem replaceDataSpec_congr (h : ObsEq s sb) {o₁ o₂ : DOMState} {node : NodeId}
+theorem replaceDataSpec_congr (h : MutationObsEq s sb) {o₁ o₂ : DOMState} {node : NodeId}
     {offset count : Nat} {data : String}
     (h₁ : ReplaceDataSpec s node offset count data o₁)
-    (h₂ : ReplaceDataSpec sb node offset count data o₂) : ObsEq o₁ o₂ := by
+    (h₂ : ReplaceDataSpec sb node offset count data o₂) : MutationObsEq o₁ o₂ := by
   obtain ⟨d₁, c₁, new₁, sa, hd₁, -, -, hcc₁, hds₁, hcr₁, hdr₁, hlen₁, hadj₁,
     hob₁, hpe₁, hmt₁, hreg₁, hit₁, hun₁⟩ := h₁
   obtain ⟨d₂, c₂, new₂, sc, hd₂, -, -, hcc₂, hds₂, hcr₂, hdr₂, hlen₂, hadj₂,

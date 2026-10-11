@@ -125,7 +125,7 @@ theorem characterDataRecordQueued_unique {s s₁ s₂ : DOMState} {target : Node
 theorem replaceDataSpec_deterministic {s o₁ o₂ : DOMState} {node : NodeId}
     {offset count : Nat} {data : String}
     (h₁ : ReplaceDataSpec s node offset count data o₁)
-    (h₂ : ReplaceDataSpec s node offset count data o₂) : ObsEq o₁ o₂ := by
+    (h₂ : ReplaceDataSpec s node offset count data o₂) : MutationObsEq o₁ o₂ := by
   obtain ⟨d₁, c₁, new₁, sa, hd₁, -, -, hcc₁, hds₁, hcr₁, hdr₁, hlen₁, hadj₁,
     hob₁, hpe₁, hmt₁, hreg₁, hit₁, hun₁⟩ := h₁
   obtain ⟨d₂, c₂, new₂, sb, hd₂, -, -, hcc₂, hds₂, hcr₂, hdr₂, hlen₂, hadj₂,
@@ -185,7 +185,7 @@ theorem replaceData_isOk_of_spec {s s' : DOMState} {node : NodeId} {offset count
 theorem replaceData_complete {s s' : DOMState} {node : NodeId} {offset count : Nat}
     {data : String} (hwf : WellFormed s.tree)
     (h : ReplaceDataSpec s node offset count data s') :
-    ∃ out, replaceData s node offset count data = .ok out ∧ ObsEq s' out := by
+    ∃ out, replaceData s node offset count data = .ok out ∧ MutationObsEq s' out := by
   obtain ⟨out, hok⟩ := replaceData_isOk_of_spec h
   exact ⟨out, hok, replaceDataSpec_deterministic h (replaceData_sound hwf hok)⟩
 

@@ -217,12 +217,12 @@ theorem adoptSpec_isDocument {out : DOMState} (hq : AdoptSpec s node doc out) {d
   exact (adoptStep3_facts hnd₁ hst3).2 d (hkeep d hd)
 
 /-- `AdoptSpec` の step 2 が二つの derivation を揃えることを言う。 -/
-theorem adoptSpec_step2 (hwf : WellFormed s.tree) (h : ObsEq s sb) {s₁ s₂ : DOMState}
+theorem adoptSpec_step2 (hwf : WellFormed s.tree) (h : MutationObsEq s sb) {s₁ s₂ : DOMState}
     (h₁ : (parentOf s.tree node = none ∧ s₁ = s) ∨
       ((∃ p, parentOf s.tree node = some p) ∧ RemoveSpec s node false s₁))
     (h₂ : (parentOf sb.tree node = none ∧ s₂ = sb) ∨
       ((∃ p, parentOf sb.tree node = some p) ∧ RemoveSpec sb node false s₂)) :
-    ObsEq s₁ s₂ ∧ WellFormed s₁.tree := by
+    MutationObsEq s₁ s₂ ∧ WellFormed s₁.tree := by
   rcases h₁ with ⟨hp₁, rfl⟩ | ⟨-, hr₁⟩
   · rcases h₂ with ⟨-, rfl⟩ | ⟨⟨p₂, hp₂⟩, -⟩
     · exact ⟨h, hwf⟩
@@ -243,8 +243,8 @@ step 2 の `remove` は `removeSpec_congr`、step 3 の node document 付け替�
 `documentAssigned_congr` で持ち上げる。木以外の成分は
 `LiveObjectsUnchangedExceptTree` が中間状態と結び付けてくれる。
 -/
-theorem adoptSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s sb) {o₁ o₂ : DOMState}
-    (h₁ : AdoptSpec s node doc o₁) (h₂ : AdoptSpec sb node doc o₂) : ObsEq o₁ o₂ := by
+theorem adoptSpec_congr (hwf : WellFormed s.tree) (h : MutationObsEq s sb) {o₁ o₂ : DOMState}
+    (h₁ : AdoptSpec s node doc o₁) (h₂ : AdoptSpec sb node doc o₂) : MutationObsEq o₁ o₂ := by
   obtain ⟨od₁, hod₁, s₁, hst2₁, hst3₁⟩ := h₁
   obtain ⟨od₂, hod₂, s₂, hst2₂, hst3₂⟩ := h₂
   have hodeq : od₂ = od₁ := by
@@ -290,7 +290,7 @@ theorem adoptSpec_wellFormed (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree
     {out : DOMState} (hq : AdoptSpec s node doc out) : WellFormed out.tree := by
   obtain ⟨od, hod, s₁, hst2, hst3⟩ := hq
   obtain ⟨nd, hnd⟩ := exists_data_of_ownerDocumentOf hod
-  obtain ⟨-, hwf₁⟩ := adoptSpec_step2 hwf (ObsEq.refl s) hst2 hst2
+  obtain ⟨-, hwf₁⟩ := adoptSpec_step2 hwf (MutationObsEq.refl s) hst2 hst2
   obtain ⟨⟨nd₁, hnd₁⟩, -, -, hkeep⟩ := adoptStep2_facts hnd hst2
   by_cases hdd : doc = od
   · rw [if_pos hdd] at hst3
@@ -302,8 +302,8 @@ theorem adoptSpec_wellFormed (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree
 
 /-- **`AdoptSpec` は観測を一つに決める。** -/
 theorem adoptSpec_deterministic (hwf : WellFormed s.tree) {o₁ o₂ : DOMState}
-    (h₁ : AdoptSpec s node doc o₁) (h₂ : AdoptSpec s node doc o₂) : ObsEq o₁ o₂ :=
-  adoptSpec_congr hwf (ObsEq.refl s) h₁ h₂
+    (h₁ : AdoptSpec s node doc o₁) (h₂ : AdoptSpec s node doc o₂) : MutationObsEq o₁ o₂ :=
+  adoptSpec_congr hwf (MutationObsEq.refl s) h₁ h₂
 
 
 /--

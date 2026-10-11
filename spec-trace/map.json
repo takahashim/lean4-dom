@@ -121,7 +121,12 @@
       "spec": [
         "Dom.Spec.validateAndExtractSteps",
         "Dom.Spec.validateAndExtractAttribute_eq_steps",
-        "Dom.Spec.validateAndExtractElement_eq_steps"
+        "Dom.Spec.validateAndExtractElement_eq_steps",
+        "Dom.Spec.FirstColonSplit",
+        "Dom.Spec.splitAtFirstColon_spec",
+        "Dom.Spec.ValidateAndExtractResult",
+        "Dom.Spec.validateAndExtractAttribute_spec",
+        "Dom.Spec.validateAndExtractElement_spec"
       ],
       "omit": [
         {
@@ -1818,14 +1823,15 @@
         "Dom.followingTexts"
       ],
       "spec": [
-        "Dom.Spec.NormalizeSpec",
+        "Dom.Spec.NormalizeEngineSpec",
+        "Dom.Spec.NormalizeStandardSpec",
         "Dom.Spec.NormalizeResult"
       ],
       "omit": [],
       "approx": [
         {
           "steps": "3-4",
-          "what": "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。木と range の最終状態は同じで、characterData record の並びが違う"
+          "what": "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。characterData record の並びが違う。木と range の最終状態の一致は未証明"
         },
         {
           "steps": "6",

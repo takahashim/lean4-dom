@@ -1354,3 +1354,30 @@ open Dom.Audit
   Dom.Spec.getAttributeNode_spec
   Dom.Spec.getAttributeNodeNS_spec
   Dom.Spec.removeNamedItemNS_result_sound
+
+#audit_axioms
+  Dom.Spec.stringReplaceAllResult_not_error
+  Dom.CreatesNode.untouched
+  Dom.Spec.ObsEq.pendingOrder_ne
+  Dom.Spec.notifyMutationObservers_delivered_congr
+  Dom.Spec.descendantExclusiveTexts_unique
+  Dom.Spec.splitAtFirstColon_spec
+  Dom.Spec.firstColonSplit_unique
+  Dom.Spec.splitAtFirstColon_iff
+  Dom.Spec.validateAndExtractSteps_spec
+  Dom.Spec.validateAndExtractResult_deterministic
+  Dom.Spec.validateAndExtractAttribute_spec
+  Dom.Spec.validateAndExtractElement_spec
+  Dom.Spec.binade_rounding_globally_nearest
+  Dom.Spec.nearestDouble_globally_nearest
+  Dom.Spec.roundPos_globally_nearest
+
+#audit_axioms
+  Dom.Spec.roundsAt_scaled_tie
+  Dom.Spec.binade_rounding_global_tie
+  Dom.Spec.nearestDouble_global_tie
+  Dom.Spec.roundPos_global_tie
+
+#audit_axioms
+  Dom.Spec.globallyNearestFinite_signed
+  Dom.Spec.roundPos_binary64_nearest

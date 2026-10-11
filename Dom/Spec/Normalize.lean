@@ -1,25 +1,22 @@
 import Dom.Spec.ReplaceData
 import Dom.Spec.Remove
+import Dom.Spec.TreeOrder
 
 /-!
 # `Node.normalize()` の関係意味論（§4.4）
 
-`replace` と同じ方針。仕様本文から独立に書き写した関係を置き、
-実行関数がそれを満たすことは `Dom/Spec/NormalizeSound.lean` で証明する。
+`NormalizeEngineSpec` は本 model の兄弟ごとの結合を表す。実行関数の soundness・
+determinism・completeness はこの関係に対する定理である。
+`NormalizeStandardSpec` は標準本文の手順を別の関係として表す。
 
-step 4 で `ReplaceDataSpec` を、step 7 で `RemoveSpec` を composition する。
+標準本文の step 3-4 は run 全体の data を一度に連結して replace data を一回呼び、
+step 6 で全 boundary point を渡してから、step 7 で兄弟を外す。
+model は兄弟ごとに「data を足す・boundary point を渡す・外す」を繰り返す。
+両関係の record queue は異なりうる。標準関係に対する実装の soundness や、
+両関係の木・live range の最終状態の一致は、ここでは証明していない。
 
-## 兄弟ごとに畳む（engine の読み）
-
-仕様を字義どおり読むと、step 3-4 は run 全体の data を一度に連結して replace data を
-一回だけ呼び、step 6 で boundary point を全部渡してから、step 7 で兄弟を全部外す。
-実際の engine（Blink・WebCore・Gecko）は兄弟ごとに「data を足す・boundary point を渡す・外す」
-を繰り返し、record の並びがそれで決まる（`Dom/CharacterData/Normalize.lean` の冒頭）。
-本 model はこちらを採るので、関係も兄弟ごとに書く（`SiblingMerged`）。
-木と live range の最終状態はどちらの読みでも同じで、違うのは record の並びだけである。
-
-step 6 の `length` は「node の長さに、それまでに渡した兄弟の長さを足したもの」で、
-兄弟ごとに畳む読みでは「この兄弟を足す直前の survivor の長さ」にあたる。
+step 6 の `length` は survivor の元の長さに、それまでの兄弟の長さを足したもの。
+`StandardHandoff` は削除前の index とこの長さで全 boundary point を渡す。
 
 ## contiguous exclusive Text nodes
 
@@ -123,14 +120,57 @@ inductive NormalizedEach (this : NodeId) : DOMState → List NodeId → DOMState
       NormalizedEach this s₁ rest s' →
       NormalizedEach this s (n :: rest) s'
 
-/-- `this` の descendant exclusive Text node を、最初の木の tree order で並べた列。 -/
-def DescendantExclusiveTexts (t : Tree) (this : NodeId) : List NodeId :=
-  ((preorder t this).drop 1).filter fun n => (t.get? n).any (·.kind == .text)
+/-- descendant の exclusive Text node すべてを、構造で書いた tree order に並べたもの。 -/
+def DescendantExclusiveTexts (t : Tree) (this : NodeId) (nodes : List NodeId) : Prop :=
+  (∀ n, n ∈ nodes ↔ Ancestor t this n ∧ ExclusiveText t n) ∧
+    nodes.Pairwise (PrecedesStruct t)
 
-/-- **`normalize()` の関係意味論。** -/
-def NormalizeSpec (s : DOMState) (this : NodeId) (s' : DOMState) : Prop :=
+/-- engine の読み：兄弟を一つずつ畳んで remove する。 -/
+def NormalizeEngineSpec (s : DOMState) (this : NodeId) (s' : DOMState) : Prop :=
   (∃ d, s.tree.get? this = some d) ∧
-    NormalizedEach this s (DescendantExclusiveTexts s.tree this) s'
+    ∃ nodes, DescendantExclusiveTexts s.tree this nodes ∧ NormalizedEach this s nodes s'
+
+/-- 本文の step 6：兄弟を一つも remove しないうちに、すべての兄弟の boundary point を引き渡す。 -/
+inductive StandardHandoff (survivor parent : NodeId) :
+    Nat → Nat → DOMState → List NodeId → DOMState → Prop where
+  | nil {idx len : Nat} {s : DOMState} : StandardHandoff survivor parent idx len s [] s
+  | cons {idx len : Nat} {s s₁ s₂ : DOMState} {sib : NodeId} {rest : List NodeId} {d : NodeData} :
+      s.tree.get? sib = some d →
+      RangesHandedOff s s₁ survivor sib parent idx len →
+      StandardHandoff survivor parent (idx + 1) (len + d.length) s₁ rest s₂ →
+      StandardHandoff survivor parent idx len s (sib :: rest) s₂
+
+/-- 本文の step 3-7：一度に連結し、range を引き渡してから兄弟を remove する。 -/
+def StandardRunMerged (s : DOMState) (survivor : NodeId) (sibs : List NodeId)
+    (s' : DOMState) : Prop :=
+  ∃ d parent idx s₁ s₂,
+    s.tree.get? survivor = some d ∧ parentOf s.tree survivor = some parent ∧
+    index s.tree survivor = some idx ∧
+    ReplaceDataSpec s survivor d.length 0
+      (String.join (sibs.map fun n => ((s.tree.get? n).map NodeData.data).getD "")) s₁ ∧
+    StandardHandoff survivor parent (idx + 1) d.length s₁ sibs s₂ ∧
+    RemoveEachSpec s₂ sibs false s'
+
+/-- 本文の繰り返し：元の descendant の Text node を順にたどる。 -/
+inductive StandardNormalizedEach (this : NodeId) :
+    DOMState → List NodeId → DOMState → Prop where
+  | nil {s : DOMState} : StandardNormalizedEach this s [] s
+  | skip {s s' : DOMState} {n : NodeId} {rest : List NodeId} :
+      ¬ Ancestor s.tree this n → StandardNormalizedEach this s rest s' →
+      StandardNormalizedEach this s (n :: rest) s'
+  | empty {s s₁ s' : DOMState} {n : NodeId} {rest : List NodeId} {d : NodeData} :
+      Ancestor s.tree this n → s.tree.get? n = some d → d.length = 0 →
+      RemoveSpec s n false s₁ → StandardNormalizedEach this s₁ rest s' →
+      StandardNormalizedEach this s (n :: rest) s'
+  | run {s s₁ s' : DOMState} {n : NodeId} {rest sibs : List NodeId} {d : NodeData} :
+      Ancestor s.tree this n → s.tree.get? n = some d → d.length ≠ 0 →
+      FollowingContiguousTexts s.tree n sibs → StandardRunMerged s n sibs s₁ →
+      StandardNormalizedEach this s₁ rest s' → StandardNormalizedEach this s (n :: rest) s'
+
+/-- DOM Standard の本文どおりの意味。observer の record も状態の一部として残す。 -/
+def NormalizeStandardSpec (s : DOMState) (this : NodeId) (s' : DOMState) : Prop :=
+  (∃ d, s.tree.get? this = some d) ∧
+    ∃ nodes, DescendantExclusiveTexts s.tree this nodes ∧ StandardNormalizedEach this s nodes s'
 
 /--
 **`normalize()` の、結果まで含めた関係。**
@@ -138,7 +178,7 @@ def NormalizeSpec (s : DOMState) (this : NodeId) (s' : DOMState) : Prop :=
 失敗するのは `this` が木に無いとき（model の都合。IDL の受け手は必ず存在する）だけである。
 -/
 def NormalizeResult (s : DOMState) (this : NodeId) : Except DOMException DOMState → Prop
-  | .ok s' => NormalizeSpec s this s'
+  | .ok s' => NormalizeEngineSpec s this s'
   | .error e => s.tree.get? this = none ∧ e = .notFoundError
 
 end Dom.Spec

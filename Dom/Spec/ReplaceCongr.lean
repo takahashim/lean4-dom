@@ -45,9 +45,9 @@ theorem childRemoved_facts {s₁ s₂ : DOMState} {removed : List NodeId}
 
 /-- **step 7 の congruence。** -/
 theorem childRemoved_congr {s₁ s₁' s₂ s₂' : DOMState} {r₁ r₂ : List NodeId}
-    (hwf : WellFormed s₁.tree) (h : ObsEq s₁ s₁')
+    (hwf : WellFormed s₁.tree) (h : MutationObsEq s₁ s₁')
     (h₁ : ChildRemoved s₁ s₂ child r₁) (h₂ : ChildRemoved s₁' s₂' child r₂) :
-    ObsEq s₂ s₂' ∧ r₁ = r₂ := by
+    MutationObsEq s₂ s₂' ∧ r₁ = r₂ := by
   rcases h₁ with ⟨hp₁, hr₁, rfl⟩ | ⟨⟨p₁, hp₁⟩, hr₁, hrm₁⟩
   · rcases h₂ with ⟨-, hr₂, rfl⟩ | ⟨⟨p₂, hp₂⟩, -, -⟩
     · exact ⟨h, by rw [hr₁, hr₂]⟩
@@ -117,12 +117,12 @@ theorem nodesToInsertAcyc_step9 {s s₁ s₂ : DOMState} {doc : NodeId} {removed
 step ごとに観測を持ち上げる。`node` の kind と children は adopt も removal も跨いで
 残るので、step 8 の `nodes` は step 1 の時点の木から決まる。
 -/
-theorem replaceSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : ObsEq s sb)
+theorem replaceSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : MutationObsEq s sb)
     (hnep : node ≠ parent) (hcp : parentOf s.tree child = some parent)
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h₁ : ReplaceSpec s child node parent o₁) (h₂ : ReplaceSpec sb child node parent o₂) :
-    ObsEq o₁ o₂ := by
+    MutationObsEq o₁ o₂ := by
   obtain ⟨ref, prev, nodes, removed, pd, s₁, s₂, s₃,
     href₁, hprev₁, hpd₁, ha₁, hcr₁, hni₁, hi₁, -, hrec₁, hfr₁⟩ := h₁
   obtain ⟨ref', prev', nodes', removed', pd', s₁', s₂', s₃',
@@ -141,7 +141,7 @@ theorem replaceSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : 
   -- step 6
   have hdoc : IsDocument s.tree pd'.ownerDocument :=
     isDocument_ownerDocument (m := parent) hwf hpd₁
-  have hobs₁ : ObsEq s₁ s₁' := adoptSpec_congr hwf h ha₁ ha₂
+  have hobs₁ : MutationObsEq s₁ s₁' := adoptSpec_congr hwf h ha₁ ha₂
   have hwf₁ : WellFormed s₁.tree := adoptSpec_wellFormed hwf hdoc ha₁
   -- step 7
   obtain ⟨hobs₂, hreme⟩ := childRemoved_congr hwf₁ hobs₁ hcr₁ hcr₂
@@ -152,7 +152,7 @@ theorem replaceSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : 
   subst hnse
   -- step 9。validity が `s` について言うことを `s₂` へ移す。
   have hacyc₂ := nodesToInsertAcyc_step9 hwf hwf₁ hnep hcp hacyc ha₁ hcr₁
-  have hobs₃ : ObsEq s₃ s₃' := insertSpec_congr hwf₂ hobs₂ hacyc₂ hi₁ hi₂
+  have hobs₃ : MutationObsEq s₃ s₃' := insertSpec_congr hwf₂ hobs₂ hacyc₂ hi₁ hi₂
   -- step 10
   exact treeRecordQueued_congr hobs₃ hrec₁ hrec₂ hfr₁ hfr₂
 
@@ -162,7 +162,7 @@ theorem replaceSpec_deterministic {o₁ o₂ : DOMState} (hwf : WellFormed s.tre
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h₁ : ReplaceSpec s child node parent o₁) (h₂ : ReplaceSpec s child node parent o₂) :
-    ObsEq o₁ o₂ :=
-  replaceSpec_congr hwf (ObsEq.refl s) hnep hcp hacyc h₁ h₂
+    MutationObsEq o₁ o₂ :=
+  replaceSpec_congr hwf (MutationObsEq.refl s) hnep hcp hacyc h₁ h₂
 
 end Dom.Spec

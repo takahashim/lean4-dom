@@ -70,8 +70,8 @@ def entries : List Entry := [
   { alg := "dom-node-normalize"
     impl := [``Dom.normalize, ``Dom.normalizeList, ``Dom.normalizeRun, ``Dom.normalizeMergeOne,
              ``Dom.normalizeMergeRange, ``Dom.normalizeMergeBP, ``Dom.followingTexts]
-    spec := [``Dom.Spec.NormalizeSpec, ``Dom.Spec.NormalizeResult]
-    approx := [("3-4", "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。木と range の最終状態は同じで、characterData record の並びが違う"),
+    spec := [``Dom.Spec.NormalizeEngineSpec, ``Dom.Spec.NormalizeStandardSpec, ``Dom.Spec.NormalizeResult]
+    approx := [("3-4", "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。characterData record の並びが違う。木と range の最終状態の一致は未証明"),
                ("6", "兄弟ごとに boundary point を渡してからその兄弟を remove する。step 6 と step 7 を兄弟ごとに交互に行う"),
                ("7", "兄弟ごとに step 6 の直後に remove する（上と同じ）")] },
   { alg := "concept-node-clone"

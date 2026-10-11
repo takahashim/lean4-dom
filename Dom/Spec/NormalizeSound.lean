@@ -4,9 +4,10 @@ import Dom.Spec.RemoveSound
 import Dom.CharacterData.Normalize
 import Dom.Properties.CharacterData
 import Dom.Properties.Mutation
+import Dom.Spec.Walker
 
 /-!
-# `normalize` は `NormalizeSpec` を満たす
+# `normalize` は `NormalizeEngineSpec` を満たす
 
 `Dom/Spec/InsertSound.lean` と同じ形。段ごとに実行側の結果を関係に移す。
 -/
@@ -186,22 +187,17 @@ theorem normalizeList_sound (this : NodeId) : ∀ (cands : List NodeId) {s s' : 
       refine .skip (fun ha => hanc ((isAncestorOf_iff hwf this n).mpr ha)) ?_
       exact normalizeList_sound this rest hwf h
 
-/-- **`normalize` は `NormalizeSpec` を満たす。** -/
+/-- **`normalize` は `NormalizeEngineSpec` を満たす。** -/
 theorem normalize_sound {s s' : DOMState} {this : NodeId} (hwf : WellFormed s.tree)
-    (h : normalize s this = .ok s') : NormalizeSpec s this s' := by
+    (h : normalize s this = .ok s') : NormalizeEngineSpec s this s' := by
   unfold normalize at h
   split at h
   · cases h
   · next d hd =>
-    refine ⟨⟨d, hd⟩, ?_⟩
-    have hf : ((preorder s.tree this).drop 1).filter (isExclusiveText s.tree) =
-        DescendantExclusiveTexts s.tree this := by
-      unfold DescendantExclusiveTexts
-      congr 1
-      funext n
-      unfold isExclusiveText
-      cases s.tree.get? n <;> rfl
-    rw [hf] at h
-    exact normalizeList_sound this _ hwf h
+    let nodes := ((preorder s.tree this).drop 1).filter (isExclusiveText s.tree)
+    refine ⟨⟨d, hd⟩, nodes, ⟨?_, ?_⟩, normalizeList_sound this nodes hwf h⟩
+    · intro n
+      rw [List.mem_filter, mem_preorder_drop_one hwf hd, isExclusiveText_iff]
+    · exact ((treeOrderList_preorder hwf hd).2.sublist (List.drop_sublist _ _)).filter _
 
 end Dom.Spec

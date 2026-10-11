@@ -35,11 +35,11 @@ open Dom
 関係の step 1-2（parent が非 null）がそのまま契約の成功条件である。
 -/
 theorem remove_complete {s s' : DOMState} {n : NodeId} {b : Bool} (hwf : WellFormed s.tree)
-    (h : RemoveSpec s n b s') : ∃ out, remove s n b = .ok out ∧ ObsEq s' out := by
+    (h : RemoveSpec s n b s') : ∃ out, remove s n b = .ok out ∧ MutationObsEq s' out := by
   have hc := h
   obtain ⟨parent, -, hpre, -⟩ := hc
   obtain ⟨out, hout⟩ := (remove_succeeds_iff hwf (n := n) (b := b)).mpr (by rw [hpre]; rfl)
-  exact ⟨out, hout, removeSpec_congr hwf (ObsEq.refl s) h (remove_sound hwf hout)⟩
+  exact ⟨out, hout, removeSpec_congr hwf (MutationObsEq.refl s) h (remove_sound hwf hout)⟩
 
 /-! ## `adopt` -/
 
@@ -59,11 +59,11 @@ theorem adopt_succeeds_of_ownerDocument {s : DOMState} {node doc oldDoc : NodeId
 
 /-- **`AdoptSpec` を満たす状態があるなら、`adopt` は成功してその観測を作る。** -/
 theorem adopt_complete {s s' : DOMState} {node doc : NodeId} (hwf : WellFormed s.tree)
-    (h : AdoptSpec s node doc s') : ∃ out, adopt s node doc = .ok out ∧ ObsEq s' out := by
+    (h : AdoptSpec s node doc s') : ∃ out, adopt s node doc = .ok out ∧ MutationObsEq s' out := by
   have hc := h
   obtain ⟨oldDoc, hod, -⟩ := hc
   obtain ⟨out, hout⟩ := adopt_succeeds_of_ownerDocument (doc := doc) hwf hod
-  exact ⟨out, hout, adoptSpec_congr hwf (ObsEq.refl s) h (adopt_sound hwf hout)⟩
+  exact ⟨out, hout, adoptSpec_congr hwf (MutationObsEq.refl s) h (adopt_sound hwf hout)⟩
 
 /-! ## `insert` -/
 
@@ -92,8 +92,8 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
     WellFormed s.tree → IsDocument s.tree doc →
     (∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent) →
     (∃ pd, s.tree.get? parent = some pd) →
-    InsertedEach parent child doc s ns out → ObsEq s sx →
-    ∃ o, insertEach sx parent child doc ns = .ok o ∧ ObsEq out o := by
+    InsertedEach parent child doc s ns out → MutationObsEq s sx →
+    ∃ o, insertEach sx parent child doc ns = .ok o ∧ MutationObsEq out o := by
   intro ns
   induction ns with
   | nil =>
@@ -112,7 +112,7 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
         rw [hobs.tree.ownerDocumentOf]; exact hod
       obtain ⟨o₁, ho₁⟩ := adopt_succeeds_of_ownerDocument (doc := doc)
         (hobs.tree.wellFormed hwf) hodx
-      have hobsa : ObsEq sa o₁ :=
+      have hobsa : MutationObsEq sa o₁ :=
         adoptSpec_congr hwf hobs ha (adopt_sound (hobs.tree.wellFormed hwf) ho₁)
       -- step 7.2：insertAt の四つの前提
       have hkp : ShapePreserving sx.tree o₁.tree := shapePreserving_adopt ho₁
@@ -155,7 +155,7 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
       have hins₂ : TreeInserted o₁.tree o₂.tree parent n child :=
         treeInserted_insertAt (by rw [ho₂, DOMState.withTree_tree]; exact hins)
       have htree : TreeObsEq sb.tree o₂.tree := treeInserted_congr hobsa.tree hi hins₂
-      have hobsb : ObsEq sb o₂ := by
+      have hobsb : MutationObsEq sb o₂ := by
         refine ⟨htree, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · rw [ho₂, DOMState.withTree_ranges, hobsa.ranges, hlive.ranges]
         · rw [ho₂, DOMState.withTree_iterators, hobsa.iterators, hlive.iterators]
@@ -195,8 +195,8 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
 
 /-- **step 4 の実現可能性。** -/
 theorem removeEach_complete : ∀ (ns : List NodeId) {s sx out : DOMState} {b : Bool},
-    WellFormed s.tree → RemoveEachSpec s ns b out → ObsEq s sx →
-    ∃ o, removeEach sx ns b = .ok o ∧ ObsEq out o := by
+    WellFormed s.tree → RemoveEachSpec s ns b out → MutationObsEq s sx →
+    ∃ o, removeEach sx ns b = .ok o ∧ MutationObsEq out o := by
   intro ns
   induction ns with
   | nil =>
@@ -208,7 +208,7 @@ theorem removeEach_complete : ∀ (ns : List NodeId) {s sx out : DOMState} {b : 
     cases h with
     | @cons _ s₁ _ _ _ _ hr hrest =>
       have hwfx : WellFormed sx.tree := hobs.tree.wellFormed hwf
-      have hrx : RemoveSpec sx n b s₁ := removeSpec_transport hwfx (ObsEq.symm hobs) hr
+      have hrx : RemoveSpec sx n b s₁ := removeSpec_transport hwfx (MutationObsEq.symm hobs) hr
       obtain ⟨o₁, ho₁, hobs₁⟩ := remove_complete hwfx hrx
       have hwf₁ : WellFormed s₁.tree := removeSpec_wellFormed hwf hr
       obtain ⟨o, hoeq, hoobs⟩ := ih hwf₁ hrest hobs₁
@@ -254,8 +254,8 @@ theorem insert_no_extra_models {s s' out : DOMState} {node parent : NodeId}
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h : InsertSpec s node parent child b s') (hok : insert s node parent child b = .ok out) :
-    ObsEq s' out :=
-  insertSpec_congr hwf (ObsEq.refl s) hacyc h (insert_sound hwf hok)
+    MutationObsEq s' out :=
+  insertSpec_congr hwf (MutationObsEq.refl s) hacyc h (insert_sound hwf hok)
 
 /-- **step 5-7 の実現可能性。** -/
 theorem insertEachAt_complete {parent : NodeId} {child : Option NodeId} {doc : NodeId}
@@ -263,8 +263,8 @@ theorem insertEachAt_complete {parent : NodeId} {child : Option NodeId} {doc : N
     (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree doc)
     (hacyc : ∀ m ∈ nodes, ¬ InclusiveAncestor s.tree m parent)
     (hpd : s.tree.get? parent = some pd) (hdeq : doc = pd.ownerDocument)
-    (h : InsertedEach parent child doc s nodes out) (hobs : ObsEq s sx) :
-    ∃ o, insertEachAt sx parent child nodes = .ok o ∧ ObsEq out o := by
+    (h : InsertedEach parent child doc s nodes out) (hobs : MutationObsEq s sx) :
+    ∃ o, insertEachAt sx parent child nodes = .ok o ∧ MutationObsEq out o := by
   have hpdx : sx.tree.get? parent = some pd := by rw [hobs.tree]; exact hpd
   rw [insertEachAt_of_get? hpdx, ← hdeq]
   exact insertEach_complete nodes hwf hdoc hacyc ⟨pd, hpd⟩ h hobs
@@ -278,7 +278,7 @@ theorem insertNodesAt_isOk_of_spec {parent : NodeId} {child : Option NodeId}
     (hidx : ChildIndex s₁.tree child idx)
     (hra : RangeInsertAdjusted s₁ s₂ parent child idx nodes.length)
     (hie : InsertedEach parent child pd.ownerDocument s₂ nodes s₃)
-    (hobs : ObsEq s₁ sx) :
+    (hobs : MutationObsEq s₁ sx) :
     ∃ o, insertNodesAt sx parent child nodes b = .ok o := by
   have hidxx : ChildIndex sx.tree child idx := by
     cases child with
@@ -286,7 +286,7 @@ theorem insertNodesAt_isOk_of_spec {parent : NodeId} {child : Option NodeId}
     | some c =>
       show index sx.tree c = some idx
       rw [hobs.tree.index]; exact hidx
-  have hobs₂ : ObsEq s₂ (liveRangeInsertAdjust sx parent child nodes.length) :=
+  have hobs₂ : MutationObsEq s₂ (liveRangeInsertAdjust sx parent child nodes.length) :=
     rangeInsertAdjusted_congr hobs hra
       (rangeInsertAdjusted_of_adjust sx parent child nodes.length idx hidxx)
   have hwf₂ : WellFormed s₂.tree := by rw [hra.tree]; exact hwf
@@ -304,14 +304,14 @@ theorem insertNodesAt_isOk_of_spec {parent : NodeId} {child : Option NodeId}
 
 実行側が走るのは関係の入力そのものとは限らない（`replace` の step 9 がそれで、
 adopt と removal を通った後の状態は関係の中間状態と観測が等しいだけである）。
-`insertNodesAt_isOk_of_spec` と `removeEach_complete` が既に `ObsEq` を引数に
+`insertNodesAt_isOk_of_spec` と `removeEach_complete` が既に `MutationObsEq` を引数に
 取っているので、ここも同じ形にしておく。
 -/
 theorem insert_isOk_of_spec_obs {s sx s' : DOMState} {node parent : NodeId}
     {child : Option NodeId} {b : Bool} (hwf : WellFormed s.tree)
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
-    (hobs : ObsEq s sx)
+    (hobs : MutationObsEq s sx)
     (h : InsertSpec s node parent child b s') :
     ∃ out, insert sx node parent child b = .ok out := by
   obtain ⟨nodes, hnodes, hcase⟩ := h
@@ -340,7 +340,7 @@ theorem insert_isOk_of_spec_obs {s sx s' : DOMState} {node parent : NodeId}
         · exact absurd hk hkne
       obtain ⟨o₀, ho₀, hobs₀⟩ := removeEach_complete nodes hwf hre hobs
       have hwfr : WellFormed sr.tree := removeEachSpec_wellFormed hwf hre
-      have hobs₁ : ObsEq s₁ (queueTreeMutationRecord o₀ node [] nodes none none) := by
+      have hobs₁ : MutationObsEq s₁ (queueTreeMutationRecord o₀ node [] nodes none none) := by
         refine treeRecordQueued_congr (s := sr) (s' := o₀) hobs₀ hq ?_ hoo' ?_
         · exact treeRecordQueued_of_queue o₀ (hobs₀.tree.wellFormed hwfr) node [] nodes none none
             (by cases hx : nodes with
@@ -379,7 +379,7 @@ theorem insert_isOk_of_spec {s s' : DOMState} {node parent : NodeId}
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h : InsertSpec s node parent child b s') :
     ∃ out, insert s node parent child b = .ok out :=
-  insert_isOk_of_spec_obs hwf hacyc (ObsEq.refl s) h
+  insert_isOk_of_spec_obs hwf hacyc (MutationObsEq.refl s) h
 
 /--
 **`insert` の完全性。**
@@ -393,7 +393,7 @@ theorem insert_complete {s s' : DOMState} {node parent : NodeId}
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h : InsertSpec s node parent child b s') :
-    ∃ out, insert s node parent child b = .ok out ∧ ObsEq s' out := by
+    ∃ out, insert s node parent child b = .ok out ∧ MutationObsEq s' out := by
   obtain ⟨out, hok⟩ := insert_isOk_of_spec hwf hacyc h
   exact ⟨out, hok, insert_no_extra_models hwf hacyc h hok⟩
 
@@ -409,11 +409,11 @@ theorem replace_no_extra_models {s s' out : DOMState} {child node parent : NodeI
     (hacyc : ∀ ns : List NodeId, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h : ReplaceSpec s child node parent s') (hok : replace s child node parent = .ok out) :
-    ObsEq s' out := by
+    MutationObsEq s' out := by
   -- `node ≠ parent` と `child` の parent は step 1 の validity が与える。
   obtain ⟨-, -, -, -, hv, -⟩ := replace_cases hok
   obtain ⟨-, -, -, hchild⟩ := ensurePreInsertionValidity_ok hv
-  exact replaceSpec_congr hsv.wellFormed (ObsEq.refl s)
+  exact replaceSpec_congr hsv.wellFormed (MutationObsEq.refl s)
     (replace_node_ne_parent hsv.wellFormed hv) (hchild child rfl) hacyc h
     (replace_sound hsv hok)
 
@@ -422,7 +422,7 @@ theorem replace_no_extra_models {s s' out : DOMState} {child node parent : NodeI
 
 step ごとに、関係の中間状態と観測が等しい状態を実行側で作っていく。
 step 9 の `insert` だけは実行側の入力が関係の中間状態そのものではないので、
-`insert_isOk_of_spec_obs`（`ObsEq` を引数に取る版）を使う。
+`insert_isOk_of_spec_obs`（`MutationObsEq` を引数に取る版）を使う。
 -/
 theorem replace_isOk_of_spec {s s' : DOMState} {child node parent : NodeId}
     (hwf : WellFormed s.tree)
@@ -462,7 +462,7 @@ theorem replace_isOk_of_spec {s s' : DOMState} {child node parent : NodeId}
     exact ⟨_, rfl⟩
   · have hqx : parentOf o₁.tree child = some q := by rw [hobs₁.tree.parentOf]; exact hq
     obtain ⟨o₂, ho₂, hobs₂⟩ :=
-      remove_complete hwfo₁ (removeSpec_transport hwfo₁ (ObsEq.symm hobs₁) hrm)
+      remove_complete hwfo₁ (removeSpec_transport hwfo₁ (MutationObsEq.symm hobs₁) hrm)
     obtain ⟨o₃, ho₃⟩ := insert_isOk_of_spec_obs hwf₂ hacyc₂ hobs₂ hi
     simp only [hqx, ho₂, hrefx, ho₃]
     exact ⟨_, rfl⟩
@@ -480,7 +480,7 @@ theorem replace_complete {s s' : DOMState} {child node parent : NodeId}
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (hv : ensurePreInsertionValidity s.tree node parent (some child) [child] = .ok ())
     (h : ReplaceSpec s child node parent s') :
-    ∃ out, replace s child node parent = .ok out ∧ ObsEq s' out := by
+    ∃ out, replace s child node parent = .ok out ∧ MutationObsEq s' out := by
   obtain ⟨out, hok⟩ := replace_isOk_of_spec hsv.wellFormed hacyc hv h
   exact ⟨out, hok, replace_no_extra_models hsv hacyc h hok⟩
 
@@ -515,8 +515,8 @@ theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : O
         (detachFrom s.tree node oldParent ndn opd) := ⟨_, rfl⟩
   have hdw : detachWithLiveAdjust s node = .ok e₁ := by
     rw [he₁]; exact detachWithLiveAdjust_of_detach hdet
-  have hobs₁ : ObsEq s₁ e₁ :=
-    moveDetached_congr hwf (ObsEq.refl s) hnd hp hmd (moveDetached_of_detach hwf hp hdw)
+  have hobs₁ : MutationObsEq s₁ e₁ :=
+    moveDetached_congr hwf (MutationObsEq.refl s) hnd hp hmd (moveDetached_of_detach hwf hp hdw)
   have htr : TreeRemoved s.tree s₁.tree node oldParent := hmd.2.2.1
   have hwf₁ : WellFormed s₁.tree := treeRemoved_wellFormed hwf hp htr
   have hwfe₁ : WellFormed e₁.tree := hobs₁.tree.wellFormed hwf₁
@@ -581,7 +581,7 @@ theorem move_complete {s s' : DOMState} {node newParent : NodeId} {child : Optio
     (hwf : WellFormed s.tree)
     (hv : moveValidity s.tree node newParent child = .ok ())
     (h : MoveSpec s node newParent child s') :
-    ∃ out, move s node newParent child = .ok out ∧ ObsEq s' out := by
+    ∃ out, move s node newParent child = .ok out ∧ MutationObsEq s' out := by
   obtain ⟨out, hok⟩ := move_isOk_of_spec hwf hv h
   exact ⟨out, hok, moveSpec_deterministic hwf h (move_sound hwf hok)⟩
 

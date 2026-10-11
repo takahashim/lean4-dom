@@ -302,7 +302,7 @@ soundness だけなら「常に失敗する実装」でも通るが、completene
 
 | 定理 | module |
 | --- | --- |
-| `Dom.Spec.ObsEq` | `Dom/Spec/ObsEq.lean` |
+| `Dom.Spec.MutationObsEq` / `Dom.Spec.ObsEq` | `Dom/Spec/ObsEq.lean` |
 | `Dom.Spec.removeSpec_congr` | `Dom/Spec/RemoveCongr.lean` |
 | `Dom.Spec.adoptSpec_congr` | `Dom/Spec/AdoptCongr.lean` |
 | `Dom.Spec.insertSpec_congr` | `Dom/Spec/InsertCongr.lean` |
@@ -314,19 +314,22 @@ theorem insertSpec_deterministic {s o₁ o₂ : DOMState} {suppress : Bool}
     (hacyc : ∀ ns, NodesToInsert s.tree node ns →
       ∀ m ∈ ns, ¬ InclusiveAncestor s.tree m parent)
     (h₁ : InsertSpec s node parent child suppress o₁)
-    (h₂ : InsertSpec s node parent child suppress o₂) : ObsEq o₁ o₂
+    (h₂ : InsertSpec s node parent child suppress o₂) : MutationObsEq o₁ o₂
 ```
 
 `hacyc`（入れる node が `parent` の inclusive ancestor でない）は §4.2.1 の
 pre-insertion validity が保証するもので、`insert` 本体は前提として受け取る。
 これが無いと木が循環し、`TreeInserted` の結果が well-formed でなくなる。
 
-`ObsEq` は `DOMState` の十成分すべてを見る。木・range・iterator・registration・
-record queue・pending・microtask に加えて、`walkers` / `listeners` / `detachedAttrs`
-である。後の三つは §4.2.3 の algorithm が触れないが `Observation` には出るので、
-抜くと determinism も completeness も「将来の操作から区別できない」ことを
-意味しなくなる（`Dom/Basic/State.lean` の `Untouched`）。
-関係の側は frame 条件としてこれを持つ。
+`MutationObsEq` は十成分を見るが、registration と pending observer は所属だけを比較する。
+これは mutation 関係の合成に用いる同値関係で、任意の将来の操作列で区別できないことを保証しない。
+既存の determinism・completeness・`ResultObsEq` はこの関係について述べる。
+`walkers` / `listeners` / `detachedAttrs` は frame 条件 `Untouched` により保持する。
+
+`ObsEq` はこれに registration と pending observer の列の一致を加える。
+`notifyMutationObservers_delivered_congr`（`Dom/Spec/ObserverCongr.lean`）は、
+この関係で等しい状態からの配送結果が順序を含めて等しいことを証明する。
+`pendingOrder_ne` は異なる ID の `[a,b]` と `[b,a]` を区別する。
 
 ## 14. oracle は自分の invariant を破らない
 
@@ -1025,3 +1028,23 @@ lake env lean Audit.lean
 ```
 
 許容外の axiom（`sorryAx` を含む）に依存する定理があると失敗する。
+
+## 31. wrapper の失敗条件と独立した名前検証
+
+`StringReplaceAllResult` は成功する状態の存在を要求する。任意の例外を許す含意ではない。
+`stringReplaceAllResult_not_error` は失敗結果を排除し、`setTextContent_result_sound` もこの強い関係を使う。
+`CreatesNode` は range・iterator・registration・observer に加え、pending observer・microtask と
+`Untouched` の三成分を保存するので、node 作成時の余計な状態変更を許さない。
+
+`validateAndExtractAttribute_eq_steps` / `validateAndExtractElement_eq_steps` は手順の並べ替えの定理である。
+別途 `FirstColonSplit` は「最初の colon」を文字列の分解と prefix に colon が無いことで定義する。
+`splitAtFirstColon_spec` / `splitAtFirstColon_iff` は実装の分割器がこの条件に適合することを証明する。
+`ValidateAndExtractResult` は Boolean validator を使わず、宣言的な名前の条件、namespace 条件、
+例外の優先順位で結果を定める。`validateAndExtractAttribute_spec` / `validateAndExtractElement_spec` は
+この関係と実行結果の必要十分条件である。
+
+normalize の `NormalizeEngineSpec` と `NormalizeStandardSpec` は別の関係である。
+前者の soundness・一意性・completeness は証明済みだが、後者への実装の適合は主張しない。
+両方の候補列は `Ancestor`・`ExclusiveText`・`PrecedesStruct` だけで定義する。
+`normalize_sound` が実行側の preorder/filter の適合を証明し、`descendantExclusiveTexts_unique` が
+その構造的条件から列の一意性を証明する。

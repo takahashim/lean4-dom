@@ -93,7 +93,7 @@ theorem treeRemoved_transport (h : TreeObsEq t t') {u : Tree} {node parent : Nod
 
 /-! ## 状態を見る component -/
 
-theorem interestedInChildList_iff (h : ObsEq s s') {mo : Nat} {target : NodeId} :
+theorem interestedInChildList_iff (h : MutationObsEq s s') {mo : Nat} {target : NodeId} :
     InterestedInChildList s' mo target ↔ InterestedInChildList s mo target := by
   constructor
   · rintro ⟨r, hr, ho, hc, ha, hs⟩
@@ -101,7 +101,7 @@ theorem interestedInChildList_iff (h : ObsEq s s') {mo : Nat} {target : NodeId} 
   · rintro ⟨r, hr, ho, hc, ha, hs⟩
     exact ⟨r, (h.registrations r).mpr hr, ho, hc, h.tree.inclusiveAncestor_iff.mpr ha, hs⟩
 
-theorem treeRecordQueued_transport (h : ObsEq s s') {out : DOMState} {target : NodeId}
+theorem treeRecordQueued_transport (h : MutationObsEq s s') {out : DOMState} {target : NodeId}
     {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
     (hq : TreeRecordQueued s' out target added removed oldPrev oldNext suppress) :
     TreeRecordQueued s out target added removed oldPrev oldNext suppress := by
@@ -129,7 +129,7 @@ theorem treeRecordQueued_transport (h : ObsEq s s') {out : DOMState} {target : N
       · exact Or.inl ((h.pendingObservers mo).mp hc)
       · exact Or.inr ((interestedInChildList_iff h).mp hc)
 
-theorem rangeAdjusted_transport (h : ObsEq s s') {out : DOMState} {node parent : NodeId}
+theorem rangeAdjusted_transport (h : MutationObsEq s s') {out : DOMState} {node parent : NodeId}
     {index : Nat} (hq : RangeAdjusted s' out node parent index) :
     RangeAdjusted s out node parent index := by
   obtain ⟨hlen, hadj⟩ := hq
@@ -138,7 +138,7 @@ theorem rangeAdjusted_transport (h : ObsEq s s') {out : DOMState} {node parent :
   obtain ⟨h1, h2⟩ := hadj i r r' (by rw [h.ranges]; exact hr) hr'
   exact ⟨boundaryAdjusted_transport h.tree h1, boundaryAdjusted_transport h.tree h2⟩
 
-theorem iteratorAdjusted_transport (hwf : WellFormed s.tree) (h : ObsEq s s') {out : DOMState}
+theorem iteratorAdjusted_transport (hwf : WellFormed s.tree) (h : MutationObsEq s s') {out : DOMState}
     {node : NodeId} (hq : IteratorAdjusted s' out node) : IteratorAdjusted s out node := by
   obtain ⟨hlen, hit⟩ := hq
   refine ⟨by rw [hlen, h.iterators], ?_⟩
@@ -154,7 +154,7 @@ theorem iteratorAdjusted_transport (hwf : WellFormed s.tree) (h : ObsEq s s') {o
     rw [if_neg hc] at hrest
     exact hrest
 
-theorem transientAdded_transport (h : ObsEq s s') {out : DOMState} {node parent : NodeId}
+theorem transientAdded_transport (h : MutationObsEq s s') {out : DOMState} {node parent : NodeId}
     (hq : TransientAdded s' out node parent) : TransientAdded s out node parent := by
   obtain ⟨hkeep, hin, hnew⟩ := hq
   refine ⟨fun r hr => hkeep r ((h.registrations r).mpr hr), ?_, ?_⟩
@@ -278,7 +278,7 @@ theorem removeSpec_wellFormed {out : DOMState} {node : NodeId} {suppress : Bool}
 /-! ## まとめ -/
 
 /-- **`RemoveSpec` は観測の等しい入力に差し替えられる。** -/
-theorem removeSpec_transport (hwf : WellFormed s.tree) (h : ObsEq s s') {out : DOMState}
+theorem removeSpec_transport (hwf : WellFormed s.tree) (h : MutationObsEq s s') {out : DOMState}
     {node : NodeId} {suppress : Bool} (hq : RemoveSpec s' node suppress out) :
     RemoveSpec s node suppress out := by
   obtain ⟨parent, index, hpre, hidx, hr, hit, htr, htn, hrec, hun⟩ := hq
@@ -297,10 +297,10 @@ theorem removeSpec_transport (hwf : WellFormed s.tree) (h : ObsEq s s') {out : D
 入力の観測が等しければ、出力の観測も等しい。
 `insert` のように `remove` を途中に持つ関係の一意性は、これを繰り返して示す。
 -/
-theorem removeSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s s')
+theorem removeSpec_congr (hwf : WellFormed s.tree) (h : MutationObsEq s s')
     {s₁ s₂ : DOMState} {node : NodeId} {suppress : Bool}
     (h₁ : RemoveSpec s node suppress s₁) (h₂ : RemoveSpec s' node suppress s₂) :
-    ObsEq s₁ s₂ := by
+    MutationObsEq s₁ s₂ := by
   have h₂' : RemoveSpec s node suppress s₂ := removeSpec_transport hwf h h₂
   obtain ⟨htree, hrng, hit, hreg, hrec, hpend, hmt, hw, hl, ha⟩ :=
     removeSpec_deterministic hwf h₁ h₂'
@@ -315,8 +315,8 @@ theorem removeSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s s')
 次の段の前提として `removeSpec_wellFormed` を渡す。
 -/
 theorem removeEachSpec_congr {ns : List NodeId} {b : Bool} :
-    ∀ {s s' s₁ s₂ : DOMState}, WellFormed s.tree → ObsEq s s' →
-      RemoveEachSpec s ns b s₁ → RemoveEachSpec s' ns b s₂ → ObsEq s₁ s₂ := by
+    ∀ {s s' s₁ s₂ : DOMState}, WellFormed s.tree → MutationObsEq s s' →
+      RemoveEachSpec s ns b s₁ → RemoveEachSpec s' ns b s₂ → MutationObsEq s₁ s₂ := by
   induction ns with
   | nil =>
     intro s s' s₁ s₂ _ h h₁ h₂
@@ -346,11 +346,11 @@ theorem removeEachSpec_wellFormed {ns : List NodeId} {b : Bool} :
 `TreeRecordQueued` は observer についてしか言わないので、
 木や range が動かないことは `ObserverOnly` から取る。
 -/
-theorem treeRecordQueued_congr (h : ObsEq s s') {o₁ o₂ : DOMState} {target : NodeId}
+theorem treeRecordQueued_congr (h : MutationObsEq s s') {o₁ o₂ : DOMState} {target : NodeId}
     {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
     (h₁ : TreeRecordQueued s o₁ target added removed oldPrev oldNext suppress)
     (h₂ : TreeRecordQueued s' o₂ target added removed oldPrev oldNext suppress)
-    (f₁ : ObserverOnly s o₁) (f₂ : ObserverOnly s' o₂) : ObsEq o₁ o₂ := by
+    (f₁ : ObserverOnly s o₁) (f₂ : ObserverOnly s' o₂) : MutationObsEq o₁ o₂ := by
   obtain ⟨hrec, hpend, hmt⟩ := treeRecordQueued_unique h₁ (treeRecordQueued_transport h h₂)
   exact
     { tree := fun m => by rw [f₂.tree, f₁.tree]; exact h.tree m

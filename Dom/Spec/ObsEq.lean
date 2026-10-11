@@ -203,17 +203,18 @@ end TreeObsEq
 /--
 **状態の観測が等しいこと。**
 
-`Dom/Observation.lean` の `Observation` が見るものの一致である。
+Mutation algorithms の合成に用いる同値関係である。
+配送順を含む一般の操作列の等価性ではない（下の `ObsEq` を参照）。
 木は表現ではなく `get?` で、registered observer list は順序を決めていないので所属で、
 observer は record queue だけで比べる（`ObserverState.nodeList` は観測に出ない）。
 
 `walkers` / `listeners` / `detachedAttrs` も入れる。§4.2.3 の algorithm はこの三つに
 触れないが、**`Observation` には出る**ので、抜くと「将来の操作から区別できない」
-という意味にならない（`Dom/Basic/State.lean` の `Untouched` を参照）。
+の必要条件を満たさない（`Dom/Basic/State.lean` の `Untouched` を参照）。
 関係の側はその frame 条件を持っているので、determinism も completeness も
 この三つまで込みで言える。
 -/
-structure ObsEq (s s' : DOMState) : Prop where
+structure MutationObsEq (s s' : DOMState) : Prop where
   tree : TreeObsEq s.tree s'.tree
   ranges : s'.ranges = s.ranges
   iterators : s'.iterators = s.iterators
@@ -225,11 +226,11 @@ structure ObsEq (s s' : DOMState) : Prop where
   listeners : s'.listeners = s.listeners
   detachedAttrs : s'.detachedAttrs = s.detachedAttrs
 
-namespace ObsEq
+namespace MutationObsEq
 
 variable {s s' s'' : DOMState}
 
-theorem refl (s : DOMState) : ObsEq s s where
+theorem refl (s : DOMState) : MutationObsEq s s where
   tree := TreeObsEq.refl s.tree
   ranges := rfl
   iterators := rfl
@@ -241,7 +242,7 @@ theorem refl (s : DOMState) : ObsEq s s where
   listeners := rfl
   detachedAttrs := rfl
 
-theorem symm (h : ObsEq s s') : ObsEq s' s where
+theorem symm (h : MutationObsEq s s') : MutationObsEq s' s where
   tree := h.tree.symm
   ranges := h.ranges.symm
   iterators := h.iterators.symm
@@ -253,7 +254,7 @@ theorem symm (h : ObsEq s s') : ObsEq s' s where
   listeners := h.listeners.symm
   detachedAttrs := h.detachedAttrs.symm
 
-theorem trans (h : ObsEq s s') (h' : ObsEq s' s'') : ObsEq s s'' where
+theorem trans (h : MutationObsEq s s') (h' : MutationObsEq s' s'') : MutationObsEq s s'' where
   tree := fun m => (h'.tree m).trans (h.tree m)
   ranges := h'.ranges.trans h.ranges
   iterators := h'.iterators.trans h.iterators
@@ -266,11 +267,11 @@ theorem trans (h : ObsEq s s') (h' : ObsEq s' s'') : ObsEq s s'' where
   detachedAttrs := h'.detachedAttrs.trans h.detachedAttrs
 
 /-- 観測が等しければ、触れない三成分も等しい。 -/
-theorem untouched (h : ObsEq s s') : Untouched s s' :=
+theorem untouched (h : MutationObsEq s s') : Untouched s s' :=
   ⟨h.walkers, h.listeners, h.detachedAttrs⟩
 
 /-- record queue が一致すれば、observer が居るかどうかも一致する。 -/
-theorem observers_isSome (h : ObsEq s s') (mo : Nat) :
+theorem observers_isSome (h : MutationObsEq s s') (mo : Nat) :
     (s'.observers[mo]?).isSome = (s.observers[mo]?).isSome := by
   have hr := h.records mo
   cases h1 : s'.observers[mo]? with
@@ -284,7 +285,7 @@ theorem observers_isSome (h : ObsEq s s') (mo : Nat) :
     | some o => rfl
 
 /-- したがって observer list の長さも一致する。 -/
-theorem observers_length (h : ObsEq s s') : s'.observers.length = s.observers.length := by
+theorem observers_length (h : MutationObsEq s s') : s'.observers.length = s.observers.length := by
   refine Nat.le_antisymm (Nat.not_lt.mp fun hlt => ?_) (Nat.not_lt.mp fun hlt => ?_)
   · have h1 : (s'.observers[s.observers.length]?).isSome = true := by
       rw [List.getElem?_eq_getElem hlt]; rfl
@@ -300,7 +301,7 @@ theorem observers_length (h : ObsEq s s') : s'.observers.length = s.observers.le
     exact Bool.noConfusion h1
 
 /-- 同じ添字の observer の record queue を取り出す。 -/
-theorem records_of (h : ObsEq s s') {mo : Nat} {o o' : ObserverState}
+theorem records_of (h : MutationObsEq s s') {mo : Nat} {o o' : ObserverState}
     (ho : s.observers[mo]? = some o) (ho' : s'.observers[mo]? = some o') :
     o'.records = o.records := by
   have hr := h.records mo
@@ -308,7 +309,7 @@ theorem records_of (h : ObsEq s s') {mo : Nat} {o o' : ObserverState}
   exact Option.some.inj hr
 
 /-- observer が片方に居れば、もう片方の同じ添字にも居る。 -/
-theorem exists_observer (h : ObsEq s s') {mo : Nat} {o : ObserverState}
+theorem exists_observer (h : MutationObsEq s s') {mo : Nat} {o : ObserverState}
     (ho : s.observers[mo]? = some o) :
     ∃ o', s'.observers[mo]? = some o' ∧ o'.records = o.records := by
   have hs := h.observers_isSome mo
@@ -320,28 +321,62 @@ theorem exists_observer (h : ObsEq s s') {mo : Nat} {o : ObserverState}
 /-! ### 三成分が飾りでないこと
 
 `walkers` / `listeners` / `detachedAttrs` のどれか一つだけを変えた状態は、
-もう `ObsEq` ではない。入れる前はこの三つがどれも通っていた。
+もう `MutationObsEq` ではない。入れる前はこの三つがどれも通っていた。
 -/
 
 /-- walker を一つ足すと観測が変わる。 -/
-example (s : DOMState) (w : WalkerState) : ¬ ObsEq s { s with walkers := w :: s.walkers } := by
+example (s : DOMState) (w : WalkerState) : ¬ MutationObsEq s { s with walkers := w :: s.walkers } := by
   intro h
   have hw : w :: s.walkers = s.walkers := h.walkers
   exact absurd hw (by simp)
 
 /-- listener を一つ足すと観測が変わる。 -/
 example (s : DOMState) (l : EventListener) :
-    ¬ ObsEq s { s with listeners := l :: s.listeners } := by
+    ¬ MutationObsEq s { s with listeners := l :: s.listeners } := by
   intro h
   have hl : l :: s.listeners = s.listeners := h.listeners
   exact absurd hl (by simp)
 
 /-- detach された `Attr` を一つ足すと観測が変わる。 -/
 example (s : DOMState) (a : Attr) :
-    ¬ ObsEq s { s with detachedAttrs := a :: s.detachedAttrs } := by
+    ¬ MutationObsEq s { s with detachedAttrs := a :: s.detachedAttrs } := by
   intro h
   have ha : a :: s.detachedAttrs = s.detachedAttrs := h.detachedAttrs
   exact absurd ha (by simp)
+
+end MutationObsEq
+
+/-! ## 順序まで含めた観測
+
+mutation の関係は、registration と pending の observer を意図して「含まれるかどうか」で書いている。
+`MutationObsEq` はその合成の証明のためだけのものである。observer の操作一般は配送の順序も見せるので、
+その同値では二つの列を順序ごと保つ。
+-/
+
+/-- observer の配送の順序まで保つ状態の同値。observer の nodeList は補助のもので、比べない。 -/
+structure ObsEq (s s' : DOMState) : Prop extends MutationObsEq s s' where
+  registrationOrder : s'.registrations = s.registrations
+  pendingOrder : s'.pendingObservers = s.pendingObservers
+
+namespace ObsEq
+
+theorem refl (s : DOMState) : ObsEq s s := ⟨MutationObsEq.refl s, rfl, rfl⟩
+
+theorem symm {s s' : DOMState} (h : ObsEq s s') : ObsEq s' s :=
+  ⟨h.toMutationObsEq.symm, h.registrationOrder.symm, h.pendingOrder.symm⟩
+
+theorem trans {s s' s'' : DOMState} (h : ObsEq s s') (h' : ObsEq s' s'') : ObsEq s s'' :=
+  ⟨h.toMutationObsEq.trans h'.toMutationObsEq,
+    h'.registrationOrder.trans h.registrationOrder, h'.pendingOrder.trans h.pendingOrder⟩
+
+/-- 異なる二つの pending observer を入れ替えると観測できる（配送を示すまでもない）。 -/
+theorem pendingOrder_ne {s : DOMState} {a b : Nat} (hab : a ≠ b)
+    (hp : s.pendingObservers = [a, b]) :
+    ¬ ObsEq s { s with pendingObservers := [b, a] } := by
+  intro h
+  have he := h.pendingOrder
+  rw [hp] at he
+  exact hab (List.cons.inj he).1.symm
 
 end ObsEq
 
@@ -350,33 +385,34 @@ end ObsEq
 /--
 **結果の観測が等しいこと。**
 
-成功どうしなら状態の観測が等しいこと、失敗どうしなら同じ例外であること。
+成功どうしなら `MutationObsEq` で等しいこと、失敗どうしなら同じ例外であること。
+observer の配送順まで比較する関係ではない。
 成功と失敗は等しくない。
 
 例外まで含めた関係意味論（`Dom/Spec/Result.lean`）の一意性はこの形で述べる。
 -/
 def ResultObsEq : Except DOMException DOMState → Except DOMException DOMState → Prop
-  | .ok a, .ok b => ObsEq a b
+  | .ok a, .ok b => MutationObsEq a b
   | .error e, .error e' => e = e'
   | _, _ => False
 
 namespace ResultObsEq
 
 theorem refl : ∀ r : Except DOMException DOMState, ResultObsEq r r
-  | .ok a => ObsEq.refl a
+  | .ok a => MutationObsEq.refl a
   | .error _ => rfl
 
 theorem symm {r r' : Except DOMException DOMState} (h : ResultObsEq r r') :
     ResultObsEq r' r := by
-  cases r <;> cases r' <;> first | exact Eq.symm h | exact ObsEq.symm h | exact h.elim
+  cases r <;> cases r' <;> first | exact Eq.symm h | exact MutationObsEq.symm h | exact h.elim
 
 theorem trans {r r' r'' : Except DOMException DOMState}
     (h : ResultObsEq r r') (h' : ResultObsEq r' r'') : ResultObsEq r r'' := by
   cases r <;> cases r' <;> cases r'' <;>
-    first | exact Eq.trans h h' | exact ObsEq.trans h h' | exact h.elim | exact h'.elim
+    first | exact Eq.trans h h' | exact MutationObsEq.trans h h' | exact h.elim | exact h'.elim
 
 /-- 成功どうしなら状態の観測が等しい。 -/
-theorem of_ok {a b : DOMState} (h : ResultObsEq (.ok a) (.ok b)) : ObsEq a b := h
+theorem of_ok {a b : DOMState} (h : ResultObsEq (.ok a) (.ok b)) : MutationObsEq a b := h
 
 /-- 失敗どうしなら同じ例外である。 -/
 theorem of_error {e e' : DOMException} (h : ResultObsEq (.error e) (.error e')) : e = e' := h

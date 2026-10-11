@@ -11,7 +11,7 @@ import Dom.Util.List
 * sound：実行関数の結果は関係を満たす。
 * complete：関係を満たす結果は、実行関数の結果と**等しい**。
 
-event の配送は listener list と event のフラグしか動かさないので、観測の一致（`ObsEq`）を経由せず、
+event の配送は listener list と event のフラグしか動かさないので、観測の一致（`MutationObsEq`）を経由せず、
 等号で言える。一意性は complete から直ちに出る。
 -/
 

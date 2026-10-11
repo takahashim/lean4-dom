@@ -4,7 +4,7 @@ import Dom.Spec.ReplaceDataCongr
 /-!
 # attribute の関係の一意性と完全性
 
-木は `get?` でしか決まらないので、結論は観測の一致（`ObsEq`）である。
+木は `get?` でしか決まらないので、結論は観測の一致（`MutationObsEq`）である。
 record を積む段は、木を差し替えた後の状態から走るので、congruence の形で示す。
 -/
 
@@ -56,7 +56,7 @@ theorem attrByKey_unique {d : NodeData} {ns : Option String} {ln : String} {r₁
 
 variable {s sb : DOMState}
 
-theorem interestedInAttribute_congr (h : ObsEq s sb) (mo : Nat) (target : NodeId) (name : String)
+theorem interestedInAttribute_congr (h : MutationObsEq s sb) (mo : Nat) (target : NodeId) (name : String)
     (ns : Option String) :
     InterestedInAttribute sb mo target name ns ↔ InterestedInAttribute s mo target name ns := by
   unfold InterestedInAttribute
@@ -66,7 +66,7 @@ theorem interestedInAttribute_congr (h : ObsEq s sb) (mo : Nat) (target : NodeId
   · rintro ⟨r, hr, h1, h2, h3, h4, h5⟩
     exact ⟨r, (h.registrations r).mpr hr, h1, h2, h.tree.inclusiveAncestor_iff.mpr h3, h4, h5⟩
 
-theorem attributeOldValueWanted_congr (h : ObsEq s sb) (mo : Nat) (target : NodeId)
+theorem attributeOldValueWanted_congr (h : MutationObsEq s sb) (mo : Nat) (target : NodeId)
     (name : String) (ns : Option String) :
     AttributeOldValueWanted sb mo target name ns ↔ AttributeOldValueWanted s mo target name ns := by
   unfold AttributeOldValueWanted
@@ -77,10 +77,10 @@ theorem attributeOldValueWanted_congr (h : ObsEq s sb) (mo : Nat) (target : Node
     exact ⟨r, (h.registrations r).mpr hr, h1, h2, h3, h.tree.inclusiveAncestor_iff.mpr h4, h5, h6⟩
 
 /-- **attributes の record を積む段の congruence。** -/
-theorem attributeChangeHandled_congr (h : ObsEq s sb) {o₁ o₂ : DOMState} {element : NodeId}
+theorem attributeChangeHandled_congr (h : MutationObsEq s sb) {o₁ o₂ : DOMState} {element : NodeId}
     {a : Attr} {ov : Option String}
     (h₁ : AttributeChangeHandled s o₁ element a ov) (h₂ : AttributeChangeHandled sb o₂ element a ov) :
-    ObsEq o₁ o₂ := by
+    MutationObsEq o₁ o₂ := by
   obtain ⟨⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁⟩, hoo₁⟩ := h₁
   obtain ⟨⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂⟩, hoo₂⟩ := h₂
   have hint := fun mo => interestedInAttribute_congr h mo element a.localName a.namespace
@@ -141,7 +141,7 @@ private theorem not_mem_of_keys {pre : List Attr} {a : Attr} (h : ∀ x ∈ pre,
 theorem obsEq_of_replaced {t : Tree} {s₁ s₁' : DOMState} {element : NodeId} {as : List Attr}
     {d : NodeData} (hd : t.get? element = some d)
     (h₁ : AttributesReplaced t s₁.tree element as) (h₂ : AttributesReplaced t s₁'.tree element as)
-    (ho₁ : TreeOnly s s₁) (ho₂ : TreeOnly s s₁') : ObsEq s₁ s₁' := by
+    (ho₁ : TreeOnly s s₁) (ho₂ : TreeOnly s s₁') : MutationObsEq s₁ s₁' := by
   obtain ⟨r₁, i₁, g₁, b₁, p₁, m₁, u₁⟩ := ho₁
   obtain ⟨r₂, i₂, g₂, b₂, p₂, m₂, u₂⟩ := ho₂
   refine ⟨fun m => ?_, by rw [r₁, r₂], by rw [i₁, i₂], fun r => by rw [g₁, g₂],
@@ -155,7 +155,7 @@ theorem obsEq_of_replaced {t : Tree} {s₁ s₁' : DOMState} {element : NodeId} 
 theorem attributeChanged_deterministic {s o₁ o₂ : DOMState} {element : NodeId} {d : NodeData}
     {a : Attr} {value : String}
     (h₁ : AttributeChanged s element d a value o₁) (h₂ : AttributeChanged s element d a value o₂) :
-    ObsEq o₁ o₂ := by
+    MutationObsEq o₁ o₂ := by
   obtain ⟨pre₁, post₁, s₁, hd, hs₁, hk₁, hr₁, ht₁, hh₁⟩ := h₁
   obtain ⟨pre₂, post₂, s₂, -, hs₂, hk₂, hr₂, ht₂, hh₂⟩ := h₂
   obtain ⟨rfl, rfl⟩ := attrList_split_unique (hs₁.symm.trans hs₂) (not_mem_of_keys hk₁) (not_mem_of_keys hk₂)
@@ -163,7 +163,7 @@ theorem attributeChanged_deterministic {s o₁ o₂ : DOMState} {element : NodeI
 
 theorem attributeAppended_deterministic {s o₁ o₂ : DOMState} {element : NodeId} {d : NodeData}
     {a : Attr} (h₁ : AttributeAppended s element d a o₁) (h₂ : AttributeAppended s element d a o₂) :
-    ObsEq o₁ o₂ := by
+    MutationObsEq o₁ o₂ := by
   obtain ⟨s₁, hd, hr₁, ht₁, hh₁⟩ := h₁
   obtain ⟨s₂, -, hr₂, ht₂, hh₂⟩ := h₂
   exact attributeChangeHandled_congr (obsEq_of_replaced hd hr₁ hr₂ ht₁ ht₂) hh₁ hh₂
@@ -172,7 +172,7 @@ theorem attributeAppended_deterministic {s o₁ o₂ : DOMState} {element : Node
 theorem obsEq_of_treeDetached {s : DOMState} {t : Tree} {s₁ s₁' : DOMState} {element : NodeId}
     {as : List Attr} {d : NodeData} {D : List Attr} (hd : t.get? element = some d)
     (h₁ : AttributesReplaced t s₁.tree element as) (h₂ : AttributesReplaced t s₁'.tree element as)
-    (ho₁ : TreeDetachedOnly s s₁ D) (ho₂ : TreeDetachedOnly s s₁' D) : ObsEq s₁ s₁' := by
+    (ho₁ : TreeDetachedOnly s s₁ D) (ho₂ : TreeDetachedOnly s s₁' D) : MutationObsEq s₁ s₁' := by
   obtain ⟨r₁, i₁, g₁, b₁, p₁, m₁, w₁, l₁, d₁⟩ := ho₁
   obtain ⟨r₂, i₂, g₂, b₂, p₂, m₂, w₂, l₂, d₂⟩ := ho₂
   refine ⟨fun m => ?_, by rw [r₁, r₂], by rw [i₁, i₂], fun r => by rw [g₁, g₂],
@@ -184,7 +184,7 @@ theorem obsEq_of_treeDetached {s : DOMState} {t : Tree} {s₁ s₁' : DOMState} 
 
 theorem attributeRemoved_deterministic {s o₁ o₂ : DOMState} {element : NodeId} {d : NodeData}
     {a : Attr} (h₁ : AttributeRemoved s element d a o₁) (h₂ : AttributeRemoved s element d a o₂) :
-    ObsEq o₁ o₂ := by
+    MutationObsEq o₁ o₂ := by
   obtain ⟨pre₁, post₁, s₁, hd, hs₁, hk₁, hr₁, ht₁, hh₁⟩ := h₁
   obtain ⟨pre₂, post₂, s₂, -, hs₂, hk₂, hr₂, ht₂, hh₂⟩ := h₂
   obtain ⟨rfl, rfl⟩ := attrList_split_unique (hs₁.symm.trans hs₂) (not_mem_of_keys hk₁) (not_mem_of_keys hk₂)
@@ -288,7 +288,7 @@ theorem removeAttribute_result_deterministic {s : DOMState} {element : NodeId} {
       have := isElementData_unique hd₁ hd₂
       subst this
       rcases hc₁ with ⟨hn₁, rfl⟩ | ⟨a₁, ha₁, hrm₁⟩ <;> rcases hc₂ with ⟨hn₂, rfl⟩ | ⟨a₂, ha₂, hrm₂⟩
-      · exact ObsEq.refl _
+      · exact MutationObsEq.refl _
       · cases attrByName_unique hn₁ ha₂
       · cases attrByName_unique ha₁ hn₂
       · cases attrByName_unique ha₁ ha₂; exact attributeRemoved_deterministic hrm₁ hrm₂
@@ -311,7 +311,7 @@ theorem removeAttributeNS_result_deterministic {s : DOMState} {element : NodeId}
       have := isElementData_unique hd₁ hd₂
       subst this
       rcases hc₁ with ⟨hn₁, rfl⟩ | ⟨a₁, ha₁, hrm₁⟩ <;> rcases hc₂ with ⟨hn₂, rfl⟩ | ⟨a₂, ha₂, hrm₂⟩
-      · exact ObsEq.refl _
+      · exact MutationObsEq.refl _
       · cases attrByKey_unique hn₁ ha₂
       · cases attrByKey_unique ha₁ hn₂
       · cases attrByKey_unique ha₁ ha₂; exact attributeRemoved_deterministic hrm₁ hrm₂
@@ -319,7 +319,7 @@ theorem removeAttributeNS_result_deterministic {s : DOMState} {element : NodeId}
 /-- `toggleAttribute` の結果の一致：状態は観測で、返り値は等号で。 -/
 def ToggleResultObsEq : Except DOMException (DOMState × Bool) →
     Except DOMException (DOMState × Bool) → Prop
-  | .ok (a, b), .ok (a', b') => ObsEq a a' ∧ b = b'
+  | .ok (a, b), .ok (a', b') => MutationObsEq a a' ∧ b = b'
   | .error e, .error e' => e = e'
   | _, _ => False
 
@@ -349,7 +349,7 @@ theorem toggleAttribute_result_deterministic {s : DOMState} {element : NodeId} {
     rcases hc₁ with ⟨hn₁, hx₁⟩ | ⟨a₁, ha₁, hx₁⟩ <;> rcases hc₂ with ⟨hn₂, hx₂⟩ | ⟨a₂, ha₂, hx₂⟩
     · rcases hx₁ with ⟨hf₁, rfl, rfl⟩ | ⟨hf₁, rfl, q₁, hq₁, hap₁⟩ <;>
         rcases hx₂ with ⟨hf₂, rfl, rfl⟩ | ⟨hf₂, rfl, q₂, hq₂, hap₂⟩
-      · exact ⟨ObsEq.refl _, rfl⟩
+      · exact ⟨MutationObsEq.refl _, rfl⟩
       · exact absurd hf₁ hf₂
       · exact absurd hf₂ hf₁
       · cases attrNameNormalized_unique hq₁ hq₂; exact ⟨attributeAppended_deterministic hap₁ hap₂, rfl⟩
@@ -358,7 +358,7 @@ theorem toggleAttribute_result_deterministic {s : DOMState} {element : NodeId} {
     · cases attrByName_unique ha₁ ha₂
       rcases hx₁ with ⟨hf₁, rfl, rfl⟩ | ⟨hf₁, rfl, hrm₁⟩ <;>
         rcases hx₂ with ⟨hf₂, rfl, rfl⟩ | ⟨hf₂, rfl, hrm₂⟩
-      · exact ⟨ObsEq.refl _, rfl⟩
+      · exact ⟨MutationObsEq.refl _, rfl⟩
       · exact absurd hf₁ hf₂
       · exact absurd hf₂ hf₁
       · exact ⟨attributeRemoved_deterministic hrm₁ hrm₂, rfl⟩

@@ -92,6 +92,7 @@ import Dom.Spec.ReplaceData
 import Dom.Spec.ReplaceDataSound
 import Dom.Spec.ReplaceDataDeterministic
 import Dom.Spec.ObsEq
+import Dom.Spec.ObserverCongr
 import Dom.Spec.RemoveCongr
 import Dom.Spec.AdoptCongr
 import Dom.Spec.InsertCongr
