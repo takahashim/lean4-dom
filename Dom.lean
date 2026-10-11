@@ -55,6 +55,8 @@ import Dom.Validity.Attributes
 import Dom.Validity.Admissible
 import Dom.Validity.Normalize
 import Dom.Validity.RangeApi
+import Dom.Range.Extract
+import Dom.Validity.RangeExtract
 import Dom.Validity.Walkers
 import Dom.Properties.Record
 import Dom.Properties.Contract
@@ -140,6 +142,10 @@ import Dom.Spec.InsertChildren
 import Dom.Spec.RangeInsert
 import Dom.Spec.RangeInsertSound
 import Dom.Spec.RangeInsertCongr
+import Dom.Spec.SplitText
+import Dom.Spec.SplitTextSound
+import Dom.Spec.RangeExtract
+import Dom.Spec.RangeExtractSound
 import Dom.Spec.Event
 import Dom.Spec.EventSound
 import Dom.Spec.EventPassive

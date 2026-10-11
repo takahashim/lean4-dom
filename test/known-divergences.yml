@@ -697,3 +697,199 @@
   scenario: split-text-moves-ranges
   digest: d706b8fa52f5ab3e
   reason: *split_text_record_order_dommy
+
+# extract（§5.5）が end node の data を切る順。
+- impl: chromium
+  scenario: range-extract-across-texts
+  digest: a6b60884162009d9
+  reason: &extract_record_order |
+    DOM §5.5 "extract" は step 18 で contained children を fragment へ append し（元の parent に childList の
+    record）、そのあと step 19.4 で original end node の data を replace data で切る（characterData の record）。
+    本文の順では childList の record が先に積まれる。Chromium と WebKit は end node の data を先に切ってから
+    contained children を移すので、characterData の record が先になる。木・live range・data・返す fragment は
+    本文どおりで、違うのは MutationObserver に届く record の並びだけである。Firefox と jsdom 30.1.2 は本文どおり。
+    https://dom.spec.whatwg.org/#concept-range-extract
+
+- impl: chromium
+  scenario: range-common-ancestor-after-extract
+  digest: a6b60884162009d9
+  reason: *extract_record_order
+
+- impl: chromium
+  scenario: range-extract-nested-start
+  digest: 9e3d74ee10bafa64
+  reason: *extract_record_order
+
+- impl: chromium
+  scenario: range-extract-start-ancestor
+  digest: ef15369680a707ae
+  reason: *extract_record_order
+
+- impl: webkit
+  scenario: range-extract-across-texts
+  digest: 6906e674f11de2be
+  reason: *extract_record_order
+
+- impl: webkit
+  scenario: range-common-ancestor-after-extract
+  digest: 6906e674f11de2be
+  reason: *extract_record_order
+
+- impl: webkit
+  scenario: range-extract-nested-start
+  digest: 2de1235d67d84487
+  reason: *extract_record_order
+
+- impl: webkit
+  scenario: range-extract-start-ancestor
+  digest: 9dba8897e178069d
+  reason: *extract_record_order
+
+# `insertNode` の step 7 と `surroundContents()` の step 5 が呼ぶ "split a Text node" の record の並び。
+# 理由は `split-text-moves-ranges` の記録と同じである。
+- impl: chromium
+  scenario: range-insert-node-split-text
+  digest: 517f16346905a856
+  reason: *split_text_record_order
+
+- impl: chromium
+  scenario: range-insert-node-split-text-wide
+  digest: d536e72c1ea5c6b8
+  reason: *split_text_record_order
+
+- impl: chromium
+  scenario: range-insert-node-empty-fragment-text
+  digest: d7de2c4be76a1499
+  reason: *split_text_record_order
+
+- impl: chromium
+  scenario: range-surround-single-text
+  digest: e718e5b59d766297
+  reason: *split_text_record_order
+
+- impl: chromium
+  scenario: range-surround-collapsed-text
+  digest: 1c119d9acaff407f
+  reason: *split_text_record_order
+
+- impl: firefox
+  scenario: range-insert-node-split-text
+  digest: 0d9cfadfec3f858e
+  reason: *split_text_record_order
+
+- impl: firefox
+  scenario: range-insert-node-split-text-wide
+  digest: 505732d2108280e8
+  reason: *split_text_record_order
+
+- impl: firefox
+  scenario: range-insert-node-empty-fragment-text
+  digest: 4f78560bd8f3654f
+  reason: *split_text_record_order
+
+- impl: firefox
+  scenario: range-surround-single-text
+  digest: 13030d0f2b17b466
+  reason: *split_text_record_order
+
+- impl: firefox
+  scenario: range-surround-collapsed-text
+  digest: f4721ed1f99564b2
+  reason: *split_text_record_order
+
+- impl: webkit
+  scenario: range-insert-node-split-text
+  digest: fb3d2cd92461fe99
+  reason: *split_text_record_order
+
+- impl: webkit
+  scenario: range-insert-node-split-text-wide
+  digest: b76a12a5cacb5e69
+  reason: *split_text_record_order
+
+- impl: webkit
+  scenario: range-insert-node-empty-fragment-text
+  digest: 9d5827b8fe7af661
+  reason: *split_text_record_order
+
+- impl: webkit
+  scenario: range-surround-single-text
+  digest: 17e3a107ed8d0711
+  reason: *split_text_record_order
+
+- impl: webkit
+  scenario: range-surround-collapsed-text
+  digest: 8f7e0f7ecaba2ff9
+  reason: *split_text_record_order
+
+- impl: dommy
+  scenario: range-insert-node-split-text
+  digest: 7dd0b512c5756a98
+  reason: *split_text_record_order_dommy
+
+- impl: dommy
+  scenario: range-insert-node-split-text-wide
+  digest: 3eb387f95c8e0707
+  reason: *split_text_record_order_dommy
+
+- impl: dommy
+  scenario: range-insert-node-empty-fragment-text
+  digest: ef3f1bf19fc6dd2f
+  reason: *split_text_record_order_dommy
+
+- impl: dommy
+  scenario: range-surround-single-text
+  digest: 0452350f23ec9ab5
+  reason: *split_text_record_order_dommy
+
+- impl: dommy
+  scenario: range-surround-collapsed-text
+  digest: 2265455fefc5301b
+  reason: *split_text_record_order_dommy
+
+- impl: dommy-js
+  scenario: range-insert-node-split-text
+  digest: 16d4795debe5f955
+  reason: *split_text_record_order_dommy
+
+- impl: dommy-js
+  scenario: range-insert-node-split-text-wide
+  digest: d61326c87315dd8f
+  reason: *split_text_record_order_dommy
+
+- impl: dommy-js
+  scenario: range-insert-node-empty-fragment-text
+  digest: f74ef49eb3d892e3
+  reason: *split_text_record_order_dommy
+
+- impl: dommy-js
+  scenario: range-surround-single-text
+  digest: b617218da9b7be3c
+  reason: *split_text_record_order_dommy
+
+- impl: dommy-js
+  scenario: range-surround-collapsed-text
+  digest: 96a6524ca9c2d521
+  reason: *split_text_record_order_dommy
+
+# `surroundContents()` の step 4（replace all with null）の record。
+- impl: chromium
+  scenario: range-surround-ancestor
+  digest: ababd0d4445e31a1
+  reason: &surround_replace_all |
+    DOM §5.5 `surroundContents()` の step 4 は、newParent が children を持てば "replace all" with null を行う。
+    replace all（§4.2.3）は children を suppress observers flag 付きで外し、外した node を全部 removedNodes に
+    並べた childList の record を一つだけ積む（step 4-7）。Chromium と jsdom 30.1.2 は children を先頭から一つずつ
+    外して子ごとに record を積み、Firefox は末尾から一つずつ外す。WebKit は本文どおり record を一つ積む。
+    木・live range・例外は本文どおりで、違うのは MutationObserver に届く record の数と並びだけである。
+    https://dom.spec.whatwg.org/#dom-range-surroundcontents
+
+- impl: firefox
+  scenario: range-surround-ancestor
+  digest: ecefae244e972e0e
+  reason: *surround_replace_all
+
+- impl: jsdom
+  scenario: range-surround-ancestor
+  digest: 9d24650caeb1d1b2
+  reason: *surround_replace_all

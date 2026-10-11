@@ -86,8 +86,10 @@ step 2 の validity）だけを仕様の語彙で書き、委譲先は上の関�
 Range の `deleteContents()` と `insertNode()` は、`this` が live range として妥当（start と end が
 同じ木にあり、start が end の前か等しい）であることを仮定する。admissible な状態は
 range の両端が木にあることしか保証しないので、仮定として受け取る。
-`insertNode` の step 7（Text の split）は model の対象外で、関係は step 6 の validity を通れば
-`outsideModel` を返すとする。ここでの「Text」は CDATASection を含む。
+`insertNode` の step 7（Text の split）は "split a Text node" の関係（`SplitTextResult`）で書く。
+ここでの「Text」は CDATASection を含む。`insertNode` の soundness は admissible な状態だけを仮定する
+（`rangeInsertNode_result_sound_of_admissible`）。extract・clone the contents・`surroundContents()` の soundness は、
+結果が `outsideModel` でないことを仮定する（fuel が尽きた場合と、本文が結果を定めない range を除くため）。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq` の一致である。
@@ -189,12 +191,13 @@ soundness も component 単位で証明してある
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `deleteContents()` | 1 collapsed / 3 同じ CharacterData / 4 nodes to remove / 5-7 新しい端点 / 8 両端を新しい端点に置く / 9-11 切り詰めと削除 | `rangeDeleteContents`, `nodesToRemove`, `containedInRange`, `deleteContentsNewBP` | relation `DeleteContentsResult`（`Contained`・`NodesToRemove`・`DeleteNewBP`。本文の順に step 8 で点を置いてから step 9-11）、実行関数は点を最後に置くが step 9-11 の調整が点を動かさない（`newBP_fixed_removeEach`・`newBP_ne_start`・`newBP_ne_end`、range の差し替えと操作の可換性は `Dom/Spec/RangePassive.lean`）、点の妥当性 `deleteContentsNewBP_valid`（妥当な range では実行時検査の fallback に落ちない）、preservation `admissible_rangeDeleteContents` | `range-delete-contents-within-text`, `-across-nodes`, `-ancestor-start`, `-collapsed-is-noop`, `range-delete-contents-partially-contained-end`, `-start` | `test_wpt_range_contents.rb` | 済 |
-| `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode` | relation `InsertNodeResult`（`ChildAtOffset`・`NewOffset`。step 13 の「最後に入った node の次」と step 10-11 の newOffset の一致は `insertTail_spec`）、preservation `admissible_rangeInsertNode`, `validBoundaryPoint_of_siblingBP` | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start`, `range-insert-node-null-leaves-text-alone` | 同上 | 済（step 7 の split text は対象外） |
+| `insertNode(node)` | 1 HierarchyRequestError / 4-5 referenceNode と parent / 6 pre-insert validity / 7 Text なら split / 8-9 referenceNode と remove / 10-11 newOffset / 12 pre-insert / 13 collapsed なら end | `rangeInsertNode`, `rangeInsertNodeTail`, `refBP`, `splitText` | relation `InsertNodeResult`（`ChildAtOffset`・`NewOffset`・`SplitTextResult`。step 13 の「最後に入った node の次」と step 10-11 の newOffset の一致は `insertTail_spec`）、soundness `rangeInsertNode_result_sound_of_admissible`、一意性と completeness は start node が Text でないとき（`insertNode_result_deterministic`）、preservation `admissible_rangeInsertNode`（`Dom/Validity/RangeExtract.lean`） | `range-insert-node-wraps-inserted`, `-fragment`, `-errors`, `-self-is-hierarchy-error`, `-moves-preceding-sibling`, `-start-text-is-self`, `-detached-text-start`, `-into-text-end-of-data`, `-split-text`, `-split-text-wide`, `-empty-fragment-text`, `-empty-fragment-element`, `range-insert-node-null-leaves-text-alone` | 同上 | 済 |
+| get the common ancestor / `commonAncestorContainer` | 1-3 start node から上る | `commonAncestor`, `rangeCommonAncestorContainer` | relation `CommonAncestor`、`commonAncestor_spec` | `range-common-ancestor-after-extract`, `-after-clone` | — | 済（端点が別の木にあれば `outsideModel`） |
+| extract / `extractContents()` | 1 fragment / 2 collapsed / 4 同じ CharacterData / 5-10 common ancestor・partially contained child・contained children / 11 doctype / 12-15 `this` を置く / 16-17 first partially contained child / 18 contained children を移す / 19-20 last partially contained child | `rangeExtractContents`, `contentsInto`（`cut = true`）, `dataPart`, `partialFirst`, `partialLast`, `appendEach`, `setSelf` | relation `ContentsResult`・`ContentsInto`・`PartialFirst`・`PartialLast`・`DataPartResult`・`AppendEachResult`・`SingleClone`・`Setup`、soundness `contentsInto_sound`・`rangeExtractContents_result_sound`（結果が `outsideModel` でなければ）、preservation `closed_rangeExtractContents` | `range-extract-across-texts`, `-nested-start`, `-start-ancestor`, `-end-ancestor`, `-single-text`, `-collapsed`, `-element-children`, `-comment-start`, `-doctype-contained` | — | 済（subrange は clone へ直接 extract する。証明していない同値） |
+| clone the contents / `cloneContents()` | 1-11 extract と同じ / 12-13 first partially contained child / 14 contained children を subtree ごと clone / 15-16 last partially contained child | `rangeCloneContents`, `contentsInto`（`cut = false`）, `cloneEach` | relation `ContentsInto`・`CloneEachResult`・`DeepClone`、soundness `rangeCloneContents_result_sound` | `range-clone-contents-across-texts` ほか extract と同じ 9 本 | — | 済（同上） |
+| `surroundContents(newParent)` | 1 InvalidStateError / 2 InvalidNodeTypeError / 3 extract / 4 replace all / 5 insert / 6 append / 7 select | `rangeSurroundContents`, `partiallyContainsNonText` | relation `SurroundResult`、soundness `rangeSurroundContents_result_sound`（成功の状態は、空になった fragment を `discard` で消したもの） | `range-surround-single-text`, `-element-children`, `-partial-element`, `-across-texts`, `-comment`, `-collapsed-text`, `-document`, `-ancestor`, `-null` | — | 済 |
 
-`extractContents` / `cloneContents` / `surroundContents` / `cloneRange` は node を生むので
-Text を分割して node を作るので model の対象外である。`insertNode` の step 7（start node が Text なら split する）も
-同じ理由で対象外で、model は `__outsideModel__` を返す
-（`range-insert-node-into-text-is-outside-model`）。
+`cloneRange` は Range object を新しく作るが、model の range は scenario の初期状態で与えるので対象外である。
 
 ## §2.7 EventTarget / §2.9 event の配送
 

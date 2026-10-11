@@ -1201,7 +1201,7 @@ theorem unique_createElementNS {s s' : DOMState} (hu : AttrIdsUnique s) {doc : N
 
 /-! ## clone -/
 
-private theorem zipIdx_ids {α : Type _} (b : Nat) : ∀ (l : List α) (k : Nat),
+theorem zipIdx_ids {α : Type _} (b : Nat) : ∀ (l : List α) (k : Nat),
     ((l.zipIdx k).map (fun p => (⟨b + p.2⟩ : AttrId))).Nodup ∧
       ∀ i ∈ (l.zipIdx k).map (fun p => (⟨b + p.2⟩ : AttrId)), b + k ≤ i.id
   | [], _ => by simp
@@ -1214,7 +1214,7 @@ private theorem zipIdx_ids {α : Type _} (b : Nat) : ∀ (l : List α) (k : Nat)
       · simp
       · have := hge i hi; omega
 
-private theorem mem_of_mem_zipIdx' {α : Type _} {l : List α} {x : α} {i : Nat}
+theorem mem_of_mem_zipIdx' {α : Type _} {l : List α} {x : α} {i : Nat}
     (h : (x, i) ∈ l.zipIdx) : x ∈ l := by
   obtain ⟨-, hlt, he⟩ := List.mem_zipIdx h
   rw [he]

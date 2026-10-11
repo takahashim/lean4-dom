@@ -13,6 +13,7 @@ import Dom.Validity.Reflect
 import Dom.Validity.SetText
 import Dom.Validity.InsertAdjacent
 import Dom.Validity.SplitText
+import Dom.Validity.RangeExtract
 
 /-!
 # oracle が自分の invariant を破らないこと
@@ -227,6 +228,17 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
     cases n with
     | none => simp [applyOperation, withNode] at hop
     | some n => exact admissible_rangeInsertNode h hop
+  | rangeExtractContents i =>
+    obtain ⟨f, hr⟩ := dropNodeState_ok hop
+    exact closed_rangeExtractContents admissible_rangeClosed h hr
+  | rangeCloneContents i =>
+    obtain ⟨f, hr⟩ := dropNodeState_ok hop
+    exact closed_rangeCloneContents admissible_rangeClosed h hr
+  | rangeSurroundContents i n =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact closed_rangeSurroundContents admissible_rangeClosed h (dropState_ok hop)
+  | rangeCommonAncestorContainer i => exact admissible_mapConst h hop
   | walkerMove i m =>
     -- `applyOperation` は返した node を捨てるので、`Except.map` を剥がす。
     simp only [applyOperation, Except.map] at hop

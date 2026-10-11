@@ -1,0 +1,117 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "clone the contents"
+    ],
+    "steps": "clone the contents 7, 14, 17",
+    "note": "end node が start node の ancestor。last partially contained child は null。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div"
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abc"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "xy"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 3,
+      "localName": "span"
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 5,
+      "data": "pq"
+    },
+    {
+      "id": 7,
+      "kind": "comment",
+      "parent": 1,
+      "data": "cc"
+    },
+    {
+      "id": 8,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 9,
+      "kind": "text",
+      "parent": 8,
+      "data": "def"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 4,
+        "offset": 1
+      },
+      "end": {
+        "node": 1,
+        "offset": 3
+      }
+    },
+    {
+      "start": {
+        "node": 3,
+        "offset": 1
+      },
+      "end": {
+        "node": 3,
+        "offset": 2
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 0,
+      "childList": true,
+      "characterData": true,
+      "subtree": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "rangeCloneContents",
+      "range": 0
+    }
+  ]
+}

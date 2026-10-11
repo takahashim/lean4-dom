@@ -117,9 +117,16 @@ theorem newOffset_congr {t t' : Tree} (h : TreeObsEq t t') {parent node : NodeId
 
 /-! ## 全体 -/
 
-/-- **`insertNode` の関係は結果を一つに決める。** -/
+/--
+**`insertNode` の関係は結果を一つに決める（start node が Text でないとき）。**
+
+start node が Text なら step 7 が新しい Text を作る。本文も関係も新しい node の id を決めないので
+（`CreatesNode` は木に無い id なら何でも許す）、その場合の結果は id の付け替えを除いてしか一つに
+決まらない。node を作るほかの関係（`createElement` ほか）と同じく、ここでは扱わない。
+-/
 theorem insertNode_result_deterministic {s : DOMState} {i : Nat} {r : RangeState} {node : NodeId}
-    (hwf : WellFormed s.tree) {res₁ res₂ : Except DOMException DOMState}
+    (hwf : WellFormed s.tree) (hnt : ¬ IsText s.tree r.start.node)
+    {res₁ res₂ : Except DOMException DOMState}
     (h₁ : InsertNodeResult s i r node res₁) (h₂ : InsertNodeResult s i r node res₂) :
     ResultObsEq res₁ res₂ := by
   have vdet := preInsertValidity_deterministic s.tree
@@ -129,14 +136,7 @@ theorem insertNode_result_deterministic {s : DOMState} {i : Nat} {r : RangeState
   · exact absurd he₂ hn₁
   rcases hrest₁ with ⟨ht₁, p₁, hp₁, hres₁⟩ | ⟨ht₁, ref₁, hc₁, hres₁⟩ <;>
     rcases hrest₂ with ⟨ht₂, p₂, hp₂, hres₂⟩ | ⟨ht₂, ref₂, hc₂, hres₂⟩
-  · -- Text
-    rw [hp₁] at hp₂
-    cases hp₂
-    rcases hres₁ with ⟨e₁, hv₁, rfl⟩ | ⟨hv₁, rfl⟩ <;> rcases hres₂ with ⟨e₂, hv₂, rfl⟩ | ⟨hv₂, rfl⟩
-    · exact Except.error.inj (vdet _ _ _ _ _ _ hv₁ hv₂)
-    · cases vdet _ _ _ _ _ _ hv₁ hv₂
-    · cases vdet _ _ _ _ _ _ hv₁ hv₂
-    · rfl
+  · exact absurd ht₁ hnt
   · exact absurd ht₁ ht₂
   · exact absurd ht₂ ht₁
   · have hre := childAtOffset_unique hc₁ hc₂
@@ -177,11 +177,12 @@ theorem insertNode_result_deterministic {s : DOMState} {i : Nat} {r : RangeState
     · exact absurd hcol' hcol
     · exact hobs₂
 
-/-- **`insertNode` の完全性。** -/
+/-- **`insertNode` の完全性（start node が Text でないとき）。** -/
 theorem rangeInsertNode_result_complete {s : DOMState} {i : Nat} {r : RangeState} {node : NodeId}
     (h : AdmissibleDOMState s) (hr : s.ranges[i]? = some r) (hrv : RangeValid s.tree r)
+    (hnt : ¬ IsText s.tree r.start.node)
     {res : Except DOMException DOMState} (hres : InsertNodeResult s i r node res) :
     ResultObsEq res (rangeInsertNode s i node) :=
-  insertNode_result_deterministic h.wellFormed hres (rangeInsertNode_result_sound node h hr hrv)
+  insertNode_result_deterministic h.wellFormed hnt hres (rangeInsertNode_result_sound node h hr hrv)
 
 end Dom.Spec

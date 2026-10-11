@@ -2,6 +2,7 @@ import Dom.Exec.Types
 import Dom.Validity.State
 import Dom.CharacterData.Normalize
 import Dom.Range.Api
+import Dom.Range.Extract
 import Dom.Selector.Api
 import Dom.Query.Lookup
 import Dom.Validity.AttrIds
@@ -315,6 +316,33 @@ def dropNode (r : Except DOMException (NodeId × DOMState)) : Except DOMExceptio
   | .error e => .error e
   | .ok (_, s) => .ok s
 
+/-- 失敗しても状態を持つ操作を、例外と状態だけの形にする。 -/
+def dropNodeState (r : Except (DOMException × DOMState) (NodeId × DOMState)) :
+    Except DOMException DOMState :=
+  match r with
+  | .error (e, _) => .error e
+  | .ok (_, s) => .ok s
+
+theorem dropNodeState_ok {r : Except (DOMException × DOMState) (NodeId × DOMState)} {s' : DOMState}
+    (h : dropNodeState r = .ok s') : ∃ n, r = .ok (n, s') := by
+  unfold dropNodeState at h
+  split at h
+  · simp at h
+  · next n s₀ => exact ⟨n, by rw [← Except.ok.inj h]⟩
+
+/-- 失敗しても状態を持つ操作が作った node。 -/
+def createdNodeState (r : Except (DOMException × DOMState) (NodeId × DOMState)) : ReturnValue :=
+  match r with
+  | .error _ => .unit
+  | .ok (n, _) => .node (some n)
+
+/-- 失敗したときの状態（node を返す操作）。成功なら `s` を返す。 -/
+def failureStateNode (s : DOMState) (r : Except (DOMException × DOMState) (NodeId × DOMState)) :
+    DOMState :=
+  match r with
+  | .error (_, s') => s'
+  | .ok _ => s
+
 /-- 返す node（null になりうる）と状態を返す操作を、状態だけを返す形にする。 -/
 def dropRet (r : Except DOMException (Option NodeId × DOMState)) : Except DOMException DOMState :=
   match r with
@@ -348,6 +376,8 @@ IDL の戻り値は次のとおり。
 * `nextNode()` / `previousNode()` — traverse が返した node、終端なら null
 * `toggleAttribute` — attribute が結果として付いているか
 * `takeRecords()` — 空にする前の record queue
+* `extractContents()` / `cloneContents()` — 作った DocumentFragment（step 1 で作るので id は `freshId`）
+* `commonAncestorContainer` — common ancestor
 * それ以外 — `undefined`
 -/
 def returnValueOf (s : DOMState) : Operation → ReturnValue
@@ -441,6 +471,13 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
       | .ok v => .int v
   | .rangeDeleteContents _ => .unit
   | .rangeInsertNode _ _ => .unit
+  | .rangeExtractContents i => createdNodeState (rangeExtractContents s i)
+  | .rangeCloneContents i => createdNodeState (rangeCloneContents s i)
+  | .rangeSurroundContents _ _ => .unit
+  | .rangeCommonAncestorContainer i =>
+    match rangeCommonAncestorContainer s i with
+    | .error _ => .unit
+    | .ok n => .node (some n)
   | .walkerMove i m =>
     match walkerStep s i m with
     | .error _ => .unit
@@ -680,6 +717,10 @@ def applyOperation (s : DOMState) : Operation → Except DOMException DOMState
     withNode n fun n => (rangeComparePoint s i ⟨n, Idl.toUnsignedLong o⟩).map (fun _ => s)
   | .rangeDeleteContents i => rangeDeleteContents s i
   | .rangeInsertNode i n => withNode n fun n => rangeInsertNode s i n
+  | .rangeExtractContents i => dropNodeState (rangeExtractContents s i)
+  | .rangeCloneContents i => dropNodeState (rangeCloneContents s i)
+  | .rangeSurroundContents i n => withNode n fun n => dropState (rangeSurroundContents s i n)
+  | .rangeCommonAncestorContainer i => (rangeCommonAncestorContainer s i).map (fun _ => s)
   | .walkerMove i m => (walkerStep s i m).map (·.2)
   | .rangeToString i => (rangeToString s i).map (fun _ => s)
   | .compareDocumentPosition n o => requireNodes s [⟨n⟩, ⟨o⟩]
@@ -837,7 +878,8 @@ theorem applyOperation_of_invoke {s s' : DOMState} {op : Operation}
 
 多くの method は検査を済ませてから状態を変えるので、失敗すれば状態は変わらない。
 可変長の `(Node or DOMString)` 引数を取る method（`Dom/Mutation/Variadic.lean`）は、変換で node を
-DocumentFragment へ移した後で失敗しうるので、その時点の状態を返す。
+DocumentFragment へ移した後で失敗しうるので、その時点の状態を返す。Range の extract・clone the contents・
+`surroundContents()`（`Dom/Range/Extract.lean`）も同じである。
 -/
 def failureStateOf (s : DOMState) (op : Operation) : DOMState :=
   if idlCheck s op then
@@ -848,6 +890,9 @@ def failureStateOf (s : DOMState) (op : Operation) : DOMState :=
     | .before t ns => failureState s (beforeNodes s ⟨t⟩ (ns.map NodeArg.toItem))
     | .after t ns => failureState s (afterNodes s ⟨t⟩ (ns.map NodeArg.toItem))
     | .replaceWith t ns => failureState s (replaceWithNodes s ⟨t⟩ (ns.map NodeArg.toItem))
+    | .rangeExtractContents i => failureStateNode s (rangeExtractContents s i)
+    | .rangeCloneContents i => failureStateNode s (rangeCloneContents s i)
+    | .rangeSurroundContents i (some n) => failureState s (rangeSurroundContents s i ⟨n⟩)
     | _ => s
   else s
 

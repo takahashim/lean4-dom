@@ -1,16 +1,11 @@
 import Dom.Spec.RangeDelete
+import Dom.Spec.SplitText
 
 /-!
 # `Range.insertNode(node)` の関係意味論（§5.5 insert）
 
-step 6 で `PreInsertValidity` を、step 9 で `RemoveSpec` を、step 12 で `PreInsertResult` を
-composition する。
-
-## model の対象外
-
-step 7（start node が Text なら start offset で split する）は Text を分割して新しい node を
-作るので、model の対象外である。関係は step 6 の validity までを書き、それを通れば
-`outsideModel` を返すとする。「Text node」は CDATASection を含む（`IsText`）。
+step 6 で `PreInsertValidity` を、step 7 で `SplitTextResult` を、step 9 で `RemoveSpec` を、
+step 12 で `PreInsertResult` を composition する。「Text node」は CDATASection を含む（`IsText`）。
 
 ## step 10-11 の newOffset
 
@@ -47,7 +42,7 @@ def InsertNodeHierarchyError (t : Tree) (start node : NodeId) : Prop :=
     (IsText t start ∧ parentOf t start = none) ∨ start = node
 
 /--
-step 8-13（start node が Text でないとき）。
+step 8-13。`parent` と `ref` は step 4-7 で決めたもの。
 
 8. node が reference node なら、reference node をその next sibling にする。
 9. node に parent があれば外す。
@@ -87,7 +82,10 @@ def InsertNodeResult (s : DOMState) (i : Nat) (r : RangeState) (node : NodeId) :
           ((∃ e, PreInsertValidity s.tree node p (some r.start.node) [] (.error e) ∧
               res = .error e) ∨
             (PreInsertValidity s.tree node p (some r.start.node) [] (.ok ()) ∧
-              res = .error .outsideModel))) ∨
+              -- step 7：split し、reference node を新しい Text にする
+              ((∃ e, SplitTextResult s r.start.node r.start.offset (.error e) ∧ res = .error e) ∨
+                (∃ newText s₀, SplitTextResult s r.start.node r.start.offset (.ok (newText, s₀)) ∧
+                  InsertNodeTail s₀ i p node (some newText) res))))) ∨
         -- step 4-6, 8-13：start node が Text でない
         (¬ IsText s.tree r.start.node ∧ ∃ ref, ChildAtOffset s.tree r.start.node r.start.offset ref ∧
           ((∃ e, PreInsertValidity s.tree node r.start.node ref [] (.error e) ∧ res = .error e) ∨

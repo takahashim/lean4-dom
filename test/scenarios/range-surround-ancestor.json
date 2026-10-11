@@ -1,0 +1,110 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "surroundContents",
+      "replace all",
+      "insert"
+    ],
+    "steps": "surroundContents 4-5, replace all",
+    "note": "newParent が range の ancestor。step 4 の replace all は子をまとめて外して record を一つ積み、step 5 の insert は HierarchyRequestError を投げる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "div"
+    },
+    {
+      "id": 2,
+      "kind": "text",
+      "parent": 1,
+      "data": "abc"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "a",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "xy"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 3,
+      "localName": "span"
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 5,
+      "data": "pq"
+    },
+    {
+      "id": 7,
+      "kind": "comment",
+      "parent": 1,
+      "data": "cc"
+    },
+    {
+      "id": 8,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 9,
+      "kind": "text",
+      "parent": 8,
+      "data": "def"
+    }
+  ],
+  "ranges": [
+    {
+      "start": {
+        "node": 4,
+        "offset": 0
+      },
+      "end": {
+        "node": 4,
+        "offset": 1
+      }
+    }
+  ],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 0,
+      "childList": true,
+      "characterData": true,
+      "subtree": true,
+      "characterDataOldValue": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "rangeSurroundContents",
+      "range": 0,
+      "node": 3
+    }
+  ]
+}

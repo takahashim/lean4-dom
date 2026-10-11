@@ -33,6 +33,8 @@ inductive DOMException where
   | inUseAttributeError
   /-- §1.3 "scope-match a selectors string" step 2。selector を読めなかった場合。 -/
   | syntaxError
+  /-- §5.5 `surroundContents()` step 1。Text でない node が partially contained の場合。 -/
+  | invalidStateError
   /--
   model の対象外。**仕様の例外ではない。**
 
@@ -61,6 +63,7 @@ def name : DOMException → String
   | namespaceError => "NamespaceError"
   | inUseAttributeError => "InUseAttributeError"
   | syntaxError => "SyntaxError"
+  | invalidStateError => "InvalidStateError"
   | outsideModel => "__outsideModel__"
 
 end DOMException

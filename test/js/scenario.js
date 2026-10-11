@@ -177,7 +177,8 @@ const RANGE_OPS = ["rangeSetStart", "rangeSetEnd", "rangeSetStartBefore", "range
   "rangeSetEndBefore", "rangeSetEndAfter", "rangeCollapse", "rangeSelectNode",
   "rangeSelectNodeContents", "rangeIsPointInRange", "rangeIntersectsNode",
   "rangeCompareBoundaryPoints", "rangeComparePoint", "rangeDeleteContents",
-  "rangeInsertNode", "rangeToString"];
+  "rangeInsertNode", "rangeToString", "rangeExtractContents", "rangeCloneContents",
+  "rangeSurroundContents", "rangeCommonAncestorContainer"];
 const CHARACTER_DATA_OPS = ["replaceData", "appendData", "insertData", "deleteData", "setData"];
 // IDL attribute の setter として書く操作と、その attribute。`setData` の受け手は CharacterData、
 // あとの二つは `Node`（`{"attr": id}` で `Attr` も受ける）。`DOMString?` なので null をそのまま渡す。
@@ -187,7 +188,8 @@ const ATTRIBUTE_OPS = ["setAttribute", "setAttributeNS", "removeAttribute",
 const NODE_RETURNING_OPS = ["appendChild", "insertBefore", "replaceChild", "removeChild",
   "iteratorNext", "iteratorPrevious", "getRootNode", "getOwnerDocument", "insertAdjacentElement", "splitText",
   ...WALKER_OPS, ...CREATE_OPS, "cloneNode",
-  "querySelector", "closest", "getElementById"];
+  "querySelector", "closest", "getElementById",
+  "rangeExtractContents", "rangeCloneContents", "rangeCommonAncestorContainer"];
 const ATTR_RETURNING_OPS = ATTR_NODE_OPS;
 
 /* ------------------------------------------------------------------ 初期状態 */
@@ -376,6 +378,51 @@ function registerConverted(ctx, args, maxBefore) {
   }
   texts.forEach((t, i) => { ctx.objects.set(maxBefore + 1 + i, t); ctx.kinds.set(maxBefore + 1 + i, "text"); });
   for (const f of frags) { ctx.objects.set(maxBefore + k + 1, f); ctx.kinds.set(maxBefore + k + 1, "documentFragment"); }
+}
+
+/**
+ * extract・clone the contents・`surroundContents()` が作った node に、model（`Dom/Range/Extract.lean`）と
+ * 同じ規則で id を振る。
+ *
+ * model は step 1 の DocumentFragment に max+1 を振り、clone をその後に作る。subfragment は作らず、
+ * clone へ直接入れるので、clone の id は fragment の中の tree order になる。`surroundContents()` では
+ * fragment の中身が newParent へ移り、空になった fragment は model の状態から消える（id は空くが、振った後の
+ * clone の id は変わらない）。そのあと `insertNode` の step 7 が split で作る Text が続く。
+ * 失敗したときは、辿れる node だけを同じ順で登録する（空のまま残った fragment は model も消す）。
+ */
+function registerRangeCreated(ctx, maxBefore, frag, newParent, reserveFragment = true) {
+  const known = new Set(ctx.objects.values());
+  const roots = [];
+  const starts = [...ctx.objects.values()];
+  for (const r of ctx.ranges ?? []) starts.push(r.startContainer, r.endContainer);
+  for (const n of starts) {
+    let root = n;
+    while (root.parentNode) root = root.parentNode;
+    roots.push(root);
+  }
+  const f = reserveFragment
+    ? (frag ?? roots.find((r) => !known.has(r) && r.nodeType === 11) ?? null) : null;
+  const seen = new Set();
+  const fresh = [];
+  const visit = (n) => {
+    if (!n || seen.has(n)) return;
+    seen.add(n);
+    if (!known.has(n)) fresh.push(n);
+    for (const c of [...(n.childNodes ?? [])]) visit(c);
+  };
+  if (f) {
+    ctx.objects.set(maxBefore + 1, f);
+    ctx.kinds.set(maxBefore + 1, kindName(f));
+    known.add(f);
+    visit(f);
+  }
+  if (newParent) visit(newParent);
+  for (const r of roots) visit(r);
+  const base = reserveFragment ? maxBefore + 2 : maxBefore + 1;
+  fresh.forEach((n, i) => {
+    ctx.objects.set(base + i, n);
+    ctx.kinds.set(base + i, kindName(n));
+  });
 }
 
 function elementField(node, name) {
@@ -715,8 +762,30 @@ function applyRangeOp(ctx, op) {
       return range.compareBoundaryPoints(op.how, need(ctx.ranges[op.source], "range index"));
     case "rangeComparePoint": return range.comparePoint(node, op.offset);
     case "rangeDeleteContents": return range.deleteContents();
-    case "rangeInsertNode": return range.insertNode(node);
+    case "rangeInsertNode": {
+      // step 7 は start node が Text なら split し、新しい Text を作る（model は `freshId`）。
+      let maxBefore = -1;
+      for (const id of ctx.objects.keys()) if (id > maxBefore) maxBefore = id;
+      try {
+        return range.insertNode(node);
+      } finally {
+        registerRangeCreated(ctx, maxBefore, null, null, false);
+      }
+    }
     case "rangeToString": return range.toString();
+    case "rangeCommonAncestorContainer": return range.commonAncestorContainer;
+    case "rangeExtractContents": case "rangeCloneContents": case "rangeSurroundContents": {
+      let maxBefore = -1;
+      for (const id of ctx.objects.keys()) if (id > maxBefore) maxBefore = id;
+      let made = null;
+      try {
+        if (op.op === "rangeSurroundContents") return range.surroundContents(node);
+        made = op.op === "rangeExtractContents" ? range.extractContents() : range.cloneContents();
+        return made;
+      } finally {
+        registerRangeCreated(ctx, maxBefore, made, op.op === "rangeSurroundContents" ? node : null);
+      }
+    }
   }
 }
 
@@ -929,7 +998,8 @@ const ARGC_CALLS = {
   rangeSelectNode: ["range", "selectNode", ["node"]],
   rangeSelectNodeContents: ["range", "selectNodeContents", ["node"]],
   rangeIntersectsNode: ["range", "intersectsNode", ["node"]],
-  rangeInsertNode: ["range", "insertNode", ["node"]]
+  rangeInsertNode: ["range", "insertNode", ["node"]],
+  rangeSurroundContents: ["range", "surroundContents", ["node"]]
 };
 
 // `argc` の op の引数の値。node の field は `nodeValue`、Attr は id から引き、callback と range は番号から引く。

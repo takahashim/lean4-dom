@@ -6807,6 +6807,85 @@ record を積む関係は pending の所属だけを書き、remove step 20 の 
 * **配送**：completeness と `notifyMutationObservers_delivered_congr` を合成し、関係を満たす状態の配送が実行関数の結果の配送と
   等しいことを示した（`Dom/Spec/ObserverComplete.lean`）。
 
+## Range の extract・clone the contents・`surroundContents()` を足し、`insertNode` の step 7 を結線した（findings 70）
+
+対応表で `.todo` の対象外だった "get the common ancestor"・`commonAncestorContainer`・"extract"・`extractContents()`・
+"clone the contents"・`cloneContents()`・`surroundContents()` を実行関数にし（`Dom/Range/Extract.lean`）、関係と soundness を書いた。
+`insertNode` の step 7（start node が Text なら split する）は `outsideModel` を返していたので、`splitText` を呼ぶようにした。
+
+### 実行関数
+
+* extract と clone the contents は同じ形なので、一つの関数（`contentsInto`）を `cut` で分ける。
+  extract は step 15 で `this` を置き直し、CharacterData の部分を原本から消し、contained children を fragment へ移す。
+* step 17.3-17.5（clone the contents の 13.3-13.5）は subrange を新しい DocumentFragment へ extract してから clone に append するが、
+  model は subrange を clone へ直接入れる。作ったばかりの subfragment と clone はどの observer にも live object にも指されないので、
+  観測できる違いは無い。こうすると作る node の id が結果の fragment の tree order になり、runner が同じ規則で id を振れる。
+* subrange は live range だが、読まれるのは再帰した algorithm の step 1-11 だけなので、状態に持たずに端点の組として渡す。
+* 失敗は、その時点の状態を持つ。extract が step 15 より後で失敗するのは partially contained な doctype を clone して append するとき
+  だけだが、boundary point は doctype に置けない（"set the start or end" step 1）ので、API で作った range では起きない。
+  `surroundContents()` は extract の後の step 4-7 で失敗しうる（Comment の中の range、newParent が range の ancestor）。
+  そのとき clone しか入っていない fragment は辿れないので消す（`discardFragmentOnError`）。成功したときも、step 6 で空になった
+  fragment を消す。
+* `insertNode` は step 8-13 を `rangeInsertNodeTail` に分けた。split した後で何も入らない（空の DocumentFragment）とき、本文の
+  step 13 は end を新しい Text の index へ動かす。前の実行関数は「何も入らなければ end はもうそこにある」としていたが、split の
+  後ではそうならないので、newOffset を reference node の index か parent の length（`refBP`）として置くようにした。
+* `InvalidStateError` を `DOMException` に足した（`surroundContents()` の step 1）。
+
+### 関係と証明
+
+* `SplitTextResult`（`Dom/Spec/SplitText.lean`）：step 7.1 を本文どおり insert で、step 7.2-7.5 を検査なしで書いた。
+  `splitText_result_sound` は、実行関数の pre-insert が insert と同じになること（新しい Text と Element・DocumentFragment の parent で
+  検査が通る）と、step 7.2-7.5 の妥当性の検査が効かないこと（`splitAdjusted_splitTextBP`）を示す。どちらも
+  `notes/spec-divergences.md` で「証明が無いもの」としていた所である。
+* `InsertNodeResult` に step 7 を足し、`rangeInsertNode_result_sound_of_admissible` で示した（`RangeValid` は要らなくなった）。
+  一意性と completeness は start node が Text でない場合に限った。split は新しい node を作り、関係はその id を決めないからである
+  （node を作るほかの関係と同じ）。
+* `ContentsInto`・`PartialFirst`・`PartialLast`（`Dom/Spec/RangeExtract.lean`）：extract と clone the contents の関係。再帰が失敗しうる
+  step の下にあるので、相互帰納型で書いた。`CommonAncestor`・`PartiallyContained`・`FirstPartial`・`LastPartial`・
+  `ContainedChildren` は §5.5 の語彙である。`contentsInto_sound`・`rangeExtractContents_result_sound`・
+  `rangeCloneContents_result_sound`・`rangeSurroundContents_result_sound`（`Dom/Spec/RangeExtractSound.lean`）が、結果が
+  `outsideModel` でなければ実行関数が関係を満たすことを示す。`outsideModel` は fuel が尽きたとき（足りることは証明していない）、
+  端点が別の木にあるとき、start が end より後で CharacterData でない node の data を求めるとき（本文が定めない）に出る。
+  一意性と completeness は無い（clone が node を作る）。
+* admissibility と attribute の id の一意性の保存は、部品で閉じた性質（`ContentsClosed`・`RangeClosed`、
+  `Dom/Validity/RangeExtract.lean`）について一度示し、admissibility、その組（`Good`）、木にあった node が kind ごと残ること、
+  live range の数が変わらないことに当てた。
+
+### 差分テスト
+
+固定 scenario を 33 本足した（`range-extract-*`・`range-clone-contents-*`・`range-surround-*`・`range-insert-node-*`・
+`range-common-ancestor-*`）。`range-insert-node-into-text-is-outside-model` は split の経路を見る
+`range-insert-node-into-text-end-of-data` に改めた。runner は作った node に model と同じ規則で id を振る
+（`registerRangeCreated`・`register_range_created`）。生成器は新しい操作を出し、その後は node を作らない。
+
+木・live range・data・返り値・例外は六つの実装すべてで model と一致した。違うのは MutationObserver の record の並びで、三つある。
+
+* **extract が end node の data を切る順。** 本文は step 18 で contained children を移してから step 19 で end node を切る。
+  Chromium と WebKit は先に切る。Firefox と jsdom は本文どおり。
+* **split の record の並び。** `insertNode` と `surroundContents()` が split を通る所で、`split-text-moves-ranges` と同じ違いが出る
+  （ブラウザ三つと Dommy は characterData の record を先に積む）。
+* **`surroundContents()` の step 4。** 本文の replace all は children をまとめて外して record を一つ積む。WebKit は本文どおりで、
+  Chromium と jsdom は先頭から、Firefox は末尾から一つずつ外して子ごとに record を積む。
+
+ブラウザと jsdom の分は `test/known-divergences.yml` に記録した。Dommy の split の順は findings 69 と同じ理由で記録した。
+
+**findings 70：Dommy の `surroundContents()` は step 4 で newParent の children を一つずつ `remove` し、子ごとに record を積む。**
+本文の replace all では record は一つである。`range-surround-ancestor` が Ruby の API と JS の側の両方で割れる。
+`notes/dommy-findings-70.md` に書いた。
+
+固定 scenario の結果は次のとおりである。
+
+| 実装 | ok | skip | known | mismatch |
+| --- | --- | --- | --- | --- |
+| Dommy（Ruby の API） | 257 | 18 | 11 | 1 |
+| Dommy（JS の側） | 254 | 21 | 11 | 1 |
+| Chromium | 238 | 19 | 30 | 0 |
+| Firefox | 238 | 19 | 30 | 0 |
+| WebKit | 235 | 26 | 26 | 0 |
+
+生成 scenario は Dommy の Ruby の API で 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、
+seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）を流し、mismatch 0 だった。新しい操作は 300 本あたり 30-40 回ずつ出る。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

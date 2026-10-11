@@ -27,11 +27,16 @@ def entries : List Entry := [
   { alg := "concept-text-split"
     impl := [``Dom.splitText, ``Dom.splitTextAdjust, ``Dom.splitTextRange, ``Dom.splitTextBP,
              ``Dom.splitTextMoved, ``Dom.guardBP]
+    -- 関係 `SplitTextResult` は本文どおり step 7.1 を insert、step 7.2-7.5 を検査なしで書いてあり、
+    -- `splitText_result_sound` が実行関数がそれを満たすことを示す（admissible な状態で）。
+    spec := [``Dom.Spec.SplitTextResult, ``Dom.Spec.SplitAdjusted, ``Dom.Spec.RangesSplit,
+             ``Dom.Spec.splitText_result_sound]
     approx := [("4", loneSurrogate),
-               ("7.1", "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ"),
-               ("7.2-7.5", "動かした先の boundary point が妥当でなければ動かさない（admissible な状態では必ず妥当なので、観測できる振る舞いは同じ。妥当性の保存を insert 後の木の形を追わずに示すための検査）")] },
+               ("7.1", "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ（`validity_freshText`、`splitText_result_sound`）"),
+               ("7.2-7.5", "動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査")] },
   { alg := "dom-text-splittext"
-    impl := [``Dom.splitText] },
+    impl := [``Dom.splitText]
+    spec := [``Dom.Spec.splitText_result_sound] },
   { alg := "contiguous-text-nodes"
     impl := [``Dom.contiguousTextNodes, ``Dom.contiguousTextNodes.isTextNode] },
   { alg := "dom-text-wholetext"

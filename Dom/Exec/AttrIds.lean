@@ -155,7 +155,18 @@ theorem attrIdsUnique_applyOperation {s s' : DOMState} {op : Operation}
   | rangeInsertNode i n =>
     cases n with
     | none => simp [applyOperation, withNode] at hop
-    | some n => exact (attrFrame_rangeInsertNode hop).unique hu
+    | some n => exact (closed_rangeInsertNode good_rangeClosed ⟨h, hu⟩ hop).2
+  | rangeExtractContents i =>
+    obtain ⟨f, hr⟩ := dropNodeState_ok hop
+    exact (closed_rangeExtractContents good_rangeClosed ⟨h, hu⟩ hr).2
+  | rangeCloneContents i =>
+    obtain ⟨f, hr⟩ := dropNodeState_ok hop
+    exact (closed_rangeCloneContents good_rangeClosed ⟨h, hu⟩ hr).2
+  | rangeSurroundContents i n =>
+    cases n with
+    | none => simp [applyOperation, withNode] at hop
+    | some n => exact (closed_rangeSurroundContents good_rangeClosed ⟨h, hu⟩ (dropState_ok hop)).2
+  | rangeCommonAncestorContainer i => exact unique_mapConst hu hop
   | walkerMove i m =>
     simp only [applyOperation, Except.map] at hop
     split at hop

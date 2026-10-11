@@ -167,47 +167,27 @@ theorem attrFrame_rangeDeleteContents {s s' : DOMState} {i : Nat}
                 · cases h; exact h₃.trans (attrFrame_withRange ..)
       · cases h
 
-theorem attrFrame_rangeInsertNode {s s' : DOMState} {i : Nat} {n : NodeId}
-    (h : rangeInsertNode s i n = .ok s') : AttrFrame s s' := by
-  unfold rangeInsertNode at h
-  split at h
-  · cases h
-  · next r hr =>
+theorem attrFrame_rangeInsertNodeTail {s s' : DOMState} {i : Nat} {parent n : NodeId}
+    {ref : Option NodeId} (h : rangeInsertNodeTail s i parent n ref = .ok s') : AttrFrame s s' := by
+  unfold rangeInsertNodeTail at h
+  cases hrm : (if (parentOf s.tree n).isSome = true then remove s n else Except.ok s) with
+  | error e => rw [hrm] at h; simp at h
+  | ok s₁ =>
+    rw [hrm] at h
+    have h₁ : AttrFrame s s₁ := by
+      split at hrm
+      · exact attrFrame_remove hrm
+      · cases hrm; exact AttrFrame.refl _
+    simp only [] at h
     split at h
     · cases h
-    · next ds hds =>
-      split at h
-      · cases h
-      · split at h
-        · repeat' split at h
-          all_goals cases h
-        · simp only [] at h
-          cases hv : ensurePreInsertionValidity s.tree n r.start.node ds.children[r.start.offset]? []
-            with
-          | error e => rw [hv] at h; simp at h
-          | ok u =>
-            rw [hv] at h
-            simp only [] at h
-            cases hrm : (if (parentOf s.tree n).isSome = true then remove s n else Except.ok s) with
-            | error e => rw [hrm] at h; simp at h
-            | ok s₁ =>
-              rw [hrm] at h
-              have h₁ : AttrFrame s s₁ := by
-                split at hrm
-                · exact attrFrame_remove hrm
-                · cases hrm; exact AttrFrame.refl _
-              simp only [] at h
-              split at h
-              · simp at h
-              · next s₂ hp =>
-                have h₂ := h₁.trans (attrFrame_preInsert hp)
-                repeat' split at h
-                all_goals first
-                  | (cases h; exact h₂.trans (attrFrame_withRange ..))
-                  | (cases h; exact h₂)
-                  | (cases h; done)
-
-/-! ## 木を変えない操作 -/
+    · next s₂ hpi =>
+      have h₂ := h₁.trans (attrFrame_preInsert hpi)
+      repeat' split at h
+      all_goals first
+        | (cases h; exact h₂.trans (attrFrame_withRange ..))
+        | (cases h; exact h₂)
+        | (cases h; done)
 
 theorem attrFrame_of_listenersOnly {s s' : DOMState} (h : ListenersOnly s s') : AttrFrame s s' := by
   unfold ListenersOnly at h

@@ -35,7 +35,7 @@ def defs(globs)
   end.to_set
 end
 
-IMPL = defs(["Dom/Mutation/*.lean", "Dom/Range/Api.lean", "Dom/Selector/Match.lean",
+IMPL = defs(["Dom/Mutation/*.lean", "Dom/Range/Api.lean", "Dom/Range/Extract.lean", "Dom/Selector/Match.lean",
              "Dom/Selector/Api.lean", "Dom/CharacterData/*.lean", "Dom/Observer/*.lean",
              "Dom/Traversal/*.lean", "Dom/Event/*.lean", "Dom/Attribute/Algorithms.lean",
              "Dom/Attribute/Node.lean", "Dom/Attribute/AsNode.lean"])
@@ -50,7 +50,10 @@ ALGORITHMS = IMPL - VOCAB - IGNORED_WORDS
 ALLOWED = [
   # `ListenerAction.addListener`（callback の宣言の constructor）の match。
   # 実行側の `addListener` は呼ばず、§2.7 の操作は `ListenerAdded` で書いている。
-  ["Event.lean", "CallbackRan", "addListener"]
+  ["Event.lean", "CallbackRan", "addListener"],
+  # 関係ではなく、soundness の帰納法の仮定（再帰した実行関数の結果が関係を満たすこと）。
+  # 実行関数の結果を述べるので、失敗の状態を落とす `dropErr` を使う。
+  ["RangeExtractSound.lean", "RecurSound", "dropErr"]
 ].freeze
 
 URL_IMPL = defs(["Url/Parser.lean", "Url/Api.lean", "Url/Urlencoded.lean",

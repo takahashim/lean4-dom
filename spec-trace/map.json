@@ -3710,7 +3710,12 @@
         "Dom.splitTextMoved",
         "Dom.guardBP"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.SplitTextResult",
+        "Dom.Spec.SplitAdjusted",
+        "Dom.Spec.RangesSplit",
+        "Dom.Spec.splitText_result_sound"
+      ],
       "omit": [],
       "approx": [
         {
@@ -3719,11 +3724,11 @@
         },
         {
           "steps": "7.1",
-          "what": "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ"
+          "what": "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ（`validity_freshText`、`splitText_result_sound`）"
         },
         {
           "steps": "7.2-7.5",
-          "what": "動かした先の boundary point が妥当でなければ動かさない（admissible な状態では必ず妥当なので、観測できる振る舞いは同じ。妥当性の保存を insert 後の木の形を追わずに示すための検査）"
+          "what": "動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査"
         }
       ]
     },
@@ -3735,7 +3740,9 @@
       "impl": [
         "Dom.splitText"
       ],
-      "spec": [],
+      "spec": [
+        "Dom.Spec.splitText_result_sound"
+      ],
       "omit": [],
       "approx": []
     },
@@ -4302,7 +4309,10 @@
       ],
       "impl": [
         "Dom.rangeInsertNode",
+        "Dom.rangeInsertNodeTail",
+        "Dom.refBP",
         "Dom.ensurePreInsertionValidity",
+        "Dom.splitText",
         "Dom.preInsert",
         "Dom.remove",
         "Dom.siblingBP"
@@ -4312,18 +4322,17 @@
         "Dom.Spec.InsertNodeTail",
         "Dom.Spec.NewOffset",
         "Dom.Spec.InsertNodeHierarchyError",
-        "Dom.Spec.ChildAtOffset"
+        "Dom.Spec.ChildAtOffset",
+        "Dom.Spec.SplitTextResult",
+        "Dom.Spec.rangeInsertNode_result_sound_of_admissible"
       ],
-      "omit": [
+      "omit": [],
+      "approx": [
         {
-          "steps": "7",
-          "why": {
-            "reason": "todo",
-            "detail": "Text node の split（§4.11 split a Text node）が model に無い。start node が Text なら step 6 の validity を通った後で outsideModel を返す"
-          }
+          "steps": "13",
+          "what": "何も入らなかったとき（空の DocumentFragment）に置く end を、実行時に妥当か検査する。本文の newOffset はそのとき必ず妥当で、関係との一致は検査が通ることも含めて証明してある"
         }
-      ],
-      "approx": []
+      ]
     },
     {
       "alg": "dom-range-insertnode",
@@ -4380,6 +4389,219 @@
       ],
       "omit": [],
       "approx": []
+    },
+    {
+      "alg": "get-the-common-ancestor",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.commonAncestor"
+      ],
+      "spec": [
+        "Dom.Spec.CommonAncestor",
+        "Dom.Spec.commonAncestor_spec"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "2",
+          "what": "parent が null になっても止まらない本文の loop を、start node の inclusive ancestor の列の中で探す形に書く。端点が別の木にあれば見つからず、使う側が outsideModel にする"
+        }
+      ]
+    },
+    {
+      "alg": "dom-range-commonancestorcontainer",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeCommonAncestorContainer",
+        "Dom.commonAncestor"
+      ],
+      "spec": [
+        "Dom.Spec.commonAncestor_spec"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "*",
+          "what": "端点が別の木にある range（admissible な状態にしか現れない）では outsideModel を返す"
+        }
+      ]
+    },
+    {
+      "alg": "concept-range-extract",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeFragment",
+        "Dom.contentsInto",
+        "Dom.commonAncestor",
+        "Dom.firstPartiallyContainedChild",
+        "Dom.lastPartiallyContainedChild",
+        "Dom.containedChildren",
+        "Dom.partiallyContained",
+        "Dom.containedInRange",
+        "Dom.deleteContentsNewBP",
+        "Dom.setSelf",
+        "Dom.dataPart",
+        "Dom.appendDataClone",
+        "Dom.partialFirst",
+        "Dom.partialLast",
+        "Dom.appendShallowClone",
+        "Dom.appendEach"
+      ],
+      "spec": [
+        "Dom.Spec.ContentsResult",
+        "Dom.Spec.ContentsInto",
+        "Dom.Spec.PartialFirst",
+        "Dom.Spec.PartialLast",
+        "Dom.Spec.DataPartResult",
+        "Dom.Spec.AppendEachResult",
+        "Dom.Spec.SingleClone",
+        "Dom.Spec.Setup",
+        "Dom.Spec.CommonAncestor",
+        "Dom.Spec.PartiallyContained",
+        "Dom.Spec.FirstPartial",
+        "Dom.Spec.LastPartial",
+        "Dom.Spec.ContainedChildren",
+        "Dom.Spec.SelfSet",
+        "Dom.Spec.contentsInto_sound"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "5",
+          "what": "端点が別の木にあって common ancestor が無ければ outsideModel を返す（本文の loop は止まらない）"
+        },
+        {
+          "steps": "15",
+          "what": "置く点が妥当でなければ outsideModel を返す。common ancestor があれば妥当である"
+        },
+        {
+          "steps": "16",
+          "what": "originalStartNode が CharacterData でなければ outsideModel を返す。range の start が end より後のときだけ起き、本文は CharacterData でない node の substring data を定めない"
+        },
+        {
+          "steps": "17.3-17.5",
+          "what": "subrange を新しい DocumentFragment ではなく clone へ直接 extract する。作ったばかりの subfragment と clone はどの observer にも live object にも指されないので観測できない違いで、作る node の id が結果の fragment の tree order になる。この同値は証明していない"
+        },
+        {
+          "steps": "19",
+          "what": "originalEndNode が CharacterData でなければ outsideModel を返す（step 16 と同じ）"
+        },
+        {
+          "steps": "20.3-20.5",
+          "what": "step 17.3-17.5 と同じく、subrange を clone へ直接 extract する"
+        }
+      ]
+    },
+    {
+      "alg": "dom-range-extractcontents",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeExtractContents"
+      ],
+      "spec": [
+        "Dom.Spec.rangeExtractContents_result_sound"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "concept-range-clone",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeFragment",
+        "Dom.contentsInto",
+        "Dom.commonAncestor",
+        "Dom.firstPartiallyContainedChild",
+        "Dom.lastPartiallyContainedChild",
+        "Dom.containedChildren",
+        "Dom.dataPart",
+        "Dom.partialFirst",
+        "Dom.partialLast",
+        "Dom.appendShallowClone",
+        "Dom.cloneEach",
+        "Dom.cloneNodeIn"
+      ],
+      "spec": [
+        "Dom.Spec.ContentsResult",
+        "Dom.Spec.ContentsInto",
+        "Dom.Spec.CloneEachResult",
+        "Dom.Spec.DeepClone",
+        "Dom.Spec.contentsInto_sound"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "5",
+          "what": "端点が別の木にあって common ancestor が無ければ outsideModel を返す"
+        },
+        {
+          "steps": "12",
+          "what": "originalStartNode が CharacterData でなければ outsideModel を返す（extract の step 16 と同じ）"
+        },
+        {
+          "steps": "13.3-13.5",
+          "what": "subrange を新しい DocumentFragment ではなく clone へ直接 clone する（extract の step 17.3-17.5 と同じ。証明していない）"
+        },
+        {
+          "steps": "15",
+          "what": "originalEndNode が CharacterData でなければ outsideModel を返す"
+        },
+        {
+          "steps": "16.3-16.5",
+          "what": "step 13.3-13.5 と同じ"
+        }
+      ]
+    },
+    {
+      "alg": "dom-range-clonecontents",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeCloneContents"
+      ],
+      "spec": [
+        "Dom.Spec.rangeCloneContents_result_sound"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-surroundcontents",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.rangeSurroundContents",
+        "Dom.partiallyContainsNonText",
+        "Dom.rangeExtractContents",
+        "Dom.replaceAll",
+        "Dom.rangeInsertNode",
+        "Dom.append",
+        "Dom.rangeSelectNode",
+        "Dom.discardFragmentOnError"
+      ],
+      "spec": [
+        "Dom.Spec.SurroundResult",
+        "Dom.Spec.rangeSurroundContents_result_sound"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "6",
+          "what": "append した後で空になり、どこからも辿れない fragment を状態から消す（`discard`。仕様の step ではない model の約束）。step 3 より後で失敗したときも、clone しか入っていない fragment は辿れないので消す"
+        }
+      ]
     },
     {
       "alg": "dom-range-stringifier",
@@ -5456,55 +5678,6 @@
       "why": {
         "reason": "host",
         "detail": ""
-      }
-    },
-    {
-      "target": "get-the-common-ancestor",
-      "why": {
-        "reason": "todo",
-        "detail": "common ancestor を求める定義が無い（使う extract・clone the contents が未実装）"
-      }
-    },
-    {
-      "target": "dom-range-commonancestorcontainer",
-      "why": {
-        "reason": "todo",
-        "detail": "commonAncestorContainer getter が無い"
-      }
-    },
-    {
-      "target": "concept-range-extract",
-      "why": {
-        "reason": "todo",
-        "detail": "extract（DocumentFragment への移し替えと部分 clone）が未実装"
-      }
-    },
-    {
-      "target": "dom-range-extractcontents",
-      "why": {
-        "reason": "todo",
-        "detail": "extract が未実装"
-      }
-    },
-    {
-      "target": "concept-range-clone",
-      "why": {
-        "reason": "todo",
-        "detail": "clone the contents が未実装"
-      }
-    },
-    {
-      "target": "dom-range-clonecontents",
-      "why": {
-        "reason": "todo",
-        "detail": "clone the contents が未実装"
-      }
-    },
-    {
-      "target": "dom-range-surroundcontents",
-      "why": {
-        "reason": "todo",
-        "detail": "extract に依存するので未実装"
       }
     },
     {

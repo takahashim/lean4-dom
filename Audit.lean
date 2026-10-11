@@ -104,6 +104,13 @@ open Dom.Audit
   Dom.admissible_rangeSelectNodeContents
   Dom.admissible_rangeDeleteContents
   Dom.admissible_rangeInsertNode
+  Dom.admissible_rangeInsertNodeTail
+  Dom.closed_contentsInto
+  Dom.closed_rangeExtractContents
+  Dom.closed_rangeCloneContents
+  Dom.closed_rangeSurroundContents
+  Dom.admissible_rangeClosed
+  Dom.good_rangeClosed
   Dom.admissible_walkerStep
   Dom.walkersValid_walkerStep
   Dom.compareDocumentPosition_disconnected_consistent
@@ -1242,6 +1249,15 @@ open Dom.Audit
   Dom.Spec.rangeDeleteContents_result_sound
   Dom.Spec.deleteContents_result_deterministic
   Dom.Spec.rangeDeleteContents_result_complete
+  Dom.Spec.splitText_result_sound
+  Dom.Spec.rangeInsertNode_result_sound_of_admissible
+  Dom.Spec.rangeInsertNode_result_sound
+  Dom.Spec.rangeInsertNode_result_complete
+  Dom.Spec.commonAncestor_spec
+  Dom.Spec.contentsInto_sound
+  Dom.Spec.rangeExtractContents_result_sound
+  Dom.Spec.rangeCloneContents_result_sound
+  Dom.Spec.rangeSurroundContents_result_sound
   Dom.Spec.observe_result_sound
   Dom.Spec.observe_result_complete
 

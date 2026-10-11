@@ -6,7 +6,8 @@ import Dom
 
 model の live range は `DOMState.ranges` の要素で、scenario が初期状態に与え、番号で指す。
 `Range` object を作る API（`new Range()`・`createRange()`・`cloneRange()`）と
-`StaticRange` は model に無い。
+`StaticRange` は model に無い。extract と clone the contents の subrange は live range だが、
+状態には持たず端点の組として渡す（`Dom/Range/Extract.lean`）。
 getter は model の状態（`RangeState` の両端）を読むだけで、各 step の観測（`Dom.observe`）に出る。
 -/
 
@@ -90,14 +91,17 @@ def entries : List Entry := [
     spec := [``Dom.Spec.DeleteContentsResult, ``Dom.Spec.NodesToRemove, ``Dom.Spec.Contained,
              ``Dom.Spec.DeleteNewBP, ``Dom.Spec.rangeDeleteContents_result_sound] },
   { alg := "concept-range-insert"
-    impl := [``Dom.rangeInsertNode, ``Dom.ensurePreInsertionValidity, ``Dom.preInsert,
-             ``Dom.remove, ``Dom.siblingBP]
+    impl := [``Dom.rangeInsertNode, ``Dom.rangeInsertNodeTail, ``Dom.refBP,
+             ``Dom.ensurePreInsertionValidity, ``Dom.splitText, ``Dom.preInsert, ``Dom.remove,
+             ``Dom.siblingBP]
     spec := [``Dom.Spec.InsertNodeResult, ``Dom.Spec.InsertNodeTail, ``Dom.Spec.NewOffset,
-             ``Dom.Spec.InsertNodeHierarchyError, ``Dom.Spec.ChildAtOffset]
-    -- 実行関数は newOffset を前もって数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める。
+             ``Dom.Spec.InsertNodeHierarchyError, ``Dom.Spec.ChildAtOffset, ``Dom.Spec.SplitTextResult,
+             ``Dom.Spec.rangeInsertNode_result_sound_of_admissible]
+    -- 実行関数は newOffset を前もって数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求め、
+    -- 何も入らなければ reference node の index か parent の length（`refBP`）とする。
     -- 関係 `InsertNodeTail` は本文どおり step 10-11 で数えて step 13 で使う形で書いてあり、
-    -- `rangeInsertNode_result_sound` が実行関数がそれを満たすことを示す。
-    omitted := [("7", .todo "Text node の split（§4.11 split a Text node）が model に無い。start node が Text なら step 6 の validity を通った後で outsideModel を返す")] },
+    -- `rangeInsertNode_result_sound_of_admissible` が実行関数がそれを満たすことを示す。
+    approx := [("13", "何も入らなかったとき（空の DocumentFragment）に置く end を、実行時に妥当か検査する。本文の newOffset はそのとき必ず妥当で、関係との一致は検査が通ることも含めて証明してある")] },
   { alg := "dom-range-insertnode"
     impl := [``Dom.rangeInsertNode]
     spec := [``Dom.Spec.InsertNodeResult] },
@@ -110,6 +114,55 @@ def entries : List Entry := [
   { alg := "dom-range-intersectsnode"
     impl := [``Dom.rangeIntersectsNode]
     spec := [``Dom.Spec.IntersectsNodeResult] },
+  { alg := "get-the-common-ancestor"
+    impl := [``Dom.commonAncestor]
+    spec := [``Dom.Spec.CommonAncestor, ``Dom.Spec.commonAncestor_spec]
+    approx := [("2", "parent が null になっても止まらない本文の loop を、start node の inclusive ancestor の列の中で探す形に書く。端点が別の木にあれば見つからず、使う側が outsideModel にする")] },
+  { alg := "dom-range-commonancestorcontainer"
+    impl := [``Dom.rangeCommonAncestorContainer, ``Dom.commonAncestor]
+    spec := [``Dom.Spec.commonAncestor_spec]
+    approx := [("*", "端点が別の木にある range（admissible な状態にしか現れない）では outsideModel を返す")] },
+  { alg := "concept-range-extract"
+    impl := [``Dom.rangeFragment, ``Dom.contentsInto, ``Dom.commonAncestor,
+             ``Dom.firstPartiallyContainedChild, ``Dom.lastPartiallyContainedChild,
+             ``Dom.containedChildren, ``Dom.partiallyContained, ``Dom.containedInRange,
+             ``Dom.deleteContentsNewBP, ``Dom.setSelf, ``Dom.dataPart, ``Dom.appendDataClone,
+             ``Dom.partialFirst, ``Dom.partialLast, ``Dom.appendShallowClone, ``Dom.appendEach]
+    spec := [``Dom.Spec.ContentsResult, ``Dom.Spec.ContentsInto, ``Dom.Spec.PartialFirst,
+             ``Dom.Spec.PartialLast, ``Dom.Spec.DataPartResult, ``Dom.Spec.AppendEachResult,
+             ``Dom.Spec.SingleClone, ``Dom.Spec.Setup, ``Dom.Spec.CommonAncestor,
+             ``Dom.Spec.PartiallyContained, ``Dom.Spec.FirstPartial, ``Dom.Spec.LastPartial,
+             ``Dom.Spec.ContainedChildren, ``Dom.Spec.SelfSet, ``Dom.Spec.contentsInto_sound]
+    approx := [("5", "端点が別の木にあって common ancestor が無ければ outsideModel を返す（本文の loop は止まらない）"),
+               ("15", "置く点が妥当でなければ outsideModel を返す。common ancestor があれば妥当である"),
+               ("16", "originalStartNode が CharacterData でなければ outsideModel を返す。range の start が end より後のときだけ起き、本文は CharacterData でない node の substring data を定めない"),
+               ("17.3-17.5", "subrange を新しい DocumentFragment ではなく clone へ直接 extract する。作ったばかりの subfragment と clone はどの observer にも live object にも指されないので観測できない違いで、作る node の id が結果の fragment の tree order になる。この同値は証明していない"),
+               ("19", "originalEndNode が CharacterData でなければ outsideModel を返す（step 16 と同じ）"),
+               ("20.3-20.5", "step 17.3-17.5 と同じく、subrange を clone へ直接 extract する")] },
+  { alg := "dom-range-extractcontents"
+    impl := [``Dom.rangeExtractContents]
+    spec := [``Dom.Spec.rangeExtractContents_result_sound] },
+  { alg := "concept-range-clone"
+    impl := [``Dom.rangeFragment, ``Dom.contentsInto, ``Dom.commonAncestor,
+             ``Dom.firstPartiallyContainedChild, ``Dom.lastPartiallyContainedChild,
+             ``Dom.containedChildren, ``Dom.dataPart, ``Dom.partialFirst, ``Dom.partialLast,
+             ``Dom.appendShallowClone, ``Dom.cloneEach, ``Dom.cloneNodeIn]
+    spec := [``Dom.Spec.ContentsResult, ``Dom.Spec.ContentsInto, ``Dom.Spec.CloneEachResult,
+             ``Dom.Spec.DeepClone, ``Dom.Spec.contentsInto_sound]
+    approx := [("5", "端点が別の木にあって common ancestor が無ければ outsideModel を返す"),
+               ("12", "originalStartNode が CharacterData でなければ outsideModel を返す（extract の step 16 と同じ）"),
+               ("13.3-13.5", "subrange を新しい DocumentFragment ではなく clone へ直接 clone する（extract の step 17.3-17.5 と同じ。証明していない）"),
+               ("15", "originalEndNode が CharacterData でなければ outsideModel を返す"),
+               ("16.3-16.5", "step 13.3-13.5 と同じ")] },
+  { alg := "dom-range-clonecontents"
+    impl := [``Dom.rangeCloneContents]
+    spec := [``Dom.Spec.rangeCloneContents_result_sound] },
+  { alg := "dom-range-surroundcontents"
+    impl := [``Dom.rangeSurroundContents, ``Dom.partiallyContainsNonText, ``Dom.rangeExtractContents,
+             ``Dom.replaceAll, ``Dom.rangeInsertNode, ``Dom.append, ``Dom.rangeSelectNode,
+             ``Dom.discardFragmentOnError]
+    spec := [``Dom.Spec.SurroundResult, ``Dom.Spec.rangeSurroundContents_result_sound]
+    approx := [("6", "append した後で空になり、どこからも辿れない fragment を状態から消す（`discard`。仕様の step ではない model の約束）。step 3 より後で失敗したときも、clone しか入っていない fragment は辿れないので消す")] },
   { alg := "dom-range-stringifier"
     impl := [``Dom.rangeToString, ``Dom.containedInRange, ``Dom.substringData]
     approx := [("2-5", "UTF-16 の code unit で切り出す。surrogate pair の途中を指すと outsideModel になる")] }
@@ -123,20 +176,6 @@ def exclusions : List Exclusion := [
   { target := "staticrange-valid",
     reason := .todo "StaticRange が model に無い" },
   { target := "dom-range-range", reason := .host },
-  { target := "get-the-common-ancestor",
-    reason := .todo "common ancestor を求める定義が無い（使う extract・clone the contents が未実装）" },
-  { target := "dom-range-commonancestorcontainer",
-    reason := .todo "commonAncestorContainer getter が無い" },
-  { target := "concept-range-extract",
-    reason := .todo "extract（DocumentFragment への移し替えと部分 clone）が未実装" },
-  { target := "dom-range-extractcontents",
-    reason := .todo "extract が未実装" },
-  { target := "concept-range-clone",
-    reason := .todo "clone the contents が未実装" },
-  { target := "dom-range-clonecontents",
-    reason := .todo "clone the contents が未実装" },
-  { target := "dom-range-surroundcontents",
-    reason := .todo "extract に依存するので未実装" },
   { target := "dom-range-clonerange",
     reason := .todo "Range object を新しく作る操作が model に無い（range は初期状態で与える）" },
   { target := "dom-range-detach", reason := .legacy }

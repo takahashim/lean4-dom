@@ -22,7 +22,7 @@
     "commit": "f6904d642b5f82b7bfb27747cd20ce0dee4d3dfd",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "main（`f6904d64`、2026-10-10、PR #150 の merge）を指す。findings 59-68 の修正（PR #142・#143・#145・#150）を含み、`makiri >= 0.16.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 229 ok / 19 skip / 6 known / 0 mismatch、JS の側から動かす runner（dommy-js-quickjs `a0f1776`）で 226 ok / 22 skip / 6 known / 0 mismatch。6 known は仕様側が未決着の 19・20、model の読みが疑わしい `dataset` の 2 本、ブラウザに合わせた `splitText` の record の並び（findings 69）（`known-divergences.yml`）。生成 scenario は二つの runner とも 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）で mismatch 0（unsupported のみ）。"
+    "_note": "main（`f6904d64`、2026-10-10、PR #150 の merge）を指す。findings 59-68 の修正（PR #142・#143・#145・#150）を含み、`makiri >= 0.16.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 257 ok / 18 skip / 11 known / 1 mismatch、JS の側から動かす runner（dommy-js-quickjs `a0f1776`）で 254 ok / 21 skip / 11 known / 1 mismatch。11 known は仕様側が未決着の 19・20、model の読みが疑わしい `dataset` の 2 本、ブラウザに合わせた split の record の並び（findings 69。`splitText` と、split を通る `insertNode`・`surroundContents` の 5 本）（`known-divergences.yml`）。1 mismatch は `surroundContents()` の step 4 の record（findings 70、`range-surround-ancestor`）。生成 scenario は二つの runner とも 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）で mismatch 0（unsupported のみ）。"
   },
   "dommy-js-quickjs": {
     "repository": "https://github.com/takahashim/dommy-js-quickjs",

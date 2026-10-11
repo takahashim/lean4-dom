@@ -563,6 +563,11 @@ def operationOfJson (j : Json) : Except String Operation := do
       (← numArgField j "offset")
   | "rangeDeleteContents" => return .rangeDeleteContents (← natField j "range")
   | "rangeInsertNode" => return .rangeInsertNode (← natField j "range") (← nodeField j "node")
+  | "rangeExtractContents" => return .rangeExtractContents (← natField j "range")
+  | "rangeCloneContents" => return .rangeCloneContents (← natField j "range")
+  | "rangeSurroundContents" =>
+    return .rangeSurroundContents (← natField j "range") (← nodeField j "node")
+  | "rangeCommonAncestorContainer" => return .rangeCommonAncestorContainer (← natField j "range")
   | "walkerParentNode" => return .walkerMove (← natField j "walker") .parentNode
   | "walkerFirstChild" => return .walkerMove (← natField j "walker") .firstChild
   | "walkerLastChild" => return .walkerMove (← natField j "walker") .lastChild

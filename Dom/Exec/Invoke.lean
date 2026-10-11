@@ -142,6 +142,7 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .rangeIntersectsNode _ n => n.isSome
   | .rangeComparePoint _ n _ => n.isSome
   | .rangeInsertNode _ n => n.isSome
+  | .rangeSurroundContents _ n => n.isSome
   -- interface 型への引数の変換の失敗
   | .argumentTypeError _ => false
   | _ => true
@@ -181,7 +182,9 @@ def requiredArgs : String → Option Nat
   | "rangeSetStart" | "rangeSetEnd" | "rangeIsPointInRange" | "rangeComparePoint"
   | "rangeCompareBoundaryPoints" => some 2
   | "rangeSetStartBefore" | "rangeSetStartAfter" | "rangeSetEndBefore" | "rangeSetEndAfter"
-  | "rangeSelectNode" | "rangeSelectNodeContents" | "rangeIntersectsNode" | "rangeInsertNode" => some 1
+  | "rangeSelectNode" | "rangeSelectNodeContents" | "rangeIntersectsNode" | "rangeInsertNode"
+  | "rangeSurroundContents" => some 1
+  | "rangeExtractContents" | "rangeCloneContents" => some 0
   | _ => none
 
 end Dom.Exec

@@ -27,7 +27,8 @@ module Generate
            rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
            rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
            rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
-           rangeInsertNode rangeToString
+           rangeInsertNode rangeToString rangeExtractContents rangeCloneContents
+           rangeSurroundContents rangeCommonAncestorContainer
            compareDocumentPosition nodeContains getRootNode getOwnerDocument isEqualNode
            getTextContent getNodeValue substringData getProperty setTextContent setNodeValue
            insertAdjacentElement insertAdjacentText splitText
@@ -528,7 +529,9 @@ module Generate
              when "rangeSetStart", "rangeSetEnd", "rangeIsPointInRange"
                { "op" => op, "range" => r, "node" => node, "offset" => offset.call }
              when "rangeCollapse" then { "op" => op, "range" => r, "toStart" => rng.rand < 0.5 }
-             when "rangeDeleteContents", "rangeToString" then { "op" => op, "range" => r }
+             when "rangeDeleteContents", "rangeToString", "rangeExtractContents", "rangeCloneContents",
+                  "rangeCommonAncestorContainer"
+               { "op" => op, "range" => r }
              when "rangeComparePoint"
                { "op" => op, "range" => r, "node" => node, "offset" => offset.call }
              when "rangeCompareBoundaryPoints"
@@ -1032,7 +1035,12 @@ module Generate
                  rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
                  rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
                  rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
-                 rangeInsertNode rangeToString].freeze
+                 rangeInsertNode rangeToString rangeExtractContents rangeCloneContents
+                 rangeSurroundContents rangeCommonAncestorContainer].freeze
+
+  # node を作るが、いくつ作るかが木の形で決まる range の操作。`insertNode` は start node が Text なら split で作る。
+  RANGE_CREATING_OPS = %w[rangeInsertNode rangeExtractContents rangeCloneContents
+                          rangeSurroundContents].freeze
 
   # TreeWalker を動かす操作。受け手は walker なので、node は引数に取らない。
   WALKER_OPS = %w[walkerParentNode walkerFirstChild walkerLastChild
@@ -1283,6 +1291,8 @@ module Generate
       if RANGE_OPS.include?(op["op"])
         # 受け手は range なので kind の絞り込みは要らない。
         operations << op
+        # 何個の node ができるかは木と range の形で決まる。以降は新しい node を作らない。
+        can_create = false if RANGE_CREATING_OPS.include?(op["op"])
         next
       end
       if ITERATOR_OPS.include?(op["op"]) || %w[disconnect takeRecords notify].include?(op["op"])

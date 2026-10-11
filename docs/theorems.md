@@ -49,6 +49,7 @@ theorem admissible_applyOperation {s s' : DOMState} {op : Operation}
 | `normalize` | `Dom.admissible_normalize` |
 | `Range.setStart` / `setEnd` / `setStartBefore` ほか / `collapse` / `selectNode` / `selectNodeContents` | `Dom.admissible_rangeSetStart` ほか |
 | `Range.deleteContents` / `insertNode` | `Dom.admissible_rangeDeleteContents`, `Dom.admissible_rangeInsertNode` |
+| `Range.extractContents` / `cloneContents` / `surroundContents` | `Dom.closed_rangeExtractContents` ほか（`Dom.admissible_rangeClosed` に当てる） |
 | `TreeWalker` の走査七つ | `Dom.admissible_walkerStep` |
 | 値を返すだけの十二（`compareDocumentPosition` ほか） | `Dom.Exec.admissible_requireNodes` |
 | `addEventListener` / `removeEventListener` / `dispatchEvent` | `Dom.admissible_addEventListener` ほか |
@@ -1080,3 +1081,29 @@ normalize の `NormalizeEngineSpec` と `NormalizeStandardSpec` は別の関係�
 両方の候補列は `Ancestor`・`ExclusiveText`・`PrecedesStruct` だけで定義する。
 `normalize_sound` が実行側の preorder/filter の適合を証明し、`descendantExclusiveTexts_unique` が
 その構造的条件から列の一意性を証明する。
+
+## 32. split・`insertNode`・extract・clone the contents・`surroundContents()` は関係を満たす
+
+| 定理 | 内容 | module |
+| --- | --- | --- |
+| `Dom.Spec.splitText_result_sound` | "split a Text node" の結果は、成否によらず `SplitTextResult` を満たす | `Dom/Spec/SplitTextSound.lean` |
+| `Dom.Spec.rangeInsertNode_result_sound_of_admissible` | `insertNode` の結果は、step 7 の split を含めて `InsertNodeResult` を満たす | `Dom/Spec/RangeInsertSound.lean` |
+| `Dom.Spec.insertNode_result_deterministic`・`rangeInsertNode_result_complete` | start node が Text でなければ、関係は結果を観測の上で一つに決める | `Dom/Spec/RangeInsertCongr.lean` |
+| `Dom.Spec.commonAncestor_spec` | 実行側の common ancestor は "get the common ancestor" の関係を満たす | `Dom/Spec/RangeExtractSound.lean` |
+| `Dom.Spec.contentsInto_sound` | extract と clone the contents の step 2 以降は、結果が `outsideModel` でなければ `ContentsInto` を満たす | 同上 |
+| `Dom.Spec.rangeExtractContents_result_sound`・`rangeCloneContents_result_sound` | `extractContents()`・`cloneContents()` は `ContentsResult` を満たす（同上） | 同上 |
+| `Dom.Spec.rangeSurroundContents_result_sound` | `surroundContents()` は `SurroundResult` を満たす。成功の状態は、空になった fragment を消したもの | 同上 |
+| `Dom.closed_contentsInto` ほか | 部品で閉じた性質は extract・clone the contents・`surroundContents()`・`insertNode` で保たれる | `Dom/Validity/RangeExtract.lean` |
+
+split の関係は step 7.1 を本文どおり insert で、step 7.2-7.5 を移した先の検査なしで書く。実行関数の pre-insert と検査は、
+admissible な状態では insert と同じで、検査は効かない。証明はそれを `validity_freshText` と `splitAdjusted_splitTextBP` で示す。
+
+extract と clone the contents の関係は、本文が subrange を新しい DocumentFragment へ入れて clone に append する所を、
+clone へ直接入れる形で書く。この同値は証明していない（`notes/spec-divergences.md` §2）。
+`contentsInto_sound` は、木にあった node が kind ごと残り（`Keeps`）、live range の数が変わらない（`LenKeep`）ことを、
+部品で閉じた性質として運ぶ。step 19 で last partially contained child を扱うときにそれが木にあって Document でないこと、
+`surroundContents()` の step 5・7 で `this` がまだあることは、この二つから出る。
+
+node を作る関係（split、extract、clone the contents）は、作る node の id を決めない。だから一意性と completeness は、
+id の付け替えを除いてしか成り立たず、ここでは示さない。
+

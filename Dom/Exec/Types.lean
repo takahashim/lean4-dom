@@ -223,6 +223,13 @@ inductive Operation where
   | rangeDeleteContents (range : Nat)
   /-- `Range.insertNode(node)`。 -/
   | rangeInsertNode (range : Nat) (node : Option Nat)
+  /-- `Range.extractContents()` / `cloneContents()`。作った DocumentFragment を返す。 -/
+  | rangeExtractContents (range : Nat)
+  | rangeCloneContents (range : Nat)
+  /-- `Range.surroundContents(newParent)`。 -/
+  | rangeSurroundContents (range : Nat) (newParent : Option Nat)
+  /-- `Range.commonAncestorContainer`。 -/
+  | rangeCommonAncestorContainer (range : Nat)
   /-- `TreeWalker` の走査 method（§6.2）。 -/
   | walkerMove (walker : Nat) (method : WalkerMethod)
   /-- `Range` の stringifier（§5.5）。 -/

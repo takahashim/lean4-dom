@@ -7,12 +7,12 @@
 | 項目 | 数 |
 | --- | --- |
 | `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 255 |
-| 対象外としたもの | 136 |
-| 表に載せた algorithm の step | 1053 |
-| そのうち実装したもの | 631 |
-| そのうち近似したもの | 226 |
-| そのうち外したもの | 196 |
+| 表に載せたもの | 262 |
+| 対象外としたもの | 129 |
+| 表に載せた algorithm の step | 1152 |
+| そのうち実装したもの | 694 |
+| そのうち近似したもの | 263 |
+| そのうち外したもの | 195 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
 「関係」の列は、仕様本文から独立に書いた関係（`Dom/Spec/` ほか）である。
@@ -332,8 +332,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [contiguous-exclusive-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-exclusive-text-nodes) | 0/1（近似 1） | `Dom.followingTexts`<br>`Dom.isExclusiveText` | `Dom.Spec.FollowingContiguousTexts` |
 | [concept-descendant-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-descendant-text-content) | 1/1 | `Dom.descendantTextContent` | `Dom.Spec.DescendantTextContent`<br>`Dom.Spec.descendantTextContent_spec` |
 | [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-text-node) | 3/3 | `Dom.createTextNode`<br>`Dom.withFresh` | `Dom.createTextNode_creates` |
-| [concept-text-split](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-text-split) | 8/14（近似 6） | `Dom.splitText`<br>`Dom.splitTextAdjust`<br>`Dom.splitTextRange`<br>`Dom.splitTextBP`<br>`Dom.splitTextMoved`<br>`Dom.guardBP` |  |
-| [dom-text-splittext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-splittext) | 1/1 | `Dom.splitText` |  |
+| [concept-text-split](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-text-split) | 8/14（近似 6） | `Dom.splitText`<br>`Dom.splitTextAdjust`<br>`Dom.splitTextRange`<br>`Dom.splitTextBP`<br>`Dom.splitTextMoved`<br>`Dom.guardBP` | `Dom.Spec.SplitTextResult`<br>`Dom.Spec.SplitAdjusted`<br>`Dom.Spec.RangesSplit`<br>`Dom.Spec.splitText_result_sound` |
+| [dom-text-splittext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-splittext) | 1/1 | `Dom.splitText` | `Dom.Spec.splitText_result_sound` |
 | [dom-text-wholetext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-wholetext) | 1/1 | `Dom.wholeText`<br>`Dom.contiguousTextNodes` |  |
 
 ### §4.14（`interface-comment`）
@@ -363,6 +363,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
 | [live-range-pre-remove-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#live-range-pre-remove-steps) | 7/7 | `Dom.liveRangePreRemove`<br>`Dom.liveRangePreRemoveRange`<br>`Dom.liveRangePreRemoveBP`<br>`Dom.rangeMoveOutOfSubtree`<br>`Dom.rangeShiftAfterRemove` | `Dom.Spec.RangeAdjusted`<br>`Dom.Spec.BoundaryAdjusted`<br>`Dom.liveRangePreRemoveBP_comm` |
+| [get-the-common-ancestor](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-the-common-ancestor) | 2/3（近似 1） | `Dom.commonAncestor` | `Dom.Spec.CommonAncestor`<br>`Dom.Spec.commonAncestor_spec` |
+| [dom-range-commonancestorcontainer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-commonancestorcontainer) | 0/1（近似 1） | `Dom.rangeCommonAncestorContainer`<br>`Dom.commonAncestor` | `Dom.Spec.commonAncestor_spec` |
 | [concept-range-bp-set](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-bp-set) | 3/8（近似 5） | `Dom.setStartBP`<br>`Dom.setEndBP`<br>`Dom.rangeBoundaryError`<br>`Dom.rangeNeedsCollapse` | `Dom.Spec.StartSet`<br>`Dom.Spec.EndSet`<br>`Dom.Spec.BoundaryPointError`<br>`Dom.Spec.BoundaryPointOk` |
 | [dom-range-setstart](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setstart) | 1/1 | `Dom.rangeSetStart` | `Dom.Spec.SetStartResult` |
 | [dom-range-setend](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setend) | 1/1 | `Dom.rangeSetEnd` | `Dom.Spec.SetEndResult` |
@@ -376,8 +378,13 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-range-selectnodecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-selectnodecontents) | 4/4 | `Dom.rangeSelectNodeContents` | `Dom.Spec.SelectNodeContentsResult` |
 | [dom-range-compareboundarypoints](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-compareboundarypoints) | 5/5 | `Dom.rangeCompareBoundaryPoints`<br>`Dom.bpPosition` | `Dom.Spec.CompareBoundaryPointsResult`<br>`Dom.Spec.compareHowPoints`<br>`Dom.Spec.PositionResult` |
 | [dom-range-deletecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-deletecontents) | 16/16 | `Dom.rangeDeleteContents`<br>`Dom.nodesToRemove`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.removeEach`<br>`Dom.replaceData` | `Dom.Spec.DeleteContentsResult`<br>`Dom.Spec.NodesToRemove`<br>`Dom.Spec.Contained`<br>`Dom.Spec.DeleteNewBP`<br>`Dom.Spec.rangeDeleteContents_result_sound` |
-| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-insert) | 12/13 | `Dom.rangeInsertNode`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset` |
+| [concept-range-extract](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-extract) | 29/47（近似 18） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.partiallyContained`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.setSelf`<br>`Dom.dataPart`<br>`Dom.appendDataClone`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.appendEach` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.PartialFirst`<br>`Dom.Spec.PartialLast`<br>`Dom.Spec.DataPartResult`<br>`Dom.Spec.AppendEachResult`<br>`Dom.Spec.SingleClone`<br>`Dom.Spec.Setup`<br>`Dom.Spec.CommonAncestor`<br>`Dom.Spec.PartiallyContained`<br>`Dom.Spec.FirstPartial`<br>`Dom.Spec.LastPartial`<br>`Dom.Spec.ContainedChildren`<br>`Dom.Spec.SelfSet`<br>`Dom.Spec.contentsInto_sound` |
+| [dom-range-extractcontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-extractcontents) | 1/1 | `Dom.rangeExtractContents` | `Dom.Spec.rangeExtractContents_result_sound` |
+| [concept-range-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-clone) | 24/39（近似 15） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.dataPart`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.cloneEach`<br>`Dom.cloneNodeIn` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.CloneEachResult`<br>`Dom.Spec.DeepClone`<br>`Dom.Spec.contentsInto_sound` |
+| [dom-range-clonecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-clonecontents) | 1/1 | `Dom.rangeCloneContents` | `Dom.Spec.rangeCloneContents_result_sound` |
+| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-insert) | 12/13（近似 1） | `Dom.rangeInsertNode`<br>`Dom.rangeInsertNodeTail`<br>`Dom.refBP`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.splitText`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset`<br>`Dom.Spec.SplitTextResult`<br>`Dom.Spec.rangeInsertNode_result_sound_of_admissible` |
 | [dom-range-insertnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-insertnode) | 1/1 | `Dom.rangeInsertNode` | `Dom.Spec.InsertNodeResult` |
+| [dom-range-surroundcontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-surroundcontents) | 6/7（近似 1） | `Dom.rangeSurroundContents`<br>`Dom.partiallyContainsNonText`<br>`Dom.rangeExtractContents`<br>`Dom.replaceAll`<br>`Dom.rangeInsertNode`<br>`Dom.append`<br>`Dom.rangeSelectNode`<br>`Dom.discardFragmentOnError` | `Dom.Spec.SurroundResult`<br>`Dom.Spec.rangeSurroundContents_result_sound` |
 | [dom-range-ispointinrange](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-ispointinrange) | 5/5 | `Dom.rangeIsPointInRange` | `Dom.Spec.IsPointInRangeResult` |
 | [dom-range-comparepoint](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-comparepoint) | 6/6 | `Dom.rangeComparePoint` | `Dom.Spec.ComparePointResult` |
 | [dom-range-intersectsnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-intersectsnode) | 6/6 | `Dom.rangeIntersectsNode` | `Dom.Spec.IntersectsNodeResult` |
@@ -518,7 +525,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | set-an-existing-attribute-value | 4 | other：step 3 が script を走らせないので、attribute の element は step 1 の判定から変わらない |
 | concept-cd-replace | 12 | todo：ProcessingInstruction の attribute map（update attributes from data）が model に無い |
 | concept-cd-replace | 13 | hook |
-| concept-range-insert | 7 | todo：Text node の split（§4.11 split a Text node）が model に無い。start node が Text なら step 6 の validity を通った後で outsideModel を返す |
 | concept-node-filter | 1 | host |
 | concept-node-filter | 5-8 | host |
 | nodeiterator-pre-removing-steps | 2 | other：candidate reference は traverse の途中（filter の callback の中）でしか非 null にならず、filter が null なので状態に持たない |
@@ -616,12 +622,27 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-cd-substring | 3-4 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
 | contiguous-exclusive-text-nodes | * | node より後ろの兄弟だけを集める（normalize が run の先頭から呼ぶので前側は空になる）。前後両側を集める関数は無い |
 | concept-text-split | 4 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
-| concept-text-split | 7.1 | insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ |
-| concept-text-split | 7.2-7.5 | 動かした先の boundary point が妥当でなければ動かさない（admissible な状態では必ず妥当なので、観測できる振る舞いは同じ。妥当性の保存を insert 後の木の形を追わずに示すための検査） |
+| concept-text-split | 7.1 | insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ（`validity_freshText`、`splitText_result_sound`） |
+| concept-text-split | 7.2-7.5 | 動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査 |
 | concept-range-bp-position | 1 | assert は書かない。呼び出し側（`BoundaryLE`・`rangeNeedsCollapse` など）が root を別に比べる |
 | concept-range-bp-position | 3 | 自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段） |
 | range-collapsed | * | 専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く |
+| get-the-common-ancestor | 2 | parent が null になっても止まらない本文の loop を、start node の inclusive ancestor の列の中で探す形に書く。端点が別の木にあれば見つからず、使う側が outsideModel にする |
+| dom-range-commonancestorcontainer | * | 端点が別の木にある range（admissible な状態にしか現れない）では outsideModel を返す |
 | concept-range-bp-set | 4 | set the start では range の root を start node ではなく end node の root で比べる（妥当な range では同じ。spec 側は start node の root で書き、定理が RangeValid を仮定する） |
+| concept-range-extract | 5 | 端点が別の木にあって common ancestor が無ければ outsideModel を返す（本文の loop は止まらない） |
+| concept-range-extract | 15 | 置く点が妥当でなければ outsideModel を返す。common ancestor があれば妥当である |
+| concept-range-extract | 16 | originalStartNode が CharacterData でなければ outsideModel を返す。range の start が end より後のときだけ起き、本文は CharacterData でない node の substring data を定めない |
+| concept-range-extract | 17.3-17.5 | subrange を新しい DocumentFragment ではなく clone へ直接 extract する。作ったばかりの subfragment と clone はどの observer にも live object にも指されないので観測できない違いで、作る node の id が結果の fragment の tree order になる。この同値は証明していない |
+| concept-range-extract | 19 | originalEndNode が CharacterData でなければ outsideModel を返す（step 16 と同じ） |
+| concept-range-extract | 20.3-20.5 | step 17.3-17.5 と同じく、subrange を clone へ直接 extract する |
+| concept-range-clone | 5 | 端点が別の木にあって common ancestor が無ければ outsideModel を返す |
+| concept-range-clone | 12 | originalStartNode が CharacterData でなければ outsideModel を返す（extract の step 16 と同じ） |
+| concept-range-clone | 13.3-13.5 | subrange を新しい DocumentFragment ではなく clone へ直接 clone する（extract の step 17.3-17.5 と同じ。証明していない） |
+| concept-range-clone | 15 | originalEndNode が CharacterData でなければ outsideModel を返す |
+| concept-range-clone | 16.3-16.5 | step 13.3-13.5 と同じ |
+| concept-range-insert | 13 | 何も入らなかったとき（空の DocumentFragment）に置く end を、実行時に妥当か検査する。本文の newOffset はそのとき必ず妥当で、関係との一致は検査が通ることも含めて証明してある |
+| dom-range-surroundcontents | 6 | append した後で空になり、どこからも辿れない fragment を状態から消す（`discard`。仕様の step ではない model の約束）。step 3 より後で失敗したときも、clone しか入っていない fragment は辿れないので消す |
 | dom-range-stringifier | 2-5 | UTF-16 の code unit で切り出す。surrogate pair の途中を指すと outsideModel になる |
 | concept-node-filter | 4 | filter は常に null として扱うので、ここで必ず FILTER_ACCEPT を返す |
 | concept-nodeiterator-traverse | 1-4 | candidate reference を持たず、iterator collection を reference で二つに分けて、pointer before に応じて reference 自身を候補に足した列から whatToShow を満たす最初の node を探す。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
@@ -676,18 +697,12 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | todo：TreeWalker を作る API が無い（walker は scenario が与える） | dom-document-createtreewalker |
 | todo：cancelBubble の setter が無い（ListenerAction に無い） | dom-event-cancelbubble/setter |
 | todo：child text content を計算する関数が無い | concept-child-text-content |
-| todo：clone the contents が未実装 | concept-range-clone, dom-range-clonecontents |
 | todo：collapsed getter を返す操作が harness に無い（両端は観測に出るので導ける） | dom-range-collapsed |
-| todo：common ancestor を求める定義が無い（使う extract・clone the contents が未実装） | get-the-common-ancestor |
-| todo：commonAncestorContainer getter が無い | dom-range-commonancestorcontainer |
 | todo：composedPath() が無い（shadow tree が無いので event path を逆順に invocation target を並べたものになるはずだが、実行関数が無い） | dom-event-composedpath |
 | todo：currentNode を設定する操作が harness に無い（初期状態の current だけを与えられる） | dom-treewalker-currentnode/setter |
 | todo：document の URL を持たない | dom-document-documenturi, dom-document-url |
 | todo：document の URL（document base URL）を持たない | dom-node-baseuri |
 | todo：document の encoding を持たない | dom-document-characterset, dom-document-charset, dom-document-inputencoding |
-| todo：extract が未実装 | dom-range-extractcontents |
-| todo：extract に依存するので未実装 | dom-range-surroundcontents |
-| todo：extract（DocumentFragment への移し替えと部分 clone）が未実装 | concept-range-extract |
 | todo：harness に操作が無い（`NodeId` の等号そのもので、実行関数を持たない） | dom-node-issamenode |
 | todo：item() が無い | dom-domtokenlist-item |
 | todo：length の getter が無い（token set は classTokenSet で読めるが API が無い） | dom-domtokenlist-length |

@@ -244,55 +244,43 @@ theorem validBoundaryPoint_of_siblingBP {s : DOMState} {n : NodeId} {a : Bool}
   · simp at hs
 
 /--
-**`insertNode` は admissibility を保つ。**
+**`insertNode` の step 8-13 は admissibility を保つ。**
 
 step 9 の `remove` と step 12 の `preInsert` はそれぞれ保存が証明済みで、
 step 13 が置く end は「入った node の次」なので `siblingBP` の妥当性から出る。
+何も入らないときの `refBP` は実行時に検査する。
 -/
-theorem admissible_rangeInsertNode {s s' : DOMState} {i : Nat} {n : NodeId}
-    (h : AdmissibleDOMState s) (hr : rangeInsertNode s i n = .ok s') : AdmissibleDOMState s' := by
-  unfold rangeInsertNode at hr
-  split at hr
-  · simp at hr
-  · next r hrr =>
+theorem admissible_rangeInsertNodeTail {s s' : DOMState} {i : Nat} {parent n : NodeId}
+    {ref : Option NodeId} (h : AdmissibleDOMState s)
+    (hr : rangeInsertNodeTail s i parent n ref = .ok s') : AdmissibleDOMState s' := by
+  unfold rangeInsertNodeTail at hr
+  cases hrm : (if (parentOf s.tree n).isSome then remove s n else Except.ok s) with
+  | error e => rw [hrm] at hr; simp at hr
+  | ok s₁ =>
+    rw [hrm] at hr
+    dsimp only at hr
+    have h₁ : AdmissibleDOMState s₁ := by
+      split at hrm
+      · exact admissible_remove h hrm
+      · rw [← Except.ok.inj hrm]; exact h
     split at hr
     · simp at hr
-    · next ds hds =>
+    · next s₂ hpi =>
+      have h₂ : AdmissibleDOMState s₂ := admissible_preInsert h₁ hpi
       split at hr
       · simp at hr
-      · split at hr
-        · split at hr
-          · simp at hr
-          · split at hr <;> simp at hr
-        · dsimp only at hr
-          split at hr
-          · simp at hr
-          ·
-            cases hrm : (if (parentOf s.tree n).isSome then remove s n else Except.ok s) with
-            | error e => rw [hrm] at hr; simp at hr
-            | ok s₁ =>
-              rw [hrm] at hr
-              dsimp only at hr
-              have h₁ : AdmissibleDOMState s₁ := by
-                split at hrm
-                · exact admissible_remove h hrm
-                · rw [← Except.ok.inj hrm]; exact h
-              split at hr
-              · simp at hr
-              · next s₂ hpi =>
-                have h₂ : AdmissibleDOMState s₂ := admissible_preInsert h₁ hpi
-                split at hr
-                · simp at hr
-                · next r₂ hr₂ =>
-                  split at hr
-                  · split at hr
-                    · rw [← Except.ok.inj hr]; exact h₂
-                    · next bp hbp =>
-                      rw [← Except.ok.inj hr]
-                      obtain ⟨m, -, hsib⟩ := Option.bind_eq_some_iff.mp hbp
-                      refine admissible_withRange h₂ ⟨?_, ?_⟩
-                      · exact (h₂.rangeEndpoints r₂ (List.mem_of_getElem? hr₂)).1
-                      · exact validBoundaryPoint_of_siblingBP h₂ hsib
-                  · rw [← Except.ok.inj hr]; exact h₂
+      · next r₂ hr₂ =>
+        have hstart := (h₂.rangeEndpoints r₂ (List.mem_of_getElem? hr₂)).1
+        repeat' split at hr
+        all_goals first
+          | (simp at hr; done)
+          | (next bp hbp =>
+              rw [← Except.ok.inj hr]
+              obtain ⟨m, -, hsib⟩ := Option.bind_eq_some_iff.mp hbp
+              exact admissible_withRange h₂ ⟨hstart, validBoundaryPoint_of_siblingBP h₂ hsib⟩)
+          | (next hv =>
+              rw [← Except.ok.inj hr]
+              exact admissible_withRange h₂ ⟨hstart, (checkValidBoundaryPoint_iff _ _).mp hv⟩)
+          | (rw [← Except.ok.inj hr]; exact h₂)
 
 end Dom

@@ -1,6 +1,7 @@
 import Dom.Range.BoundaryPoint
 import Dom.Mutation.Algorithms
 import Dom.CharacterData.ReplaceData
+import Dom.CharacterData.SplitText
 
 /-!
 # `Range` の API（§5.5）
@@ -289,17 +290,60 @@ def rangeDeleteContents (s : DOMState) (i : Nat) : Except DOMException DOMState 
 /-! ## `insertNode` -/
 
 /--
-DOM Standard §5.5 `Range.insertNode(node)`。
+step 10-11 の newOffset のうち、何も入らなかったときの位置。
+reference node が null なら parent の length、そうでなければ reference node の index。
+-/
+def refBP (t : Tree) (parent : NodeId) (ref : Option NodeId) : BoundaryPoint :=
+  match ref with
+  | none => ⟨parent, lengthOf t parent⟩
+  | some c => ⟨parent, (index t c).getD 0⟩
 
-step 7（start node が Text なら offset で split する）は Text を分割して node を作るので、
-model の対象外である。start node が Text（CDATASection を含む）の場合は、step 6 の
-validity を検査した後で `outsideModel` を返す。
-ただし step 1 の「parent の無い Text」は先に検査するので、そちらは `HierarchyRequestError` になる。
+/--
+DOM Standard §5.5 insert の step 8-13。`parent` と `referenceNode` は step 4-7 で決めたもの。
 
 step 10-11 の newOffset は「入った node の最後の次」に等しい。
 model はその形で書く（`siblingBP`）。そうすると端点の妥当性が
 `index` の上界から出るので、step 13 が置く boundary point を実行時に検査しなくてよい。
-DocumentFragment が空なら何も入らないので、range は collapsed のまま動かない。
+何も入らない（空の DocumentFragment）ときは、newOffset は reference node の index か parent の
+length である（`refBP`）。start node が Text でなければそこは range の端点そのものだが、
+step 7 で Text を split したときは新しい Text の index になり、end が動く。
+-/
+def rangeInsertNodeTail (s : DOMState) (i : Nat) (parent node : NodeId)
+    (referenceNode : Option NodeId) : Except DOMException DOMState :=
+  -- step 8
+  let ref := if referenceNode == some node then nextSibling s.tree node else referenceNode
+  -- step 9
+  match (if (parentOf s.tree node).isSome then remove s node else .ok s) with
+  | .error e => .error e
+  | .ok s₁ =>
+    -- step 10-11 に使う「最後に入る node」
+    let last :=
+      match s₁.tree.get? node with
+      | some nd => if nd.kind == NodeKind.documentFragment then nd.children.getLast? else some node
+      | none => some node
+    -- step 12
+    match preInsert s₁ node parent ref with
+    | .error e => .error e
+    | .ok s₂ =>
+      -- step 13
+      match s₂.ranges[i]? with
+      | none => .error .notFoundError
+      | some r₂ =>
+        if r₂.start == r₂.«end» then
+          match last.bind (fun n => siblingBP s₂.tree n true) with
+          | some bp => .ok (withRange s₂ i { r₂ with «end» := bp })
+          | none =>
+            let bp := refBP s₂.tree parent ref
+            if checkValidBoundaryPoint s₂.tree bp then .ok (withRange s₂ i { r₂ with «end» := bp })
+            else .ok s₂
+        else .ok s₂
+
+/--
+DOM Standard §5.5 `Range.insertNode(node)`。
+
+step 7 は start node が Text（CDATASection を含む）なら start offset で split し、
+reference node を新しい Text にする（`splitText`）。
+step 1 の「parent の無い Text」は先に検査するので、そちらは `HierarchyRequestError` になる。
 -/
 def rangeInsertNode (s : DOMState) (i : Nat) (node : NodeId) : Except DOMException DOMState :=
   match s.ranges[i]? with
@@ -321,7 +365,11 @@ def rangeInsertNode (s : DOMState) (i : Nat) (node : NodeId) : Except DOMExcepti
         | some p =>
           match ensurePreInsertionValidity s.tree node p (some r.start.node) [] with
           | .error e => .error e
-          | .ok () => .error .outsideModel
+          | .ok () =>
+            -- step 7
+            match splitText s r.start.node r.start.offset with
+            | .error e => .error e
+            | .ok (newText, s₀) => rangeInsertNodeTail s₀ i p node (some newText)
       else
         -- step 4-5。start node は Text ではないので parent は start node 自身である。
         let referenceNode := ds.children[r.start.offset]?
@@ -329,31 +377,7 @@ def rangeInsertNode (s : DOMState) (i : Nat) (node : NodeId) : Except DOMExcepti
         -- step 6
         match ensurePreInsertionValidity s.tree node parent referenceNode [] with
         | .error e => .error e
-        | .ok () =>
-          -- step 8
-          let ref := if referenceNode == some node then nextSibling s.tree node else referenceNode
-          -- step 9
-          match (if (parentOf s.tree node).isSome then remove s node else .ok s) with
-          | .error e => .error e
-          | .ok s₁ =>
-            -- step 10-11 に使う「最後に入る node」
-            let last :=
-              match s₁.tree.get? node with
-              | some nd => if nd.kind == NodeKind.documentFragment then nd.children.getLast? else some node
-              | none => some node
-            -- step 12
-            match preInsert s₁ node parent ref with
-            | .error e => .error e
-            | .ok s₂ =>
-              -- step 13
-              match s₂.ranges[i]? with
-              | none => .error .notFoundError
-              | some r₂ =>
-                if r₂.start == r₂.«end» then
-                  match last.bind (fun n => siblingBP s₂.tree n true) with
-                  | none => .ok s₂
-                  | some bp => .ok (withRange s₂ i { r₂ with «end» := bp })
-                else .ok s₂
+        | .ok () => rangeInsertNodeTail s i parent node referenceNode
 
 /-! ## stringifier -/
 

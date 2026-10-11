@@ -97,7 +97,8 @@ module DommyRunner
                  rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
                  rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode
                  rangeCompareBoundaryPoints rangeComparePoint rangeDeleteContents
-                 rangeInsertNode rangeToString].freeze
+                 rangeInsertNode rangeToString rangeExtractContents rangeCloneContents
+                 rangeSurroundContents rangeCommonAncestorContainer].freeze
 
   # 値を返すだけの操作（§4.4 / §4.9 / §4.10）。受け手は node か element。
   #
@@ -365,7 +366,8 @@ module DommyRunner
                           createElement createElementNS createTextNode createComment
                           createProcessingInstruction createCDATASection
                           createDocumentFragment cloneNode importNode adoptNode
-                          querySelector closest getElementById].freeze
+                          querySelector closest getElementById
+                          rangeExtractContents rangeCloneContents rangeCommonAncestorContainer].freeze
 
   # `Attr` を返す操作。
   ATTR_RETURNING_OPS = %w[createAttribute createAttributeNS getAttributeNode getAttributeNodeNS
@@ -564,6 +566,55 @@ module DommyRunner
     frags.each do |f|
       objects[max_before + k + 1] = f
       ctx[:kinds][max_before + k + 1] = "documentFragment"
+    end
+  end
+
+  # extract・clone the contents・`surroundContents()`・`insertNode` が作った node に、model
+  # （`Dom/Range/Extract.lean`）と同じ規則で id を振る。`js/scenario.js` の `registerRangeCreated` と同じ。
+  #
+  # model は step 1 の DocumentFragment に max+1 を振り、clone をその後に、fragment の中の tree order で作る。
+  # `surroundContents()` では空になった fragment が model の状態から消える（id は空く）。そのあと
+  # `insertNode` の step 7 が split で作る Text が続く。`insertNode` だけなら fragment は無い。
+  def range_creating(ctx, new_parent, reserve_fragment)
+    max_before = ctx[:objects].keys.max.to_i
+    made = nil
+    begin
+      made = yield
+    ensure
+      frag = reserve_fragment && !made.nil? && node_type_of(made) == 11 ? made : nil
+      register_range_created(ctx, max_before, frag, new_parent, reserve_fragment)
+    end
+    made
+  end
+
+  def register_range_created(ctx, max_before, frag, new_parent, reserve_fragment)
+    objects = ctx[:objects]
+    known = {}.compare_by_identity
+    objects.each_value { |v| known[v] = true }
+    roots = []
+    starts = objects.values + (ctx[:ranges] || []).flat_map { |r| [r.start_container, r.end_container] }
+    starts.each do |n|
+      root = n
+      root = parent_of(root) while parent_of(root)
+      roots << root
+    end
+    if reserve_fragment && frag.nil?
+      frag = roots.find { |r| !known.key?(r) && node_type_of(r) == 11 }
+    end
+    seen = {}.compare_by_identity
+    fresh = []
+    if frag
+      objects[max_before + 1] = frag
+      ctx[:kinds][max_before + 1] = kind_name(frag)
+      known[frag] = true
+      collect_unknown(frag, known, seen, fresh)
+    end
+    collect_unknown(new_parent, known, seen, fresh) if new_parent
+    roots.each { |r| collect_unknown(r, known, seen, fresh) }
+    base = reserve_fragment ? max_before + 2 : max_before + 1
+    fresh.each_with_index do |n, i|
+      objects[base + i] = n
+      ctx[:kinds][base + i] = kind_name(n)
     end
   end
 
@@ -1406,8 +1457,13 @@ module DommyRunner
                range.compare_boundary_points(op["how"], other)
              when "rangeComparePoint" then range.compare_point(node, op["offset"])
              when "rangeDeleteContents" then range.delete_contents
-             when "rangeInsertNode" then range.insert_node(node)
+             when "rangeInsertNode" then range_creating(ctx, nil, false) { range.insert_node(node) }
              when "rangeToString" then range.to_s
+             when "rangeCommonAncestorContainer" then range.common_ancestor_container
+             when "rangeExtractContents" then range_creating(ctx, nil, true) { range.extract_contents }
+             when "rangeCloneContents" then range_creating(ctx, nil, true) { range.clone_contents }
+             when "rangeSurroundContents"
+               range_creating(ctx, node, true) { range.surround_contents(node) }
              end
     end
     if op["op"] == "splitText"
