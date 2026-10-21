@@ -1108,8 +1108,9 @@ clone に append する（`SubContents`）。実行関数も同じ順に走り�
 部品で閉じた性質として運ぶ。step 19 で last partially contained child を扱うときにそれが木にあって Document でないこと、
 `surroundContents()` の step 5・7 で `this` がまだあることは、この二つから出る。
 
-node を作る関係（split、extract、clone the contents）は、作る node の id を決めない。だから一意性と completeness は、
-id の付け替えを除いてしか成り立たず、ここでは示さない。
+node を作る関係（split、extract、clone the contents）は、作る node の id を決めない。だから本文どおりの関係の一意性と
+completeness は、id の付け替えを除いてしか成り立たない。extract と clone the contents については、model の割り当てで
+id を決めた関係の一意性と completeness を §36 で示す。
 
 ## 33. MutationObserver の配送と TreeWalker の残りの走査は関係を満たす
 
@@ -1178,3 +1179,32 @@ contained children（`appendEach_frame`）と新しく作った node だけで�
 first partially contained child が end 側の子になり、同じ subrange で再帰し続けて fuel が尽きる。live range の
 妥当性（`RangeValid`）は admissibility に含まれないので、仮定に置く。step 1 で fragment を足した後の木でも順は
 変わらない（`Extends.boundaryLE`）。
+
+## 36. extract と clone the contents の関係は、model の割り当てのもとで結果を一つに決める
+
+| 定理 | 内容 | module |
+| --- | --- | --- |
+| `Dom.Spec.allocSound_spec`・`allocSound_model` | 実行関数の三つの作り方（clone、fragment、deep な clone）は、本文どおりの段（`Alloc.spec`）も model の割り当て（`Alloc.model`）も満たす | `Dom/Spec/RangeExtractSound.lean`・`Dom/Spec/RangeExtractComplete.lean` |
+| `Dom.Spec.freshId_congr`・`stateMaxAttrId_congr` | 新しい node の id と attribute の id の割り当ては、観測の等しい状態で揃う | `Dom/Spec/RangeExtractComplete.lean` |
+| `Dom.Spec.cloneNodeIn_congr` | deep な clone は、観測の等しい状態で同じ copy を作り、観測の等しい結果を返す | 同上 |
+| `Dom.Spec.setup_unique` | step 5-10 で決まる common ancestor・first / last partially contained child・contained children は一つに決まる | 同上 |
+| `Dom.Spec.contentsInto_complete` | model の割り当ての関係を満たす結果は、観測の等しい admissible な状態で走る実行関数の結果と観測の上で等しい | 同上 |
+| `Dom.Spec.rangeExtractContents_result_complete`・`rangeCloneContents_result_complete` | `extractContents()`・`cloneContents()` の completeness。成功の状態は、関係の状態と観測の等しい状態から、使い終えた subfragment を消したもの | 同上 |
+| `Dom.Spec.contentsResult_deterministic`・`cloneResult_deterministic` | model の割り当ての関係を満たす二つの結果は、例外が等しいか、同じ fragment で状態の観測が等しい | 同上 |
+
+関係は node を作る三つの段を引数 `Alloc` に取る。本文どおりの段（`Alloc.spec`）は木に無い id なら何でも許すので、
+そのままでは結果は id の付け替えを除いてしか決まらない。model の割り当て（`Alloc.model`）は、clone を `cloneSingle`、
+fragment を `freshId`、deep な clone を `cloneNodeIn` で作った状態と観測が等しいことを求める。soundness は `AllocSound` を
+満たす段ならどれでも成り立つ（`contentsInto_sound` ほかは `Alloc` について一般に述べる）。
+
+completeness は実行関数の fuel について帰納する。関係の導出の各段を、観測の等しい admissible な状態で走る実行関数の段と
+比べる。pre-insert と replace data は既存の congruence（`preInsertResult_congr`・`replaceDataResult_congr`）、step 5-10 は
+観測の等しい木での同値（`setup_congr`）と一つの木での一意性（`setup_unique`）、node を作る段は割り当ての congruence で
+揃える。仮定は soundness と同じく、実行関数の結果が `outsideModel` でないことである。
+
+attribute の id の割り当て（`maxAttrId`）は、store の entry を畳み込むのをやめ、key ごとに `get?` で引き直すようにした
+（`Dom/Basic/Fresh.lean`）。key に重複の無い store（実行関数が作るもの）では値は変わらない。重複を許す表現では、
+`get?` から見えない entry の attribute が割り当てに効き、観測の等しい状態どうしで割り当てが揃わなかった。
+
+`surroundContents()` は扱っていない。step 5 の `insertNode` が start node の Text を split して node を作るので、その
+関係（`InsertNodeResult`・`SplitTextResult`）も割り当てを引数に取る形にする必要がある。

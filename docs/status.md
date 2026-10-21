@@ -7076,6 +7076,25 @@ id の付け替えを除いた同値が要る。その道具は無い。そこ�
 固定 scenario が 266 ok / 24 skip / 12 known、生成 scenario（nightly の 3 設定 × seed 1-10、runner ごとに 3000 本）が不一致 0。
 三つの browser の固定 scenario でも、extract の記録（known）の形は変わらなかった。
 
+## extract と clone the contents の一意性と completeness を示した（2026-10-21）
+
+本文どおりの関係は作る node の id を決めないので、結果は id の付け替えを除いてしか決まらない。node を作るほかの関係
+（`createElement`、split を含む `insertNode`）も同じ理由で completeness を扱っていなかった。extract と clone the contents に
+ついて、model の割り当てで id を決めた関係の一意性と completeness を示した（`Dom/Spec/RangeExtractComplete.lean`）。
+
+* **関係を割り当てで引数化した**：clone（subtree は false）、step 1 と subfragment の DocumentFragment、deep な clone の三つの
+  段を `Alloc` に取る。本文どおりの段が `Alloc.spec`（今までの関係）、model の割り当てが `Alloc.model` である。soundness は
+  実行関数の作り方を満たす段ならどれでも成り立つ形にした（`AllocSound`）。
+* **割り当ては観測で決まる**：`freshId` と attribute の id（`stateMaxAttrId`）は、観測の等しい状態で揃う。deep な clone も
+  同じ copy を作る（`cloneNodeIn_congr`）。そのために `maxAttrId` を、store の entry を畳み込むのではなく key ごとに `get?` で
+  引き直す形にした。key に重複の無い store では値は変わらない。
+* **completeness**：実行関数の fuel について帰納し、関係の導出の各段を、観測の等しい admissible な状態で走る実行関数の段と
+  比べる（`contentsInto_complete`、`rangeExtractContents_result_complete`・`rangeCloneContents_result_complete`）。二つの関係の
+  結果が等しいことも出る（`contentsResult_deterministic`・`cloneResult_deterministic`）。
+
+`surroundContents()` は残した。step 5 の `insertNode` が Text を split して node を作るので、その関係も割り当てを引数に
+取る形にする必要がある。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

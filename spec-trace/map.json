@@ -4522,7 +4522,9 @@
         "Dom.discardCreated"
       ],
       "spec": [
-        "Dom.Spec.rangeExtractContents_result_sound"
+        "Dom.Spec.rangeExtractContents_result_sound",
+        "Dom.Spec.rangeExtractContents_result_complete",
+        "Dom.Spec.contentsResult_deterministic"
       ],
       "omit": [],
       "approx": [
@@ -4587,7 +4589,9 @@
         "Dom.discardCreated"
       ],
       "spec": [
-        "Dom.Spec.rangeCloneContents_result_sound"
+        "Dom.Spec.rangeCloneContents_result_sound",
+        "Dom.Spec.rangeCloneContents_result_complete",
+        "Dom.Spec.cloneResult_deterministic"
       ],
       "omit": [],
       "approx": [

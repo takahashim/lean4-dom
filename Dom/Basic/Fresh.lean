@@ -63,6 +63,12 @@ theorem ne_freshId {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d
 
 /-! ## attribute の id -/
 
+/-- key `k` の node の attribute の id と `m` の最大。 -/
+def attrMaxAt (t : Tree) (m : Nat) (k : NodeId) : Nat :=
+  match t.get? k with
+  | none => m
+  | some d => d.attributes.foldl (fun m a => max m a.id.id) m
+
 /--
 木にある attribute の id の最大。空なら 0。
 
@@ -73,9 +79,11 @@ theorem ne_freshId {t : Tree} {n : NodeId} {d : NodeData} (h : t.get? n = some d
 
 一度使った id が再び現れないことは要求しない。差分テストの相手も同じ規則で
 id を振るので、比較はそれで揃う。
+
+key ごとに `get?` で引き直すので、値は store の表現（entry の並びや、key の重複）に依らず、`get?` だけで
+決まる。観測の等しい状態どうしで、新しい attribute の id が揃う。
 -/
-def maxAttrId (t : Tree) : Nat :=
-  t.nodes.entries.foldl (fun m p => p.2.attributes.foldl (fun m a => max m a.id.id) m) 0
+def maxAttrId (t : Tree) : Nat := t.nodes.keys.foldl (attrMaxAt t) 0
 
 theorem le_foldl_attrMax :
     ∀ (l : List Attr) (init : Nat), init ≤ l.foldl (fun m a => max m a.id.id) init
@@ -92,29 +100,33 @@ theorem attrId_le_foldl_attrMax :
     · exact Nat.le_trans (Nat.le_max_right init a.id.id) (le_foldl_attrMax rest (max init a.id.id))
     · exact attrId_le_foldl_attrMax rest (max init x.id.id) hrest
 
-theorem le_foldl_entryAttrMax :
-    ∀ (l : List (NodeId × NodeData)) (init : Nat),
-      init ≤ l.foldl (fun m p => p.2.attributes.foldl (fun m a => max m a.id.id) m) init
-  | [], _ => Nat.le_refl _
-  | p :: rest, init =>
-    Nat.le_trans (le_foldl_attrMax p.2.attributes init)
-      (le_foldl_entryAttrMax rest _)
+theorem le_attrMaxAt (t : Tree) (m : Nat) (k : NodeId) : m ≤ attrMaxAt t m k := by
+  unfold attrMaxAt
+  split
+  · exact Nat.le_refl _
+  · exact le_foldl_attrMax _ _
 
-theorem attrId_le_foldl_entryAttrMax :
-    ∀ (l : List (NodeId × NodeData)) (init : Nat) {n : NodeId} {d : NodeData} {a : Attr},
-      (n, d) ∈ l → a ∈ d.attributes →
-      a.id.id ≤ l.foldl (fun m p => p.2.attributes.foldl (fun m a => max m a.id.id) m) init
-  | [], _, _, _, _, h, _ => absurd h (by simp)
-  | p :: rest, init, n, d, a, h, ha => by
+theorem le_foldl_keyAttrMax (t : Tree) :
+    ∀ (l : List NodeId) (init : Nat), init ≤ l.foldl (attrMaxAt t) init
+  | [], _ => Nat.le_refl _
+  | k :: rest, init => Nat.le_trans (le_attrMaxAt t init k) (le_foldl_keyAttrMax t rest _)
+
+theorem attrId_le_foldl_keyAttrMax (t : Tree) :
+    ∀ (l : List NodeId) (init : Nat) {n : NodeId} {d : NodeData} {a : Attr},
+      n ∈ l → t.get? n = some d → a ∈ d.attributes → a.id.id ≤ l.foldl (attrMaxAt t) init
+  | [], _, _, _, _, h, _, _ => absurd h (by simp)
+  | k :: rest, init, n, d, a, h, hd, ha => by
     rcases List.mem_cons.mp h with rfl | hrest
-    · exact Nat.le_trans (attrId_le_foldl_attrMax d.attributes init ha)
-        (le_foldl_entryAttrMax rest _)
-    · exact attrId_le_foldl_entryAttrMax rest _ hrest ha
+    · refine Nat.le_trans ?_ (le_foldl_keyAttrMax t rest _)
+      unfold attrMaxAt
+      rw [hd]
+      exact attrId_le_foldl_attrMax d.attributes init ha
+    · exact attrId_le_foldl_keyAttrMax t rest _ hrest hd ha
 
 /-- 木にある attribute の id は `maxAttrId` 以下である。 -/
 theorem attrId_le_maxAttrId {t : Tree} {n : NodeId} {d : NodeData} {a : Attr}
     (hd : t.get? n = some d) (ha : a ∈ d.attributes) : a.id.id ≤ maxAttrId t :=
-  attrId_le_foldl_entryAttrMax _ 0 (NodeStore.mem_entries_of_get?_eq_some hd) ha
+  attrId_le_foldl_keyAttrMax t _ 0 (NodeStore.mem_keys_of_get?_eq_some hd) hd ha
 
 /-- 新しい attribute に割り当てる id。 -/
 def freshAttrId (t : Tree) : AttrId := ⟨maxAttrId t + 1⟩

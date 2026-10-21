@@ -143,7 +143,8 @@ def entries : List Entry := [
                ("19", "originalEndNode が CharacterData でなければ outsideModel を返す（step 16 と同じ）")] },
   { alg := "dom-range-extractcontents"
     impl := [``Dom.rangeExtractContents, ``Dom.rangeExtractInto, ``Dom.discardCreated]
-    spec := [``Dom.Spec.rangeExtractContents_result_sound]
+    spec := [``Dom.Spec.rangeExtractContents_result_sound, ``Dom.Spec.rangeExtractContents_result_complete,
+             ``Dom.Spec.contentsResult_deterministic]
     approx := [("*", "結果の fragment より後に作った node のうち参照されなくなったもの（clone に append し終えた subfragment）を、最後に状態から消す（`discardCreated`。仕様の step ではない model の約束）")] },
   { alg := "concept-range-clone"
     impl := [``Dom.rangeFragment, ``Dom.contentsInto, ``Dom.commonAncestor,
@@ -158,7 +159,8 @@ def entries : List Entry := [
                ("15", "originalEndNode が CharacterData でなければ outsideModel を返す")] },
   { alg := "dom-range-clonecontents"
     impl := [``Dom.rangeCloneContents, ``Dom.rangeCloneInto, ``Dom.discardCreated]
-    spec := [``Dom.Spec.rangeCloneContents_result_sound]
+    spec := [``Dom.Spec.rangeCloneContents_result_sound, ``Dom.Spec.rangeCloneContents_result_complete,
+             ``Dom.Spec.cloneResult_deterministic]
     approx := [("*", "extractContents() と同じく、clone に append し終えた subfragment を最後に状態から消す（`discardCreated`）")] },
   { alg := "dom-range-surroundcontents"
     impl := [``Dom.rangeSurroundContents, ``Dom.partiallyContainsNonText, ``Dom.rangeExtractInto,

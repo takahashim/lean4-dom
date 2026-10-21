@@ -1293,6 +1293,17 @@ open Dom.Audit
   Dom.Spec.contentsInto_fuel
   Dom.Spec.contentsInto_size_fuel
   Dom.Spec.rangeFragment_fuel
+  Dom.Spec.allocSound_spec
+  Dom.Spec.allocSound_model
+  Dom.Spec.freshId_congr
+  Dom.Spec.stateMaxAttrId_congr
+  Dom.Spec.cloneNodeIn_congr
+  Dom.Spec.setup_unique
+  Dom.Spec.contentsInto_complete
+  Dom.Spec.rangeExtractContents_result_complete
+  Dom.Spec.rangeCloneContents_result_complete
+  Dom.Spec.contentsResult_deterministic
+  Dom.Spec.cloneResult_deterministic
   Dom.Spec.notifyMutationObservers_sound
   Dom.Spec.notifyMutationObservers_complete
   Dom.Spec.disconnect_sound

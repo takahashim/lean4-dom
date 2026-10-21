@@ -108,17 +108,39 @@ def DeepClone (s : DOMState) (n c : NodeId) (s' : DOMState) : Prop :=
   (∀ m md, s.tree.get? m = some md → s'.tree.get? m = some md) ∧
     s.tree.get? c = none ∧ CloneOf s'.tree c n ∧ s'.ranges = s.ranges
 
+/-! ## node を作る段 -/
+
+/--
+**node を作る三つの段。** 本文は新しい node の id を決めないので、本文の関係（`Alloc.spec`）は木に無い id なら
+何でも許す。そのままでは関係は結果を id の付け替えを除いてしか決めない。一意性と completeness は、model の
+割り当て（`freshId` と attribute の id。`Dom/Spec/RangeExtractComplete.lean` の `Alloc.model`）で id を決めた
+関係について述べる。
+-/
+structure Alloc where
+  /-- "clone a node"（subtree は false）で n の clone c を作り、data を x にする。 -/
+  single : DOMState → NodeId → String → NodeId → DOMState → Prop
+  /-- node document が doc の新しい DocumentFragment を作る（extract の step 1）。 -/
+  fragment : DOMState → NodeId → NodeId → DOMState → Prop
+  /-- "clone a node"（subtree は true）で n の clone c を作る。 -/
+  deep : DOMState → NodeId → NodeId → DOMState → Prop
+
+/-- 本文どおりの段。新しい node の id は、木に無いものなら何でもよい。 -/
+def Alloc.spec : Alloc where
+  single := SingleClone
+  fragment s doc sub s' := CreatesNode s sub s' { kind := .documentFragment, ownerDocument := doc }
+  deep := DeepClone
+
 /--
 CharacterData の一部を写す（extract の step 4・16・19、clone the contents の step 4・12・15）。
 
 n の data の offset から count 個を substring data で取り、n の clone の data にして `into` に append する。
 `cut` なら（extract）n の data のその部分を replace data で消す。
 -/
-def DataPartResult (cut : Bool) (s : DOMState) (n : NodeId) (offset count : Nat) (into : NodeId) :
-    Except DOMException DOMState → Prop
+def DataPartResult (A : Alloc) (cut : Bool) (s : DOMState) (n : NodeId) (offset count : Nat)
+    (into : NodeId) : Except DOMException DOMState → Prop
   | res =>
     (∃ e, SubstringResult s.tree n offset count (.error e) ∧ res = .error e) ∨
-    (∃ x c s₁, SubstringResult s.tree n offset count (.ok x) ∧ SingleClone s n x c s₁ ∧
+    (∃ x c s₁, SubstringResult s.tree n offset count (.ok x) ∧ A.single s n x c s₁ ∧
       AndThen (PreInsertResult s₁ c into none)
         (fun s₂ res₂ => (cut = true ∧ ReplaceDataResult s₂ n offset count "" res₂) ∨
           (cut = false ∧ res₂ = .ok s₂))
@@ -131,16 +153,17 @@ def AppendEachResult (into : NodeId) : DOMState → List NodeId → Except DOMEx
     AndThen (PreInsertResult s c into none) (fun s₁ res₁ => AppendEachResult into s₁ cs res₁) res
 
 /-- clone the contents の step 14：contained children を subtree ごと clone して順に `into` へ append する。 -/
-def CloneEachResult (into : NodeId) : DOMState → List NodeId → Except DOMException DOMState → Prop
+def CloneEachResult (A : Alloc) (into : NodeId) :
+    DOMState → List NodeId → Except DOMException DOMState → Prop
   | s, [], res => res = .ok s
   | s, c :: cs, res =>
-    ∃ copy s₁, DeepClone s c copy s₁ ∧
-      AndThen (PreInsertResult s₁ copy into none) (fun s₂ res₂ => CloneEachResult into s₂ cs res₂) res
+    ∃ copy s₁, A.deep s c copy s₁ ∧
+      AndThen (PreInsertResult s₁ copy into none) (fun s₂ res₂ => CloneEachResult A into s₂ cs res₂) res
 
 /-- step 18（extract）と step 14（clone the contents）。 -/
-def ContainedStep (cut : Bool) (s : DOMState) (into : NodeId) (cs : List NodeId)
+def ContainedStep (A : Alloc) (cut : Bool) (s : DOMState) (into : NodeId) (cs : List NodeId)
     (res : Except DOMException DOMState) : Prop :=
-  (cut = true ∧ AppendEachResult into s cs res) ∨ (cut = false ∧ CloneEachResult into s cs res)
+  (cut = true ∧ AppendEachResult into s cs res) ∨ (cut = false ∧ CloneEachResult A into s cs res)
 
 /-! ## 全体 -/
 
@@ -164,37 +187,37 @@ mutual
 `into` は step 1 の fragment（再帰では partially contained child の clone）、`self` は range が `this`
 なら `some i`、subrange なら `none` である。
 -/
-inductive ContentsInto (cut : Bool) :
+inductive ContentsInto (A : Alloc) (cut : Bool) :
     DOMState → RangeState → Option Nat → NodeId → Except DOMException DOMState → Prop where
   /-- step 2：collapsed なら何もしない。 -/
-  | collapsed {s r self into} : r.start = r.«end» → ContentsInto cut s r self into (.ok s)
+  | collapsed {s r self into} : r.start = r.«end» → ContentsInto A cut s r self into (.ok s)
   /-- step 4：start node と end node が同じ CharacterData。 -/
   | single {s r self into res} : r.start ≠ r.«end» → r.start.node = r.«end».node →
       IsCharacterData s.tree r.start.node →
-      DataPartResult cut s r.start.node r.start.offset (r.«end».offset - r.start.offset) into res →
-      ContentsInto cut s r self into res
+      DataPartResult A cut s r.start.node r.start.offset (r.«end».offset - r.start.offset) into res →
+      ContentsInto A cut s r self into res
   /-- step 11：contained child に doctype がある。 -/
   | doctype {s r self into ca fp lp cs} : General s.tree r → Setup s.tree r ca fp lp cs →
       (∃ c ∈ cs, KindIs s.tree c .documentType) →
-      ContentsInto cut s r self into (.error .hierarchyRequestError)
+      ContentsInto A cut s r self into (.error .hierarchyRequestError)
   /-- step 16-17 が失敗する。 -/
   | firstError {s r self into ca fp lp cs bp s₁ e} : General s.tree r → Setup s.tree r ca fp lp cs →
       (∀ c ∈ cs, ¬ KindIs s.tree c .documentType) → DeleteNewBP s.tree r bp → SelfSet s self bp s₁ →
-      PartialFirst cut s₁ r fp into (.error e) →
-      ContentsInto cut s r self into (.error e)
+      PartialFirst A cut s₁ r fp into (.error e) →
+      ContentsInto A cut s r self into (.error e)
   /-- step 18 が失敗する。 -/
   | containedError {s r self into ca fp lp cs bp s₁ s₂ e} : General s.tree r →
       Setup s.tree r ca fp lp cs → (∀ c ∈ cs, ¬ KindIs s.tree c .documentType) →
       DeleteNewBP s.tree r bp → SelfSet s self bp s₁ →
-      PartialFirst cut s₁ r fp into (.ok s₂) → ContainedStep cut s₂ into cs (.error e) →
-      ContentsInto cut s r self into (.error e)
+      PartialFirst A cut s₁ r fp into (.ok s₂) → ContainedStep A cut s₂ into cs (.error e) →
+      ContentsInto A cut s r self into (.error e)
   /-- step 19-20 まで進む。 -/
   | last {s r self into ca fp lp cs bp s₁ s₂ s₃ res} : General s.tree r →
       Setup s.tree r ca fp lp cs → (∀ c ∈ cs, ¬ KindIs s.tree c .documentType) →
       DeleteNewBP s.tree r bp → SelfSet s self bp s₁ →
-      PartialFirst cut s₁ r fp into (.ok s₂) → ContainedStep cut s₂ into cs (.ok s₃) →
-      PartialLast cut s₃ r lp into res →
-      ContentsInto cut s r self into res
+      PartialFirst A cut s₁ r fp into (.ok s₂) → ContainedStep A cut s₂ into cs (.ok s₃) →
+      PartialLast A cut s₃ r lp into res →
+      ContentsInto A cut s r self into res
 
 /--
 step 16-17（clone the contents の 12-13）：first partially contained child の扱い。
@@ -203,22 +226,22 @@ CharacterData なら（その child は original start node である）start of
 そうでなければ child を clone して `into` に append し、(original start, (child, child の length)) の
 subrange を extract した subfragment をその clone へ append する（`SubContents`）。
 -/
-inductive PartialFirst (cut : Bool) :
+inductive PartialFirst (A : Alloc) (cut : Bool) :
     DOMState → RangeState → Option NodeId → NodeId → Except DOMException DOMState → Prop where
-  | none {s r into} : PartialFirst cut s r none into (.ok s)
+  | none {s r into} : PartialFirst A cut s r none into (.ok s)
   | data {s r fp into res} : IsCharacterData s.tree fp →
-      DataPartResult cut s r.start.node r.start.offset (lengthOf s.tree r.start.node - r.start.offset)
+      DataPartResult A cut s r.start.node r.start.offset (lengthOf s.tree r.start.node - r.start.offset)
         into res →
-      PartialFirst cut s r (some fp) into res
+      PartialFirst A cut s r (some fp) into res
   | cloneError {s r fp into c s₁ e} : InTree s.tree fp → ¬ IsCharacterData s.tree fp →
-      (∃ fd, s.tree.get? fp = some fd ∧ SingleClone s fp fd.data c s₁) →
+      (∃ fd, s.tree.get? fp = some fd ∧ A.single s fp fd.data c s₁) →
       PreInsertResult s₁ c into none (.error e) →
-      PartialFirst cut s r (some fp) into (.error e)
+      PartialFirst A cut s r (some fp) into (.error e)
   | recurse {s r fp into c s₁ s₂ res} : InTree s.tree fp → ¬ IsCharacterData s.tree fp →
-      (∃ fd, s.tree.get? fp = some fd ∧ SingleClone s fp fd.data c s₁) →
+      (∃ fd, s.tree.get? fp = some fd ∧ A.single s fp fd.data c s₁) →
       PreInsertResult s₁ c into none (.ok s₂) →
-      SubContents cut s₂ { start := r.start, «end» := ⟨fp, lengthOf s₂.tree fp⟩ } c res →
-      PartialFirst cut s r (some fp) into res
+      SubContents A cut s₂ { start := r.start, «end» := ⟨fp, lengthOf s₂.tree fp⟩ } c res →
+      PartialFirst A cut s r (some fp) into res
 
 /--
 step 19-20（clone the contents の 15-16）：last partially contained child の扱い。
@@ -227,21 +250,21 @@ CharacterData なら（その child は original end node である）先頭か�
 そうでなければ child を clone して `into` に append し、((child, 0), original end) の subrange を
 extract した subfragment をその clone へ append する（`SubContents`）。
 -/
-inductive PartialLast (cut : Bool) :
+inductive PartialLast (A : Alloc) (cut : Bool) :
     DOMState → RangeState → Option NodeId → NodeId → Except DOMException DOMState → Prop where
-  | none {s r into} : PartialLast cut s r none into (.ok s)
+  | none {s r into} : PartialLast A cut s r none into (.ok s)
   | data {s r lp into res} : IsCharacterData s.tree lp →
-      DataPartResult cut s r.«end».node 0 r.«end».offset into res →
-      PartialLast cut s r (some lp) into res
+      DataPartResult A cut s r.«end».node 0 r.«end».offset into res →
+      PartialLast A cut s r (some lp) into res
   | cloneError {s r lp into c s₁ e} : InTree s.tree lp → ¬ IsCharacterData s.tree lp →
-      (∃ ld, s.tree.get? lp = some ld ∧ SingleClone s lp ld.data c s₁) →
+      (∃ ld, s.tree.get? lp = some ld ∧ A.single s lp ld.data c s₁) →
       PreInsertResult s₁ c into none (.error e) →
-      PartialLast cut s r (some lp) into (.error e)
+      PartialLast A cut s r (some lp) into (.error e)
   | recurse {s r lp into c s₁ s₂ res} : InTree s.tree lp → ¬ IsCharacterData s.tree lp →
-      (∃ ld, s.tree.get? lp = some ld ∧ SingleClone s lp ld.data c s₁) →
+      (∃ ld, s.tree.get? lp = some ld ∧ A.single s lp ld.data c s₁) →
       PreInsertResult s₁ c into none (.ok s₂) →
-      SubContents cut s₂ { start := ⟨lp, 0⟩, «end» := r.«end» } c res →
-      PartialLast cut s r (some lp) into res
+      SubContents A cut s₂ { start := ⟨lp, 0⟩, «end» := r.«end» } c res →
+      PartialLast A cut s r (some lp) into res
 
 /--
 step 17.3-17.5・20.3-20.5（clone the contents の 13.3-13.5・16.3-16.5）：subrange を extract（clone the contents）
@@ -250,17 +273,17 @@ step 17.3-17.5・20.3-20.5（clone the contents の 13.3-13.5・16.3-16.5）：s
 "extracting subrange" は step 1 で、subrange の start node の node document に属する新しい DocumentFragment を作り、
 そこへ step 2 以降を走らせる。subrange は `this` ではない（`self = none`）。
 -/
-inductive SubContents (cut : Bool) :
+inductive SubContents (A : Alloc) (cut : Bool) :
     DOMState → RangeState → NodeId → Except DOMException DOMState → Prop where
   | error {s r c sd sub s₁ e} : s.tree.get? r.start.node = some sd →
-      CreatesNode s sub s₁ { kind := .documentFragment, ownerDocument := sd.ownerDocument } →
-      ContentsInto cut s₁ r none sub (.error e) →
-      SubContents cut s r c (.error e)
+      A.fragment s sd.ownerDocument sub s₁ →
+      ContentsInto A cut s₁ r none sub (.error e) →
+      SubContents A cut s r c (.error e)
   | append {s r c sd sub s₁ s₂ res} : s.tree.get? r.start.node = some sd →
-      CreatesNode s sub s₁ { kind := .documentFragment, ownerDocument := sd.ownerDocument } →
-      ContentsInto cut s₁ r none sub (.ok s₂) →
+      A.fragment s sd.ownerDocument sub s₁ →
+      ContentsInto A cut s₁ r none sub (.ok s₂) →
       PreInsertResult s₂ sub c none res →
-      SubContents cut s r c res
+      SubContents A cut s r c res
 
 end
 
@@ -269,12 +292,11 @@ end
 
 step 1 で、start node の node document の DocumentFragment を作り、そこへ step 2-21 を走らせる。
 -/
-def ContentsResult (cut : Bool) (s : DOMState) (r : RangeState) (self : Option Nat) :
+def ContentsResult (A : Alloc) (cut : Bool) (s : DOMState) (r : RangeState) (self : Option Nat) :
     Except DOMException (NodeId × DOMState) → Prop
-  | res => ∃ sd frag s₁, s.tree.get? r.start.node = some sd ∧
-      CreatesNode s frag s₁ { kind := .documentFragment, ownerDocument := sd.ownerDocument } ∧
-      ((∃ e, ContentsInto cut s₁ r self frag (.error e) ∧ res = .error e) ∨
-        (∃ s₂, ContentsInto cut s₁ r self frag (.ok s₂) ∧ res = .ok (frag, s₂)))
+  | res => ∃ sd frag s₁, s.tree.get? r.start.node = some sd ∧ A.fragment s sd.ownerDocument frag s₁ ∧
+      ((∃ e, ContentsInto A cut s₁ r self frag (.error e) ∧ res = .error e) ∨
+        (∃ s₂, ContentsInto A cut s₁ r self frag (.ok s₂) ∧ res = .ok (frag, s₂)))
 
 /--
 **§5.5 `surroundContents(newParent)` の、結果まで含めた関係。**
@@ -300,8 +322,8 @@ def SurroundResult (s : DOMState) (i : Nat) (r : RangeState) (np : NodeId) :
        (¬ (KindIs s.tree np .document ∨ KindIs s.tree np .documentType ∨
           KindIs s.tree np .documentFragment) ∧
         -- step 3
-        ((∃ e, ContentsResult true s r (some i) (.error e) ∧ res = .error e) ∨
-         (∃ frag s₁, ContentsResult true s r (some i) (.ok (frag, s₁)) ∧
+        ((∃ e, ContentsResult .spec true s r (some i) (.error e) ∧ res = .error e) ∨
+         (∃ frag s₁, ContentsResult .spec true s r (some i) (.ok (frag, s₁)) ∧
           -- step 4
           ∃ s₂, ((childrenOf s₁.tree np = [] ∧ s₂ = s₁) ∨
               (childrenOf s₁.tree np ≠ [] ∧ ReplaceAllSpec s₁ none np s₂)) ∧
