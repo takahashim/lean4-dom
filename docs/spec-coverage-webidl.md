@@ -134,8 +134,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | algorithm | step | 仕様との違い |
 | --- | --- | --- |
 | abstract-opdef-integerpart | * | |n| の floor を `truncAbs` が、符号を `convertToIntUnsigned` が付ける |
-| abstract-opdef-converttoint | 4 | ToNumber は scenario を読むときに行う（失敗も副作用も無い）。有効数字が 20 桁を超える十進表記は、ECMAScript が丸めを実装に任せるので受けない |
-| js-to-DOMString | 2 | ToString は scenario を読むときに行う（`Idl.toDOMString_error`：TypeError を投げない）。数は有効数字 15 桁以下に限り、object は toString を上書きしない普通の object と配列に限る |
+| abstract-opdef-converttoint | 4 | ToNumber は scenario を読むときに行う（副作用は無く、TypeError は操作の TypeError にする）。有効数字が 20 桁を超える十進表記は、ECMAScript が丸めを実装に任せるので受けない |
+| js-to-DOMString | 2 | ToString は scenario を読むときに行う（`Idl.toDOMString_error`：投げるのは TypeError だけで、それは操作の TypeError にする）。数は有効数字 15 桁以下に限る |
 | js-to-interface | 1 | scenario の JSON の数は node、`{"attr": id}` は Attr で、それ以外の値はどの interface も実装しない。this が method の interface を実装するかは node の kind で決める |
 | js-to-dictionary | 3 | dictionary ごとに、継承の根から member を辞書順に読む順を変換の関数に書いてある（継承は AddEventListenerOptions が EventListenerOptions を継承する一つだけ） |
 | js-to-dictionary | 4.1.3.1 | Get は自分のプロパティを引くだけで、getter や prototype の上の member は無い |

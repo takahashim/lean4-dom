@@ -24,8 +24,8 @@ def entries : List Entry := [
                ("3", "自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段）")] },
   -- §5.3 AbstractRange
   { alg := "range-collapsed"
-    impl := [``Dom.rangeDeleteContents, ``Dom.rangeInsertNode]
-    approx := [("*", "専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く")] },
+    impl := [``Dom.rangeDeleteContents, ``Dom.rangeInsertNode, ``Dom.contentsInto]
+    approx := [("*", "専用の定義は無く、使う側（deleteContents step 1・insert step 13・extract と clone the contents の step 2）が `r.start == r.end` を直に書く")] },
   { alg := "dom-range-startcontainer"
     impl := [``Dom.RangeState.start, ``Dom.BoundaryPoint.node, ``Dom.observe] },
   { alg := "dom-range-startoffset"
@@ -41,7 +41,8 @@ def entries : List Entry := [
     -- step 2 の assert の代わりに、parent が無ければ何もしない。呼び出し元は remove（step 1-2 で parent を確かめる）と
     -- move（step 7-8）だけで、どちらの関係の soundness も parent のある場合に限って調整を述べる。
     -- step 4-7 は range ごとに合成して一度に当てる。二つの調整が可換であることは `liveRangePreRemoveBP_comm`。
-    spec := [``Dom.Spec.RangeAdjusted, ``Dom.Spec.BoundaryAdjusted, ``Dom.liveRangePreRemoveBP_comm] },
+    spec := [``Dom.Spec.RangeAdjusted, ``Dom.Spec.BoundaryAdjusted, ``Dom.liveRangePreRemoveBP_comm]
+    approx := [("4-7", "部分木の外へ移す調整と offset の調整を、range ごとに合成して一度に当てる（二つは可換：`liveRangePreRemoveBP_comm`）")] },
   { alg := "concept-range-bp-set"
     impl := [``Dom.setStartBP, ``Dom.setEndBP, ``Dom.rangeBoundaryError, ``Dom.rangeNeedsCollapse]
     spec := [``Dom.Spec.StartSet, ``Dom.Spec.EndSet, ``Dom.Spec.BoundaryPointError,
@@ -89,7 +90,8 @@ def entries : List Entry := [
     -- （`newBP_fixed_removeEach`、`newBP_ne_start`、`newBP_ne_end`）と、点が妥当であること
     -- （`deleteContentsNewBP_valid`）から、実行関数がそれを満たす（`rangeDeleteContents_result_sound`）。
     spec := [``Dom.Spec.DeleteContentsResult, ``Dom.Spec.NodesToRemove, ``Dom.Spec.Contained,
-             ``Dom.Spec.DeleteNewBP, ``Dom.Spec.rangeDeleteContents_result_sound] },
+             ``Dom.Spec.DeleteNewBP, ``Dom.Spec.rangeDeleteContents_result_sound]
+    approx := [("8", "点を step 9-11 の後で置き、最終の木で妥当でなければ調整後の start を使う（結果が同じことは `rangeDeleteContents_result_sound`）")] },
   { alg := "concept-range-insert"
     impl := [``Dom.rangeInsertNode, ``Dom.rangeInsertNodeTail, ``Dom.refBP,
              ``Dom.ensurePreInsertionValidity, ``Dom.splitText, ``Dom.preInsert, ``Dom.remove,
@@ -101,7 +103,8 @@ def entries : List Entry := [
     -- 何も入らなければ reference node の index か parent の length（`refBP`）とする。
     -- 関係 `InsertNodeTail` は本文どおり step 10-11 で数えて step 13 で使う形で書いてあり、
     -- `rangeInsertNode_result_sound_of_admissible` が実行関数がそれを満たすことを示す。
-    approx := [("13", "何も入らなかったとき（空の DocumentFragment）に置く end を、実行時に妥当か検査する。本文の newOffset はそのとき必ず妥当で、関係との一致は検査が通ることも含めて証明してある")] },
+    approx := [("10-11", "newOffset を前もって数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める（関係との一致は `rangeInsertNode_result_sound_of_admissible`）"),
+               ("13", "何も入らなかったとき（空の DocumentFragment）に置く end を、実行時に妥当か検査する。本文の newOffset はそのとき必ず妥当で、関係との一致は検査が通ることも含めて証明してある")] },
   { alg := "dom-range-insertnode"
     impl := [``Dom.rangeInsertNode]
     spec := [``Dom.Spec.InsertNodeResult] },

@@ -224,6 +224,7 @@ structure IdnaTable where
   status : Char → IdnaStatus        -- valid / ignored / mapped / disallowed
   mapped : Char → List Char
   outOfModel : Char → Bool          -- 正規化・Bidi が要る code point の印
+  isMark : Char → Bool              -- General_Category=Mark（§4.1 の criterion 6）
 
 def IdnaTable.Resolved (t : IdnaTable) : Prop :=
   ∀ c, t.status c = .mapped → ∀ d ∈ t.mapped c, t.status d = .valid
@@ -232,7 +233,7 @@ def IdnaTable.Resolved (t : IdnaTable) : Prop :=
 `mapAll` / `labelToASCII` / `toASCII` は **どんな `IdnaTable` についても** 定義してあり、
 性質は `Resolved` を仮定して証明する。表そのものは証明に現れない。
 
-実行時は `tableOfRanges` が `IdnaRange` の配列（`test/url/uts46-table.json`、8,509 範囲）を
+実行時は `tableOfRanges` が `IdnaRange` の配列（`test/url/uts46-table.json`、8,724 範囲）を
 二分探索する `IdnaTable` に変える。`checkResolved` がその配列について `Resolved` を確かめ、
 満たさなければ実行を止める。
 
@@ -281,9 +282,23 @@ URL Standard の domain parser は step 2 でこう決めている。
 表を渡したときと渡さないときで ASCII の domain の扱いが変わらないことが、これで形から出る。
 
 UTS #46 の Processing を通るのは **非 ASCII を含む domain だけ**である。
-そこでは復号した A-label が §4.1 の validity criteria を満たす必要がある
-（どの code point も status が `valid`。`mapped` や `ignored` や `disallowed` では駄目）。
-`http://xn--a.日本/` は `xn--a` が U+0080（disallowed）に復号されるので失敗する。
+そこでは復号した A-label が空でも ASCII だけでもなく（Processing step 4）、
+§4.1 の validity criteria を満たす必要がある。この model が見る criteria は次の三つである。
+
+* criterion 4。`CheckHyphens = false` なので label は `xn--` で始まらない。
+  `http://xn--xn--abc-.日本/` は `xn--abc-` が `xn--abc` に復号されるので失敗する。
+* criterion 6。label は General_Category=Mark の code point で始まらない。
+  A-label でない label にも当たる（`http://ःa.jp/` は失敗する）。
+* criterion 7。どの code point も status が `valid`（`mapped` や `ignored` や `disallowed` では駄目）。
+  `http://xn--a.日本/` は `xn--a` が U+0080（disallowed）に復号されるので失敗する。
+
+criterion 6 は対象外の印（`outOfModel`）より先に、写像した直後の label で判定する。
+Processing では Normalize が先に来るが、label の先頭が Mark かどうかは NFC で変わらない
+（結合クラス ≠ 0 の code point はすべて Mark で、先頭の非 starter は前の `.` と合成されない。
+正準分解を持つ code point は、分解の先頭の code point と Mark かどうかが一致する。
+どちらも Unicode 17.0.0 の `UnicodeData.txt` の全項で確かめた）。
+したがって先頭が Mark の label は正規化の結果によらず失敗で、対象外ではない。
+根拠は `Url/Idna.lean` の `toASCII` の doc comment に書いてある。
 
 WPT の機械可読の表には `xn--` が失敗する case が一件も無く、この経路が試されない。
 `test/url/uts46-alabel.json` に両側の case を置いてある。
@@ -319,6 +334,8 @@ ASCII だけの domain は model 内で閉じる（UTS #46 の写像は ASCII �
 | `setUsername_valid`, `setPassword_valid`, `setPort_empty_valid` | record の中で閉じる setter は `ValidUrl` を保つ |
 | `setAttr_valid` | **どの IDL setter も `ValidUrl` を保つ** |
 | `setProtocol_valid`, `setHost_valid`, `setHostname_valid`, `setPort_valid`, `setPathname_valid`, `setSearch_valid`, `setHash_valid` | 個々の setter |
+| `setSearch_path`, `setHash_path`, `withParams_path` | `search` / `hash` setter と `URLSearchParams` の update steps は path に触れない |
+| `parseUrl_opaqueNoTrailingSpace`, `setAttr_opaqueNoTrailingSpace` | **parser と setter から到達できる record の opaque path は生の U+0020 で終わらない**。override 付きの state は opaque path を新しく作らない（`PathKeep`） |
 | `run_port_valid`, `run_host_valid`, `run_fileHost_valid`, `run_scheme_valid`, `run_path_valid` ほか | override 付きの各 state が `ValidUrl` を保つ |
 | `schemeOverride_valid` | protocol setter の四つの guard が record の形を守る |
 | `shortenPath_spec`, `appendSegment_spec`, `appendOpaque_spec` | path をいじる三つは path 以外を変えず、path の種類も変えない |
@@ -436,7 +453,7 @@ WPT: 一致 816 / 不一致 0 / 対象外 4
 
 ```
 $ lake exe url-model --wpt test/url/wpt-ascii.json test/url/uts46-table.json
-UTS #46 の表: 8509 範囲、昇順・非重複、Resolved と NoUpperValid を満たす
+UTS #46 の表: 8724 範囲、昇順・非重複、Resolved と NoUpperValid を満たす
 WPT: 一致 820 / 不一致 0 / 対象外 0
 ValidUrl: 違反 0
 origin: 一致 376 / 不一致 0
@@ -458,6 +475,10 @@ origin（§4.7）も同じ表が期待値を持っている。
 ```
 origin: 一致 373 / 不一致 0
 ```
+
+`blob` の枝は path を basic URL parser で読み直すので、`origin` も ToASCII の hook を受け取る。
+WPT の表にはその経路を通る case が無いので、`blob:https://%E6%97%A5%E6%9C%AC.jp/x` の origin が
+`https://xn--wgv71a.jp` になることを `test/url/uts46-alabel.json` で確かめる。
 
 `application/x-www-form-urlencoded`（§5）は WPT 側が JS のテストなので
 機械可読の表が無い。仕様の記述とその例から固定 case を作り、
@@ -491,8 +512,12 @@ ValidUrl（setter 後）: 違反 0
 残りの操作は仕様の記述とその例から固定 case を作った。
 
 ```
-searchparams: 一致 26 / 不一致 0
+searchparams: 一致 29 / 不一致 0
 ```
+
+うち 3 件は、update steps と、`search` / `hash` setter に空文字列を入れる場合が、
+opaque path の末尾の U+0020 に触れないことを見る。生の U+0020 で終わる opaque path は
+parser も setter も作らないので（`setAttr_opaqueNoTrailingSpace`）、record を直に組んで確かめる。
 
 `sort` は **code point 順ではなく UTF-16 code unit 順**である。
 BMP の外の code point は surrogate pair になるので、U+E000 以上の BMP 文字より前に来る。

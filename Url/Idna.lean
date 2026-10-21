@@ -55,6 +55,8 @@ structure IdnaTable where
   mapped : Char → List Char
   /-- NFC・CheckBidi・CheckJoiners が効きうる code point。この model の対象外。 -/
   outOfModel : Char → Bool
+  /-- General_Category=Mark（Mn・Mc・Me）。UTS #46 §4.1 の validity criterion 6 に使う。 -/
+  isMark : Char → Bool
 
 /--
 表が満たすべき性質。**写像先は valid な code point だけからなる。**
@@ -118,22 +120,46 @@ theorem mapAll_idempotent (t : IdnaTable) (hres : t.Resolved) :
     rw [mapAll, hv c List.mem_cons_self, ih (fun x hx => hv x (List.mem_cons_of_mem _ hx))]
     rfl
 
-/--
-復号した A-label の中身を検査する。UTS #46 §4.1 の validity criteria のうち、
-この model が持っている分である。
+/-- label が `xn--` で始まる。 -/
+def hasAcePrefix : List Char → Bool
+  | 'x' :: 'n' :: '-' :: '-' :: _ => true
+  | _ => false
 
-* どの code point も `valid` であること。**`mapped` や `ignored` や `disallowed`
-  では駄目である。** A-label は写像を済ませた後の形でなければならない。
+/-- label が General_Category=Mark の code point で始まる。UTS #46 §4.1 の validity criterion 6。 -/
+def startsWithMark (t : IdnaTable) : List Char → Bool
+  | c :: _ => t.isMark c
+  | [] => false
+
+/--
+復号した A-label の中身を検査する。UTS #46 §4 Processing の step 4（Convert/Validate）の
+`xn--` の枝で、復号した後に課す条件のうち、この model が持っている分である。
+
+* ASCII でない code point を含むこと。空の label と ASCII だけの label は誤りである
+  （`xn--` の枝の「If the label is empty, or if the label contains only ASCII code points」）。
+  空の label（`xn--` そのもの）もここで落ちる。
+* §4.1 の criterion 4。`CheckHyphens = false` なので、`xn--` で始まってはならない。
+  復号した label に当てる（`xn--xn--abc-` は `xn--abc` に復号されて落ちる）。
+* §4.1 の criterion 6。General_Category=Mark の code point で始まってはならない。
+* §4.1 の criterion 7。どの code point も `valid` であること。**`mapped` や `ignored` や
+  `disallowed` では駄目である。** A-label は写像を済ませた後の形でなければならない。
 * 対象外の印が付いていないこと（正規化・Bidi・joiner が要る code point）。
 
-空の label（`xn--` そのもの）は criteria の対象外なので素通りする。
 非正規な綴りは拒否しない。Processing は label を復号した形に置き換え、
 ToASCII が符号化し直すので、出力は自然に正準形になる。
 -/
 def validALabel (t : IdnaTable) (decoded : List Char) : Bool :=
-  decoded.all (fun c => t.status c == .valid) && !decoded.any t.outOfModel
+  decoded.any (fun c => !decide (c.toNat < 0x80)) && !hasAcePrefix decoded &&
+    !startsWithMark t decoded &&
+    decoded.all (fun c => t.status c == .valid) && !decoded.any t.outOfModel
 
-/-- label 一つを ASCII に直す。 -/
+/--
+label 一つを ASCII に直す。UTS #46 §4 Processing の step 4（Convert/Validate）。
+
+`xn--` で始まる label は、ASCII だけなら復号して `validALabel` で確かめ、
+ASCII でない code point を含むなら誤りである（`xn--` の枝の 1）。
+`xn--` で始まらない label は Punycode に符号化する。criterion 6（Mark で始まらない）は
+`toASCII` が写像の直後に label ごとに見ているので、ここでは見ない。
+-/
 def labelToASCII (t : IdnaTable) (label : List Char) : Option (List Char) :=
   if label.all (fun c => c.toNat < 0x80) then
     -- 既に ASCII。`xn--` なら中身を復号して確かめる。
@@ -142,19 +168,41 @@ def labelToASCII (t : IdnaTable) (label : List Char) : Option (List Char) :=
       match Punycode.decode rest with
       | none => none
       | some decoded =>
-        if validALabel t decoded then
-          -- 復号した形で criteria を満たしたので、符号化し直した正準形を返す。
-          if decoded.isEmpty then some label
-          else some ("xn--".toList ++ Punycode.encode decoded)
+        -- 復号した形で criteria を満たしたので、符号化し直した正準形を返す。
+        if validALabel t decoded then some ("xn--".toList ++ Punycode.encode decoded)
         else none
     | _ => some label
+  else if hasAcePrefix label then none
   else some ("xn--".toList ++ Punycode.encode label)
 
 /--
-UTS #46 の ToASCII。この model の対象外なら `none`。
+UTS #46 の ToASCII。仕様が失敗とするか、この model の対象外なら `none`。
 
 `CheckHyphens = false`、`VerifyDnsLength = false`（URL Standard が beStrict = false で呼ぶ）。
 長さの検査と forbidden domain code point の検査は domain parser の側にある。
+
+## criterion 6 を対象外の印より先に見る理由
+
+UTS #46 の Processing は Map → Normalize → Break → Convert/Validate の順で、
+criterion 6（label は General_Category=Mark で始まらない）は最後の段にある。
+この model は Normalize（NFC）を持たないので、NFC が効きうる code point を含む domain は
+対象外として拒む（`outOfModel`）。結合クラス ≠ 0 の Mark はどれもこの印を持っている。
+
+それでも criterion 6 は印より先に、写像した直後の列で判定してよい。
+**label の先頭が Mark かどうかは NFC で変わらない**からである。
+
+* 結合クラス ≠ 0 の code point はすべて Mark である。
+  label の先頭の非 starter は、前が `.` か domain の先頭なので合成されず、
+  並べ替えも非 starter どうしなので、先頭には Mark が残る。
+* 正準分解を持つ code point は、分解の先頭の code point と Mark かどうかが一致する。
+  合成した結果の正準分解は合成の起点で始まるので、先頭が starter のときも、
+  分解しても合成しても先頭の code point の Mark かどうかは変わらない。
+
+二つの事実は Unicode 17.0.0 の `UnicodeData.txt` の全項で確かめた（例外は無い）。
+
+したがって先頭が Mark の label は、正規化の結果によらず仕様の上で失敗であり、
+「対象外」ではなく「失敗」として扱う。どちらも `none` なので出力は変わらないが、
+fixture の印の付け方（`out_of_model` を付けるかどうか）がこれで決まる。
 -/
 def toASCII (t : IdnaTable) (domain : List Char) : Option String :=
   -- URL Standard の domain parser step 2。
@@ -163,12 +211,13 @@ def toASCII (t : IdnaTable) (domain : List Char) : Option String :=
   -- （`ｗｗｗ` に復号され、その code point の status は `mapped` である）。
   -- ここを通さないと、表を渡したときだけ ASCII の domain の扱いが変わってしまう。
   if domain.all (fun c => c.toNat < 0x80) then asciiDomainToASCII domain
-  else if domain.any t.outOfModel then none
   else
     match mapAll t domain with
     | none => none
     | some m =>
-      if m.any t.outOfModel then none
+      -- Processing step 4 の criterion 6。対象外の印より先に見る（上の説明）。
+      if (strictSplit m '.').any (startsWithMark t) then none
+      else if domain.any t.outOfModel || m.any t.outOfModel then none
       else
         match (strictSplit m '.').mapM (labelToASCII t) with
         | none => none
@@ -201,16 +250,15 @@ theorem labelToASCII_ascii (t : IdnaTable) : ∀ (label l : List Char),
       · simp at h
       · next decoded _ =>
         split at h
-        · split at h
-          · rw [← Option.some.inj h] at hc
-            exact of_decide_eq_true (List.all_eq_true.mp hall c hc)
-          · rw [← Option.some.inj h] at hc
-            exact hpfx decoded (Punycode.encode_ascii decoded) hc
+        · rw [← Option.some.inj h] at hc
+          exact hpfx decoded (Punycode.encode_ascii decoded) hc
         · simp at h
     · rw [← Option.some.inj h] at hc
       exact of_decide_eq_true (List.all_eq_true.mp hall c hc)
-  · rw [← Option.some.inj h] at hc
-    exact hpfx label (Punycode.encode_ascii label) hc
+  · split at h
+    · simp at h
+    · rw [← Option.some.inj h] at hc
+      exact hpfx label (Punycode.encode_ascii label) hc
 
 theorem asciiDomainCheck_ne_empty {r s : String}
     (h : asciiDomainToASCII.asciiDomainCheck r = some s) : s.isEmpty = false := by
@@ -277,6 +325,8 @@ structure IdnaRange where
   hi : Nat
   status : IdnaStatus
   oom : Bool
+  /-- General_Category=Mark。 -/
+  mark : Bool
   mapping : List Nat
 deriving Repr, Inhabited
 
@@ -299,12 +349,17 @@ where
     · omega
     · omega
 
-/-- 区間の列から表を作る。引けない code point は disallowed かつ対象外とする。 -/
+/--
+区間の列から表を作る。引けない code point は disallowed かつ対象外とし、Mark でないとする。
+
+Mark でないとしても失敗の仕方が変わるだけで、disallowed なので `toASCII` は必ず `none` を返す。
+-/
 def tableOfRanges (rs : Array IdnaRange) : IdnaTable where
   status := fun c => match findRange rs c.toNat with | some r => r.status | none => .disallowed
   mapped := fun c =>
     match findRange rs c.toNat with | some r => r.mapping.map Char.ofNat | none => []
   outOfModel := fun c => match findRange rs c.toNat with | some r => r.oom | none => true
+  isMark := fun c => match findRange rs c.toNat with | some r => r.mark | none => false
 
 /--
 `Resolved` を区間の上で検査する。

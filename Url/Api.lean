@@ -84,49 +84,6 @@ def Url.hash (u : Url) : String :=
 def userinfoEncode (v : String) : String :=
   String.ofList (utf8PercentEncode userinfoSet v.toList)
 
-/--
-§6.1「potentially strip trailing spaces from an opaque path」。
-
-opaque path の末尾の空白は、query も fragment も無くなって初めて
-serialize の結果に効いてくる（それまでは後ろに `?` や `#` が続くので
-読み直しても同じ path に戻る）。そこで落とす。
--/
-def stripTrailingSpaces (u : Url) : Url :=
-  match u.path with
-  | .list _ => u
-  | .opaque p =>
-    if u.fragment.isSome || u.query.isSome then u
-    else { u with path := .opaque (String.ofList ((p.toList.reverse.dropWhile (· == ' ')).reverse)) }
-
-/-- `stripTrailingSpaces` は path 以外を変えない。 -/
-@[simp] theorem stripTrailingSpaces_query (u : Url) :
-    (stripTrailingSpaces u).query = u.query := by
-  unfold stripTrailingSpaces
-  split
-  · rfl
-  · split <;> rfl
-
-@[simp] theorem stripTrailingSpaces_fragment (u : Url) :
-    (stripTrailingSpaces u).fragment = u.fragment := by
-  unfold stripTrailingSpaces
-  split
-  · rfl
-  · split <;> rfl
-
-@[simp] theorem stripTrailingSpaces_scheme (u : Url) :
-    (stripTrailingSpaces u).scheme = u.scheme := by
-  unfold stripTrailingSpaces
-  split
-  · rfl
-  · split <;> rfl
-
-@[simp] theorem stripTrailingSpaces_host (u : Url) :
-    (stripTrailingSpaces u).host = u.host := by
-  unfold stripTrailingSpaces
-  split
-  · rfl
-  · split <;> rfl
-
 /-- §6.1 `protocol` setter。 -/
 def Url.setProtocol (u : Url) (v : String) : Url :=
   (basicUrlParseOverride (v ++ ":") u .scheme).getD u
@@ -166,16 +123,25 @@ def Url.setPathname (u : Url) (v : String) : Url :=
 def dropLeading (d : Char) (v : String) : String :=
   String.ofList (match v.toList with | c :: t => if c == d then t else v.toList | [] => [])
 
-/-- §6.1 `search` setter。先頭の `?` は一つだけ落とす。 -/
+/--
+§6.1 `search` setter。先頭の `?` は一つだけ落とす。
+
+空文字列なら query を null にするだけで、path には触れない（step 2）。
+query object の list を空にする部分は `URLSearchParams` の側の話で、ここには無い。
+-/
 def Url.setSearch (u : Url) (v : String) : Url :=
-  if v.isEmpty then stripTrailingSpaces { u with query := none }
+  if v.isEmpty then { u with query := none }
   else
     (basicUrlParseOverride (dropLeading '?' v) { u with query := some "" } .query).getD
       { u with query := some "" }
 
-/-- §6.1 `hash` setter。先頭の `#` は一つだけ落とす。 -/
+/--
+§6.1 `hash` setter。先頭の `#` は一つだけ落とす。
+
+空文字列なら fragment を null にするだけで、path には触れない（step 1）。
+-/
 def Url.setHash (u : Url) (v : String) : Url :=
-  if v.isEmpty then stripTrailingSpaces { u with fragment := none }
+  if v.isEmpty then { u with fragment := none }
   else
     (basicUrlParseOverride (dropLeading '#' v) { u with fragment := some "" } .fragment).getD
       { u with fragment := some "" }

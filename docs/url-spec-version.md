@@ -27,24 +27,27 @@ runner はこの印だけを見て対象外を決め、実行結果から推測�
 ## Unicode / UTS #46
 
 * `test/url/uts46-table.json` — Unicode 17.0.0 の `IdnaMappingTable.txt` を
-  範囲の配列に畳んだもの（8,509 範囲）。
+  範囲の配列に畳んだもの（8,724 範囲）。
   `UseSTD3ASCIIRules=false` / `Transitional_Processing=false` で読んである。
-* 各範囲は `[lo, hi, status, out_of_model]` と、`mapped` のときの写像先。
-  `out_of_model` は canonical combining class ≠ 0、NFC_Quick_Check ≠ Yes、
+* 各範囲は `[lo, hi, status, flags]` と、`mapped` のときの写像先。
+  `flags` は bit の和で、1 が out_of_model、2 が General_Category=Mark（Mn・Mc・Me）。
+  out_of_model は canonical combining class ≠ 0、NFC_Quick_Check ≠ Yes、
   Bidi_Class ∈ {R, AL, AN}、Hangul、deviation の code point に付けてある。
   正規化と Bidi 検査をこの model が持たないためで、印の付いた code point を
   含む domain は `toASCII` が `none` を返す。
+  Mark の印は UTS #46 §4.1 の validity criterion 6（label は Mark で始まらない）に使う。
+* UTS #46 本文は Unicode 17.0.0 版（revision 35、2025-09-04）に合わせてある。
 * `test/url/rfc3492-punycode.json` — RFC 3492 §7.1 の例をそのまま写したもの。
 
-表は `test/url/generate-uts46.rb` が作る。Unicode の配布ファイル四つ
+表は `test/url/generate-uts46.rb` が作る。Unicode の配布ファイル五つ
 （`IdnaMappingTable.txt`、`DerivedCombiningClass.txt`、`DerivedBidiClass.txt`、
-`DerivedNormalizationProps.txt`）を置いた directory を渡す。
+`DerivedGeneralCategory.txt`、`DerivedNormalizationProps.txt`）を置いた directory を渡す。
 
 ```sh
 ruby test/url/generate-uts46.rb DIR > test/url/uts46-table.json
 ```
 
-Unicode の版を上げるときは四つを取り直して走らせ、
+Unicode の版を上げるときは五つを取り直して走らせ、
 `--wpt` と `--setters` を表付きで通してから上げる。
 
 表は証明の中には入れない。`Url/Idna.lean` の `IdnaTable` が interface で、

@@ -1845,7 +1845,7 @@
       "approx": [
         {
           "steps": "3-4",
-          "what": "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。characterData record の並びが違う。木と range の最終状態の一致は未証明"
+          "what": "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。後ろに Text の兄弟が無い Text でも本文は空の data で replace data を呼んで characterData record を積むが、model は呼ばない。characterData record の数と並びが違う。木と range の最終状態の一致は未証明"
         },
         {
           "steps": "6",
@@ -2903,12 +2903,7 @@
         "Dom.Spec.RemoveNamedItemResult"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "3",
-          "what": "removeAttribute は戻り値を捨てるので、取り除いた `Attr` を状態に残さない（removeNamedItem は残す）"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "concept-element-attributes-remove-by-namespace",
@@ -2922,12 +2917,7 @@
         "Dom.Spec.RemoveAttributeNSResult"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "3",
-          "what": "removeAttributeNS は戻り値を捨てるので、取り除いた `Attr` を状態に残さない"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-element-namespaceuri",
@@ -4016,14 +4006,15 @@
       ],
       "impl": [
         "Dom.rangeDeleteContents",
-        "Dom.rangeInsertNode"
+        "Dom.rangeInsertNode",
+        "Dom.contentsInto"
       ],
       "spec": [],
       "omit": [],
       "approx": [
         {
           "steps": "*",
-          "what": "専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く"
+          "what": "専用の定義は無く、使う側（deleteContents step 1・insert step 13・extract と clone the contents の step 2）が `r.start == r.end` を直に書く"
         }
       ]
     },
@@ -4101,7 +4092,12 @@
         "Dom.liveRangePreRemoveBP_comm"
       ],
       "omit": [],
-      "approx": []
+      "approx": [
+        {
+          "steps": "4-7",
+          "what": "部分木の外へ移す調整と offset の調整を、range ごとに合成して一度に当てる（二つは可換：`liveRangePreRemoveBP_comm`）"
+        }
+      ]
     },
     {
       "alg": "concept-range-bp-set",
@@ -4314,7 +4310,12 @@
         "Dom.Spec.rangeDeleteContents_result_sound"
       ],
       "omit": [],
-      "approx": []
+      "approx": [
+        {
+          "steps": "8",
+          "what": "点を step 9-11 の後で置き、最終の木で妥当でなければ調整後の start を使う（結果が同じことは `rangeDeleteContents_result_sound`）"
+        }
+      ]
     },
     {
       "alg": "concept-range-insert",
@@ -4342,6 +4343,10 @@
       ],
       "omit": [],
       "approx": [
+        {
+          "steps": "10-11",
+          "what": "newOffset を前もって数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める（関係との一致は `rangeInsertNode_result_sound_of_admissible`）"
+        },
         {
           "steps": "13",
           "what": "何も入らなかったとき（空の DocumentFragment）に置く end を、実行時に妥当か検査する。本文の newOffset はそのとき必ず妥当で、関係との一致は検査が通ることも含めて証明してある"
@@ -4893,6 +4898,7 @@
         "Dom.mirrorPreorder",
         "Dom.lastDescendant",
         "Dom.mirrorLastDescendant",
+        "Dom.cutAtRootExit",
         "Dom.takeUntilIncl",
         "Dom.walkerStep",
         "Dom.walkerRun"
@@ -4900,6 +4906,9 @@
       "spec": [
         "Dom.Spec.WalkerFirstChildResult",
         "Dom.Spec.WalkerLastChildResult",
+        "Dom.Spec.WalkerChildCandidate",
+        "Dom.Spec.WalkerLastChildCandidate",
+        "Dom.Spec.LastDescendantOf",
         "Dom.Spec.MirrorPrecedes",
         "Dom.Spec.MirrorLastDescendantOf"
       ],
@@ -4907,7 +4916,7 @@
       "approx": [
         {
           "steps": "2-4",
-          "what": "current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+          "what": "current の（自身を除く）部分木を tree order（last なら鏡像）に並べた列で探す。step 3.4.4 の「parent が root」は、root に children があるときだけ root の最後の inclusive descendant（last なら鏡像の順序で最後のもの）で列を切ることにあたる。root が葉なら root へ親として上がることは無いので切らない。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
         }
       ]
     },
@@ -4952,16 +4961,21 @@
       ],
       "impl": [
         "Dom.walkerSibling",
-        "Dom.walkerSiblingSearch",
+        "Dom.siblingLevels",
         "Dom.siblingCandidates",
         "Dom.followingSiblings",
         "Dom.precedingSiblings",
+        "Dom.cutAtRootExit",
+        "Dom.lastDescendant",
+        "Dom.mirrorLastDescendant",
         "Dom.walkerStep",
         "Dom.walkerRun"
       ],
       "spec": [
         "Dom.Spec.WalkerNextSiblingResult",
         "Dom.Spec.WalkerPreviousSiblingResult",
+        "Dom.Spec.WalkerNextSiblingCandidate",
+        "Dom.Spec.WalkerPreviousSiblingCandidate",
         "Dom.Spec.SiblingClimb",
         "Dom.Spec.FollowingSibling",
         "Dom.Spec.PrecedingSibling"
@@ -4970,7 +4984,7 @@
       "approx": [
         {
           "steps": "3",
-          "what": "段ごとに兄弟の部分木を順に並べた列で探し、見つからなければ親へ上がる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+          "what": "段ごとに兄弟の部分木を順に並べ、親へ上がれる（root でも accept されるものでもない）間だけ次の段を継いだ列で探す。兄弟の部分木の中から上がるときの step 3.3-3.4「親が root なら null」は、root がその部分木の中にあって children を持つとき、root の最後の inclusive descendant（previous なら鏡像の順序で最後のもの）で列を切ることにあたる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
         }
       ]
     },
@@ -5015,12 +5029,16 @@
       ],
       "impl": [
         "Dom.walkerPreviousNode",
+        "Dom.previousStopsAtRoot",
+        "Dom.precedingSiblings",
         "Dom.takeUntilIncl",
         "Dom.walkerStep",
         "Dom.walkerRun"
       ],
       "spec": [
         "Dom.Spec.WalkerPreviousNodeResult",
+        "Dom.Spec.WalkerPreviousCandidate",
+        "Dom.Spec.PreviousStopsAtRoot",
         "Dom.Spec.walkerPreviousNode_result_sound",
         "Dom.Spec.walkerPreviousNode_result_complete"
       ],
@@ -5028,7 +5046,7 @@
       "approx": [
         {
           "steps": "2",
-          "what": "current の木の tree order を current の手前から逆にたどり、root まで（root を含む）で切る。current が root なら何も見ない。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
+          "what": "current の木の tree order を current の手前から逆にたどる。current が root なら何も見ない。root に children があるか（step 2 の while 条件）、root に前の兄弟が無ければ（step 2.3）root まで（root を含む）で切り、root が葉で前の兄弟を持つなら切らずに root を越えて進む。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある"
         }
       ]
     },

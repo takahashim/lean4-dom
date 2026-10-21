@@ -14,8 +14,8 @@ model の attribute は element の状態のままだが、**同一性は `AttrI
 * **どの element にも付いていない `Attr`** は `DOMState.detachedAttrs` にいる。
   `createAttribute` が作ったもの、`removeAttributeNode` が返したもの、
   `setAttributeNode` が押し出したものである。
-* 名前で消した attribute（`removeAttribute`）は入らない。仕様では element を null に
-  するだけで object は残るが、それを指す参照がどこにも無いので観測できない。
+* 名前で消した attribute（`removeAttribute`・`removeAttributeNS`）も入る。仕様の "remove an attribute" は
+  element を null にするだけで object は残るので、先に `getAttributeNode` で得た参照から読み書きできる。
 
 `setAttributeNodeNS` は仕様上 `setAttributeNode` と step が同一なので、別に置かない。
 attribute の node document は `Attr.ownerDocument` で持ち、"replace an attribute" の step 4 と

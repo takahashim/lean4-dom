@@ -1,0 +1,24 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "importNode",
+      "convert a JavaScript value to a dictionary"
+    ],
+    "steps": "WebIDL の union と dictionary への変換",
+    "note": "importNode(node, options) の options は、node の種類によらず method steps の前に (boolean or ImportNodeOptions) へ変換される。CustomElementRegistry を表せないので、undefined でない customElementRegistry は TypeError になる。node が Attr でも同じで、先に options を持たない importNode は成功する。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html",
+      "attributes": [ { "namespace": null, "prefix": null, "localName": "a", "value": "1" } ] }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "importNode", "document": 0, "node": { "attr": 1 } },
+    { "op": "importNode", "document": 0, "node": { "attr": 1 }, "options": { "customElementRegistry": 1 } }
+  ]
+}

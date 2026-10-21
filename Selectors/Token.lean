@@ -10,8 +10,10 @@ selector を読むのに要る範囲の tokenizer。版は `docs/selectors-spec-
 
 ## 仕様との差
 
-* **`<url-token>` と `<bad-url-token>` を作らない。** `url(` は普通の function-token として
-  読む。selector に `url()` は現れないので、どちらの読み方でも `parse a selector` は失敗する。
+* **`<url-token>` と `<bad-url-token>` は本文どおり作る**（§4.3.4・§4.3.6・§4.3.14）。
+  selector の文法はどちらも受け付けないが、`:is()` の forgiving な list の中では
+  読み方が結果を変える。`:is(url(a(b)), p)` は bad-url-token のあとの `)` が `:is(` を閉じ、
+  残りの `, p)` が top-level に出るので失敗する。function-token として読むと `:is(p)` になってしまう。
 * **`<unicode-range-token>` を作らない。** "consume a token" の `unicode ranges allowed` は
   selector では false である。
 * **surrogate を U+FFFD にする前処理は無い。** Lean の `Char` は surrogate を持てないので
@@ -67,6 +69,8 @@ def CH_PIPE : Char := Char.ofNat 0x7C
 def CH_CARET : Char := Char.ofNat 0x5E
 def CH_DOLLAR : Char := Char.ofNat 0x24
 def CH_EQUALS : Char := Char.ofNat 0x3D
+def CH_DELETE : Char := Char.ofNat 0x7F
+def CH_LINE_TAB : Char := Char.ofNat 0x0B
 
 /-! ## code point の分類（§4.2） -/
 
@@ -127,6 +131,10 @@ inductive Token where
   | dimension (n : Num) (unit : String)
   | cdo
   | cdc
+  /-- `<url-token>`。`url(` に引用符の無い値が続いたもの（§4.3.6）。 -/
+  | url (value : String)
+  /-- `<bad-url-token>`。 -/
+  | badUrl
 deriving DecidableEq, Repr, Inhabited
 
 /-! ## 前処理（§3.3） -/
@@ -540,29 +548,7 @@ theorem consumeNumericToken_le (l : List Char) :
       simp only []; omega
     · simp
 
-/--
-§4.3.4 "consume an ident-like token"。
-
-**`url(` を特別扱いしない**（冒頭の差の項を見よ）。`url(` は function-token になる。
--/
-def consumeIdentLike (l : List Char) : Token × List Char :=
-  let s := consumeIdentSeq l
-  if (s.2.head?.map (fun c => c == CH_LPAREN)).getD false then
-    (Token.function (String.ofList s.1), s.2.tail)
-  else (Token.ident (String.ofList s.1), s.2)
-
-theorem consumeIdentLike_le (l : List Char) :
-    (consumeIdentLike l).2.length <= (consumeIdentSeq l).2.length := by
-  show (if ((consumeIdentSeq l).2.head?.map (fun c => c == CH_LPAREN)).getD false then
-      (Token.function (String.ofList (consumeIdentSeq l).1), (consumeIdentSeq l).2.tail)
-    else (Token.ident (String.ofList (consumeIdentSeq l).1), (consumeIdentSeq l).2)).2.length
-    <= (consumeIdentSeq l).2.length
-  split
-  · have := @List.length_tail _ (consumeIdentSeq l).2
-    simp only []; omega
-  · simp
-
-/-! ## whitespace と comment -/
+/-! ## url token（§4.3.6・§4.3.14） -/
 
 def skipWhitespace : List Char -> List Char
   | [] => []
@@ -575,6 +561,188 @@ theorem skipWhitespace_le : ∀ (l : List Char), (skipWhitespace l).length <= l.
     · have := skipWhitespace_le rest
       simp only [List.length_cons]; omega
     · simp
+
+
+/-- 仕様の non-printable code point（§4.2）。 -/
+def isNonPrintable (c : Char) : Bool :=
+  let n := c.toNat
+  n <= 0x08 || n == 0x0B || (0x0E <= n && n <= 0x1F) || n == 0x7F
+
+/--
+§4.3.14 "consume the remnants of a bad url"。`)` か入力の終わりまで読み捨てる。
+valid escape は escape として読むので、`\)` では止まらない。
+-/
+def badUrlRemnants : List Char -> List Char
+  | [] => []
+  | c :: rest =>
+    if c == CH_RPAREN then rest
+    else if startsValidEscape (c :: rest) then badUrlRemnants (consumeEscape rest).2
+    else badUrlRemnants rest
+termination_by l => l.length
+decreasing_by
+  all_goals simp_wf
+  all_goals have := consumeEscape_le_self rest
+  all_goals omega
+
+theorem badUrlRemnants_le : ∀ (l : List Char), (badUrlRemnants l).length <= l.length
+  | [] => by simp [badUrlRemnants]
+  | c :: rest => by
+    rw [badUrlRemnants]
+    split
+    · simp
+    · split
+      · have h1 := consumeEscape_le_self rest
+        have h2 := badUrlRemnants_le (consumeEscape rest).2
+        simp only [List.length_cons]; omega
+      · have := badUrlRemnants_le rest
+        simp only [List.length_cons]; omega
+termination_by l => l.length
+decreasing_by
+  all_goals simp_wf
+  all_goals have := consumeEscape_le_self rest
+  all_goals omega
+
+/--
+§4.3.6 "consume a url token" の step 3 の繰り返し。先頭の whitespace は読んだあとである。
+-/
+def urlAux (acc : List Char) : List Char -> Token × List Char
+  | [] => (Token.url (String.ofList acc.reverse), [])
+  | c :: rest =>
+    if c == CH_RPAREN then (Token.url (String.ofList acc.reverse), rest)
+    else if isWhitespace c then
+      match skipWhitespace rest with
+      | [] => (Token.url (String.ofList acc.reverse), [])
+      | d :: r =>
+        if d == CH_RPAREN then (Token.url (String.ofList acc.reverse), r)
+        else (Token.badUrl, badUrlRemnants (d :: r))
+    else if c == CH_QUOTE || c == CH_APOS || c == CH_LPAREN || isNonPrintable c then
+      (Token.badUrl, badUrlRemnants rest)
+    else if c == CH_BACKSLASH then
+      if startsValidEscape (c :: rest) then
+        urlAux ((consumeEscape rest).1 :: acc) (consumeEscape rest).2
+      else (Token.badUrl, badUrlRemnants rest)
+    else urlAux (c :: acc) rest
+termination_by l => l.length
+decreasing_by
+  all_goals simp_wf
+  all_goals have := consumeEscape_le_self rest
+  all_goals omega
+
+theorem urlAux_le : ∀ (acc l : List Char), (urlAux acc l).2.length <= l.length
+  | _, [] => by simp [urlAux]
+  | acc, c :: rest => by
+    have hws := skipWhitespace_le rest
+    rw [urlAux]
+    split
+    · simp
+    · split
+      · split
+        · simp
+        · next d r heq =>
+          rw [heq] at hws
+          split
+          · simp only [List.length_cons] at hws ⊢; omega
+          · have := badUrlRemnants_le (d :: r)
+            simp only [List.length_cons] at hws this ⊢; omega
+      · split
+        · have := badUrlRemnants_le rest
+          simp only [List.length_cons]; omega
+        · split
+          · split
+            · have h1 := consumeEscape_le_self rest
+              have h2 := urlAux_le ((consumeEscape rest).1 :: acc) (consumeEscape rest).2
+              simp only [List.length_cons]; omega
+            · have := badUrlRemnants_le rest
+              simp only [List.length_cons]; omega
+          · have := urlAux_le (c :: acc) rest
+            simp only [List.length_cons]; omega
+termination_by _ l => l.length
+decreasing_by
+  all_goals simp_wf
+  all_goals have := consumeEscape_le_self rest
+  all_goals omega
+
+/-- §4.3.6 "consume a url token"。`url(` は読んだあとである。 -/
+def consumeUrlToken (l : List Char) : Token × List Char := urlAux [] (skipWhitespace l)
+
+theorem consumeUrlToken_le (l : List Char) : (consumeUrlToken l).2.length <= l.length :=
+  Nat.le_trans (urlAux_le [] _) (skipWhitespace_le l)
+
+/-! ## ident 風 token（§4.3.4） -/
+
+def CH_LOWER_U : Char := Char.ofNat 0x75
+def CH_UPPER_U : Char := Char.ofNat 0x55
+def CH_LOWER_R : Char := Char.ofNat 0x72
+def CH_UPPER_R : Char := Char.ofNat 0x52
+def CH_LOWER_L : Char := Char.ofNat 0x6C
+def CH_UPPER_L : Char := Char.ofNat 0x4C
+
+/-- 読んだ ident sequence が "url" に ASCII 大文字小文字を区別せずに一致するか。 -/
+def isUrlName : List Char -> Bool
+  | [a, b, c] =>
+    (a == CH_LOWER_U || a == CH_UPPER_U) && (b == CH_LOWER_R || b == CH_UPPER_R) &&
+      (c == CH_LOWER_L || c == CH_UPPER_L)
+  | _ => false
+
+/--
+`url(` のあと、"While the next two input code points are whitespace, consume the next input
+code point"。whitespace は高々一つ残る。
+-/
+def dropUrlWs : List Char -> List Char
+  | c :: d :: rest =>
+    if isWhitespace c && isWhitespace d then dropUrlWs (d :: rest) else c :: d :: rest
+  | l => l
+
+theorem dropUrlWs_le : ∀ (l : List Char), (dropUrlWs l).length <= l.length
+  | [] => by simp [dropUrlWs]
+  | [_] => by simp [dropUrlWs]
+  | c :: d :: rest => by
+    rw [dropUrlWs]; split
+    · have := dropUrlWs_le (d :: rest)
+      simp only [List.length_cons] at *; omega
+    · simp
+
+/-- 引用符か。 -/
+def isQuote (c : Char) : Bool := c == CH_QUOTE || c == CH_APOS
+
+/-- 次の一つか二つの code point が、引用符か、whitespace に続く引用符か。 -/
+def quoteAhead : List Char -> Bool
+  | [] => false
+  | [c] => isQuote c
+  | c :: d :: _ => isQuote c || (isWhitespace c && isQuote d)
+
+/--
+§4.3.4 "consume an ident-like token"。
+
+名前が "url" で `(` が続くとき、引用符の値なら function-token、そうでなければ
+`consumeUrlToken` で url-token か bad-url-token を作る。
+-/
+def consumeIdentLike (l : List Char) : Token × List Char :=
+  let s := consumeIdentSeq l
+  if (s.2.head?.map (fun c => c == CH_LPAREN)).getD false then
+    if isUrlName s.1 then
+      let r := dropUrlWs s.2.tail
+      if quoteAhead r then (Token.function (String.ofList s.1), r)
+      else consumeUrlToken r
+    else (Token.function (String.ofList s.1), s.2.tail)
+  else (Token.ident (String.ofList s.1), s.2)
+
+theorem consumeIdentLike_le (l : List Char) :
+    (consumeIdentLike l).2.length <= (consumeIdentSeq l).2.length := by
+  have ht := @List.length_tail _ (consumeIdentSeq l).2
+  unfold consumeIdentLike
+  dsimp only
+  split
+  · split
+    · have h1 := dropUrlWs_le (consumeIdentSeq l).2.tail
+      split
+      · dsimp only; omega
+      · have h2 := consumeUrlToken_le (dropUrlWs (consumeIdentSeq l).2.tail)
+        omega
+    · dsimp only; omega
+  · simp
+
+/-! ## whitespace と comment -/
 
 /-- `*/` までを読み飛ばす。閉じずに終わってもそこで止める（仕様の parse error）。 -/
 def skipCommentBody : List Char -> List Char

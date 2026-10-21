@@ -18,7 +18,9 @@ combinator が来たら一つ前の compound を閉じる。`Complex` は右端�
 
 ## 仕様との差
 
-* **namespace prefix は `*|` だけ受ける。** `ns|E` は宣言する手段が無いので失敗する。
+* **namespace prefix は `*|` だけ受ける。** `ns|E` は宣言する手段が無いので失敗する
+  （宣言されていない prefix は本文でも invalid）。空の prefix の `|E`・`|*`・`[|att]` は
+  宣言を要さず本文では有効だが、model は読まずに失敗する（`docs/selectors-spec-version.md`）。
   素の `E` は既定 namespace が無い状況と同じで、namespace を問わない（§6.1）。
 * **pseudo-element は受けない。** `::before` も `:before` も失敗する。
 -/
@@ -41,6 +43,30 @@ def csizeC : Component -> Nat
 def csize : List Component -> Nat
   | [] => 0
   | c :: t => csizeC c + csize t
+
+end
+
+mutual
+
+/-- component 一つに、bad-string・bad-url・対応しない閉じ括弧が現れない。 -/
+def anyValueC : Component -> Bool
+  | .tok t =>
+    match t with
+    | .badString | .badUrl | .rparen | .rbracket | .rbrace => false
+    | _ => true
+  | .func _ a => anyValue a
+  | .block _ a => anyValue a
+
+/--
+component 列が CSS Values の `<any-value>` に当たるか（空でもよい）。
+
+`<any-value>` は bad-string-token・bad-url-token・対応しない `)` `]` `}` を含まない
+token の並びである。`toComponents` は対応する閉じ括弧を block に畳むので、木の中に
+`.tok` として残った閉じ括弧はすべて対応しない閉じ括弧である。
+-/
+def anyValue : List Component -> Bool
+  | [] => true
+  | c :: t => anyValueC c && anyValue t
 
 end
 
@@ -135,25 +161,30 @@ def parseB (a : Int) (l : List Component) : Option (AnB × List Component) :=
     else some (⟨a, 0⟩, l)
   | _ => some (⟨a, 0⟩, l)
 
-/-- `n` で始まる ident 形。`keywords` が false なら `odd`/`even` を受けない。 -/
-def identAnB (keywords : Bool) (s : String) (rest : List Component) :
+/--
+`n` か `-n` で始まる ident 形。`noPlus` は前に `'+'` が付いていないこと。
+
+§9.2 の文法で `'+'?` が付くのは `n`・`n-`・`n-*` の形だけである。`odd`・`even` と
+`-n`・`-n-`・`-n-*` の形は `'+'` を前に置けないので、`noPlus` が false なら受けない。
+-/
+def identAnB (noPlus : Bool) (s : String) (rest : List Component) :
     Option (AnB × List Component) :=
   let s0 := asciiLowercase s
-  if keywords && s0 == "odd" then some (⟨2, 1⟩, rest)
-  else if keywords && s0 == "even" then some (⟨2, 0⟩, rest)
+  if noPlus && s0 == "odd" then some (⟨2, 1⟩, rest)
+  else if noPlus && s0 == "even" then some (⟨2, 0⟩, rest)
   else if s0 == "n" then parseB 1 rest
-  else if s0 == "-n" then parseB (-1) rest
+  else if noPlus && s0 == "-n" then parseB (-1) rest
   else if s0 == "n-" then
     match signlessInt (dropWs rest) with
     | some (v, r) => some (⟨1, -(v : Int)⟩, r)
     | none => none
-  else if s0 == "-n-" then
+  else if noPlus && s0 == "-n-" then
     match signlessInt (dropWs rest) with
     | some (v, r) => some (⟨-1, -(v : Int)⟩, r)
     | none => none
   else
     match digitsAfter "-n-" s0 with
-    | some v => some (⟨-1, -(v : Int)⟩, rest)
+    | some v => if noPlus then some (⟨-1, -(v : Int)⟩, rest) else none
     | none =>
       match digitsAfter "n-" s0 with
       | some v => some (⟨1, -(v : Int)⟩, rest)
@@ -400,12 +431,18 @@ def scan (cfg : ScanCfg) (st : ScanSt) : List Component -> Option SelectorList
   | .tok .colon :: .func name args :: rest =>
     let nm := asciiLowercase name
     if nm == "is" || nm == "where" then
-      let inner : ScanCfg := { forgiving := true, relative := false, inHas := cfg.inHas }
-      match scan inner (initSt inner []) args with
-      | some l =>
-        let s : Simple := if nm == "is" then .isSel l else .whereSel l
-        scan cfg { st with parts := s :: st.parts } rest
-      | none => if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
+      -- §18.1：`<forgiving-selector-list>` は構文上 `<any-value>?` で、項目を捨てるのはそのあと。
+      -- bad-string・bad-url・対応しない閉じ括弧を含む引数は、項目を捨てる前に全体が無効になる。
+      if !anyValue args then
+        if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
+      else
+        let inner : ScanCfg := { forgiving := true, relative := false, inHas := cfg.inHas }
+        match scan inner (initSt inner []) args with
+        | some l =>
+          let s : Simple := if nm == "is" then .isSel l else .whereSel l
+          scan cfg { st with parts := s :: st.parts } rest
+        | none =>
+          if cfg.forgiving then scan cfg (initSt cfg st.done) (dropToComma rest) else none
     else if nm == "not" then
       let inner : ScanCfg := { forgiving := false, relative := false, inHas := cfg.inHas }
       match scan inner (initSt inner []) args with

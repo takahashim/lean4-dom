@@ -741,8 +741,8 @@ ECMA-262 の「the Number value for x」は、x に最も近い IEEE 754 binary6
 | `Dom.Spec.nextNode_result_sound` | `Dom/Spec/Traverse.lean` |
 | `Dom.Spec.previousNode_result_sound` | 同上 |
 | `Dom.Spec.walkerNextNode_result_sound` | `Dom/Spec/Walker.lean` |
-| `Dom.Spec.walkerPreviousNode_result_sound` | 同上 |
-| `Dom.Spec.walkerFirstChild_result_sound` | 同上 |
+| `Dom.Spec.walkerPreviousNode_result_sound` | `Dom/Spec/WalkerSibling.lean` |
+| `Dom.Spec.walkerFirstChild_result_sound` | `Dom/Spec/Walker.lean` |
 | `Dom.Spec.walkerParentNode_result_sound` | 同上 |
 
 ```lean
@@ -1128,8 +1128,10 @@ node list にある（`ListedIn`）ので、二つは同じになる。この条
 
 `lastChild()` と `previousSibling()` は、子の列を反転した木（`mirrorTree`）で `firstChild()` と `nextSibling()` を走らせたものに
 等しい（`walkerLastChild_eq`・`walkerPreviousSibling_eq`）。証明はその等式と、反転した木の語彙と元の木の語彙の対応から出す。
-`nextSibling()` は、段ごとの候補を止まる所まで並べた列（`sibLevels`）が関係の候補と一致し（`mem_sibLevels`）、tree order に
-整列している（`sibLevels_pairwise`）ことから示す。
+`nextSibling()` は、段ごとの候補を止まる所まで並べた列（`siblingLevels`）が上がれる段の兄弟の部分木と一致し
+（`mem_siblingLevels`）、tree order に整列している（`siblingLevels_pairwise`）ことと、root が兄弟の部分木の中にあって
+children を持つときに root の最後の inclusive descendant で切る（`cutAtRootExit`）ことが、関係の
+「root へ親として上がったら止まる」に当たる（`ancestor_root_of_climb`）ことから示す。
 
 ## 34. TreeWalker の走査の関係は結果を一つに決める（completeness）
 

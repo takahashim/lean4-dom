@@ -701,8 +701,12 @@ URL Standard §4.7 の origin。
 
 `blob:blob:...` のような入れ子は仕様上も一段だけ辿れば足りる
 （読み直した URL の scheme が `blob` なら http/https/file ではないので opaque になる）。
+
+path を読み直すのは basic URL parser なので、ToASCII の hook は `basicUrlParse` と
+同じものを受け取る。読み直す path の host が非 ASCII を percent-encode したもの
+（`blob:https://%E6%97%A5%E6%9C%AC.jp/x`）なら、hook が無いと origin が出ない。
 -/
-def origin (u : Url) : Origin :=
+def origin (u : Url) (toAscii : List Char → Option String := asciiDomainToASCII) : Origin :=
   if u.scheme == "ftp" || u.scheme == "http" || u.scheme == "https" ||
       u.scheme == "ws" || u.scheme == "wss" then
     match u.host with
@@ -711,7 +715,7 @@ def origin (u : Url) : Origin :=
   else if u.scheme == "blob" then
     match u.path with
     | .opaque p =>
-      match basicUrlParse p none with
+      match basicUrlParse p none toAscii with
       | none => none
       | some p' =>
         if p'.scheme == "http" || p'.scheme == "https" then
@@ -725,10 +729,10 @@ def origin (u : Url) : Origin :=
 /-! ### origin の性質 -/
 
 /-- **special でも `blob` でもない scheme の origin は opaque である。** -/
-theorem origin_eq_none_of_other {u : Url}
+theorem origin_eq_none_of_other {u : Url} {toAscii : List Char → Option String}
     (h1 : u.scheme ≠ "ftp") (h2 : u.scheme ≠ "http") (h3 : u.scheme ≠ "https")
     (h4 : u.scheme ≠ "ws") (h5 : u.scheme ≠ "wss") (h6 : u.scheme ≠ "blob") :
-    origin u = none := by
+    origin u toAscii = none := by
   unfold origin
   rw [if_neg (by simp [h1, h2, h3, h4, h5]), if_neg (by simp [h6])]
 
@@ -738,8 +742,8 @@ theorem origin_eq_none_of_other {u : Url}
 `blob` は path を URL として読み直すので、`u.host` が null でも
 読み直した先の host から tuple origin が出る。
 -/
-theorem origin_eq_none_of_host_none {u : Url} (h : u.host = none) (hb : u.scheme ≠ "blob") :
-    origin u = none := by
+theorem origin_eq_none_of_host_none {u : Url} {toAscii : List Char → Option String}
+    (h : u.host = none) (hb : u.scheme ≠ "blob") : origin u toAscii = none := by
   unfold origin
   split
   · rw [h]
@@ -750,10 +754,11 @@ theorem origin_eq_none_of_host_none {u : Url} (h : u.host = none) (hb : u.scheme
 
 `blob` の枝だけは読み直した URL のものになるので、そこは除く。
 -/
-theorem origin_of_special {u : Url} {o : String × Host × Option Nat}
+theorem origin_of_special {u : Url} {toAscii : List Char → Option String}
+    {o : String × Host × Option Nat}
     (hs : u.scheme = "ftp" ∨ u.scheme = "http" ∨ u.scheme = "https" ∨
       u.scheme = "ws" ∨ u.scheme = "wss")
-    (h : origin u = some o) : o.1 = u.scheme ∧ some o.2.1 = u.host ∧ o.2.2 = u.port := by
+    (h : origin u toAscii = some o) : o.1 = u.scheme ∧ some o.2.1 = u.host ∧ o.2.2 = u.port := by
   unfold origin at h
   rw [if_pos (by rcases hs with h|h|h|h|h <;> simp [h])] at h
   cases hh : u.host with

@@ -71,7 +71,7 @@ def entries : List Entry := [
     impl := [``Dom.normalize, ``Dom.normalizeList, ``Dom.normalizeRun, ``Dom.normalizeMergeOne,
              ``Dom.normalizeMergeRange, ``Dom.normalizeMergeBP, ``Dom.followingTexts]
     spec := [``Dom.Spec.NormalizeEngineSpec, ``Dom.Spec.NormalizeStandardSpec, ``Dom.Spec.NormalizeResult]
-    approx := [("3-4", "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。characterData record の並びが違う。木と range の最終状態の一致は未証明"),
+    approx := [("3-4", "run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。後ろに Text の兄弟が無い Text でも本文は空の data で replace data を呼んで characterData record を積むが、model は呼ばない。characterData record の数と並びが違う。木と range の最終状態の一致は未証明"),
                ("6", "兄弟ごとに boundary point を渡してからその兄弟を remove する。step 6 と step 7 を兄弟ごとに交互に行う"),
                ("7", "兄弟ごとに step 6 の直後に remove する（上と同じ）")] },
   { alg := "concept-node-clone"

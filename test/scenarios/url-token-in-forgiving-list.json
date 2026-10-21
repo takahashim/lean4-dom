@@ -1,0 +1,69 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-ident-like-token",
+    "algorithm": [
+      "consume an ident-like token",
+      "consume a url token",
+      "consume the remnants of a bad url"
+    ],
+    "steps": "名前が \"url\" に ASCII case-insensitive に一致して `(` が続くとき、引用符（と、その前の whitespace 一つ）が続けば function-token、そうでなければ consume a url token。url token の中の `(`・引用符・non-printable code point、whitespace の後ろの `)` と EOF 以外、valid でない escape は bad-url-token になり、consume the remnants of a bad url が次の `)` まで（valid escape は escape として）読み捨てる",
+    "note": "selector の文法は url-token も bad-url-token も受け付けない。それでも forgiving な `:is()` の中では token の切り方が結果を変える。`url(a\\))` は url-token が escape した `)` を値に含めて次の `)` までを食うので、`:is()` の中に `, p` が残って p に当たる（function-token として読むと `url(` と `:is(` が閉じて `, p)` が top-level に残り、SyntaxError になる）。`url(a)` と `URL( a )` は url-token、`url( \"a\")` は function-token で、どちらも読めない項目として捨てられ、p に当たる。最後の `url(a(b))` は `(` で bad-url-token になり、remnants が `b)` までを食う。次の `)` が `:is(` を閉じて `, p)` が top-level に残るので SyntaxError（function-token として読むと `:is(p)` になってしまう）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(url(a\\)), p)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(url(a), p)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(URL( a ), p)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(url( \"a\"), p)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(url(a(b)), p)"
+    }
+  ]
+}

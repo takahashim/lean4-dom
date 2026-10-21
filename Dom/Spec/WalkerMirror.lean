@@ -184,12 +184,14 @@ def MirrorLastDescendantOf (t : Tree) (r L : NodeId) : Prop :=
   InclusiveDescendant t L r ∧ ∀ x, InclusiveDescendant t x r → ¬ MirrorPrecedes t L x
 
 /--
-"traverse children"（last）の候補：current の子孫。親へ上がったときにそれが root か current なら止まる
-（step 3.4.4）ので、root が current の子孫なら、root の鏡像の最後の inclusive descendant より後ろは候補でない。
+"traverse children"（last）の候補：current の子孫。step 3.4.4 で root へ親として上がるのは、
+root が current の子孫で children を持つとき、その鏡像の最後の inclusive descendant `L`（root 自身でない）を
+見終えたところである。そこより後ろ（鏡像の tree order で）は候補でない。
 -/
 def WalkerLastChildCandidate (t : Tree) (w : WalkerState) (x : NodeId) : Prop :=
   Ancestor t w.current x ∧
-    ∀ L, MirrorLastDescendantOf t w.root L → Ancestor t w.current w.root → ¬ MirrorPrecedes t L x
+    ∀ L, MirrorLastDescendantOf t w.root L → Ancestor t w.root L → Ancestor t w.current w.root →
+      ¬ MirrorPrecedes t L x
 
 /--
 **§6.2 `lastChild()` の関係。** filter は null。候補のうち accept されるもので、鏡像の tree order

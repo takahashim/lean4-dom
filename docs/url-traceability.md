@@ -31,8 +31,8 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 | host parser | 1-9 | `hostParser` | — | wpt, dommy | 済（ToASCII は引数） |
 | opaque-host parser | 1-4 | `opaqueHostParser` | `opaqueHostParser_no_forbidden` | wpt, dommy | 済 |
 | domain parser | 1-5 | `asciiDomainToASCII`（ASCII の近道）、`toASCII`（非 ASCII） | `asciiDomainToASCII_no_forbidden`, `asciiDomainToASCII_ne_empty`, `toASCII_no_forbidden`, `toASCII_ne_empty` | wpt, uts46-alabel, dommy | 済 |
-| ToASCII（UTS #46）の算法 | UTS #46 §4 | `toASCII`, `labelToASCII`, `mapAll` | `toASCII_ne_empty`, `toASCII_no_forbidden`, `mapAll_valid`, `mapAll_idempotent`, `labelToASCII_ascii`, `toAsciiOk_table`（往復の条件 `ToAsciiOk` を満たす） | wpt（表を渡して 820 件）, dommy | 済（表は `IdnaTable` の仮定） |
-| UTS #46 の写像表 | — | `tableOfRanges`（実行時 fixture、8,509 範囲） | `checkResolved_sound`（検査が通れば `Resolved`）、`checkNoUpperValid_sound`（ASCII の大文字は valid でない）、`findRange_mem` | dommy の `Internal::IDNA` | 対象外（規定データ。証明には現れない） |
+| ToASCII（UTS #46）の算法 | UTS #46 §4（validity criteria は §4.1 の 4・6・7） | `toASCII`, `labelToASCII`, `validALabel`, `mapAll` | `toASCII_ne_empty`, `toASCII_no_forbidden`, `mapAll_valid`, `mapAll_idempotent`, `labelToASCII_ascii`, `toAsciiOk_table`（往復の条件 `ToAsciiOk` を満たす） | wpt（表を渡して 820 件）, uts46-alabel, dommy | 済（表は `IdnaTable` の仮定。criterion 6 は対象外の印より先に見る） |
+| UTS #46 の写像表と General_Category=Mark | — | `tableOfRanges`（実行時 fixture、8,724 範囲） | `checkResolved_sound`（検査が通れば `Resolved`）、`checkNoUpperValid_sound`（ASCII の大文字は valid でない）、`findRange_mem` | dommy の `Internal::IDNA` | 対象外（規定データ。証明には現れない） |
 | NFC 正規化・Bidi 検査・Joining_Type | — | `IdnaTable.outOfModel` の印で弾く | — | — | 対象外（印の付いた domain は `none`） |
 | Punycode（RFC 3492） | RFC 3492 | `Punycode.encode`, `Punycode.decode` | **`decode_encode`（往復）**、`encode_ascii`、停止性（fuel なし） | rfc3492（19 件 × 両方向） | 済 |
 | forbidden host / domain code point | §1.3 | `isForbiddenHost`, `isForbiddenDomain` | 上記 | wpt | 済 |
@@ -72,7 +72,7 @@ WHATWG URL Standard の algorithm と、model の定義・定理・test の対�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Test | Status |
 | --- | --- | --- | --- | --- | --- |
-| origin | §4.7 全 | `origin` | — | wpt（`origin` の欄、373 件一致） | 済（`blob` は blob URL entry を持たない前提） |
+| origin | §4.7 全 | `origin`（ToASCII は引数。`blob` の path を読み直す basic URL parser に渡す） | — | wpt（`origin` の欄、373 件一致。表を渡して 376 件）, uts46-alabel | 済（`blob` は blob URL entry を持たない前提） |
 | origin の serialize | HTML §origin | `originSerializer` | — | 同上 | 済 |
 
 ## §5 application/x-www-form-urlencoded
@@ -96,11 +96,11 @@ setter は `state override` 付きの basic URL parser を呼ぶだけなので�
 | `host` / `hostname` setter | §6.1 1-2 | `Url.setHost`, `Url.setHostname` | `setHost_opaque`, `setHostname_opaque`, `setHost_valid`, `setHostname_valid` | wpt-set（111 件） | 済 |
 | `port` setter | §6.1 1-3 | `Url.setPort` | `setPort_cannot`, `setPort_valid` | wpt-set（27 件） | 済 |
 | `pathname` setter | §6.1 1-3 | `Url.setPathname` | `setPathname_opaque`, `setPathname_valid` | wpt-set（29 件） | 済 |
-| `search` setter | §6.1 1-6 | `Url.setSearch`, `stripTrailingSpaces`, `dropLeading` | `setSearch_valid`（`ValidUrl` を保つ） | wpt-set（14 件） | 済（query object の list は `URLSearchParams` 側） |
-| `hash` setter | §6.1 1-4 | `Url.setHash`, `stripTrailingSpaces`, `dropLeading` | `setHash_valid`（`ValidUrl` を保つ） | wpt-set（22 件） | 済 |
+| `search` setter | §6.1 1-6 | `Url.setSearch`, `dropLeading` | `setSearch_valid`（`ValidUrl` を保つ）、`setSearch_path`（path に触れない） | wpt-set（14 件）、固定 case | 済（query object の list は `URLSearchParams` 側） |
+| `hash` setter | §6.1 1-4 | `Url.setHash`, `dropLeading` | `setHash_valid`（`ValidUrl` を保つ）、`setHash_path`（path に触れない） | wpt-set（22 件）、固定 case | 済 |
 | `href` setter | §6.1 1-3 | `Url.setHref` | — | wpt-set（1 件） | 済（失敗は `none`。例外は IDL 側） |
 | URL cannot have a username/password/port | §4.2 | `Url.cannotHaveCredentials` | 上記 3 つの `*_cannot` | wpt-set | 済 |
-| potentially strip trailing spaces from an opaque path | §6.1 1-4 | `stripTrailingSpaces` | — | wpt-set | 済 |
+| opaque path は生の U+0020 で終わらない（parser と setter から到達できる record の性質） | §4.4 opaque path state 3 | — | `parseUrl_opaqueNoTrailingSpace`、`setAttr_opaqueNoTrailingSpace` | wpt, wpt-set（`canonicalUrl` の検査） | 済 |
 
 ## §6.2 `URLSearchParams`
 
@@ -111,7 +111,7 @@ setter は `state override` 付きの basic URL parser を呼ぶだけなので�
 | `append` / `delete` / `set` | §6.2 | `Params.append`, `delete`, `deleteValue`, `set` | `getAll_append`, `getAll_delete`, `getAll_set` | 固定 case | 済 |
 | `sort` | §6.2 1-2 | `Params.sort`, `Params.insert` | `getAll_sort`（安定性）、`length_sort` | wpt-sort（8 件） | 済 |
 | stringifier | §6.2 | `Params.serialize` | — | 固定 case | 済 |
-| update a URLSearchParams object | §6.2 1-5 | `Url.withParams` | — | 固定 case | 済（object identity は持たない） |
+| update a URLSearchParams object | §6.2 1-4 | `Url.withParams` | `searchParams_withParams`、`withParams_path`（path に触れない） | 固定 case | 済（object identity は持たない） |
 | §6.1 `searchParams` getter | §6.1 | `Url.searchParams` | — | 固定 case | 済 |
 | code unit 順の比較 | WebIDL | `Infra.codeUnits`, `Infra.strLt` | `strLt_self`, `ne_of_strLt` | wpt-sort | 済 |
 

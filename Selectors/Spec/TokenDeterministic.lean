@@ -352,16 +352,210 @@ theorem NumericTok.deterministic {l r1 r2 : List Char} {t1 t2 : Token}
     | (rw [hr'] at hp; simp at hp)
     | exact ⟨rfl, rfl⟩
 
+/-! ## url token -/
+
+theorem WhitespaceRun.deterministic {l o1 o2 : List Char}
+    (h1 : WhitespaceRun l o1) (h2 : WhitespaceRun l o2) : o1 = o2 := by
+  obtain ⟨ws1, hs1, ha1, hm1⟩ := h1
+  obtain ⟨ws2, hs2, ha2, hm2⟩ := h2
+  have h := hs1.symm.trans hs2
+  rcases List.append_eq_append_iff.mp h with ⟨a', h2', h1'⟩ | ⟨c', h1'', h2'⟩
+  · match a', h2', h1' with
+    | [], _, h1' => simpa using h1'
+    | x :: _, h2', h1' => exact absurd (ha2 x (by simp [h2'])) (hm1 x (by simp [h1']))
+  · match c', h1'', h2' with
+    | [], _, h2' => simpa using h2'.symm
+    | x :: _, h1'', h2' => exact absurd (ha1 x (by simp [h1''])) (hm2 x (by simp [h2']))
+
+
+theorem BadUrlRemnants.deterministic {l o1 o2 : List Char}
+    (h1 : BadUrlRemnants l o1) (h2 : BadUrlRemnants l o2) : o1 = o2 := by
+  induction h1 generalizing o2 with
+  | rparen => cases h2 with
+    | rparen => rfl
+    | other hc => exact absurd rfl hc
+  | eof => cases h2; rfl
+  | escape hv he ih1 ih =>
+    cases h2 with
+    | escape _ he' h2 =>
+      obtain ⟨rfl, rfl⟩ := Escape.deterministic he he'
+      exact ih h2
+    | other _ hv' => exact absurd hv hv'
+  | other hc hv ih1 ih =>
+    cases h2 with
+    | rparen => exact absurd rfl hc
+    | escape hv' => exact absurd hv' hv
+    | other _ _ h2 => exact ih h2
+
+theorem UrlRun.deterministic {l v1 v2 o1 o2 : List Char} {b1 b2 : Bool}
+    (h1 : UrlRun l v1 b1 o1) (h2 : UrlRun l v2 b2 o2) :
+    v1 = v2 ∧ b1 = b2 ∧ o1 = o2 := by
+  have nws : ∀ {c : Char}, Whitespace c → c ≠ ')' ∧ c ≠ '"' ∧ c ≠ '\'' ∧ c ≠ '(' ∧
+      c ≠ '\\' ∧ ¬ NonPrintable c := by
+    intro c hc
+    rcases hc with h | rfl | rfl
+    · unfold Newline at h; subst h; simp [NonPrintable]
+    all_goals simp [NonPrintable]
+  have bad_ne : ∀ {c : Char}, (c = '"' ∨ c = '\'' ∨ c = '(' ∨ NonPrintable c) →
+      c ≠ ')' ∧ c ≠ '\\' ∧ ¬ Whitespace c := by
+    intro c hc
+    rcases hc with rfl | rfl | rfl | h
+    · simp [Whitespace, Newline]
+    · simp [Whitespace, Newline]
+    · simp [Whitespace, Newline]
+    · refine ⟨?_, ?_, ?_⟩
+      · rintro rfl; simp [NonPrintable] at h
+      · rintro rfl; simp [NonPrintable] at h
+      · intro hw; exact (nws hw).2.2.2.2.2 h
+  induction h1 generalizing v2 b2 o2 with
+  | close =>
+    cases h2 with
+    | close => exact ⟨rfl, rfl, rfl⟩
+    | wsClose hc => exact absurd rfl (nws hc).1
+    | wsEof hc => exact absurd rfl (nws hc).1
+    | wsBad hc => exact absurd rfl (nws hc).1
+    | bad hc => exact absurd rfl (bad_ne hc).1
+    | other hc => exact absurd rfl hc.1
+  | eof => cases h2; exact ⟨rfl, rfl, rfl⟩
+  | wsClose hc hw =>
+    cases h2 with
+    | close => exact absurd rfl (nws hc).1
+    | wsClose _ hw' =>
+      have := WhitespaceRun.deterministic hw hw'
+      simp at this; exact ⟨rfl, rfl, this⟩
+    | wsEof _ hw' => have := WhitespaceRun.deterministic hw hw'; simp at this
+    | wsBad _ hw' hd =>
+      have := WhitespaceRun.deterministic hw hw'
+      simp at this; exact absurd this.1.symm hd
+    | bad hq => exact absurd hc (bad_ne hq).2.2
+    | escape => exact absurd rfl (nws hc).2.2.2.2.1
+    | badEscape => exact absurd rfl (nws hc).2.2.2.2.1
+    | other hc' => exact absurd hc hc'.2.1
+  | wsEof hc hw =>
+    cases h2 with
+    | close => exact absurd rfl (nws hc).1
+    | wsClose _ hw' => have := WhitespaceRun.deterministic hw hw'; simp at this
+    | wsEof => exact ⟨rfl, rfl, rfl⟩
+    | wsBad _ hw' => have := WhitespaceRun.deterministic hw hw'; simp at this
+    | bad hq => exact absurd hc (bad_ne hq).2.2
+    | escape => exact absurd rfl (nws hc).2.2.2.2.1
+    | badEscape => exact absurd rfl (nws hc).2.2.2.2.1
+    | other hc' => exact absurd hc hc'.2.1
+  | wsBad hc hw hd hb =>
+    cases h2 with
+    | close => exact absurd rfl (nws hc).1
+    | wsClose _ hw' =>
+      have := WhitespaceRun.deterministic hw hw'
+      simp at this; exact absurd this.1 hd
+    | wsEof _ hw' => have := WhitespaceRun.deterministic hw hw'; simp at this
+    | wsBad _ hw' _ hb' =>
+      have := WhitespaceRun.deterministic hw hw'
+      simp at this; obtain ⟨rfl, rfl⟩ := this
+      exact ⟨rfl, rfl, BadUrlRemnants.deterministic hb hb'⟩
+    | bad hq => exact absurd hc (bad_ne hq).2.2
+    | escape => exact absurd rfl (nws hc).2.2.2.2.1
+    | badEscape => exact absurd rfl (nws hc).2.2.2.2.1
+    | other hc' => exact absurd hc hc'.2.1
+  | bad hq hb =>
+    cases h2 with
+    | close => exact absurd rfl (bad_ne hq).1
+    | wsClose hc => exact absurd hc (bad_ne hq).2.2
+    | wsEof hc => exact absurd hc (bad_ne hq).2.2
+    | wsBad hc => exact absurd hc (bad_ne hq).2.2
+    | bad _ hb' => exact ⟨rfl, rfl, BadUrlRemnants.deterministic hb hb'⟩
+    | escape => exact absurd rfl (bad_ne hq).2.1
+    | badEscape => exact absurd rfl (bad_ne hq).2.1
+    | other hc' =>
+      obtain ⟨_, _, h1, h2, h3, h4, _⟩ := hc'
+      rcases hq with h | h | h | h
+      · exact absurd h h1
+      · exact absurd h h2
+      · exact absurd h h3
+      · exact absurd h h4
+  | escape hv hx ih1 ih =>
+    cases h2 with
+    | escape _ hx' h2 =>
+      obtain ⟨rfl, rfl⟩ := Escape.deterministic hx hx'
+      obtain ⟨rfl, rfl, rfl⟩ := ih h2
+      exact ⟨rfl, rfl, rfl⟩
+    | badEscape hv' => exact absurd hv hv'
+    | wsClose hc => exact absurd rfl (nws hc).2.2.2.2.1
+    | wsEof hc => exact absurd rfl (nws hc).2.2.2.2.1
+    | wsBad hc => exact absurd rfl (nws hc).2.2.2.2.1
+    | bad hq => exact absurd rfl (bad_ne hq).2.1
+    | other hc' => exact absurd rfl hc'.2.2.2.2.2.2
+  | badEscape hv hb =>
+    cases h2 with
+    | escape hv' => exact absurd hv' hv
+    | badEscape _ hb' => exact ⟨rfl, rfl, BadUrlRemnants.deterministic hb hb'⟩
+    | wsClose hc => exact absurd rfl (nws hc).2.2.2.2.1
+    | wsEof hc => exact absurd rfl (nws hc).2.2.2.2.1
+    | wsBad hc => exact absurd rfl (nws hc).2.2.2.2.1
+    | bad hq => exact absurd rfl (bad_ne hq).2.1
+    | other hc' => exact absurd rfl hc'.2.2.2.2.2.2
+  | other hc ih1 ih =>
+    cases h2 with
+    | other _ h2 =>
+      obtain ⟨rfl, rfl, rfl⟩ := ih h2
+      exact ⟨rfl, rfl, rfl⟩
+    | close => exact absurd rfl hc.1
+    | wsClose hc' => exact absurd hc' hc.2.1
+    | wsEof hc' => exact absurd hc' hc.2.1
+    | wsBad hc' => exact absurd hc' hc.2.1
+    | bad hq =>
+      obtain ⟨_, _, h1, h2, h3, h4, _⟩ := hc
+      rcases hq with h | h | h | h
+      · exact absurd h h1
+      · exact absurd h h2
+      · exact absurd h h3
+      · exact absurd h h4
+    | escape => exact absurd rfl hc.2.2.2.2.2.2
+    | badEscape => exact absurd rfl hc.2.2.2.2.2.2
+
+theorem UrlTok.deterministic {l r1 r2 : List Char} {t1 t2 : Token}
+    (h1 : UrlTok l t1 r1) (h2 : UrlTok l t2 r2) : t1 = t2 ∧ r1 = r2 := by
+  obtain ⟨r, v, b, hw, hu, rfl⟩ := h1
+  obtain ⟨r', v', b', hw', hu', rfl⟩ := h2
+  have := WhitespaceRun.deterministic hw hw'
+  subst this
+  obtain ⟨rfl, rfl, rfl⟩ := UrlRun.deterministic hu hu'
+  exact ⟨rfl, rfl⟩
+
+theorem UrlLeadWs.deterministic {l o1 o2 : List Char}
+    (h1 : UrlLeadWs l o1) (h2 : UrlLeadWs l o2) : o1 = o2 := by
+  induction h1 generalizing o2 with
+  | step hc hd ih1 ih =>
+    cases h2 with
+    | step _ _ h2 => exact ih h2
+    | stop h => exact absurd ⟨⟨_, rfl, hc⟩, ⟨_, rfl, hd⟩⟩ h
+  | stop h =>
+    cases h2 with
+    | step hc hd => exact absurd ⟨⟨_, rfl, hc⟩, ⟨_, rfl, hd⟩⟩ h
+    | stop => rfl
+
 theorem IdentLikeTok.deterministic {l r1 r2 : List Char} {t1 t2 : Token}
     (h1 : IdentLikeTok l t1 r1) (h2 : IdentLikeTok l t2 r2) : t1 = t2 ∧ r1 = r2 := by
   obtain ⟨s, r, hs, h1⟩ := h1
   obtain ⟨s', r', hs', h2⟩ := h2
   obtain ⟨rfl, rfl⟩ := IdentSeq.deterministic hs hs'
-  rcases h1 with ⟨hr, rfl⟩ | ⟨hp, rfl, rfl⟩ <;> rcases h2 with ⟨hr', rfl⟩ | ⟨hp', rfl, rfl⟩
-  · rw [hr] at hr'; simp at hr'; exact ⟨rfl, hr'⟩
-  · rw [hr] at hp'; simp at hp'
-  · rw [hr'] at hp; simp at hp
-  · exact ⟨rfl, rfl⟩
+  rcases h1 with ⟨hu, a, b, rfl, hl, h1⟩ | ⟨hu, rfl, rfl⟩ | ⟨hp, rfl, rfl⟩ <;>
+    rcases h2 with ⟨hu', a', b', ha, hl', h2⟩ | ⟨hu', hr', rfl⟩ | ⟨hp', rfl, rfl⟩
+  · simp only [List.cons.injEq, true_and] at ha
+    subst ha
+    have := UrlLeadWs.deterministic hl hl'
+    subst this
+    rcases h1 with ⟨hq, rfl, rfl⟩ | ⟨hq, h1⟩ <;> rcases h2 with ⟨hq', rfl, rfl⟩ | ⟨hq', h2⟩
+    · exact ⟨rfl, rfl⟩
+    · exact absurd hq hq'
+    · exact absurd hq' hq
+    · exact UrlTok.deterministic h1 h2
+  all_goals first
+    | exact absurd hu hu'
+    | exact absurd hu' hu
+    | (simp only [List.cons.injEq, true_and] at hr'; exact ⟨rfl, hr'⟩)
+    | exact ⟨rfl, rfl⟩
+    | (subst_vars; simp at hp)
+    | (subst_vars; simp at hp')
 
 /-- **number の関係と `consumeNumber` は一致する。** -/
 theorem Number.iff_consumeNumber {l : List Char} {n : Num} {r : List Char} :
@@ -447,19 +641,6 @@ theorem Comments.iff_skipComments {l o : List Char} : Comments l o ↔ o = skipC
 `TokenAt` は規則が多いので、組ごとの排他ではなく、各規則から `tokenAt` の値を直接計算する
 （`TokenAt.complete`）。一意性はそこから従う。
 -/
-
-theorem WhitespaceRun.deterministic {l o1 o2 : List Char}
-    (h1 : WhitespaceRun l o1) (h2 : WhitespaceRun l o2) : o1 = o2 := by
-  obtain ⟨ws1, hs1, ha1, hm1⟩ := h1
-  obtain ⟨ws2, hs2, ha2, hm2⟩ := h2
-  have h := hs1.symm.trans hs2
-  rcases List.append_eq_append_iff.mp h with ⟨a', h2', h1'⟩ | ⟨c', h1'', h2'⟩
-  · match a', h2', h1' with
-    | [], _, h1' => simpa using h1'
-    | x :: _, h2', h1' => exact absurd (ha2 x (by simp [h2'])) (hm1 x (by simp [h1']))
-  · match c', h1'', h2' with
-    | [], _, h2' => simpa using h2'.symm
-    | x :: _, h1'', h2' => exact absurd (ha1 x (by simp [h1''])) (hm2 x (by simp [h2']))
 
 set_option linter.unusedSimpArgs false in
 theorem tokenAt_of_digit {c : Char} {rest : List Char} (hc : Digit c) :

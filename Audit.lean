@@ -520,7 +520,6 @@ open Dom.Audit
   Url.basicUrlParseOverride_fragment
   Url.basicUrlParseOverride_query
   Url.validUrl_setOpaque
-  Url.stripTrailingSpaces_valid
   Url.setHash_valid
   Url.setSearch_valid
   Url.fail_over
@@ -537,8 +536,11 @@ open Dom.Audit
   Url.setHostname_valid
   Url.setPort_valid
   Url.setPathname_valid
-  Url.stripTrailingSpaces_fragment
-  Url.stripTrailingSpaces_query
+  Url.setSearch_path
+  Url.setHash_path
+  Url.withParams_path
+  Url.parseUrl_opaqueNoTrailingSpace
+  Url.setAttr_opaqueNoTrailingSpace
   Url.setHash_empty_hash
   Url.setSearch_empty_search
   Url.run_fragment_spec
@@ -1016,6 +1018,11 @@ open Dom.Audit
   Selectors.consumeNumber_le
   Selectors.consumeNumber_le_of_start
   Selectors.skipComments_le
+  Selectors.badUrlRemnants_le
+  Selectors.urlAux_le
+  Selectors.consumeUrlToken_le
+  Selectors.dropUrlWs_le
+  Selectors.consumeIdentLike_le
   Selectors.tokenAt_le
   Selectors.nextToken_lt
 
@@ -1076,6 +1083,11 @@ open Dom.Audit
   Dom.Spec.quirksFold_eq_iff
   Dom.Spec.classWordIn_iff
   Dom.Spec.mem_combCandidates_iff
+  Dom.Spec.isHasSelector_iff
+  Dom.Spec.allowedS_iff
+  Dom.Spec.allowedL_iff
+  Dom.Spec.allowedCp_iff
+  Dom.Spec.isElementNode_iff_isElement
   Dom.Spec.match_iff_bounded
   Dom.Spec.matchSelList_iff_spec
   Dom.Spec.matchComplex_iff_spec
@@ -1160,6 +1172,17 @@ open Dom.Audit
   Selectors.Spec.consumeNumericToken_spec
   Selectors.Spec.NumericTok.deterministic
   Selectors.Spec.NumericTok.iff_consumeNumericToken
+  Selectors.Spec.isNonPrintable_iff
+  Selectors.Spec.badUrlRemnants_spec
+  Selectors.Spec.BadUrlRemnants.deterministic
+  Selectors.Spec.urlAux_spec
+  Selectors.Spec.UrlRun.deterministic
+  Selectors.Spec.consumeUrlToken_spec
+  Selectors.Spec.UrlTok.deterministic
+  Selectors.Spec.isUrlName_iff
+  Selectors.Spec.dropUrlWs_spec
+  Selectors.Spec.UrlLeadWs.deterministic
+  Selectors.Spec.quoteAhead_iff
   Selectors.Spec.consumeIdentLike_spec
   Selectors.Spec.IdentLikeTok.deterministic
   Selectors.Spec.IdentLikeTok.iff_consumeIdentLike
@@ -1172,6 +1195,7 @@ open Dom.Audit
   Selectors.Spec.tokenize_spec
   Selectors.Spec.Tokenizes.deterministic
   Selectors.Spec.TokenizesInput.iff_tokenize
+  Selectors.Spec.anyValue_iff
   Selectors.Spec.scan_piece
   Selectors.Spec.scan_noPiece
   Selectors.Spec.scan_compound
@@ -1197,6 +1221,7 @@ open Dom.Audit
   Dom.closest_first
   Dom.closest_eq_none_iff
   Dom.closest_self
+  Dom.allowedL_scope_irrelevant
   Dom.scope_irrelevant
   Dom.matchSelList_scope_irrelevant
   Dom.matchesSelector_eq

@@ -10,8 +10,8 @@
 | 表に載せたもの | 262 |
 | 対象外としたもの | 129 |
 | 表に載せた algorithm の step | 1152 |
-| そのうち実装したもの | 694 |
-| そのうち近似したもの | 263 |
+| そのうち実装したもの | 689 |
+| そのうち近似したもの | 268 |
 | そのうち外したもの | 195 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
@@ -251,8 +251,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [concept-element-attributes-get-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-get-value) | 3/3 | `Dom.getAttributeValue` |  |
 | [concept-element-attributes-set](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-set) | 6/8（近似 1） | `Dom.setAttributeNode`<br>`Dom.findAttr`<br>`Dom.removeDetached` | `Dom.Spec.SetAttributeNodeResult` |
 | [concept-element-attributes-set-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-set-value) | 3/3 | `Dom.setAttributeValue` | `Dom.Spec.SetAttributeValueResult` |
-| [concept-element-attributes-remove-by-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-remove-by-name) | 2/3（近似 1） | `Dom.removeAttribute`<br>`Dom.removeNamedItem` | `Dom.Spec.RemoveAttributeResult`<br>`Dom.Spec.RemoveNamedItemResult` |
-| [concept-element-attributes-remove-by-namespace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-remove-by-namespace) | 2/3（近似 1） | `Dom.removeAttributeNS` | `Dom.Spec.RemoveAttributeNSResult` |
+| [concept-element-attributes-remove-by-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-remove-by-name) | 3/3 | `Dom.removeAttribute`<br>`Dom.removeNamedItem` | `Dom.Spec.RemoveAttributeResult`<br>`Dom.Spec.RemoveNamedItemResult` |
+| [concept-element-attributes-remove-by-namespace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-remove-by-namespace) | 3/3 | `Dom.removeAttributeNS` | `Dom.Spec.RemoveAttributeNSResult` |
 | [dom-element-namespaceuri](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-namespaceuri) | 1/1 | `Dom.NodeData.namespace` |  |
 | [dom-element-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-prefix) | 1/1 | `Dom.NodeData.prefix` |  |
 | [dom-element-localname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-localname) | 1/1 | `Dom.NodeData.localName` |  |
@@ -352,7 +352,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [range-collapsed](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#range-collapsed) | 0/1（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.rangeInsertNode` |  |
+| [range-collapsed](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#range-collapsed) | 0/1（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.rangeInsertNode`<br>`Dom.contentsInto` |  |
 | [dom-range-startcontainer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-startcontainer) | 1/1 | `Dom.RangeState.start`<br>`Dom.BoundaryPoint.node`<br>`Dom.observe` |  |
 | [dom-range-startoffset](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-startoffset) | 1/1 | `Dom.RangeState.start`<br>`Dom.BoundaryPoint.offset`<br>`Dom.observe` |  |
 | [dom-range-endcontainer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-endcontainer) | 1/1 | `Dom.RangeState.end`<br>`Dom.BoundaryPoint.node`<br>`Dom.observe` |  |
@@ -362,7 +362,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [live-range-pre-remove-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#live-range-pre-remove-steps) | 7/7 | `Dom.liveRangePreRemove`<br>`Dom.liveRangePreRemoveRange`<br>`Dom.liveRangePreRemoveBP`<br>`Dom.rangeMoveOutOfSubtree`<br>`Dom.rangeShiftAfterRemove` | `Dom.Spec.RangeAdjusted`<br>`Dom.Spec.BoundaryAdjusted`<br>`Dom.liveRangePreRemoveBP_comm` |
+| [live-range-pre-remove-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#live-range-pre-remove-steps) | 3/7（近似 4） | `Dom.liveRangePreRemove`<br>`Dom.liveRangePreRemoveRange`<br>`Dom.liveRangePreRemoveBP`<br>`Dom.rangeMoveOutOfSubtree`<br>`Dom.rangeShiftAfterRemove` | `Dom.Spec.RangeAdjusted`<br>`Dom.Spec.BoundaryAdjusted`<br>`Dom.liveRangePreRemoveBP_comm` |
 | [get-the-common-ancestor](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-the-common-ancestor) | 2/3（近似 1） | `Dom.commonAncestor` | `Dom.Spec.CommonAncestor`<br>`Dom.Spec.commonAncestor_spec` |
 | [dom-range-commonancestorcontainer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-commonancestorcontainer) | 0/1（近似 1） | `Dom.rangeCommonAncestorContainer`<br>`Dom.commonAncestor` | `Dom.Spec.commonAncestor_spec` |
 | [concept-range-bp-set](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-bp-set) | 3/8（近似 5） | `Dom.setStartBP`<br>`Dom.setEndBP`<br>`Dom.rangeBoundaryError`<br>`Dom.rangeNeedsCollapse` | `Dom.Spec.StartSet`<br>`Dom.Spec.EndSet`<br>`Dom.Spec.BoundaryPointError`<br>`Dom.Spec.BoundaryPointOk` |
@@ -377,12 +377,12 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-range-selectnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-selectnode) | 1/1 | `Dom.rangeSelectNode` | `Dom.Spec.SelectNodeResult` |
 | [dom-range-selectnodecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-selectnodecontents) | 4/4 | `Dom.rangeSelectNodeContents` | `Dom.Spec.SelectNodeContentsResult` |
 | [dom-range-compareboundarypoints](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-compareboundarypoints) | 5/5 | `Dom.rangeCompareBoundaryPoints`<br>`Dom.bpPosition` | `Dom.Spec.CompareBoundaryPointsResult`<br>`Dom.Spec.compareHowPoints`<br>`Dom.Spec.PositionResult` |
-| [dom-range-deletecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-deletecontents) | 16/16 | `Dom.rangeDeleteContents`<br>`Dom.nodesToRemove`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.removeEach`<br>`Dom.replaceData` | `Dom.Spec.DeleteContentsResult`<br>`Dom.Spec.NodesToRemove`<br>`Dom.Spec.Contained`<br>`Dom.Spec.DeleteNewBP`<br>`Dom.Spec.rangeDeleteContents_result_sound` |
+| [dom-range-deletecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-deletecontents) | 15/16（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.nodesToRemove`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.removeEach`<br>`Dom.replaceData` | `Dom.Spec.DeleteContentsResult`<br>`Dom.Spec.NodesToRemove`<br>`Dom.Spec.Contained`<br>`Dom.Spec.DeleteNewBP`<br>`Dom.Spec.rangeDeleteContents_result_sound` |
 | [concept-range-extract](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-extract) | 29/47（近似 18） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.partiallyContained`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.setSelf`<br>`Dom.dataPart`<br>`Dom.appendDataClone`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.appendEach` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.PartialFirst`<br>`Dom.Spec.PartialLast`<br>`Dom.Spec.DataPartResult`<br>`Dom.Spec.AppendEachResult`<br>`Dom.Spec.SingleClone`<br>`Dom.Spec.Setup`<br>`Dom.Spec.CommonAncestor`<br>`Dom.Spec.PartiallyContained`<br>`Dom.Spec.FirstPartial`<br>`Dom.Spec.LastPartial`<br>`Dom.Spec.ContainedChildren`<br>`Dom.Spec.SelfSet`<br>`Dom.Spec.contentsInto_sound` |
 | [dom-range-extractcontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-extractcontents) | 1/1 | `Dom.rangeExtractContents` | `Dom.Spec.rangeExtractContents_result_sound` |
 | [concept-range-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-clone) | 24/39（近似 15） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.dataPart`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.cloneEach`<br>`Dom.cloneNodeIn` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.CloneEachResult`<br>`Dom.Spec.DeepClone`<br>`Dom.Spec.contentsInto_sound` |
 | [dom-range-clonecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-clonecontents) | 1/1 | `Dom.rangeCloneContents` | `Dom.Spec.rangeCloneContents_result_sound` |
-| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-insert) | 12/13（近似 1） | `Dom.rangeInsertNode`<br>`Dom.rangeInsertNodeTail`<br>`Dom.refBP`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.splitText`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset`<br>`Dom.Spec.SplitTextResult`<br>`Dom.Spec.rangeInsertNode_result_sound_of_admissible` |
+| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-insert) | 10/13（近似 3） | `Dom.rangeInsertNode`<br>`Dom.rangeInsertNodeTail`<br>`Dom.refBP`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.splitText`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset`<br>`Dom.Spec.SplitTextResult`<br>`Dom.Spec.rangeInsertNode_result_sound_of_admissible` |
 | [dom-range-insertnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-insertnode) | 1/1 | `Dom.rangeInsertNode` | `Dom.Spec.InsertNodeResult` |
 | [dom-range-surroundcontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-surroundcontents) | 6/7（近似 1） | `Dom.rangeSurroundContents`<br>`Dom.partiallyContainsNonText`<br>`Dom.rangeExtractContents`<br>`Dom.replaceAll`<br>`Dom.rangeInsertNode`<br>`Dom.append`<br>`Dom.rangeSelectNode`<br>`Dom.discardFragmentOnError` | `Dom.Spec.SurroundResult`<br>`Dom.Spec.rangeSurroundContents_result_sound` |
 | [dom-range-ispointinrange](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-ispointinrange) | 5/5 | `Dom.rangeIsPointInRange` | `Dom.Spec.IsPointInRangeResult` |
@@ -418,13 +418,13 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | [dom-treewalker-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-whattoshow) | 1/1 | `Dom.WalkerState.whatToShow`<br>`Dom.observe` |  |
 | [dom-treewalker-currentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-currentnode) | 1/1 | `Dom.WalkerState.current`<br>`Dom.observe` |  |
 | [dom-treewalker-parentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-parentnode) | 2/5（近似 3） | `Dom.walkerParentNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerParentNodeResult`<br>`Dom.Spec.walkerParentNode_result_sound`<br>`Dom.Spec.walkerParentNode_result_complete` |
-| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.MirrorPrecedes`<br>`Dom.Spec.MirrorLastDescendantOf` |
+| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.cutAtRootExit`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.WalkerChildCandidate`<br>`Dom.Spec.WalkerLastChildCandidate`<br>`Dom.Spec.LastDescendantOf`<br>`Dom.Spec.MirrorPrecedes`<br>`Dom.Spec.MirrorLastDescendantOf` |
 | [dom-treewalker-firstchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-firstchild) | 1/1 | `Dom.walkerFirstChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.walkerFirstChild_result_sound`<br>`Dom.Spec.walkerFirstChild_result_complete` |
 | [dom-treewalker-lastchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-lastchild) | 1/1 | `Dom.walkerLastChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.walkerLastChild_result_sound`<br>`Dom.Spec.walkerLastChild_result_complete` |
-| [concept-traverse-siblings](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-siblings) | 2/13（近似 11） | `Dom.walkerSibling`<br>`Dom.walkerSiblingSearch`<br>`Dom.siblingCandidates`<br>`Dom.followingSiblings`<br>`Dom.precedingSiblings`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.SiblingClimb`<br>`Dom.Spec.FollowingSibling`<br>`Dom.Spec.PrecedingSibling` |
+| [concept-traverse-siblings](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-siblings) | 2/13（近似 11） | `Dom.walkerSibling`<br>`Dom.siblingLevels`<br>`Dom.siblingCandidates`<br>`Dom.followingSiblings`<br>`Dom.precedingSiblings`<br>`Dom.cutAtRootExit`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.WalkerNextSiblingCandidate`<br>`Dom.Spec.WalkerPreviousSiblingCandidate`<br>`Dom.Spec.SiblingClimb`<br>`Dom.Spec.FollowingSibling`<br>`Dom.Spec.PrecedingSibling` |
 | [dom-treewalker-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextsibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.walkerNextSibling_result_sound`<br>`Dom.Spec.walkerNextSibling_result_complete` |
 | [dom-treewalker-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previoussibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.walkerPreviousSibling_result_sound`<br>`Dom.Spec.walkerPreviousSibling_result_complete` |
-| [dom-treewalker-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previousnode) | 2/15（近似 13） | `Dom.walkerPreviousNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerPreviousNodeResult`<br>`Dom.Spec.walkerPreviousNode_result_sound`<br>`Dom.Spec.walkerPreviousNode_result_complete` |
+| [dom-treewalker-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previousnode) | 2/15（近似 13） | `Dom.walkerPreviousNode`<br>`Dom.previousStopsAtRoot`<br>`Dom.precedingSiblings`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerPreviousNodeResult`<br>`Dom.Spec.WalkerPreviousCandidate`<br>`Dom.Spec.PreviousStopsAtRoot`<br>`Dom.Spec.walkerPreviousNode_result_sound`<br>`Dom.Spec.walkerPreviousNode_result_complete` |
 | [dom-treewalker-nextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextnode) | 2/18（近似 16） | `Dom.walkerNextNode`<br>`Dom.lastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextNodeResult`<br>`Dom.Spec.walkerNextNode_result_sound`<br>`Dom.Spec.walkerNextNode_result_complete` |
 
 ### §7.1（`interface-domtokenlist`）
@@ -577,7 +577,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-node-childnodes | * | live な NodeList ではなく、読んだ時点の children の列を返す |
 | dom-node-nodevalue/setter | * | Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setNodeValue` を via = nodeValue に読み替える）。null → 空文字列は scenario を読むときに行う |
 | set-text-content | * | Attr の枝は `setAttrValue`（harness が `Attr` を受け手にした `setTextContent` を via = textContent に読み替える）。null → 空文字列は scenario を読むときに行う |
-| dom-node-normalize | 3-4 | run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。characterData record の並びが違う。木と range の最終状態の一致は未証明 |
+| dom-node-normalize | 3-4 | run 全体を一度に連結して replace data を一回呼ぶのではなく、engine に合わせて兄弟ごとに replace data する（data が空の兄弟では呼ばない）。後ろに Text の兄弟が無い Text でも本文は空の data で replace data を呼んで characterData record を積むが、model は呼ばない。characterData record の数と並びが違う。木と range の最終状態の一致は未証明 |
 | dom-node-normalize | 6 | 兄弟ごとに boundary point を渡してからその兄弟を remove する。step 6 と step 7 を兄弟ごとに交互に行う |
 | dom-node-normalize | 7 | 兄弟ごとに step 6 の直後に remove する（上と同じ） |
 | clone-a-single-node | 2.4 | create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い） |
@@ -602,8 +602,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-element-attributes-replace | 3 | newAttribute の element は attribute list に入っていることで表す |
 | concept-element-attributes-replace | 5 | oldAttribute の element を null にすることを、detachedAttrs の末尾に足して表す |
 | concept-element-attributes-set | 5 | step 1 が無いので verifiedValue は attr の value と同じで、書き換えは何もしない |
-| concept-element-attributes-remove-by-name | 3 | removeAttribute は戻り値を捨てるので、取り除いた `Attr` を状態に残さない（removeNamedItem は残す） |
-| concept-element-attributes-remove-by-namespace | 3 | removeAttributeNS は戻り値を捨てるので、取り除いた `Attr` を状態に残さない |
 | dom-element-classlist | * | DOMTokenList object を持たず、各 method が element を受けて class attribute の値から token set を読み直す |
 | dom-element-closest | 1-2 | parse a selector は model の Selectors の部分集合（`Dom/Selector/`） |
 | dom-element-matches | 1-2 | parse a selector は model の Selectors の部分集合（`Dom/Selector/`） |
@@ -626,10 +624,12 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-text-split | 7.2-7.5 | 動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査 |
 | concept-range-bp-position | 1 | assert は書かない。呼び出し側（`BoundaryLE`・`rangeNeedsCollapse` など）が root を別に比べる |
 | concept-range-bp-position | 3 | 自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段） |
-| range-collapsed | * | 専用の定義は無く、使う側（deleteContents step 1・insert step 13）が `r.start == r.end` を直に書く |
+| range-collapsed | * | 専用の定義は無く、使う側（deleteContents step 1・insert step 13・extract と clone the contents の step 2）が `r.start == r.end` を直に書く |
+| live-range-pre-remove-steps | 4-7 | 部分木の外へ移す調整と offset の調整を、range ごとに合成して一度に当てる（二つは可換：`liveRangePreRemoveBP_comm`） |
 | get-the-common-ancestor | 2 | parent が null になっても止まらない本文の loop を、start node の inclusive ancestor の列の中で探す形に書く。端点が別の木にあれば見つからず、使う側が outsideModel にする |
 | dom-range-commonancestorcontainer | * | 端点が別の木にある range（admissible な状態にしか現れない）では outsideModel を返す |
 | concept-range-bp-set | 4 | set the start では range の root を start node ではなく end node の root で比べる（妥当な range では同じ。spec 側は start node の root で書き、定理が RangeValid を仮定する） |
+| dom-range-deletecontents | 8 | 点を step 9-11 の後で置き、最終の木で妥当でなければ調整後の start を使う（結果が同じことは `rangeDeleteContents_result_sound`） |
 | concept-range-extract | 5 | 端点が別の木にあって common ancestor が無ければ outsideModel を返す（本文の loop は止まらない） |
 | concept-range-extract | 15 | 置く点が妥当でなければ outsideModel を返す。common ancestor があれば妥当である |
 | concept-range-extract | 16 | originalStartNode が CharacterData でなければ outsideModel を返す。range の start が end より後のときだけ起き、本文は CharacterData でない node の substring data を定めない |
@@ -641,15 +641,16 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-range-clone | 13.3-13.5 | subrange を新しい DocumentFragment ではなく clone へ直接 clone する（extract の step 17.3-17.5 と同じ。証明していない） |
 | concept-range-clone | 15 | originalEndNode が CharacterData でなければ outsideModel を返す |
 | concept-range-clone | 16.3-16.5 | step 13.3-13.5 と同じ |
+| concept-range-insert | 10-11 | newOffset を前もって数えず、step 13 で「入った最後の node の直後」（`siblingBP`）として求める（関係との一致は `rangeInsertNode_result_sound_of_admissible`） |
 | concept-range-insert | 13 | 何も入らなかったとき（空の DocumentFragment）に置く end を、実行時に妥当か検査する。本文の newOffset はそのとき必ず妥当で、関係との一致は検査が通ることも含めて証明してある |
 | dom-range-surroundcontents | 6 | append した後で空になり、どこからも辿れない fragment を状態から消す（`discard`。仕様の step ではない model の約束）。step 3 より後で失敗したときも、clone しか入っていない fragment は辿れないので消す |
 | dom-range-stringifier | 2-5 | UTF-16 の code unit で切り出す。surrogate pair の途中を指すと outsideModel になる |
 | concept-node-filter | 4 | filter は常に null として扱うので、ここで必ず FILTER_ACCEPT を返す |
 | concept-nodeiterator-traverse | 1-4 | candidate reference を持たず、iterator collection を reference で二つに分けて、pointer before に応じて reference 自身を候補に足した列から whatToShow を満たす最初の node を探す。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
 | dom-treewalker-parentnode | 2 | current の祖先を root まで（root を含む）並べ、accept される最初のものを取る |
-| concept-traverse-children | 2-4 | current の（自身を除く）部分木を tree order（last なら鏡像）に並べ、root の最後の inclusive descendant で切った列で探す（step 3.4.4 の「parent が root」）。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
-| concept-traverse-siblings | 3 | 段ごとに兄弟の部分木を順に並べた列で探し、見つからなければ親へ上がる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
-| dom-treewalker-previousnode | 2 | current の木の tree order を current の手前から逆にたどり、root まで（root を含む）で切る。current が root なら何も見ない。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
+| concept-traverse-children | 2-4 | current の（自身を除く）部分木を tree order（last なら鏡像）に並べた列で探す。step 3.4.4 の「parent が root」は、root に children があるときだけ root の最後の inclusive descendant（last なら鏡像の順序で最後のもの）で列を切ることにあたる。root が葉なら root へ親として上がることは無いので切らない。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
+| concept-traverse-siblings | 3 | 段ごとに兄弟の部分木を順に並べ、親へ上がれる（root でも accept されるものでもない）間だけ次の段を継いだ列で探す。兄弟の部分木の中から上がるときの step 3.3-3.4「親が root なら null」は、root がその部分木の中にあって children を持つとき、root の最後の inclusive descendant（previous なら鏡像の順序で最後のもの）で列を切ることにあたる。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
+| dom-treewalker-previousnode | 2 | current の木の tree order を current の手前から逆にたどる。current が root なら何も見ない。root に children があるか（step 2 の while 条件）、root に前の兄弟が無ければ（step 2.3）root まで（root を含む）で切り、root が葉で前の兄弟を持つなら切らずに root を越えて進む。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
 | dom-treewalker-nextnode | 3 | current の木の tree order を current の次からたどり、root の最後の inclusive descendant で切る（step 3.4.1 の「temporary が root」）。current がその node なら何も見ない。filter は常に null。whatToShow の bit だけで決まるので FILTER_REJECT が出ず、仕様の loop を「候補列の中で accept される最初の node」に書き直してある |
 | concept-dtl-update | * | DOMTokenList は classList だけで、element と attribute name は（受け手の element, "class"）に固定 |
 | concept-dtl-serialize | * | DOMTokenList は classList だけで、element と attribute name は（受け手の element, "class"）に固定。value の getter が無いので、serialize steps を直接呼ぶ所は無い |

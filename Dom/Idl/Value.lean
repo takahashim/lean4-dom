@@ -21,7 +21,8 @@ scenario が JSON で運ぶ JavaScript の値（`JsValue`）と、WebIDL Standar
 object は JSON の object（プロパティの列）と配列に限る。getter や prototype の上書きは無いので、`Get` は
 自分のプロパティを引くだけで、利用者のコードは走らない。配列は組み込みの `Array` で、`@@iterator` は要素を
 順に返し、ToString は `Array.prototype.join` で "," つなぎになる。普通の object は `@@iterator` を持たず、
-ToString は "[object Object]" になる。関数と platform object（AbortSignal など）は表さない。
+ToString は "[object Object]" になる。JSON の値は呼べないので、自分の `toString` を持つ object の ToString と
+ToNumber は TypeError になる（`JsValue.ownsToString`）。関数と platform object（AbortSignal など）は表さない。
 数の ToString は有効数字 15 桁以下の数に限る（`Dom/Idl/NumberString.lean`）。
 `AbortSignal` 型の member（`signal`）に undefined 以外の値が来れば、それは AbortSignal ではないので TypeError になる。
 -/
@@ -50,15 +51,15 @@ def get : JsValue → String → JsValue
 
 /--
 ECMAScript の ToBoolean。数は Number の値に丸めてから 0 か（NaN は JSON に無い）を見る。1e-400 のように
-0 に丸まる数は false である。
+0 に丸まる数は false である。有効数字が 20 桁を超える数も、RoundMVResult の二つの候補がどちらも ±0 なら false、
+どちらも ±0 でないなら true である（`JsNumber.zeroAfterRounding?`）。候補で結果が割れる数は、scenario の読み取りが
+断る（`Dom/Exec/Json.lean` の `jsValueOfJson`）ので、ここには来ない。
 -/
 def toBoolean : JsValue → Bool
   | .undefined => false
   | .null => false
   | .bool b => b
-  | .number n => match n.toNum? with
-    | some (.finite _ 0 _) => false
-    | _ => true
+  | .number n => !(n.zeroAfterRounding?.getD false)
   | .string s => !s.isEmpty
   | .object _ => true
   | .array _ => true
@@ -77,26 +78,45 @@ def isObject : JsValue → Bool
   | .object _ | .array _ => true
   | _ => false
 
+/--
+**自分の `toString` プロパティを持つ object か。** JSON の値は関数を持てないので、そのプロパティは呼べない。
+
+OrdinaryToPrimitive（ECMA-262 §7.1.1.1）は hint が string なら `toString`、`valueOf` の順に、number なら逆の順に
+method を引く（step 1-2）。step 3.1 の `Get` は自分のプロパティを先に見るので、自分の `toString` を持つ object では
+`Object.prototype.toString` に届かず、呼べない値なので step 3.2 を飛ばす。`valueOf` は、自分のプロパティなら
+呼べないので飛ばし、無ければ `Object.prototype.valueOf` が object 自身を返すので step 3.2.2 を通らない。
+どちらの hint でも step 4 の TypeError になる。自分の `toString` を持たなければ、`Object.prototype.toString` が
+"[object Object]" を返す。
+-/
+def ownsToString (props : List (String × JsValue)) : Bool :=
+  props.any (·.1 == "toString")
+
+/-- 結果が一つに決まらない値（`none`）を model の対象外にする。 -/
+def outsideModelOfNone {α : Type} : Option α → Except IdlException α
+  | some a => .ok a
+  | none => .error (.dom .outsideModel)
+
 mutual
 
 /--
-**ECMAScript の ToString。** 数が対象外（有効数字が 15 桁を超えるなど）なら `none`。
+**ECMAScript の ToString。** 数が対象外（有効数字が 15 桁を超えるなど）なら model の対象外。
 
-object は ToPrimitive が `toString` を呼ぶ。普通の object は `Object.prototype.toString` で
-"[object Object]"、配列は `Array.prototype.join` で、要素を "," でつなぐ（undefined と null の要素は空文字列）。
+object は ToPrimitive が OrdinaryToPrimitive を hint string で呼ぶ。普通の object は `Object.prototype.toString` で
+"[object Object]"、自分の `toString` を持つ object は TypeError（`ownsToString`）、配列は `Array.prototype.join` で、
+要素を "," でつなぐ（undefined と null の要素は空文字列）。
 -/
-def toJsString : JsValue → Option String
-  | .undefined => some "undefined"
-  | .null => some "null"
-  | .bool b => some (if b then "true" else "false")
-  | .number n => n.toJsString
-  | .string s => some s
-  | .object _ => some "[object Object]"
+def toJsString : JsValue → Except IdlException String
+  | .undefined => .ok "undefined"
+  | .null => .ok "null"
+  | .bool b => .ok (if b then "true" else "false")
+  | .number n => outsideModelOfNone n.toJsString
+  | .string s => .ok s
+  | .object props => if ownsToString props then .error .typeError else .ok "[object Object]"
   | .array xs => joinElems xs
 
-/-- `Array.prototype.join(",")`。 -/
-def joinElems : List JsValue → Option String
-  | [] => some ""
+/-- `Array.prototype.join(",")`。要素の ToString の失敗はそのまま返す（step 7.3.1 の `?`）。 -/
+def joinElems : List JsValue → Except IdlException String
+  | [] => .ok ""
   | [x] => joinElem x
   | x :: rest => do
     let a ← joinElem x
@@ -104,19 +124,73 @@ def joinElems : List JsValue → Option String
     pure (a ++ "," ++ b)
 
 /-- join の一つの要素。undefined と null は空文字列。 -/
-def joinElem : JsValue → Option String
-  | .undefined | .null => some ""
+def joinElem : JsValue → Except IdlException String
+  | .undefined | .null => .ok ""
   | v => toJsString v
 
 end
 
+/-- 失敗するなら TypeError か model の対象外であること。 -/
+def ErrTypeOrOutside {α : Type} (r : Except IdlException α) : Prop :=
+  ∀ e, r = .error e → e = .typeError ∨ e = .dom .outsideModel
+
+mutual
+
+/--
+**ToString が投げるのは TypeError だけである。** ほかの失敗は model の対象外（`outsideModel`）で、
+DOMException は投げない。
+-/
+theorem toJsString_errTypeOrOutside : (v : JsValue) → ErrTypeOrOutside v.toJsString
+  | .undefined | .null | .bool _ | .string _ => by intro e h; simp [toJsString] at h
+  | .number n => by
+    intro e h
+    simp only [toJsString, outsideModelOfNone] at h
+    split at h <;> cases h
+    exact .inr rfl
+  | .object props => by
+    intro e h
+    simp only [toJsString] at h
+    split at h <;> cases h
+    exact .inl rfl
+  | .array xs => by
+    intro e h
+    simp only [toJsString] at h
+    exact joinElems_errTypeOrOutside xs e h
+
+theorem joinElems_errTypeOrOutside : (xs : List JsValue) → ErrTypeOrOutside (joinElems xs)
+  | [] => by intro e h; simp [joinElems] at h
+  | [x] => by
+    intro e h
+    simp only [joinElems] at h
+    exact joinElem_errTypeOrOutside x e h
+  | x :: y :: rest => by
+    intro e h
+    simp only [joinElems, bind, Except.bind] at h
+    split at h
+    · cases h; exact joinElem_errTypeOrOutside x e (by assumption)
+    · split at h
+      · cases h; exact joinElems_errTypeOrOutside (y :: rest) e (by assumption)
+      · cases h
+
+theorem joinElem_errTypeOrOutside : (x : JsValue) → ErrTypeOrOutside (joinElem x)
+  | .undefined | .null => by intro e h; simp [joinElem] at h
+  | .bool b => fun e h => toJsString_errTypeOrOutside (.bool b) e (by simpa only [joinElem] using h)
+  | .number n => fun e h => toJsString_errTypeOrOutside (.number n) e (by simpa only [joinElem] using h)
+  | .string t => fun e h => toJsString_errTypeOrOutside (.string t) e (by simpa only [joinElem] using h)
+  | .object p => fun e h => toJsString_errTypeOrOutside (.object p) e (by simpa only [joinElem] using h)
+  | .array a => fun e h => toJsString_errTypeOrOutside (.array a) e (by simpa only [joinElem] using h)
+
+end
+
+/-- `Except` が TypeError で失敗したか（例のための判定）。 -/
+def isTypeError {α : Type} : Except IdlException α → Bool
+  | .error .typeError => true
+  | _ => false
+
 end JsValue
 
-/-- **JavaScript の値を IDL の `DOMString` に変換する。** 数が対象外なら model の対象外。 -/
-def toDOMString (v : JsValue) : Except IdlException String :=
-  match v.toJsString with
-  | some s => .ok s
-  | none => .error (.dom .outsideModel)
+/-- **JavaScript の値を IDL の `DOMString` に変換する。** ToString（§3.2.10 step 2）である。 -/
+def toDOMString (v : JsValue) : Except IdlException String := v.toJsString
 
 /--
 **JavaScript の値を IDL の `DOMString?` に変換する。** undefined と null は null、それ以外は DOMString へ
@@ -137,21 +211,20 @@ def toLegacyNullDOMString (v : JsValue) : Except IdlException String :=
   | _ => toDOMString v
 
 /--
-**DOMString への変換は TypeError を投げない。** model が表す値（primitive、普通の object、配列）の ToString は
-利用者のコードを呼ばず、失敗しない。失敗するのは model の対象外の数だけである。
+**DOMString への変換が投げるのは TypeError だけである。** model が表す値の ToString は利用者のコードを呼ばず、
+副作用を持たない。失敗するのは、自分の `toString` を持つ object（TypeError）と、model の対象外の数だけである。
 
 このため、引数の DOMString への変換を、scenario を読むときに前もって行っても観測は変わらない
-（`Dom/Exec/Json.lean`）。変換は副作用を持たず、this の検査やほかの引数の変換と順序を入れ替えても結果が同じである。
+（`Dom/Exec/Json.lean`）。method steps より前に起きる WebIDL の失敗（this の検査、interface 型と DOMString の
+引数の変換）はどれも TypeError なので、どれが先に起きても結果は同じである。model の対象外の値を含む scenario は、
+読み取りの段階で丸ごと断る。
 -/
 theorem toDOMString_error {v : JsValue} {e : IdlException} (h : toDOMString v = .error e) :
-    e = .dom .outsideModel := by
-  unfold toDOMString at h
-  split at h
-  · cases h
-  · cases h; rfl
+    e = .typeError ∨ e = .dom .outsideModel :=
+  JsValue.toJsString_errTypeOrOutside v e h
 
 theorem toNullableDOMString_error {v : JsValue} {e : IdlException}
-    (h : toNullableDOMString v = .error e) : e = .dom .outsideModel := by
+    (h : toNullableDOMString v = .error e) : e = .typeError ∨ e = .dom .outsideModel := by
   unfold toNullableDOMString at h
   split at h
   · cases h
@@ -161,7 +234,7 @@ theorem toNullableDOMString_error {v : JsValue} {e : IdlException}
     | error e' => rw [hv] at h; cases h; exact toDOMString_error hv
 
 theorem toLegacyNullDOMString_error {v : JsValue} {e : IdlException}
-    (h : toLegacyNullDOMString v = .error e) : e = .dom .outsideModel := by
+    (h : toLegacyNullDOMString v = .error e) : e = .typeError ∨ e = .dom .outsideModel := by
   unfold toLegacyNullDOMString at h
   split at h
   · cases h
@@ -274,18 +347,32 @@ theorem toImportNodeOptions_eq_none_iff (v : JsValue) :
 /--
 **`(DOMString or ElementCreationOptions)` への変換が通るか。** null、undefined、object は
 `dictionary ElementCreationOptions { CustomElementRegistry? customElementRegistry; DOMString is; }` に、それ以外は
-DOMString に変換する。DOMString への変換は失敗せず、`customElementRegistry` は nullable なので null も受ける。
+DOMString に変換する。`customElementRegistry` は nullable なので null も受ける。
 TypeError になるのは、dictionary として読む値に undefined でも null でもない `customElementRegistry` があるとき
-（CustomElementRegistry を表せない）だけである。`ImportNodeOptions` の同名の member は nullable でないので、
+（CustomElementRegistry を表せない）と、`is` の member や DOMString として読む値が自分の `toString` を持つ object
+のとき（`JsValue.ownsToString`）である。`ImportNodeOptions` の同名の member は nullable でないので、
 そちらは null も TypeError になる（`toImportNodeOptions`）。
 
 `is` と registry は custom element の仕組みで、model は使わない。`is` と null の registry を両方書くと、
 "flatten element creation options" の step 3.2.1 が NotSupportedError を投げるが、この step は対象外である。
 -/
 def elementCreationOptionsOk (v : JsValue) : Bool :=
-  match v.get "customElementRegistry" with
-  | .undefined | .null => true
-  | _ => !v.isObjectOrNullish
+  if v.isObjectOrNullish then
+    registryOk && isOk
+  else
+    -- DOMString への変換（§3.2.24 step 12 以降）
+    !(match v.toJsString with | .error .typeError => true | _ => false)
+where
+  /-- `customElementRegistry` は nullable で、CustomElementRegistry を表せないので undefined と null だけ通る。 -/
+  registryOk : Bool :=
+    match v.get "customElementRegistry" with
+    | .undefined | .null => true
+    | _ => false
+  /-- `is` は DOMString の member で、自分の `toString` を持つ object なら TypeError。 -/
+  isOk : Bool :=
+    match (v.get "is").toJsString with
+    | .error .typeError => false
+    | _ => true
 
 /-! ## 例 -/
 
@@ -296,8 +383,11 @@ example : toAddEventListenerOptions (.object [("passive", .number ⟨0, 0⟩), (
     some (.dict false true (some false)) := by decide
 example : toAddEventListenerOptions (.object [("signal", .null)]) = none := by decide
 
-#guard JsValue.toJsString (.array [.number ⟨1, 0⟩, .null, .array [.bool true, .string "a"]]) = some "1,,true,a"
-#guard JsValue.toJsString (.object []) = some "[object Object]"
+#guard (JsValue.toJsString (.array [.number ⟨1, 0⟩, .null, .array [.bool true, .string "a"]])).toOption == some "1,,true,a"
+#guard (JsValue.toJsString (.object [])).toOption == some "[object Object]"
+#guard (JsValue.toJsString (.object [("valueOf", .number ⟨1, 0⟩)])).toOption == some "[object Object]"
+#guard JsValue.isTypeError (JsValue.toJsString (.object [("toString", .number ⟨1, 0⟩)]))
+#guard JsValue.isTypeError (JsValue.toJsString (.array [.object [("toString", .null)]]))
 #guard (toSequenceDOMString (.object [])).toOption = none
 
 end Dom.Idl

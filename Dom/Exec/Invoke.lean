@@ -39,6 +39,9 @@ def isParentNode (d : NodeData) : Bool := d.kind.canHaveChildren
 def isChildNode (d : NodeData) : Bool :=
   d.kind == .element || d.kind.isCharacterData || d.kind == .documentType
 
+/-- `CharacterData`（Text・CDATASection・Comment・ProcessingInstruction）。 -/
+def isCharacterData (d : NodeData) : Bool := d.kind.isCharacterData
+
 /-- `Element`。 -/
 def isElement (d : NodeData) : Bool := d.kind == .element
 
@@ -71,6 +74,7 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .before t _ => implementsIface s.tree t isChildNode
   | .after t _ => implementsIface s.tree t isChildNode
   | .replaceWith t _ => implementsIface s.tree t isChildNode
+  | .remove t => implementsIface s.tree t isChildNode
   | .querySelector n _ => implementsIface s.tree n isParentNode
   | .querySelectorAll n _ => implementsIface s.tree n isParentNode
   | .childrenNamedItem n _ => implementsIface s.tree n isParentNode
@@ -93,6 +97,16 @@ def idlCheck (s : DOMState) : Operation → Bool
   | .insertAdjacentElement e _ n => implementsIface s.tree e isElement && implementsIface s.tree n isElement
   | .insertAdjacentText e _ _ => implementsIface s.tree e isElement
   | .splitText n _ => implementsIface s.tree n fun d => d.kind.isText
+  -- CharacterData の method と `data` の setter
+  | .replaceData n _ _ _ => implementsIface s.tree n isCharacterData
+  | .appendData n _ => implementsIface s.tree n isCharacterData
+  | .insertData n _ _ => implementsIface s.tree n isCharacterData
+  | .deleteData n _ _ => implementsIface s.tree n isCharacterData
+  | .substringData n _ _ => implementsIface s.tree n isCharacterData
+  | .setData n _ => implementsIface s.tree n isCharacterData
+  | .getAttribute e _ => implementsIface s.tree e isElement
+  | .hasAttribute e _ => implementsIface s.tree e isElement
+  | .getAttributeNames e => implementsIface s.tree e isElement
   | .getAttributeNS e _ _ => implementsIface s.tree e isElement
   | .hasAttributeNS e _ _ => implementsIface s.tree e isElement
   | .hasAttributes e => implementsIface s.tree e isElement

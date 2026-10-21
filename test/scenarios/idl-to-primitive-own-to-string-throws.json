@@ -1,0 +1,28 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html",
+    "algorithm": [
+      "OrdinaryToPrimitive",
+      "ToString",
+      "ToNumber",
+      "convert a JavaScript value to DOMString",
+      "setAttribute"
+    ],
+    "steps": "OrdinaryToPrimitive step 3-4 / ToString step 9-10 / ToNumber step 7-8",
+    "note": "JSON の値は呼べない。自分の valueOf だけを持つ object は、valueOf を飛ばして Object.prototype.toString が \"[object Object]\" を返す（DOMString でも unsigned long でも同じで、unsigned long は NaN から 0 になる）。自分の toString を持つ object は、toString を飛ばし、valueOf も object 自身を返すか呼べないので、OrdinaryToPrimitive の step 4 で TypeError になる。method steps に入らないので状態は変わらない。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "text", "parent": 1, "data": "abc" }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "setAttribute", "element": 1, "name": "a", "value": { "valueOf": 1 } },
+    { "op": "replaceData", "node": 2, "offset": { "valueOf": 1 }, "count": 0, "data": "z" },
+    { "op": "setAttribute", "element": 1, "name": "b", "value": { "toString": 1 } }
+  ]
+}

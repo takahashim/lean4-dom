@@ -111,19 +111,24 @@ where
       | some (m, e) => JsNum.ofDecimal? neg m e
       | none => some .nan
 
-/-- **ECMAScript の ToNumber。** 結果が一つに決まらない値は `none`。 -/
-def JsValue.toNumber : JsValue → Option JsNum
-  | .undefined => some .nan
-  | .null => some (.finite false 0 0)
-  | .bool b => some (.finite false (if b then 1 else 0) 0)
-  | .number n => n.toNum?
-  | .string s => stringToNumber s
-  | .object _ => stringToNumber "[object Object]"
-  | .array xs => (JsValue.array xs).toJsString.bind stringToNumber
+/--
+**ECMAScript の ToNumber。** 結果が一つに決まらない値は model の対象外（`outsideModel`）。
+
+object は ToPrimitive が OrdinaryToPrimitive を hint number で呼ぶ。`valueOf` は object 自身を返すか呼べないので、
+`toString` の結果（`JsValue.toJsString`）を StringToNumber で読む。自分の `toString` を持つ object は TypeError。
+-/
+def JsValue.toNumber : JsValue → Except IdlException JsNum
+  | .undefined => .ok .nan
+  | .null => .ok (.finite false 0 0)
+  | .bool b => .ok (.finite false (if b then 1 else 0) 0)
+  | .number n => outsideModelOfNone n.toNum?
+  | .string s => outsideModelOfNone (stringToNumber s)
+  | .object props => do outsideModelOfNone (stringToNumber (← (JsValue.object props).toJsString))
+  | .array xs => do outsideModelOfNone (stringToNumber (← (JsValue.array xs).toJsString))
 
 /-! ## 例 -/
 
-private def u32 (v : JsValue) : Option Nat := v.toNumber.map toUnsignedLong
+private def u32 (v : JsValue) : Option Nat := (v.toNumber.map toUnsignedLong).toOption
 
 #guard u32 .null == some 0
 #guard u32 (.bool true) == some 1
@@ -145,5 +150,8 @@ private def u32 (v : JsValue) : Option Nat := v.toNumber.map toUnsignedLong
 #guard u32 (.array [.number ⟨1, 0⟩, .number ⟨2, 0⟩]) == some 0
 #guard u32 (.object []) == some 0
 #guard u32 .undefined == some 0
+#guard u32 (.object [("valueOf", .number ⟨5, 0⟩)]) == some 0
+#guard (JsValue.object [("toString", .number ⟨1, 0⟩)]).toNumber.toOption.isNone
+#guard (JsValue.array [.object [("toString", .null)]]).toNumber.toOption.isNone
 
 end Dom.Idl

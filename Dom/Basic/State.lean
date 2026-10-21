@@ -225,9 +225,8 @@ structure DOMState where
   どの element にも付いていない `Attr`（仕様の「element が null の attribute」）。
 
   `createAttribute` が作ったもの、`removeAttributeNode` が返したもの、
-  `setAttributeNode` が押し出したものが入る。**名前で消した attribute は入らない。**
-  仕様では element を null にするだけで object は残るが、それを指す参照がどこにも
-  無いので観測できない（`docs/threats-to-validity.md` を参照）。
+  `setAttributeNode` が押し出したもの、名前で消したもの（`removeAttribute`・`removeAttributeNS`）が入る。
+  仕様の "remove an attribute" は element を null にするだけで object は残す。
   -/
   detachedAttrs : List Attr := []
 deriving Repr, Inhabited

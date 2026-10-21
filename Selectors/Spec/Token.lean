@@ -21,7 +21,6 @@ token の型 `Token` / `Num` だけである。code point の分類も
 ## 本文との差（`Selectors/Token.lean` 冒頭と同じ）
 
 * surrogate を U+FFFD にする前処理は無い。Lean の `Char` は surrogate を持てない。
-* `<url-token>` を作らない（§4.3.4 の `url(` の分岐が無い）。
 * number は整数のときだけ本文どおりの値を持つ（§4.3.13）。
 * percentage token が type flag を持つ（§4.3.3）。
 -/
@@ -60,6 +59,16 @@ def Newline (c : Char) : Prop := c = '\n'
 
 /-- whitespace：newline、U+0009 CHARACTER TABULATION、U+0020 SPACE。 -/
 def Whitespace (c : Char) : Prop := Newline c ∨ c = '\t' ∨ c = ' '
+
+/-- `o` が whitespace である。EOF は whitespace でない。 -/
+def Whitespace' (o : Option Char) : Prop := ∃ w, o = some w ∧ Whitespace w
+
+/--
+non-printable code point：U+0000 NULL..U+0008 BACKSPACE、U+000B LINE TABULATION、
+U+000E SHIFT OUT..U+001F INFORMATION SEPARATOR ONE、U+007F DELETE。
+-/
+def NonPrintable (c : Char) : Prop :=
+  c.toNat ≤ 0x08 ∨ c.toNat = 0x0B ∨ (0x0E ≤ c.toNat ∧ c.toNat ≤ 0x1F) ∨ c.toNat = 0x7F
 
 /-! ## 前処理（§3.3 "filter code points"） -/
 
@@ -302,7 +311,7 @@ def Number (input : List Char) (n : Num) (rest : List Char) : Prop :=
           value := if sign = some '-' then -(v : Int) else (v : Int),
           sign := sign }
 
-/-! ## numeric token・ident-like token（§4.3.3・§4.3.4） -/
+/-! ## numeric token（§4.3.3） -/
 
 /--
 §4.3.3 "consume a numeric token"。
@@ -316,14 +325,116 @@ def NumericTok (input : List Char) (t : Token) (rest : List Char) : Prop :=
      (¬ StartsIdent r ∧ r = '%' :: rest ∧ t = Token.percentage n) ∨
      (¬ StartsIdent r ∧ r[0]? ≠ some '%' ∧ t = Token.number n ∧ rest = r))
 
+/-- `rest` の先頭の whitespace を続く限り読むと残りが `out`。 -/
+def WhitespaceRun (rest out : List Char) : Prop :=
+  ∃ ws, rest = ws ++ out ∧ (∀ w ∈ ws, Whitespace w) ∧ ∀ x, out[0]? = some x → ¬ Whitespace x
+
+/-! ## url token（§4.3.6 "consume a url token"・§4.3.14 "consume the remnants of a bad url"） -/
+
+/--
+§4.3.14：`BadUrlRemnants input rest`。`)` か入力の終わりまで読み捨てると残りが `rest`。
+
+本文の分岐の順に、`)` と EOF、valid escape、それ以外を並べる。
+-/
+inductive BadUrlRemnants : List Char → List Char → Prop where
+  /-- U+0029 RIGHT PARENTHESIS：読んで返る。 -/
+  | rparen {rest : List Char} : BadUrlRemnants (')' :: rest) rest
+  /-- EOF：返る。 -/
+  | eof : BadUrlRemnants [] []
+  /-- 入力が valid escape で始まる：escape を読む（`\)` で止まらないため）。 -/
+  | escape {rest rest' out : List Char} {e : Char}
+      (hv : StartsValidEscape ('\\' :: rest)) (he : Escape rest e rest')
+      (ih : BadUrlRemnants rest' out) :
+      BadUrlRemnants ('\\' :: rest) out
+  /-- anything else：何もしない。 -/
+  | other {c : Char} {rest out : List Char} (hc : c ≠ ')') (hv : ¬ StartsValidEscape (c :: rest))
+      (ih : BadUrlRemnants rest out) :
+      BadUrlRemnants (c :: rest) out
+
+/--
+§4.3.6 step 3：`UrlRun input value bad rest`。先頭の whitespace を読んだあとの `input` を
+繰り返し読む。`value` は値、`bad` は `<bad-url-token>` になったか、`rest` は残り。
+-/
+inductive UrlRun : List Char → List Char → Bool → List Char → Prop where
+  /-- U+0029 RIGHT PARENTHESIS：url token を返す。 -/
+  | close {rest : List Char} : UrlRun (')' :: rest) [] false rest
+  /-- EOF（parse error）：url token を返す。 -/
+  | eof : UrlRun [] [] false []
+  /-- whitespace のあと whitespace を読み切って `)`：それも読んで url token。 -/
+  | wsClose {c : Char} {rest out : List Char} (hc : Whitespace c)
+      (hw : WhitespaceRun rest (')' :: out)) :
+      UrlRun (c :: rest) [] false out
+  /-- whitespace のあと whitespace を読み切って EOF（parse error）：url token。 -/
+  | wsEof {c : Char} {rest : List Char} (hc : Whitespace c) (hw : WhitespaceRun rest []) :
+      UrlRun (c :: rest) [] false []
+  /-- whitespace のあと whitespace を読み切ってそれ以外：remnants を読んで bad-url token。 -/
+  | wsBad {c d : Char} {rest r out : List Char} (hc : Whitespace c)
+      (hw : WhitespaceRun rest (d :: r)) (hd : d ≠ ')') (hb : BadUrlRemnants (d :: r) out) :
+      UrlRun (c :: rest) [] true out
+  /-- `"`・`'`・`(`・non-printable code point（parse error）：remnants を読んで bad-url token。 -/
+  | bad {c : Char} {rest out : List Char}
+      (hc : c = '"' ∨ c = '\'' ∨ c = '(' ∨ NonPrintable c) (hb : BadUrlRemnants rest out) :
+      UrlRun (c :: rest) [] true out
+  /-- `\` が valid escape：escape を読んで値に足す。 -/
+  | escape {rest rest' v out : List Char} {x : Char} {b : Bool}
+      (hv : StartsValidEscape ('\\' :: rest)) (hx : Escape rest x rest')
+      (ih : UrlRun rest' v b out) :
+      UrlRun ('\\' :: rest) (x :: v) b out
+  /-- `\` が valid escape でない（parse error）：remnants を読んで bad-url token。 -/
+  | badEscape {rest out : List Char} (hv : ¬ StartsValidEscape ('\\' :: rest))
+      (hb : BadUrlRemnants rest out) :
+      UrlRun ('\\' :: rest) [] true out
+  /-- anything else：値に足す。 -/
+  | other {c : Char} {rest v out : List Char} {b : Bool}
+      (hc : c ≠ ')' ∧ ¬ Whitespace c ∧ c ≠ '"' ∧ c ≠ '\'' ∧ c ≠ '(' ∧ ¬ NonPrintable c ∧
+        c ≠ '\\')
+      (ih : UrlRun rest v b out) :
+      UrlRun (c :: rest) (c :: v) b out
+
+/-- §4.3.6：`url(` のあとの `input` から url token を読むと `t`、残りが `rest`。 -/
+def UrlTok (input : List Char) (t : Token) (rest : List Char) : Prop :=
+  ∃ r v b, WhitespaceRun input r ∧ UrlRun r v b rest ∧
+    t = if b then Token.badUrl else Token.url (String.ofList v)
+
+/-! ## ident-like token（§4.3.4） -/
+
+/-- 名前が "url" に ASCII 大文字小文字を区別せずに一致する。 -/
+def UrlName (s : List Char) : Prop :=
+  ∃ a b c, s = [a, b, c] ∧ (a = 'u' ∨ a = 'U') ∧ (b = 'r' ∨ b = 'R') ∧ (c = 'l' ∨ c = 'L')
+
+/--
+§4.3.4 の "While the next two input code points are whitespace, consume the next input
+code point"：`UrlLeadWs input rest`。
+-/
+inductive UrlLeadWs : List Char → List Char → Prop where
+  | step {c d : Char} {rest out : List Char} (hc : Whitespace c) (hd : Whitespace d)
+      (ih : UrlLeadWs (d :: rest) out) :
+      UrlLeadWs (c :: d :: rest) out
+  | stop {l : List Char} (h : ¬ (Whitespace' l[0]? ∧ Whitespace' l[1]?)) : UrlLeadWs l l
+
+/-- 引用符：U+0022 QUOTATION MARK か U+0027 APOSTROPHE。 -/
+def Quote (o : Option Char) : Prop := o = some '"' ∨ o = some '\''
+
+/--
+§4.3.4 の "If the next one or two input code points are U+0022 QUOTATION MARK ("),
+U+0027 APOSTROPHE ('), or whitespace followed by U+0022 QUOTATION MARK (") or U+0027 APOSTROPHE (')"。
+-/
+def QuoteAhead (l : List Char) : Prop :=
+  Quote l[0]? ∨ (Whitespace' l[0]? ∧ Quote l[1]?)
+
 /--
 §4.3.4 "consume an ident-like token"。
 
-本文との差：`url(` を特別扱いしない（`<url-token>` を作らない）。`url(` は function token になる。
+名前が "url" に一致して `(` が続くなら、`(` を読み、whitespace を高々一つまで読み、
+引用符の値なら function token、そうでなければ url token（§4.3.6）を返す。
+それ以外で `(` が続くなら function token、続かなければ ident token。
 -/
 def IdentLikeTok (input : List Char) (t : Token) (rest : List Char) : Prop :=
   ∃ s r, IdentSeq input s r ∧
-    ((r = '(' :: rest ∧ t = Token.function (String.ofList s)) ∨
+    ((UrlName s ∧ ∃ r' r'', r = '(' :: r' ∧ UrlLeadWs r' r'' ∧
+        ((QuoteAhead r'' ∧ t = Token.function (String.ofList s) ∧ rest = r'') ∨
+         (¬ QuoteAhead r'' ∧ UrlTok r'' t rest))) ∨
+     (¬ UrlName s ∧ r = '(' :: rest ∧ t = Token.function (String.ofList s)) ∨
      (r[0]? ≠ some '(' ∧ t = Token.ident (String.ofList s) ∧ rest = r))
 
 /-! ## token を一つ読む（§4.3.1 "consume a token"）
@@ -346,10 +457,6 @@ inductive Punct : Char → Token → Prop where
   | rbracket : Punct ']' Token.rbracket
   | lbrace : Punct '{' Token.lbrace
   | rbrace : Punct '}' Token.rbrace
-
-/-- `rest` の先頭の whitespace を続く限り読むと残りが `out`。 -/
-def WhitespaceRun (rest out : List Char) : Prop :=
-  ∃ ws, rest = ws ++ out ∧ (∀ w ∈ ws, Whitespace w) ∧ ∀ x, out[0]? = some x → ¬ Whitespace x
 
 /-- switch のどの名前付きの分岐にも当たらない code point（本文の "anything else"）。 -/
 def OtherCp (c : Char) : Prop :=

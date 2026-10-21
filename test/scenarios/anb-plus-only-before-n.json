@@ -1,0 +1,80 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#the-anb-type",
+    "algorithm": [
+      "<a-n-plus-b>"
+    ],
+    "steps": "'+'? が付くのは n・n-・<ndashdigit-ident> で始まる形だけで、-n・-n-・<dashndashdigit-ident> と odd・even の前には '+' を置けない",
+    "note": "`-n+3` と `+n+3` と `+n-1` は当たる。最後の `+-n+3` は delim `+`、ident `-n`、number `+3` で、`'+'? n <signed-integer>` にも `-n <signed-integer>` にも当たらないので SyntaxError。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 5,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    },
+    {
+      "id": 6,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(-n+3)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(+n+3)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(+n-1)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":nth-child(+-n+3)"
+    }
+  ]
+}

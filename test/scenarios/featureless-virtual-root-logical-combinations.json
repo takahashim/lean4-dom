@@ -1,0 +1,112 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#featureless",
+    "algorithm": [
+      "featureless",
+      "virtual scoping root",
+      ":is()",
+      ":not()",
+      ":has()"
+    ],
+    "steps": "A featureless element does not match any selector at all, except: simple selectors it is explicitly defined to match; compound selectors, if all contained simple selectors are allowed to match it; complex selectors, if the compound selector targeting the subject is allowed to match it; selector lists, if at least one selector in the list is allowed to match it; logical combination pseudo-classes, if their argument selector is allowed to match it; the :has() pseudo-class, if and only if the compound selector it's part of contains at least one other simple selector that's allowed to match it.",
+    "note": "DocumentFragment を受け手にすると、それは featureless な virtual scoping root として combinator の左に立つ（`scope-pseudo-virtual-root-is-featureless.json`）。`:is(:scope)`・`:where(:scope)`・`:scope:is(:scope)`・`:is(:scope, .foo)` は引数が当たりうるので fragment に当たる（`:is(:scope, .foo)` は div にも当たるので p も返る）。`:scope:has(.foo)` と `:scope:has(p)` は同じ compound に `:scope` があるので当たりうる。relative selector の先頭に暗黙に置かれる anchor（anchor element を表す selector）は fragment に当たる。`:scope:has(> p)` は fragment の子に p が無いので当たらない。`:has(.foo)` は同じ compound に他の simple selector が無いので、`:is(*)`・`:not(.foo)`・`:scope:not(.foo)` は引数が当たりえないので、fragment には当たらない（本文の例 `:not(.foo:host)` と同じ理由）。`:not(:scope)` は当たりうるが、fragment には `:scope` が当たるので当たらない。element の div には当たり、その子の p が返る。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "documentFragment"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div",
+      "attributes": [
+        {
+          "namespace": null,
+          "prefix": null,
+          "localName": "class",
+          "value": "foo"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "p"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":is(:scope) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":where(:scope) > div"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":scope:is(:scope) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":is(:scope, .foo) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":scope:has(.foo) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":scope:has(p) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":scope:has(> p) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":has(.foo) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":is(*) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":not(.foo) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":scope:not(.foo) > *"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 1,
+      "selectors": ":not(:scope) > *"
+    }
+  ]
+}

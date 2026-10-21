@@ -1,0 +1,54 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#forgiving-selector",
+    "algorithm": [
+      "<forgiving-selector-list>",
+      "<any-value>",
+      "consume a string token"
+    ],
+    "steps": "string token の中の改行は parse error で、bad-string-token になる。<forgiving-selector-list> は構文上 <any-value>? で、<any-value> は bad-string-token を含まない",
+    "note": "`\"a` に改行が続くので bad-string-token になる。読めない項目として捨てられるのではなく、`:where()` の引数が `<any-value>?` に当たらないので selector 全体が無効になる。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":where(p)"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":where(p, \"a\nb\")"
+    }
+  ]
+}

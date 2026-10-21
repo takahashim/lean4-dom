@@ -244,18 +244,17 @@ theorem labelToASCII_lower (t : IdnaTable) (hup : t.NoUpperValid) {label l : Lis
       · next decoded _ =>
         split at h
         · next hval =>
-          split at h
-          · rw [← Option.some.inj h]
-            exact fun c hc => lower_of_valid hup (hv c hc)
-          · rw [← Option.some.inj h]
-            refine hpfx decoded fun c hc _ => lower_of_valid hup ?_
-            simp only [validALabel, Bool.and_eq_true, List.all_eq_true, beq_iff_eq] at hval
-            exact hval.1 c hc
+          rw [← Option.some.inj h]
+          refine hpfx decoded fun c hc _ => lower_of_valid hup ?_
+          simp only [validALabel, Bool.and_eq_true, List.all_eq_true, beq_iff_eq] at hval
+          exact hval.1.2 c hc
         · simp at h
     · rw [← Option.some.inj h]
       exact fun c hc => lower_of_valid hup (hv c hc)
-  · rw [← Option.some.inj h]
-    exact hpfx label fun c hc _ => lower_of_valid hup (hv c hc)
+  · split at h
+    · simp at h
+    · rw [← Option.some.inj h]
+      exact hpfx label fun c hc _ => lower_of_valid hup (hv c hc)
 
 /-- **`toASCII` の出力は小文字の ASCII である。** -/
 theorem toASCII_lower_ascii (t : IdnaTable) (hres : t.Resolved) (hup : t.NoUpperValid)
@@ -268,10 +267,10 @@ theorem toASCII_lower_ascii (t : IdnaTable) (hres : t.Resolved) (hup : t.NoUpper
     exact ⟨this.1, this.2.1⟩
   · split at h
     · simp at h
-    · split at h
+    · next m hm =>
+      split at h
       · simp at h
-      · next m hm =>
-        split at h
+      · split at h
         · simp at h
         · split at h
           · simp at h

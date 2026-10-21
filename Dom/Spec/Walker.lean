@@ -10,18 +10,23 @@ filter が null なら、`nextNode()`・`previousNode()`・"traverse children"�
 それぞれ「ある候補の集まりのうち accept されるもので tree order で最初（または最後）のもの」である。
 候補の集まりを本文の loop から読み取って関係にする。
 
-* `nextNode()`：current に後続する node。ただし走査は親へ上がったときにそれが root なら止まる（step 3.4.1）ので、
-  root の最後の inclusive descendant `L` を見終えたら止まる。current が `L` 以前（`L` 自身を含む）にあれば、
-  `L` より後ろは候補でない。
-* `previousNode()`：current に先行する node。current が root なら何も見ず（step 2）、走査が root に達すれば
-  root を見て止まる（step 2.3-2.5）ので、root が current に先行するなら root より前は候補でない。
+* `nextNode()`：current に後続する node。ただし走査は `root` を見終えて上がろうとするところで止まる
+  （step 3.4.1「temporary が root なら null」）ので、root の最後の inclusive descendant `L` を見終えたら止まる。
+  current が `L` 以前（`L` 自身を含む）にあれば、`L` より後ろは候補でない。
+* `previousNode()`：current に先行する node。current が root なら何も見ない（step 2）。走査が root に達したとき、
+  root に children があれば root へ親として上がってきたところで、root を見て止まる（step 2.4-2.5 と step 2 の
+  while 条件）。root に children が無ければ root を前の兄弟（かその最後の子）として見て、root に前の兄弟が
+  無ければ止まり（step 2.3）、あれば inner loop がそちらへ続く（step 2.2.5）。止まるなら root より前は候補でない。
 * "traverse children"（first）：current の子孫。親へ上がったときにそれが root か current なら止まる（step 3.4.4）。
+  root へ親として上がるのは、root が current の子孫で children を持ち、その子孫を見終えたときだけである。
+  root が葉なら、root を見たあとも兄弟へ進む（step 3.4.2）。
 * `parentNode()`：current の祖先を近いほうから root まで。
 
 `lastChild()` と "traverse siblings" は `Dom/Spec/WalkerMirror.lean`・`Dom/Spec/WalkerSibling.lean` にある。
 
-実行関数がこれらを満たすことは `walkerNextNode_result_sound`・`walkerPreviousNode_result_sound`・
-`walkerFirstChild_result_sound`・`walkerParentNode_result_sound` が示す（`ValidWalker` を仮定する）。
+実行関数がこれらを満たすことは `walkerNextNode_result_sound`・`walkerFirstChild_result_sound`・
+`walkerParentNode_result_sound` と、`Dom/Spec/WalkerSibling.lean` の `walkerPreviousNode_result_sound` が示す
+（`ValidWalker` を仮定する。`previousNode()` の証明は兄弟の列の補題を使うので、そちらに置いてある）。
 関係が結果を一つに決めること（completeness）は `Dom/Spec/WalkerComplete.lean` にある。
 -/
 
@@ -39,15 +44,43 @@ def WalkerNextCandidate (t : Tree) (w : WalkerState) (x : NodeId) : Prop :=
     ∀ L, LastDescendantOf t w.root L → (w.current = L ∨ PrecedesStruct t w.current L) →
       ¬ PrecedesStruct t L x
 
-/-- `previousNode()` の候補。 -/
+/-- `s` が `a` の後ろの兄弟。 -/
+def FollowingSibling (t : Tree) (a s : NodeId) : Prop :=
+  ∃ p i j, parentOf t a = some p ∧ parentOf t s = some p ∧ index t a = some i ∧
+    index t s = some j ∧ i < j
+
+/-- `s` が `a` の前の兄弟。 -/
+def PrecedingSibling (t : Tree) (a s : NodeId) : Prop :=
+  ∃ p i j, parentOf t a = some p ∧ parentOf t s = some p ∧ index t a = some i ∧
+    index t s = some j ∧ j < i
+
+/--
+`previousNode()` の走査が root `r` に達したところで止まる。
+
+`r` に child があれば、走査は `r` の最初の子から `r` へ親として上がってきて（step 2.4-2.5）、
+step 2 の while 条件で止まる。`r` に前の兄弟が無ければ、`r` を見終えたところで step 2.3「node が root なら
+null」に当たる。どちらでもない（`r` が葉で前の兄弟を持つ）なら、step 2.2 の inner loop が前の兄弟へ続く。
+-/
+def PreviousStopsAtRoot (t : Tree) (r : NodeId) : Prop :=
+  (∃ y, parentOf t y = some r) ∨ ¬ ∃ s, PrecedingSibling t r s
+
+/--
+`previousNode()` の候補。current が root なら無い（step 2）。走査が root に達してそこで止まるなら、
+root より前は候補でない。
+-/
 def WalkerPreviousCandidate (t : Tree) (w : WalkerState) (x : NodeId) : Prop :=
   w.current ≠ w.root ∧ PrecedesStruct t x w.current ∧
-    (PrecedesStruct t w.root w.current → ¬ PrecedesStruct t x w.root)
+    (PrecedesStruct t w.root w.current → PreviousStopsAtRoot t w.root → ¬ PrecedesStruct t x w.root)
 
-/-- "traverse children"（first）の候補。 -/
+/--
+"traverse children"（first）の候補：current の子孫。step 3.4.4 で root へ親として上がるのは、
+root が current の子孫で、その最後の inclusive descendant `L` が root 自身でない（root に children がある）とき、
+`L` を見終えたところである。そこより後ろは候補でない。
+-/
 def WalkerChildCandidate (t : Tree) (w : WalkerState) (x : NodeId) : Prop :=
   Ancestor t w.current x ∧
-    ∀ L, LastDescendantOf t w.root L → Ancestor t w.current w.root → ¬ PrecedesStruct t L x
+    ∀ L, LastDescendantOf t w.root L → Ancestor t w.root L → Ancestor t w.current w.root →
+      ¬ PrecedesStruct t L x
 
 /-- `parentNode()` の候補：current の strict ancestor のうち、root より上でないもの。 -/
 def WalkerParentCandidate (t : Tree) (w : WalkerState) (x : NodeId) : Prop :=
@@ -203,6 +236,27 @@ theorem mem_takeUntilIncl_iff {R : NodeId → NodeId → Prop} {l : List NodeId}
   · rw [takeUntilIncl_of_not_mem hL]
     exact ⟨fun h => ⟨h, fun h' => absurd h' hL⟩, fun h => h.1⟩
 
+/-- `cutAtRootExit` で切った列の要素：`L` が root でなく列にあれば、`L` に `R` で後続しないもの。 -/
+theorem mem_cutAtRootExit_iff {R : NodeId → NodeId → Prop} {l : List NodeId} {r L : NodeId}
+    (hirr : ∀ x ∈ l, ¬ R x x) (hasym : ∀ x ∈ l, ∀ y ∈ l, R x y → ¬ R y x)
+    (hsorted : l.Pairwise R) (x : NodeId) :
+    x ∈ cutAtRootExit r L l ↔ x ∈ l ∧ (L ≠ r → L ∈ l → ¬ R L x) := by
+  unfold cutAtRootExit
+  split
+  · next h =>
+    have h' : L = r := by simpa using h
+    exact ⟨fun hx => ⟨hx, fun hne => absurd h' hne⟩, fun h => h.1⟩
+  · next h =>
+    have hne : L ≠ r := by simpa using h
+    rw [mem_takeUntilIncl_iff hirr hasym hsorted]
+    exact ⟨fun ⟨h1, h2⟩ => ⟨h1, fun _ => h2⟩, fun ⟨h1, h2⟩ => ⟨h1, h2 hne⟩⟩
+
+theorem cutAtRootExit_sublist (r L : NodeId) (l : List NodeId) : (cutAtRootExit r L l).Sublist l := by
+  unfold cutAtRootExit
+  split
+  · exact List.Sublist.refl _
+  · exact takeUntilIncl_sublist l
+
 /-- 候補の列（非対称な関係で整列）で `find?` した結果は、候補で accept されるもののうち最初のもの。 -/
 theorem result_of_sorted {R : NodeId → NodeId → Prop} {Cand : NodeId → Prop} {C : List NodeId}
     {t : Tree} {ws : Nat} (hiff : ∀ x, x ∈ C ↔ Cand x) (hirr : ∀ x ∈ C, ¬ R x x)
@@ -251,55 +305,6 @@ theorem ancestorChain_pairwise {t : Tree} :
       refine List.Pairwise.cons ?_ (ancestorChain_pairwise f p)
       intro x hx
       exact Or.inl (mem_ancestorChain_ancestor f p x hx)
-
-/-! ## `previousNode()` -/
-
-theorem walkerPreviousNode_result_sound {t : Tree} (hwf : WellFormed t) {w : WalkerState}
-    (hw : ValidWalker t w) : WalkerPreviousNodeResult t w (walkerPreviousNode t w) := by
-  obtain ⟨⟨rootd, hrootd⟩, ⟨cd, hcd⟩⟩ := hw
-  obtain ⟨rtd, hrtd⟩ := exists_data_root hwf hcd
-  have hl := treeOrderList_preorder hwf hrtd
-  have hc : w.current ∈ preorder t (root t w.current) :=
-    (hl.1 _).mpr (root_inclusive_ancestor t w.current)
-  unfold walkerPreviousNode
-  split
-  · next heq =>
-    have heq' : w.current = w.root := by simpa using heq
-    exact Or.inr ⟨rfl, fun m hm _ => hm.1 heq'⟩
-  · next hne =>
-    have hne' : w.current ≠ w.root := by simpa using hne
-    unfold treeOrder
-    obtain ⟨X, after, hsp⟩ := exists_splitAt?_of_mem hc
-    have hsplit := splitAt?_eq_some hsp
-    rw [hsp]
-    simp only
-    have hX : ∀ x, x ∈ X.reverse ↔ PrecedesStruct t x w.current := by
-      intro x
-      rw [List.mem_reverse, mem_left_of_split hwf hrtd hl hsplit x]
-      exact ⟨fun h => h.2, fun h => ⟨(hl.1 x).mpr (precedesStruct_root_left hwf h), h⟩⟩
-    have hXmem : ∀ x ∈ X.reverse, InclusiveDescendant t x (root t w.current) := fun x hx =>
-      (hl.1 x).mp (by rw [hsplit]; simp [List.mem_reverse.mp hx])
-    have hXsorted : X.reverse.Pairwise (fun a b => PrecedesStruct t b a) := by
-      have hp := hl.2
-      rw [hsplit, List.pairwise_append] at hp
-      exact List.pairwise_reverse.mpr hp.1
-    obtain ⟨hirr, hasym⟩ := precedesStruct_order_on hwf hrtd hXmem
-    have hiff : ∀ x, x ∈ takeUntilIncl (· == w.root) X.reverse ↔ WalkerPreviousCandidate t w x := by
-      intro x
-      rw [mem_takeUntilIncl_iff (R := fun a b => PrecedesStruct t b a) hirr
-        (fun a ha b hb h => hasym b hb a ha h) hXsorted, hX, hX]
-      unfold WalkerPreviousCandidate
-      exact ⟨fun ⟨h1, h2⟩ => ⟨hne', h1, h2⟩, fun ⟨_, h1, h2⟩ => ⟨h1, h2⟩⟩
-    have hsub := takeUntilIncl_sublist (L := w.root) X.reverse
-    have hmem' : ∀ x ∈ takeUntilIncl (· == w.root) X.reverse,
-        InclusiveDescendant t x (root t w.current) := fun x hx => hXmem x (hsub.subset hx)
-    obtain ⟨hirr', hasym'⟩ := precedesStruct_order_on hwf hrtd hmem'
-    have := result_of_sorted (t := t) (ws := w.whatToShow) (R := fun a b => PrecedesStruct t b a) hiff
-      hirr' (fun a ha b hb h => hasym' b hb a ha h) (hXsorted.sublist hsub)
-    unfold WalkerPreviousNodeResult LastIn
-    rcases this with ⟨n, hf, hn, hlast⟩ | ⟨hf, hnone⟩
-    · exact Or.inl ⟨n, by rw [← hf]; rfl, hn, hlast⟩
-    · exact Or.inr ⟨by rw [← hf]; rfl, hnone⟩
 
 /-! ## `parentNode()` -/
 
@@ -510,21 +515,25 @@ theorem walkerFirstChild_result_sound {t : Tree} (hwf : WellFormed t) {w : Walke
   have hDsorted : ((preorder t w.current).drop 1).Pairwise (PrecedesStruct t) :=
     hl.2.sublist (List.drop_sublist _ _)
   obtain ⟨hirr, hasym⟩ := precedesStruct_order_on hwf hcd hDmem
-  have hiff : ∀ x, x ∈ takeUntilIncl (· == lastDescendant t w.root) ((preorder t w.current).drop 1) ↔
+  have hiff : ∀ x, x ∈ cutAtRootExit w.root (lastDescendant t w.root) ((preorder t w.current).drop 1) ↔
       WalkerChildCandidate t w x := by
     intro x
-    rw [mem_takeUntilIncl_iff hirr hasym hDsorted, hD, hD]
+    rw [mem_cutAtRootExit_iff hirr hasym hDsorted, hD, hD]
     unfold WalkerChildCandidate
     constructor
     · rintro ⟨hxc, hn⟩
-      refine ⟨hxc, fun L hL hcr => ?_⟩
-      rw [lastDescendantOf_unique hwf hrootd hL hLd]
-      refine hn ?_
-      rcases hLd.1 with heq | h
-      · exact heq ▸ hcr
-      · exact hcr.trans_ancestor h
+      refine ⟨hxc, fun L hL hrL hcr => ?_⟩
+      rw [lastDescendantOf_unique hwf hrootd hL hLd] at hrL ⊢
+      refine hn (fun he => ?_) (hcr.trans_ancestor hrL)
+      rw [he] at hrL
+      exact ancestor_irrefl hwf _ hrL
     · rintro ⟨hxc, hn⟩
-      refine ⟨hxc, fun hcL => ?_⟩
+      refine ⟨hxc, fun hne hcL => ?_⟩
+      -- root に children がある（`L` が root でない）ので、root は `L` の ancestor である。
+      have hrL : Ancestor t w.root (lastDescendant t w.root) := by
+        rcases hLd.1 with h | h
+        · exact absurd h.symm hne
+        · exact h
       -- current と root は、どちらも L の inclusive ancestor なので比べられる。
       have hxroot : Ancestor t w.current w.root ∨ InclusiveDescendant t x w.root := by
         rcases inclusive_ancestor_linear (Or.inr hcL) hLd.1 with h | h
@@ -535,10 +544,10 @@ theorem walkerFirstChild_result_sound {t : Tree} (hwf : WellFormed t) {w : Walke
           · exact Or.inr (heq ▸ Or.inr hxc)
           · exact Or.inr (Or.inr (h.trans_ancestor hxc))
       rcases hxroot with hcr | hxr
-      · exact hn _ hLd hcr
+      · exact hn _ hLd hrL hcr
       · exact hLd.2 x hxr
-  have hsub := takeUntilIncl_sublist (L := lastDescendant t w.root) ((preorder t w.current).drop 1)
-  have hmem' : ∀ x ∈ takeUntilIncl (· == lastDescendant t w.root) ((preorder t w.current).drop 1),
+  have hsub := cutAtRootExit_sublist w.root (lastDescendant t w.root) ((preorder t w.current).drop 1)
+  have hmem' : ∀ x ∈ cutAtRootExit w.root (lastDescendant t w.root) ((preorder t w.current).drop 1),
       InclusiveDescendant t x w.current := fun x hx => hDmem x (hsub.subset hx)
   obtain ⟨hirr', hasym'⟩ := precedesStruct_order_on hwf hcd hmem'
   have := result_of_sorted (t := t) (ws := w.whatToShow) hiff hirr' hasym' (hDsorted.sublist hsub)

@@ -1,0 +1,58 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/selectors-4/#forgiving-selector",
+    "algorithm": [
+      "<forgiving-selector-list>",
+      "<any-value>"
+    ],
+    "steps": "Syntactically, <forgiving-selector-list> is equivalent to <any-value>?. It is then parsed as a forgiving selector list to obtain its actual value. <any-value> は bad-string-token・bad-url-token・対応しない )・]・} を含まない token の並びである（CSS Syntax \"Defining Arbitrary Contents\"）",
+    "note": "項目を捨てるのは `<any-value>?` に当たったあとなので、対応しない閉じ括弧を含む引数は、項目ごと捨てられるのではなく selector 全体を無効にする。`{a}` と `(a)` は括弧が対応しているので `<any-value>` に当たり、読めない項目として捨てられて p に当たる。最後の `a]` の `]` は対応しないので SyntaxError。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(p, {a})"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(p, (a))"
+    },
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(a], p)"
+    }
+  ]
+}

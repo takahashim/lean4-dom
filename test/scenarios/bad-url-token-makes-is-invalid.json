@@ -1,0 +1,49 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://drafts.csswg.org/css-syntax-3/#consume-url-token",
+    "algorithm": [
+      "consume a url token",
+      "consume the remnants of a bad url",
+      "<any-value>"
+    ],
+    "steps": "url token の中で whitespace のあとに `)` でも EOF でもない code point が来たら、consume the remnants of a bad url で次の `)` まで読み捨てて bad-url-token を返す。<forgiving-selector-list> は構文上 <any-value>? で、<any-value> は bad-url-token を含まない",
+    "note": "`url(a b)` は一つの bad-url-token になり、`)` は remnants が読む。`:is()` の引数は `<any-value>?` に当たらないので、項目を捨てる前に selector 全体が無効になる。function-token として読むと `url(a b)` の項目が捨てられて p に当たってしまう。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "html"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 1,
+      "localName": "div"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "walkers": [],
+  "listeners": [],
+  "observers": [],
+  "operations": [
+    {
+      "op": "querySelectorAll",
+      "node": 0,
+      "selectors": ":is(url(a b), p)"
+    }
+  ]
+}

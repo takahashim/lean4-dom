@@ -31,22 +31,22 @@ def entries : List Entry := [
   { alg := "sec-toprimitive"
     impl := [``Dom.Idl.JsValue.toJsString, ``Dom.Idl.JsValue.toNumber]
     omitted := [("1.1-1.2", .other "@@toPrimitive を持つ object は表せない")]
-    approx := [("1.3-1.4", "OrdinaryToPrimitive の結果（普通の object は \"[object Object]\"、配列は join）を ToString と ToNumber の中に書いてある")] },
+    approx := [("1.3-1.4", "OrdinaryToPrimitive の結果（自分の toString を持たない object は \"[object Object]\"、持つ object は TypeError、配列は join）を ToString と ToNumber の中に書いてある")] },
   { alg := "sec-ordinarytoprimitive"
-    impl := [``Dom.Idl.JsValue.toJsString, ``Dom.Idl.JsValue.toNumber]
-    approx := [("*", "valueOf は自分を返すので、hint が number でも toString が使われる。普通の object の toString は \"[object Object]\"、配列の toString は join で、どちらも利用者のコードを呼ばない")] },
+    impl := [``Dom.Idl.JsValue.toJsString, ``Dom.Idl.JsValue.toNumber, ``Dom.Idl.JsValue.ownsToString]
+    approx := [("*", "JSON の値は呼べないので、自分の valueOf と toString は step 3.2 を通らない。継承した valueOf は object 自身を返すので、hint が number でも toString が使われる。自分の toString を持たない object は Object.prototype.toString の \"[object Object]\"、持つ object は step 4 の TypeError、配列は Array.prototype.toString の join で、どれも利用者のコードを呼ばない")] },
 
   /- ## §7.1.2 ToBoolean -/
   { alg := "sec-toboolean"
     impl := [``Dom.Idl.JsValue.toBoolean]
     omitted := [("3", .other "[[IsHTMLDDA]] を持つ object（document.all）は model に無い")]
-    approx := [("2", "NaN と BigInt は表せない。数は倍精度の値に丸めてから 0 かを見る")] },
+    approx := [("2", "NaN と BigInt は表せない。数は倍精度の値に丸めてから 0 かを見る。有効数字が 20 桁を超える数は RoundMVResult の二つの候補がどちらも ±0 かを見て、候補で結果が割れる数は scenario の読み取りで断る")] },
 
   /- ## §7.1.4 ToNumber -/
   { alg := "sec-tonumber"
     impl := [``Dom.Idl.JsValue.toNumber]
     omitted := [("2", .other "Symbol と BigInt は表せない")]
-    approx := [("7-10", "object は普通の object と配列だけで、ToPrimitive の結果の文字列を StringToNumber で読む")] },
+    approx := [("7-10", "object は JSON の object と配列だけで、ToPrimitive の結果の文字列を StringToNumber で読む。ToPrimitive の TypeError はそのまま返す")] },
   { alg := "sec-stringtonumber"
     impl := [``Dom.Idl.stringToNumber, ``Dom.Idl.isStrWhiteSpace]
     approx := [("1-2", "ParseText の代わりに、StringNumericLiteral の文法を前後の空白・接頭辞・符号で場合分けして手で読む")] },
@@ -68,18 +68,19 @@ def entries : List Entry := [
     impl := [``Dom.Idl.readUnsignedDecimal, ``Dom.Idl.JsNum.ofDecimal?] },
   { alg := "sec-roundmvresult"
     -- 𝔽(n)（最も近い倍精度の値、偶数への丸め）は `JsNum.ofRat` と `JsNum.roundPos`。
-    impl := [``Dom.Idl.JsNum.ofDecimal?, ``Dom.Idl.JsNum.ofDecimal, ``Dom.Idl.JsNum.ofRat, ``Dom.Idl.JsNum.roundPos]
+    impl := [``Dom.Idl.JsNum.ofDecimal?, ``Dom.Idl.JsNum.ofDecimal, ``Dom.Idl.JsNum.ofRat, ``Dom.Idl.JsNum.roundPos,
+             ``Dom.Idl.JsNum.zeroAfterRounding?]
     spec := [``Dom.Spec.NearestDouble, ``Dom.Spec.roundPos_spec,
              ``Dom.Spec.FiniteBinary64, ``Dom.Spec.roundPos_binary64_nearest,
              ``Dom.Spec.roundPos_global_tie]
-    omitted := [("2-5", .other "有効数字が 20 桁を超える十進表記は、丸めが実装に任されて結果が一つに決まらないので、model の対象外とする")] },
+    approx := [("2-5", "有効数字が 20 桁を超える十進表記は、丸めが実装に任されて値が一つに決まらないので、ToNumber では model の対象外とする。ToBoolean は option1 と option2 がどちらも ±0 か（`JsNum.zeroAfterRounding?`）だけを見る")] },
 
   /- ## §7.1.19 ToString -/
   { alg := "sec-tostring"
     impl := [``Dom.Idl.JsValue.toJsString]
     omitted := [("2", .other "Symbol は表せない"),
                 ("8", .other "BigInt は表せない")]
-    approx := [("9-12", "object は普通の object と配列だけで、ToPrimitive の結果を直接書いてある")] },
+    approx := [("9-12", "object は JSON の object と配列だけで、ToPrimitive の結果（TypeError を含む）を直接書いてある")] },
 
   /- ## §23.1.3.18 Array.prototype.join -/
   { alg := "sec-array.prototype.join"

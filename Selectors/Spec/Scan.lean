@@ -14,7 +14,7 @@ import Selectors.Spec.AnB
 | `ItemRel` | 一つの `<complex-selector>`（relative なら `<relative-selector>`）。先頭の空白（と relative の先頭の combinator）のあとに compound が来る |
 | `TailRel` | 残り。空白だけで終わるか、separator と compound が来て続く。separator は空白の並び（descendant）か、空白を挟んでよい `>` `+` `~` |
 | `CompoundRel` | `<compound-selector>`。type selector が高々一つ先頭に来て、subclass selector が続く。空ではない |
-| `PieceRel` | subclass selector 一つ。id・class・attribute・pseudo-class（`:is()` `:where()` `:not()` `:has()` `:nth-*()` は中の selector list へ再帰する） |
+| `PieceRel` | subclass selector 一つ。id・class・attribute・pseudo-class（`:is()` `:where()` `:not()` `:has()` `:nth-*()` は中の selector list へ再帰する）。`:is()` `:where()` の引数は、項目を捨てる前に丸ごと `<any-value>?` でなければならない（`AnyValue`、§18.1） |
 
 関係は `scan` の状態を一切持たない。区切りと項目の分け方は「列がこう分かれる」という等式で書いた。
 
@@ -78,6 +78,39 @@ def NthName (n : String) (kind : NthKind) (ofAllowed : Bool) : Prop :=
   (asciiLowercase n = "nth-last-child" ∧ kind = .lastChild ∧ ofAllowed = true) ∨
   (asciiLowercase n = "nth-of-type" ∧ kind = .ofType ∧ ofAllowed = false) ∨
   (asciiLowercase n = "nth-last-of-type" ∧ kind = .lastOfType ∧ ofAllowed = false)
+
+/-! ## `<any-value>`（CSS Syntax "Defining Arbitrary Contents"） -/
+
+/-- `<any-value>` に現れてはならない token：bad-string、bad-url、`)`、`]`、`}`。 -/
+def BannedInAnyValue (t : Token) : Prop :=
+  t = .badString ∨ t = .badUrl ∨ t = .rparen ∨ t = .rbracket ∨ t = .rbrace
+
+mutual
+
+/-- token `t` が component `c` の中（block と function の中身を含む）に preserved token として現れる。 -/
+inductive OccursC : Token → Component → Prop where
+  | tok {t : Token} : OccursC t (.tok t)
+  | func {t : Token} {name : String} {a : List Component} (h : Occurs t a) :
+      OccursC t (.func name a)
+  | block {t : Token} {o : Token} {a : List Component} (h : Occurs t a) :
+      OccursC t (.block o a)
+
+/-- token `t` が component 列のどこかに現れる。 -/
+inductive Occurs : Token → List Component → Prop where
+  | head {t : Token} {c : Component} {l : List Component} (h : OccursC t c) : Occurs t (c :: l)
+  | tail {t : Token} {c : Component} {l : List Component} (h : Occurs t l) : Occurs t (c :: l)
+
+end
+
+/--
+component 列が `<any-value>?` に当たる。
+
+`<any-value>` は「bad-string-token、bad-url-token、対応しない `)` `]` `}` を含まない、
+一つ以上の token の並び」である。対応する閉じ括弧は component value の block と function に
+畳まれているので、木に preserved token として残る閉じ括弧は対応しないものだけである。
+`?` が付くので空の列も当たる。
+-/
+def AnyValue (cs : List Component) : Prop := ∀ t, Occurs t cs → ¬ BannedInAnyValue t
 
 /-- 列が丸ごと `<an+b>` である（後ろには空白しか残らない）。 -/
 def AnBFull (l : List Component) (ab : AnB) : Prop :=
@@ -207,7 +240,7 @@ def PieceRel (cfg : ScanCfg) (p : List Component) (s : Simple) : Prop :=
   (∃ n, p = [.tok .colon, .tok (.ident n)] ∧ PseudoName n s) ∨
   (∃ name args, ∃ _h : p = [.tok .colon, .func name args], ∃ l,
     ((asciiLowercase name = "is" ∧ s = .isSel l) ∨ (asciiLowercase name = "where" ∧ s = .whereSel l)) ∧
-      SelListRel (innerCfg true false cfg.inHas) args l) ∨
+      AnyValue args ∧ SelListRel (innerCfg true false cfg.inHas) args l) ∨
   (∃ name args, ∃ _h : p = [.tok .colon, .func name args], ∃ l,
     asciiLowercase name = "not" ∧ s = .notSel l ∧ SelListRel (innerCfg false false cfg.inHas) args l) ∨
   (∃ name args, ∃ _h : p = [.tok .colon, .func name args], ∃ l,

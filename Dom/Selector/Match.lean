@@ -79,7 +79,8 @@ combinator の左に来られる node の候補。
 ancestor 側は element でない node も返す。scoping root が `Document` や
 `DocumentFragment` のとき、仕様はそれを「root element の parent としてふるまう
 featureless な node」として扱い、`:scope > .foo` が通るようにしているためである
-（§4.4）。featureless なので、`matchSimple` はそこで `:scope` しか通さない。
+（§4.4）。featureless なので、そこで当たりうる selector は §3.3 の規則で限られる
+（`matchSimple` と `matchCompound` を見よ）。
 
 sibling の combinator は element の並びの上の関係なので、右側（`n`）が element でなければ
 候補は無い。element でない `n` は element の並びに現れないからである。
@@ -261,9 +262,9 @@ theorem cxSize_lt_lSize : ∀ (l : List Complex) (c : Complex), c ∈ l -> cxSiz
 `Dom/Properties/Selector.lean` の `matchSelList_scope_irrelevant` がそれを言う。
 -/
 
-/-- `:scope` そのものか。featureless な node に当たるのはこれだけである。 -/
-def isScopeSelector : Simple -> Bool
-  | .scope => true
+/-- `:has()` か。featureless な node では、compound の中の他の simple selector に頼る。 -/
+def isHasSelector : Simple -> Bool
+  | .has _ => true
   | _ => false
 
 mutual
@@ -295,10 +296,6 @@ def scopeFreeL : List Complex -> Bool
 
 end
 
-theorem isScopeSelector_eq_false {s : Simple} (h : scopeFreeS s = true) :
-    isScopeSelector s = false := by
-  cases s <;> simp [isScopeSelector] <;> simp [scopeFreeS] at h
-
 theorem scopeFreeS_of_mem : ∀ (l : List Simple) (s : Simple),
     s ∈ l -> scopeFreeCp l = true -> scopeFreeS s = true
   | [], _, h, _ => absurd h (by simp)
@@ -316,6 +313,81 @@ theorem scopeFreeCx_of_mem : ∀ (l : List Complex) (c : Complex),
     rcases List.mem_cons.mp h with rfl | hrest
     · exact hf.1
     · exact scopeFreeCx_of_mem rest c hrest hf.2
+
+/-! ## featureless な node に当たりうる selector（§3.3）
+
+§3.3 "Featureless Elements" は、featureless な element が当たりうる selector を次に限る。
+
+> * simple selectors it is explicitly defined to match
+> * compound selectors, if all contained simple selectors are allowed to match it
+> * complex selectors, if the compound selector targeting the subject is allowed to match it
+> * selector lists, if at least one selector in the list is allowed to match it
+> * logical combination pseudo-classes, if their argument selector is allowed to match it
+> * the :has() pseudo-class, if and only if the compound selector it's part of contains
+>   at least one other simple selector that's allowed to match it.
+
+model で featureless な node は element でない node で、当たりうるのは virtual scoping root
+（`Document` や `DocumentFragment` を scoping root にしたとき）だけである。
+
+「明示的に当たると定められた simple selector」は、その node を表すと定められたものと読む。
+`:scope` は scoping root を表す（"The Reference Element Pseudo-class: :scope"）ので、
+node が scoping root のときだけ許される。`:has()` の anchor は、relative selector の先頭に
+暗黙に置かれる「anchor element を表す selector」（"Relative Selectors"）なので、node が
+anchor のときだけ許される。`:has(.foo)` の引数は「anchor の descendant の `.foo`」であり、
+`:scope:has(.foo)` を virtual scoping root に当てるにはこの読みが要る。
+scoping root でない `Document`（element を scoping root にしたときの祖先）は、どちらにも
+当たらないので何にも当たらない。
+
+logical combination pseudo-class は `:is()`・`:where()`・`:not()` で、引数が当たりうるときだけ
+許される。`:has()` は専用の項（"if and only if"）に従う。`:not()` の引数が当たりうるとは、
+引数の selector list のどれかの subject の compound が当たりうることなので、
+`:not(.foo)` は featureless な node に当たらない（本文の例 `:not(.foo:host)` と同じ理由）。
+`:not(:scope)` は当たりうるが、virtual scoping root 自身には `:scope` が当たるので当たらない。
+
+`:has()` の「他の simple selector」は `:has()` でないものと読む。`:has()` しか無い compound で
+互いを根拠にすると循環するからである（最小の不動点を取る）。
+-/
+
+mutual
+
+/-- simple selector が featureless な node `n` に当たりうるか。`:has()` は compound の側で決める。 -/
+def allowedS (ctx : MatchCtx) (n : NodeId) : Simple -> Bool
+  | .scope => ctx.scope == some n
+  | .anchor => ctx.anchor == some n
+  | .isSel l => allowedL ctx n l
+  | .whereSel l => allowedL ctx n l
+  | .notSel l => allowedL ctx n l
+  | _ => false
+
+/--
+compound の各 simple selector が当たりうるか。`:has()` は `other`（同じ compound に、
+`:has()` でない当たりうる simple selector があるか）で決まる。
+-/
+def allowedCpAll (ctx : MatchCtx) (n : NodeId) (other : Bool) : List Simple -> Bool
+  | [] => true
+  | s :: rest =>
+    (if isHasSelector s then other else allowedS ctx n s) && allowedCpAll ctx n other rest
+
+/-- compound に、`:has()` でなく当たりうる simple selector がある。 -/
+def allowedCpAny (ctx : MatchCtx) (n : NodeId) : List Simple -> Bool
+  | [] => false
+  | s :: rest => (!isHasSelector s && allowedS ctx n s) || allowedCpAny ctx n rest
+
+/-- complex selector が当たりうるか。subject の compound で決まる。 -/
+def allowedCx (ctx : MatchCtx) (n : NodeId) : Complex -> Bool
+  | .one p => allowedCpAll ctx n (allowedCpAny ctx n p) p
+  | .seq p _ _ => allowedCpAll ctx n (allowedCpAny ctx n p) p
+
+/-- selector list が当たりうるか。どれか一つが当たりうればよい。 -/
+def allowedL (ctx : MatchCtx) (n : NodeId) : List Complex -> Bool
+  | [] => false
+  | c :: rest => allowedCx ctx n c || allowedL ctx n rest
+
+end
+
+/-- compound selector が featureless な node `n` に当たりうるか。 -/
+def allowedCp (ctx : MatchCtx) (n : NodeId) (p : List Simple) : Bool :=
+  allowedCpAll ctx n (allowedCpAny ctx n p) p
 
 /-! ## 照合
 
@@ -347,9 +419,13 @@ decreasing_by
   all_goals simp only [cxSize]
   all_goals omega
 
-/-- compound selector は、含む simple selector のすべてに当たること。 -/
+/--
+compound selector は、含む simple selector のすべてに当たること。
+featureless な node（element でない node）では、さらに compound が当たりうること（§3.3）。
+-/
 def matchCompound (ctx : MatchCtx) (parts : List Simple) (n : NodeId) : Bool :=
-  parts.attach.all (fun s => matchSimple ctx s.1 n)
+  parts.attach.all (fun s => matchSimple ctx s.1 n) &&
+    (isElementNode ctx.tree n || allowedCp ctx n parts)
 termination_by cpSize parts
 decreasing_by
   simp_wf
@@ -360,8 +436,22 @@ def matchSimple (ctx : MatchCtx) (s : Simple) (n : NodeId) : Bool :=
   match ctx.tree.get? n with
   | none => false
   | some d =>
-    -- element でない node は featureless である。`:scope` だけが当たる。
-    if d.kind != NodeKind.element then isScopeSelector s && ctx.scope == some n
+    -- element でない node は featureless である（§3.3）。当たりうる selector だけが当たる。
+    -- `:is()` の引数が当たるなら当たりうることは従うが、本文の形のまま両方を見る。
+    -- `:not()` は引数が当たりうるときだけ当たる。`:not(.foo)` は当たらない。
+    if d.kind != NodeKind.element then
+      match s with
+      | .scope => ctx.scope == some n
+      | .anchor => ctx.anchor == some n
+      | .isSel l => allowedL ctx n l && matchSelList ctx l n
+      | .whereSel l => allowedL ctx n l && matchSelList ctx l n
+      | .notSel l => allowedL ctx n l && !matchSelList ctx l n
+      | .has l =>
+        -- 当たりうるかは compound の側（`matchCompound`）で見る。
+        let cands := preorder ctx.tree (root ctx.tree n)
+        cands.any (fun c => matchSelList { ctx with anchor := some n } l c)
+      | .typeSel _ | .univ | .id _ | .cls _ | .attr _ _ _ | .root | .empty | .firstChild
+      | .lastChild | .onlyChild | .firstOfType | .lastOfType | .onlyOfType | .nth _ _ _ => false
     else
       match s with
       | .typeSel name => typeHolds ctx.tree d name

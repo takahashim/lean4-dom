@@ -44,6 +44,10 @@ theorem ch_at : CH_AT = '@' := by decide
 theorem ch_gt : CH_GT = '>' := by decide
 theorem ch_bang : CH_BANG = '!' := by decide
 
+theorem isNonPrintable_iff (c : Char) : isNonPrintable c = true ↔ NonPrintable c := by
+  simp only [isNonPrintable, NonPrintable, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq,
+    beq_iff_eq, or_assoc]
+
 theorem not_identStart_hyphen : ¬ IdentStartCp '-' := by
   simp [IdentStartCp, Letter, NonAsciiIdentCp]
 
@@ -655,26 +659,6 @@ theorem consumeNumericToken_spec (l : List Char) :
       · simp only [consumeNumericToken, hr]; simp [hi, hp]
       · simp only [consumeNumericToken, hr]; simp [hi, hp]
 
-/-- **`consumeIdentLike` は `IdentLikeTok` を満たす。** -/
-theorem consumeIdentLike_spec (l : List Char) :
-    IdentLikeTok l (consumeIdentLike l).1 (consumeIdentLike l).2 := by
-  refine ⟨(consumeIdentSeq l).1, (consumeIdentSeq l).2, consumeIdentSeq_spec l, ?_⟩
-  generalize hr : (consumeIdentSeq l).2 = r
-  by_cases hp : (r.head?.map (fun c => c == CH_LPAREN)).getD false = true
-  · left
-    match r, hp with
-    | x :: t, hp =>
-      have hx : x = '(' := by simpa [ch_lparen] using hp
-      subst hx
-      refine ⟨?_, ?_⟩
-      · simp [consumeIdentLike, hr, ch_lparen]
-      · simp [consumeIdentLike, hr, ch_lparen]
-  · right
-    refine ⟨?_, ?_, ?_⟩
-    · intro h; apply hp; cases r <;> simp_all [ch_lparen]
-    · simp only [consumeIdentLike, hr]; simp [hp]
-    · simp only [consumeIdentLike, hr]; simp [hp]
-
 /-! ## token を一つ読む -/
 
 theorem skipWhitespace_spec : ∀ l : List Char, WhitespaceRun l (skipWhitespace l)
@@ -694,6 +678,193 @@ theorem skipWhitespace_spec : ∀ l : List Char, WhitespaceRun l (skipWhitespace
       intro x hx; simp at hx; subst hx
       exact fun h => hc ((isWhitespace_iff _).mpr h)
 
+
+/-! ## url token -/
+
+/-- **`badUrlRemnants` は `BadUrlRemnants` を満たす。** -/
+theorem badUrlRemnants_spec (l : List Char) : BadUrlRemnants l (badUrlRemnants l) := by
+  induction l using badUrlRemnants.induct with
+  | case1 => rw [badUrlRemnants]; exact .eof
+  | case2 c rest hc =>
+    have : c = ')' := by simpa [ch_rparen] using hc
+    subst this
+    rw [badUrlRemnants, if_pos hc]; exact .rparen
+  | case3 c rest hc hv ih =>
+    rw [badUrlRemnants, if_neg hc, if_pos hv]
+    have hb := backslash_of_startsValidEscape hv
+    subst hb
+    exact .escape ((startsValidEscape_iff _).mp hv) (consumeEscape_spec rest) ih
+  | case4 c rest hc hv ih =>
+    rw [badUrlRemnants, if_neg hc, if_neg hv]
+    exact .other (by simpa [ch_rparen] using hc) (fun h => hv ((startsValidEscape_iff _).mpr h)) ih
+
+theorem urlAux_spec (acc l : List Char) :
+    ∃ v b, UrlRun l v b (urlAux acc l).2 ∧
+      (urlAux acc l).1 =
+        if b then Token.badUrl else Token.url (String.ofList (acc.reverse ++ v)) := by
+  induction acc, l using urlAux.induct with
+  | case1 acc => exact ⟨[], false, by rw [urlAux]; exact .eof, by simp [urlAux]⟩
+  | case2 acc c rest hc =>
+    have : c = ')' := by simpa [ch_rparen] using hc
+    subst this
+    exact ⟨[], false, by rw [urlAux, if_pos hc]; exact .close, by rw [urlAux, if_pos hc]; simp⟩
+  | case3 acc c rest hc hw hs =>
+    have hw' := (isWhitespace_iff c).mp hw
+    have hrun := skipWhitespace_spec rest
+    rw [hs] at hrun
+    refine ⟨[], false, ?_, ?_⟩
+    · rw [urlAux, if_neg hc, if_pos hw]; simp only [hs]; exact .wsEof hw' hrun
+    · rw [urlAux, if_neg hc, if_pos hw]; simp [hs]
+  | case4 acc c rest hc hw d r hs hd =>
+    have hw' := (isWhitespace_iff c).mp hw
+    have hrun := skipWhitespace_spec rest
+    rw [hs] at hrun
+    have : d = ')' := by simpa [ch_rparen] using hd
+    subst this
+    refine ⟨[], false, ?_, ?_⟩
+    · rw [urlAux, if_neg hc, if_pos hw]; simp only [hs, if_pos hd]; exact .wsClose hw' hrun
+    · rw [urlAux, if_neg hc, if_pos hw]; simp only [hs, if_pos hd]; simp
+  | case5 acc c rest hc hw d r hs hd =>
+    have hw' := (isWhitespace_iff c).mp hw
+    have hrun := skipWhitespace_spec rest
+    rw [hs] at hrun
+    refine ⟨[], true, ?_, ?_⟩
+    · rw [urlAux, if_neg hc, if_pos hw]; simp only [hs, if_neg hd]
+      exact .wsBad hw' hrun (by simpa [ch_rparen] using hd) (badUrlRemnants_spec _)
+    · rw [urlAux, if_neg hc, if_pos hw]; simp [hs, hd]
+  | case6 acc c rest hc hw hq =>
+    refine ⟨[], true, ?_, ?_⟩
+    · rw [urlAux, if_neg hc, if_neg hw, if_pos hq]
+      refine .bad ?_ (badUrlRemnants_spec _)
+      simp only [Bool.or_eq_true, beq_iff_eq, ch_quote, ch_apos, ch_lparen,
+        isNonPrintable_iff] at hq
+      rcases hq with ((h | h) | h) | h
+      · exact Or.inl h
+      · exact Or.inr (Or.inl h)
+      · exact Or.inr (Or.inr (Or.inl h))
+      · exact Or.inr (Or.inr (Or.inr h))
+    · rw [urlAux, if_neg hc, if_neg hw, if_pos hq]; simp
+  | case7 acc c rest hc hw hq hb hv ih =>
+    obtain ⟨v, b, h1, h2⟩ := ih
+    have hb' := backslash_of_startsValidEscape hv
+    subst hb'
+    refine ⟨(consumeEscape rest).1 :: v, b, ?_, ?_⟩
+    · rw [urlAux, if_neg hc, if_neg hw, if_neg hq, if_pos hb, if_pos hv]
+      exact .escape ((startsValidEscape_iff _).mp hv) (consumeEscape_spec rest) h1
+    · rw [urlAux, if_neg hc, if_neg hw, if_neg hq, if_pos hb, if_pos hv, h2]
+      simp
+  | case8 acc c rest hc hw hq hb hv =>
+    have : c = '\\' := by simpa [ch_backslash] using hb
+    subst this
+    refine ⟨[], true, ?_, ?_⟩
+    · rw [urlAux, if_neg hc, if_neg hw, if_neg hq, if_pos hb, if_neg hv]
+      exact .badEscape (fun h => hv ((startsValidEscape_iff _).mpr h)) (badUrlRemnants_spec _)
+    · rw [urlAux, if_neg hc, if_neg hw, if_neg hq, if_pos hb, if_neg hv]; simp
+  | case9 acc c rest hc hw hq hb ih =>
+    obtain ⟨v, b, h1, h2⟩ := ih
+    refine ⟨c :: v, b, ?_, ?_⟩
+    · rw [urlAux, if_neg hc, if_neg hw, if_neg hq, if_neg hb]
+      simp only [Bool.or_eq_true, beq_iff_eq, ch_quote, ch_apos, ch_lparen, ch_rparen,
+        ch_backslash, isNonPrintable_iff, not_or] at hc hq hb
+      exact .other ⟨hc, fun h => hw ((isWhitespace_iff c).mpr h), hq.1.1.1, hq.1.1.2, hq.1.2,
+        hq.2, hb⟩ h1
+    · rw [urlAux, if_neg hc, if_neg hw, if_neg hq, if_neg hb, h2]
+      simp
+
+/-- **`consumeUrlToken` は `UrlTok` を満たす。** -/
+theorem consumeUrlToken_spec (l : List Char) :
+    UrlTok l (consumeUrlToken l).1 (consumeUrlToken l).2 := by
+  obtain ⟨v, b, h1, h2⟩ := urlAux_spec [] (skipWhitespace l)
+  unfold consumeUrlToken
+  exact ⟨skipWhitespace l, v, b, skipWhitespace_spec l, h1, by simpa using h2⟩
+
+/-! ## ident-like token -/
+
+theorem isUrlName_iff (s : List Char) : isUrlName s = true ↔ UrlName s := by
+  unfold UrlName
+  match s with
+  | [] => simp [isUrlName]
+  | [_] => simp [isUrlName]
+  | [_, _] => simp [isUrlName]
+  | [a, b, c] =>
+    simp only [isUrlName, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, List.cons.injEq,
+      and_true]
+    have hu : CH_LOWER_U = 'u' := by decide
+    have hU : CH_UPPER_U = 'U' := by decide
+    have hr : CH_LOWER_R = 'r' := by decide
+    have hR : CH_UPPER_R = 'R' := by decide
+    have hl : CH_LOWER_L = 'l' := by decide
+    have hL : CH_UPPER_L = 'L' := by decide
+    rw [hu, hU, hr, hR, hl, hL]
+    constructor
+    · rintro ⟨⟨h1, h2⟩, h3⟩; exact ⟨a, b, c, ⟨rfl, rfl, rfl⟩, h1, h2, h3⟩
+    · rintro ⟨a', b', c', ⟨rfl, rfl, rfl⟩, h1, h2, h3⟩; exact ⟨⟨h1, h2⟩, h3⟩
+  | _ :: _ :: _ :: _ :: _ => simp [isUrlName]
+
+theorem whitespace'_iff (o : Option Char) :
+    (o.map isWhitespace).getD false = true ↔ Whitespace' o := by
+  cases o with
+  | none => simp [Whitespace']
+  | some c => simp [Whitespace', isWhitespace_iff]
+
+/-- **`dropUrlWs` は `UrlLeadWs` を満たす。** -/
+theorem dropUrlWs_spec : ∀ l : List Char, UrlLeadWs l (dropUrlWs l)
+  | [] => .stop (by simp [Whitespace'])
+  | [c] => .stop (by simp [Whitespace'])
+  | c :: d :: rest => by
+    by_cases h : (isWhitespace c && isWhitespace d) = true
+    · rw [dropUrlWs, if_pos h]
+      simp only [Bool.and_eq_true, isWhitespace_iff] at h
+      exact .step h.1 h.2 (dropUrlWs_spec (d :: rest))
+    · rw [dropUrlWs, if_neg h]
+      refine .stop ?_
+      rintro ⟨⟨w, hw, hw'⟩, ⟨x, hx, hx'⟩⟩
+      simp at hw hx; subst hw hx
+      simp [(isWhitespace_iff _).mpr hw', (isWhitespace_iff _).mpr hx'] at h
+
+theorem isQuote_iff (c : Char) : isQuote c = true ↔ Quote (some c) := by
+  simp [isQuote, Quote, ch_quote, ch_apos]
+
+theorem quoteAhead_iff : ∀ l : List Char, quoteAhead l = true ↔ QuoteAhead l
+  | [] => by simp [quoteAhead, QuoteAhead, Quote, Whitespace']
+  | [c] => by simp [quoteAhead, QuoteAhead, isQuote_iff, Whitespace', Quote]
+  | c :: d :: _ => by
+    simp only [quoteAhead, QuoteAhead, Bool.or_eq_true, Bool.and_eq_true, isQuote_iff,
+      isWhitespace_iff, List.getElem?_cons_zero, List.getElem?_cons_succ]
+    simp [Whitespace']
+
+/-- **`consumeIdentLike` は `IdentLikeTok` を満たす。** -/
+theorem consumeIdentLike_spec (l : List Char) :
+    IdentLikeTok l (consumeIdentLike l).1 (consumeIdentLike l).2 := by
+  refine ⟨(consumeIdentSeq l).1, (consumeIdentSeq l).2, consumeIdentSeq_spec l, ?_⟩
+  generalize hs : (consumeIdentSeq l).1 = s
+  generalize hr : (consumeIdentSeq l).2 = r
+  by_cases hp : (r.head?.map (fun c => c == CH_LPAREN)).getD false = true
+  · match r, hp with
+    | x :: t, hp =>
+      have hx : x = '(' := by simpa [ch_lparen] using hp
+      subst hx
+      by_cases hu : isUrlName s = true
+      · left
+        refine ⟨(isUrlName_iff s).mp hu, t, dropUrlWs t, rfl, dropUrlWs_spec t, ?_⟩
+        by_cases hq : quoteAhead (dropUrlWs t) = true
+        · left
+          refine ⟨(quoteAhead_iff _).mp hq, ?_, ?_⟩
+          · simp [consumeIdentLike, hr, hs, ch_lparen, hu, hq]
+          · simp [consumeIdentLike, hr, hs, ch_lparen, hu, hq]
+        · right
+          refine ⟨fun h => hq ((quoteAhead_iff _).mpr h), ?_⟩
+          have := consumeUrlToken_spec (dropUrlWs t)
+          simpa [consumeIdentLike, hr, hs, ch_lparen, hu, hq] using this
+      · right; left
+        refine ⟨fun h => hu ((isUrlName_iff s).mpr h), ?_, ?_⟩
+        · simp [consumeIdentLike, hr, hs, ch_lparen, hu]
+        · simp [consumeIdentLike, hr, hs, ch_lparen, hu]
+  · right; right
+    refine ⟨?_, ?_, ?_⟩
+    · intro h; apply hp; cases r <;> simp_all [ch_lparen]
+    · simp only [consumeIdentLike, hr, hs]; simp [hp]
+    · simp only [consumeIdentLike, hr]; simp [hp]
 
 set_option linter.unusedSimpArgs false in
 theorem simpleToken_iff (c : Char) (t : Token) : simpleToken c = some t ↔ Punct c t := by

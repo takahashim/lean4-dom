@@ -112,12 +112,22 @@ def Url.searchParams (u : Url) : Params := parseUrlencodedString (u.query.getD "
 /--
 §6.2「update a URLSearchParams object」。
 
-list を serialize して URL の query に書き戻す。空になったら query は null にして、
-opaque path の末尾の空白を落とす（`search` setter に空文字列を入れるのと同じ扱い）。
+list を serialize して URL の query に書き戻す（step 2-4）。空になったら query は null にする。
+path には触れない。URL object を持たない場合（step 1）は、呼ばなければよいので扱わない。
 -/
 def Url.withParams (u : Url) (l : Params) : Url :=
-  if (Params.serialize l).isEmpty then stripTrailingSpaces { u with query := none }
+  if (Params.serialize l).isEmpty then { u with query := none }
   else { u with query := some (Params.serialize l) }
+
+/--
+**`URLSearchParams` の update steps は path に触れない。**
+
+parser と setter から到達できる record の opaque path は生の U+0020 で終わらない
+（`setAttr_opaqueNoTrailingSpace`）ので、ここを通してもそのまま保たれる。
+-/
+theorem withParams_path (u : Url) (l : Params) : (u.withParams l).path = u.path := by
+  unfold Url.withParams
+  split <;> rfl
 
 /-! ## 性質 -/
 
@@ -306,7 +316,6 @@ theorem searchParams_withParams (u : Url) (l : Params) :
   by_cases h : (Params.serialize l).isEmpty = true
   · rw [if_pos h]
     have hempty : Params.serialize l = "" := String.isEmpty_toSlice_iff.mp h
-    rw [stripTrailingSpaces_query]
     show parseUrlencodedString ((none : Option String).getD "") = l
     rw [Option.getD_none, ← hempty]
     exact parse_serialize l

@@ -93,7 +93,7 @@ theorem walkerParentNodeResult_unique (hwf : WellFormed t) {w : WalkerState} (hw
 /-- `nextSibling()` の候補は current の木にある。 -/
 theorem nextSiblingCandidate_inRoot (hwf : WellFormed t) {w : WalkerState} {x : NodeId}
     (hx : WalkerNextSiblingCandidate t w x) : InclusiveDescendant t x (root t w.current) := by
-  obtain ⟨-, a, s, ⟨ha, -⟩, ⟨q, -, -, haq, hsq, -⟩, hxs⟩ := hx
+  obtain ⟨-, ⟨a, s, ⟨ha, -⟩, ⟨q, -, -, haq, hsq, -⟩, hxs⟩, -⟩ := hx
   have hqx : Ancestor t q x := by
     rcases hxs with rfl | h
     · exact Ancestor.step hsq

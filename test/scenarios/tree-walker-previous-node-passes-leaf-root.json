@@ -1,0 +1,111 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "previousNode"
+    ],
+    "steps": "previousNode step 2, 2.2.1-2.2.5, 2.3",
+    "note": "root が children を持たない TreeWalker の previousNode。walker 0 は root（r）の子 c へ firstChild で移り、c を remove して p の末尾へ append すると、current が root の外に出る。そこからの previousNode は前の兄弟 a の最後の子 r（root）へ降りて SKIP し、step 2.2.5 で r の前の兄弟 b へ進む。root で止まるのは step 2.3（前の兄弟を尽くした node が root）と step 2 の while 条件（親へ上がった node が root）だけなので、Text を探す walker は b を返す。walker 1 は root（s）に前の兄弟が無い場合で、s を見たあと step 2.3 で null を返す（その前の Text x には届かない）。walker 0 の結果は Chromium と Firefox（Playwright）が本文どおり b を返し、WebKit は null を返す（root に達したら止まる読みで、本文と違う）。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "p"
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 1,
+      "data": "x"
+    },
+    {
+      "id": 7,
+      "kind": "element",
+      "parent": 1,
+      "localName": "q"
+    },
+    {
+      "id": 8,
+      "kind": "element",
+      "parent": 7,
+      "localName": "s"
+    },
+    {
+      "id": 9,
+      "kind": "text",
+      "parent": 1,
+      "data": "y"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "a"
+    },
+    {
+      "id": 3,
+      "kind": "text",
+      "parent": 2,
+      "data": "b"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 2,
+      "localName": "r"
+    },
+    {
+      "id": 5,
+      "kind": "text",
+      "parent": 4,
+      "data": "c"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "listeners": [],
+  "observers": [],
+  "walkers": [
+    {
+      "root": 4,
+      "current": 4,
+      "whatToShow": 4
+    },
+    {
+      "root": 8,
+      "current": 9,
+      "whatToShow": 4
+    }
+  ],
+  "operations": [
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "removeChild",
+      "parent": 4,
+      "node": 5
+    },
+    {
+      "op": "appendChild",
+      "parent": 1,
+      "node": 5
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousNode",
+      "walker": 1
+    }
+  ]
+}

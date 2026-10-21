@@ -255,7 +255,12 @@ theorem parseB_spec (a : Int) (l : List Component) (ab : AnB) (r : List Componen
 
 /-! ## `identAnB` -/
 
-/-- `identAnB` が読む ident 形の関係。 -/
+/--
+`identAnB` が読む ident 形の関係。`kw` は前に `'+'` が付いていないこと。
+
+§9.2 の文法で `'+'?` が付くのは `n`・`n-`・`<ndashdigit-ident>` の形だけなので、
+`odd`・`even`・`-n`・`-n-`・`<dashndashdigit-ident>` の規則は `kw = true` を持つ。
+-/
 inductive IdentRel (kw : Bool) (s : String) : List Component → Int → Int → List Component → Prop where
   | odd {rest : List Component} (h : kw = true) (hs : asciiLowercase s == "odd") :
       IdentRel kw s rest 2 1 rest
@@ -264,19 +269,19 @@ inductive IdentRel (kw : Bool) (s : String) : List Component → Int → Int →
   | n {rest : List Component} {b : Int} {r : List Component}
       (hs : asciiLowercase s == "n") (hb : BRel 1 rest b r) :
       IdentRel kw s rest 1 b r
-  | negn {rest : List Component} {b : Int} {r : List Component}
+  | negn {rest : List Component} {b : Int} {r : List Component} (h : kw = true)
       (hs : asciiLowercase s == "-n") (hb : BRel (-1) rest b r) :
       IdentRel kw s rest (-1) b r
   | nDash {rest : List Component} {v : Nat} {r : List Component}
       (hs : asciiLowercase s == "n-") (h : SignlessInt (dropWs rest) v r) :
       IdentRel kw s rest 1 (-(v : Int)) r
-  | negnDash {rest : List Component} {v : Nat} {r : List Component}
+  | negnDash {rest : List Component} {v : Nat} {r : List Component} (h : kw = true)
       (hs : asciiLowercase s == "-n-") (h : SignlessInt (dropWs rest) v r) :
       IdentRel kw s rest (-1) (-(v : Int)) r
   | nDigits {rest : List Component} {v : Nat}
       (hs : DigitsAfter "n-" (asciiLowercase s) v) :
       IdentRel kw s rest 1 (-(v : Int)) rest
-  | negnDigits {rest : List Component} {v : Nat}
+  | negnDigits {rest : List Component} {v : Nat} (h : kw = true)
       (hs : DigitsAfter "-n-" (asciiLowercase s) v) :
       IdentRel kw s rest (-1) (-(v : Int)) rest
 
@@ -307,9 +312,10 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
           exact .n hc hb
         · split at h
           · next hc =>
+            rw [Bool.and_eq_true] at hc
             obtain ⟨ha, hb⟩ := (parseB_spec (-1) rest ab r).mp h
             rw [ha]
-            exact .negn hc hb
+            exact .negn hc.1 hc.2 hb
           · split at h
             · next hc =>
               split at h
@@ -320,17 +326,21 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
               · next hn => simp at h
             · split at h
               · next hc =>
+                rw [Bool.and_eq_true] at hc
                 split at h
                 · next v r2 hs =>
                   simp only [Option.some.injEq, Prod.mk.injEq] at h
                   obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-                  exact .negnDash hc ((signlessInt_spec _ _ _).mp hs)
+                  exact .negnDash hc.1 hc.2 ((signlessInt_spec _ _ _).mp hs)
                 · next hn => simp at h
               · split at h
                 · next v hs =>
-                  simp only [Option.some.injEq, Prod.mk.injEq] at h
-                  obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
-                  exact .negnDigits ((digitsAfter_spec _ _ _).mp hs)
+                  split at h
+                  · next hk =>
+                    simp only [Option.some.injEq, Prod.mk.injEq] at h
+                    obtain ⟨hab, hr⟩ := h; subst hr; rw [← hab]
+                    exact .negnDigits hk ((digitsAfter_spec _ _ _).mp hs)
+                  · simp at h
                 · next hnone =>
                   split at h
                   · next v hs =>
@@ -348,69 +358,48 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
         rw [h]
         simp [hs]
       | even h hs =>
+        rw [beq_iff_eq] at hs
         unfold identAnB
         dsimp only
-        rw [h]
-        have hne : ¬ (asciiLowercase s == "odd") = true := by
-          intro hc; rw [beq_iff_eq] at hc; rw [hc] at hs; simp at hs
-        simp [hs, hne]
+        simp [hs, h]
       | n hs hb =>
+        rw [beq_iff_eq] at hs
         unfold identAnB
         dsimp only
-        have hne : (kw && (asciiLowercase s == "odd")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        have hne2 : (kw && (asciiLowercase s == "even")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        rw [hne, hne2]
-        rw [beq_iff_eq] at hs
-        simp only [hs, beq_self_eq_true, if_true]
+        simp only [hs]
+        simp only [show ("n" == "odd") = false from rfl, show ("n" == "even") = false from rfl,
+          Bool.and_false, Bool.false_eq_true, if_false, beq_self_eq_true, if_true]
         exact (parseB_spec 1 rest ⟨1, b'⟩ r).mpr ⟨rfl, hb⟩
-      | negn hs hb =>
+      | negn h hs hb =>
+        rw [beq_iff_eq] at hs
         unfold identAnB
         dsimp only
-        have hne : ¬ (asciiLowercase s == "n") = true := by
-          intro hc; rw [beq_iff_eq] at hc; rw [beq_iff_eq] at hs; rw [hs] at hc; simp at hc
-        have hne0 : (kw && (asciiLowercase s == "odd")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        have hne1 : (kw && (asciiLowercase s == "even")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        rw [hne0, hne1, if_neg hne]
-        rw [beq_iff_eq] at hs
-        simp only [hs, beq_self_eq_true, if_true]
+        simp only [hs, h]
+        simp only [show ("-n" == "odd") = false from rfl, show ("-n" == "even") = false from rfl,
+          show ("-n" == "n") = false from rfl,
+          Bool.and_false, Bool.false_eq_true, if_false, beq_self_eq_true, Bool.and_self, if_true]
         exact (parseB_spec (-1) rest ⟨-1, b'⟩ r).mpr ⟨rfl, hb⟩
       | nDash hs h =>
         replace h := (signlessInt_spec _ _ _).mpr h
+        rw [beq_iff_eq] at hs
         unfold identAnB
         dsimp only
-        have hodd : (kw && (asciiLowercase s == "odd")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        have heven : (kw && (asciiLowercase s == "even")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        have hn : ¬ (asciiLowercase s == "n") = true := by
-          intro hc; rw [beq_iff_eq] at hs hc; rw [hs] at hc; simp at hc
-        have hneg : ¬ (asciiLowercase s == "-n") = true := by
-          intro hc; rw [beq_iff_eq] at hs hc; rw [hs] at hc; simp at hc
-        rw [hodd, heven, if_neg hn, if_neg hneg]
-        rw [beq_iff_eq] at hs
-        simp only [hs, beq_self_eq_true, Bool.false_eq_true, if_false, if_true, h]
+        simp only [hs]
+        simp only [show ("n-" == "odd") = false from rfl, show ("n-" == "even") = false from rfl,
+          show ("n-" == "n") = false from rfl, show ("n-" == "-n") = false from rfl,
+          Bool.and_false, Bool.false_eq_true, if_false, beq_self_eq_true, if_true, h]
         rfl
-      | negnDash hs h =>
+      | negnDash hk hs h =>
         replace h := (signlessInt_spec _ _ _).mpr h
+        rw [beq_iff_eq] at hs
         unfold identAnB
         dsimp only
-        have hodd : (kw && (asciiLowercase s == "odd")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        have heven : (kw && (asciiLowercase s == "even")) = false := by
-          rw [beq_iff_eq] at hs; rw [hs]; simp
-        have hn : ¬ (asciiLowercase s == "n") = true := by
-          intro hc; rw [beq_iff_eq] at hs hc; rw [hs] at hc; simp at hc
-        have hneg : ¬ (asciiLowercase s == "-n") = true := by
-          intro hc; rw [beq_iff_eq] at hs hc; rw [hs] at hc; simp at hc
-        have hnd : ¬ (asciiLowercase s == "n-") = true := by
-          intro hc; rw [beq_iff_eq] at hs hc; rw [hs] at hc; simp at hc
-        rw [hodd, heven, if_neg hn, if_neg hneg, if_neg hnd]
-        rw [beq_iff_eq] at hs
-        simp only [hs, beq_self_eq_true, Bool.false_eq_true, if_false, if_true, h]
+        simp only [hs, hk]
+        simp only [show ("-n-" == "odd") = false from rfl, show ("-n-" == "even") = false from rfl,
+          show ("-n-" == "n") = false from rfl, show ("-n-" == "-n") = false from rfl,
+          show ("-n-" == "n-") = false from rfl,
+          Bool.and_false, Bool.false_eq_true, if_false, beq_self_eq_true, Bool.and_self,
+          if_true, h]
         rfl
       | nDigits hs =>
         obtain ⟨d, hd, hdne, _, _⟩ := id hs
@@ -432,16 +421,18 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
           rw [hc.2] at hd; simp_all
         have hn : ¬ (asciiLowercase s == "n") = true := by
           intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
-        have hneg : ¬ (asciiLowercase s == "-n") = true := by
-          intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
+        have hneg : ¬ (kw && (asciiLowercase s == "-n")) = true := by
+          intro hc; rw [Bool.and_eq_true] at hc; rw [beq_iff_eq] at hc
+          rw [hc.2] at hd; simp_all
         have hnd : ¬ (asciiLowercase s == "n-") = true := by
           intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
-        have hnegnd : ¬ (asciiLowercase s == "-n-") = true := by
-          intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
+        have hnegnd : ¬ (kw && (asciiLowercase s == "-n-")) = true := by
+          intro hc; rw [Bool.and_eq_true] at hc; rw [beq_iff_eq] at hc
+          rw [hc.2] at hd; simp_all
         rw [if_neg hodd, if_neg heven, if_neg hn, if_neg hneg, if_neg hnd, if_neg hnegnd]
         simp only [hnegd, hs]
         rfl
-      | negnDigits hs =>
+      | negnDigits hk hs =>
         obtain ⟨d, hd, hdne, _, _⟩ := id hs
         replace hs := (digitsAfter_spec _ _ _).mpr hs
         unfold identAnB
@@ -454,14 +445,16 @@ theorem identAnB_spec (kw : Bool) (s : String) (rest : List Component) (ab : AnB
           rw [hc.2] at hd; simp_all
         have hn : ¬ (asciiLowercase s == "n") = true := by
           intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
-        have hneg : ¬ (asciiLowercase s == "-n") = true := by
-          intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
+        have hneg : ¬ (kw && (asciiLowercase s == "-n")) = true := by
+          intro hc; rw [Bool.and_eq_true] at hc; rw [beq_iff_eq] at hc
+          rw [hc.2] at hd; simp_all
         have hnd : ¬ (asciiLowercase s == "n-") = true := by
           intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
-        have hnegnd : ¬ (asciiLowercase s == "-n-") = true := by
-          intro hc; rw [beq_iff_eq] at hc; rw [hc] at hd; simp_all
+        have hnegnd : ¬ (kw && (asciiLowercase s == "-n-")) = true := by
+          intro hc; rw [Bool.and_eq_true] at hc; rw [beq_iff_eq] at hc
+          rw [hc.2] at hd; simp_all
         rw [if_neg hodd, if_neg heven, if_neg hn, if_neg hneg, if_neg hnd, if_neg hnegnd]
-        simp only [hs]
+        rw [hs, hk]
         rfl
 
 /-! ## `parseAnB` / `parseAnBFull` -/

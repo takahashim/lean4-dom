@@ -210,6 +210,31 @@
   digest: ec0f345711a5ea46
   reason: *scope_document_element
 
+- impl: dommy
+  scenario: featureless-virtual-root-logical-combinations
+  digest: dcb1b6b4653c29ff
+  reason: &featureless_logical |
+    `scope-pseudo-virtual-root-is-featureless` と同根。Selectors Level 4 §3.3 "Featureless Elements" は、
+    featureless な node に `:scope` だけでなく、引数が当たりうる `:is()`・`:where()`・`:not()` と、
+    同じ compound に当たりうる他の simple selector を持つ `:has()` も当たると定める。model はそれに従い、
+    `fragment.querySelectorAll(":is(:scope) > *")` などが fragment の子に当たる。実装は `:scope` が
+    virtual scoping root に当たらない、csswg-drafts#7261 で撤回された読みに揃っているので、空を返す。
+
+- impl: chromium
+  scenario: featureless-virtual-root-logical-combinations
+  digest: ff8e127934fe0e9f
+  reason: *featureless_logical
+
+- impl: firefox
+  scenario: featureless-virtual-root-logical-combinations
+  digest: 20cb2e790cb47ae0
+  reason: *featureless_logical
+
+- impl: webkit
+  scenario: featureless-virtual-root-logical-combinations
+  digest: 9be2d71cc45b6114
+  reason: *featureless_logical
+
 - impl: chromium
   scenario: non-ascii-ident-code-points-are-a-list
   digest: 74f1a5d9174d5712
@@ -625,6 +650,12 @@
 - impl: dommy-js
   scenario: scope-pseudo-is-the-document-element
   digest: 014700d595798b40
+  reason: |
+    impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。
+
+- impl: dommy-js
+  scenario: featureless-virtual-root-logical-combinations
+  digest: 992a28858196e2a0
   reason: |
     impl `dommy` の同じ scenario の記録と同じ理由（Dommy を JS の側から動かす `test/dommy_js_runner.rb` でも同じく割れる）。
 

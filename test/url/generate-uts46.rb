@@ -4,12 +4,13 @@
 #
 #   ruby test/url/generate-uts46.rb DIR > test/url/uts46-table.json
 #
-# DIR に次の四つを置いておく（版は `docs/url-spec-version.md` に固定してある）。
+# DIR に次の五つを置いておく（版は `docs/url-spec-version.md` に固定してある）。
 #
-#   IdnaMappingTable.txt          https://www.unicode.org/Public/idna/latest/
-#   DerivedCombiningClass.txt     https://www.unicode.org/Public/UCD/latest/ucd/extracted/
-#   DerivedBidiClass.txt          https://www.unicode.org/Public/UCD/latest/ucd/extracted/
-#   DerivedNormalizationProps.txt https://www.unicode.org/Public/UCD/latest/ucd/
+#   IdnaMappingTable.txt          https://www.unicode.org/Public/17.0.0/idna/
+#   DerivedCombiningClass.txt     https://www.unicode.org/Public/17.0.0/ucd/extracted/
+#   DerivedBidiClass.txt          https://www.unicode.org/Public/17.0.0/ucd/extracted/
+#   DerivedGeneralCategory.txt    https://www.unicode.org/Public/17.0.0/ucd/extracted/
+#   DerivedNormalizationProps.txt https://www.unicode.org/Public/17.0.0/ucd/
 #
 # 表は証明の中には入れない（`docs/url-status.md` の「表は証明の外に置く」）。
 # `Url/Idna.lean` の `IdnaTable` が interface で、これはその実装を与える data である。
@@ -24,6 +25,13 @@ VALID = 0
 IGNORED = 1
 MAPPED = 2
 DISALLOWED = 4
+
+# 各項の 4 番目の欄は bit の和。`url-model` の `idnaRangeOfJson` と対応させる。
+# OUT_OF_MODEL は NFC・CheckBidi・CheckJoiners が効きうる code point（この model の対象外）。
+# MARK は General_Category=Mark（Mn・Mc・Me）。UTS #46 §4.1 の validity criterion 6
+# （label は Mark で始まってはならない）に使う。
+OUT_OF_MODEL = 1
+MARK = 2
 
 # NFC の合成が効きうる Hangul。`Url/Idna.lean` は正規化を持たないので対象外にする。
 HANGUL = [
@@ -104,11 +112,24 @@ def read_out_of_model(dir)
   oom
 end
 
-def build_ranges(mapping, oom)
+# General_Category が Mark（Mn・Mc・Me）の code point を集める。
+def read_marks(dir)
+  marks = {}
+  each_entry(File.join(dir, "DerivedGeneralCategory.txt")) do |lo, hi, rest|
+    next unless %w[Mn Mc Me].include?(rest[0])
+
+    (lo..hi).each { |cp| marks[cp] = true }
+  end
+  marks
+end
+
+def build_ranges(mapping, oom, marks)
   ranges = []
   (0..0x10FFFF).each do |cp|
     status, mapped, deviation = mapping.fetch(cp, [DISALLOWED, nil])
-    flag = (oom[cp] || deviation == :deviation) ? 1 : 0
+    flag = 0
+    flag |= OUT_OF_MODEL if oom[cp] || deviation == :deviation
+    flag |= MARK if marks[cp]
     key = [status, flag, mapped]
 
     last = ranges.last
@@ -128,22 +149,25 @@ def build_ranges(mapping, oom)
 end
 
 dir = ARGV[0] or abort("使い方: ruby test/url/generate-uts46.rb DIR")
-ranges = build_ranges(read_mapping(dir), read_out_of_model(dir))
+ranges = build_ranges(read_mapping(dir), read_out_of_model(dir), read_marks(dir))
 
 note = "UTS #46 の写像表と、この model の対象外の印。" \
        "`UseSTD3ASCIIRules = false`、`Transitional_Processing = false` で解釈してある" \
        "（URL Standard の domain to ASCII が beStrict = false で呼ぶため）。" \
-       "各項は [開始, 終了, status, outOfModel] で、status が 2（mapped）のときだけ写像先が続く。" \
+       "各項は [開始, 終了, status, flags] で、status が 2（mapped）のときだけ写像先が続く。" \
        "status は 0=valid, 1=ignored, 2=mapped, 4=disallowed。" \
+       "flags は bit の和で、1 は outOfModel、2 は General_Category=Mark。" \
        "outOfModel は NFC・CheckBidi・CheckJoiners が効きうる code point の印で、" \
-       "この model はそれらを扱わないので拒否する。"
+       "この model はそれらを扱わないので拒否する。" \
+       "Mark は UTS #46 §4.1 の validity criterion 6（label は Mark で始まらない）に使う。"
 
 puts JSON.generate(
   "_note" => note,
   "_source" => {
     "IdnaMappingTable" => "https://www.unicode.org/Public/idna/latest/IdnaMappingTable.txt",
     "version" => VERSION,
-    "derived" => ["DerivedCombiningClass.txt", "DerivedBidiClass.txt", "DerivedNormalizationProps.txt"]
+    "derived" => ["DerivedCombiningClass.txt", "DerivedBidiClass.txt", "DerivedNormalizationProps.txt",
+                  "DerivedGeneralCategory.txt"]
   },
   "ranges" => ranges
 )

@@ -25,8 +25,25 @@ selector は CSS 全体の一部なので、どこまでを model に入れる�
   `:first-of-type` `:last-of-type` `:only-of-type`
   `:nth-child()` `:nth-last-child()` `:nth-of-type()` `:nth-last-of-type()`（`of S` を含む）
 * 論理 pseudo-class：`:is()` `:where()` `:not()` `:has()`
-  （§14.10 のとおり `:has()` は入れ子にできない。`:is()` を挟めば forgiving に落ちる）
-* `:scope`
+  （§14.10 のとおり `:has()` は入れ子にできない。`:is()` を挟めば forgiving に落ちる）。
+  `:is()` と `:where()` の引数は `<forgiving-selector-list>` で、構文上は `<any-value>?` である。
+  読めない項目を捨てるのはそのあとなので、bad-string-token・bad-url-token・対応しない
+  `)` `]` `}` を引数に含むと、項目ではなく selector 全体が無効になる
+  （`is-argument-must-be-any-value.json`・`is-argument-bad-string-is-invalid.json`）
+* `:scope`。`Document` や `DocumentFragment` を受け手にすると、scoping root は featureless な
+  virtual scoping root になる。§3.3 "Featureless Elements" のとおり、そこに当たりうるのは
+  `:scope`、当たりうる引数を持つ `:is()` `:where()` `:not()`、同じ compound に当たりうる
+  他の simple selector がある `:has()` と、それらだけからなる compound である。
+  `:is(:scope) > *` や `:scope:has(.foo) > *` は当たり、`:not(.foo) > *` の `:not(.foo)` は
+  引数が当たりえないので virtual scoping root には当たらない
+  （`featureless-virtual-root-logical-combinations.json`）。読み方の細部は
+  `Dom/Selector/Match.lean` の "featureless な node に当たりうる selector" の節にある
+* CSS Syntax の tokenizer は `<url-token>` と `<bad-url-token>` を含めて本文どおりに作る
+  （§4.3.4・§4.3.6・§4.3.14）。selector の文法はどちらも受け付けないが、`:is()` の中では
+  token の切り方が結果を変える（`url-token-in-forgiving-list.json`・
+  `bad-url-token-makes-is-invalid.json`）
+* `<an+b>` は CSS Syntax §9.2 の文法どおりで、`'+'` を前に置けるのは `n`・`n-`・
+  `n-*` で始まる形だけである。`:nth-child(+-n+3)` は無効になる（`anb-plus-only-before-n.json`）
 
 ### 入れないもの
 
@@ -56,8 +73,16 @@ selector は CSS 全体の一部なので、どこまでを model に入れる�
 前の二つが一致するのは、forgiving な list が読めない項目を捨てるからで、
 実装の側も「対応しているが当たらない」ので同じ結果になる。
 `test/scenarios/unsupported-pseudo-class-inside-is.json` がそこを見ている。
-* **namespace prefix `ns|E`**。DOM Standard は `ParentNode` の API に namespace を
-  「加えない」と明言しており、prefix を宣言する手段が無い。よって常に parse に失敗する。
+* **namespace prefix `ns|E`・`ns|*`・`[ns|att]`**。DOM Standard は `ParentNode` の API に
+  namespace を「加えない」と明言しており、prefix を宣言する手段が無い。§17.2 は
+  "a simple selector containing an undeclared namespace prefix is invalid" と定めるので、
+  常に parse に失敗する。これは仕様どおりである。
+* **空の namespace prefix `|E`・`|*`・`[|att]`**。こちらは宣言を要さない。本文の意味は
+  「namespace を持たない E」「namespace を持たない element」「namespace を持たない attribute
+  `att`」（`[|att]` は `[att]` と同じ）である。**model はこれらを読まず、parse に失敗する。**
+  上の `ns|E` と違って仕様が無効と定めているわけではないので、これは model の範囲の制限であり、
+  本文どおりに受理する実装とは結果が食い違う（model は SyntaxError を返す）。
+  model が読む namespace prefix は `*|E`・`*|*`・`[*|att]` だけである。
 * **quirks mode は class と id にだけ効く**。HTML §"Case-sensitivity of selectors" のとおり、
   element の node document が quirks mode なら class selector と id selector を ASCII
   case-insensitive に比べる。limited-quirks mode は no-quirks mode と同じである。

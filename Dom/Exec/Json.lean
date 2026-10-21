@@ -93,7 +93,12 @@ JavaScript の値（WebIDL の変換の前の値）。JSON の null・真偽値�
 partial def jsValueOfJson : Json → Except String Idl.JsValue
   | .null => pure .null
   | .bool b => pure (.bool b)
-  | .num n => pure (.number ⟨n.mantissa, n.exponent⟩)
+  | .num n =>
+    let x : Idl.JsNumber := ⟨n.mantissa, n.exponent⟩
+    -- ToBoolean の結果が RoundMVResult の候補によって割れる数は、model の対象外にする（`JsValue.toBoolean`）。
+    if x.zeroAfterRounding?.isNone then
+      throw s!"数 {n} は Number の値に丸めると ±0 になるかが実装に任される（model の対象外）"
+    else pure (.number x)
   | .str s => pure (.string s)
   | .obj kvs => do
     let props ← kvs.toList.mapM fun (k, v) => do pure (k, ← jsValueOfJson v)
@@ -133,9 +138,19 @@ private def listenerOptionsField (j : Json) : Except String Idl.JsValue := do
       | some v => pure (some (k, ← jsValueOfJson v))
     pure (.object props)
 
-/-- WebIDL の変換の結果を読み取りの結果にする。model の対象外の値（桁の多い数）は読み取りの失敗にする。 -/
+/--
+引数の WebIDL の変換が TypeError を投げたことを、読み取りの層から `operationOfJson` へ伝える印。
+`operationOfJson` はこれを受けると、その操作を `.argumentTypeError` にする。
+-/
+private def typeErrorMark : String := "__idlTypeError__"
+
+/--
+WebIDL の変換の結果を読み取りの結果にする。TypeError は `typeErrorMark` にし、model の対象外の値（桁の多い数）は
+読み取りの失敗にする。
+-/
 private def idlValue {α : Type} (k : String) : Except IdlException α → Except String α
   | .ok a => .ok a
+  | .error .typeError => .error typeErrorMark
   | .error e => .error s!"field `{k}` の値は WebIDL の変換で {e} になる（model の対象外）"
 
 /--
@@ -271,8 +286,9 @@ private def strField? (j : Json) (k : String) : Except String (Option String) :=
 ### DOMString の引数
 
 DOMString の引数は、JSON の任意の値を JavaScript の値として受け、scenario を読むときに WebIDL の変換を行う。
-model が表す値の DOMString への変換は TypeError を投げず副作用も無い（`Idl.toDOMString_error`）ので、
-method を呼ぶときに変換するのと観測は変わらない。field が無ければ既定値（多くは空文字列）を使う。
+model が表す値の DOMString への変換は副作用が無く、投げるのは TypeError だけである（`Idl.toDOMString_error`）。
+method steps より前に起きる WebIDL の失敗はどれも TypeError なので、method を呼ぶときに変換するのと観測は変わらない。
+変換が TypeError を投げれば、その操作は `.argumentTypeError` になる（`operationOfJson`）。field が無ければ既定値（多くは空文字列）を使う。
 これは scenario の約束で、JavaScript の undefined を渡すこととは違う。
 -/
 
@@ -298,8 +314,8 @@ private def legacyNullDomStrField (j : Json) (k : String) (dflt : String) : Exce
 ### 整数型の引数
 
 `unsigned long` と `unsigned short` の引数は、JSON の任意の値を受け、ToNumber で Number の値にする
-（`Dom/Idl/ToNumber.lean`）。ToNumber は失敗も副作用も無いので読むときに変換してよく、ConvertToInt の残りは
-`applyOperation` が行う。結果が一つに決まらない値（有効数字が 20 桁を超える十進表記など）は model の対象外で、
+（`Dom/Idl/ToNumber.lean`）。ToNumber は副作用が無く、投げるのは自分の `toString` を持つ object の TypeError だけなので
+読むときに変換してよく、ConvertToInt の残りは `applyOperation` が行う。結果が一つに決まらない値（有効数字が 20 桁を超える十進表記など）は model の対象外で、
 読み取りの失敗にする。field が無いのも失敗である（必須の引数）。
 -/
 
@@ -308,8 +324,9 @@ private def numArgField (j : Json) (k : String) : Except String Idl.JsNum :=
   | .error _ => throw s!"field `{k}` が無い"
   | .ok v => do
     match (← jsValueOfJson v).toNumber with
-    | some x => pure x
-    | none => throw s!"field `{k}` の値は ToNumber の結果が一つに決まらない（model の対象外）"
+    | .ok x => pure x
+    | .error .typeError => throw typeErrorMark
+    | .error _ => throw s!"field `{k}` の値は ToNumber の結果が一つに決まらない（model の対象外）"
 
 /-!
 ### boolean の引数
@@ -412,7 +429,7 @@ def nodeSpecOfJson (j : Json) : Except String NodeSpec := do
            piTarget := ← strField j "target" "pi"
            contentType := ← strField? j "contentType" }
 
-def operationOfJson (j : Json) : Except String Operation := do
+private def operationOfJsonCore (j : Json) : Except String Operation := do
   let op ← strField j "op" ""
   -- WebIDL の overload resolution：渡した引数（`argc`）が必須の個数より少なければ TypeError。
   -- `argc` が無ければ、すべての引数を渡したことにする。必須の個数以上なら、渡さなかった後ろの引数は
@@ -504,7 +521,12 @@ def operationOfJson (j : Json) : Except String Operation := do
     match ← nodeArg? j "node" with
     | none => return .argumentTypeError "importNode"
     | some (.node n) => return .importNode doc n (← importOptionsField j)
-    | some (.attr a) => return .importAttr doc a
+    | some (.attr a) =>
+      -- options の `(boolean or ImportNodeOptions)` への変換は node の種類によらず method steps の前に行う。
+      -- Attr の clone は options を使わないので、変換が TypeError になるかだけを見る。
+      if (Idl.toImportNodeOptions (← importOptionsField j)).isNone then
+        return .argumentTypeError "importNode"
+      return .importAttr doc a
   | "adoptNode" =>
     let doc ← natField j "document"
     match ← nodeArg? j "node" with
@@ -776,6 +798,16 @@ def operationOfJson (j : Json) : Except String Operation := do
   | "takeRecords" => return .takeRecords (← natField j "observer")
   | "notify" => return .notify
   | _ => .error s!"未知の op `{op}`"
+
+/--
+**操作を一つ読む。** 引数の WebIDL の変換が TypeError を投げたら（`typeErrorMark`）、その操作は method steps に
+入らずに TypeError になる（`.argumentTypeError`）。
+-/
+def operationOfJson (j : Json) : Except String Operation :=
+  match operationOfJsonCore j with
+  | .error m =>
+    if m == typeErrorMark then do pure (.argumentTypeError (← strField j "op" "")) else .error m
+  | .ok o => .ok o
 
 def boundaryPointOfJson (j : Json) : Except String BoundaryPoint := do
   return { node := ⟨← natField j "node"⟩, offset := ← natField j "offset" }

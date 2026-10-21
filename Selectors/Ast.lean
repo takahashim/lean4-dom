@@ -4,7 +4,7 @@ import Selectors.Token
 # selector の構文木（Selectors Level 4 §18）
 
 `docs/selectors-spec-version.md` に書いた範囲だけを持つ。namespace prefix と
-pseudo-element は構文木に無い。`ns|E` は parse に失敗する。
+pseudo-element は構文木に無い。`ns|E` と `|E` は parse に失敗する。
 -/
 
 namespace Selectors

@@ -159,11 +159,79 @@ theorem closest_self {selectors : String} {element : NodeId} {sel : SelectorList
 
 /-! ## scoping root が見えるのは `:scope` からだけ -/
 
+mutual
+
+/-- `:scope` を含まない selector が featureless な node に当たりうるかは、scoping root に依らない。 -/
+theorem allowedS_scope_irrelevant (t : Tree) (s₁ s₂ a : Option NodeId) (n : NodeId) :
+    ∀ s : Simple, scopeFreeS s = true → allowedS ⟨t, s₁, a⟩ n s = allowedS ⟨t, s₂, a⟩ n s
+  | .scope, hf => by simp [scopeFreeS] at hf
+  | .isSel l, hf => by
+    rw [allowedS, allowedS]; exact allowedL_scope_irrelevant t s₁ s₂ a n l (by rwa [scopeFreeS] at hf)
+  | .whereSel l, hf => by
+    rw [allowedS, allowedS]; exact allowedL_scope_irrelevant t s₁ s₂ a n l (by rwa [scopeFreeS] at hf)
+  | .notSel l, hf => by
+    rw [allowedS, allowedS]; exact allowedL_scope_irrelevant t s₁ s₂ a n l (by rwa [scopeFreeS] at hf)
+  | .anchor, _ => rfl
+  | .typeSel _, _ => rfl
+  | .univ, _ => rfl
+  | .id _, _ => rfl
+  | .cls _, _ => rfl
+  | .attr _ _ _, _ => rfl
+  | .root, _ => rfl
+  | .empty, _ => rfl
+  | .firstChild, _ => rfl
+  | .lastChild, _ => rfl
+  | .onlyChild, _ => rfl
+  | .firstOfType, _ => rfl
+  | .lastOfType, _ => rfl
+  | .onlyOfType, _ => rfl
+  | .nth _ _ _, _ => rfl
+  | .has _, _ => rfl
+
+theorem allowedCpAll_scope_irrelevant (t : Tree) (s₁ s₂ a : Option NodeId) (n : NodeId)
+    (o : Bool) : ∀ p : List Simple, scopeFreeCp p = true →
+      allowedCpAll ⟨t, s₁, a⟩ n o p = allowedCpAll ⟨t, s₂, a⟩ n o p
+  | [], _ => rfl
+  | s :: rest, hf => by
+    rw [scopeFreeCp, Bool.and_eq_true] at hf
+    rw [allowedCpAll, allowedCpAll, allowedS_scope_irrelevant t s₁ s₂ a n s hf.1,
+      allowedCpAll_scope_irrelevant t s₁ s₂ a n o rest hf.2]
+
+theorem allowedCpAny_scope_irrelevant (t : Tree) (s₁ s₂ a : Option NodeId) (n : NodeId) :
+    ∀ p : List Simple, scopeFreeCp p = true →
+      allowedCpAny ⟨t, s₁, a⟩ n p = allowedCpAny ⟨t, s₂, a⟩ n p
+  | [], _ => rfl
+  | s :: rest, hf => by
+    rw [scopeFreeCp, Bool.and_eq_true] at hf
+    rw [allowedCpAny, allowedCpAny, allowedS_scope_irrelevant t s₁ s₂ a n s hf.1,
+      allowedCpAny_scope_irrelevant t s₁ s₂ a n rest hf.2]
+
+theorem allowedCx_scope_irrelevant (t : Tree) (s₁ s₂ a : Option NodeId) (n : NodeId) :
+    ∀ c : Complex, scopeFreeCx c = true → allowedCx ⟨t, s₁, a⟩ n c = allowedCx ⟨t, s₂, a⟩ n c
+  | .one p, hf => by
+    rw [scopeFreeCx] at hf
+    rw [allowedCx, allowedCx, allowedCpAny_scope_irrelevant t s₁ s₂ a n p hf,
+      allowedCpAll_scope_irrelevant t s₁ s₂ a n _ p hf]
+  | .seq p _ _, hf => by
+    rw [scopeFreeCx, Bool.and_eq_true] at hf
+    rw [allowedCx, allowedCx, allowedCpAny_scope_irrelevant t s₁ s₂ a n p hf.1,
+      allowedCpAll_scope_irrelevant t s₁ s₂ a n _ p hf.1]
+
+theorem allowedL_scope_irrelevant (t : Tree) (s₁ s₂ a : Option NodeId) (n : NodeId) :
+    ∀ l : List Complex, scopeFreeL l = true → allowedL ⟨t, s₁, a⟩ n l = allowedL ⟨t, s₂, a⟩ n l
+  | [], _ => rfl
+  | c :: rest, hf => by
+    rw [scopeFreeL, Bool.and_eq_true] at hf
+    rw [allowedL, allowedL, allowedCx_scope_irrelevant t s₁ s₂ a n c hf.1,
+      allowedL_scope_irrelevant t s₁ s₂ a n rest hf.2]
+
+end
+
 /--
 **`:scope` を含まない selector の照合は scoping root に依らない。**
 
-`matchSimple` が `ctx.scope` を読むのは `Simple.scope` の枝だけなので、
-そこを塞げば scoping root は観測できない。
+`matchSimple` と、featureless な node に当たりうるかの判定（`allowedS` ほか）が
+`ctx.scope` を読むのは `Simple.scope` の枝だけなので、そこを塞げば scoping root は観測できない。
 
 四つの相互再帰をまとめて、selector の大きさ `k` についての強い帰納法で示す。
 `:has()` は anchor を書き換えるので、帰納法の仮定は anchor について全称にしてある。
@@ -205,15 +273,44 @@ theorem scope_irrelevant (t : Tree) (s₁ s₂ : Option NodeId) : ∀ (k : Nat),
         refine congrArg _ (List.any_congr rfl fun m => ?_)
         exact ih.2.1 a left m (by omega) hf.2
     · rw [matchCompound, matchCompound]
-      refine List.all_congr rfl fun x => ?_
-      exact ih.2.2.2 a x.1 n (by have := sSize_lt_cpSize p x.1 x.2; omega)
-        (scopeFreeS_of_mem p x.1 x.2 hf)
-    · rw [matchSimple, matchSimple]
+      have hall : (p.attach.all fun x => matchSimple ⟨t, s₁, a⟩ x.1 n) =
+          (p.attach.all fun x => matchSimple ⟨t, s₂, a⟩ x.1 n) :=
+        List.all_congr rfl fun x =>
+          ih.2.2.2 a x.1 n (by have := sSize_lt_cpSize p x.1 x.2; omega)
+            (scopeFreeS_of_mem p x.1 x.2 hf)
+      have hcp : allowedCp ⟨t, s₁, a⟩ n p = allowedCp ⟨t, s₂, a⟩ n p := by
+        unfold allowedCp
+        rw [allowedCpAny_scope_irrelevant t s₁ s₂ a n p hf,
+          allowedCpAll_scope_irrelevant t s₁ s₂ a n _ p hf]
+      rw [hall, hcp]
+    · rw [matchSimple.eq_def, matchSimple.eq_def]
       cases hg : t.get? n with
       | none => rfl
       | some d =>
         by_cases he : (d.kind != NodeKind.element) = true
-        · simp only [he, if_pos, isScopeSelector_eq_false hf, Bool.false_and]
+        · simp only [he, if_true]
+          cases s with
+          | scope => simp [scopeFreeS] at hf
+          | isSel l =>
+            rw [scopeFreeS] at hf
+            dsimp only
+            rw [allowedL_scope_irrelevant t s₁ s₂ a n l hf,
+              ih.1 a l n (by rw [sSize] at hk; omega) hf]
+          | whereSel l =>
+            rw [scopeFreeS] at hf
+            dsimp only
+            rw [allowedL_scope_irrelevant t s₁ s₂ a n l hf,
+              ih.1 a l n (by rw [sSize] at hk; omega) hf]
+          | notSel l =>
+            rw [scopeFreeS] at hf
+            dsimp only
+            rw [allowedL_scope_irrelevant t s₁ s₂ a n l hf,
+              ih.1 a l n (by rw [sSize] at hk; omega) hf]
+          | has l =>
+            dsimp only
+            refine List.any_congr rfl fun c => ?_
+            exact ih.1 (some n) l c (by rw [sSize] at hk; omega) (by rwa [scopeFreeS] at hf)
+          | _ => rfl
         · simp only [he, Bool.false_eq_true, if_false]
           cases s with
           | scope => simp [scopeFreeS] at hf

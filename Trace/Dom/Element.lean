@@ -70,12 +70,10 @@ def entries : List Entry := [
     spec := [``Dom.Spec.SetAttributeValueResult] },
   { alg := "concept-element-attributes-remove-by-name"
     impl := [``Dom.removeAttribute, ``Dom.removeNamedItem]
-    spec := [``Dom.Spec.RemoveAttributeResult, ``Dom.Spec.RemoveNamedItemResult]
-    approx := [("3", "removeAttribute は戻り値を捨てるので、取り除いた `Attr` を状態に残さない（removeNamedItem は残す）")] },
+    spec := [``Dom.Spec.RemoveAttributeResult, ``Dom.Spec.RemoveNamedItemResult] },
   { alg := "concept-element-attributes-remove-by-namespace"
     impl := [``Dom.removeAttributeNS]
-    spec := [``Dom.Spec.RemoveAttributeNSResult]
-    approx := [("3", "removeAttributeNS は戻り値を捨てるので、取り除いた `Attr` を状態に残さない")] },
+    spec := [``Dom.Spec.RemoveAttributeNSResult] },
   -- Element の getter と method
   { alg := "dom-element-namespaceuri"
     impl := [``Dom.NodeData.«namespace»] },

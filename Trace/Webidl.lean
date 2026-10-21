@@ -37,12 +37,12 @@ def entries : List Entry := [
                 ("6", .other "model が扱う引数に [EnforceRange] は付いていない"),
                 ("7", .other "model が扱う引数に [Clamp] は付いていない"),
                 ("11", .other "model が扱う整数型の引数に signed は無い")]
-    approx := [("4", "ToNumber は scenario を読むときに行う（失敗も副作用も無い）。有効数字が 20 桁を超える十進表記は、ECMAScript が丸めを実装に任せるので受けない")] },
+    approx := [("4", "ToNumber は scenario を読むときに行う（副作用は無く、TypeError は操作の TypeError にする）。有効数字が 20 桁を超える十進表記は、ECMAScript が丸めを実装に任せるので受けない")] },
 
   /- ## §3.2.10 DOMString -/
   { alg := "js-to-DOMString"
     impl := [``Dom.Idl.toDOMString, ``Dom.Idl.toLegacyNullDOMString, ``Dom.Idl.JsValue.toJsString]
-    approx := [("2", "ToString は scenario を読むときに行う（`Idl.toDOMString_error`：TypeError を投げない）。数は有効数字 15 桁以下に限り、object は toString を上書きしない普通の object と配列に限る")] },
+    approx := [("2", "ToString は scenario を読むときに行う（`Idl.toDOMString_error`：投げるのは TypeError だけで、それは操作の TypeError にする）。数は有効数字 15 桁以下に限る")] },
 
   /- ## §3.2.15 interface 型 -/
   { alg := "js-to-interface"

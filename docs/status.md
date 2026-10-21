@@ -6931,6 +6931,85 @@ TreeWalker の七つの走査（`nextNode()`・`previousNode()`・`firstChild()`
 * `lastChild()` と `previousSibling()` は、子の列を反転した木の `firstChild()`・`nextSibling()` の関係と同値なので、
   その一意性を使う。
 
+## 固定版の本文との照合で見つけた違いを直した（2026-10-13）
+
+DOM、Web IDL、ECMA-262、URL、Selectors、CSS Syntax の実行関数を、固定版の本文と step ごとに照らし直した。
+`notes/spec-divergences.md` と対応表の omit / approx に載っていない違いが 13 件あり、すべて直した。
+うち 7 件（TreeWalker の 3 件と Selectors の 4 件）は関係も同じ読みで書いてあったので、soundness では検出できなかった。
+
+### TreeWalker（§6.2）
+
+current が root の外にあるとき、止まる位置が本文と違っていた。model は「root の最後の inclusive descendant を見終えたら止まる」
+「reverse order で root に達したら止まる」と読んでいたが、本文で止まるのは、親へ上がったときにそれが root のとき
+（traverse children step 3.4.4、traverse siblings step 3.3-3.4）と、兄弟を尽くした node が root のとき（previousNode step 2.3）である。
+
+* root が葉のとき、`firstChild()`・`lastChild()` が root の兄弟へ進まなかった。
+* root が葉で前の兄弟を持つとき、`previousNode()` が root で止まっていた。
+* root が兄弟の部分木の中にあるとき、`nextSibling()`・`previousSibling()` が root で止まらなかった。
+
+列の切り方を `cutAtRootExit`（root に children があるときだけ切る）と `previousStopsAtRoot` に改め、traverse siblings は
+段ごとの列 `siblingLevels` 全体を切る形にした。関係（`WalkerChildCandidate`・`WalkerPreviousCandidate`・
+`WalkerNextSiblingCandidate` ほか）を本文の止まる条件から書き直し、soundness と completeness を証明し直した。
+固定 scenario は `tree-walker-child-passes-leaf-root`、`tree-walker-previous-node-passes-leaf-root`、
+`tree-walker-sibling-stops-at-root-in-sibling-subtree`。Chromium と Firefox は本文どおりで、WebKit だけ `previousNode()` が
+直す前の model と同じ null を返す。
+
+### Web IDL と ECMA-262 の変換
+
+* **this の検査**：`remove()`、`getAttribute()`・`hasAttribute()`・`getAttributeNames()`、CharacterData の method と `data` の
+  setter で this の interface を検査していなかった（create an operation function step 2.1.2.3）。Document の `remove()` が成功し、
+  Element の `replaceData()` が InvalidNodeTypeError になっていた。`idlCheck` に足した。
+* **OrdinaryToPrimitive**：自分の `toString` を持つ object を "[object Object]" にしていた。JSON の値は呼べないので、本文では
+  step 4 の TypeError である。ToString と ToNumber が `Except IdlException` を返すようにし、読み取りの段の TypeError は
+  その操作の TypeError にした（`operationOfJson`）。`toDOMString_error` は「投げるのは TypeError だけ」に改めた。
+* **ToBoolean**：有効数字が 21 桁以上で 0 に丸まる数を true にしていた。RoundMVResult の二つの候補がどちらも ±0 なら false、
+  どちらも ±0 でないなら true とし（`JsNum.zeroAfterRounding?`）、候補で結果が割れる数は読み取りで断る。
+* **importNode**：node が Attr のとき options を変換していなかった。`customElementRegistry` を持つ options が TypeError に
+  ならなかった。
+
+固定 scenario は `idl-remove-requires-a-child-node`、`idl-get-attribute-requires-an-element`、
+`idl-replace-data-requires-character-data`、`idl-to-primitive-own-to-string-throws`、`idl-to-boolean-rounds-long-decimals`、
+`idl-import-node-converts-options-for-attr`。Firefox は `ImportNodeOptions` を持たないので最後の一本で割れる。
+
+### URL
+
+* **search・hash の setter と URLSearchParams の update steps**：固定版に無い「potentially strip trailing spaces from an
+  opaque path」を実行していた。固定版では末尾の空白は opaque path state が `%20` にする。手順を削った。到達できる record の
+  opaque path は生の U+0020 で終わらない（`setAttr_opaqueNoTrailingSpace`）ので、API からは観測できない違いだった。
+* **origin の blob 分岐**：path を読み直すときに ToASCII の hook を渡していなかった。`origin` が hook を受け取るようにした。
+* **UTS #46**：§4.1 の criterion 4（`xn--` で始まらない）と criterion 6（Mark で始まらない）、Processing step 4 の
+  「復号した label が空か ASCII だけなら誤り」が無かった。表に General_Category=Mark の印を足し（8,724 範囲）、三つとも実装した。
+
+詳細は `docs/url-status.md` にある。
+
+### Selectors と CSS Syntax
+
+* **`url(`**：CSS Syntax §4.3.4 の分岐が無く、function-token として読んでいた。`<url-token>`・`<bad-url-token>` と
+  consume the remnants of a bad url を本文どおりに作る。`:is(url(a(b)), p)` は SyntaxError になる。
+* **`:is()`・`:where()` の `<any-value>?`**：bad-string・bad-url・対応しない `)` `]` `}` を含む引数を、項目を捨てるだけで
+  受けていた。selector 全体を無効にする。
+* **`<an+b>` の `'+'?`**：`+-n+3` を受けていた。`'+'?` を `n` 系の形に限った。
+* **featureless な node（Selectors §3.3）**：virtual scoping root に `:scope` しか当てていなかった。当たりうる引数を持つ
+  `:is()`・`:where()`・`:not()`、同じ compound に当たりうる他の simple selector がある `:has()` も当てる（`Allowed*`）。
+
+関係（`IdentLikeTok`・`UrlTok`・`PieceRel` の `AnyValue`・`IdentRel`・`SimpleMatches` / `CompoundMatches`）を本文から
+書き直し、soundness・決定性・`scope_irrelevant` を証明し直した。固定 scenario は 6 本
+（`url-token-in-forgiving-list`、`bad-url-token-makes-is-invalid`、`is-argument-must-be-any-value`、
+`is-argument-bad-string-is-invalid`、`anb-plus-only-before-n`、`featureless-virtual-root-logical-combinations`）。
+
+* Firefox は `url(` と `<any-value>?` で本文どおりで、Chromium・WebKit・Dommy は割れる。これは実装の findings である。
+* featureless の一本は、Dommy（Ruby の API と JS の側の両方）と三つの browser が `scope-pseudo-virtual-root-is-featureless` と
+  同じ読みで割れるので、`test/known-divergences.yml` に同じ理由で記録した。
+* 空の namespace prefix（`|E`・`|*`・`[|att]`）が parse に失敗する制限を `docs/selectors-spec-version.md` に明記した。
+
+### 文書と対応表
+
+* `removeAttribute(NS)` の approx と doc comment が、名前で消した `Attr` を残さないと書いていた。コードは
+  「名前で消した `Attr` を残すようにした」の節から残しているので、記述を直した。
+* normalize の近似の記述に、後ろに Text の兄弟を持たない Text でも本文は record を積む場合を足した。
+* 証明のある近似（live range pre-remove steps step 4-7、`deleteContents()` step 8、Range の insert step 10-11）を approx に
+  載せ、`range-collapsed` の impl に `contentsInto` を足した。
+
 ## Dommy を `c241e2e9`（v0.17.0）、dommy-js-quickjs を `522b405`（v0.13.0）に上げ、nightly の探索を直した（2026-10-21）
 
 nightly の探索（`.github/workflows/differential.yml` の exploration）が 10-10 から落ち続けていた。原因は三つあった。

@@ -100,22 +100,12 @@ theorem validUrl_setOpaque {u : Url} (h : ValidUrl u) (o : String) (hop : u.hasO
     fun _ => h.opaqueNoCredentials hop, fun _ => h.opaqueNoPort hop, fun _ => h.opaqueNoHost hop,
     h.portRange, h.fileNoCredentials, h.fileNoPort, h.hostKind, rfl, h.emptyHostNoPort⟩
 
-theorem stripTrailingSpaces_valid {u : Url} (h : ValidUrl u) :
-    ValidUrl (stripTrailingSpaces u) := by
-  unfold stripTrailingSpaces
-  split
-  · exact h
-  · next p hp =>
-    split
-    · exact h
-    · exact validUrl_setOpaque h _ (by simp [Url.hasOpaquePath, hp, Path.isOpaque])
-
 /-- **`hash` setter は `ValidUrl` を保つ。** -/
 theorem setHash_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.setHash v) := by
   have hu0 : ValidUrl { u with fragment := some "" } := (validUrl_setFragment u _).mpr h
   unfold Url.setHash
   split
-  · exact stripTrailingSpaces_valid ((validUrl_setFragment u none).mpr h)
+  · exact (validUrl_setFragment u none).mpr h
   · cases he : basicUrlParseOverride (dropLeading '#' v) { u with fragment := some "" } .fragment with
     | none => simpa [he] using hu0
     | some u' =>
@@ -128,7 +118,7 @@ theorem setSearch_valid {u : Url} (h : ValidUrl u) (v : String) : ValidUrl (u.se
   have hu0 : ValidUrl { u with query := some "" } := (validUrl_setQuery u _).mpr h
   unfold Url.setSearch
   split
-  · exact stripTrailingSpaces_valid ((validUrl_setQuery u none).mpr h)
+  · exact (validUrl_setQuery u none).mpr h
   · cases he : basicUrlParseOverride (dropLeading '?' v) { u with query := some "" } .query with
     | none => simpa [he] using hu0
     | some u' =>
@@ -667,12 +657,12 @@ theorem setAttr_valid {u : Url} (h : ValidUrl u) (name v : String)
 /-- **`hash` に空文字列を入れると `hash` は空になる。** -/
 theorem setHash_empty_hash (u : Url) : (u.setHash "").hash = "" := by
   unfold Url.setHash Url.hash
-  rw [if_pos (by rfl), stripTrailingSpaces_fragment]
+  rw [if_pos (by rfl)]
 
 /-- **`search` に空文字列を入れると `search` は空になる。** -/
 theorem setSearch_empty_search (u : Url) : (u.setSearch "").search = "" := by
   unfold Url.setSearch Url.search
-  rw [if_pos (by rfl), stripTrailingSpaces_query]
+  rw [if_pos (by rfl)]
 
 /-- fragment state を走らせると、入力を percent-encode して fragment の末尾に足す。 -/
 theorem run_fragment_spec (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),

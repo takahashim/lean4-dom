@@ -1,8 +1,9 @@
 {
- "_note": "A-label（`xn--` で始まる label）の扱いを確かめる。WPT の機械可読の表には `xn--` の失敗例が一件も無く、この経路が試されないので別に置く。ASCII だけの domain は URL Standard の domain parser step 2 により Unicode ToASCII を通さず lowercase するだけなので、中身がどう復号されようと成功する。非 ASCII を含む domain だけが UTS #46 の Processing を通り、そこでは復号した A-label が validity criteria（全 code point が valid）を満たす必要がある。",
+ "_note": "A-label（`xn--` で始まる label）の扱いと、UTS #46 の Processing のうち表が要る部分を確かめる。WPT の機械可読の表には `xn--` の失敗例が一件も無く、この経路が試されないので別に置く。ASCII だけの domain は URL Standard の domain parser step 2 により Unicode ToASCII を通さず lowercase するだけなので、中身がどう復号されようと成功する。非 ASCII を含む domain だけが UTS #46 の Processing を通り、そこでは復号した A-label が空でも ASCII だけでもなく、§4.1 の validity criteria（criterion 4: `xn--` で始まらない、criterion 6: General_Category=Mark で始まらない、criterion 7: 全 code point が valid）を満たす必要がある。criterion 6 は A-label でない label にも当たる。blob URL の origin（§4.7）は path を basic URL parser で読み直すので、同じ表が要る。",
  "_source": {
   "ascii-shortcut": "url.bs の domain parser step 2 とその note（`xn--8i7caa` の例）。WPT の `https://xn--/` と `file://xn--/p` が同じ扱いを裏づけている。",
-  "non-ascii": "url.bs + UTS #46 §4.1 validity criteria。Node 24.3.0 の `new URL` とも一致した（ただし Node は ASCII 近道の仕様変更に追いついておらず、ASCII の case では食い違う）。"
+  "non-ascii": "url.bs + UTS #46（Unicode 17.0.0、revision 35）§4 Processing step 4 と §4.1 validity criteria。Node 24.3.0 の `new URL` とも一致した（ただし Node は ASCII 近道の仕様変更に追いついておらず、ASCII の case では食い違う）。2026-10-13 に足した case は Node 23.11.1 で確かめた。",
+  "blob-origin": "url.bs §4.7 origin の blob の枝。Node 23.11.1 の `new URL(...).origin` とも一致した。"
  },
  "cases": [
   {
@@ -65,6 +66,64 @@
    "input": "http://xn--8i7caa.日本/",
    "base": null,
    "failure": true
+  },
+  {
+   "_why": "UTS #46 §4.1 criterion 6。U+0903（General_Category=Mc、結合クラス 0）で始まる label は失敗",
+   "input": "http://ःa.jp/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "_why": "同じ Mark でも先頭でなければ criterion 6 に当たらない",
+   "input": "http://aः.jp/",
+   "base": null,
+   "failure": false,
+   "href": "http://xn--a-ttd.jp/",
+   "origin": "http://xn--a-ttd.jp"
+  },
+  {
+   "_why": "criterion 6 は写像の後の label に当たる。U+00AD（ignored）が落ちると U+0903 が先頭に来るので失敗",
+   "input": "http://­ःa.jp/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "_why": "criterion 6 は復号した A-label にも当たる。`xn--a-std` は `ःa` に復号されるので失敗",
+   "input": "http://xn--a-std.日本/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "_why": "UTS #46 §4.1 criterion 4（CheckHyphens = false）。`xn--abc-` を復号した `xn--abc` が `xn--` で始まるので失敗",
+   "input": "http://xn--xn--abc-.日本/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "_why": "UTS #46 §4 Processing step 4。復号した label が ASCII だけなら失敗（`xn--abc-` は `abc` に復号される）",
+   "input": "http://xn--abc-.日本/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "_why": "同じく。復号した label が空なら失敗",
+   "input": "http://xn--.日本/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "_why": "`xn--` で始まる label が非 ASCII を含むなら失敗（Processing step 4 の `xn--` の枝の 1、criterion 4 でもある）",
+   "input": "http://xn--日本.jp/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "_why": "§4.7 の blob の枝は path を basic URL parser で読み直す。percent-encode された非 ASCII host は表が無いと読めない",
+   "input": "blob:https://%E6%97%A5%E6%9C%AC.jp/x",
+   "base": null,
+   "failure": false,
+   "href": "blob:https://%E6%97%A5%E6%9C%AC.jp/x",
+   "origin": "https://xn--wgv71a.jp"
   }
  ]
 }

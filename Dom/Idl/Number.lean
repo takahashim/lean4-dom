@@ -122,6 +122,27 @@ def significantDigits (m : Nat) : Nat :=
 def ofDecimal? (neg : Bool) (m : Nat) (e : Int) : Option JsNum :=
   if significantDigits m > 20 then none else some (ofDecimal neg m e)
 
+/-- Number の値が ±0 か。 -/
+def isZero : JsNum → Bool
+  | .finite _ 0 _ => true
+  | _ => false
+
+/--
+**十進の値 m × 10^e を Number の値に丸めたとき ±0 になるか。** 結果が一つに決まらなければ `none`。
+
+RoundMVResult（ECMA-262 §7.1.4.1.3）は、有効数字が 20 桁を超えると、上位 20 桁で切った値（option1）と、
+その 20 桁目に 1 を足した値（option2）のどちらを 𝔽 で丸めるかを実装に任せる（step 3-5）。0 に近い値では、
+二つがどちらも ±0 か、どちらも ±0 でないなら、ToBoolean の結果は一つに決まる。
+-/
+def zeroAfterRounding? (m : Nat) (e : Int) : Option Bool :=
+  if significantDigits m ≤ 20 then some (isZero (ofDecimal false m e))
+  else
+    let drop := (toString m).length - 20
+    let m₁ := m / 10 ^ drop
+    let z₁ := isZero (ofDecimal false m₁ (e + drop))
+    let z₂ := isZero (ofDecimal false (m₁ + 1) (e + drop))
+    if z₁ == z₂ then some z₁ else none
+
 /--
 ECMAScript の IntegerPart(x) の絶対値：|x| の floor。有限の値にだけ使う。
 -/
@@ -135,6 +156,15 @@ namespace JsNumber
 /-- **JSON の十進の数を、JavaScript が読むのと同じく Number の値に丸める。** 有効数字が 20 桁を超えれば `none`。 -/
 def toNum? (x : JsNumber) : Option JsNum :=
   JsNum.ofDecimal? (x.mantissa < 0) x.mantissa.natAbs (-(x.exponent : Int))
+
+/-- **JSON の十進の数を Number の値に丸めると ±0 になるか。** 一つに決まらなければ `none`（`JsNum.zeroAfterRounding?`）。 -/
+def zeroAfterRounding? (x : JsNumber) : Option Bool :=
+  JsNum.zeroAfterRounding? x.mantissa.natAbs (-(x.exponent : Int))
+
+#guard (⟨123456789012345678901, 421⟩ : JsNumber).zeroAfterRounding? == some true
+#guard (⟨123456789012345678901, 0⟩ : JsNumber).zeroAfterRounding? == some false
+#guard (⟨1, 400⟩ : JsNumber).zeroAfterRounding? == some true
+#guard (⟨0, 0⟩ : JsNumber).zeroAfterRounding? == some true
 
 end JsNumber
 

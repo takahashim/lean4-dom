@@ -206,6 +206,47 @@ theorem nthName_beq {n : String} {kind : NthKind} {ofA : Bool} (h : NthName n ki
   obtain ⟨h1, h2, h3, h4⟩ := nthName_lower h
   simp [h1, h2, h3, h4]
 
+/-! ## `<any-value>` -/
+
+mutual
+
+theorem anyValueC_iff : ∀ c : Component,
+    anyValueC c = true ↔ ∀ t, OccursC t c → ¬ BannedInAnyValue t
+  | .tok t => by
+    constructor
+    · intro h t' ho hb
+      cases ho
+      rcases hb with rfl | rfl | rfl | rfl | rfl <;> simp [anyValueC] at h
+    · intro h
+      have hn := h t .tok
+      cases t <;> simp_all [anyValueC, BannedInAnyValue]
+  | .func n a => by
+    rw [anyValueC, anyValue_iff a]
+    constructor
+    · intro h t ho; cases ho with | func ho => exact h t ho
+    · intro h t ho; exact h t (.func ho)
+  | .block o a => by
+    rw [anyValueC, anyValue_iff a]
+    constructor
+    · intro h t ho; cases ho with | block ho => exact h t ho
+    · intro h t ho; exact h t (.block ho)
+
+theorem anyValue_iff : ∀ l : List Component, anyValue l = true ↔ AnyValue l
+  | [] => by
+    simp only [anyValue, true_iff]
+    intro t ho; cases ho
+  | c :: l => by
+    rw [anyValue, Bool.and_eq_true, anyValueC_iff c, anyValue_iff l]
+    constructor
+    · rintro ⟨h1, h2⟩ t ho
+      cases ho with
+      | head ho => exact h1 t ho
+      | tail ho => exact h2 t ho
+    · intro h
+      exact ⟨fun t ho => h t (.head ho), fun t ho => h t (.tail ho)⟩
+
+end
+
 /-- 中の selector list についての帰納法の仮定。 -/
 def InnerOk (bound : Nat) : Prop :=
   ∀ (cfg : ScanCfg) (args : List Component), csize args < bound → ∀ l,
@@ -221,7 +262,7 @@ theorem scan_piece {cfg : ScanCfg} {p : List Component} {s : Simple}
     scan cfg st (p ++ w) = scan cfg { st with parts := s :: st.parts } w := by
   rw [PieceRel] at h
   rcases h with ⟨v, rfl, rfl⟩ | ⟨n, rfl, rfl⟩ | ⟨items, rfl, hattr⟩ | ⟨n, rfl, hps⟩ |
-    ⟨name, args, rfl, l, hname, hl⟩ | ⟨name, args, rfl, l, hname, rfl, hl⟩ |
+    ⟨name, args, rfl, l, hname, hav, hl⟩ | ⟨name, args, rfl, l, hname, rfl, hl⟩ |
     ⟨name, args, rfl, l, hname, hin, rfl, hl⟩ |
     ⟨name, args, kind, ofA, ab, rfl, hnth, hnoof, hab, rfl⟩ |
     ⟨name, args, rfl, kind, ab, a, m, b, l, rfl, hnth, hm, hnoof, hab, hl, rfl⟩
@@ -232,10 +273,11 @@ theorem scan_piece {cfg : ScanCfg} {p : List Component} {s : Simple}
   · simp only [List.cons_append, List.nil_append]; rw [scan]
     rw [(simplePseudo_iff n s).mpr hps]
   · have hscan := (hih (innerCfg true false cfg.inHas) args (csize_func_args name args) l).mpr hl
+    have hav' := (anyValue_iff args).mpr hav
     simp only [List.cons_append, List.nil_append]; rw [scan]
     rcases hname with ⟨hn, rfl⟩ | ⟨hn, rfl⟩
-    · simp only [hn]; simp only [innerCfg] at hscan; simp [hscan]
-    · simp only [hn]; simp only [innerCfg] at hscan; simp [hscan]
+    · simp only [hn]; simp only [innerCfg] at hscan; simp [hscan, hav']
+    · simp only [hn]; simp only [innerCfg] at hscan; simp [hscan, hav']
   · have hscan := (hih (innerCfg false false cfg.inHas) args (csize_func_args name args) l).mpr hl
     simp only [List.cons_append, List.nil_append]; rw [scan]
     simp only [hname]; simp only [innerCfg] at hscan; simp [hscan]
@@ -352,9 +394,10 @@ theorem delim_other_scan_fail {cfg : ScanCfg} (st : ScanSt) {d : Char}
 theorem pieceRel_is {cfg : ScanCfg} {name : String} {args : List Component} {l : List Complex}
     {s : Simple} (hn : (asciiLowercase name = "is" ∧ s = .isSel l) ∨
       (asciiLowercase name = "where" ∧ s = .whereSel l))
-    (hl : SelListRel (innerCfg true false cfg.inHas) args l) :
+    (hav : AnyValue args) (hl : SelListRel (innerCfg true false cfg.inHas) args l) :
     PieceRel cfg [.tok .colon, .func name args] s := by
-  rw [PieceRel]; exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨name, args, rfl, l, hn, hl⟩))))
+  rw [PieceRel]
+  exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨name, args, rfl, l, hn, hav, hl⟩))))
 
 theorem pieceRel_not {cfg : ScanCfg} {name : String} {args : List Component} {l : List Complex}
     (hn : asciiLowercase name = "not") (hl : SelListRel (innerCfg false false cfg.inHas) args l) :
@@ -404,6 +447,11 @@ theorem scan_colon_func_fail {cfg : ScanCfg} (st : ScanSt) (name : String) (args
   by_cases hiw : (asciiLowercase name == "is" || asciiLowercase name == "where") = true
   · rw [if_pos hiw]
     have hn : asciiLowercase name = "is" ∨ asciiLowercase name = "where" := by simpa using hiw
+    by_cases havf : anyValue args = false
+    · simp [havf]
+    have hav : anyValue args = true := by simpa using havf
+    simp only [hav, Bool.not_true, Bool.false_eq_true, if_false]
+    have hav' := (anyValue_iff args).mp hav
     cases hsc : scan { forgiving := true, relative := false, inHas := cfg.inHas }
         (initSt { forgiving := true, relative := false, inHas := cfg.inHas } []) args with
     | none => rfl
@@ -411,8 +459,8 @@ theorem scan_colon_func_fail {cfg : ScanCfg} (st : ScanSt) (name : String) (args
       exfalso
       have hl := (hih (innerCfg true false cfg.inHas) args hcs l).mp hsc
       rcases hn with hn | hn
-      · exact hno _ (pieceRel_is (Or.inl ⟨hn, rfl⟩) hl)
-      · exact hno _ (pieceRel_is (Or.inr ⟨hn, rfl⟩) hl)
+      · exact hno _ (pieceRel_is (Or.inl ⟨hn, rfl⟩) hav' hl)
+      · exact hno _ (pieceRel_is (Or.inr ⟨hn, rfl⟩) hav' hl)
   rw [if_neg hiw]
   by_cases hnot : (asciiLowercase name == "not") = true
   · rw [if_pos hnot]

@@ -29,7 +29,7 @@ attribute の演算子、`:nth-*()` の位置、type selector、`:root`、`:empt
 | `#id` | id 属性の値と、quirks mode なら ASCII case-insensitive に、そうでなければ identical に一致する |
 | `:first-child` ほか | 前（後）に element の sibling（同じ type のもの）が無い |
 | `:nth-*()` | 前（後）にあって数える対象になる element の数に 1 を足したものが `An+B` の index（`NthCount`） |
-| featureless な node | `:scope` だけが当たる |
+| featureless な node | 当たりうる（`AllowedSimple` ほか、§3.3）selector だけが当たる |
 -/
 
 namespace Dom.Spec
@@ -82,6 +82,75 @@ def NthCount (t : Tree) (member : NodeId → Prop) (fromEnd : Bool) (ab : AnB) (
       (if fromEnd then ElementSiblingBefore t n m else ElementSiblingBefore t m n)) ∧
     AnBIndex ab (others.length + 1)
 
+/-! ## featureless な node に当たりうる selector（§3.3 "Featureless Elements"）
+
+本文は featureless な element が当たりうる selector を次に限る。
+
+> * simple selectors it is explicitly defined to match
+> * compound selectors, if all contained simple selectors are allowed to match it
+> * complex selectors, if the compound selector targeting the subject is allowed to match it
+> * selector lists, if at least one selector in the list is allowed to match it
+> * logical combination pseudo-classes, if their argument selector is allowed to match it
+> * the :has() pseudo-class, if and only if the compound selector it's part of contains
+>   at least one other simple selector that's allowed to match it.
+
+読み方は `Dom/Selector/Match.lean` の同名の節に書いた。要点は三つである。
+
+* 明示的に当たると定められた simple selector は、`:scope`（scoping root を表す）と
+  relative selector の暗黙の anchor（anchor element を表す）で、表す node のときだけ許される。
+* logical combination pseudo-class は `:is()`・`:where()`・`:not()` である。`:not(.foo)` は引数が
+  当たりえないので当たらない。
+* `:has()` の「他の simple selector」は `:has()` でないもの（最小の不動点）。
+-/
+
+/-- `:has()` である。 -/
+def IsHas (s : Simple) : Prop := ∃ l, s = .has l
+
+mutual
+
+/-- simple selector が featureless な node `n` に当たりうる。`:has()` は compound の側で決める。 -/
+def AllowedSimple (ctx : MatchCtx) (n : NodeId) : Simple → Prop
+  | .scope => ctx.scope = some n
+  | .anchor => ctx.anchor = some n
+  | .isSel l => AllowedList ctx n l
+  | .whereSel l => AllowedList ctx n l
+  | .notSel l => AllowedList ctx n l
+  | _ => False
+
+/--
+compound の simple selector がどれも当たりうる。`:has()` は `other`（同じ compound に、`:has()` で
+なく当たりうる simple selector がある）のときだけ当たりうる。
+-/
+def AllowedEach (ctx : MatchCtx) (n : NodeId) (other : Prop) : List Simple → Prop
+  | [] => True
+  | s :: rest => (IsHas s → other) ∧ (¬ IsHas s → AllowedSimple ctx n s) ∧
+      AllowedEach ctx n other rest
+
+/-- compound に、`:has()` でなく当たりうる simple selector がある。 -/
+def AllowedOther (ctx : MatchCtx) (n : NodeId) : List Simple → Prop
+  | [] => False
+  | s :: rest => (¬ IsHas s ∧ AllowedSimple ctx n s) ∨ AllowedOther ctx n rest
+
+/-- complex selector が当たりうる。subject の compound が当たりうること。 -/
+def AllowedComplex (ctx : MatchCtx) (n : NodeId) : Complex → Prop
+  | .one p => AllowedEach ctx n (AllowedOther ctx n p) p
+  | .seq p _ _ => AllowedEach ctx n (AllowedOther ctx n p) p
+
+/-- selector list が当たりうる。どれか一つが当たりうること。 -/
+def AllowedList (ctx : MatchCtx) (n : NodeId) : List Complex → Prop
+  | [] => False
+  | c :: rest => AllowedComplex ctx n c ∨ AllowedList ctx n rest
+
+end
+
+/-- compound selector が featureless な node `n` に当たりうる。 -/
+def AllowedCompound (ctx : MatchCtx) (n : NodeId) (p : List Simple) : Prop :=
+  AllowedEach ctx n (AllowedOther ctx n p) p
+
+/-- element である node。 -/
+def IsElement (t : Tree) (n : NodeId) : Prop :=
+  ∃ d, t.get? n = some d ∧ d.kind = NodeKind.element
+
 mutual
 
 /-- §17.1 "match a selector against an element"。どれか一つの complex selector に当たる。 -/
@@ -107,16 +176,23 @@ decreasing_by
   all_goals simp only [cxSize]
   all_goals omega
 
-/-- compound selector。含む simple selector のすべてに当たる。 -/
+/--
+compound selector。含む simple selector のすべてに当たる。featureless な node では、さらに
+compound が当たりうる（§3.3）。
+-/
 def CompoundMatches (ctx : MatchCtx) (parts : List Simple) (n : NodeId) : Prop :=
-  ∀ s ∈ parts.attach, SimpleMatches ctx s.1 n
+  (∀ s ∈ parts.attach, SimpleMatches ctx s.1 n) ∧
+    (IsElement ctx.tree n ∨ AllowedCompound ctx n parts)
 termination_by cpSize parts
 decreasing_by
   simp_wf
   exact sSize_lt_cpSize _ _ s.2
 
 /--
-simple selector。element でない node は featureless で、`:scope` だけが当たる（§3.6）。
+simple selector。element でない node は featureless で（§3.3）、当たりうる selector だけが当たる。
+`:scope` と anchor は表す node に当たる。`:is()`・`:where()` は引数が当たりうるもので、かつ
+当たるときに、`:not()` は引数が当たりうるもので、かつ当たらないときに当たる。`:has()` は element と同じに見て、
+当たりうるかは `CompoundMatches` の側で見る。
 -/
 def SimpleMatches (ctx : MatchCtx) (s : Simple) (n : NodeId) : Prop :=
   ∃ d, ctx.tree.get? n = some d ∧
@@ -155,7 +231,18 @@ def SimpleMatches (ctx : MatchCtx) (s : Simple) (n : NodeId) : Prop :=
           SelectorListMatches { ctx with anchor := some n } l c
       | .scope => ctx.scope = some n
       | .anchor => ctx.anchor = some n
-    else s = .scope ∧ ctx.scope = some n
+    else
+      match s with
+      | .scope => ctx.scope = some n
+      | .anchor => ctx.anchor = some n
+      | .isSel l => AllowedList ctx n l ∧ SelectorListMatches ctx l n
+      | .whereSel l => AllowedList ctx n l ∧ SelectorListMatches ctx l n
+      | .notSel l => AllowedList ctx n l ∧ ¬ SelectorListMatches ctx l n
+      | .has l =>
+        ∃ c, InclusiveDescendant ctx.tree c (root ctx.tree n) ∧
+          SelectorListMatches { ctx with anchor := some n } l c
+      | .typeSel _ | .univ | .id _ | .cls _ | .attr _ _ _ | .root | .empty | .firstChild
+      | .lastChild | .onlyChild | .firstOfType | .lastOfType | .onlyOfType | .nth _ _ _ => False
 termination_by sSize s
 decreasing_by
   all_goals simp_wf
@@ -503,6 +590,96 @@ theorem mem_combCandidates_iff {t : Tree} (hwf : WellFormed t) (comb : Combinato
       have := (mem_elementChildren_facts hwf (show n ∈ elementChildrenOf t q by rw [hq]; simp)).2
       rw [hp] at this; cases this
 
+/-! ## 当たりうる selector -/
+
+theorem isHasSelector_iff (s : Simple) : isHasSelector s = true ↔ IsHas s := by
+  cases s <;> simp [isHasSelector, IsHas]
+
+mutual
+
+theorem allowedS_iff (ctx : MatchCtx) (n : NodeId) :
+    ∀ s : Simple, allowedS ctx n s = true ↔ AllowedSimple ctx n s
+  | .scope => by simp [allowedS, AllowedSimple]
+  | .anchor => by simp [allowedS, AllowedSimple]
+  | .isSel l => by rw [allowedS, AllowedSimple]; exact allowedL_iff ctx n l
+  | .whereSel l => by rw [allowedS, AllowedSimple]; exact allowedL_iff ctx n l
+  | .notSel l => by rw [allowedS, AllowedSimple]; exact allowedL_iff ctx n l
+  | .typeSel _ => by simp [allowedS, AllowedSimple]
+  | .univ => by simp [allowedS, AllowedSimple]
+  | .id _ => by simp [allowedS, AllowedSimple]
+  | .cls _ => by simp [allowedS, AllowedSimple]
+  | .attr _ _ _ => by simp [allowedS, AllowedSimple]
+  | .root => by simp [allowedS, AllowedSimple]
+  | .empty => by simp [allowedS, AllowedSimple]
+  | .firstChild => by simp [allowedS, AllowedSimple]
+  | .lastChild => by simp [allowedS, AllowedSimple]
+  | .onlyChild => by simp [allowedS, AllowedSimple]
+  | .firstOfType => by simp [allowedS, AllowedSimple]
+  | .lastOfType => by simp [allowedS, AllowedSimple]
+  | .onlyOfType => by simp [allowedS, AllowedSimple]
+  | .nth _ _ _ => by simp [allowedS, AllowedSimple]
+  | .has _ => by simp [allowedS, AllowedSimple]
+
+theorem allowedCpAll_iff (ctx : MatchCtx) (n : NodeId) (o : Bool) (O : Prop) (ho : o = true ↔ O) :
+    ∀ p : List Simple, allowedCpAll ctx n o p = true ↔ AllowedEach ctx n O p
+  | [] => by simp [allowedCpAll, AllowedEach]
+  | s :: rest => by
+    rw [allowedCpAll, AllowedEach, Bool.and_eq_true, allowedCpAll_iff ctx n o O ho rest]
+    have hs := allowedS_iff ctx n s
+    have hh := isHasSelector_iff s
+    by_cases h : isHasSelector s = true
+    · simp only [h, if_true, ho]
+      have : IsHas s := hh.mp h
+      simp [this]
+    · simp only [h, Bool.false_eq_true, if_false, hs]
+      have : ¬ IsHas s := fun h' => h (hh.mpr h')
+      simp [this]
+
+theorem allowedCpAny_iff (ctx : MatchCtx) (n : NodeId) :
+    ∀ p : List Simple, allowedCpAny ctx n p = true ↔ AllowedOther ctx n p
+  | [] => by simp [allowedCpAny, AllowedOther]
+  | s :: rest => by
+    rw [allowedCpAny, AllowedOther, Bool.or_eq_true, Bool.and_eq_true, Bool.not_eq_true',
+      allowedS_iff ctx n s, allowedCpAny_iff ctx n rest]
+    have hh := isHasSelector_iff s
+    constructor
+    · rintro (⟨h1, h2⟩ | h)
+      · exact Or.inl ⟨fun h' => by rw [← hh] at h'; simp [h1] at h', h2⟩
+      · exact Or.inr h
+    · rintro (⟨h1, h2⟩ | h)
+      · refine Or.inl ⟨?_, h2⟩
+        cases h3 : isHasSelector s
+        · rfl
+        · exact absurd (hh.mp h3) h1
+      · exact Or.inr h
+
+theorem allowedCx_iff (ctx : MatchCtx) (n : NodeId) :
+    ∀ c : Complex, allowedCx ctx n c = true ↔ AllowedComplex ctx n c
+  | .one p => by
+    rw [allowedCx, AllowedComplex]
+    exact allowedCpAll_iff ctx n _ _ (allowedCpAny_iff ctx n p) p
+  | .seq p _ _ => by
+    rw [allowedCx, AllowedComplex]
+    exact allowedCpAll_iff ctx n _ _ (allowedCpAny_iff ctx n p) p
+
+theorem allowedL_iff (ctx : MatchCtx) (n : NodeId) :
+    ∀ l : List Complex, allowedL ctx n l = true ↔ AllowedList ctx n l
+  | [] => by simp [allowedL, AllowedList]
+  | c :: rest => by
+    rw [allowedL, AllowedList, Bool.or_eq_true, allowedCx_iff ctx n c, allowedL_iff ctx n rest]
+
+end
+
+/-- **compound が当たりうるかの判定は、`AllowedCompound` にちょうど一致する。** -/
+theorem allowedCp_iff (ctx : MatchCtx) (n : NodeId) (p : List Simple) :
+    allowedCp ctx n p = true ↔ AllowedCompound ctx n p :=
+  allowedCpAll_iff ctx n _ _ (allowedCpAny_iff ctx n p) p
+
+theorem isElementNode_iff_isElement (t : Tree) (n : NodeId) :
+    isElementNode t n = true ↔ IsElement t n := by
+  unfold isElementNode IsElement kindOf
+  cases t.get? n <;> simp
+
 /-! ## 全体の一致 -/
 
 theorem filter_const_true (l : List NodeId) : l.filter (fun _ => true) = l :=
@@ -546,7 +723,9 @@ theorem match_iff_bounded {t : Tree} (hwf : WellFormed t)
         exact ⟨c, hc, (ihC ctx hctx c.1 n (by have := cxSize_lt_lSize l c.1 c.2; omega)).mpr h⟩
     case compound =>
       intro ctx hctx parts n hp
-      rw [matchCompound, CompoundMatches, List.all_eq_true]
+      rw [matchCompound, CompoundMatches, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true,
+        isElementNode_iff_isElement, allowedCp_iff]
+      refine and_congr ?_ Iff.rfl
       constructor
       · intro h s hs
         exact (ihS ctx hctx s.1 n (by have := sSize_lt_cpSize parts s.1 s.2; omega)).mp (h s hs)
@@ -578,12 +757,12 @@ theorem match_iff_bounded {t : Tree} (hwf : WellFormed t)
         hctx ▸ hkeys
       cases hget : ctx.tree.get? n with
       | none =>
-        rw [matchSimple, hget, SimpleMatches]; simp [hget]
+        rw [matchSimple.eq_def, hget, SimpleMatches.eq_def]; simp [hget]
       | some d =>
         by_cases hel : d.kind = NodeKind.element
         · have hn : isElementNode ctx.tree n = true := by simp [isElementNode, kindOf, hget, hel]
           have hne : (d.kind != NodeKind.element) = false := by simp [hel]
-          rw [SimpleMatches]
+          rw [SimpleMatches.eq_def]
           simp only [hget, Option.some.injEq, exists_eq_left', hel, if_true]
           cases s with
           | typeSel name =>
@@ -693,10 +872,33 @@ theorem match_iff_bounded {t : Tree} (hwf : WellFormed t)
           | scope => rw [matchSimple, hget]; simp [hne]
           | anchor => rw [matchSimple, hget]; simp [hne]
         · have hne : (d.kind != NodeKind.element) = true := by simp [hel]
-          rw [matchSimple, hget, SimpleMatches]
-          simp only [hne, if_true, hget, Option.some.injEq, exists_eq_left', hel, if_false,
-            Bool.and_eq_true, beq_iff_eq]
-          cases s <;> simp [isScopeSelector]
+          rw [matchSimple.eq_def, hget, SimpleMatches.eq_def]
+          simp only [hne, if_true, hget, Option.some.injEq, exists_eq_left', hel, if_false]
+          cases s with
+          | scope => simp
+          | anchor => simp
+          | isSel l =>
+            simp only [Bool.and_eq_true, allowedL_iff]
+            exact and_congr Iff.rfl (ihL ctx hctx l n (by simp only [sSize] at hs; omega))
+          | whereSel l =>
+            simp only [Bool.and_eq_true, allowedL_iff]
+            exact and_congr Iff.rfl (ihL ctx hctx l n (by simp only [sSize] at hs; omega))
+          | notSel l =>
+            simp only [Bool.and_eq_true, allowedL_iff, Bool.not_eq_true']
+            refine and_congr Iff.rfl ?_
+            rw [← ihL ctx hctx l n (by simp only [sSize] at hs; omega)]
+            simp
+          | has l =>
+            simp only [List.any_eq_true]
+            obtain ⟨r, hr⟩ := get?_root hwf' hget
+            constructor
+            · rintro ⟨c, hc, hm⟩
+              exact ⟨c, (mem_preorder_iff hwf' hr c).mp hc, (ihL { ctx with anchor := some n } hctx l c
+                (by simp only [sSize] at hs; omega)).mp hm⟩
+            · rintro ⟨c, hc, hm⟩
+              exact ⟨c, (mem_preorder_iff hwf' hr c).mpr hc, (ihL { ctx with anchor := some n } hctx l c
+                (by simp only [sSize] at hs; omega)).mpr hm⟩
+          | _ => simp
 
 /-! ## まとめ -/
 

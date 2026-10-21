@@ -39,6 +39,13 @@ theorem mem_takeUntilIncl {α : Type} {p : α → Bool} {x : α} :
       · exact List.mem_cons_self
       · exact List.mem_cons_of_mem _ (mem_takeUntilIncl h)
 
+theorem mem_of_mem_cutAtRootExit {r L x : NodeId} {l : List NodeId}
+    (h : x ∈ cutAtRootExit r L l) : x ∈ l := by
+  unfold cutAtRootExit at h
+  split at h
+  · exact h
+  · exact mem_takeUntilIncl h
+
 /-- `preorder` から取り出した node は木にある。 -/
 theorem exists_data_of_mem_preorder' {n x : NodeId} (h : x ∈ preorder t n) :
     ∃ d, t.get? x = some d :=
@@ -70,8 +77,11 @@ theorem exists_data_of_walkerPreviousNode {w : WalkerState} {n : NodeId}
   · split at h
     · simp at h
     · next before after hs =>
-      have hmem : n ∈ before :=
-        List.mem_reverse.mp (mem_takeUntilIncl (List.mem_of_find?_eq_some h))
+      have hmem' := List.mem_of_find?_eq_some h
+      have hmem : n ∈ before := by
+        split at hmem'
+        · exact List.mem_reverse.mp (mem_takeUntilIncl hmem')
+        · exact List.mem_reverse.mp hmem'
       have := splitAt?_eq_some hs
       exact exists_data_of_mem_preorder' (by unfold treeOrder at this; rw [this]; simp [hmem])
 
@@ -79,13 +89,13 @@ theorem exists_data_of_walkerFirstChild {w : WalkerState} {n : NodeId}
     (h : walkerFirstChild t w = some n) : ∃ d, t.get? n = some d := by
   unfold walkerFirstChild at h
   exact exists_data_of_mem_preorder'
-    (List.drop_subset 1 _ (mem_takeUntilIncl (List.mem_of_find?_eq_some h)))
+    (List.drop_subset 1 _ (mem_of_mem_cutAtRootExit (List.mem_of_find?_eq_some h)))
 
 theorem exists_data_of_walkerLastChild {w : WalkerState} {n : NodeId}
     (h : walkerLastChild t w = some n) : ∃ d, t.get? n = some d := by
   unfold walkerLastChild at h
   exact exists_data_of_mem_mirrorPreorder
-    (List.drop_subset 1 _ (mem_takeUntilIncl (List.mem_of_find?_eq_some h)))
+    (List.drop_subset 1 _ (mem_of_mem_cutAtRootExit (List.mem_of_find?_eq_some h)))
 
 theorem exists_data_of_walkerParentNode (hwf : WellFormed t) {w : WalkerState} {n : NodeId}
     (h : walkerParentNode t w = some n) : ∃ d, t.get? n = some d := by
@@ -103,29 +113,27 @@ theorem exists_data_of_mem_siblingCandidates {n x : NodeId} {after : Bool}
   · exact exists_data_of_mem_preorder' hx
   · exact exists_data_of_mem_mirrorPreorder hx
 
-theorem exists_data_of_walkerSiblingSearch {w : WalkerState} {after : Bool} {n : NodeId} :
-    ∀ (chain : List NodeId), walkerSiblingSearch t w after chain = some n →
-      ∃ d, t.get? n = some d
-  | [], h => by simp [walkerSiblingSearch] at h
+theorem exists_data_of_mem_siblingLevels {w : WalkerState} {after : Bool} {x : NodeId} :
+    ∀ (chain : List NodeId), x ∈ siblingLevels t w after chain → ∃ d, t.get? x = some d
+  | [], h => by simp [siblingLevels] at h
   | [m], h => by
-    rw [walkerSiblingSearch] at h
-    exact exists_data_of_mem_siblingCandidates (List.mem_of_find?_eq_some h)
+    rw [siblingLevels] at h
+    exact exists_data_of_mem_siblingCandidates h
   | m :: p :: rest, h => by
-    rw [walkerSiblingSearch] at h
-    split at h
-    · next x hx =>
-      rw [← Option.some.inj h]
-      exact exists_data_of_mem_siblingCandidates (List.mem_of_find?_eq_some hx)
+    rw [siblingLevels, List.mem_append] at h
+    rcases h with h | h
+    · exact exists_data_of_mem_siblingCandidates h
     · split at h
       · simp at h
-      · exact exists_data_of_walkerSiblingSearch (p :: rest) h
+      · exact exists_data_of_mem_siblingLevels (p :: rest) h
 
 theorem exists_data_of_walkerSibling {w : WalkerState} {after : Bool} {n : NodeId}
     (h : walkerSibling t w after = some n) : ∃ d, t.get? n = some d := by
   unfold walkerSibling at h
   split at h
   · simp at h
-  · exact exists_data_of_walkerSiblingSearch _ h
+  · exact exists_data_of_mem_siblingLevels _
+      (mem_of_mem_cutAtRootExit (List.mem_of_find?_eq_some h))
 
 /-- どの method も、返すのは木の中の node である。 -/
 theorem exists_data_of_walkerMethod (hwf : WellFormed t) {m : WalkerMethod} {w : WalkerState}

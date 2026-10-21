@@ -1,0 +1,126 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "algorithm": [
+      "traverse siblings",
+      "nextSibling",
+      "previousSibling"
+    ],
+    "steps": "traverse siblings step 3.2.4-3.2.5, 3.3-3.4",
+    "note": "current が root の外にあり、root が current の次（前）の兄弟である TreeWalker。walker 0 は root（r）の子 c へ firstChild で移り、c を remove して r の前へ insertBefore すると、current が root の外に出る。traverse siblings の inner loop は兄弟 r を SKIP してその子 k へ降り（step 3.2.4）、k に次の兄弟が無いので抜ける（step 3.2.5）。step 3.3 で k の親へ上がると、それが root なので step 3.4 で null を返す。だから Text を探す walker は、p の先にある Text t2 に届かない。walker 1 は previousSibling の鏡像（root r が current c2 の前の兄弟）で、Text t0 に届かない。walker 0 は Chromium・Firefox・WebKit（Playwright）も null を返す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0,
+      "localName": "g"
+    },
+    {
+      "id": 7,
+      "kind": "text",
+      "parent": 1,
+      "data": "t0"
+    },
+    {
+      "id": 8,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 9,
+      "kind": "element",
+      "parent": 8,
+      "localName": "r"
+    },
+    {
+      "id": 10,
+      "kind": "comment",
+      "parent": 9,
+      "data": "k2"
+    },
+    {
+      "id": 11,
+      "kind": "text",
+      "parent": 8,
+      "data": "c2"
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1,
+      "localName": "p"
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2,
+      "localName": "r"
+    },
+    {
+      "id": 4,
+      "kind": "text",
+      "parent": 3,
+      "data": "c"
+    },
+    {
+      "id": 5,
+      "kind": "comment",
+      "parent": 3,
+      "data": "k"
+    },
+    {
+      "id": 6,
+      "kind": "text",
+      "parent": 1,
+      "data": "t2"
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "listeners": [],
+  "observers": [],
+  "walkers": [
+    {
+      "root": 3,
+      "current": 3,
+      "whatToShow": 4
+    },
+    {
+      "root": 9,
+      "current": 11,
+      "whatToShow": 4
+    }
+  ],
+  "operations": [
+    {
+      "op": "walkerFirstChild",
+      "walker": 0
+    },
+    {
+      "op": "removeChild",
+      "parent": 3,
+      "node": 4
+    },
+    {
+      "op": "insertBefore",
+      "parent": 2,
+      "node": 4,
+      "child": 3
+    },
+    {
+      "op": "walkerNextSibling",
+      "walker": 0
+    },
+    {
+      "op": "walkerPreviousSibling",
+      "walker": 1
+    }
+  ]
+}

@@ -47,11 +47,13 @@ def caseOfJson (j : Json) : Except String Case := do
 def idnaRangeOfJson (j : Json) : Except String IdnaRange := do
   let arr ← j.getArr?
   match arr.toList with
-  | loJ :: hiJ :: stJ :: oomJ :: rest =>
+  | loJ :: hiJ :: stJ :: flagsJ :: rest =>
     let lo ← loJ.getNat?
     let hi ← hiJ.getNat?
     let st ← stJ.getNat?
-    let oom ← oomJ.getNat?
+    -- bit の和。1 は対象外の印、2 は General_Category=Mark（`test/url/generate-uts46.rb`）。
+    let flags ← flagsJ.getNat?
+    if flags ≥ 4 then throw s!"未知の flag {flags}"
     let mapping ← match rest with
       | [m] => do let ma ← m.getArr?; ma.toList.mapM (fun x => x.getNat?)
       | _ => pure []
@@ -60,7 +62,7 @@ def idnaRangeOfJson (j : Json) : Except String IdnaRange := do
       | 1 => IdnaStatus.ignored
       | 2 => IdnaStatus.mapped
       | _ => IdnaStatus.disallowed
-    return { lo, hi, status, oom := oom != 0, mapping }
+    return { lo, hi, status, oom := flags % 2 == 1, mark := flags / 2 % 2 == 1, mapping }
   | _ => throw "範囲が 4 要素以上の配列ではない"
 
 /-- UTS #46 の表を読む。`Resolved` と `NoUpperValid` を実行時に確かめる。 -/
@@ -145,14 +147,14 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
       -- §4.7 origin。WPT の表が期待値を持っている case だけ見る。
       match got, c.origin with
       | some u, some expectedOrigin =>
-        if originSerializer (Url.origin u) == expectedOrigin then originOk := originOk + 1
+        if originSerializer (Url.origin u (toAsciiOf idna)) == expectedOrigin then originOk := originOk + 1
         else
           originBad := originBad + 1
           if shown < 20 then
             shown := shown + 1
             IO.println s!"ORIGIN input={repr c.input} base={repr c.base}"
             IO.println s!"  expected={repr expectedOrigin}"
-            IO.println s!"  actual  ={repr (originSerializer (Url.origin u))}"
+            IO.println s!"  actual  ={repr (originSerializer (Url.origin u (toAsciiOf idna)))}"
       | _, _ => pure ()
       -- 対象外かどうかは fixture が明示する。実行結果から推測しない
       -- （推測にすると、対象外でない case の退行が対象外に吸収されてしまう）。
@@ -378,6 +380,18 @@ def paramsCases : List (String × String × String) :=
      | none => "<parse failed>"
      | some u => Url.href (Url.withParams u (Params.delete (Url.searchParams u) "a")),
      "https://example.org/")
+  , -- update steps も `search` / `hash` setter も、空にするとき path に触れない。
+    -- 生の U+0020 で終わる opaque path は parser も setter も作らないので
+    -- （`setAttr_opaqueNoTrailingSpace`）、record を直に組んで確かめる。
+    ("update keeps opaque path",
+     Url.href (Url.withParams { scheme := "sc", path := .opaque "a ", query := some "q" } []),
+     "sc:a ")
+  , ("search '' keeps opaque path",
+     Url.href (Url.setSearch { scheme := "sc", path := .opaque "a ", query := some "q" } ""),
+     "sc:a ")
+  , ("hash '' keeps opaque path",
+     Url.href (Url.setHash { scheme := "sc", path := .opaque "a ", fragment := some "f" } ""),
+     "sc:a ")
   ]
 
 /--
@@ -518,7 +532,7 @@ def parseJson (input : String) (base : Option String) (idna : Option (Array Idna
   | some u =>
     (some u, .obj (head ++ [("failure", .leaf (Json.bool false))] ++
       attrNames.map (fun n => (n, optStrJson (u.getAttr n))) ++
-      [("origin", ostr (originSerializer (Url.origin u))),
+      [("origin", ostr (originSerializer (Url.origin u (toAsciiOf idna)))),
        ("record", recordJson u),
        ("checks", .obj [
          ("validUrl", .leaf (Json.bool (checkValidUrl u))),
@@ -578,7 +592,7 @@ def parseResultJson (input : String) (base : Option String) (idna : Option (Arra
     | none => Json.str "未知の setter"
     | some u =>
       Json.mkObj ((attrNames.map fun n => (n, Json.str ((u.getAttr n).getD ""))) ++
-        [("origin", Json.str (originSerializer (Url.origin u)))])
+        [("origin", Json.str (originSerializer (Url.origin u (toAsciiOf idna))))])
 
 /--
 `--parse-batch FILE [UTS46]`：`[{"input": ..., "base": ...}, ...]` を読み、各 case の

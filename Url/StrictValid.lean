@@ -395,14 +395,6 @@ theorem run_schemeStart_strict (base : Option Url) :
 
 /-! ### setter ごと -/
 
-theorem frame_stripTrailingSpaces (u : Url) : Frame u (stripTrailingSpaces u) := by
-  unfold stripTrailingSpaces
-  split
-  · exact Frame.refl _
-  · split
-    · exact Frame.refl _
-    · exact ⟨rfl, rfl, rfl⟩
-
 /-- **`protocol` setter は三条件を保つ。** -/
 theorem setProtocol_strict {u : Url} (h : StrictConds u) (v : String) :
     StrictConds (u.setProtocol v) := by
@@ -511,13 +503,13 @@ theorem setPathname_strict {u : Url} (h : StrictConds u) (v : String) :
         exact h0.frame (run_pathStart_frame none _ _ w hw rfl)
       · simp at he
 
-/-- **`search` setter は三条件を保つ。** query（と opaque path の末尾）しか変えない。 -/
+/-- **`search` setter は三条件を保つ。** query しか変えない。 -/
 theorem setSearch_strict {u : Url} (h : StrictConds u) (v : String) :
     StrictConds (u.setSearch v) := by
   have h0 : ∀ q, StrictConds { u with query := q } := fun _ => h.frame ⟨rfl, rfl, rfl⟩
   unfold Url.setSearch
   split
-  · exact (h0 none).frame (frame_stripTrailingSpaces _)
+  · exact h0 none
   · cases he : basicUrlParseOverride (dropLeading '?' v) { u with query := some "" } .query with
     | none => simpa [he] using h0 (some "")
     | some u' =>
@@ -525,13 +517,13 @@ theorem setSearch_strict {u : Url} (h : StrictConds u) (v : String) :
       simp only [Option.getD_some, hq]
       exact h.frame ⟨rfl, rfl, rfl⟩
 
-/-- **`hash` setter は三条件を保つ。** fragment（と opaque path の末尾）しか変えない。 -/
+/-- **`hash` setter は三条件を保つ。** fragment しか変えない。 -/
 theorem setHash_strict {u : Url} (h : StrictConds u) (v : String) :
     StrictConds (u.setHash v) := by
   have h0 : ∀ f, StrictConds { u with fragment := f } := fun _ => h.frame ⟨rfl, rfl, rfl⟩
   unfold Url.setHash
   split
-  · exact (h0 none).frame (frame_stripTrailingSpaces _)
+  · exact h0 none
   · cases he : basicUrlParseOverride (dropLeading '#' v) { u with fragment := some "" } .fragment with
     | none => simpa [he] using h0 (some "")
     | some u' =>
@@ -570,6 +562,405 @@ theorem setAttr_strict {t : List Char → Option String} (htok : ToAsciiOk t)
   · rw [← Option.some.inj hs]; exact setPathname_strict hc v
   · rw [← Option.some.inj hs]; exact setSearch_strict hc v
   · rw [← Option.some.inj hs]; exact setHash_strict hc v
+  · exact absurd hs (by simp)
+
+/-! ## opaque path の末尾の空白
+
+§4.1 の条件ではないが、parser と setter から到達できる record の性質として、
+**opaque path は生の U+0020 で終わらない**。opaque path state は、空白の次が `?` か `#` なら
+`%20` を、そうでなければ U+0020 を書く。入力の末尾の空白は前処理が落としているので、
+U+0020 の後には必ず別の文字が続く（`CInv.trailing`）。
+
+固定版の URL Standard（whatwg/url 8e14777c）の `search` / `hash` setter と
+`URLSearchParams` の update steps は、query / fragment を null にするだけで path に触れない。
+旧版にあった「potentially strip trailing spaces from an opaque path」は固定版には無い。
+ここではこの性質が setter を通しても保たれることを示し、その手順が無くても
+到達できる record の上では serialize の結果が変わらないことの根拠にする。
+
+`ValidUrl` と `StrictConds` の保存（`setSearch_valid` ほか）はこの性質を要らない。
+二つの setter は path に触れないからである（`setSearch_path`、`setHash_path`）。
+-/
+
+/-- opaque path が生の U+0020 で終わらない。 -/
+def OpaqueNoTrailingSpace (u : Url) : Prop :=
+  ∀ o, u.path = .opaque o → o.toList.getLast? ≠ some ' '
+
+/-- **parse が返す record の opaque path は生の U+0020 で終わらない。** -/
+theorem parseUrl_opaqueNoTrailingSpace {t : List Char → Option String} (htok : ToAsciiOk t)
+    {input : String} {base : Option String} {u : Url}
+    (h : parseUrl input base t = some u) : OpaqueNoTrailingSpace u :=
+  (canonical_parts (parseUrl_canonical htok h)).trailing
+
+/-- `basicUrlParse` を base 無しで呼んだ場合も同じ。`href` setter が使う。 -/
+theorem basicUrlParse_opaqueNoTrailingSpace {t : List Char → Option String} (htok : ToAsciiOk t)
+    {input : String} {u : Url}
+    (h : basicUrlParse input none t = some u) : OpaqueNoTrailingSpace u :=
+  (canonical_parts (basicUrlParse_canonical htok (fun b hb => absurd hb (by simp))
+    (fun b hb => absurd hb (by simp)) h)).trailing
+
+/--
+opaque path を新しく作らないこと。結果の path が opaque なら、元の path と同じである。
+
+override 付きの state はどれも opaque path を作らない（作るのは scheme state の
+override 無しの枝だけ）。path を書く state も、`appendSegment` と `shortenPath` は
+opaque path をそのまま返す。
+-/
+def PathKeep (u u' : Url) : Prop :=
+  ∀ o, u'.path = .opaque o → u.path = .opaque o
+
+theorem PathKeep.refl (u : Url) : PathKeep u u := fun _ h => h
+
+theorem PathKeep.trans {u v w : Url} (h1 : PathKeep u v) (h2 : PathKeep v w) : PathKeep u w :=
+  fun o h => h1 o (h2 o h)
+
+theorem OpaqueNoTrailingSpace.keep {u u' : Url} (h : OpaqueNoTrailingSpace u)
+    (hk : PathKeep u u') : OpaqueNoTrailingSpace u' :=
+  fun o ho => h o (hk o ho)
+
+theorem pathKeep_shortenPath (u : Url) : PathKeep u (shortenPath u) := by
+  intro o ho
+  unfold shortenPath at ho
+  split at ho
+  · exact ho
+  · split at ho
+    · exact ho
+    · simp at ho
+
+theorem pathKeep_appendSegment (u : Url) (s : String) : PathKeep u (appendSegment u s) := by
+  intro o ho
+  unfold appendSegment at ho
+  split at ho
+  · exact ho
+  · simp at ho
+
+theorem pathKeep_pathStepUrl (u : Url) (slash : Bool) (buf : List Char) :
+    PathKeep u (pathStepUrl u slash buf) := by
+  unfold pathStepUrl
+  split
+  · split
+    · exact pathKeep_shortenPath u
+    · exact (pathKeep_shortenPath u).trans (pathKeep_appendSegment _ _)
+  · split
+    · split
+      · exact PathKeep.refl u
+      · exact pathKeep_appendSegment u _
+    · exact pathKeep_appendSegment u _
+
+/-- override 付きの port state は path を変えない。 -/
+theorem run_port_pathKeep (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    run base .port input ctx = .ok u → ctx.over.isSome = true → PathKeep ctx.url u
+  | [], ctx, u, h, hov => by
+    rw [run, step] at h
+    split at h
+    · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+    · next ctx2 hpd =>
+      try rw [if_pos hov] at h
+      obtain ⟨p, hu, _⟩ := portDone_spec hpd
+      rw [← PResult.ok.inj h, hu]
+      exact fun _ ho => ho
+  | ch :: t, ctx, u, h, hov => by
+    rw [run, step] at h
+    split at h
+    · have := run_port_pathKeep base t _ u h hov; exact this
+    · split at h
+      · split at h
+        · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+        · next ctx2 hpd =>
+          try rw [if_pos hov] at h
+          obtain ⟨p, hu, _⟩ := portDone_spec hpd
+          rw [← PResult.ok.inj h, hu]
+          exact fun _ ho => ho
+      · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+
+/-- override 付きの path state は opaque path を作らない。 -/
+theorem run_path_pathKeep (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    run base .path input ctx = .ok u → ctx.over.isSome = true → PathKeep ctx.url u
+  | [], ctx, u, h, hov => by
+    rw [run, step] at h
+    split at h
+    · rw [← PResult.ok.inj h]; exact pathKeep_pathStepUrl _ _ _
+    · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+  | ch :: t, ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [over_isNone_false hov, Bool.false_and, Bool.or_false] at h
+    split at h
+    · split at h
+      · simp_all
+      · simp_all
+      · simp_all
+      · exact (pathKeep_pathStepUrl _ _ _).trans (run_path_pathKeep base t _ u h hov)
+    · have := run_path_pathKeep base t _ u h hov; exact this
+
+/-- override 付きの path start state も同じ。 -/
+theorem run_pathStart_pathKeep (base : Option Url) :
+    ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    run base .pathStart input ctx = .ok u → ctx.over.isSome = true → PathKeep ctx.url u
+  | [], ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [over_isNone_false hov, hov, Bool.false_and, Bool.false_eq_true, if_false] at h
+    split at h
+    · split at h
+      · have := run_path_pathKeep base [] _ u h hov; exact this
+      · have := run_path_pathKeep base [] _ u h hov; exact this
+    · split at h
+      · rw [← PResult.ok.inj h]; exact pathKeep_appendSegment _ _
+      · rw [← PResult.ok.inj h]; exact PathKeep.refl _
+  | ch :: t, ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [over_isNone_false hov, Bool.false_and, Bool.false_eq_true, if_false] at h
+    split at h
+    · split at h
+      · have := run_path_pathKeep base t _ u h hov; exact this
+      · exact run_path_pathKeep base (ch :: t) _ u h hov
+    · split at h
+      · have := run_path_pathKeep base t _ u h hov; exact this
+      · exact run_path_pathKeep base (ch :: t) _ u h hov
+
+/-- override 付きの file host state は path を変えない。 -/
+theorem run_fileHost_pathKeep (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
+    ∀ (u : Url), run base .fileHost input ctx = .ok u →
+    ctx.over.isSome = true → PathKeep ctx.url u
+  | [], ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [over_isNone_false hov, hov, Bool.false_and, Bool.false_eq_true, if_false,
+      if_true] at h
+    split at h
+    · split at h
+      · rw [← PResult.ok.inj h]; exact fun _ ho => ho
+      · split at h
+        · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+        · rw [← PResult.ok.inj h]; exact fun _ ho => ho
+    · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+  | ch :: t, ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [over_isNone_false hov, hov, Bool.false_and, Bool.false_eq_true, if_false,
+      if_true] at h
+    split at h
+    · split at h
+      · rw [← PResult.ok.inj h]; exact fun _ ho => ho
+      · split at h
+        · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+        · rw [← PResult.ok.inj h]; exact fun _ ho => ho
+    · have := run_fileHost_pathKeep base t _ u h hov; exact this
+
+/-- override 付きの host state は path を変えない。 -/
+theorem run_host_pathKeep (base : Option Url) : ∀ (input : List Char) (ctx : PCtx),
+    ∀ (u : Url), run base .host input ctx = .ok u →
+    ctx.over.isSome = true → PathKeep ctx.url u
+  | [], ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [hov, Bool.true_and, if_true] at h
+    split at h
+    · have := run_fileHost_pathKeep base [] _ u h hov; exact this
+    · split at h
+      · split at h
+        · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+        · split at h
+          · rw [← PResult.ok.inj h]; exact PathKeep.refl _
+          · split at h
+            · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+            · have := run_port_pathKeep base [] _ u h hov; exact this
+      · split at h
+        · split at h
+          · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+          · split at h
+            · rw [← PResult.ok.inj h]; exact PathKeep.refl _
+            · split at h
+              · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+              · rw [← PResult.ok.inj h]; exact fun _ ho => ho
+        · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+  | ch :: t, ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [hov, Bool.true_and, if_true] at h
+    split at h
+    · exact run_fileHost_pathKeep base (ch :: t) _ u h hov
+    · split at h
+      · split at h
+        · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+        · split at h
+          · rw [← PResult.ok.inj h]; exact PathKeep.refl _
+          · split at h
+            · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+            · have := run_port_pathKeep base t _ u h hov; exact this
+      · split at h
+        · split at h
+          · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+          · split at h
+            · rw [← PResult.ok.inj h]; exact PathKeep.refl _
+            · split at h
+              · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+              · rw [← PResult.ok.inj h]; exact fun _ ho => ho
+        · have := run_host_pathKeep base t _ u h hov; exact this
+
+/-- protocol setter の本体は path を変えない。 -/
+theorem schemeOverride_pathKeep {ctx : PCtx} (u : Url) (h : schemeOverride ctx = .ok u) :
+    PathKeep ctx.url u := by
+  simp +zetaDelta only [schemeOverride] at h
+  repeat' split at h
+  all_goals (rw [← PResult.ok.inj h]; exact fun _ ho => ho)
+
+theorem run_scheme_pathKeep (base : Option Url) : ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    run base .scheme input ctx = .ok u → ctx.over.isSome = true → PathKeep ctx.url u
+  | [], ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [hov, if_true] at h
+    rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+  | ch :: t, ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [hov, if_true] at h
+    split at h
+    · have := run_scheme_pathKeep base t _ u h hov; exact this
+    · split at h
+      · exact schemeOverride_pathKeep u h
+      · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+
+theorem run_schemeStart_pathKeep (base : Option Url) :
+    ∀ (input : List Char) (ctx : PCtx) (u : Url),
+    run base .schemeStart input ctx = .ok u → ctx.over.isSome = true → PathKeep ctx.url u
+  | [], ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [hov, if_true] at h
+    rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+  | ch :: t, ctx, u, h, hov => by
+    rw [run, step] at h
+    simp only [hov, if_true] at h
+    split at h
+    · have := run_scheme_pathKeep base t _ u h hov; exact this
+    · rw [fail_over hov] at h; rw [← PResult.ok.inj h]; exact PathKeep.refl _
+
+/-- **`search` setter は path に触れない。** 空文字列なら query を null にするだけである。 -/
+theorem setSearch_path (u : Url) (v : String) : (u.setSearch v).path = u.path := by
+  unfold Url.setSearch
+  split
+  · rfl
+  · cases he : basicUrlParseOverride (dropLeading '?' v) { u with query := some "" } .query with
+    | none => rfl
+    | some u' =>
+      obtain ⟨q, hq⟩ := basicUrlParseOverride_query _ _ _ he
+      simp only [Option.getD_some, hq]
+
+/-- **`hash` setter は path に触れない。** 空文字列なら fragment を null にするだけである。 -/
+theorem setHash_path (u : Url) (v : String) : (u.setHash v).path = u.path := by
+  unfold Url.setHash
+  split
+  · rfl
+  · cases he : basicUrlParseOverride (dropLeading '#' v) { u with fragment := some "" } .fragment with
+    | none => rfl
+    | some u' =>
+      obtain ⟨f, hf⟩ := basicUrlParseOverride_fragment _ _ _ he
+      simp only [Option.getD_some, hf]
+
+/--
+**どの IDL setter を通しても、opaque path は生の U+0020 で終わらない。**
+
+`href` は parse し直すので `basicUrlParse_opaqueNoTrailingSpace` に乗り、ToASCII に
+`ToAsciiOk` を要る。ほかの setter は opaque path を新しく作らない（`PathKeep`）。
+`parseUrl_opaqueNoTrailingSpace` と合わせて、parser と setter から到達できる record は
+どれもこの性質を持つ。
+-/
+theorem setAttr_opaqueNoTrailingSpace {t : List Char → Option String} (htok : ToAsciiOk t)
+    {u : Url} (h : OpaqueNoTrailingSpace u) (name v : String) (u' : Url)
+    (hs : u.setAttr name v t = some u') : OpaqueNoTrailingSpace u' := by
+  unfold Url.setAttr at hs
+  split at hs
+  · rw [← Option.some.inj hs]
+    unfold Url.setHref
+    cases hp : basicUrlParse v none t with
+    | none => simpa [hp] using h
+    | some w =>
+      simp only [Option.getD_some]
+      exact basicUrlParse_opaqueNoTrailingSpace htok hp
+  · rw [← Option.some.inj hs]
+    refine h.keep ?_
+    unfold Url.setProtocol
+    cases he : basicUrlParseOverride (v ++ ":") u .scheme with
+    | none => exact PathKeep.refl _
+    | some w =>
+      simp only [Option.getD_some]
+      unfold basicUrlParseOverride at he
+      split at he
+      · next x hx =>
+        rw [← Option.some.inj he]
+        exact run_schemeStart_pathKeep none _ _ x hx rfl
+      · simp at he
+  · rw [← Option.some.inj hs]
+    unfold Url.setUsername
+    split
+    · exact h
+    · exact h
+  · rw [← Option.some.inj hs]
+    unfold Url.setPassword
+    split
+    · exact h
+    · exact h
+  · rw [← Option.some.inj hs]
+    refine h.keep ?_
+    unfold Url.setHost
+    split
+    · exact PathKeep.refl _
+    · cases he : basicUrlParseOverride v u .host t with
+      | none => exact PathKeep.refl _
+      | some w =>
+        simp only [Option.getD_some]
+        unfold basicUrlParseOverride at he
+        split at he
+        · next x hx =>
+          rw [← Option.some.inj he]
+          exact run_host_pathKeep none _ _ x hx rfl
+        · simp at he
+  · rw [← Option.some.inj hs]
+    refine h.keep ?_
+    unfold Url.setHostname
+    split
+    · exact PathKeep.refl _
+    · cases he : basicUrlParseOverride v u .hostname t with
+      | none => exact PathKeep.refl _
+      | some w =>
+        simp only [Option.getD_some]
+        unfold basicUrlParseOverride at he
+        split at he
+        · next x hx =>
+          rw [← Option.some.inj he]
+          exact run_host_pathKeep none _ _ x hx rfl
+        · simp at he
+  · rw [← Option.some.inj hs]
+    refine h.keep ?_
+    unfold Url.setPort
+    split
+    · exact PathKeep.refl _
+    · split
+      · exact fun _ ho => ho
+      · cases he : basicUrlParseOverride v u .port with
+        | none => exact PathKeep.refl _
+        | some w =>
+          simp only [Option.getD_some]
+          unfold basicUrlParseOverride at he
+          split at he
+          · next x hx =>
+            rw [← Option.some.inj he]
+            exact run_port_pathKeep none _ _ x hx rfl
+          · simp at he
+  · rw [← Option.some.inj hs]
+    unfold Url.setPathname
+    split
+    · exact h
+    · show OpaqueNoTrailingSpace ((basicUrlParseOverride v { u with path := Path.list [] } .path).getD
+        { u with path := Path.list [] })
+      have h0 : OpaqueNoTrailingSpace { u with path := Path.list [] } := fun _ ho => by cases ho
+      cases he : basicUrlParseOverride v { u with path := Path.list [] } .path with
+      | none => exact h0
+      | some w =>
+        simp only [Option.getD_some]
+        unfold basicUrlParseOverride at he
+        split at he
+        · next x hx =>
+          rw [← Option.some.inj he]
+          exact h0.keep (run_pathStart_pathKeep none _ _ x hx rfl)
+        · simp at he
+  · rw [← Option.some.inj hs]
+    exact fun o ho => h o (by rw [← setSearch_path u v]; exact ho)
+  · rw [← Option.some.inj hs]
+    exact fun o ho => h o (by rw [← setHash_path u v]; exact ho)
   · exact absurd hs (by simp)
 
 end Url

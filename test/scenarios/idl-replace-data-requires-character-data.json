@@ -1,0 +1,26 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/webidl/blob/8c65329114411ebd3af025106c2267f5bc00faeb/index.bs",
+    "algorithm": [
+      "create an operation function",
+      "replaceData"
+    ],
+    "steps": "create an operation function step 2.1.2.3",
+    "note": "replaceData() は CharacterData の method なので、this が Element なら InvalidNodeTypeError ではなく TypeError になる。Text の replaceData() は先に成功する。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html",
+      "attributes": [ { "namespace": null, "prefix": null, "localName": "a", "value": "1" } ] },
+    { "id": 2, "kind": "text", "parent": 1, "data": "abc" },
+    { "id": 3, "kind": "documentFragment" }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "replaceData", "node": 2, "offset": 0, "count": 0, "data": "x" },
+    { "op": "replaceData", "node": 1, "offset": 0, "count": 0, "data": "x" }
+  ]
+}

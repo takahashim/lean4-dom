@@ -1,0 +1,26 @@
+{
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html",
+    "algorithm": [
+      "ToBoolean",
+      "RoundMVResult",
+      "cloneNode"
+    ],
+    "steps": "ToBoolean step 2 / RoundMVResult step 1-5",
+    "note": "有効数字が 20 桁を超える十進表記は、上位 20 桁で切った値と、その 20 桁目に 1 を足した値のどちらを丸めるかが実装に任される。1.23456789012345678901e-400 はどちらの候補も +0 に丸まるので、ToBoolean は false で、cloneNode は浅い clone になる（子は写さない）。1.23456789012345678901 はどちらの候補も 0 でないので true で、深い clone になる。"
+  },
+  "nodes": [
+    { "id": 0, "kind": "document" },
+    { "id": 1, "kind": "element", "parent": 0, "localName": "html" },
+    { "id": 2, "kind": "element", "parent": 1, "localName": "div" },
+    { "id": 3, "kind": "text", "parent": 2, "data": "t" }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [],
+  "operations": [
+    { "op": "cloneNode", "node": 2, "deep": 1.23456789012345678901e-400 },
+    { "op": "cloneNode", "node": 2, "deep": 1.23456789012345678901 }
+  ]
+}
