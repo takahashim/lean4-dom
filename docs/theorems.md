@@ -772,8 +772,8 @@ element も "list of elements with qualified name"・"list of elements with name
 `mem_getElementsByTagNameNS_iff`）。
 
 関係を書くために本文の loop を読み直して、TreeWalker の走査が root の外から始まると root の部分木を抜けても
-止まらない誤りを見つけた（`docs/status.md`）。`lastChild()` と "traverse siblings" は鏡像の順序を使うので、
-関係はまだ無い。
+止まらない誤りを見つけた（`docs/status.md`）。鏡像の順序を使う `lastChild()` と "traverse siblings"、
+および各走査の completeness は §33 にある。
 
 ## 25. `isEqualNode` は §4.4 の equals そのものであり、deep clone は原本と equals である
 

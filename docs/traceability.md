@@ -105,8 +105,9 @@ transient の並び（`TransientOrdered`）を決めるので、completeness か
 **completeness は二つに分かれる。** 「関係を満たす状態は実行関数の結果と観測が等しい」
 （余計な model が無い）と、「関係が満たせるなら実行関数は失敗しない」（実現できる）である。
 前者は soundness と一意性から出る。後者は契約（`Dom/Properties/Contract.lean`）から出る。
-`insert` は後者がまだ無い。`insertAt` の step 4（`child` が `parent` の子であること）を
-関係が述べていないためで、仕様でもその検査は呼び出し側（pre-insert）にある。
+`insert` の後者は `insert_isOk_of_spec`（`Dom/Spec/Complete.lean`）で、関係の index の条件（`ChildIndex`）が
+`insertAt` の step 4（`child` が `parent` の子であること）を与える。挿入する node が `parent` の inclusive ancestor で
+ないことは仮定に置く。仕様でもこの検査は呼び出し側（pre-insert の validity）にある。
 
 record を積む step は種類ごとに切り出してある。childList（`remove` の step 21 と
 `insert` の step 4.2 / 9）は `Dom.Spec.TreeRecordQueued`、characterData
