@@ -1283,6 +1283,12 @@ open Dom.Audit
   Dom.Spec.rangeExtractContents_result_sound
   Dom.Spec.rangeCloneContents_result_sound
   Dom.Spec.rangeSurroundContents_result_sound
+  Dom.Spec.contentsInto_frame_first
+  Dom.Spec.firstPartial_toward_start
+  Dom.Spec.lastPartial_toward_end
+  Dom.Spec.contentsInto_fuel
+  Dom.Spec.contentsInto_size_fuel
+  Dom.Spec.rangeFragment_fuel
   Dom.Spec.notifyMutationObservers_sound
   Dom.Spec.notifyMutationObservers_complete
   Dom.Spec.disconnect_sound

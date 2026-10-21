@@ -1145,3 +1145,34 @@ children を持つときに root の最後の inclusive descendant で切る（`
 条件を満たす node は高々一つで、null とも両立しない。`lastChild()` と `previousSibling()` は鏡像の tree order で書いて
 あるので、子の列を反転した木の `firstChild()`・`nextSibling()` の関係と同値であること（`walkerLastChildResult_iff`・
 `walkerPreviousSiblingResult_iff`）を通して、その一意性を使う。仮定は soundness と同じ `WellFormed` と `ValidWalker` である。
+
+## 35. extract と clone the contents の fuel は足りる
+
+| 定理 | 内容 | module |
+| --- | --- | --- |
+| `Dom.Spec.firstPartial_toward_start`・`lastPartial_toward_end` | start が end より後になく、どちらの端点も他方の inclusive ancestor でないとき、first partially contained child は start 側の子、last は end 側の子である | `Dom/Spec/RangeExtractFuel.lean` |
+| `Dom.Spec.contentsInto_frame_first` | end node が start node の inclusive ancestor なら、extract（clone the contents）が parent を動かす木の node は end node の strict descendant だけである | 同上 |
+| `Dom.Spec.contentsInto_fuel` | fuel が `FuelEnough` を満たせば、それより多い fuel でも結果は同じである | 同上 |
+| `Dom.Spec.contentsInto_size_fuel` | `Tree.size + 1` は `FuelEnough` を満たす | 同上 |
+| `Dom.Spec.rangeFragment_fuel` | live range として妥当な range では、`extractContents()`・`cloneContents()` が渡す fuel から先は結果が変わらない | 同上 |
+
+```lean
+theorem rangeFragment_fuel (cut : Bool) (h : AdmissibleDOMState s) (hrv : RangeValid s.tree r)
+    (hf : rangeFragment s r = .ok (frag, s₁)) (hg : s₁.tree.size + 1 ≤ g) :
+    contentsInto cut g s₁ r self frag = contentsInto cut (s₁.tree.size + 1) s₁ r self frag
+```
+
+一番上の階を除けば、再帰で渡る subrange は片側だけである。first の側は (start, (child, length)) で end node が
+start node の inclusive ancestor になり、last の側は ((child, 0), end) で start node が end node の inclusive ancestor に
+なる。片側の range の common ancestor は祖先の側の node で、次の階はそこから端点へ一段下りる。だから要る fuel は、
+common ancestor から端点までの depth の差で抑えられる（`FuelEnough`）。
+
+一番上の階の last の側は、first の側の再帰と contained children の移動の後の状態で走る。そこで last partially
+contained child より下にある end node の inclusive ancestor が parent を変えないことを示し、depth の差を運ぶ
+（`depth_below_kept`）。動くのは first の側の child の strict descendant（`contentsInto_frame_first`）と
+contained children（`appendEach_frame`）と新しく作った node だけで、どれもその鎖に入らない。
+
+一番上の階の first の側が start 側の子であることには、start が end より後にないことが要る。後ろ向きの range では
+first partially contained child が end 側の子になり、同じ subrange で再帰し続けて fuel が尽きる。live range の
+妥当性（`RangeValid`）は admissibility に含まれないので、仮定に置く。step 1 で fragment を足した後の木でも順は
+変わらない（`Extends.boundaryLE`）。

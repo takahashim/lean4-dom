@@ -89,7 +89,8 @@ range の両端が木にあることしか保証しないので、仮定とし�
 `insertNode` の step 7（Text の split）は "split a Text node" の関係（`SplitTextResult`）で書く。
 ここでの「Text」は CDATASection を含む。`insertNode` の soundness は admissible な状態だけを仮定する
 （`rangeInsertNode_result_sound_of_admissible`）。extract・clone the contents・`surroundContents()` の soundness は、
-結果が `outsideModel` でないことを仮定する（fuel が尽きた場合と、本文が結果を定めない range を除くため）。
+結果が `outsideModel` でないことを仮定する（本文が結果を定めない range と、そのとき尽きる fuel を除くため）。
+live range として妥当な range では、渡す fuel が足りる（`rangeFragment_fuel`）。
 
 **一意性は観測の上で述べる。** 木の store は association list なので、
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq` の一致である。

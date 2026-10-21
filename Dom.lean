@@ -146,6 +146,7 @@ import Dom.Spec.SplitText
 import Dom.Spec.SplitTextSound
 import Dom.Spec.RangeExtract
 import Dom.Spec.RangeExtractSound
+import Dom.Spec.RangeExtractFuel
 import Dom.Spec.Notify
 import Dom.Spec.NotifySound
 import Dom.Spec.WalkerMirror

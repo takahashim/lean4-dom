@@ -226,7 +226,8 @@ step 1 の fragment を作った後の部分。`into` は fragment（再帰で�
 * CharacterData の部分を写したあと、extract は原本からその部分を消す（`dataPart` の `cut`）。
 * contained children を、extract は fragment へ移し、clone the contents は subtree ごと clone する。
 
-fuel は木の深さで足りる（呼び出し側は `Tree.size + 1` を渡す）。
+fuel は端点と common ancestor の depth の差で足りる。呼び出し側は `Tree.size + 1` を渡し、live range として
+妥当な range ではそれより fuel を足しても結果が変わらない（`Dom.Spec.rangeFragment_fuel`）。
 -/
 def contentsInto (cut : Bool) : Nat → DOMState → RangeState → Option Nat → NodeId →
     Except (DOMException × DOMState) DOMState

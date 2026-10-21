@@ -7034,6 +7034,23 @@ nightly の探索（`.github/workflows/differential.yml` の exploration）が 1
 * 生成 scenario：Ruby の API の runner で nightly の 3 設定 × seed 1-10（3000 本）。JS の側の runner で固定 seed の設定と、
   nightly の 2 設定 × seed 2・3・6。
 
+## extract と clone the contents の fuel が足りることを示した（2026-10-21）
+
+`contentsInto` の fuel（呼び出し側は `Tree.size + 1`）が足りることは証明していなかった。soundness が「結果が
+`outsideModel` でない」を仮定に置く理由の一つだった。`Dom/Spec/RangeExtractFuel.lean` で、live range として妥当な
+range（両端が木にあり、start が end より後にない）では、その fuel から先はいくら足しても結果が変わらないことを示した
+（`rangeFragment_fuel`）。
+
+* **測る量**：一番上の階を除けば、再帰で渡る subrange は片側だけで、common ancestor が一段ずつ端点へ下りる。
+  要る fuel は common ancestor から端点までの depth の差で抑えられる（`FuelEnough`、`contentsInto_fuel`）。
+* **一番上の階の last の側**：first の側の再帰と contained children の移動の後の状態で走る。last partially contained
+  child より下の end node の inclusive ancestor が parent を変えないことを示した（`contentsInto_frame_first`、
+  `appendEach_frame`、`cloneEach_frame`）。depth の差はそこから運ぶ（`depth_below_kept`）。
+* **向き**：first partially contained child が start 側の子であることは、start が end より後にないことから出る
+  （`firstPartial_toward_start`・`lastPartial_toward_end`。path の index の辞書順で比べる）。後ろ向きの range では
+  first の側が end 側の子になり、同じ subrange で再帰し続けて fuel が実際に尽きる。admissibility は range の順を
+  含まないので、`RangeValid` を仮定に置く。step 1 で fragment を足した後の木へは `Extends.boundaryLE` で運ぶ。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

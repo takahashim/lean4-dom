@@ -13,7 +13,8 @@ import Dom.Properties.CloneOk
 
 実行関数が `outsideModel` を返す所は、関係の外である。次の三つがある。
 
-* 木の深さで足りるはずの fuel が尽きたとき（足りることは証明していない）。
+* fuel が尽きたとき。live range として妥当な range では、渡す fuel で足りる（`rangeFragment_fuel`）。
+  start が end より後にある range では、同じ subrange で再帰し続けて尽きる。
 * 端点が別の木にあって common ancestor が無いとき、step 15 の点が妥当でないとき。
   live range として妥当な range では起きない。
 * range の start が end より後にあり、CharacterData でない node の data を求めるとき（本文が結果を定めない）。
