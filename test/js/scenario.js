@@ -389,8 +389,10 @@ function registerConverted(ctx, args, maxBefore) {
  * fragment の中身が newParent へ移り、空になった fragment は model の状態から消える（id は空くが、振った後の
  * clone の id は変わらない）。そのあと `insertNode` の step 7 が split で作る Text が続く。
  * 失敗したときは、辿れる node だけを同じ順で登録する（空のまま残った fragment は model も消す）。
+ * clone だけの fragment は辿れないが、model が clone に振った id は空いたまま残るので、`hidden` 個
+ * （`surroundClones`）を飛ばす。
  */
-function registerRangeCreated(ctx, maxBefore, frag, newParent, reserveFragment = true) {
+function registerRangeCreated(ctx, maxBefore, frag, newParent, reserveFragment = true, hidden = 0) {
   const known = new Set(ctx.objects.values());
   const roots = [];
   const starts = [...ctx.objects.values()];
@@ -418,11 +420,26 @@ function registerRangeCreated(ctx, maxBefore, frag, newParent, reserveFragment =
   }
   if (newParent) visit(newParent);
   for (const r of roots) visit(r);
-  const base = reserveFragment ? maxBefore + 2 : maxBefore + 1;
+  const base = (reserveFragment ? maxBefore + 2 : maxBefore + 1) + (f ? 0 : hidden);
   fresh.forEach((n, i) => {
     ctx.objects.set(base + i, n);
     ctx.kinds.set(base + i, kindName(n));
   });
+}
+
+/**
+ * `surroundContents()` が step 3 より後で失敗したとき、fragment の中身が clone だけなら JavaScript から
+ * 辿れない（model は `discardFragmentOnError` で消す）。step 1 を通った range で extract が作る clone は、
+ * start node と end node が同じ CharacterData ならその一つ、そうでなければ common ancestor でない境界の
+ * Text だけである。操作の前の range から数える。
+ */
+function surroundClones(range) {
+  if (range.collapsed) return 0;
+  const start = range.startContainer;
+  const end = range.endContainer;
+  if (start === end) return [3, 4, 7, 8].includes(start.nodeType) ? 1 : 0;
+  const ca = range.commonAncestorContainer;
+  return [start, end].filter((n) => n !== ca && [3, 4].includes(n.nodeType)).length;
 }
 
 function elementField(node, name) {
@@ -778,12 +795,20 @@ function applyRangeOp(ctx, op) {
       let maxBefore = -1;
       for (const id of ctx.objects.keys()) if (id > maxBefore) maxBefore = id;
       let made = null;
+      const surround = op.op === "rangeSurroundContents";
+      const hidden = surround ? surroundClones(range) : 0;
+      let raised = true;
       try {
-        if (op.op === "rangeSurroundContents") return range.surroundContents(node);
+        if (surround) {
+          range.surroundContents(node);
+          raised = false;
+          return undefined;
+        }
         made = op.op === "rangeExtractContents" ? range.extractContents() : range.cloneContents();
+        raised = false;
         return made;
       } finally {
-        registerRangeCreated(ctx, maxBefore, made, op.op === "rangeSurroundContents" ? node : null);
+        registerRangeCreated(ctx, maxBefore, made, surround ? node : null, true, raised ? hidden : 0);
       }
     }
   }

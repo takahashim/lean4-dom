@@ -6931,6 +6931,30 @@ TreeWalker の七つの走査（`nextNode()`・`previousNode()`・`firstChild()`
 * `lastChild()` と `previousSibling()` は、子の列を反転した木の `firstChild()`・`nextSibling()` の関係と同値なので、
   その一意性を使う。
 
+## Dommy を `c241e2e9`（v0.17.0）、dommy-js-quickjs を `522b405`（v0.13.0）に上げ、nightly の探索を直した（2026-10-21）
+
+nightly の探索（`.github/workflows/differential.yml` の exploration）が 10-10 から落ち続けていた。原因は三つあった。
+
+* **固定 scenario `range-surround-ancestor`**：findings 70 で、直るまで赤のままにしてあった。Dommy は `52417b47` で直し、
+  v0.17.0 に入った。Dommy を `c241e2e9` に上げた。dommy-js-quickjs `a0f1776` は `dommy < 0.16` を要求するので、
+  `dommy >= 0.17.0, < 0.18` を要求する `522b405` に上げた。
+* **生成 scenario の split の record の並び**：`insertNode` の step 7 を結線してから（`282cb95`）、range の操作が Text を split する。
+  Dommy が直さないと決めた findings 69（childList と characterData の record の並び）に乱数が当たっていた。findings 63 と同じく
+  乱数の側では当てない。Text を split しうる操作（`splitText`・`rangeInsertNode`・`rangeSurroundContents`）があれば、
+  各 observer から childList と characterData の片方を外す（`test/generate.rb` の `separate_split_records`）。
+  並びが観測に出るのは一つの observer が両方を受けるときだけなので、外すのは片方で足りる。
+* **runner の id の振り方**：`surroundContents()` が step 3 より後で失敗し、fragment の中身が clone だけだと、fragment は
+  辿れない。model はその fragment を消すが（`discardFragmentOnError`）、clone に振った id は空いたまま残る。runner は clone を
+  数えられないので、後から split で作る Text の id が一つずれていた。step 1 を通った range で extract が作る clone は境界の
+  CharacterData だけなので、操作の前の range から数えて飛ばす（`test/dommy_runner.rb` の `surround_clones`、
+  `test/js/scenario.js` の `surroundClones`）。Dommy を上げてから出た。
+
+上げたあとで流し、どれも不一致 0 だった。
+
+* 固定 scenario：Ruby の API の runner で 258 ok / 18 skip / 11 known、JS の側の runner で 255 ok / 21 skip / 11 known。
+* 生成 scenario：Ruby の API の runner で nightly の 3 設定 × seed 1-10（3000 本）。JS の側の runner で固定 seed の設定と、
+  nightly の 2 設定 × seed 2・3・6。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

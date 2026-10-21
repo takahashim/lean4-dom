@@ -1331,12 +1331,43 @@ module Generate
         next_id += 1
       end
     end
+    observers = random_observers(rng, nodes, observer_count)
+    separate_split_records(observers, operations)
     { "nodes" => nodes, "ranges" => random_ranges(rng, nodes, range_count),
       "iterators" => random_iterators(rng, nodes, iterator_count),
       "walkers" => random_walkers(rng, nodes, walker_count),
       "listeners" => random_listeners(rng, nodes, listener_count),
-      "observers" => random_observers(rng, nodes, observer_count),
+      "observers" => observers,
       "operations" => operations }
+  end
+
+  # Text を split しうる操作。`insertNode` と `surroundContents()` は start node が Text なら split する。
+  SPLITTING_OPS = %w[splitText rangeInsertNode rangeSurroundContents].freeze
+
+  # split（§4.11）の childList と characterData の record の並びは Dommy の既知の不一致（findings 69）
+  # なので、乱数の側では当てない。並びが出るのは一つの observer が両方を受けるときだけなので、Text を
+  # split しうる操作があれば、各 observer から片方を外す。どちらを外すかは observer の番号で決め、
+  # 乱数を消費しない（split しない scenario の生成を変えない）。
+  def separate_split_records(observers, operations)
+    return unless operations.any? { |op| SPLITTING_OPS.include?(op["op"]) }
+
+    observers.each_with_index { |o, i| drop_split_record_type(o, i) }
+    operations.each { |op| drop_split_record_type(op, op["observer"]) if op["op"] == "observe" }
+  end
+
+  # `observe` の step 1-2 は、characterData が省略されていて characterDataOldValue が存在すれば
+  # characterData を true にする。値は ToBoolean を通るので、真偽は Ruby の真偽ではなく JS の真偽で見る。
+  def drop_split_record_type(opts, index)
+    js_true = ->(v) { ![nil, false, 0, ""].include?(v) }
+    character_data = opts.key?("characterData") ? js_true.(opts["characterData"]) : opts.key?("characterDataOldValue")
+    return unless js_true.(opts["childList"]) && character_data
+
+    if index.even?
+      opts["childList"] = false
+    else
+      opts["characterData"] = false
+      opts.delete("characterDataOldValue")
+    end
   end
 end
 

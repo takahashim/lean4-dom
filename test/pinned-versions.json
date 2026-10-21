@@ -19,16 +19,16 @@
   },
   "dommy": {
     "repository": "https://github.com/takahashim/dommy",
-    "commit": "f6904d642b5f82b7bfb27747cd20ce0dee4d3dfd",
+    "commit": "c241e2e9cdb92f167e6b1beca486012856b1c2ce",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "main（`f6904d64`、2026-10-10、PR #150 の merge）を指す。findings 59-68 の修正（PR #142・#143・#145・#150）を含み、`makiri >= 0.16.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 257 ok / 18 skip / 11 known / 1 mismatch、JS の側から動かす runner（dommy-js-quickjs `a0f1776`）で 254 ok / 21 skip / 11 known / 1 mismatch。11 known は仕様側が未決着の 19・20、model の読みが疑わしい `dataset` の 2 本、ブラウザに合わせた split の record の並び（findings 69。`splitText` と、split を通る `insertNode`・`surroundContents` の 5 本）（`known-divergences.yml`）。1 mismatch は `surroundContents()` の step 4 の record（findings 70、`range-surround-ancestor`）。生成 scenario は二つの runner とも 3 設定 × 300 本（seed 1、seed 3 の `--ranges 4 --iterators 2 --observers 3 --move`、seed 5 の `--ranges 4 --iterators 2 --move --listeners 3`）で mismatch 0（unsupported のみ）。"
+    "_note": "main（`c241e2e9`、2026-10-20、v0.17.0 の release の merge）を指す。findings 59-68 の修正（PR #142・#143・#145・#150）と findings 70 の修正（`52417b47`）を含み、`makiri ~> 0.16.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 258 ok / 18 skip / 11 known / 0 mismatch、JS の側から動かす runner（dommy-js-quickjs `522b405`）で 255 ok / 21 skip / 11 known / 0 mismatch。11 known は仕様側が未決着の 19・20、model の読みが疑わしい `dataset` の 2 本、ブラウザに合わせた split の record の並び（findings 69。`splitText` と、split を通る `insertNode`・`surroundContents` の 5 本）（`known-divergences.yml`）。findings 69 は生成 scenario では当てない（`test/generate.rb` の `separate_split_records`）。生成 scenario は Ruby の API を呼ぶ runner で nightly の 3 設定 × seed 1-10（3000 本）、JS の側から動かす runner で seed 1 の固定 seed の設定と nightly の 2 設定 × seed 2・3・6 で mismatch 0（unsupported のみ）。"
   },
   "dommy-js-quickjs": {
     "repository": "https://github.com/takahashim/dommy-js-quickjs",
-    "commit": "a0f17768aeb63d6f2a5d7a99c222768cb6a54d04",
-    "date": "2026-10-09",
-    "_note": "Dommy を JS の側から動かす runner（test/dommy_js_runner.rb）が使う QuickJS の adapter。`dommy >= 0.15, < 0.16` と `quickjs ~> 0.22.0` を要求する。Ruby 3.4 で固定 scenario 209 ok / 21 skip / 5 known / 0 mismatch、seed 1 の生成 scenario（`--ranges 4 --iterators 2 --observers 3 --move`、100 本）で mismatch 0。"
+    "commit": "522b405be15a4e3276f487c4f725f2df6a412778",
+    "date": "2026-10-20",
+    "_note": "Dommy を JS の側から動かす runner（test/dommy_js_runner.rb）が使う QuickJS の adapter。v0.13.0 の release の merge。`dommy >= 0.17.0, < 0.18` と `quickjs ~> 0.22.0` を要求する。"
   },
   "quickjs": {
     "source": "rubygems",

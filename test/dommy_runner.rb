@@ -575,19 +575,38 @@ module DommyRunner
   # model は step 1 の DocumentFragment に max+1 を振り、clone をその後に、fragment の中の tree order で作る。
   # `surroundContents()` では空になった fragment が model の状態から消える（id は空く）。そのあと
   # `insertNode` の step 7 が split で作る Text が続く。`insertNode` だけなら fragment は無い。
-  def range_creating(ctx, new_parent, reserve_fragment)
+  #
+  # `hidden` は、失敗して fragment が辿れなくなったときに飛ばす clone の数（`surround_clones`）。
+  def range_creating(ctx, new_parent, reserve_fragment, hidden: 0)
     max_before = ctx[:objects].keys.max.to_i
     made = nil
+    raised = true
     begin
       made = yield
+      raised = false
     ensure
       frag = reserve_fragment && !made.nil? && node_type_of(made) == 11 ? made : nil
-      register_range_created(ctx, max_before, frag, new_parent, reserve_fragment)
+      register_range_created(ctx, max_before, frag, new_parent, reserve_fragment, raised ? hidden : 0)
     end
     made
   end
 
-  def register_range_created(ctx, max_before, frag, new_parent, reserve_fragment)
+  # `surroundContents()` が step 3 より後で失敗したとき、fragment の中身が clone だけなら JavaScript から
+  # 辿れない。model はその fragment を消すが（`discardFragmentOnError`）、clone に振った id は空いたまま残る。
+  # step 1 を通った range で extract が作る clone は、start node と end node が同じ CharacterData ならその一つ、
+  # そうでなければ common ancestor でない境界の Text だけである。操作の前の range から数える。
+  def surround_clones(range)
+    return 0 if range.collapsed?
+
+    start_node = range.start_container
+    end_node = range.end_container
+    return [3, 4, 7, 8].include?(node_type_of(start_node)) ? 1 : 0 if start_node.equal?(end_node)
+
+    ca = range.common_ancestor_container
+    [start_node, end_node].count { |n| !n.equal?(ca) && [3, 4].include?(node_type_of(n)) }
+  end
+
+  def register_range_created(ctx, max_before, frag, new_parent, reserve_fragment, hidden = 0)
     objects = ctx[:objects]
     known = {}.compare_by_identity
     objects.each_value { |v| known[v] = true }
@@ -612,6 +631,7 @@ module DommyRunner
     collect_unknown(new_parent, known, seen, fresh) if new_parent
     roots.each { |r| collect_unknown(r, known, seen, fresh) }
     base = reserve_fragment ? max_before + 2 : max_before + 1
+    base += hidden if frag.nil?
     fresh.each_with_index do |n, i|
       objects[base + i] = n
       ctx[:kinds][base + i] = kind_name(n)
@@ -1463,7 +1483,7 @@ module DommyRunner
              when "rangeExtractContents" then range_creating(ctx, nil, true) { range.extract_contents }
              when "rangeCloneContents" then range_creating(ctx, nil, true) { range.clone_contents }
              when "rangeSurroundContents"
-               range_creating(ctx, node, true) { range.surround_contents(node) }
+               range_creating(ctx, node, true, hidden: surround_clones(range)) { range.surround_contents(node) }
              end
     end
     if op["op"] == "splitText"
