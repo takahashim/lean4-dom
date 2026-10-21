@@ -130,38 +130,38 @@ def entries : List Entry := [
              ``Dom.firstPartiallyContainedChild, ``Dom.lastPartiallyContainedChild,
              ``Dom.containedChildren, ``Dom.partiallyContained, ``Dom.containedInRange,
              ``Dom.deleteContentsNewBP, ``Dom.setSelf, ``Dom.dataPart, ``Dom.appendDataClone,
-             ``Dom.partialFirst, ``Dom.partialLast, ``Dom.appendShallowClone, ``Dom.appendEach]
+             ``Dom.partialFirst, ``Dom.partialLast, ``Dom.appendShallowClone, ``Dom.subContents,
+             ``Dom.appendEach]
     spec := [``Dom.Spec.ContentsResult, ``Dom.Spec.ContentsInto, ``Dom.Spec.PartialFirst,
-             ``Dom.Spec.PartialLast, ``Dom.Spec.DataPartResult, ``Dom.Spec.AppendEachResult,
-             ``Dom.Spec.SingleClone, ``Dom.Spec.Setup, ``Dom.Spec.CommonAncestor,
+             ``Dom.Spec.PartialLast, ``Dom.Spec.SubContents, ``Dom.Spec.DataPartResult,
+             ``Dom.Spec.AppendEachResult, ``Dom.Spec.SingleClone, ``Dom.Spec.Setup, ``Dom.Spec.CommonAncestor,
              ``Dom.Spec.PartiallyContained, ``Dom.Spec.FirstPartial, ``Dom.Spec.LastPartial,
              ``Dom.Spec.ContainedChildren, ``Dom.Spec.SelfSet, ``Dom.Spec.contentsInto_sound]
     approx := [("5", "端点が別の木にあって common ancestor が無ければ outsideModel を返す（本文の loop は止まらない）"),
                ("15", "置く点が妥当でなければ outsideModel を返す。common ancestor があれば妥当である"),
                ("16", "originalStartNode が CharacterData でなければ outsideModel を返す。range の start が end より後のときだけ起き、本文は CharacterData でない node の substring data を定めない"),
-               ("17.3-17.5", "subrange を新しい DocumentFragment ではなく clone へ直接 extract する。作ったばかりの subfragment と clone はどの observer にも live object にも指されないので観測できない違いで、作る node の id が結果の fragment の tree order になる。この同値は証明していない"),
-               ("19", "originalEndNode が CharacterData でなければ outsideModel を返す（step 16 と同じ）"),
-               ("20.3-20.5", "step 17.3-17.5 と同じく、subrange を clone へ直接 extract する")] },
+               ("19", "originalEndNode が CharacterData でなければ outsideModel を返す（step 16 と同じ）")] },
   { alg := "dom-range-extractcontents"
-    impl := [``Dom.rangeExtractContents]
-    spec := [``Dom.Spec.rangeExtractContents_result_sound] },
+    impl := [``Dom.rangeExtractContents, ``Dom.rangeExtractInto, ``Dom.discardCreated]
+    spec := [``Dom.Spec.rangeExtractContents_result_sound]
+    approx := [("*", "結果の fragment より後に作った node のうち参照されなくなったもの（clone に append し終えた subfragment）を、最後に状態から消す（`discardCreated`。仕様の step ではない model の約束）")] },
   { alg := "concept-range-clone"
     impl := [``Dom.rangeFragment, ``Dom.contentsInto, ``Dom.commonAncestor,
              ``Dom.firstPartiallyContainedChild, ``Dom.lastPartiallyContainedChild,
              ``Dom.containedChildren, ``Dom.dataPart, ``Dom.partialFirst, ``Dom.partialLast,
-             ``Dom.appendShallowClone, ``Dom.cloneEach, ``Dom.cloneNodeIn]
-    spec := [``Dom.Spec.ContentsResult, ``Dom.Spec.ContentsInto, ``Dom.Spec.CloneEachResult,
+             ``Dom.appendShallowClone, ``Dom.subContents, ``Dom.cloneEach, ``Dom.cloneNodeIn]
+    spec := [``Dom.Spec.ContentsResult, ``Dom.Spec.ContentsInto, ``Dom.Spec.SubContents,
+             ``Dom.Spec.CloneEachResult,
              ``Dom.Spec.DeepClone, ``Dom.Spec.contentsInto_sound]
     approx := [("5", "端点が別の木にあって common ancestor が無ければ outsideModel を返す"),
                ("12", "originalStartNode が CharacterData でなければ outsideModel を返す（extract の step 16 と同じ）"),
-               ("13.3-13.5", "subrange を新しい DocumentFragment ではなく clone へ直接 clone する（extract の step 17.3-17.5 と同じ。証明していない）"),
-               ("15", "originalEndNode が CharacterData でなければ outsideModel を返す"),
-               ("16.3-16.5", "step 13.3-13.5 と同じ")] },
+               ("15", "originalEndNode が CharacterData でなければ outsideModel を返す")] },
   { alg := "dom-range-clonecontents"
-    impl := [``Dom.rangeCloneContents]
-    spec := [``Dom.Spec.rangeCloneContents_result_sound] },
+    impl := [``Dom.rangeCloneContents, ``Dom.rangeCloneInto, ``Dom.discardCreated]
+    spec := [``Dom.Spec.rangeCloneContents_result_sound]
+    approx := [("*", "extractContents() と同じく、clone に append し終えた subfragment を最後に状態から消す（`discardCreated`）")] },
   { alg := "dom-range-surroundcontents"
-    impl := [``Dom.rangeSurroundContents, ``Dom.partiallyContainsNonText, ``Dom.rangeExtractContents,
+    impl := [``Dom.rangeSurroundContents, ``Dom.partiallyContainsNonText, ``Dom.rangeExtractInto,
              ``Dom.replaceAll, ``Dom.rangeInsertNode, ``Dom.append, ``Dom.rangeSelectNode,
              ``Dom.discardFragmentOnError]
     spec := [``Dom.Spec.SurroundResult, ``Dom.Spec.rangeSurroundContents_result_sound]

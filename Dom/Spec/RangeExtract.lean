@@ -19,12 +19,12 @@ import Dom.Spec.RangeSet
 
 step 1 の fragment は、関係の外で作って `into` として渡す（`ExtractResult` ほか）。
 
-## 本文と違う所
+## subfragment
 
-**subfragment を作らない。** 本文の step 17.3-17.5 は subrange を新しい DocumentFragment へ
-extract し、それを clone に append する。関係は subrange を clone へ直接入れる形で書く
-（`PartialStep.recurse`）。作ったばかりの subfragment と clone はどの observer にも live object にも
-指されていないので、この違いは観測できない（`Dom/Range/Extract.lean` の冒頭）。この同値は証明していない。
+本文の step 17.3-17.5（20.3-20.5）は subrange を新しい DocumentFragment（subfragment）へ extract し、
+それを clone に append する。関係も同じ順に書く（`SubContents`）。
+
+## 本文と違う所
 
 **subrange は状態に持たない。** 本文の subrange は live range だが、読まれるのは再帰した algorithm の
 step 1-11（木が変わる前）だけで、step 15 で置き直されたものは読まれない。だから端点の組として渡す。
@@ -201,7 +201,7 @@ step 16-17（clone the contents の 12-13）：first partially contained child �
 
 CharacterData なら（その child は original start node である）start offset から後ろを写す。
 そうでなければ child を clone して `into` に append し、(original start, (child, child の length)) の
-subrange をその clone へ入れる。
+subrange を extract した subfragment をその clone へ append する（`SubContents`）。
 -/
 inductive PartialFirst (cut : Bool) :
     DOMState → RangeState → Option NodeId → NodeId → Except DOMException DOMState → Prop where
@@ -217,7 +217,7 @@ inductive PartialFirst (cut : Bool) :
   | recurse {s r fp into c s₁ s₂ res} : InTree s.tree fp → ¬ IsCharacterData s.tree fp →
       (∃ fd, s.tree.get? fp = some fd ∧ SingleClone s fp fd.data c s₁) →
       PreInsertResult s₁ c into none (.ok s₂) →
-      ContentsInto cut s₂ { start := r.start, «end» := ⟨fp, lengthOf s₂.tree fp⟩ } none c res →
+      SubContents cut s₂ { start := r.start, «end» := ⟨fp, lengthOf s₂.tree fp⟩ } c res →
       PartialFirst cut s r (some fp) into res
 
 /--
@@ -225,7 +225,7 @@ step 19-20（clone the contents の 15-16）：last partially contained child �
 
 CharacterData なら（その child は original end node である）先頭から end offset までを写す。
 そうでなければ child を clone して `into` に append し、((child, 0), original end) の subrange を
-その clone へ入れる。
+extract した subfragment をその clone へ append する（`SubContents`）。
 -/
 inductive PartialLast (cut : Bool) :
     DOMState → RangeState → Option NodeId → NodeId → Except DOMException DOMState → Prop where
@@ -240,8 +240,27 @@ inductive PartialLast (cut : Bool) :
   | recurse {s r lp into c s₁ s₂ res} : InTree s.tree lp → ¬ IsCharacterData s.tree lp →
       (∃ ld, s.tree.get? lp = some ld ∧ SingleClone s lp ld.data c s₁) →
       PreInsertResult s₁ c into none (.ok s₂) →
-      ContentsInto cut s₂ { start := ⟨lp, 0⟩, «end» := r.«end» } none c res →
+      SubContents cut s₂ { start := ⟨lp, 0⟩, «end» := r.«end» } c res →
       PartialLast cut s r (some lp) into res
+
+/--
+step 17.3-17.5・20.3-20.5（clone the contents の 13.3-13.5・16.3-16.5）：subrange を extract（clone the contents）
+した subfragment を、clone に append する。
+
+"extracting subrange" は step 1 で、subrange の start node の node document に属する新しい DocumentFragment を作り、
+そこへ step 2 以降を走らせる。subrange は `this` ではない（`self = none`）。
+-/
+inductive SubContents (cut : Bool) :
+    DOMState → RangeState → NodeId → Except DOMException DOMState → Prop where
+  | error {s r c sd sub s₁ e} : s.tree.get? r.start.node = some sd →
+      CreatesNode s sub s₁ { kind := .documentFragment, ownerDocument := sd.ownerDocument } →
+      ContentsInto cut s₁ r none sub (.error e) →
+      SubContents cut s r c (.error e)
+  | append {s r c sd sub s₁ s₂ res} : s.tree.get? r.start.node = some sd →
+      CreatesNode s sub s₁ { kind := .documentFragment, ownerDocument := sd.ownerDocument } →
+      ContentsInto cut s₁ r none sub (.ok s₂) →
+      PreInsertResult s₂ sub c none res →
+      SubContents cut s r c res
 
 end
 

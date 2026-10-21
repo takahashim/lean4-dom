@@ -1280,9 +1280,13 @@ open Dom.Audit
   Dom.Spec.rangeInsertNode_result_complete
   Dom.Spec.commonAncestor_spec
   Dom.Spec.contentsInto_sound
+  Dom.Spec.subContents_sound
+  Dom.Spec.rangeExtractInto_result_sound
+  Dom.Spec.rangeCloneInto_result_sound
   Dom.Spec.rangeExtractContents_result_sound
   Dom.Spec.rangeCloneContents_result_sound
   Dom.Spec.rangeSurroundContents_result_sound
+  Dom.Spec.subContents_frame
   Dom.Spec.contentsInto_frame_first
   Dom.Spec.firstPartial_toward_start
   Dom.Spec.lastPartial_toward_end

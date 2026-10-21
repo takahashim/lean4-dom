@@ -7051,6 +7051,31 @@ range（両端が木にあり、start が end より後にない）では、そ�
   first の側が end 側の子になり、同じ subrange で再帰し続けて fuel が実際に尽きる。admissibility は range の順を
   含まないので、`RangeValid` を仮定に置く。step 1 で fragment を足した後の木へは `Extends.boundaryLE` で運ぶ。
 
+## extract と clone the contents の subfragment を本文どおりに作るようにした（2026-10-21）
+
+本文の step 17.3-17.5・20.3-20.5（clone the contents では 13.3-13.5・16.3-16.5）は、subrange を新しい DocumentFragment
+（subfragment）へ extract し、それを clone に append する。model は subfragment を作らず clone へ直接入れ、関係も同じ形で
+書いていた。観測できない違いだと論じていたが、状態は新しい node の id と空の subfragment の分だけ違うので、等しいと言うには
+id の付け替えを除いた同値が要る。その道具は無い。そこで model のほうを本文どおりにした。
+
+* **実行関数と関係**：partially contained child の clone の後、subfragment を作って subrange をそこへ入れ、clone に append する
+  （`subContents`、関係 `SubContents`）。関係は本文の順をそのまま書く。
+* **後始末**：append し終えた subfragment は空で、どこからも辿れない。`extractContents()`・`cloneContents()` の最後に、
+  step 1 の fragment より後に作った node のうち参照されなくなったものを消す（`discardCreated`）。途中で消すと、`freshId` が
+  消した id を後の node に振り直すことがあるので、最後にまとめて消す。soundness は `surroundContents()` と同じく、成功の
+  状態が関係の状態からそれを消したものであると述べる。`surroundContents()` は step 1 で partially contained な node を Text に
+  限るので subfragment を作らず、消す前の `rangeExtractInto` を呼ぶ。
+* **fuel の証明**：再帰の中に subfragment の作成と clone への append が入った。subfragment に入る木の node は再帰で parent が
+  変わったものだけなので、clone への append もそれ以外の parent を動かさない（`subContents_frame`、`parentOf_append_of_not_mem`）。
+* **runner**：CharacterData でない partially contained child の clone の直後に subfragment の id が来て、それが消えるので一つ
+  空く。`test/dommy_runner.rb` の `partial_spine`・`spine_clones` と `test/js/scenario.js` の `partialSpine`・`spineClones` が、
+  操作の前の range から clone の段数を数え、結果の fragment の先頭の子と末尾の子を辿ってその clone を見つけ、id を飛ばす。
+
+`notes/spec-divergences.md` の「証明が無いもの」から extract の行が消え、`Trace/Dom/Range.lean` の step 17.3-17.5・20.3-20.5・
+13.3-13.5・16.3-16.5 は近似から実装になった（実装の step は 689 から 699）。差分テストは Dommy v0.17.0 の二つの runner で、
+固定 scenario が 266 ok / 24 skip / 12 known、生成 scenario（nightly の 3 設定 × seed 1-10、runner ごとに 3000 本）が不一致 0。
+三つの browser の固定 scenario でも、extract の記録（known）の形は変わらなかった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

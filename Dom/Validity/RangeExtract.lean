@@ -27,12 +27,12 @@ structure ContentsClosed (P : DOMState → Prop) : Prop where
     s.tree.get? n = some d → P (cloneSingle s { d with data := x } d.ownerDocument).2
   cloneNodeIn : ∀ {s s' : DOMState} {n c : NodeId} {d : NodeData}, P s → s.tree.get? n = some d →
     cloneNodeIn s n d.ownerDocument true = .ok (c, s') → P s'
+  fragment : ∀ {s s' : DOMState} {r : RangeState} {frag : NodeId}, P s →
+    rangeFragment s r = .ok (frag, s') → P s'
 
 /-- extract・clone the contents・`insertNode`・`surroundContents()` の部品で閉じた性質。 -/
 structure RangeClosed (P : DOMState → Prop) : Prop extends ContentsClosed P where
   discard : ∀ {s : DOMState} (n : NodeId), P s → P (discard s n)
-  fragment : ∀ {s s' : DOMState} {r : RangeState} {frag : NodeId}, P s →
-    rangeFragment s r = .ok (frag, s') → P s'
   splitText : ∀ {s s' : DOMState} {n t : NodeId} {o : Nat}, P s → splitText s n o = .ok (t, s') → P s'
   insertTail : ∀ {s s' : DOMState} {i : Nat} {p n : NodeId} {ref : Option NodeId}, P s →
     rangeInsertNodeTail s i p n ref = .ok s' → P s'
@@ -148,6 +148,16 @@ theorem closed_setSelf {s s' : DOMState} {self : Option Nat} {bp : BoundaryPoint
       exact hC.withRange h ⟨this, this⟩
     · simp at hr
 
+theorem closed_subContents {recur : Recur} {s s' : DOMState} {r : RangeState} {c : NodeId}
+    (hrec : RecurClosed P recur) (h : P s) (hr : subContents recur s r c = .ok s') : P s' := by
+  unfold subContents at hr
+  split at hr
+  · simp at hr
+  · next sub s₁ hf =>
+    split at hr
+    · simp at hr
+    · next s₂ hs₂ => exact hC.append (hrec _ _ _ _ (hC.fragment h hf) hs₂) (failWith_ok.mp hr)
+
 theorem closed_partialFirst {cut : Bool} {recur : Recur} {s s' : DOMState} {r : RangeState}
     {fp : Option NodeId} {into : NodeId} (hrec : RecurClosed P recur) (h : P s)
     (hr : partialFirst cut recur s r fp into = .ok s') : P s' := by
@@ -161,7 +171,7 @@ theorem closed_partialFirst {cut : Bool} {recur : Recur} {s s' : DOMState} {r : 
       · exact closed_dataPart hC h hr
       · split at hr
         · simp at hr
-        · next c s₁ ha => exact hrec _ _ _ _ (closed_appendShallowClone hC h hfd ha) hr
+        · next c s₁ ha => exact closed_subContents hC hrec (closed_appendShallowClone hC h hfd ha) hr
 
 theorem closed_partialLast {cut : Bool} {recur : Recur} {s s' : DOMState} {r : RangeState}
     {lp : Option NodeId} {into : NodeId} (hrec : RecurClosed P recur) (h : P s)
@@ -176,7 +186,7 @@ theorem closed_partialLast {cut : Bool} {recur : Recur} {s s' : DOMState} {r : R
       · exact closed_dataPart hC h hr
       · split at hr
         · simp at hr
-        · next c s₁ ha => exact hrec _ _ _ _ (closed_appendShallowClone hC h hld ha) hr
+        · next c s₁ ha => exact closed_subContents hC hrec (closed_appendShallowClone hC h hld ha) hr
 
 /-- **extract と clone the contents は妥当性を保つ。** -/
 theorem closed_contentsInto (cut : Bool) :
@@ -247,10 +257,28 @@ theorem closed_rangeInsertNode {s s' : DOMState} {i : Nat} {n : NodeId}
           · simp at hr
           · exact hP.insertTail h hr
 
-/-- **`extractContents()` は妥当性を保つ。** -/
-theorem closed_rangeExtractContents {s s' : DOMState} {i : Nat} {frag : NodeId} (h : P s)
-    (hr : rangeExtractContents s i = .ok (frag, s')) : P s' := by
-  unfold rangeExtractContents at hr
+theorem closed_discardAfter {s : DOMState} (h : P s) (base : NodeId) : P (discardAfter base s) := by
+  unfold discardAfter discardAll
+  generalize (List.range (maxId s.tree - base.id)).map (fun k => (⟨base.id + 1 + k⟩ : NodeId)) = ns
+  induction ns generalizing s with
+  | nil => exact h
+  | cons n ns ih => exact ih (hP.discard n h)
+
+theorem closed_discardCreated {α : Type} {base : NodeId}
+    {res : Except (DOMException × DOMState) (α × DOMState)} {a : α} {s' : DOMState}
+    (h : ∀ a₀ s₀, res = .ok (a₀, s₀) → P s₀) (hr : discardCreated base res = .ok (a, s')) : P s' := by
+  cases res with
+  | error p => obtain ⟨e, s₀⟩ := p; simp [discardCreated] at hr
+  | ok v =>
+    obtain ⟨a₀, s₀⟩ := v
+    simp only [discardCreated, Except.ok.injEq, Prod.mk.injEq] at hr
+    obtain ⟨-, rfl⟩ := hr
+    exact closed_discardAfter hP (h a₀ s₀ rfl) base
+
+/-- `extractContents()` の、subfragment を消す前の部分は妥当性を保つ。 -/
+theorem closed_rangeExtractInto {s s' : DOMState} {i : Nat} {frag : NodeId} (h : P s)
+    (hr : rangeExtractInto s i = .ok (frag, s')) : P s' := by
+  unfold rangeExtractInto at hr
   split at hr
   · simp at hr
   · split at hr
@@ -266,17 +294,25 @@ theorem closed_rangeExtractContents {s s' : DOMState} {i : Nat} {frag : NodeId} 
         obtain ⟨-, rfl⟩ := hr'
         exact closed_contentsInto hP.toContentsClosed true _ h₁ hc
 
+/-- **`extractContents()` は妥当性を保つ。** -/
+theorem closed_rangeExtractContents {s s' : DOMState} {i : Nat} {frag : NodeId} (h : P s)
+    (hr : rangeExtractContents s i = .ok (frag, s')) : P s' := by
+  unfold rangeExtractContents at hr
+  exact closed_discardCreated hP (fun _ _ hx => closed_rangeExtractInto hP h hx) hr
+
 /-- **`cloneContents()` は妥当性を保つ。** -/
 theorem closed_rangeCloneContents {s s' : DOMState} {i : Nat} {frag : NodeId} (h : P s)
     (hr : rangeCloneContents s i = .ok (frag, s')) : P s' := by
   unfold rangeCloneContents at hr
-  split at hr
-  · simp at hr
-  · split at hr
-    · simp at hr
+  refine closed_discardCreated hP (fun a₀ s₀ hx => ?_) hr
+  unfold rangeCloneInto at hx
+  split at hx
+  · simp at hx
+  · split at hx
+    · simp at hx
     · next frag₀ s₁ hf =>
       have h₁ := hP.fragment h hf
-      have hr' := ok_of_discardOnError hr
+      have hr' := ok_of_discardOnError hx
       cases hc : contentsInto false (s₁.tree.size + 1) s₁ _ none frag₀ with
       | error p => rw [hc] at hr'; simp [Except.map] at hr'
       | ok s₂ =>
@@ -300,7 +336,7 @@ theorem closed_rangeSurroundContents {s s' : DOMState} {i : Nat} {np : NodeId} (
         · split at hr
           · simp at hr
           · next frag s₁ hx =>
-            have h₁ := closed_rangeExtractContents hP h hx
+            have h₁ := closed_rangeExtractInto hP h hx
             have hr' := ok_of_discardFragmentOnError hr
             simp only [bind, Except.bind, pure, Except.pure] at hr'
             split at hr'
@@ -355,7 +391,7 @@ theorem unique_cloneSingle_data {s : DOMState} {n : NodeId} {d : NodeData} (x : 
     show normalizeNamespace p.1.namespace = p.1.namespace
     exact h.normalized_of_mem hd (mem_of_mem_zipIdx' (x := p.1) (i := p.2) hp)
 
-private theorem admissible_rangeFragment {s s' : DOMState} {r : RangeState} {frag : NodeId}
+theorem admissible_rangeFragment {s s' : DOMState} {r : RangeState} {frag : NodeId}
     (h : AdmissibleDOMState s) (hr : rangeFragment s r = .ok (frag, s')) : AdmissibleDOMState s' := by
   unfold rangeFragment at hr
   split at hr

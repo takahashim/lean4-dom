@@ -162,6 +162,18 @@ theorem containedChildren_spec (hwf : WellFormed t) {sd ed : NodeData}
 
 /-! ## 木にあった node は残る -/
 
+/-- step 1 の fragment を作っても、木にあった node はそのまま残る。 -/
+theorem rangeFragment_get? {s s₁ : DOMState} {r : RangeState} {frag m : NodeId} {md : NodeData}
+    (h : rangeFragment s r = .ok (frag, s₁)) (hm : s.tree.get? m = some md) : s₁.tree.get? m = some md := by
+  unfold rangeFragment at h
+  split at h
+  · simp at h
+  · unfold createDocumentFragment at h
+    split at h
+    · simp at h
+    · cases h
+      exact withFresh_get?_of_some hm _
+
 /-- 状態が admissible で、`s₀` の木にあった node がどれも同じ kind で残っていること。 -/
 def Keeps (s₀ s : DOMState) : Prop :=
   AdmissibleDOMState s ∧
@@ -197,6 +209,9 @@ theorem keeps_contentsClosed (s₀ : DOMState) : ContentsClosed (Keeps s₀) whe
     obtain ⟨-, -, hkeep, -⟩ := cloneNodeIn_deep_spec h.1 hdoc hc
     obtain ⟨d', hd', hk⟩ := h.2 m d hm
     exact ⟨d', hkeep m d' hd', hk⟩
+  fragment h hr := ⟨admissible_rangeFragment h.1 hr, fun m d hm => by
+    obtain ⟨d', hd', hk⟩ := h.2 m d hm
+    exact ⟨d', rangeFragment_get? hr hd', hk⟩⟩
 
 theorem keeps_refl {s : DOMState} (h : AdmissibleDOMState s) : Keeps s s :=
   ⟨h, fun _ d hm => ⟨d, hm, rfl⟩⟩
@@ -357,8 +372,50 @@ private theorem shallow_cases {s : DOMState} {x into : NodeId} {fd : NodeData}
   have h₁ := admissible_cloneSingle_data fd.data h hfd
   exact ⟨hcl, h₁, preInsert_result_sound h₁.wellFormed _ into none⟩
 
+/-- step 17.3-17.5：subrange を subfragment へ extract し、それを clone に append する。 -/
+theorem subContents_sound {cut : Bool} {recur : Recur} {s : DOMState} {r : RangeState} {c : NodeId}
+    (hrec : RecurSound cut recur) (hrk : ∀ s₀, RecurClosed (Keeps s₀) recur) (h : AdmissibleDOMState s)
+    (hs : InTree s.tree r.start.node) (he : InTree s.tree r.«end».node)
+    (hne : dropErr (subContents recur s r c) ≠ .error .outsideModel) :
+    SubContents cut s r c (dropErr (subContents recur s r c)) := by
+  obtain ⟨sd, hsd⟩ := hs
+  have hdoc : IsDocumentIn s sd.ownerDocument := h.wellFormed.ownerDocument_is_document _ sd hsd
+  have hfr : rangeFragment s r =
+      .ok (withFresh s { kind := .documentFragment, ownerDocument := sd.ownerDocument }) := by
+    unfold rangeFragment
+    rw [hsd]
+    exact createDocumentFragment_of_isDocumentIn hdoc
+  have hcr : CreatesNode s
+      (withFresh s { kind := .documentFragment, ownerDocument := sd.ownerDocument }).1
+      (withFresh s { kind := .documentFragment, ownerDocument := sd.ownerDocument }).2
+      { kind := .documentFragment, ownerDocument := sd.ownerDocument } :=
+    createDocumentFragment_creates (createDocumentFragment_of_isDocumentIn hdoc)
+  unfold subContents at hne ⊢
+  rw [hfr] at hne ⊢
+  cases hw : withFresh s { kind := .documentFragment, ownerDocument := sd.ownerDocument } with
+  | mk sub s₁ =>
+  rw [hw] at hcr hfr hne
+  simp only [] at hne hcr ⊢
+  have h₁ : AdmissibleDOMState s₁ := admissible_createsNode h hcr
+  have hk₁ : Keeps s s₁ := ⟨h₁, fun m d hm => ⟨d, rangeFragment_get? hfr hm, rfl⟩⟩
+  cases hc : recur s₁ r sub with
+  | error p =>
+    obtain ⟨e, s'⟩ := p
+    rw [hc] at hne
+    have := hrec s₁ r sub h₁ (hk₁.inTree ⟨sd, hsd⟩) (hk₁.inTree he) (by rw [hc]; simpa using hne)
+    rw [hc] at this
+    exact .error hsd hcr this
+  | ok s₂ =>
+    rw [hc] at hne
+    simp only [dropErr_failWith] at hne ⊢
+    have := hrec s₁ r sub h₁ (hk₁.inTree ⟨sd, hsd⟩) (hk₁.inTree he) (by rw [hc]; simp)
+    rw [hc] at this
+    have h₂ : AdmissibleDOMState s₂ := (hrk s₁ _ _ _ _ (keeps_refl h₁) hc).1
+    exact .append hsd hcr this (preInsert_result_sound h₂.wellFormed sub c none)
+
 theorem partialFirst_sound {cut : Bool} {recur : Recur} {s : DOMState} {r : RangeState}
-    {fp : Option NodeId} {into : NodeId} (hrec : RecurSound cut recur) (h : AdmissibleDOMState s)
+    {fp : Option NodeId} {into : NodeId} (hrec : RecurSound cut recur)
+    (hrk : ∀ s₀, RecurClosed (Keeps s₀) recur) (h : AdmissibleDOMState s)
     (hstart : InTree s.tree r.start.node)
     (hfp : ∀ x, fp = some x → ∃ xd, s.tree.get? x = some xd ∧ xd.kind ≠ .document)
     (hne : dropErr (partialFirst cut recur s r fp into) ≠ .error .outsideModel) :
@@ -395,11 +452,11 @@ theorem partialFirst_sound {cut : Bool} {recur : Recur} {s : DOMState} {r : Rang
       unfold appendShallowClone append
       simp only [hpi]
     exact .recurse ⟨fd, hfd⟩ hncd ⟨fd, hfd, hcl⟩ hpr
-      (hrec _ _ _ hk.1 (hk.inTree hstart) (hk.inTree ⟨fd, hfd⟩) hne)
+      (subContents_sound hrec hrk hk.1 (hk.inTree hstart) (hk.inTree ⟨fd, hfd⟩) hne)
 
 theorem partialLast_sound {cut : Bool} {recur : Recur} {s : DOMState} {r : RangeState}
     {lp : Option NodeId} {into : NodeId} (hrec : RecurSound cut recur)
-    (h : AdmissibleDOMState s)
+    (hrk : ∀ s₀, RecurClosed (Keeps s₀) recur) (h : AdmissibleDOMState s)
     (hend : InTree s.tree r.«end».node)
     (hlp : ∀ x, lp = some x → ∃ xd, s.tree.get? x = some xd ∧ xd.kind ≠ .document)
     (hne : dropErr (partialLast cut recur s r lp into) ≠ .error .outsideModel) :
@@ -436,7 +493,7 @@ theorem partialLast_sound {cut : Bool} {recur : Recur} {s : DOMState} {r : Range
       unfold appendShallowClone append
       simp only [hpi]
     exact .recurse ⟨ld, hld⟩ hncd ⟨ld, hld, hcl⟩ hpr
-      (hrec _ _ _ hk.1 (hk.inTree ⟨ld, hld⟩) (hk.inTree hend) hne)
+      (subContents_sound hrec hrk hk.1 (hk.inTree ⟨ld, hld⟩) (hk.inTree hend) hne)
 
 /-! ## 全体 -/
 
@@ -549,14 +606,14 @@ theorem contentsInto_sound (cut : Bool) :
     | error p =>
       obtain ⟨e, s'⟩ := p
       rw [hpf] at hne
-      have := partialFirst_sound hrec hk₁.1 (hk₁.inTree ⟨sd, hsd⟩)
+      have := partialFirst_sound hrec hrk hk₁.1 (hk₁.inTree ⟨sd, hsd⟩)
         hfpar (by rw [hpf]; exact hne)
       rw [hpf] at this
       exact .firstError hgen hsetup hnodt hbp hself this
     | ok s₂ =>
     rw [hpf] at hne
     simp only [] at hne ⊢
-    have hpf' := partialFirst_sound hrec hk₁.1 (hk₁.inTree ⟨sd, hsd⟩)
+    have hpf' := partialFirst_sound hrec hrk hk₁.1 (hk₁.inTree ⟨sd, hsd⟩)
       hfpar (by rw [hpf]; simp)
     rw [hpf] at hpf'
     have hk₂ : Keeps s s₂ := hk₁.trans
@@ -602,7 +659,7 @@ theorem contentsInto_sound (cut : Bool) :
         simp only [Bool.false_eq_true, if_false] at hcr
         exact closed_cloneEach (keeps_contentsClosed s₂) _ (keeps_refl hk₂.1) hcr
     -- step 19-20
-    have hlast := partialLast_sound hrec hk₃.1 (hk₃.inTree ⟨ed, hed⟩)
+    have hlast := partialLast_sound hrec hrk hk₃.1 (hk₃.inTree ⟨ed, hed⟩)
       (fun x hx => by
         obtain ⟨xd, hxd, hxk⟩ := child_not_document h (lastPartial_mem hsetup.last x hx)
         obtain ⟨xd', hxd', hk'⟩ := hk₃.2 x xd hxd
@@ -796,27 +853,82 @@ theorem contentsResult_sound (cut : Bool) {s : DOMState} {i : Nat} {r : RangeSta
     rw [hc] at this
     exact Or.inr ⟨s₂, this, by simp [Except.map, dropErr]⟩
 
+/-- `discardCreated` は成否と例外を変えない。 -/
+theorem dropErr_discardCreated {α : Type} (base : NodeId)
+    (x : Except (DOMException × DOMState) (α × DOMState)) :
+    (dropErr (discardCreated base x) = .error .outsideModel) ↔ dropErr x = .error .outsideModel := by
+  cases x with
+  | error p => obtain ⟨e, s⟩ := p; simp [discardCreated, dropErr]
+  | ok v => obtain ⟨a, s⟩ := v; simp [discardCreated, dropErr]
+
+/--
+`discardCreated` の後の結果は、前の結果と例外が同じで、成功なら状態から `base` より後に作った node のうち
+参照されないものを消したものである。
+-/
+theorem discardCreated_cases {α : Type} (base : NodeId)
+    (x : Except (DOMException × DOMState) (α × DOMState)) :
+    (∃ e, dropErr x = .error e ∧ dropErr (discardCreated base x) = .error e) ∨
+      (∃ a s₂, x = .ok (a, s₂) ∧ discardCreated base x = .ok (a, discardAfter base s₂)) := by
+  cases x with
+  | error p => obtain ⟨e, s⟩ := p; exact Or.inl ⟨e, rfl, rfl⟩
+  | ok v => obtain ⟨a, s⟩ := v; exact Or.inr ⟨a, s, rfl, rfl⟩
+
+/-- `extractContents()` の、subfragment を消す前の部分は関係を満たす。 -/
+theorem rangeExtractInto_result_sound {s : DOMState} {i : Nat} {r : RangeState}
+    (h : AdmissibleDOMState s) (hr : s.ranges[i]? = some r)
+    (hne : dropErr (rangeExtractInto s i) ≠ .error .outsideModel) :
+    ContentsResult true s r (some i) (dropErr (rangeExtractInto s i)) := by
+  unfold rangeExtractInto at hne ⊢
+  rw [hr] at hne ⊢
+  exact contentsResult_sound true h hr hne
+
+theorem rangeCloneInto_result_sound {s : DOMState} {i : Nat} {r : RangeState}
+    (h : AdmissibleDOMState s) (hr : s.ranges[i]? = some r)
+    (hne : dropErr (rangeCloneInto s i) ≠ .error .outsideModel) :
+    ContentsResult false s r none (dropErr (rangeCloneInto s i)) := by
+  unfold rangeCloneInto at hne ⊢
+  rw [hr] at hne ⊢
+  exact contentsResult_sound false h hr hne
+
+/-- 関係を満たす結果と、`discardCreated` の後の実行関数の結果の対応。 -/
+theorem discardCreated_result {α : Type} {R : Except DOMException (α × DOMState) → Prop} (base : NodeId)
+    (x : Except (DOMException × DOMState) (α × DOMState)) (hx : R (dropErr x)) :
+    ∃ res, R res ∧ ((∃ e, res = .error e ∧ dropErr (discardCreated base x) = .error e) ∨
+      (∃ a s₂, res = .ok (a, s₂) ∧ discardCreated base x = .ok (a, discardAfter base s₂))) := by
+  rcases discardCreated_cases base x with ⟨e, he, he'⟩ | ⟨a, s₂, hx', he'⟩
+  · exact ⟨_, hx, Or.inl ⟨e, he, he'⟩⟩
+  · rw [hx'] at hx
+    exact ⟨_, hx, Or.inr ⟨a, s₂, rfl, by rw [hx'] at he' ⊢; exact he'⟩⟩
+
 /--
 **`extractContents()` の結果は関係を満たす**（結果が `outsideModel` でなければ）。
 
-失敗に付いた状態は落として比べる。
+実行関数は最後に、step 1 の fragment より後に作った node のうち参照されなくなったもの（clone に append し終えた
+subfragment）を消す（`discardCreated`。どこからも辿れない node を消す model の約束で、本文の step ではない）。
+だから成功の状態は、関係の状態からそれを消したものである。失敗に付いた状態は落として比べる。
 -/
 theorem rangeExtractContents_result_sound {s : DOMState} {i : Nat} {r : RangeState}
     (h : AdmissibleDOMState s) (hr : s.ranges[i]? = some r)
     (hne : dropErr (rangeExtractContents s i) ≠ .error .outsideModel) :
-    ContentsResult true s r (some i) (dropErr (rangeExtractContents s i)) := by
+    ∃ res, ContentsResult true s r (some i) res ∧
+      ((∃ e, res = .error e ∧ dropErr (rangeExtractContents s i) = .error e) ∨
+        (∃ frag s₂, res = .ok (frag, s₂) ∧
+          rangeExtractContents s i = .ok (frag, discardAfter (freshId s.tree) s₂))) := by
   unfold rangeExtractContents at hne ⊢
-  rw [hr] at hne ⊢
-  exact contentsResult_sound true h hr hne
+  exact discardCreated_result _ _
+    (rangeExtractInto_result_sound h hr fun he => hne ((dropErr_discardCreated _ _).mpr he))
 
 /-- **`cloneContents()` の結果は関係を満たす**（結果が `outsideModel` でなければ）。 -/
 theorem rangeCloneContents_result_sound {s : DOMState} {i : Nat} {r : RangeState}
     (h : AdmissibleDOMState s) (hr : s.ranges[i]? = some r)
     (hne : dropErr (rangeCloneContents s i) ≠ .error .outsideModel) :
-    ContentsResult false s r none (dropErr (rangeCloneContents s i)) := by
+    ∃ res, ContentsResult false s r none res ∧
+      ((∃ e, res = .error e ∧ dropErr (rangeCloneContents s i) = .error e) ∨
+        (∃ frag s₂, res = .ok (frag, s₂) ∧
+          rangeCloneContents s i = .ok (frag, discardAfter (freshId s.tree) s₂))) := by
   unfold rangeCloneContents at hne ⊢
-  rw [hr] at hne ⊢
-  exact contentsResult_sound false h hr hne
+  exact discardCreated_result _ _
+    (rangeCloneInto_result_sound h hr fun he => hne ((dropErr_discardCreated _ _).mpr he))
 
 /-! ## surroundContents -/
 
@@ -906,20 +1018,20 @@ theorem rangeSurroundContents_result_sound {s : DOMState} {i : Nat} {r : RangeSt
   have hk2 : ¬ (KindIs s.tree np .document ∨ KindIs s.tree np .documentType ∨
       KindIs s.tree np .documentFragment) := fun h' => h2 (hkind.mp h')
   -- step 3
-  cases hxe : rangeExtractContents s i with
+  cases hxe : rangeExtractInto s i with
   | error p =>
     obtain ⟨e, s'⟩ := p
     rw [hxe] at hne
-    have hx := rangeExtractContents_result_sound h hr (by rw [hxe]; simpa using hne)
+    have hx := rangeExtractInto_result_sound h hr (by rw [hxe]; simpa using hne)
     rw [hxe] at hx
     exact ⟨_, Or.inr ⟨hn1, Or.inr ⟨hk2, Or.inl ⟨e, hx, rfl⟩⟩⟩, Or.inl ⟨e, rfl, rfl⟩⟩
   | ok res =>
   obtain ⟨frag, s₁⟩ := res
   rw [hxe] at hne
   simp only [dropErr_discardFragmentOnError] at hne
-  have hx := rangeExtractContents_result_sound h hr (by rw [hxe]; simp)
+  have hx := rangeExtractInto_result_sound h hr (by rw [hxe]; simp)
   rw [hxe] at hx
-  have hk₁ : LenKeep s s₁ := closed_rangeExtractContents (lenKeep_rangeClosed s) ⟨h, rfl⟩ hxe
+  have hk₁ : LenKeep s s₁ := closed_rangeExtractInto (lenKeep_rangeClosed s) ⟨h, rfl⟩ hxe
   -- step 4
   have step4 : ∃ s₂, ((childrenOf s₁.tree np = [] ∧ s₂ = s₁) ∨
       (childrenOf s₁.tree np ≠ [] ∧ ReplaceAllSpec s₁ none np s₂)) ∧

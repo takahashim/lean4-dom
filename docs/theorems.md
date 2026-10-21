@@ -1093,15 +1093,17 @@ normalize の `NormalizeEngineSpec` と `NormalizeStandardSpec` は別の関係�
 | `Dom.Spec.insertNode_result_deterministic`・`rangeInsertNode_result_complete` | start node が Text でなければ、関係は結果を観測の上で一つに決める | `Dom/Spec/RangeInsertCongr.lean` |
 | `Dom.Spec.commonAncestor_spec` | 実行側の common ancestor は "get the common ancestor" の関係を満たす | `Dom/Spec/RangeExtractSound.lean` |
 | `Dom.Spec.contentsInto_sound` | extract と clone the contents の step 2 以降は、結果が `outsideModel` でなければ `ContentsInto` を満たす | 同上 |
-| `Dom.Spec.rangeExtractContents_result_sound`・`rangeCloneContents_result_sound` | `extractContents()`・`cloneContents()` は `ContentsResult` を満たす（同上） | 同上 |
+| `Dom.Spec.rangeExtractContents_result_sound`・`rangeCloneContents_result_sound` | `extractContents()`・`cloneContents()` は `ContentsResult` を満たす（同上）。成功の状態は、使い終えた subfragment を消したもの | 同上 |
 | `Dom.Spec.rangeSurroundContents_result_sound` | `surroundContents()` は `SurroundResult` を満たす。成功の状態は、空になった fragment を消したもの | 同上 |
 | `Dom.closed_contentsInto` ほか | 部品で閉じた性質は extract・clone the contents・`surroundContents()`・`insertNode` で保たれる | `Dom/Validity/RangeExtract.lean` |
 
 split の関係は step 7.1 を本文どおり insert で、step 7.2-7.5 を移した先の検査なしで書く。実行関数の pre-insert と検査は、
 admissible な状態では insert と同じで、検査は効かない。証明はそれを `validity_freshText` と `splitAdjusted_splitTextBP` で示す。
 
-extract と clone the contents の関係は、本文が subrange を新しい DocumentFragment へ入れて clone に append する所を、
-clone へ直接入れる形で書く。この同値は証明していない（`notes/spec-divergences.md` §2）。
+extract と clone the contents の関係は、本文どおり subrange を新しい DocumentFragment（subfragment）へ入れてから
+clone に append する（`SubContents`）。実行関数も同じ順に走り、`extractContents()`・`cloneContents()` の最後に、append
+し終えた空の subfragment を状態から消す（`discardCreated`）。だから二つの soundness は、`surroundContents()` と同じく、
+成功の状態が関係の状態からそれを消したものであると述べる。
 `contentsInto_sound` は、木にあった node が kind ごと残り（`Keeps`）、live range の数が変わらない（`LenKeep`）ことを、
 部品で閉じた性質として運ぶ。step 19 で last partially contained child を扱うときにそれが木にあって Document でないこと、
 `surroundContents()` の step 5・7 で `this` がまだあることは、この二つから出る。

@@ -391,8 +391,11 @@ function registerConverted(ctx, args, maxBefore) {
  * 失敗したときは、辿れる node だけを同じ順で登録する（空のまま残った fragment は model も消す）。
  * clone だけの fragment は辿れないが、model が clone に振った id は空いたまま残るので、`hidden` 個
  * （`surroundClones`）を飛ばす。
+ * CharacterData でない partially contained child の clone（`gaps`）の直後には、model が subfragment を作る
+ * （step 17.3-17.5・20.3-20.5）。subfragment は最後に消えるので、id を一つ飛ばす。
  */
-function registerRangeCreated(ctx, maxBefore, frag, newParent, reserveFragment = true, hidden = 0) {
+function registerRangeCreated(ctx, maxBefore, frag, newParent, reserveFragment = true, hidden = 0,
+  gaps = new Set()) {
   const known = new Set(ctx.objects.values());
   const roots = [];
   const starts = [...ctx.objects.values()];
@@ -420,11 +423,51 @@ function registerRangeCreated(ctx, maxBefore, frag, newParent, reserveFragment =
   }
   if (newParent) visit(newParent);
   for (const r of roots) visit(r);
-  const base = (reserveFragment ? maxBefore + 2 : maxBefore + 1) + (f ? 0 : hidden);
-  fresh.forEach((n, i) => {
-    ctx.objects.set(base + i, n);
-    ctx.kinds.set(base + i, kindName(n));
-  });
+  let id = (reserveFragment ? maxBefore + 2 : maxBefore + 1) + (f ? 0 : hidden);
+  for (const n of fresh) {
+    ctx.objects.set(id, n);
+    ctx.kinds.set(id, kindName(n));
+    id += gaps.has(n) ? 2 : 1;
+  }
+}
+
+const CHARACTER_DATA_TYPES = [3, 4, 7, 8];
+
+/**
+ * extract（clone the contents）が clone する CharacterData でない partially contained node の段数を、
+ * start 側と end 側について数える。端点から common ancestor の子までの node の数で、端点が CharacterData なら
+ * 一つ減らす（その段は data を写すだけで subfragment を作らない）。端点が他方の inclusive ancestor なら、
+ * その側には partially contained な node が無い。
+ */
+function partialSpine(range) {
+  if (range.collapsed) return [0, 0];
+  const start = range.startContainer;
+  const end = range.endContainer;
+  if (start === end) return [0, 0];
+  const ca = range.commonAncestorContainer;
+  const side = (n) => {
+    if (n === ca) return 0;
+    let depth = 0;
+    for (let x = n; x && x !== ca; x = x.parentNode) depth += 1;
+    return CHARACTER_DATA_TYPES.includes(n.nodeType) ? depth - 1 : depth;
+  };
+  return [side(start), side(end)];
+}
+
+/** 結果の fragment で、partially contained child の clone は先頭の子と末尾の子を段数だけ辿った所にある。 */
+function spineClones(frag, [first, last]) {
+  const gaps = new Set();
+  let x = frag;
+  for (let i = 0; i < first && x; i++) {
+    x = x.firstChild;
+    if (x) gaps.add(x);
+  }
+  x = frag;
+  for (let i = 0; i < last && x; i++) {
+    x = x.lastChild;
+    if (x) gaps.add(x);
+  }
+  return gaps;
 }
 
 /**
@@ -797,6 +840,7 @@ function applyRangeOp(ctx, op) {
       let made = null;
       const surround = op.op === "rangeSurroundContents";
       const hidden = surround ? surroundClones(range) : 0;
+      const spine = surround ? [0, 0] : partialSpine(range);
       let raised = true;
       try {
         if (surround) {
@@ -808,7 +852,8 @@ function applyRangeOp(ctx, op) {
         raised = false;
         return made;
       } finally {
-        registerRangeCreated(ctx, maxBefore, made, surround ? node : null, true, raised ? hidden : 0);
+        const gaps = made && made.nodeType === 11 ? spineClones(made, spine) : new Set();
+        registerRangeCreated(ctx, maxBefore, made, surround ? node : null, true, raised ? hidden : 0, gaps);
       }
     }
   }

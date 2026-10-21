@@ -14,22 +14,19 @@ contained / partially contained）。再帰の step 15 は subrange 自身を置
 ものは無い。だから subrange は端点の組（`RangeState`）として渡し、`s.ranges` には入れない。
 `this` だけが `self = some i` として渡り、step 15 で置き直され、以後の mutation で調整される。
 
-## subfragment を作らず、clone に直接入れる
+## subfragment
 
 本文は subrange を新しい DocumentFragment（subfragment）へ extract し、それを clone に append する
-（step 17.4-17.5）。model は subfragment を作らず、clone を入れ先として再帰する。
+（step 17.3-17.5・20.3-20.5）。model も同じ順に subfragment を作り、append する（`subContents`）。
 
-違いが見えるのは三つの所だけで、どれも観測できない。
+append した後の subfragment は空で、どこからも辿れない。`extractContents()`・`cloneContents()` は最後に、
+step 1 の fragment より後に作った node のうち参照されなくなったものを消す（`discardCreated`。
+`Dom/Mutation/Variadic.lean` と同じ約束）。途中で消すと、`freshId` が subfragment の id を後の node に
+もう一度振ることがあるので、最後にまとめて消す。
 
-* **mutation record。** subfragment と clone は作ったばかりで、registered observer を持たず、
-  祖先にも持たない。subfragment から clone へ子を移す insert と remove の record は、どの
-  observer にも積まれない。外した contained child には transient registered observer が付きうるが、
-  record の target は subfragment か clone で、外した node はその inclusive ancestor ではない。
-* **live range と iterator。** 状態の live range も NodeIterator も、作ったばかりの node を指せない。
-  NodeIterator の root が外した contained child であることはありうるが、その node を subfragment から
-  外すときの pre-removing steps は「root なら何もしない」に当たる。
-* **node の id。** subfragment に id を振らないので、作った node の id は **結果の DocumentFragment の
-  tree order で、作った node だけを並べた順** になる。runner はその規則で id を振る。
+**node の id。** 作った node の id は作った順である。clone した partially contained child の直後に、その
+subfragment の id が来る。subfragment は消えるので、id は一つ空く。それを除けば、id は **結果の
+DocumentFragment の tree order で、作った node だけを並べた順** になる。runner はその規則で id を振る。
 
 ## 失敗したときの状態
 
@@ -141,11 +138,37 @@ def dataPart (cut : Bool) (s : DOMState) (n : NodeId) (offset count : Nat) (into
 abbrev Recur := DOMState → RangeState → NodeId → Except (DOMException × DOMState) DOMState
 
 /--
+step 1 の fragment を作る。node document は start node の node document である。
+-/
+def rangeFragment (s : DOMState) (r : RangeState) : Except DOMException (NodeId × DOMState) :=
+  match s.tree.get? r.start.node with
+  | none => .error .notFoundError
+  | some ds => createDocumentFragment s ds.ownerDocument
+
+/--
+subrange を extract（clone the contents）した subfragment を、clone に append する
+（extract の step 17.3-17.5・20.3-20.5、clone the contents の step 13.3-13.5・16.3-16.5）。
+
+"extracting subrange" は step 1 で新しい DocumentFragment（subfragment）を作り、そこへ step 2 以降を走らせる。
+append した後の subfragment は空で、どこからも辿れない。消すのは `extractContents()`・`cloneContents()` の
+最後である（`discardCreated`）。ここで消すと、subfragment の id が後の node に再び使われることがある。
+-/
+def subContents (recur : Recur) (s : DOMState) (r : RangeState) (c : NodeId) :
+    Except (DOMException × DOMState) DOMState :=
+  match rangeFragment s r with
+  | .error e => .error (e, s)
+  | .ok (sub, s₁) =>
+    match recur s₁ r sub with
+    | .error p => .error p
+    | .ok s₂ => failWith s₂ (append s₂ sub c)
+
+/--
 first partially contained child の扱い（extract の step 16-17、clone the contents の step 12-13）。
 
 CharacterData なら originalStartNode の start offset から後ろを写す（その child は
 originalStartNode そのものである）。そうでなければ child を clone して `into` に append し、
-(originalStart, (child, child の length)) の subrange を `recur` でその clone に入れる。
+(originalStart, (child, child の length)) の subrange を subfragment へ `recur` で入れ、それを clone に append する
+（`subContents`）。
 -/
 def partialFirst (cut : Bool) (recur : Recur) (s : DOMState) (r : RangeState)
     (fp : Option NodeId) (into : NodeId) : Except (DOMException × DOMState) DOMState :=
@@ -160,7 +183,7 @@ def partialFirst (cut : Bool) (recur : Recur) (s : DOMState) (r : RangeState)
       else
         match appendShallowClone s fd into with
         | .error p => .error p
-        | .ok (c, s₁) => recur s₁ { start := r.start, «end» := ⟨fp, lengthOf s₁.tree fp⟩ } c
+        | .ok (c, s₁) => subContents recur s₁ { start := r.start, «end» := ⟨fp, lengthOf s₁.tree fp⟩ } c
 
 /--
 last partially contained child の扱い（extract の step 19-20、clone the contents の step 15-16）。
@@ -178,7 +201,7 @@ def partialLast (cut : Bool) (recur : Recur) (s : DOMState) (r : RangeState)
       else
         match appendShallowClone s ld into with
         | .error p => .error p
-        | .ok (c, s₁) => recur s₁ { start := ⟨lp, 0⟩, «end» := r.«end» } c
+        | .ok (c, s₁) => subContents recur s₁ { start := ⟨lp, 0⟩, «end» := r.«end» } c
 
 /-- contained children を順に `into` へ append する（extract の step 18）。 -/
 def appendEach (s : DOMState) (into : NodeId) : List NodeId → Except (DOMException × DOMState) DOMState
@@ -288,16 +311,27 @@ def discardFragmentOnError {α : Type} (base frag : NodeId) :
     .error (e, discardFragment s frag ((childrenOf s.tree frag).filter fun c => base.id ≤ c.id))
   | .ok a => .ok a
 
-/--
-step 1 の fragment を作る。node document は start node の node document である。
--/
-def rangeFragment (s : DOMState) (r : RangeState) : Except DOMException (NodeId × DOMState) :=
-  match s.tree.get? r.start.node with
-  | none => .error .notFoundError
-  | some ds => createDocumentFragment s ds.ownerDocument
+/-- `base` より大きい id の node を順に、参照されなくなっていれば消す。 -/
+def discardAfter (base : NodeId) (s : DOMState) : DOMState :=
+  discardAll s ((List.range (maxId s.tree - base.id)).map fun k => ⟨base.id + 1 + k⟩)
 
-/-- DOM Standard §5.5 `extractContents()`。fragment と状態を返す。 -/
-def rangeExtractContents (s : DOMState) (i : Nat) :
+/--
+step 1 の fragment より後に作った node のうち、参照されなくなったものを消す。
+
+成功したとき、そうなっているのは clone に append し終えた subfragment だけである。
+-/
+def discardCreated {α : Type} (base : NodeId) :
+    Except (DOMException × DOMState) (α × DOMState) → Except (DOMException × DOMState) (α × DOMState)
+  | .error (e, s) => .error (e, discardAfter base s)
+  | .ok (a, s) => .ok (a, discardAfter base s)
+
+/--
+DOM Standard §5.5 `extractContents()` の、subfragment を消す前の部分。fragment と状態を返す。
+
+`surroundContents()` はこれを呼ぶ。step 1 を通った range の partially contained な node は Text だけなので、
+subfragment は作られない。
+-/
+def rangeExtractInto (s : DOMState) (i : Nat) :
     Except (DOMException × DOMState) (NodeId × DOMState) :=
   match s.ranges[i]? with
   | none => .error (.notFoundError, s)
@@ -307,8 +341,13 @@ def rangeExtractContents (s : DOMState) (i : Nat) :
     | .ok (frag, s₁) =>
       discardOnError frag ((contentsInto true (s₁.tree.size + 1) s₁ r (some i) frag).map (frag, ·))
 
-/-- DOM Standard §5.5 `cloneContents()`。fragment と状態を返す。 -/
-def rangeCloneContents (s : DOMState) (i : Nat) :
+/-- DOM Standard §5.5 `extractContents()`。fragment と状態を返す。 -/
+def rangeExtractContents (s : DOMState) (i : Nat) :
+    Except (DOMException × DOMState) (NodeId × DOMState) :=
+  discardCreated (freshId s.tree) (rangeExtractInto s i)
+
+/-- DOM Standard §5.5 `cloneContents()` の、subfragment を消す前の部分。 -/
+def rangeCloneInto (s : DOMState) (i : Nat) :
     Except (DOMException × DOMState) (NodeId × DOMState) :=
   match s.ranges[i]? with
   | none => .error (.notFoundError, s)
@@ -317,6 +356,11 @@ def rangeCloneContents (s : DOMState) (i : Nat) :
     | .error e => .error (e, s)
     | .ok (frag, s₁) =>
       discardOnError frag ((contentsInto false (s₁.tree.size + 1) s₁ r none frag).map (frag, ·))
+
+/-- DOM Standard §5.5 `cloneContents()`。fragment と状態を返す。 -/
+def rangeCloneContents (s : DOMState) (i : Nat) :
+    Except (DOMException × DOMState) (NodeId × DOMState) :=
+  discardCreated (freshId s.tree) (rangeCloneInto s i)
 
 /-- step 1：start node か end node の inclusive ancestor のうち、partially contained で Text でないものがある。 -/
 def partiallyContainsNonText (t : Tree) (r : RangeState) : Bool :=
@@ -344,7 +388,7 @@ def rangeSurroundContents (s : DOMState) (i : Nat) (newParent : NodeId) :
         .error (.invalidNodeTypeError, s)
       else
         -- step 3
-        match rangeExtractContents s i with
+        match rangeExtractInto s i with
         | .error p => .error p
         | .ok (frag, s₁) =>
           discardFragmentOnError (freshId s.tree) frag do

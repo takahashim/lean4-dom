@@ -118,6 +118,49 @@ theorem parentOf_append_ne {s s' : DOMState} {c p : NodeId} {cd : NodeData}
   obtain ⟨pd, s₁, -, ha, hia, -⟩ := insert_single hcd (by simpa using hk) hi
   rw [parentOf_insertAt_other hia hm, parentOf_adopt_ne ha hm, liveRangeInsertAdjust_tree]
 
+/-- 入れる node の列に無い node の parent は、`insertEach` で動かない。 -/
+theorem parentOf_insertEach_of_not_mem :
+    ∀ (ns : List NodeId) {s s' : DOMState} {parent : NodeId} {child : Option NodeId} {doc : NodeId},
+      insertEach s parent child doc ns = .ok s' →
+      ∀ m, m ∉ ns → parentOf s'.tree m = parentOf s.tree m
+  | [], s, s', _, _, _, h, m, _ => by rw [insertEach] at h; cases h; rfl
+  | n :: ns, s, s', parent, child, doc, h, m, hm => by
+    rw [insertEach] at h
+    split at h
+    · simp at h
+    · next s₁ ha =>
+      split at h
+      · simp at h
+      · next s₂ hi =>
+        have hmn : m ≠ n := fun he => hm (by simp [he])
+        obtain ⟨hi₁, -⟩ := DOMState.mapTree_eq_ok hi
+        rw [parentOf_insertEach_of_not_mem ns h m (fun h' => hm (by simp [h'])),
+          parentOf_insertAt_other hi₁ hmn, parentOf_adopt_ne ha hmn]
+
+theorem parentOf_insertNodesAt_of_not_mem {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
+    {ns : List NodeId} {b : Bool} (h : insertNodesAt s parent child ns b = .ok s') {m : NodeId}
+    (hm : m ∉ ns) : parentOf s'.tree m = parentOf s.tree m := by
+  obtain ⟨sx, hx, hstep⟩ := insertNodesAt_cases h
+  obtain ⟨pd, -, hie⟩ := insertEachAt_cases hx
+  have hsx := parentOf_insertEach_of_not_mem ns hie m hm
+  rw [liveRangeInsertAdjust_tree] at hsx
+  rcases hstep with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · exact hsx
+  · rw [queueTreeMutationRecord_tree]; exact hsx
+
+/-- `append` が parent を動かすのは、入れる node と、それが fragment ならその子だけである。 -/
+theorem parentOf_append_of_not_mem {s s' : DOMState} {c p : NodeId} (h : append s c p = .ok s')
+    {m : NodeId} (hmc : m ≠ c) (hm : m ∉ childrenOf s.tree c) :
+    parentOf s'.tree m = parentOf s.tree m := by
+  obtain ⟨-, hi⟩ := preInsert_cases h
+  obtain ⟨nd, hnd, hcase⟩ := insert_cases hi
+  rw [childrenOf_eq hnd] at hm
+  rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, s₁, hr, hins⟩ | ⟨-, hins⟩
+  · rfl
+  · rw [parentOf_insertNodesAt_of_not_mem hins hm, queueTreeMutationRecord_tree,
+      parentOf_removeEach_of_not_mem _ hr hm]
+  · exact parentOf_insertNodesAt_of_not_mem hins (by simpa using hmc)
+
 /-- `append` は node の kind を変えない。 -/
 theorem kind_append {s s' : DOMState} {c p m : NodeId} {md : NodeData}
     (h : append s c p = .ok s') (hmd : s.tree.get? m = some md) :
@@ -335,13 +378,70 @@ def RecurFrame (recur : Recur) : Prop :=
     InclusiveAncestor s.tree r.«end».node r.start.node → recur s r c = .ok s' →
     ∀ m, InTree s.tree m → ¬ Ancestor s.tree r.«end».node m → parentOf s'.tree m = parentOf s.tree m
 
+/-- step 1 の fragment は新しい node で、木にあった node の parent を動かさない。 -/
+theorem rangeFragment_fresh {s s₁ : DOMState} {r : RangeState} {sub : NodeId}
+    (h : rangeFragment s r = .ok (sub, s₁)) : s.tree.get? sub = none := by
+  unfold rangeFragment at h
+  split at h
+  · simp at h
+  · unfold createDocumentFragment at h
+    split at h
+    · simp at h
+    · cases h
+      exact freshId_get?_eq_none s.tree
+
+theorem parentsKept_rangeFragment {s s₁ : DOMState} {r : RangeState} {sub : NodeId}
+    (h : rangeFragment s r = .ok (sub, s₁)) : ParentsKept s s₁ := fun m md hmd => by
+  have h₁ := rangeFragment_get? h hmd
+  exact ⟨⟨md, h₁, rfl⟩, parentOf_congr (h₁.trans hmd.symm)⟩
+
+/--
+subrange を subfragment へ extract して clone に append する部分の frame。subrange の end node が start node の
+inclusive ancestor なら、動くのは新しい node と、end node の strict descendant だけである。subfragment に入る木の
+node は再帰で parent が変わったものなので、clone への append もそれ以外を動かさない。
+-/
+theorem subContents_frame {recur : Recur} {s s' : DOMState} {r : RangeState} {c : NodeId}
+    (hrec : RecurFrame recur) (hrk : ∀ s₀, RecurClosed (Keeps s₀) recur) (h : AdmissibleDOMState s)
+    (hs : InTree s.tree r.start.node) (he : InTree s.tree r.«end».node)
+    (hab : InclusiveAncestor s.tree r.«end».node r.start.node)
+    (hr : subContents recur s r c = .ok s') :
+    ∀ m, InTree s.tree m → ¬ Ancestor s.tree r.«end».node m → parentOf s'.tree m = parentOf s.tree m := by
+  have hwf := h.wellFormed
+  intro m hm hnm
+  unfold subContents at hr
+  split at hr
+  · simp at hr
+  · next sub s₁ hf =>
+    have hk₁ := parentsKept_rangeFragment hf
+    have hkeep₁ : Keeps s s₁ := (keeps_contentsClosed s).fragment (keeps_refl h) hf
+    have hfresh := rangeFragment_fresh hf
+    split at hr
+    · simp at hr
+    · next s₂ hs₂ =>
+      have hab₁ : InclusiveAncestor s₁.tree r.«end».node r.start.node :=
+        inclusiveAncestor_of_chain_kept (fun y hy => hk₁.parentOf (inTree_of_inclusiveAncestor hwf hs hy)) hab
+      have hm₁ := hk₁.inTree hm
+      have hnm₁ : ¬ Ancestor s₁.tree r.«end».node m := fun ha =>
+        hnm (ancestor_of_parents_kept hwf (fun _ hy => hk₁.parentOf hy) ha hm)
+      have e₂ := hrec s₁ r sub s₂ hkeep₁.1 (hkeep₁.inTree hs) (hkeep₁.inTree he) hab₁ hs₂ m hm₁ hnm₁
+      have hwf₂ := (hrk s₁ _ _ _ _ (keeps_refl hkeep₁.1) hs₂).1.wellFormed
+      have hmsub : m ≠ sub := by
+        intro he'; obtain ⟨md, hmd⟩ := hm; rw [he', hfresh] at hmd; cases hmd
+      have hnc : m ∉ childrenOf s₂.tree sub := by
+        intro hmc
+        have hp₂ := (mem_childrenOf_iff hwf₂ m sub).mpr hmc
+        rw [e₂, hk₁.parentOf hm] at hp₂
+        obtain ⟨sd, hsd⟩ := exists_data_of_parentOf hwf hp₂
+        rw [hfresh] at hsd; cases hsd
+      rw [parentOf_append_of_not_mem (failWith_ok.mp hr) hmsub hnc, e₂, hk₁.parentOf hm]
+
 /--
 first partially contained child の側の frame。child が `ca` の子で start node の inclusive ancestor なら、
 動くのは child の clone（新しい node）と、再帰が動かす child の strict descendant だけである。
 -/
 theorem partialFirst_frame {cut : Bool} {recur : Recur} {s s' : DOMState} {r : RangeState}
     {fp : Option NodeId} {ca into : NodeId} (hrec : RecurFrame recur)
-    (h : AdmissibleDOMState s)
+    (hrk : ∀ s₀, RecurClosed (Keeps s₀) recur) (h : AdmissibleDOMState s)
     (hstart : InTree s.tree r.start.node)
     (hfp : ∀ x, fp = some x → parentOf s.tree x = some ca ∧ InclusiveAncestor s.tree x r.start.node)
     (hr : partialFirst cut recur s r fp into = .ok s') :
@@ -372,8 +472,8 @@ theorem partialFirst_frame {cut : Bool} {recur : Recur} {s s' : DOMState} {r : R
             inclusiveAncestor_of_chain_kept hchain hxs
           have hx₁ : InTree s₁.tree x := hkeep₁.inTree (exists_data_of_parentOf hwf hxp |>.elim
             fun _ _ => ⟨fd, hfd⟩)
-          have hrm := hrec s₁ { start := r.start, «end» := ⟨x, lengthOf s₁.tree x⟩ } c s' hkeep₁.1
-            (hkeep₁.inTree hstart) hx₁ hxs₁ hr m (hk₁.inTree hm)
+          have hrm := subContents_frame (r := { start := r.start, «end» := ⟨x, lengthOf s₁.tree x⟩ })
+            hrec hrk hkeep₁.1 (hkeep₁.inTree hstart) hx₁ hxs₁ hr m (hk₁.inTree hm)
             (fun ha₁ => hnm x rfl (ancestor_of_parents_kept hwf (fun _ hy => hk₁.parentOf hy) ha₁ hm))
           rw [hrm, hk₁.parentOf hm]
 
@@ -434,7 +534,7 @@ theorem contentsInto_frame_first (cut : Bool) :
                       rcases hxe with he' | he'
                       · rw [he'] at hxp; exact hwf.acyclic _ (.step hxp)
                       · exact hwf.acyclic _ (.trans hxp he')
-                  have hp₂ := partialFirst_frame hrec h hs hfpx hs₂
+                  have hp₂ := partialFirst_frame hrec hrk h hs hfpx hs₂
                   have hk₂ : Keeps s₁ s₂ :=
                     closed_partialFirst (keeps_contentsClosed s₁) (hrk s₁) (keeps_refl h) hs₂
                   split at hr
@@ -727,13 +827,25 @@ theorem lastPartial_side {t : Tree} {r : RangeState} (hwf : WellFormed t) {sd ed
 
 /-! ## 再帰の取り替え -/
 
+/-- 再帰が同じ値を返せば、subfragment を経る部分も同じ値を返す。 -/
+theorem subContents_congr {recur₁ recur₂ : Recur} {s : DOMState} {r : RangeState} {c : NodeId}
+    (h : ∀ sub s₁, rangeFragment s r = .ok (sub, s₁) → recur₁ s₁ r sub = recur₂ s₁ r sub) :
+    subContents recur₁ s r c = subContents recur₂ s r c := by
+  unfold subContents
+  cases hf : rangeFragment s r with
+  | error e => rfl
+  | ok v =>
+    obtain ⟨sub, s₁⟩ := v
+    simp only []
+    rw [h sub s₁ hf]
+
 /-- 再帰が同じ値を返せば、first partially contained child の扱いも同じ値を返す。 -/
 theorem partialFirst_congr {cut : Bool} {recur₁ recur₂ : Recur} {s : DOMState} {r : RangeState}
     {fp : Option NodeId} {into : NodeId}
     (h : ∀ x fd c s₁, fp = some x → s.tree.get? x = some fd → fd.kind.isCharacterData = false →
       appendShallowClone s fd into = .ok (c, s₁) →
-      recur₁ s₁ { start := r.start, «end» := ⟨x, lengthOf s₁.tree x⟩ } c =
-        recur₂ s₁ { start := r.start, «end» := ⟨x, lengthOf s₁.tree x⟩ } c) :
+      subContents recur₁ s₁ { start := r.start, «end» := ⟨x, lengthOf s₁.tree x⟩ } c =
+        subContents recur₂ s₁ { start := r.start, «end» := ⟨x, lengthOf s₁.tree x⟩ } c) :
     partialFirst cut recur₁ s r fp into = partialFirst cut recur₂ s r fp into := by
   unfold partialFirst
   cases fp with
@@ -758,8 +870,8 @@ theorem partialLast_congr {cut : Bool} {recur₁ recur₂ : Recur} {s : DOMState
     {lp : Option NodeId} {into : NodeId}
     (h : ∀ x ld c s₁, lp = some x → s.tree.get? x = some ld → ld.kind.isCharacterData = false →
       appendShallowClone s ld into = .ok (c, s₁) →
-      recur₁ s₁ { start := ⟨x, 0⟩, «end» := r.«end» } c =
-        recur₂ s₁ { start := ⟨x, 0⟩, «end» := r.«end» } c) :
+      subContents recur₁ s₁ { start := ⟨x, 0⟩, «end» := r.«end» } c =
+        subContents recur₂ s₁ { start := ⟨x, 0⟩, «end» := r.«end» } c) :
     partialLast cut recur₁ s r lp into = partialLast cut recur₂ s r lp into := by
   unfold partialLast
   cases lp with
@@ -847,20 +959,23 @@ theorem contentsInto_fuel (cut : Bool) :
         partialFirst cut (fun s' r' c => contentsInto cut f s' r' none c) s₁ r
           (firstPartiallyContainedChild s.tree r ca) into := by
       refine partialFirst_congr fun x fd c s₁' hx hfd _ ha => ?_
+      refine subContents_congr fun sub s₂' hf => ?_
       obtain ⟨hxp, hxs⟩ := hfpx x hx
       rw [htree₁] at hxp hxs
-      have hpk := parentsKept_appendShallowClone
-        (not_fragment_of_parent hk₁.1 hfd (by rw [htree₁]; exact hxp)) ha
-      have hk' : Keeps s₁ s₁' :=
-        closed_appendShallowClone (keeps_contentsClosed s₁) (keeps_refl hk₁.1) hfd ha
+      have hpk := (parentsKept_appendShallowClone
+        (not_fragment_of_parent hk₁.1 hfd (by rw [htree₁]; exact hxp)) ha).trans (parentsKept_rangeFragment hf)
+      have hk' : Keeps s₁ s₂' :=
+        (closed_appendShallowClone (keeps_contentsClosed s₁) (keeps_refl hk₁.1) hfd ha).trans
+          ((keeps_contentsClosed s₁').fragment (keeps_refl (closed_appendShallowClone
+            (keeps_contentsClosed s₁) (keeps_refl hk₁.1) hfd ha).1) hf)
       have hwf' := hk'.1.wellFormed
       have hchain : ∀ y, InclusiveAncestor s.tree y r.start.node →
-          parentOf s₁'.tree y = parentOf s.tree y := fun y hy => by
+          parentOf s₂'.tree y = parentOf s.tree y := fun y hy => by
         rw [hpk.parentOf (by rw [htree₁]; exact inTree_of_inclusiveAncestor hwf ⟨sd, hsd⟩ hy), htree₁]
-      have hxs' : InclusiveAncestor s₁'.tree x r.start.node := inclusiveAncestor_of_chain_kept hchain hxs
+      have hxs' : InclusiveAncestor s₂'.tree x r.start.node := inclusiveAncestor_of_chain_kept hchain hxs
       have hdx := depth_parent hwf hxp
       have hdsx := depth_le_of_inclusiveAncestor hwf hxs
-      have hdiff : depth s₁'.tree r.start.node - depth s₁'.tree x =
+      have hdiff : depth s₂'.tree r.start.node - depth s₂'.tree x =
           depth s.tree r.start.node - depth s.tree x := by
         rcases hxs with he' | hanc
         · rw [he']; simp
@@ -873,7 +988,7 @@ theorem contentsInto_fuel (cut : Bool) :
         (commonAncestor_of_end_above (r := { start := r.start, «end» := ⟨x, lengthOf s₁'.tree x⟩ })
           hwf' hxs')
       rw [show ca' = x from this]
-      show depth s₁'.tree r.start.node - depth s₁'.tree x < f ∧ depth s₁'.tree x - depth s₁'.tree x < f
+      show depth s₂'.tree r.start.node - depth s₂'.tree x < f ∧ depth s₂'.tree x - depth s₂'.tree x < f
       omega
     rw [hpfe]
     cases hpf : partialFirst cut (fun s' r' c => contentsInto cut f s' r' none c) s₁ r
@@ -882,7 +997,7 @@ theorem contentsInto_fuel (cut : Bool) :
     | ok s₂ =>
     simp only []
     have hk₂ : Keeps s₁ s₂ := closed_partialFirst (keeps_contentsClosed s₁) (hrk s₁) (keeps_refl hk₁.1) hpf
-    have hp₂ := partialFirst_frame hrec hk₁.1 (by rw [htree₁]; exact ⟨sd, hsd⟩) hfpx hpf
+    have hp₂ := partialFirst_frame hrec hrk hk₁.1 (by rw [htree₁]; exact ⟨sd, hsd⟩) hfpx hpf
     -- step 18
     cases hcr : (if cut then appendEach s₂ into (containedChildren s.tree r ca)
         else cloneEach s₂ into (containedChildren s.tree r ca)) with
@@ -900,7 +1015,8 @@ theorem contentsInto_fuel (cut : Bool) :
       · exact closed_appendEach (keeps_contentsClosed s₂) _ (keeps_refl hk₂.1) hcr
       · exact closed_cloneEach (keeps_contentsClosed s₂) _ (keeps_refl hk₂.1) hcr
     -- step 19-20：再帰は end 側の片側の range で、first の側と contained children の後の状態で走る
-    refine partialLast_congr fun x ld c s₄ hx hld _ ha => ?_
+    refine partialLast_congr fun x ld c s₄' hx hld _ ha => ?_
+    refine subContents_congr fun sub s₄ hf => ?_
     obtain ⟨hxp, hxe⟩ := lastPartial_side hwf hsd hed hord hCA hx
     have hk₃' : Keeps s s₃ := (hk₁.trans hk₂).trans hk₃
     have hxnf : ld.kind ≠ .documentFragment := by
@@ -908,8 +1024,9 @@ theorem contentsInto_fuel (cut : Bool) :
       obtain ⟨ld', hld', hke⟩ := hk₃'.2 x xd hxd
       rw [hld] at hld'; cases hld'
       rw [hke]; exact not_fragment_of_parent h hxd hxp
-    have hpk₄ := parentsKept_appendShallowClone hxnf ha
-    have hk₄ : Keeps s₃ s₄ := closed_appendShallowClone (keeps_contentsClosed s₃) (keeps_refl hk₃.1) hld ha
+    have hpk₄ := (parentsKept_appendShallowClone hxnf ha).trans (parentsKept_rangeFragment hf)
+    have hk₄' : Keeps s₃ s₄' := closed_appendShallowClone (keeps_contentsClosed s₃) (keeps_refl hk₃.1) hld ha
+    have hk₄ : Keeps s₃ s₄ := hk₄'.trans ((keeps_contentsClosed s₄').fragment (keeps_refl hk₄'.1) hf)
     have hwf₄ := hk₄.1.wellFormed
     -- x より下の end node の inclusive ancestor は、s から s₄ まで parent を変えない
     have hchain : ∀ y, InclusiveAncestor s.tree y r.«end».node → Ancestor s.tree x y →
