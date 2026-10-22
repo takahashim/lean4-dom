@@ -47,7 +47,7 @@ theorem zeroRun_eq (a : Ipv6) (j : Nat) :
   · rw [List.drop_eq_getElem_cons hj, List.getElem?_eq_getElem hj]
     by_cases h0 : a[j] = 0
     · simp only [List.takeWhile_cons, h0, beq_self_eq_true, if_true, List.length_cons]
-    · simp only [List.takeWhile_cons, h0, Option.some.injEq, if_false, List.length_nil]
+    · simp only [List.takeWhile_cons, h0, Option.some.injEq, if_false]
       rw [if_neg (by simpa using h0)]; rfl
   · rw [List.drop_eq_nil_of_le (by omega), List.getElem?_eq_none (by omega)]
     simp

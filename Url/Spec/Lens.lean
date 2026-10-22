@@ -336,13 +336,13 @@ theorem setPort_portAttr {u : Url} {t : List Char → Option String} (hv : Valid
       · rfl
       · rw [port_none_of_cannot hv h] at hpo; cases hpo
     simp only [Url.cannotHaveCredentials, Bool.or_eq_false_iff] at hcan
-    simp only [Url.cannotHaveCredentials] at *
+    simp only at *
     rw [if_neg (by simp [hcan.1.1, hcan.1.2, hcan.2])]
     have hne : (toString p).isEmpty = false := by
       cases h : (toString p).isEmpty
       · rfl
-      · exact absurd (by simpa using h) (toString_ne_nil p)
-    rw [if_neg (by simp [hne])]
+      · exact absurd (by simp at h) (toString_ne_nil p)
+    rw [if_neg (by simp)]
     have hd : (stripTabNewline (toString p).toList).takeWhile isAsciiDigit = (toString p).toList := by
       rw [stripTabNewline_eq_self (fun c hc => digit_noTab (toString_digits p c hc)),
         takeWhile_all (toString_digits p)]
@@ -351,7 +351,7 @@ theorem setPort_portAttr {u : Url} {t : List Char → Option String} (hv : Valid
     rw [hd, hval]
     have hlt := hv.portRange p hpo
     have hnd := hp.port p hpo
-    rw [if_neg (by simp [toString_ne_nil p]; omega), if_neg hnd]
+    rw [if_neg (by simp; omega), if_neg hnd]
     cases u; simp_all
 
 theorem canonicalScheme_chars {s : String} (h : canonicalScheme s = true) :
@@ -392,7 +392,7 @@ theorem setProtocol_protocol {u : Url} {t : List Char → Option String} (hv : V
   have hnoTab : ∀ c ∈ u.scheme.toList ++ [':', ':'], c.toNat ≠ 0x09 ∧ c.toNat ≠ 0x0A ∧ c.toNat ≠ 0x0D := by
     intro c hc
     rw [he] at hc
-    simp only [List.cons_append, List.mem_cons, List.mem_append, List.mem_singleton,
+    simp only [List.cons_append, List.mem_cons, List.mem_append,
       List.not_mem_nil, or_false] at hc
     rcases hc with rfl | hc | rfl | rfl
     · simp only [isAsciiLowerAlpha, Bool.and_eq_true, decide_eq_true_eq] at ha; omega
@@ -631,7 +631,7 @@ theorem splitHostPort_host {sp : Bool} {h : Host} (hr : hostReadable sp h) (rest
     simp only [List.cons_append, List.append_assoc, splitHostPort]
     rw [if_neg (by decide), if_pos (by decide : ('[' == '[') = true), List.nil_append,
       splitHostPort_pass true _ inner (fun c hc => ⟨(hr c hc).2.1, (hr c hc).2.2.1, by simp⟩)]
-    simp only [List.cons_append, List.nil_append, splitHostPort]
+    simp only [List.nil_append, splitHostPort]
     simp
 
 /-- serialize した host の文字は、区切りでも tab・改行でもない。 -/
@@ -773,12 +773,12 @@ theorem hostSetterSpec_port {u : Url} {t : List Char → Option String} (htok : 
   have hne : (toString p).toList.isEmpty = false := by
     cases h : (toString p).toList.isEmpty
     · rfl
-    · exact absurd (by simpa using h) (toString_ne_nil p)
+    · exact absurd (by simp at h) (toString_ne_nil p)
   have hval : decimalOf (toString p).toList = p := by
     rw [decimalOf_eq_portValue, portValue_toString]
   rw [hval]
   have hlt := hv.portRange p hpo
-  rw [if_neg (by simp [hne]; omega), if_neg (hp.port p hpo)]
+  rw [if_neg (by simp; omega), if_neg (hp.port p hpo)]
   cases u; simp_all
 
 /--
