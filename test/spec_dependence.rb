@@ -53,14 +53,26 @@ ALLOWED = [
   ["Event.lean", "CallbackRan", "addListener"],
   # 関係ではなく、soundness の帰納法の仮定（再帰した実行関数の結果が関係を満たすこと）。
   # 実行関数の結果を述べるので、失敗の状態を落とす `dropErr` を使う。
-  ["RangeExtractSound.lean", "RecurSound", "dropErr"]
+  ["RangeExtractSound.lean", "RecurSound", "dropErr"],
+  # 関係ではなく、一致の証明の足場（parser の途中状態と、path start state から先の続き）。
+  # `specParse` の定義は `Url/Spec/Parse.lean` にあり、こちらは parser を語る側である。
+  ["ParseEquiv.lean", "authCtx", "userinfoStep"],
+  ["ParseEquiv.lean", "PathStartCont", "run"],
+  ["ParseSpecial.lean", "PathStartContSp", "run"],
+  # `List.set`（address の piece を書き換える）。`URLSearchParams` の `Params.set` と語が同じになるだけ。
+  ["Ipv6.lean", "octetNext", "set"],
+  ["Ipv6.lean", "setMany", "set"]
 ].freeze
 
 URL_IMPL = defs(["Url/Parser.lean", "Url/Api.lean", "Url/Urlencoded.lean",
                  "Url/SearchParams.lean", "Url/Idna.lean"])
 URL_VOCAB = defs(["Url/Record.lean", "Url/Percent.lean", "Url/Host.lean",
                   "Url/Ipv4.lean", "Url/Ipv6.lean", "Infra/*.lean"])
-URL_ALGORITHMS = URL_IMPL - URL_VOCAB
+# §4.4 の冒頭が state machine の外で定義している語彙と、step 1-3 の前処理。置き場所は
+# `Url/Parser.lean` だが、関係の側も同じ定義を使う（`Url/Spec/Path.lean` と `Url/Spec/Parse.lean` の冒頭を見よ）。
+URL_PARSER_VOCAB = %w[isSingleDot isDoubleDot isWindowsDrive isNormalizedWindowsDrive
+                      startsWithWindowsDrive preprocess stripTabNewline].to_set
+URL_ALGORITHMS = URL_IMPL - URL_VOCAB - URL_PARSER_VOCAB
 
 require "set"
 

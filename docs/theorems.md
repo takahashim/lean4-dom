@@ -985,7 +985,9 @@ Selectors の関係だけは照合の実装と同じ module を見るので、�
 
 URL の関係（`Url/Spec/`）も同じ script が見る。実行側は `Url/Parser.lean` の
 state machine、語彙は §1.3 の percent-encode と §4.1 の record、§3.2 の host、
-Infra である。いま触れているものは無い。`encChar` は §1.3 の操作なので
+Infra、それに §4.4 の冒頭が state machine の外で定義している single-dot / double-dot segment と
+Windows drive letter の判定である（置き場所が `Url/Parser.lean` なので script に名前で許してある）。
+いま触れているものは無い。`encChar` は §1.3 の操作なので
 `Url/Parser.lean` から `Url/Percent.lean` へ移した。
 
 ### 4''. 到達しない枝を散文で片付けていないか

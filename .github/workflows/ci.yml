@@ -92,6 +92,15 @@ jobs:
       - name: URL against WPT with the UTS #46 table
         run: lake exe url-model --wpt test/url/wpt-ascii.json test/url/uts46-table.json
 
+      # 関数的な仕様（`Url/Spec/Parse.lean`）を parser を通さずに WPT の期待値の入力で回す。
+      # 一致は `Url.Spec.parseUrl_eq_specParseUrl` が証明している。これは定義の取り違えの検査である。
+      - name: URL functional spec against the parser on WPT inputs
+        run: lake exe url-model --spec-batch test/url/wpt-ascii.json
+
+      # input か base に非 ASCII を含む 56 件。deviation の 1 件は表があっても対象外の印が残る。
+      - name: Non-ASCII URLs against WPT with the UTS #46 table
+        run: lake exe url-model --wpt test/url/wpt-unicode.json test/url/uts46-table.json
+
       - name: URL setters against WPT with the UTS #46 table
         run: lake exe url-model --setters test/url/wpt-setters.json test/url/uts46-table.json
 

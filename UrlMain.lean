@@ -96,6 +96,41 @@ def toAsciiOf : Option (Array IdnaRange) → (List Char → Option String)
   | none => asciiDomainToASCII
   | some rs => toASCII (tableOfRanges rs)
 
+/--
+表を渡したときに外す対象外の印。`idna` は「表が要る」という印なので、表があれば一致を求める。
+それ以外の理由（deviation など、表があっても model が持たない規則）は表を渡しても残す。
+-/
+def liftOutOfModel (idna : Option (Array IdnaRange)) (reason : Option String) : Option String :=
+  if idna.isSome && reason == some "idna" then none else reason
+
+/-- `Spec.HasScheme` の判定。先頭が ASCII alpha で、scheme の文字の並びの直後が `:`。 -/
+def hasSchemeB : List Char → Bool
+  | a :: rest => Infra.isAsciiAlpha a && (match rest.dropWhile Spec.isSchemeTail with
+      | ':' :: _ => true
+      | _ => false)
+  | [] => false
+
+/--
+関係の側の相対解決（`Url/Spec/Resolve.lean`）で計算した結果。定理の前提に当てはまる入力だけ値を返す。
+base は `file` でなく、opaque path でもないこと。入力は scheme を持たず、path-relative か absolute-path の形。
+-/
+def specResolve (input : String) (b : Url) : Option Url :=
+  match b.path with
+  | .opaque _ => none
+  | .list pb =>
+    if b.scheme == "file" then none
+    else
+      let l := preprocess input
+      if hasSchemeB l then none
+      else if Spec.pathRefStart b.isSpecial l then
+        some (Spec.refResolved b (Spec.resolveSegs false (Spec.shorten false pb)
+          (Spec.pathSegments b.isSpecial (Spec.splitRef l).1)) (Spec.splitRef l).2.1 (Spec.splitRef l).2.2)
+      else if Spec.absRefStart b.isSpecial l then
+        some (Spec.refResolved b (Spec.resolveSegs false []
+          (Spec.pathSegments b.isSpecial (Spec.splitRef l.tail).1))
+          (Spec.splitRef l.tail).2.1 (Spec.splitRef l.tail).2.2)
+      else none
+
 def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
   let text ← IO.FS.readFile path
   let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
@@ -109,6 +144,8 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
   let mut invalid := 0
   let mut originOk := 0
   let mut originBad := 0
+  let mut specOk := 0
+  let mut specBad := 0
   let mut shown := 0
   for j in arr do
     match caseOfJson j with
@@ -144,6 +181,17 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
             invalid := invalid + 1
             IO.println s!"ROUNDTRIP {repr (urlSerializer u)} -> {repr u} ≠ {repr u2}"
       | none => pure ()
+      -- 関係の側の相対解決。前提に当てはまる case だけ、parser を通さずに期待値と比べる。
+      match c.base.bind (fun b => parseUrl b none (toAsciiOf idna)) with
+      | some bu =>
+        match specResolve c.input bu with
+        | some r =>
+          if some (urlSerializer r) == expected then specOk := specOk + 1
+          else
+            specBad := specBad + 1
+            IO.println s!"SPEC-RESOLVE input={repr c.input} base={repr c.base} -> {urlSerializer r}"
+        | none => pure ()
+      | none => pure ()
       -- §4.7 origin。WPT の表が期待値を持っている case だけ見る。
       match got, c.origin with
       | some u, some expectedOrigin =>
@@ -159,7 +207,7 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
       -- 対象外かどうかは fixture が明示する。実行結果から推測しない
       -- （推測にすると、対象外でない case の退行が対象外に吸収されてしまう）。
       -- 表を渡したときは IDNA の印を無視して一致を要求する。
-      match (if idna.isSome then none else c.outOfModel) with
+      match (liftOutOfModel idna c.outOfModel) with
       | some reason =>
         if actual == expected then
           stale := stale + 1
@@ -178,7 +226,8 @@ def runWpt (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := do
   if stale != 0 then IO.println s!"対象外の印が古い: {stale}"
   IO.println s!"ValidUrl: 違反 {invalid}"
   IO.println s!"origin: 一致 {originOk} / 不一致 {originBad}"
-  return if bad == 0 && stale == 0 && invalid == 0 && originBad == 0 then 0 else 1
+  IO.println s!"関係の側の相対解決: 一致 {specOk} / 不一致 {specBad}"
+  return if bad == 0 && stale == 0 && invalid == 0 && originBad == 0 && specBad == 0 then 0 else 1
 
 /-! ## setter -/
 
@@ -222,6 +271,8 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
   let mut skipped := 0
   let mut stale := 0
   let mut invalid := 0
+  let mut specOk := 0
+  let mut specBad := 0
   let mut shown := 0
   for j in arr do
     match setterCaseOfJson j with
@@ -249,6 +300,23 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
           if !canonicalUrl u (toAsciiOf idna) then
             invalid := invalid + 1
             IO.println s!"CANONICAL setter={c.setter} href={repr c.href} value={repr c.newValue}"
+          -- setter の効果を入力の関数として書いたもの（`Url/Spec/Setters.lean`）と比べる。
+          -- 一致は `setPathname_eq`・`setPort_eq`・`setProtocol_eq`・`setHost_eq`・`setHostname_eq` が証明している。
+          let spec : Option Url := match c.setter with
+            | "pathname" =>
+              some (if u0.hasOpaquePath then u0 else { u0 with path := .list (Spec.pathnameSpec u0 c.newValue) })
+            | "port" => some (Spec.portSpec u0 c.newValue)
+            | "protocol" => some (Spec.protocolSpec u0 c.newValue)
+            | "host" => some (Spec.hostSetterSpec (toAsciiOf idna) u0 c.newValue false)
+            | "hostname" => some (Spec.hostSetterSpec (toAsciiOf idna) u0 c.newValue true)
+            | _ => none
+          match spec with
+          | some r =>
+            if r == u then specOk := specOk + 1
+            else
+              specBad := specBad + 1
+              IO.println s!"SPEC-SETTER {c.setter} href={repr c.href} value={repr c.newValue}"
+          | none => pure ()
           -- 対象外かどうかは fixture が明示する。`--wpt` 側と同じ扱い。
           let mut anyMismatch := false
           for (name, want) in c.expected do
@@ -261,7 +329,7 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
                 ok := ok + 1
               else
                 anyMismatch := true
-                match (if idna.isSome then none else c.outOfModel) with
+                match (liftOutOfModel idna c.outOfModel) with
                 | some _ => skipped := skipped + 1
                 | none =>
                   bad := bad + 1
@@ -269,7 +337,7 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
                     shown := shown + 1
                     IO.println s!"SETTER {c.setter} href={repr c.href} value={repr c.newValue}"
                     IO.println s!"  {name}: expected={repr want} actual={repr got}"
-          match (if idna.isSome then none else c.outOfModel) with
+          match (liftOutOfModel idna c.outOfModel) with
           | some reason =>
             if !anyMismatch then
               stale := stale + 1
@@ -278,7 +346,8 @@ def runSetters (path : String) (idna : Option (Array IdnaRange)) : IO UInt32 := 
   IO.println s!"setters: 一致 {ok} / 不一致 {bad} / 対象外 {skipped}"
   if stale != 0 then IO.println s!"対象外の印が古い: {stale}"
   IO.println s!"ValidUrl（setter 後）: 違反 {invalid}"
-  return if bad == 0 && stale == 0 && invalid == 0 then 0 else 1
+  IO.println s!"setter の関数的な仕様: 一致 {specOk} / 不一致 {specBad}"
+  return if bad == 0 && stale == 0 && invalid == 0 && specBad == 0 then 0 else 1
 
 /-! ## Punycode -/
 
@@ -595,6 +664,45 @@ def parseResultJson (input : String) (base : Option String) (idna : Option (Arra
         [("origin", Json.str (originSerializer (Url.origin u (toAsciiOf idna))))])
 
 /--
+`--spec-batch FILE [UTS46]`：入力ごとに、parser と関係の側の関数的な仕様（`Url/Spec/Parse.lean`）を比べる。
+base を持つ case も含め、`specParseUrl` は base も仕様の側で parse する。一致は
+`Url.Spec.parseUrl_eq_specParseUrl` が証明している。
+-/
+def runSpecBatch (path : String) (tablePath : Option String) : IO UInt32 := do
+  let idna ← match tablePath with
+    | none => pure none
+    | some t => loadIdnaTable t (verbose := false)
+  if tablePath.isSome && idna.isNone then return 1
+  let text ← IO.FS.readFile path
+  let .ok json := Json.parse text | do IO.eprintln s!"{path}: JSON を読めない"; return 1
+  -- 入力の配列か、WPT の表の形（`cases` に配列）を受け付ける。base を持つ case は数えない。
+  let arr ← match json.getArr?, json.getObjVal? "cases" with
+    | .ok a, _ => pure a
+    | _, .ok cs => match cs.getArr? with
+      | .ok a => pure a
+      | .error _ => do IO.eprintln s!"{path}: `cases` が配列ではない"; return 1
+    | _, _ => do IO.eprintln s!"{path}: 配列でも `cases` を持つ表でもない"; return 1
+  let mut ok := 0
+  let mut bad := 0
+  let mut skipped := 0
+  for j in arr do
+    let base := ((j.getObjValD "base").getStr?).toOption
+    let .ok input := (j.getObjValD "input").getStr?
+      | do IO.eprintln s!"{path}: input が文字列でない"; return 1
+    let model := parseUrl input base (toAsciiOf idna)
+    -- base も仕様の側で parse する（`Spec.parseUrl_eq_specParseUrl`）。
+    let spec := Spec.specParseUrl (toAsciiOf idna) input base
+    if model == spec then ok := ok + 1
+    else
+      bad := bad + 1
+      if bad ≤ 20 then
+        IO.println s!"SPEC input={repr input} base={repr base}"
+        IO.println s!"  model={repr (model.map urlSerializer)} {repr model}"
+        IO.println s!"  spec ={repr (spec.map urlSerializer)} {repr spec}"
+  IO.println s!"関数的な仕様: 一致 {ok} / 不一致 {bad} / 対象外 {skipped}"
+  return if bad == 0 then 0 else 1
+
+/--
 `--parse-batch FILE [UTS46]`：`[{"input": ..., "base": ...}, ...]` を読み、各 case の
 `parseResultJson` を並べた配列を一行の JSON で出す。`test/url_diff.rb` が実装と突き合わせる。
 case に `"setter"` と `"value"` があれば、parse した URL にその IDL setter を当ててから出す。
@@ -638,6 +746,8 @@ def main (args : List String) : IO UInt32 := do
   | ["--punycode", path] => runPunycode path
   | ["--urlencoded"] => runUrlencoded
   | ["--urlencoded-batch", path] => runUrlencodedBatch path
+  | ["--spec-batch", path] => runSpecBatch path none
+  | ["--spec-batch", path, tablePath] => runSpecBatch path (some tablePath)
   | ["--parse-batch", path] => runParseBatch path none
   | ["--parse-batch", path, tablePath] => runParseBatch path (some tablePath)
   | "--parse" :: input :: rest =>

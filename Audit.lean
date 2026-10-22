@@ -955,6 +955,18 @@ open Dom.Audit
   Url.Params.getAll_swap
   Url.Params.getAll_insert
   Url.Params.getAll_sort
+  Infra.lexLt_asymm
+  Infra.lexLt_trans
+  Infra.lexLt_total
+  Infra.codeUnits_append_inj
+  Infra.utf16Units_inj
+  Infra.strLt_total
+  Infra.strLe_trans
+  Url.Params.sort_perm
+  Url.Params.sort_sorted
+  Url.Params.filter_sort
+  Url.Params.sorted_eq
+  Url.Params.sort_unique
 
 -- URL Standard §3.2 host / §1.3 percent-encoding
 #audit_axioms
@@ -994,6 +1006,226 @@ open Dom.Audit
   Url.Spec.fileHost_drive_before_host
   Url.Spec.pathStart_backslash_special
   Url.Spec.pathStart_backslash_not_special
+
+-- URL Standard §1.3 percent-decode の関係仕様、§4.5 equivalence、§4.7 origin、§6.1 static method
+#audit_axioms
+  Url.Spec.hexValue_byte
+  Url.Spec.percentDecodeBytes_spec
+  Url.Spec.PctDecodes.deterministic
+  Url.Spec.percentDecodeBytes_iff
+  Url.Path.equals_iff
+  Url.Path.startsWith_iff
+  Url.Path.startsWith_refl
+  Url.Path.startsWith_trans
+  Url.Path.startsWith_antisymm
+  Url.Path.startsWith_of_equals
+  Url.Path.startsWith_iff_serialize
+  Url.equals_iff_eq
+  Url.parseUrl_equals_iff
+  Url.urlSerializer_excludeFragment
+  Url.equals_excludeFragments_iff
+  Url.apiUrlParser_base_failure
+  Url.apiUrlParser_base
+  Url.canParse_iff
+  Url.origin_tuple_of_strict
+  Url.parseUrl_origin_tuple
+  Url.origin_blob
+  Url.origin_blob_other
+  Url.origin_blob_failure
+  Url.origin_blob_tuple
+
+-- URL Standard §4.4 path state の畳み込みと相対参照の解決（Url/Spec/Path.lean、Url/Spec/Resolve.lean）
+#audit_axioms
+  Url.Spec.splitBy_append_nosep
+  Url.Spec.SplitBy.eq_splitBy
+  Url.Spec.splitBy_spec
+  Url.Spec.splitSegs_iff
+  Url.Spec.pathStepUrl_eq_segStep
+  Url.Spec.run_path_read
+  Url.Spec.run_path_spec
+  Url.Spec.run_path_spec_query
+  Url.Spec.run_path_spec_fragment
+  Url.Spec.splitFirst_append
+  Url.Spec.splitFirst_of_not_mem
+  Url.Spec.first_occurrence
+  Url.Spec.run_path_ref
+  Url.Spec.run_relative_pathRef
+  Url.Spec.run_relativeSlash_path
+  Url.Spec.run_relative_absRef
+  Url.Spec.run_noScheme_relative
+  Url.Spec.basicUrlParse_of_noScheme
+  Url.Spec.basicUrlParse_pathRef
+  Url.Spec.basicUrlParse_absRef
+  Url.Spec.run_specialRelativeOrAuthority_relative
+  Url.Spec.run_relative_scheme_irrelevant
+  Url.Spec.basicUrlParse_sameScheme
+  Url.Spec.basicUrlParse_pathRef'
+  Url.Spec.basicUrlParse_absRef'
+
+-- URL Standard §4.4 basic URL parser と関数的な仕様の一致（Url/Spec/ParseEquiv.lean）
+#audit_axioms
+  Url.Spec.splitRef_decomp
+  Url.Spec.run_qfTail
+  Url.Spec.run_opaque_hier
+  Url.Spec.splitLast_some
+  Url.Spec.userinfoFold_false
+  Url.Spec.userinfoStep_at
+  Url.Spec.run_authority_at
+  Url.Spec.run_authority_read
+  Url.Spec.run_authority_end
+  Url.Spec.run_host_read
+  Url.Spec.run_host_colon
+  Url.Spec.run_host_term
+  Url.Spec.run_port_read
+  Url.Spec.splitScheme_some
+  Url.Spec.splitScheme_none_iff
+  Url.Spec.splitRef_parts
+  Url.Spec.branch_opaque
+  Url.Spec.branch_path
+  Url.Spec.host_flow
+  Url.Spec.authority_flow
+  Url.Spec.branch_authority
+  Url.Spec.run_schemeStart_nonSpecial
+  Url.Spec.run_spec_nonSpecial
+  Url.Spec.basicUrlParse_eq_specParse
+  Url.Spec.run_ignoreSlashes
+  Url.Spec.run_specialAuthoritySlashes_drop
+  Url.Spec.splitFirstBy_append
+  Url.Spec.splitFirstBy_none
+  Url.Spec.first_occurrence_by
+  Url.Spec.run_pathStart_sep_sp
+  Url.Spec.run_pathStart_other_sp
+  Url.Spec.pathStartContSp_none
+  Url.Spec.pathStartContSp_some
+  Url.Spec.host_flow_sp
+  Url.Spec.authority_flow_sp
+  Url.Spec.branch_special
+  Url.Spec.run_schemeStart_special
+  Url.Spec.run_spec_special
+  Url.Spec.basicUrlParse_eq_specParse_noFile
+  Url.Spec.run_file_sep
+  Url.Spec.run_file_other
+  Url.Spec.run_fileSlash_sep
+  Url.Spec.run_fileSlash_other
+  Url.Spec.run_fileHost_read
+  Url.Spec.run_fileHost_end
+  Url.Spec.drive_chars
+  Url.Spec.run_path_file
+  Url.Spec.run_pathStart_file
+  Url.Spec.branch_file
+  Url.Spec.run_schemeStart_file
+  Url.Spec.basicUrlParse_eq_specParse_all
+  Url.Spec.run_query_rest
+  Url.Spec.splitRef_q
+  Url.Spec.splitRef_h
+  Url.Spec.run_relative_sep
+  Url.Spec.run_relativeSlash_sp
+  Url.Spec.run_relativeSlash_ns
+  Url.Spec.run_relative_ref
+  Url.Spec.run_fragment_base
+  Url.Spec.run_query_base
+  Url.Spec.run_path_base
+  Url.Spec.run_pathStart_base
+  Url.Spec.run_fileHost_base
+  Url.Spec.run_file_url
+  Url.Spec.shortenPath_eq
+  Url.Spec.run_file_fbase
+  Url.Spec.run_file_fbase_nil
+  Url.Spec.run_fileSlash_fbase
+  Url.Spec.fileSlashDrive_eq
+  Url.Spec.branch_file_base
+  Url.Spec.run_schemeStart_special_base
+  Url.Spec.basicUrlParse_noScheme_eq
+  Url.Spec.basicUrlParse_eq_specParseBase
+  Url.Spec.parseUrl_eq_specParseUrl
+
+-- URL Standard §3.2 host parser と §3.3 IPv4・IPv6 の関係仕様（Url/Spec/Ipv4.lean、Url/Spec/Ipv6.lean、Url/Spec/Host.lean）
+#audit_axioms
+  Url.Spec.hexValue_eq
+  Url.Spec.radixDigit_eq
+  Url.Spec.parseRadix_eq
+  Url.Spec.ipv4NumberParser_iff
+  Url.Spec.strictSplit_eq
+  Url.Spec.ipv4Parts_eq
+  Url.Spec.mapM_numbers_iff
+  Url.Spec.counterSum_eq
+  Url.Spec.ipv4Parser_iff
+  Url.Spec.trimLastPart_eq
+  Url.Spec.endsInANumber_iff
+  Url.Spec.percentDecodeToString_iff
+  Url.Spec.endsInANumber_eq
+  Url.Spec.hostParser_iff
+  Url.Spec.digitValue_eq
+  Url.Spec.takeDec_eq
+  Url.Spec.ipv4InIpv6_first
+  Url.Spec.ipv4InIpv6_dot
+  Url.Spec.ipv4InIpv6_nodot
+  Url.Spec.ipv4InIpv6_iff
+  Url.Spec.takeHex_eq
+  Url.Spec.takeHex_h16
+  Url.Spec.loopRun_of_loop
+  Url.Spec.DecOctet.length_le
+  Url.Spec.loop_of_loopRun
+  Url.Spec.LoopRun.shape
+  Url.Spec.loopRun_groups
+  Url.Spec.loopRun_groupsThen
+  Url.Spec.loopRun_tail
+  Url.Spec.loopRun_sep
+  Url.Spec.GroupsSep.groups
+  Url.Spec.setMany_eq
+  Url.Spec.expand_eq
+  Url.Spec.ipv6Parser_iff
+
+-- URL Standard §6.1 setter の効果を入力の関数として書いたもの（Url/Spec/Setters.lean）
+#audit_axioms
+  Url.Spec.run_path_read_over
+  Url.Spec.setPathname_eq
+  Url.Spec.run_port_over
+  Url.Spec.setPort_eq
+  Url.Spec.run_host_read_gen
+  Url.Spec.run_host_term_over
+  Url.Spec.run_host_colon_over
+  Url.Spec.run_fileHost_over
+  Url.Spec.setHostGen_eq
+  Url.Spec.setHost_eq
+  Url.Spec.setHostname_eq
+  Url.Spec.setHref_href
+  Url.Spec.run_scheme_over_fail
+  Url.Spec.setProtocol_eq
+
+-- URL Standard §6.1 getter と setter の往復と冪等性（Url/Spec/Lens.lean）
+#audit_axioms
+  Url.Spec.setHash_eq
+  Url.Spec.setSearch_eq
+  Url.Spec.setHash_idem
+  Url.Spec.setSearch_idem
+  Url.Spec.setUsername_idem
+  Url.Spec.setPassword_idem
+  Url.Spec.setPort_idem
+  Url.Spec.setPathname_idem
+  Url.Spec.setProtocol_idem
+  Url.Spec.setHost_idem
+  Url.Spec.setHostname_idem
+  Url.Spec.setAttr_idem
+  Url.Spec.setHash_hash
+  Url.Spec.setSearch_search
+  Url.Spec.setUsername_username
+  Url.Spec.setPassword_password
+  Url.Spec.setPort_portAttr
+  Url.Spec.setProtocol_protocol
+  Url.Spec.setPathname_pathname
+  Url.Spec.setHost_hostAttr
+  Url.Spec.setHostname_hostname
+  Url.Spec.parseUrl_lens
+
+-- URL Standard §3.5 IPv6 の圧縮位置（Url/Spec/Ipv6Compress.lean）
+#audit_axioms
+  Url.Spec.CompressAt.unique
+  Url.Spec.zeroRun_eq
+  Url.Spec.inv_fold
+  Url.Spec.ipv6CompressIndex_spec
+  Url.Spec.ipv6CompressIndex_iff
+  Url.Spec.ipv6CompressIndex_none_iff
 
 -- 定理が空虚でないことの証人
 #audit_axioms

@@ -205,7 +205,7 @@ criterion 6（label は General_Category=Mark で始まらない）は最後の�
 fixture の印の付け方（`out_of_model` を付けるかどうか）がこれで決まる。
 -/
 def toASCII (t : IdnaTable) (domain : List Char) : Option String :=
-  -- URL Standard の domain parser step 2。
+  -- URL Standard の domain parser step 5。
   -- **ASCII だけの domain は Unicode ToASCII の結果によらず lowercase して返す。**
   -- 仕様が web 互換のためにそう決めていて、`xn--8i7caa` を例に挙げている
   -- （`ｗｗｗ` に復号され、その code point の status は `mapped` である）。

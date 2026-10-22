@@ -1,0 +1,373 @@
+{
+ "_note": "WPT の urltestdata.json から、input か base に非 ASCII を含む case を抜いたもの。UTS #46 の表（test/url/uts46-table.json）を渡して回す。`out_of_model` が付いた case は表を渡しても model の対象外で、一致を求めない（`uts46-deviation`：deviation の code point。表の生成器が対象外の印を付けている）。",
+ "_source": {
+  "repository": "https://github.com/web-platform-tests/wpt",
+  "path": "url/resources/urltestdata.json",
+  "commit": "c23755a1449cc9c5a9131378c13ecf073c0885c6"
+ },
+ "cases": [
+  {
+   "input": "http://é@é",
+   "base": null,
+   "failure": false,
+   "href": "http://%C3%A9@xn--9ca/",
+   "origin": "http://xn--9ca"
+  },
+  {
+   "input": "http://é@example.com",
+   "base": null,
+   "failure": false,
+   "href": "http://%C3%A9@example.com/",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "#β",
+   "base": "http://example.org/foo/bar",
+   "failure": false,
+   "href": "http://example.org/foo/bar#%CE%B2",
+   "origin": "http://example.org"
+  },
+  {
+   "input": "http://example.com/foo%2Â©zbar",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo%2%C3%82%C2%A9zbar",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "http://example.com/foo\t%91",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/foo%C2%91%91",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "http://example.com/你好你好",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%E4%BD%A0%E5%A5%BD%E4%BD%A0%E5%A5%BD",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "http://example.com/‥/foo",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%E2%80%A5/foo",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "http://example.com/﻿/foo",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%EF%BB%BF/foo",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "http://example.com/‮/foo/‭/bar",
+   "base": null,
+   "failure": false,
+   "href": "http://example.com/%E2%80%AE/foo/%E2%80%AD/bar",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "http://www.google.com/foo?bar=baz# »",
+   "base": null,
+   "failure": false,
+   "href": "http://www.google.com/foo?bar=baz#%20%C2%BB",
+   "origin": "http://www.google.com"
+  },
+  {
+   "input": "data:test# »",
+   "base": null,
+   "failure": false,
+   "href": "data:test#%20%C2%BB",
+   "origin": "null"
+  },
+  {
+   "input": "中/test.txt",
+   "base": "http://www.example.com/test",
+   "failure": false,
+   "href": "http://www.example.com/%E4%B8%AD/test.txt",
+   "origin": "http://www.example.com"
+  },
+  {
+   "input": "http://GOO 　goo.com",
+   "base": "http://other.com/",
+   "failure": true
+  },
+  {
+   "input": "http://GOO​⁠﻿goo.com",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://googoo.com/",
+   "origin": "http://googoo.com"
+  },
+  {
+   "input": "http://www.foo。bar.com",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://www.foo.bar.com/",
+   "origin": "http://www.foo.bar.com"
+  },
+  {
+   "input": "http://﷐zyx.com",
+   "base": "http://other.com/",
+   "failure": true
+  },
+  {
+   "input": "https://�",
+   "base": null,
+   "failure": true
+  },
+  {
+   "input": "https://x/�?�#�",
+   "base": null,
+   "failure": false,
+   "href": "https://x/%EF%BF%BD?%EF%BF%BD#%EF%BF%BD",
+   "origin": "https://x"
+  },
+  {
+   "input": "http://Ｇｏ.com",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://go.com/",
+   "origin": "http://go.com"
+  },
+  {
+   "input": "http://％４１.com",
+   "base": "http://other.com/",
+   "failure": true
+  },
+  {
+   "input": "http://％００.com",
+   "base": "http://other.com/",
+   "failure": true
+  },
+  {
+   "input": "http://你好你好",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://xn--6qqa088eba/",
+   "origin": "http://xn--6qqa088eba"
+  },
+  {
+   "input": "https://faß.ExAmPlE/",
+   "base": null,
+   "failure": false,
+   "href": "https://xn--fa-hia.example/",
+   "origin": "https://xn--fa-hia.example",
+   "out_of_model": "uts46-deviation"
+  },
+  {
+   "input": "sc://faß.ExAmPlE/",
+   "base": null,
+   "failure": false,
+   "href": "sc://fa%C3%9F.ExAmPlE/",
+   "origin": "null"
+  },
+  {
+   "input": "http://０Ｘｃ０．０２５０．０１",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://192.168.0.1/",
+   "origin": "http://192.168.0.1"
+  },
+  {
+   "input": "http://foo:💩@example.com/bar",
+   "base": "http://other.com/",
+   "failure": false,
+   "href": "http://foo:%F0%9F%92%A9@example.com/bar",
+   "origin": "http://example.com"
+  },
+  {
+   "input": "http://😀x@host/",
+   "base": null,
+   "failure": false,
+   "href": "http://%F0%9F%98%80x@host/",
+   "origin": "http://host"
+  },
+  {
+   "input": "http://a:😀x@host/",
+   "base": null,
+   "failure": false,
+   "href": "http://a:%F0%9F%98%80x@host/",
+   "origin": "http://host"
+  },
+  {
+   "input": "http://😀@host/",
+   "base": null,
+   "failure": false,
+   "href": "http://%F0%9F%98%80@host/",
+   "origin": "http://host"
+  },
+  {
+   "input": "https://localhost?q=🔥",
+   "base": null,
+   "failure": false,
+   "href": "https://localhost/?q=%F0%9F%94%A5",
+   "origin": "https://localhost"
+  },
+  {
+   "input": "https://localhost#🔥",
+   "base": null,
+   "failure": false,
+   "href": "https://localhost/#%F0%9F%94%A5",
+   "origin": "https://localhost"
+  },
+  {
+   "input": "sc://ñ.test/",
+   "base": null,
+   "failure": false,
+   "href": "sc://%C3%B1.test/",
+   "origin": "null"
+  },
+  {
+   "input": "x",
+   "base": "sc://ñ",
+   "failure": false,
+   "href": "sc://%C3%B1/x",
+   "origin": "null"
+  },
+  {
+   "input": "wow:￿",
+   "base": null,
+   "failure": false,
+   "href": "wow:%EF%BF%BF",
+   "origin": "null"
+  },
+  {
+   "input": "sc://ñ",
+   "base": null,
+   "failure": false,
+   "href": "sc://%C3%B1",
+   "origin": "null"
+  },
+  {
+   "input": "sc://ñ?x",
+   "base": null,
+   "failure": false,
+   "href": "sc://%C3%B1?x",
+   "origin": "null"
+  },
+  {
+   "input": "sc://ñ#x",
+   "base": null,
+   "failure": false,
+   "href": "sc://%C3%B1#x",
+   "origin": "null"
+  },
+  {
+   "input": "#x",
+   "base": "sc://ñ",
+   "failure": false,
+   "href": "sc://%C3%B1#x",
+   "origin": "null"
+  },
+  {
+   "input": "?x",
+   "base": "sc://ñ",
+   "failure": false,
+   "href": "sc://%C3%B1?x",
+   "origin": "null"
+  },
+  {
+   "input": "http://example.org/test?⌣",
+   "base": null,
+   "failure": false,
+   "href": "http://example.org/test?%E2%8C%A3"
+  },
+  {
+   "input": "file://a­b/p",
+   "base": null,
+   "failure": false,
+   "href": "file://ab/p"
+  },
+  {
+   "input": "file://loC𝐀𝐋𝐇𝐨𝐬𝐭/usr/bin",
+   "base": null,
+   "failure": false,
+   "href": "file:///usr/bin"
+  },
+  {
+   "input": "file://­/p",
+   "base": null,
+   "failure": true
+  },
+  {
+   "input": "non-special:cannot-be-a-base-url-\u0000\u0001\u001f\u001e~",
+   "base": null,
+   "failure": false,
+   "href": "non-special:cannot-be-a-base-url-%00%01%1F%1E~%7F%C2%80",
+   "origin": "null"
+  },
+  {
+   "input": "http://💩.123/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "input": "https://￿y",
+   "base": null,
+   "failure": true
+  },
+  {
+   "input": "https://x/￿y",
+   "base": null,
+   "failure": false,
+   "href": "https://x/%EF%BF%BFy"
+  },
+  {
+   "input": "https://x/?￿y",
+   "base": null,
+   "failure": false,
+   "href": "https://x/?%EF%BF%BFy"
+  },
+  {
+   "input": "https://x/?#￿y",
+   "base": null,
+   "failure": false,
+   "href": "https://x/?#%EF%BF%BFy"
+  },
+  {
+   "input": "non-special:￿y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:%EF%BF%BFy"
+  },
+  {
+   "input": "non-special:x/￿y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:x/%EF%BF%BFy"
+  },
+  {
+   "input": "non-special:x/?￿y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:x/?%EF%BF%BFy"
+  },
+  {
+   "input": "non-special:x/?#￿y",
+   "base": null,
+   "failure": false,
+   "href": "non-special:x/?#%EF%BF%BFy"
+  },
+  {
+   "input": "https://­/",
+   "base": null,
+   "failure": true
+  },
+  {
+   "input": "data:text/plain,test#\u0000\u0001\t\n\r\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~Éé",
+   "base": null,
+   "failure": false,
+   "href": "data:text/plain,test#%00%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9"
+  },
+  {
+   "input": "about:blank#\u0000\u0001\t\n\r\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~Éé",
+   "base": null,
+   "failure": false,
+   "href": "about:blank#%00%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9"
+  }
+ ]
+}

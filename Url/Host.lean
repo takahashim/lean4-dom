@@ -100,7 +100,7 @@ def asciiDomainToASCII (domain : List Char) : Option String :=
     asciiDomainCheck (asciiLowercase (String.ofList domain))
   else none
 where
-  /-- domain parser の step 3-4：空と forbidden domain code point を弾く。 -/
+  /-- domain parser の step 6-7：空と forbidden domain code point を弾く。 -/
   asciiDomainCheck (lowered : String) : Option String :=
     if lowered.isEmpty then none
     else if lowered.any isForbiddenDomain then none

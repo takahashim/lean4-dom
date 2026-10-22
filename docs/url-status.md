@@ -49,13 +49,21 @@ model と実装のどちらが本文と違うかを決める第三の根拠が�
 | §4.4 / §4.3 parse の像と往復 | `parse_image`, `parse_serialize_of_parse` | `Url/ParseImage.lean` |
 | §4.1 の残りの条件（parse と setter） | `StrictUrl`, `basicUrlParse_strict`, `setAttr_strict` | `Url/StrictValid.lean` |
 | 往復に要る ToASCII の条件 | `ToAsciiOk`, `toAsciiOk_ascii`, `toAsciiOk_ranges` | `Url/HostRoundtrip.lean`, `Url/IdnaOk.lean` |
-| §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean` |
+| §6.2 `URLSearchParams` | `Params.get` ほか、`Params.sort` | `Url/SearchParams.lean`, `Url/SearchParamsSort.lean` |
 | UTF-16 の code unit と code unit 順 | `Infra.codeUnits`, `Infra.strLt` | `Infra/Utf16.lean` |
 | UTF-8 の往復 | `Infra.utf8Decode_encode` | `Infra/Utf8Roundtrip.lean` |
 | RFC 3492 Punycode | `Punycode.encode`, `Punycode.decode` | `Url/Punycode.lean` |
 | §4.4 失敗条件の関係仕様 | `HasScheme`, `decimalOf` | `Url/Spec/Failure.lean` |
 | §4.4 相対 URL 解決の関係仕様 | `Inherits`, `FragmentResolved`, `QueryResolved`, `EmptyResolved` | `Url/Spec/Relative.lean` |
 | §4.4 state 遷移の優先順 | （定理のみ） | `Url/Spec/Priority.lean` |
+| §1.3 percent-decode の関係仕様 | `PctDecodes` | `Url/Spec/Percent.lean` |
+| §4.5 URL equivalence | `Url.equals`, `Path.equals` | `Url/Equivalence.lean` |
+| §6.1 getter と setter の往復、setter の冪等性 | `parseUrl_lens`, `setAttr_idem` | `Url/Spec/Lens.lean` |
+| §6.1 API URL parser、`URL.parse()` / `canParse()` / `toJSON()` | `apiUrlParser`, `canParse`, `Url.toJSON` | `Url/Equivalence.lean` |
+| §4.7 origin の契約 | （定理のみ） | `Url/OriginProps.lean` |
+| §4.4 basic URL parser と API URL parser の関数的な仕様 | `specParseUrl`, `specParse`, `specParseBase` | `Url/Spec/Parse.lean`, `Url/Spec/Parse*.lean` |
+| §3.3 IPv4・IPv6 と §3.2 host parser の関係仕様 | `Ipv4Number`, `Ipv4Parses`, `EndsInNumber`, `Ipv6Text`, `HostParses` | `Url/Spec/Ipv4.lean`, `Url/Spec/Ipv6.lean`, `Url/Spec/Host.lean` |
+| 具体的な入力での振る舞い | `url_eval`（tactic） | `Url/Eval.lean`, `Url/Behavior.lean` |
 
 ## state override をどう通したか
 
@@ -267,7 +275,7 @@ theorem checkResolved_sound {rs : Array IdnaRange} (h : checkResolved rs = true)
 
 ### ASCII だけの domain には UTS #46 を掛けない
 
-URL Standard の domain parser は step 2 でこう決めている。
+URL Standard の domain parser は step 5 でこう決めている。
 
 > If domain is an ASCII string, then set result to domain, lowercased.
 >
@@ -349,6 +357,9 @@ ASCII だけの domain は model 内で閉じる（UTS #46 の写像は ASCII �
 | `Params.getAll_set`, `Params.getAll_delete`, `Params.getAll_append` | `set` / `delete` / `append` の効果 |
 | `Params.get_eq_head`, `Params.has_eq` | `get` は `getAll` の先頭、`has` は `getAll` が空でないこと |
 | `Params.length_sort` | `sort` は組を落とさない |
+| `Params.sort_perm`, `Params.sort_sorted`, `Params.filter_sort` | **`sort` は並べ替えで、名前の code unit 順に並び、名前ごとの組の並びを保つ**（`Url/SearchParamsSort.lean`） |
+| `Params.sort_unique` | **その三つを満たす list は `sort` の結果だけである**。§6.2 の「安定に並べ替える」が一つに決まる |
+| `Infra.utf16Units_inj`, `Infra.strLt_total`, `Infra.strLe_trans` | 一意性の足場。UTF-16 への変換は単射で、code unit 順は文字列の全順序である |
 | `Infra.ne_of_strLt` | code unit 順で小さいなら等しくない。安定性の証明で使う |
 | `Infra.utf8Decode_encodeChar` | 一文字を UTF-8 で符号化して読み直すと元に戻る |
 | `Infra.utf8Decode_encode`, `Infra.utf8DecodeString_encode` | **文字列でも同じ** |
@@ -385,7 +396,8 @@ DOM 側の `Dom/Spec/` に当たる層を、限定的にだが置いた。
   `decimalOf` は桁の重み、`Inherits` は「base と何を共有するか」）。
 * そのうえで実行可能な parser との対応を定理にする。
 
-置いたのは三つで、どれも指摘が挙げた場所である。
+置いたのは次の十一である。`Failure`・`Relative`・`Priority` は指摘が挙げた場所、`Path`・`Resolve`・`Parse` は
+§4.4 の path と相対解決と parser 全体、`Ipv4`・`Ipv6`・`Host` は §3、`Urlencoded`・`Percent` は §4.4 の外の短い手続きである。
 
 | file | 内容 |
 | --- | --- |
@@ -393,6 +405,13 @@ DOM 側の `Dom/Spec/` に当たる層を、限定的にだが置いた。
 | `Url/Spec/Relative.lean` | 相対 URL 解決。`#f` / `?q` / 空入力 |
 | `Url/Spec/Priority.lean` | 同じ文字に複数の条件が当たる場面で、どれが先か |
 | `Url/Spec/Urlencoded.lean` | §5.1 application/x-www-form-urlencoded parser の全体（下の「§5.1 の parser」） |
+| `Url/Spec/Path.lean` | §4.4 path state と shorten。入力を区切りで割り（`splitSegs`。割り方は一通り）、片を encode し、最後の片だけ扱いを変えて畳む（`resolveSegs`）。`run_path_spec` ほかが、path state はこの畳み込みで読むと言う |
+| `Url/Spec/Resolve.lean` | path を持つ相対参照の解決。参照を path・query・fragment に分け（`splitRef`）、path を base の path に畳み込みで合成する（`refResolved`）。path-relative・absolute-path・base と同じ special scheme の三つ |
+| `Url/Spec/Parse.lean` | §4.4 basic URL parser の関数的な仕様。state も buffer も持たず、入力を成分に切り分けて正規化し、base と合成する。`Url/Spec/ParseBase.lean` の `parseUrl_eq_specParseUrl` が、入力にも base にも制限なく一致を言う |
+| `Url/Spec/Ipv4.lean` | §3.3 IPv4 number parser・IPv4 parser・ends in a number。値は桁の重み（`radixValue`）、基数は本文の三つの場合、アドレスは counter の重み（`counterSum`）で書く。三つとも全入力で一致（`ipv4NumberParser_iff`、`ipv4Parser_iff`、`endsInANumber_iff`） |
+| `Url/Spec/Ipv6.lean` | §3.3 IPv6 parser。RFC 4291 §2.2 と同じ形の文法 `Ipv6Text`（piece は 1-4 個の hex digit、`::` は一度だけ、最後に dotted decimal を置ける）。`ipv6Parser_iff` が全入力で一致を言う。証明は loop の成功した遷移をそのまま書いた中間の関係 `LoopRun` を経由する |
+| `Url/Spec/Host.lean` | §3.2 host parser。IPv6・opaque・IPv4・domain の四つの道を構成子にした関係 `HostParses`。domain の道は `PctDecodes`・`Decodes`・`EndsInNumber`・`Ipv4Parses` の合成、IPv6 の道は `Ipv6Text`。`hostParser_iff` が全入力で一致を言う。ToASCII だけが引数として残る |
+| `Url/Spec/Percent.lean` | §1.3 percent-decode の全体。step 2 の三分岐（`%` でない・`%` の後に hex digit が二つ続かない・続く）を構成子にした関係 `PctDecodes`。hex digit の範囲と値は本文の三つの範囲で直に書き、`Infra.hexValue` を呼ばない。`percentDecodeBytes_iff` が全入力で一致を言う |
 
 ### なぜこの三つか
 
@@ -432,12 +451,73 @@ bracket の中の `:` が port の区切りにならないこと、Windows drive
 そのため関係は parser と同じ骨組みになり、違うのは切り分けを条件で述べたところだけである。
 §4.4 の parser についても同じこと（構造の違う仕様を書き、全入力で一致を示す）が残っている。
 
+### path と相対参照
+
+path state は一文字ずつ buffer に積み、区切りで segment を確定させ、そのたびに `.` と `..` を畳む。
+`Url/Spec/Path.lean` は同じものを、入力を区切りで割ってから片の列を畳む形で書いた。
+最後の片だけは区切りでなく入力の終わり・`?`・`#` で終わったもので、`.` と `..` の後に空の segment を残す
+（本文の「`/usr/..` は `/` であって path が無いのではない」）。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `splitSegs_iff` | 区切り（`/`、special なら `\` も）での割り方は一通りしかなく、`splitSegs` がそれを計算する |
+| `pathStepUrl_eq_segStep` | parser の segment 確定は、関係の側の一歩 `segStep` と同じである |
+| `run_path_spec`, `run_path_spec_query`, `run_path_spec_fragment` | **path state は入力を `resolveSegs` で読む**。入力の終わり・`?`・`#` の三通り |
+| `run_path_ref` | path state から先を読み切ると、path は畳み込み、query と fragment は参照の分け方（`splitRef`）どおりになる |
+| `basicUrlParse_pathRef` | **path-relative 参照**（`g`、`../g`）は、base の path を shorten したところから畳む |
+| `basicUrlParse_absRef` | **absolute-path 参照**（`/g`）は、空の path から畳む |
+| `basicUrlParse_sameScheme` | **base と同じ special scheme で `//` が続かない入力**（`http:g`）は、scheme を外した参照として解決する |
+
+`Url/Spec/Resolve.lean` の末尾に RFC 3986 §5.4 の例 25 件（base は `http://a/b/c/d;p?q`）と、URL Standard に固有の 3 件（`%2e`、`\`）を置いた。
+証明は解決の定理で関係の側へ移し、関係の側の関数を `decide` で計算するだけで、parser は計算しない。
+`url-model --wpt` も、定理の前提に当てはまる case（WPT の 54 件）で関係の側の解決を期待値と比べる。
+
+### 関数的な仕様との一致（全入力）
+
+`Url/Spec/Parse.lean` の `specParseUrl` は、state も pointer も buffer も持たない。入力を成分に切り分けてから
+成分ごとに正規化し、base と合成する（RFC 3986 §3 と §5.2 と同じ発想）。
+
+**`parseUrl_eq_specParseUrl`：`parseUrl input base t = specParseUrl t input base`。入力にも base にも制限は無い。**
+失敗するかどうかも一致し、ToASCII `t` は任意である。base も仕様の側で parse するので、右辺は parser を一度も呼ばない。
+
+| 段 | 定義 | 本文 |
+| --- | --- | --- |
+| scheme を切る | `splitScheme` | scheme start state、scheme state |
+| query と fragment を先に切る | `splitRef` | `?` と `#` はどの state でも終端 |
+| special でない scheme | `//` なら authority と path、`/` なら path、それ以外は opaque path（`specParseNonSpecial`） | path or authority state、scheme state 2.8 |
+| special な scheme | 先頭の `/` と `\` をいくつでも読み飛ばし、最初の区切りまでが authority。host は空にできない（`specParseSpecial`） | special authority slashes / ignore slashes state、host state 2.1・3.1 |
+| `file` | 区切り二つの後の区切りまでが host。drive letter なら path、`localhost` は空の host（`specParseFile`） | file state、file slash state、file host state |
+| authority | **最後の** `@` で userinfo と host-port（`splitLast`）、host-port は bracket の外の最初の `:`（`splitHostPort`） | authority state、host state |
+| base との合成 | 相対参照（`relRef`）、`file` の base（`specParseFileBase`）、opaque path の base は `#` だけ | no scheme state、relative state、relative slash state、file state 4、file slash state 2 |
+| 正規化 | `userinfoParts`、`specPort`、`resolveSegs`、`opaqueText` | authority state 1.4、port state、path state、opaque path state |
+
+証明は段ごとに置いた。
+
+| file | 範囲 | 主な定理 |
+| --- | --- | --- |
+| `Url/Spec/ParseEquiv.lean` | special でない scheme、base 無し | `basicUrlParse_eq_specParse` |
+| `Url/Spec/ParseSpecial.lean` | special な scheme（`file` を除く）、base 無し | `run_spec_special`、`basicUrlParse_eq_specParse_noFile` |
+| `Url/Spec/ParseFile.lean` | `file`、base 無し | `branch_file`、`basicUrlParse_eq_specParse_all` |
+| `Url/Spec/ParseBase.lean` | base を持つ入力 | `run_relative_ref`、`branch_file_base`、`basicUrlParse_eq_specParseBase`、`parseUrl_eq_specParseUrl` |
+
+parser と構造が最も違うのは authority である。parser は `@` を見るたびに buffer を userinfo に畳み、
+二つ目以降の `@` の前には `%40` を足し、最後に buffer の長さだけ pointer を戻して host state に読み直させる。
+仕様は最後の `@` で一度だけ切る。両者が一致するのは、`@` を userinfo set で encode すると `%40` になるからで
+（`userinfoStep_at`）、parser の途中状態を「最後の `@` より前は畳んだ、後ろは buffer」として書いた `authCtx` で
+帰納法を回す（`run_authority_read`）。
+
+`file` の base では、`//` で始まる参照が base を使わないことを、file host state から先の state が base を見ないこと
+（`run_fileHost_base` ほか）で base の無いときの定理に帰着させた。
+
+仕様は段を足すたびに、証明より先に `url-model --spec-batch` で WPT と乱数の入力（`test/url_spec_inputs.rb`。
+`--base` で base と相対参照を混ぜ、`--schemes` で scheme を絞る）に当てて一致を確かめた。合わせて 50 万件ほどで
+食い違いは一度も無かった。CI は WPT の 820 件（base 付きを含む）で回す。
+
 ### 何を言っていないか
 
-`Url/Spec/` は §4.4 の全体を覆っていない。path の解決（`.` と `..` の畳み込み）、
-authority state の credentials 振り分け、file URL の drive letter 規則は
-関係の側に写していない。そこは `Url/Roundtrip.lean` と `Url/StepValid.lean` が
-実装寄りの形で押さえているだけである。
+関数的な仕様は parser と同じ範囲の §4.4 を覆う。外にあるのは、仕様自身が別仕様に委ねている部分である。
+ToASCII（UTS #46）は引数のまま、encoding override は UTF-8 に固定している。state override（setter）は
+`Url/Spec/Setters.lean` が `pathname`・`port`・`host`・`hostname` を別に押さえている。
 
 ## 検証
 
@@ -457,10 +537,25 @@ UTS #46 の表: 8724 範囲、昇順・非重複、Resolved と NoUpperValid を
 WPT: 一致 820 / 不一致 0 / 対象外 0
 ValidUrl: 違反 0
 origin: 一致 376 / 不一致 0
+関係の側の相対解決: 一致 54 / 不一致 0
 ```
 
 `Resolved` と `NoUpperValid` は `IdnaTable` の仮定（`mapAll_valid` などが使う）で、
 表が昇順で重ならないことと合わせて読み込み時に確かめてから使う。満たさなければ実行を止める。
+
+`urltestdata.json` には input か base に非 ASCII を含む case が別に 56 件ある。
+`test/url/wpt-unicode.json` に抜き出し、表を渡して回す。
+
+```
+$ lake exe url-model --wpt test/url/wpt-unicode.json test/url/uts46-table.json
+WPT: 一致 55 / 不一致 0 / 対象外 1
+ValidUrl: 違反 0
+origin: 一致 34 / 不一致 0
+```
+
+対象外の 1 件は `https://faß.ExAmPlE/` である。`ß` は UTS #46 の deviation で、
+表の生成器（`test/url/generate-uts46.rb`）が対象外の印を付けている。
+印の理由は `uts46-deviation` で、表を渡したときに外れるのは理由が `idna`（表が要る）の印だけである。
 
 **対象外かどうかは fixture の `out_of_model` が決める。実行結果から推測しない。**
 以前は「不一致 かつ 非 ASCII を含む かつ model が失敗した」を対象外に分類していたが、
@@ -645,6 +740,61 @@ $ lake exe url-model --parse "HTTP://EXAMPLE.com:80/a/./b/../c?q=1 2"
 
 既定の ToASCII は ASCII の domain しか通さないので、`http://日本.jp/` は表を渡さないと失敗する。
 
+## 具体的な入力での振る舞い
+
+`run` と `step` は well-founded 再帰なので、`decide` も `rfl` も具体的な入力で parser を計算できない。
+`url_eval`（`Url/Eval.lean`）は等式 lemma で `run` と `step` を一段ずつ開き、残った構造的な再帰を
+`decide` に任せる。UTF-8 の復号も well-founded 再帰なので、host の percent-decode と domain parser は
+`percentDecodeToString_ascii` と `asciiDomainToASCII_id` で飛ばす。そのため host に `%` や非 ASCII を
+含む入力には使えない。`native_decide` は使っていない。
+
+`Url/Behavior.lean` はこれで、読み違えやすく実装が実際に割れた振る舞いを固定している。
+
+| 振る舞い | 本文 | 割れた実装 |
+| --- | --- | --- |
+| `host` setter が port で失敗しても host は書き換わったまま | §6.1、§4.4 port state 2.1.2 | WebKit |
+| `host` setter に `:80` を渡しても何も変わらない | §4.4 host state 2.1 | Node |
+| `port` setter に空白だけを渡しても port は消えない | §6.1 port setter 2 | Node |
+| `hostname` setter に空文字列で、`sc:/a` が `sc:///a` になる | §4.4 host state 3.1 | Node |
+| empty host の URL には username を置けない | §4.2 | model（WPT が見つけた読み違い 4） |
+| `#` は authority の中でも終端（`http://a#b@c`） | §4.4 authority state 2 | — |
+| 非 special な URL は path が空のまま query へ進む | §4.4 path start state 2 | WebKit |
+| 素の相対参照は scheme state を EOF で抜ける | §4.4 scheme state | model（読み違い 2） |
+| "start over" は scheme state だけ（`http://[]` は失敗） | §4.4 | model（読み違い 1） |
+| ASCII の domain には UTS #46 を掛けない（`xn--8i7caa`） | §3.3 domain parser 5 | Node |
+| `..` の後の `c|` も drive letter として直す | §4.4 path state 1.4.1 | WebKit |
+| `ValidUrl` だけの record は往復しない（query の末尾の space、既定 port、`..`） | §4.4 step 1、port state 2.1.3、path state 1.2 | — |
+
+`Url/Spec/Failure.lean` の末尾にも、opaque path の base（Node の 57 件の形）と port の範囲の `example` がある。
+
+## URL equivalence と origin
+
+§4.5 の「URL equals」は serialize して文字列で比べる（`Url.equals`）。serializer は record の上で単射ではないが、
+parse の像の上では単射なので、**parse の結果どうしなら equals は record の等しさと一致する**
+（`parseUrl_equals_iff`）。同じ文字列を parse し直すと往復で両方に戻る、というだけの証明である。
+exclude fragments を付けたときは fragment を null にした record の等しさに一致する
+（`equals_excludeFragments_iff`）。
+
+「URL path equals」は serialize しない（`Path.equals_iff`）。本文の注記どおり、`web+demo:` の path
+（空の opaque path）と `web+demo://host` の path（空の列）は同じ文字列になるが等しくない。
+
+「URL path A starts with URL path B」（`Path.startsWith`）は、どちらも列で B が A の先頭の部分列であることに一致する
+（`Path.startsWith_iff`）。反射的（列のとき）で推移的、互いに starts with なら等しい。
+本文の注記「segment は `/` を含まないので、B は A の segment を丸ごと覆う」は
+`Path.startsWith_iff_serialize` で示した。serialize した B の後ろに、何も無いか `/` で始まる列が続いて
+serialize した A になることと同値である。文字列の前方一致だけでは足りない例（« "foobar" » と « "foo" »）は
+`example` で固定した。
+
+§4.7 origin については、`Url/Parser.lean` の三つ（tuple を返すなら成分は URL のもの、など）に加えて次を示した
+（`Url/OriginProps.lean`）。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `parseUrl_origin_tuple` | **parse の結果の special URL（`file` を除く）は必ず tuple origin を持つ**。§4.1 の「special な URL の host は null でない」から出る |
+| `origin_blob` | `blob` URL の origin は、path を読み直した URL（`http` / `https`）の origin である |
+| `origin_blob_tuple` | 読み直した URL も parse の結果なので、そのときの origin は必ず tuple である |
+| `origin_blob_other`, `origin_blob_failure` | 読み直した scheme が `http` / `https` でないか、読み直せなければ opaque |
+
 ## WPT が見つけた仕様の読み違い
 
 1. **"start over" は scheme state 限定。** 最初は「どこで失敗しても先頭からやり直す」に
@@ -739,10 +889,45 @@ scheme と host の表を不変条件にするのに要ったのは次の三つ�
 | `run_fragment_spec`, `run_query_spec`, `run_port_spec`, `run_scheme_eq`, `run_path_seg`, `run_host_seg` | 各 state が override 付きで何をするか |
 | `run_fragment_ok`, `run_query_ok`, `run_port_ok`, `schemeOverride_ok` | その state が失敗しないこと |
 
-仮定の付き方はそれぞれ違う。`pathname` は区切りを含まない一 segment、
-`host` は `:` を含まない入力に限ってある。複数 segment や port 付きの host は、
-state をまたぐぶん帰納法が段になるので入れていない。WPT の setter 705 件が
-そこの裏づけである。
+仮定の付き方はそれぞれ違う。上の `setPathname_spec` は区切りを含まない一 segment、
+`setHost_spec` は `:` を含まない入力に限ってある。
+
+`Url/Spec/Setters.lean` は制限を外し、setter が URL record をどう書き換えるかを入力の関数として書いた。
+どれも入力に制限が無い。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `setPathname_eq` | **`pathname` setter は path だけを `pathnameSpec` に書き換える**。先頭の区切りを一つ落とし、残りを path state と同じ畳み込み（`resolveSegs`）で読む。override 付きなので `?` と `#` は区切りでなく segment の中で encode される |
+| `setPort_eq` | **`port` setter は `portSpec` である**。先頭の ASCII digit の並びを読み、digit が無いか 65535 を超えれば何も変えない。空文字列かどうかは tab と newline を取り除く前の値で見る |
+| `setHost_eq`, `setHostname_eq` | **`host` / `hostname` setter は `hostSetterSpec` である**。区切りまでを bracket の外の最初の `:` で host と port に分ける。port が範囲外なら host だけが変わる。`file` URL は file host state で読み、`localhost` は空の host になる |
+| `setProtocol_eq` | **`protocol` setter は `protocolSpec` である**。値の後ろに `:` を足して読み、scheme の文字の並びが `:` に至らなければ何もしない。scheme state の四つの門に当たっても何もしない |
+| `setHref_href` | parse の結果の `href` を `href` setter に代入しても URL は変わらない |
+
+`url-model --setters` も、WPT の setter 表のうち `protocol`・`pathname`・`port`・`host`・`hostname` で
+この五つの関数を実装の結果と比べる（不一致 0）。
+
+### getter と setter の往復、setter の冪等性
+
+`Url/Spec/Lens.lean` は、上の関数を使って getter と setter の組の性質を示した。
+
+| 定理 | 言っていること |
+| --- | --- |
+| `setHash_idem` ほか九つ、`setAttr_idem` | **どの setter も、同じ値を二度入れると一度入れたのと同じになる**。前提は要らない |
+| `setProtocol_protocol`, `setUsername_username`, `setPassword_password`, `setPort_portAttr`, `setPathname_pathname` | `ValidUrl` と `canonicalUrl` を満たす URL では、getter の値を同じ属性の setter に戻すと元に戻る |
+| `setHash_hash`, `setSearch_search` | 同じ往復。fragment（query）が空でないことを仮定する |
+| `setHost_hostAttr`, `setHostname_hostname` | 同じ往復。host が null で list path を持つ URL を除く。`ToAsciiOk` を仮定する |
+| `parseUrl_lens` | **parse の結果について上の往復をまとめたもの** |
+
+往復の例外はちょうど三つで、どれも getter が空の成分と null の成分を区別しないことから来る。
+同じ file の `example` に、parse の結果としての反例を固定した。
+
+| 入力 | getter | setter の結果 |
+| --- | --- | --- |
+| `sc:/a#` | `hash` は `""` | fragment が null になる |
+| `sc:/a?` | `search` は `""` | query が null になる |
+| `sc:/a` | `host` / `hostname` は `""` | 空の host が付き、`sc:///a` になる |
+
+往復と冪等性は、証明の前に WPT の URL と乱数の URL（約 9 万件）、25 通りの値で確かめた。
 
 ## IPv6
 
@@ -770,6 +955,28 @@ state をまたぐぶん帰納法が段になるので入れていない。WPT �
 URL record の host に入っている `Ipv6` がその parser の出力であることは、parse の側は
 `canonicalUrl` の host の条件から、setter の側は host state が host parser の出力を書くことから出る
 （`Url/StrictValid.lean`。§「parse の像」）。
+
+### 文法との一致
+
+`Url/Spec/Ipv6.lean` の `ipv6Parser_iff` は、parser が RFC 4291 §2.2 と同じ形の文法 `Ipv6Text` を
+ちょうど受け付けることを、入力に制限を付けずに言う。
+
+| 文法 | 本文 |
+| --- | --- |
+| piece は 1-4 個の ASCII hex digit（`H16`） | step 5.3-5.4 |
+| piece を `:` で区切って並べる（`Groups`）。最後に dotted decimal を置ける（`Tail`。2 piece ぶん） | step 5.5-5.6 |
+| 省略しない形は 8 piece ちょうど | step 7 |
+| `::` は一度だけ。前後の piece は合わせて 7 個以下で、残りを 0 で埋める | step 5.2、step 6 |
+| dotted decimal の各数は `0` か、`0` で始まらない 10 進で、255 以下（`DecOctet`） | step 5.5.5 |
+
+parser は pointer を戻す loop なので、証明は二段に分けた。loop の成功した遷移をそのまま構成子にした
+関係 `LoopRun` を置き、`loopRun_of_loop` と `loop_of_loopRun` で loop がそれをちょうど計算すると示す
+（不変条件は「8 piece で、pieceIndex 以降はまだ 0」）。そのうえで `LoopRun.shape` が走行を三つの形
+（何も読まない・省略なし・省略を一度含む）に分け、`loopRun_tail` などが逆向きを作る。
+`::` の展開は `expand_eq` が「前の piece、残りの 0、後ろの piece」に計算する。
+
+parser の `compress` が `::` の位置そのものではなく一つ先を指すことは、この展開の計算で吸収される
+（往復の証明で見つけたことと同じ）。
 
 ## serializer
 
@@ -830,6 +1037,7 @@ Windows drive letter は、証明を書いていて足りないことに気づ�
 | `hostParser_ipv4`, `hostParser_opaque_id`, `hostParser_domain_id` | **host も戻る**（IPv4 / opaque / domain。`canonicalUrl` の host の条件そのもの。`Url/HostRoundtrip.lean`） |
 | `ipv6Parser_serializer` | **IPv6 address も戻る**（`::` の圧縮を含む。`Url/Ipv6Roundtrip.lean`） |
 | `ipv6CompressIndex_run` | **圧縮する位置は長さ 2 以上の 0 の並びの先頭である**（8 piece の 0 かどうかで 256 通りに割って畳み込みを計算する） |
+| `Spec.ipv6CompressIndex_iff`, `Spec.ipv6CompressIndex_none_iff` | **§3.5 の algorithm が返す位置は、一番長い 0 の並び（長さ 2 以上）のうち最初のものの先頭で、そういう並びが無ければ null である**（RFC 5952 §4.2.2-4.2.3 の言い方。長さを仮定しない。`Url/Spec/Ipv6Compress.lean`） |
 | `hostParser_ipv6` | **IPv6 host も戻る**。これで `canonicalUrl` の host の条件は四種類とも定理になった |
 | `hostParser_idem` | **parser が返した host は往復する**。`canonicalUrl` の host の条件の逆向き（parser の出力がそれを満たすこと）である |
 | `hostReadable_of_canonical` | canonical な host は serialize した文字列を host state が読み直せる（host の種類ごとに根拠が違う） |

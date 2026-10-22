@@ -21,6 +21,8 @@ DOM とは異なり状態を持たない純粋関数であるため、検証の�
 State machine の停止性証明では fuel を使わず、`(state の順位, 残りの文字数, 位相)` による辞書式測度を用いている。
 期待値テストには WPT（Web Platform Tests）の `urltestdata.json` および `setters_tests.json` を直接利用できる
 （`--wpt` で 820 件中 816 件が一致、`--setters` で 699 件の属性比較が一致。残る未一致分は IDNA を要するため対象外としており、fixture 内にその旨を明記している）。
+加えて、parser と構造の違う仕様（state も buffer も持たない関数や、本文を写した関係）を `Url/Spec/` に置き、全入力での一致を証明している。
+host parser・IPv4 / IPv6 parser・percent-decode・path state と相対参照の解決・setter の効果、それに `URL(input, base)` 全体が、入力にも base にも制限なく一致する（`Url.Spec.parseUrl_eq_specParseUrl`）。
 詳細は `docs/url-status.md` および `docs/url-traceability.md` を参照されたい。
 
 ## CSS Selectors
