@@ -5,7 +5,7 @@ import Dom
 # ECMA-262 の対応表
 
 Web IDL の変換が呼ぶ ECMAScript の抽象操作の対応表。`docs/spec-version.md` に固定した `spec.html` から、
-`spec-trace/extract_ecma.rb` が型変換（§7.1）、Number::toString（§6.1.6.1.20）、`Array.prototype.join`（§23.1.3.18）の
+`spec-trace/extract_ecma.rb` が型変換（§7.1）、Number::toString（§6.1.6.1.20）、`Array.prototype.join`（§23.1.3.18 と、その下の JoinIndexedProperties）の
 節だけを抜き出し、`ruby spec-trace/check.rb --spec ecma262` が `spec-trace/ecma262.json` と突き合わせる。
 
 鍵は節の id で、一つの節に algorithm が複数ある syntax-directed operation は `<id>/<k>` である。
@@ -85,7 +85,11 @@ def entries : List Entry := [
   /- ## §23.1.3.18 Array.prototype.join -/
   { alg := "sec-array.prototype.join"
     impl := [``Dom.Idl.JsValue.joinElems, ``Dom.Idl.JsValue.joinElem]
-    approx := [("1-4", "配列の ToString からだけ呼ぶので、this は配列で、separator は \",\" である")] }
+    approx := [("1-4", "配列の ToString からだけ呼ぶので、this は配列で、separator は \",\" である")] },
+  { alg := "sec-joinindexedproperties"
+    impl := [``Dom.Idl.JsValue.joinElems, ``Dom.Idl.JsValue.joinElem]
+    omitted := [("1", .other "methodName を渡す呼び出し元（toLocaleString）は model に無い"),
+                ("4.4.1", .other "methodName を渡す呼び出し元（toLocaleString）は model に無い")] }
 ]
 
 def exclusions : List Exclusion := [

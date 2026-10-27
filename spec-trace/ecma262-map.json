@@ -326,6 +326,34 @@
           "what": "配列の ToString からだけ呼ぶので、this は配列で、separator は \",\" である"
         }
       ]
+    },
+    {
+      "alg": "sec-joinindexedproperties",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.Idl.JsValue.joinElems",
+        "Dom.Idl.JsValue.joinElem"
+      ],
+      "spec": [],
+      "omit": [
+        {
+          "steps": "1",
+          "why": {
+            "reason": "other",
+            "detail": "methodName を渡す呼び出し元（toLocaleString）は model に無い"
+          }
+        },
+        {
+          "steps": "4.4.1",
+          "why": {
+            "reason": "other",
+            "detail": "methodName を渡す呼び出し元（toLocaleString）は model に無い"
+          }
+        }
+      ],
+      "approx": []
     }
   ],
   "exclusions": [

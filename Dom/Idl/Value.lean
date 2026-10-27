@@ -114,7 +114,7 @@ def toJsString : JsValue → Except IdlException String
   | .object props => if ownsToString props then .error .typeError else .ok "[object Object]"
   | .array xs => joinElems xs
 
-/-- `Array.prototype.join(",")`。要素の ToString の失敗はそのまま返す（step 7.3.1 の `?`）。 -/
+/-- `Array.prototype.join(",")`。loop は JoinIndexedProperties（§23.1.3.18.1）で、要素の ToString の失敗はそのまま返す（step 4.4.2.2 の `?`）。 -/
 def joinElems : List JsValue → Except IdlException String
   | [] => .ok ""
   | [x] => joinElem x

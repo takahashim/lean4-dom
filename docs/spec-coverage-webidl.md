@@ -2,7 +2,7 @@
 
 このファイルは `ruby spec-trace/check.rb --spec webidl --write` が `Trace/` の対応表と `spec-trace/webidl.json` から作る。手で編集しない。
 
-対象は Web IDL Standard の `index.bs` commit `8c65329114411ebd3af025106c2267f5bc00faeb` である。algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。
+対象は Web IDL Standard の `index.bs` commit `7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf` である。algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。
 
 | 項目 | 数 |
 | --- | --- |
@@ -23,80 +23,80 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-boolean](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-boolean) | 2/2 | `Dom.Idl.JsValue.toBoolean` |  |
+| [js-to-boolean](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-boolean) | 2/2 | `Dom.Idl.JsValue.toBoolean` |  |
 
 ### §3.2.4.4（`js-unsigned-short`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-unsigned-short](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-unsigned-short) | 2/2 | `Dom.Idl.toUnsignedShort` |  |
+| [js-to-unsigned-short](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-unsigned-short) | 2/2 | `Dom.Idl.toUnsignedShort` |  |
 
 ### §3.2.4.6（`js-unsigned-long`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-unsigned-long](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-unsigned-long) | 2/2 | `Dom.Idl.toUnsignedLong` |  |
+| [js-to-unsigned-long](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-unsigned-long) | 2/2 | `Dom.Idl.toUnsignedLong` |  |
 
 ### §3.2.4.9（`js-integer-types-abstract-ops`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [abstract-opdef-integerpart](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#abstract-opdef-integerpart) | 0/3（近似 3） | `Dom.Idl.JsNum.truncAbs`<br>`Dom.Idl.convertToIntUnsigned` |  |
-| [abstract-opdef-converttoint](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#abstract-opdef-converttoint) | 8/26（近似 1） | `Dom.Idl.convertToIntUnsigned`<br>`Dom.Idl.JsValue.toNumber`<br>`Dom.Idl.JsNumber.toNum?` |  |
+| [abstract-opdef-integerpart](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#abstract-opdef-integerpart) | 0/3（近似 3） | `Dom.Idl.JsNum.truncAbs`<br>`Dom.Idl.convertToIntUnsigned` |  |
+| [abstract-opdef-converttoint](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#abstract-opdef-converttoint) | 8/26（近似 1） | `Dom.Idl.convertToIntUnsigned`<br>`Dom.Idl.JsValue.toNumber`<br>`Dom.Idl.JsNumber.toNum?` |  |
 
 ### §3.2.10（`js-DOMString`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-DOMString](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-DOMString) | 2/3（近似 1） | `Dom.Idl.toDOMString`<br>`Dom.Idl.toLegacyNullDOMString`<br>`Dom.Idl.JsValue.toJsString` |  |
+| [js-to-DOMString](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-DOMString) | 2/3（近似 1） | `Dom.Idl.toDOMString`<br>`Dom.Idl.toLegacyNullDOMString`<br>`Dom.Idl.JsValue.toJsString` |  |
 
 ### §3.2.15（`js-interface`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-interface](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-interface) | 1/2（近似 1） | `Dom.Exec.Operation.argumentTypeError`<br>`Dom.Exec.idlCheck` |  |
+| [js-to-interface](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-interface) | 1/2（近似 1） | `Dom.Exec.Operation.argumentTypeError`<br>`Dom.Exec.idlCheck` |  |
 
 ### §3.2.17（`js-dictionary`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-dictionary](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-dictionary) | 15/18（近似 2） | `Dom.Idl.toEventListenerOptions`<br>`Dom.Idl.toAddEventListenerOptions`<br>`Dom.Idl.toMutationObserverInit`<br>`Dom.Idl.toImportNodeOptions`<br>`Dom.Idl.boolMember`<br>`Dom.Idl.boolMember?` |  |
+| [js-to-dictionary](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-dictionary) | 15/18（近似 2） | `Dom.Idl.toEventListenerOptions`<br>`Dom.Idl.toAddEventListenerOptions`<br>`Dom.Idl.toMutationObserverInit`<br>`Dom.Idl.toImportNodeOptions`<br>`Dom.Idl.boolMember`<br>`Dom.Idl.boolMember?` |  |
 
 ### §3.2.20（`js-nullable-type`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-nullable](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-nullable) | 2/4 | `Dom.Idl.toNullableDOMString`<br>`Dom.Exec.Operation.nodeContainsNull`<br>`Dom.Exec.Operation.isEqualNodeNull` |  |
+| [js-to-nullable](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-nullable) | 2/4 | `Dom.Idl.toNullableDOMString`<br>`Dom.Exec.Operation.nodeContainsNull`<br>`Dom.Exec.Operation.isEqualNodeNull` |  |
 
 ### §3.2.21（`js-sequence`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-sequence](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-sequence) | 2/4（近似 2） | `Dom.Idl.toSequenceDOMString` |  |
+| [js-to-sequence](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-sequence) | 2/4（近似 2） | `Dom.Idl.toSequenceDOMString` |  |
 
 ### §3.2.21.1（`create-sequence-from-iterable`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [algorithm:create sequence from iterable](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#algorithm:create sequence from iterable) | 0/7（近似 7） | `Dom.Idl.toSequenceDOMString` |  |
+| [algorithm:create sequence from iterable](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#algorithm:create sequence from iterable) | 0/7（近似 7） | `Dom.Idl.toSequenceDOMString` |  |
 
 ### §3.2.25（`js-union`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [js-to-union](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#js-to-union) | 10/52（近似 1） | `Dom.Idl.toEventListenerOptions`<br>`Dom.Idl.toAddEventListenerOptions`<br>`Dom.Idl.toImportNodeOptions`<br>`Dom.Idl.elementCreationOptionsOk`<br>`Dom.NodeOrString` |  |
+| [js-to-union](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#js-to-union) | 10/52（近似 1） | `Dom.Idl.toEventListenerOptions`<br>`Dom.Idl.toAddEventListenerOptions`<br>`Dom.Idl.toImportNodeOptions`<br>`Dom.Idl.elementCreationOptionsOk`<br>`Dom.NodeOrString` |  |
 
 ### §3.6（`js-overloads`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dfn-overload-resolution-algorithm](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#dfn-overload-resolution-algorithm) | 16/64（近似 18） | `Dom.Exec.requiredArgs`<br>`Dom.Exec.Operation.argumentTypeError` |  |
+| [dfn-overload-resolution-algorithm](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#dfn-overload-resolution-algorithm) | 16/64（近似 18） | `Dom.Exec.requiredArgs`<br>`Dom.Exec.Operation.argumentTypeError` |  |
 
 ### §3.7.7（`js-operations`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dfn-create-operation-function](https://webidl.spec.whatwg.org/commit-snapshots/8c65329114411ebd3af025106c2267f5bc00faeb/#dfn-create-operation-function) | 9/24（近似 4） | `Dom.Exec.invokeOperation`<br>`Dom.Exec.idlCheck`<br>`Dom.Exec.invokeChecked`<br>`Dom.Exec.returnValueOf` |  |
+| [dfn-create-operation-function](https://webidl.spec.whatwg.org/commit-snapshots/7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf/#dfn-create-operation-function) | 9/24（近似 4） | `Dom.Exec.invokeOperation`<br>`Dom.Exec.idlCheck`<br>`Dom.Exec.invokeChecked`<br>`Dom.Exec.returnValueOf` |  |
 
 ## 外した step
 

@@ -2,17 +2,17 @@
 
 このファイルは `ruby spec-trace/check.rb --spec ecma262 --write` が `Trace/` の対応表と `spec-trace/ecma262.json` から作る。手で編集しない。
 
-対象は ECMA-262 の `spec.html` commit `5345883164f463e87f8b40aca4956157ecba8783` である。algorithm の鍵は節の id（一つの節に algorithm が複数あれば `<id>/<k>`）で、各行はその commit の source の行に張ってある。
+対象は ECMA-262 の `spec.html` commit `40ce6f206b5669e69bf010a38267ae24a2843404` である。algorithm の鍵は節の id（一つの節に algorithm が複数あれば `<id>/<k>`）で、各行はその commit の source の行に張ってある。
 
 | 項目 | 数 |
 | --- | --- |
-| `spec.html` の algorithm | 40 |
-| 表に載せたもの | 17 |
+| `spec.html` の algorithm | 41 |
+| 表に載せたもの | 18 |
 | 対象外としたもの | 23 |
-| 表に載せた algorithm の step | 119 |
-| そのうち実装したもの | 61 |
+| 表に載せた algorithm の step | 125 |
+| そのうち実装したもの | 64 |
 | そのうち近似したもの | 39 |
-| そのうち外したもの | 19 |
+| そのうち外したもの | 22 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
 「関係」の列は、仕様本文から独立に書いた関係（`Dom/Spec/` ほか）である。
@@ -23,68 +23,74 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-numeric-types-number-tostring](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L2419) | 11/21（近似 8） | `Dom.Idl.JsNumber.toJsString` |  |
+| [sec-numeric-types-number-tostring](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L2419) | 11/21（近似 8） | `Dom.Idl.JsNumber.toJsString` |  |
 
 ### §7.1.1（`sec-toprimitive`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-toprimitive](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5083) | 2/16（近似 2） | `Dom.Idl.JsValue.toJsString`<br>`Dom.Idl.JsValue.toNumber` |  |
+| [sec-toprimitive](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5038) | 2/16（近似 2） | `Dom.Idl.JsValue.toJsString`<br>`Dom.Idl.JsValue.toNumber` |  |
 
 ### §7.1.1.1（`sec-ordinarytoprimitive`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-ordinarytoprimitive](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5114) | 0/10（近似 10） | `Dom.Idl.JsValue.toJsString`<br>`Dom.Idl.JsValue.toNumber`<br>`Dom.Idl.JsValue.ownsToString` |  |
+| [sec-ordinarytoprimitive](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5069) | 0/10（近似 10） | `Dom.Idl.JsValue.toJsString`<br>`Dom.Idl.JsValue.toNumber`<br>`Dom.Idl.JsValue.ownsToString` |  |
 
 ### §7.1.2（`sec-toboolean`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-toboolean](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5139) | 2/5（近似 1） | `Dom.Idl.JsValue.toBoolean` |  |
+| [sec-toboolean](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5094) | 2/5（近似 1） | `Dom.Idl.JsValue.toBoolean` |  |
 
 ### §7.1.4（`sec-tonumber`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-tonumber](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5175) | 5/10（近似 4） | `Dom.Idl.JsValue.toNumber` |  |
+| [sec-tonumber](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5130) | 5/10（近似 4） | `Dom.Idl.JsValue.toNumber` |  |
 
 ### §7.1.4.1.1（`sec-stringtonumber`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-stringtonumber](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5255) | 1/3（近似 2） | `Dom.Idl.stringToNumber`<br>`Dom.Idl.isStrWhiteSpace` |  |
+| [sec-stringtonumber](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5210) | 1/3（近似 2） | `Dom.Idl.stringToNumber`<br>`Dom.Idl.isStrWhiteSpace` |  |
 
 ### §7.1.4.1.2（`sec-runtime-semantics-stringnumericvalue`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-runtime-semantics-stringnumericvalue/1](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5270) | 1/1 | `Dom.Idl.stringToNumber` |  |
-| [sec-runtime-semantics-stringnumericvalue/2](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5274) | 1/1 | `Dom.Idl.stringToNumber` |  |
-| [sec-runtime-semantics-stringnumericvalue/3](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5278) | 1/1 | `Dom.Idl.stringToNumber.nonDecimal`<br>`Dom.Idl.readDigits`<br>`Dom.Idl.JsNum.ofRat` |  |
-| [sec-runtime-semantics-stringnumericvalue/4](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5282) | 3/3 | `Dom.Idl.stringToNumber.signed` |  |
-| [sec-runtime-semantics-stringnumericvalue/5](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5288) | 1/1 | `Dom.Idl.stringToNumber.signed` |  |
-| [sec-runtime-semantics-stringnumericvalue/6](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5292) | 9/9 | `Dom.Idl.readUnsignedDecimal`<br>`Dom.Idl.JsNum.ofDecimal?` |  |
-| [sec-runtime-semantics-stringnumericvalue/7](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5304) | 4/4 | `Dom.Idl.readUnsignedDecimal`<br>`Dom.Idl.JsNum.ofDecimal?` |  |
-| [sec-runtime-semantics-stringnumericvalue/8](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5311) | 3/3 | `Dom.Idl.readUnsignedDecimal`<br>`Dom.Idl.JsNum.ofDecimal?` |  |
+| [sec-runtime-semantics-stringnumericvalue/1](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5225) | 1/1 | `Dom.Idl.stringToNumber` |  |
+| [sec-runtime-semantics-stringnumericvalue/2](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5229) | 1/1 | `Dom.Idl.stringToNumber` |  |
+| [sec-runtime-semantics-stringnumericvalue/3](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5233) | 1/1 | `Dom.Idl.stringToNumber.nonDecimal`<br>`Dom.Idl.readDigits`<br>`Dom.Idl.JsNum.ofRat` |  |
+| [sec-runtime-semantics-stringnumericvalue/4](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5237) | 3/3 | `Dom.Idl.stringToNumber.signed` |  |
+| [sec-runtime-semantics-stringnumericvalue/5](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5243) | 1/1 | `Dom.Idl.stringToNumber.signed` |  |
+| [sec-runtime-semantics-stringnumericvalue/6](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5247) | 9/9 | `Dom.Idl.readUnsignedDecimal`<br>`Dom.Idl.JsNum.ofDecimal?` |  |
+| [sec-runtime-semantics-stringnumericvalue/7](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5259) | 4/4 | `Dom.Idl.readUnsignedDecimal`<br>`Dom.Idl.JsNum.ofDecimal?` |  |
+| [sec-runtime-semantics-stringnumericvalue/8](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5266) | 3/3 | `Dom.Idl.readUnsignedDecimal`<br>`Dom.Idl.JsNum.ofDecimal?` |  |
 
 ### §7.1.4.1.3（`sec-roundmvresult`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-roundmvresult](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5328) | 1/5（近似 4） | `Dom.Idl.JsNum.ofDecimal?`<br>`Dom.Idl.JsNum.ofDecimal`<br>`Dom.Idl.JsNum.ofRat`<br>`Dom.Idl.JsNum.roundPos`<br>`Dom.Idl.JsNum.zeroAfterRounding?` | `Dom.Spec.NearestDouble`<br>`Dom.Spec.roundPos_spec`<br>`Dom.Spec.FiniteBinary64`<br>`Dom.Spec.roundPos_binary64_nearest`<br>`Dom.Spec.roundPos_global_tie` |
+| [sec-roundmvresult](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5283) | 1/5（近似 4） | `Dom.Idl.JsNum.ofDecimal?`<br>`Dom.Idl.JsNum.ofDecimal`<br>`Dom.Idl.JsNum.ofRat`<br>`Dom.Idl.JsNum.roundPos`<br>`Dom.Idl.JsNum.zeroAfterRounding?` | `Dom.Spec.NearestDouble`<br>`Dom.Spec.roundPos_spec`<br>`Dom.Spec.FiniteBinary64`<br>`Dom.Spec.roundPos_binary64_nearest`<br>`Dom.Spec.roundPos_global_tie` |
 
 ### §7.1.19（`sec-tostring`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-tostring](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L5708) | 6/12（近似 4） | `Dom.Idl.JsValue.toJsString` |  |
+| [sec-tostring](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L5663) | 6/12（近似 4） | `Dom.Idl.JsValue.toJsString` |  |
 
 ### §23.1.3.18（`sec-array.prototype.join`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [sec-array.prototype.join](https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html#L41203) | 10/14（近似 4） | `Dom.Idl.JsValue.joinElems`<br>`Dom.Idl.JsValue.joinElem` |  |
+| [sec-array.prototype.join](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L41155) | 0/4（近似 4） | `Dom.Idl.JsValue.joinElems`<br>`Dom.Idl.JsValue.joinElem` |  |
+
+### §23.1.3.18.1（`sec-joinindexedproperties`）
+
+| algorithm | step | 実行関数 | 関係 |
+| --- | --- | --- | --- |
+| [sec-joinindexedproperties](https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html#L41179) | 13/16 | `Dom.Idl.JsValue.joinElems`<br>`Dom.Idl.JsValue.joinElem` |  |
 
 ## 外した step
 
@@ -97,6 +103,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | sec-tonumber | 2 | other：Symbol と BigInt は表せない |
 | sec-tostring | 2 | other：Symbol は表せない |
 | sec-tostring | 8 | other：BigInt は表せない |
+| sec-joinindexedproperties | 1 | other：methodName を渡す呼び出し元（toLocaleString）は model に無い |
+| sec-joinindexedproperties | 4.4.1 | other：methodName を渡す呼び出し元（toLocaleString）は model に無い |
 
 ## 近似した step
 

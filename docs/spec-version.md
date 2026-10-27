@@ -5,8 +5,8 @@
 | 仕様 | 版 | commit |
 | --- | --- | --- |
 | WHATWG DOM Standard | Living Standard, 2026-08-25 | `a2331a45360129e8645ef7e0a04740241b6e3726` |
-| WHATWG Web IDL Standard | Living Standard, 2026-10-06 | `8c65329114411ebd3af025106c2267f5bc00faeb` |
-| ECMA-262（ECMAScript Language Specification） | draft, 2026-10-09 | `5345883164f463e87f8b40aca4956157ecba8783` |
+| WHATWG Web IDL Standard | Living Standard, 2026-10-26 | `7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf` |
+| ECMA-262（ECMAScript Language Specification） | draft, 2026-10-23 | `40ce6f206b5669e69bf010a38267ae24a2843404` |
 
 * 本文：https://dom.spec.whatwg.org/
 * source：https://github.com/whatwg/dom/blob/main/dom.bs

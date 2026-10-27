@@ -7,14 +7,14 @@
   },
   "webidl": {
     "repository": "https://github.com/whatwg/webidl",
-    "commit": "8c65329114411ebd3af025106c2267f5bc00faeb",
-    "date": "2026-10-06",
+    "commit": "7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf",
+    "date": "2026-10-26",
     "_note": "method を呼ぶ層の WebIDL の検査と、整数型の変換（ConvertToInt）が従う版。source は index.bs。"
   },
   "ecma262": {
     "repository": "https://github.com/tc39/ecma262",
-    "commit": "5345883164f463e87f8b40aca4956157ecba8783",
-    "date": "2026-10-09",
+    "commit": "40ce6f206b5669e69bf010a38267ae24a2843404",
+    "date": "2026-10-23",
     "_note": "WebIDL の変換が呼ぶ ECMAScript の抽象操作（ToNumber、StringToNumber、ToString、Number::toString、ToBoolean、ToPrimitive）と Array.prototype.join が従う版。source は spec.html。"
   },
   "dommy": {

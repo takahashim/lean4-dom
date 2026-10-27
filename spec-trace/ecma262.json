@@ -1,6 +1,6 @@
 {
   "spec": "ecma262",
-  "commit": "5345883164f463e87f8b40aca4956157ecba8783",
+  "commit": "40ce6f206b5669e69bf010a38267ae24a2843404",
   "algorithms": [
     {
       "key": "sec-numeric-types-number-tostring",
@@ -131,7 +131,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5083,
+      "line": 5038,
       "title": "ToPrimitive ( input: an ECMAScript language value, optional preferredType: ~string~ or ~number~, ): either a normal completion containing an ECMAScript language",
       "steps": [
         {
@@ -226,7 +226,7 @@
         "sec-type-conversion",
         "sec-toprimitive"
       ],
-      "line": 5114,
+      "line": 5069,
       "title": "OrdinaryToPrimitive ( obj: an Object, hint: ~string~ or ~number~, ): either a normal completion containing an ECMAScript language value or a throw completion",
       "steps": [
         {
@@ -290,7 +290,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5139,
+      "line": 5094,
       "title": "ToBoolean ( arg: an ECMAScript language value, ): a Boolean",
       "steps": [
         {
@@ -329,7 +329,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5158,
+      "line": 5113,
       "title": "ToNumeric ( arg: an ECMAScript language value, ): either a normal completion containing either a Number or a BigInt, or a throw completion",
       "steps": [
         {
@@ -358,7 +358,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5175,
+      "line": 5130,
       "title": "ToNumber ( arg: an ECMAScript language value, ): either a normal completion containing a Number or a throw completion",
       "steps": [
         {
@@ -424,7 +424,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5255,
+      "line": 5210,
       "title": "StringToNumber ( string: a String, ): a Number",
       "steps": [
         {
@@ -455,7 +455,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5270,
+      "line": 5225,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StringNumericLiteral ::: StrWhiteSpace?",
       "steps": [
         {
@@ -476,7 +476,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5274,
+      "line": 5229,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StringNumericLiteral ::: StrWhiteSpace? StrNumericLiteral StrWhiteSpace?",
       "steps": [
         {
@@ -497,7 +497,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5278,
+      "line": 5233,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrNumericLiteral ::: NonDecimalIntegerLiteral",
       "steps": [
         {
@@ -518,7 +518,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5282,
+      "line": 5237,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrDecimalLiteral ::: `-` StrUnsignedDecimalLiteral",
       "steps": [
         {
@@ -549,7 +549,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5288,
+      "line": 5243,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: `Infinity`",
       "steps": [
         {
@@ -570,7 +570,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5292,
+      "line": 5247,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: DecimalDigits `.` DecimalDigits? ExponentPart?",
       "steps": [
         {
@@ -631,7 +631,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5304,
+      "line": 5259,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: `.` DecimalDigits ExponentPart?",
       "steps": [
         {
@@ -667,7 +667,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5311,
+      "line": 5266,
       "title": "Runtime Semantics: StringNumericValue ( ): a Number：StrUnsignedDecimalLiteral ::: DecimalDigits ExponentPart?",
       "steps": [
         {
@@ -698,7 +698,7 @@
         "sec-tonumber",
         "sec-tonumber-applied-to-the-string-type"
       ],
-      "line": 5328,
+      "line": 5283,
       "title": "RoundMVResult ( n: a mathematical value, ): a Number",
       "steps": [
         {
@@ -737,7 +737,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5349,
+      "line": 5304,
       "title": "ToIntegerOrInfinity ( arg: an ECMAScript language value, ): either a normal completion containing either an integer, +&infin;, or -&infin;, or a throw completio",
       "steps": [
         {
@@ -776,7 +776,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5374,
+      "line": 5329,
       "title": "SnapToInteger ( arg: an ECMAScript language value, nonIntHandling: ~reject~ or ~truncate~, optional minimum: an integer, optional maximum: an integer, ): either",
       "steps": [
         {
@@ -830,7 +830,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5398,
+      "line": 5353,
       "title": "ToFixedSizeInteger ( int: an integer, +∞, or -∞, signed: ~unsigned~ or ~signed~, bitWidth: a positive integer, ): an integer",
       "steps": [
         {
@@ -869,7 +869,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5420,
+      "line": 5375,
       "title": "ToInt32 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
       "steps": [
         {
@@ -893,7 +893,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5436,
+      "line": 5391,
       "title": "ToUint32 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
       "steps": [
         {
@@ -917,7 +917,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5452,
+      "line": 5407,
       "title": "ToInt16 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
       "steps": [
         {
@@ -941,7 +941,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5468,
+      "line": 5423,
       "title": "ToUint16 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
       "steps": [
         {
@@ -965,7 +965,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5484,
+      "line": 5439,
       "title": "ToInt8 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
       "steps": [
         {
@@ -989,7 +989,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5500,
+      "line": 5455,
       "title": "ToUint8 ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
       "steps": [
         {
@@ -1013,7 +1013,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5516,
+      "line": 5471,
       "title": "ToUint8Clamp ( arg: an ECMAScript language value, ): either a normal completion containing an integral Number or a throw completion",
       "steps": [
         {
@@ -1072,7 +1072,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5542,
+      "line": 5497,
       "title": "ToBigInt ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
       "steps": [
         {
@@ -1096,7 +1096,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5603,
+      "line": 5558,
       "title": "ToBigInt ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
       "steps": [
         {
@@ -1125,7 +1125,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5630,
+      "line": 5585,
       "title": "StringToBigInt ( string: a String, ): a BigInt or undefined",
       "steps": [
         {
@@ -1164,7 +1164,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5676,
+      "line": 5631,
       "title": "ToBigInt64 ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
       "steps": [
         {
@@ -1188,7 +1188,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5692,
+      "line": 5647,
       "title": "ToBigUint64 ( arg: an ECMAScript language value, ): either a normal completion containing a BigInt or a throw completion",
       "steps": [
         {
@@ -1212,7 +1212,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5708,
+      "line": 5663,
       "title": "ToString ( arg: an ECMAScript language value, ): either a normal completion containing a String or a throw completion",
       "steps": [
         {
@@ -1286,7 +1286,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5734,
+      "line": 5689,
       "title": "ToObject ( arg: an ECMAScript language value, ): either a normal completion containing an Object or a throw completion",
       "steps": [
         {
@@ -1340,7 +1340,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5756,
+      "line": 5711,
       "title": "ToPropertyKey ( arg: an ECMAScript language value, ): either a normal completion containing a property key or a throw completion",
       "steps": [
         {
@@ -1374,7 +1374,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5774,
+      "line": 5729,
       "title": "ToLength ( arg: an ECMAScript language value, ): either a normal completion containing a non-negative integral Number or a throw completion",
       "steps": [
         {
@@ -1403,7 +1403,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5791,
+      "line": 5746,
       "title": "CanonicalNumericIndexString ( arg: a String, ): a Number or undefined",
       "steps": [
         {
@@ -1437,7 +1437,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5810,
+      "line": 5765,
       "title": "ToIndex ( arg: an ECMAScript language value, ): either a normal completion containing a non-negative integer or a throw completion",
       "steps": [
         {
@@ -1466,7 +1466,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5828,
+      "line": 5783,
       "title": "ToAbsoluteIndex ( value: an ECMAScript language value, length: a non-negative integer, ): either a normal completion containing either an integer, +&infin;, or ",
       "steps": [
         {
@@ -1495,7 +1495,7 @@
         "sec-abstract-operations",
         "sec-type-conversion"
       ],
-      "line": 5846,
+      "line": 5801,
       "title": "ToClampedIndex ( value: an ECMAScript language value, length: a non-negative integer, ): either a normal completion containing a non-negative integer or a throw",
       "steps": [
         {
@@ -1520,7 +1520,7 @@
         "sec-array-objects",
         "sec-properties-of-the-array-prototype-object"
       ],
-      "line": 41203,
+      "line": 41155,
       "title": "Array.prototype.join ( separator )",
       "steps": [
         {
@@ -1535,66 +1535,112 @@
         },
         {
           "n": "3",
-          "hash": "61190bf21b6ffe58",
-          "text": "If _separator_ is *undefined*, let _separatorString_ be *\",\"*."
+          "hash": "e5ec8e03de7c8bc0",
+          "text": "If _separator_ is *undefined*, let _separatorString_ be *\",\"*; else let _separatorString_ be ? ToString(_separator_)."
         },
         {
           "n": "4",
-          "hash": "07687626de3eba43",
-          "text": "Else, let _separatorString_ be ? ToString(_separator_)."
+          "hash": "9bf9364bf31fbf25",
+          "text": "Return ? JoinIndexedProperties(_obj_, _length_, _separatorString_)."
+        }
+      ],
+      "hash": "183b9d11978d64c2"
+    },
+    {
+      "key": "sec-joinindexedproperties",
+      "section": "23.1.3.18.1",
+      "heading": "sec-joinindexedproperties",
+      "headings": [
+        "sec-indexed-collections",
+        "sec-array-objects",
+        "sec-properties-of-the-array-prototype-object",
+        "sec-array.prototype.join"
+      ],
+      "line": 41179,
+      "title": "JoinIndexedProperties ( obj: an Object, length: a non-negative integer, separator: a String, optional methodName: a property key, optional methodArgs: a List of",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "099790af2a26b99c",
+          "text": "If _methodName_ is present and _methodArgs_ is not present, set _methodArgs_ to a new empty List."
         },
         {
-          "n": "5",
+          "n": "2",
           "hash": "68decc0d81a0cf0f",
           "text": "Let _result_ be the empty String."
         },
         {
-          "n": "6",
+          "n": "3",
           "hash": "30b6f60ca8375bf9",
           "text": "Let _k_ be 0."
         },
         {
-          "n": "7",
+          "n": "4",
           "hash": "d9a6d46a2dcdeeb4",
           "text": "Repeat, while _k_ < _length_,"
         },
         {
-          "n": "7.1",
-          "hash": "f44aab24c1d64559",
-          "text": "If _k_ > 0, set _result_ to the string-concatenation of _result_ and _separatorString_."
+          "n": "4.1",
+          "hash": "92547d0bea8e1bc0",
+          "text": "If _k_ > 0, set _result_ to the string-concatenation of _result_ and _separator_."
         },
         {
-          "n": "7.2",
+          "n": "4.2",
+          "hash": "5405b8cd91e2dc9b",
+          "text": "NOTE: If _obj_ is a TypedArray, the following invocation of Get will return a normal completion."
+        },
+        {
+          "n": "4.3",
           "hash": "41f55e0595ff0cc3",
           "text": "Let _element_ be ? Get(_obj_, ! ToString(𝔽(_k_)))."
         },
         {
-          "n": "7.3",
+          "n": "4.4",
           "hash": "07541314e334f0d2",
           "text": "If _element_ is neither *undefined* nor *null*, then"
         },
         {
-          "n": "7.3.1",
+          "n": "4.4.1",
+          "hash": "8a0cd3808e5c0cbe",
+          "text": "If _methodName_ is present, then"
+        },
+        {
+          "n": "4.4.1.1",
+          "hash": "9651d0514440a239",
+          "text": "Let _elementString_ be ? ToString(? Invoke(_element_, _methodName_, _methodArgs_))."
+        },
+        {
+          "n": "4.4.2",
+          "hash": "73d618bc9c48dd8d",
+          "text": "Else,"
+        },
+        {
+          "n": "4.4.2.1",
+          "hash": "62932a938044c888",
+          "text": "NOTE: If _obj_ is a TypedArray, the following invocation of ToString will return a normal completion."
+        },
+        {
+          "n": "4.4.2.2",
           "hash": "4280aeeb8c47c776",
           "text": "Let _elementString_ be ? ToString(_element_)."
         },
         {
-          "n": "7.3.2",
+          "n": "4.4.3",
           "hash": "290b82cca70fc935",
           "text": "Set _result_ to the string-concatenation of _result_ and _elementString_."
         },
         {
-          "n": "7.4",
+          "n": "4.5",
           "hash": "cfaea1e0deca031b",
           "text": "Set _k_ to _k_ + 1."
         },
         {
-          "n": "8",
+          "n": "5",
           "hash": "ce61be8af0842ee4",
           "text": "Return _result_."
         }
       ],
-      "hash": "488665f6c0dbf293"
+      "hash": "732a54281d9b3f5f"
     }
   ]
 }

@@ -7095,6 +7095,16 @@ id の付け替えを除いた同値が要る。その道具は無い。そこ�
 `surroundContents()` は残した。step 5 の `insertNode` が Text を split して node を作るので、その関係も割り当てを引数に
 取る形にする必要がある。
 
+## Web IDL と ECMA-262 の固定版を上げた（2026-10-27）
+
+週次の `spec-drift.yml` が tc39/ecma262 の改訂で失敗したので、Web IDL を whatwg/webidl の `7b9f91b`（2026-10-26）、
+ECMA-262 を tc39/ecma262 の `40ce6f2`（2026-10-23）に上げた。
+
+* ECMA-262 は `Array.prototype.join` の loop を新しい抽象操作 JoinIndexedProperties（§23.1.3.18.1）に移した（editorial）。
+  `Trace/Ecma.lean` に JoinIndexedProperties を載せ、`joinElems`・`joinElem` をそこに対応させた。toLocaleString のための
+  methodName の分岐（step 1、4.4.1）は、それを渡す呼び出し元が model に無いので除外した。
+* Web IDL の間の commit はどれも editorial で、表に載せた algorithm の本文は変わらなかった。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
