@@ -34,6 +34,11 @@ def entries : List Entry := [
     approx := [("4", loneSurrogate),
                ("7.1", "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ（`validity_freshText`、`splitText_result_sound`）"),
                ("7.2-7.5", "動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査")] },
+  /- §4.12 CDATASection -/
+  { alg := "create-a-cdata-section-node"
+    impl := [``Dom.createCDATASection, ``Dom.withFresh]
+    spec := [``Dom.createCDATASection_creates]
+    approx := [("1-2", "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）")] },
   { alg := "dom-text-splittext"
     impl := [``Dom.splitText]
     spec := [``Dom.Spec.splitText_result_sound] },

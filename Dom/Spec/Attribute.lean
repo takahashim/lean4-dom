@@ -54,7 +54,8 @@ def attrRecord (target : NodeId) (name : String) (ns oldValue : Option String) :
 **attributes の record を一つ積む。**
 
 interested な observer の queue の末尾に一つ積み、oldValue は `attributeOldValue` を持つ
-observer にだけ載せる。observer は pending mutation observers に入り、microtask が予約される。
+observer にだけ載せる。observer は pending mutation observers に入り、interested な observer があれば
+microtask が予約される。
 -/
 def AttributeRecordQueued (s s' : DOMState) (target : NodeId) (name : String)
     (ns : Option String) (oldValue : Option String) : Prop :=
@@ -69,7 +70,6 @@ def AttributeRecordQueued (s s' : DOMState) (target : NodeId) (name : String)
   (∀ mo, InterestedInAttribute s mo target name ns → mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInAttribute s mo target name ns) ∧
-  s'.microtaskQueued = true ∧
   PendingAppended s s' target (attributeInterest target name ns)
 
 /-! ## attribute list の探索 -/

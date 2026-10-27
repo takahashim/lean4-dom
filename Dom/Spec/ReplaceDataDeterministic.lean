@@ -95,9 +95,10 @@ theorem characterDataRecordQueued_unique {s s₁ s₂ : DOMState} {target : Node
     (∀ mo : Nat, (s₁.observers[mo]?).map (·.records) = (s₂.observers[mo]?).map (·.records)) ∧
       (∀ mo : Nat, mo ∈ s₁.pendingObservers ↔ mo ∈ s₂.pendingObservers) ∧
       s₁.microtaskQueued = s₂.microtaskQueued ∧ s₂.pendingObservers = s₁.pendingObservers := by
-  obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁, hpa₁⟩ := h₁
-  obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂, hpa₂⟩ := h₂
-  refine ⟨records_map_congr hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_, by rw [hm₁, hm₂],
+  obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hpa₁⟩ := h₁
+  obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hpa₂⟩ := h₂
+  refine ⟨records_map_congr hl₁ hl₂ (fun mo o oa ho hoa ob hob => ?_), ?_,
+    (pendingAppended_microtask_unique (fun _ => rfl) (RegistrationsObsEq.refl _) rfl hpa₁ hpa₂).symm,
     pendingAppended_unique (fun _ => rfl) (RegistrationsObsEq.refl _) rfl hpa₁ hpa₂⟩
   · by_cases hint : InterestedInCharacterData s mo target
     · by_cases hold : CharacterDataOldValueWanted s mo target

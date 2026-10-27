@@ -7105,6 +7105,63 @@ ECMA-262 を tc39/ecma262 の `40ce6f2`（2026-10-23）に上げた。
   methodName の分岐（step 1、4.4.1）は、それを渡す呼び出し元が model に無いので除外した。
 * Web IDL の間の commit はどれも editorial で、表に載せた algorithm の本文は変わらなかった。
 
+## DOM の固定版を上げた（2026-10-27）
+
+週次の `spec-drift.yml` が whatwg/dom の改訂で失敗したので、DOM の固定版を `a2331a4`（2026-08-25）から
+`3c53f93`（2026-10-19）に上げた。間の commit のうち model に効くのは `3071e5f` "Correct transient registered observer
+bookkeeping and callback order" で、残りは表を直すだけで済んだ。
+
+### `3071e5f`：transient registered observer と配送の順
+
+本文は "add transient registered observers" と "remove transient registered observers" の二つの algorithm を足し、
+remove step 15 と move step 17 から前者を、notify step 6.3 と `disconnect()` から後者を呼ぶ。model を次のように直した。
+
+* **add transient registered observers**（`addTransientObservers`）：registered が transient なら、足す transient の source は
+  その source にする（step 1.3）。node に同じ source の transient があれば足さない（step 1.4）。足した transient の observer を
+  pending にし、microtask を予約する（step 1.7-1.8）。record を受けない observer の transient も次の notify で外れる。
+* **move**：step 17 で transient を足す。
+* **notify**：pending mutation observers を creation index の順に並べてから回る（step 2）。observer は scenario の初期状態で
+  だけ作るので、creation index は `observers` の添字である。
+* **disconnect**：node list を空にする（step 3）。
+* **queue a mutation record**：interested observers が空なら step 4 で返り、microtask を予約しない。
+
+model の node list（`ObserverState.nodeList`）は前から「transient を置いた node も足す」と読んでいた。本文の
+transient node set がそれに当たるので、node list と transient node set を合わせたものと位置づけ直した。`observe()` が
+transient を数えない読み（step 7）も、本文がこの commit で同じ読みに改めた。
+
+関係も直した。
+
+* `RemoveSpec` を、木から外した後（`Detached`）と transient を足した後の状態を挟んで段を並べる形にした。
+  `MoveSpec` も同じ `Detached` と `TransientAdded` を使う。`TransientAdded` は node の registered observer list に足す
+  transient を本文の step 1.1-1.5 の畳み込み（`transientsFor`）で書き、pending と microtask も述べる。
+* `PendingAppended` に microtask を足し、record を積む三つの関係から `microtaskQueued = true` を外した。
+* `NotifyResult` は notify list を「pending の並べ替えで、昇順のもの」と書く。昇順の並べ替えは一つしかない
+  （`notifyList_unique`）ので、completeness はそのまま残る。
+* `removeSpec_deterministic` は段ごとの congruence（`detached_congr`・`transientAdded_congr`・`treeRecordQueued_congr`）を
+  繋いだ `removeSpec_congr` から出す形にし、`ObsEq` を結論にした。`removeSpec_transport` は使わなくなったので外し、
+  completeness は観測の等しい状態から直接 `remove` を走らせる `remove_complete_of_obsEq` に置き換えた。
+
+新しい固定 scenario は 4 本で、既存の `observer-transient-follows-existing-registration` は配送の順が変わった。
+
+| scenario | 確かめること | Dommy | Chromium・Firefox・WebKit |
+| --- | --- | --- | --- |
+| `notify-order-follows-creation-index` | 後から pending になった observer でも creation index の順に配送する | 割れる | notify は比べられない |
+| `transient-observer-is-removed-at-notify-without-records` | record の無い observer の transient も notify で外れる | 割れる | 同上 |
+| `move-adds-transient-registered-observers` | move も transient を足す | 一致 | Chromium・Firefox は一致（WebKit は `moveBefore` が無い） |
+| `observe-removes-transients-chained-from-transients` | transient から作った transient も `observe()` で外れる | 割れる | 一致 |
+
+Dommy（`c241e2e9`）は改訂前の本文に従っているので、割れる 4 本（JS の側から動かす runner では notify を比べないので 1 本）を
+`test/known-divergences.yml` に記録した。生成 scenario は nightly の 3 設定 × seed 1-10（3000 本）と、JS の側の seed 1 で
+不一致 0 だった。
+
+### そのほかの改訂
+
+* `b2e32dc`：inner invoke に、Window の associated Document が fully active かの検査（step 2.8）が入った。global object も
+  browsing context も無いので、どの Document も fully active とみなす近似として表に書き、後ろの step の番号を直した。
+* `8b51527`：clone a single node が Document の base URL override を写す（step 5.2）。document の URL を持たないので除外した。
+* `5e70d79`：`createCDATASection()` の本体が "create a CDATA section node" に移った（editorial）。表に足した。
+* `94f3fee`（fire an event）と `b76da7a`（PI の serialize）は、表に載せていない algorithm だけを変えた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

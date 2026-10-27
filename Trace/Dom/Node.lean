@@ -81,7 +81,9 @@ def entries : List Entry := [
   { alg := "clone-a-single-node"
     impl := [``Dom.cloneSingle, ``Dom.cloneData, ``Dom.cloneDocumentOf, ``Dom.cloneAttrIn]
     spec := [``Dom.cloneNodeIn_shallow_spec]
-    omitted := [("2.1-2.3", .customElements), ("5.2", .customElements)]
+    omitted := [("2.1-2.3", .customElements),
+                ("5.2", .todo "document の URL も base URL override も持たない（`dom-node-baseuri` と同じ）"),
+                ("5.3", .customElements)]
     approx := [("2.4", "create an element を呼ばず、`NodeData` を写して element を作る（is value・custom element の処理は無い）"),
                ("5.1", "Document の持ち物のうち model にあるのは type（`isHTMLDocument`）・mode・content type だけで、それを写す。encoding・URL・origin・allow declarative shadow roots は無い")] },
   { alg := "dom-node-clonenode"

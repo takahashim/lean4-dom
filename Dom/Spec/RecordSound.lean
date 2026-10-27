@@ -6,7 +6,7 @@ import Dom.Spec.ObserverOrderSound
 # record を積む step は関係意味論を満たす
 
 `queueTreeMutationRecord` が `TreeRecordQueued` を満たすことを示す。
-`remove` の step 21 と `insert` の step 4.2 / 9 が共有する。
+`remove` の step 16、`insert` の step 4.2 / 9、`move` の step 26-27 が共有する。
 -/
 
 namespace Dom.Spec
@@ -94,7 +94,7 @@ theorem treeRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tree) (targ
                previousSibling := prev, nextSibling := next } : MutationRecord)) rfl rfl rfl mo
   unfold TreeRecordQueued
   rw [if_neg (by simp), hq]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact queueMutationRecord_observers_length ..
   · intro mo o o' ho ho'
     have hr := records_after_tree_queue (mo := mo) rfl ho ho'
@@ -108,7 +108,6 @@ theorem treeRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tree) (targ
     rcases (mem_pendingObservers_queueMutationRecord _ _ _ mo).mp hmo with hm | hm
     · exact Or.inl hm
     · exact Or.inr ((hbridge mo).mp hm)
-  · exact microtaskQueued_queueMutationRecord ..
   · exact pendingAppended_queueMutationRecord hwf _ none _
       (fun r => interestedIn_childList target r)
 
@@ -190,7 +189,7 @@ theorem characterDataRecordQueued_of_queue (s : DOMState) (hwf : WellFormed s.tr
     (rec := ({ type := .characterData, target := target } : MutationRecord)) rfl old mo
   unfold queueCharacterDataRecord
   refine ⟨queueMutationRecord_observers_length .., ?_, ?_, ?_, ?_,
-    microtaskQueued_queueMutationRecord .., pendingAppended_queueMutationRecord hwf _ _ _
+    pendingAppended_queueMutationRecord hwf _ _ _
       (fun r => interestedIn_characterData target r)⟩
   · intro mo o o' ho ho'
     rw [observers_queueMutationRecord] at ho'

@@ -26,10 +26,10 @@ def entries : List Entry := [
     impl := [``Dom.append]
     spec := [``Dom.Spec.append_result_sound] },
   { alg := "move"
-    impl := [``Dom.move, ``Dom.moveValidity]
+    impl := [``Dom.move, ``Dom.moveValidity, ``Dom.detachWithLiveAdjust, ``Dom.addTransientObservers]
     spec := [``Dom.Spec.MoveSpec, ``Dom.Spec.MoveValidity]
-    omitted := [("14-16", .shadow), ("21-23", .shadow), ("24.1-24.2", .hook),
-             ("24.3", .customElements)]
+    omitted := [("14-16", .shadow), ("22-24", .shadow), ("25.1-25.2", .hook),
+             ("25.3", .customElements)]
     approx := [("1", "shadow-including root ではなく root で比べる（shadow tree が無いので同じ値）")] },
   { alg := "concept-node-replace"
     impl := [``Dom.replace]
@@ -41,7 +41,7 @@ def entries : List Entry := [
     impl := [``Dom.preRemove]
     spec := [``Dom.Spec.PreRemoveResult, ``Dom.Spec.preRemove_result_sound] },
   { alg := "concept-node-remove"
-    impl := [``Dom.remove, ``Dom.detachWithLiveAdjust]
+    impl := [``Dom.remove, ``Dom.detachWithLiveAdjust, ``Dom.addTransientObservers]
     spec := [``Dom.Spec.RemoveSpec, ``Dom.Spec.RemoveResult]
     omitted := [("8-10", .shadow), ("11", .hook), ("12-13", .customElements), ("14.1", .hook),
              ("14.2", .customElements), ("17", .hook)] }

@@ -223,7 +223,7 @@ theorem attrFrame_notifyEach : ∀ (l : List Nat) (s : DOMState), AttrFrame s (n
 theorem attrFrame_notifyMutationObservers (s : DOMState) :
     AttrFrame s (notifyMutationObservers s).1 := by
   show AttrFrame s (notifyEach { s with microtaskQueued := false, pendingObservers := [] }
-    s.pendingObservers).1
+    (s.pendingObservers.mergeSort (· ≤ ·))).1
   exact (AttrFrame.of_eq (s := s) (s' := { s with microtaskQueued := false, pendingObservers := [] })
     rfl rfl).trans (attrFrame_notifyEach _ _)
 

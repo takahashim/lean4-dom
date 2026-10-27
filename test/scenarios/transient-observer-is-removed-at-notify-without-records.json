@@ -1,0 +1,60 @@
+{
+  "_note": "add transient registered observers は、transient を足した observer を pending にする（step 1.7）。observer 0 は childList を見ないので remove の record を受けないが、次の notify で transient は外れ、その後の外された node の attribute の変更は届かない。whatwg/dom 3071e5f より前の本文では、record の無い observer は notify されず、transient が残っていた。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
+    "algorithm": [
+      "remove",
+      "add transient registered observers",
+      "notify mutation observers",
+      "remove transient registered observers"
+    ],
+    "steps": "remove 15 / add transient registered observers 1.7 / notify mutation observers 6.3",
+    "note": "配送される record は無いが、notify の後は transient が無い。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "subtree": true,
+      "childList": false,
+      "attributes": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "remove",
+      "target": 2
+    },
+    {
+      "op": "notify"
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "b",
+      "value": "2"
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    }
+  ]
+}

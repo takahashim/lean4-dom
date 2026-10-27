@@ -136,14 +136,15 @@ theorem move_isOk_of_validity {s : DOMState} {node newParent : NodeId}
   have hins := insertAt_eq_ok hpd₁ hnd₁ hnp₁ hanc₁ hchild₁
   unfold move
   simp only [hv, hp, hdw]
-  rw [show (liveRangeInsertAdjust s₁ newParent child 1).mapTree
+  rw [show (liveRangeInsertAdjust (addTransientObservers s₁ node p) newParent child 1).mapTree
       (fun t => insertAt t newParent node child) =
-      .ok ((liveRangeInsertAdjust s₁ newParent child 1).withTree
+      .ok ((liveRangeInsertAdjust (addTransientObservers s₁ node p) newParent child 1).withTree
         (insertAtIn s₁.tree newParent node child pd₁ nd₁)) from by
-    show (match insertAt (liveRangeInsertAdjust s₁ newParent child 1).tree newParent node child with
+    show (match insertAt (liveRangeInsertAdjust (addTransientObservers s₁ node p) newParent child 1).tree
+        newParent node child with
       | Except.error e => Except.error e
       | Except.ok t => Except.ok (_root_.Dom.DOMState.withTree _ t)) = _
-    rw [liveRangeInsertAdjust_tree, hins]]
+    rw [liveRangeInsertAdjust_tree, addTransientObservers_tree, hins]]
   exact ⟨_, rfl⟩
 
 /-- step 1-6 で落ちたら `move` はその例外をそのまま返す。 -/

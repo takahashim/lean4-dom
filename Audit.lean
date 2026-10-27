@@ -297,10 +297,11 @@ open Dom.Audit
   Dom.Spec.remove_sound_range
   Dom.Spec.remove_sound_iterator
   Dom.Spec.remove_sound_tree
-  Dom.Spec.remove_sound_transient
-  Dom.Spec.remove_sound_record
+  Dom.Spec.transientAdded_of_add
+  Dom.Spec.detached_of_detach
   Dom.Spec.removeSpec_deterministic
-  Dom.Spec.removeSpec_transport
+  Dom.Spec.detached_congr
+  Dom.Spec.transientAdded_congr
   Dom.Spec.removeSpec_congr
   Dom.Spec.removeEachSpec_congr
   Dom.Spec.adoptSpec_congr
@@ -1676,8 +1677,8 @@ open Dom.Audit
   Dom.Spec.pendingAppended_unique
   Dom.Spec.pendingAppended_queueMutationRecord
   Dom.Spec.pending_queueMutationRecord
-  Dom.Spec.transientOrdered_unique
-  Dom.Spec.removeSpec_order_unique
+  Dom.Spec.pendingAppended_microtask_unique
+  Dom.Spec.notifyList_unique
   Dom.Spec.attributeChangeHandled_congr
   Dom.Spec.ResultObsEq.delivered
   Dom.Spec.remove_complete_delivered

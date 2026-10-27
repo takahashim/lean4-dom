@@ -1128,7 +1128,8 @@ function apply(ctx, op) {
       return ctx.observerSet.take(op.observer);
     }
     case "notify":
-      // 配送順は notify set の並びで決まる。こちら側の queue からは復元できない。
+      // 配送（microtask checkpoint）は transient registered observer も外す。scenario は同期で走らせるので、
+      // その時点を step の間に作れない。
       throw new Unsupported("MutationObserver の配送順");
     case "attrQuery": return applyAttrQuery(ctx, op);
     case "setAttrValue": {
@@ -1459,7 +1460,8 @@ function runListenerAction(objects, callbacks, specs, action, event) {
  * queue に積み直す。queue の中身と `takeRecords` の戻り値はこれで一致する。
  *
  * 配送（`notify` = microtask checkpoint）だけは支えられない。
- * 仕様の配送順は notify set の並びで決まり、こちら側の queue からは復元できない。
+ * 配送は transient registered observer も外すが、scenario は同期で走らせるので、microtask checkpoint を
+ * step の間に起こせない。
  */
 class ObserverSet {
   constructor(win, idOf, specs) {

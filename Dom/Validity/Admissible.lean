@@ -771,15 +771,26 @@ theorem admissible_disconnect {s : DOMState} (h : AdmissibleDOMState s) (mo : Na
   refine ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints, h.iterators, ?_,
     h.attributes⟩
   intro r hr
-  unfold MutationObserver.disconnect at hr
-  simp only at hr
-  obtain ⟨g1, g2, g3⟩ := h.observerRegistrations r (List.mem_filter.mp hr).1
-  refine ⟨by simpa using g1, g2, g3.mono (grow_of_nodeLists ?_)⟩
-  unfold MutationObserver.disconnect
-  simp only []
-  split
-  · rfl
-  · next o ho => exact setRecords_nodeLists ho
+  unfold MutationObserver.disconnect at hr ⊢
+  simp only at hr ⊢
+  obtain ⟨hmem, hne⟩ := List.mem_filter.mp hr
+  have hne : r.observer ≠ mo := by simpa using hne
+  obtain ⟨g1, g2, g3⟩ := h.observerRegistrations r hmem
+  -- step 3 が空にするのは mo の node list だけで、残る registration の observer は mo でない。
+  have hget : (match s.observers[mo]? with
+      | none => s.observers
+      | some o => s.observers.set mo { o with nodeList := [], records := [] })[r.observer]? =
+        s.observers[r.observer]? := by
+    split
+    · rfl
+    · rw [List.getElem?_set_ne (Ne.symm hne)]
+  refine ⟨?_, g2, ?_⟩
+  · split <;> simpa using g1
+  · obtain ⟨o, ho, hm⟩ := g3
+    exact ⟨o, by show (match s.observers[mo]? with
+      | none => s.observers
+      | some o => s.observers.set mo { o with nodeList := [], records := [] })[r.observer]? = _
+                 rw [hget]; exact ho, hm⟩
 
 /-- `takeRecords` は record queue を空にするだけである。 -/
 theorem admissible_takeRecords {s : DOMState} (h : AdmissibleDOMState s) (mo : Nat) :

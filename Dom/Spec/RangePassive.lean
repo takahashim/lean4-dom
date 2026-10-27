@@ -45,11 +45,13 @@ theorem foldl_addPendingObserver_withRange (i : Nat) (x : RangeState) :
 theorem queueMutationRecord_withRange (s : DOMState) (i : Nat) (x : RangeState)
     (rec : MutationRecord) (ov : Option String) :
     queueMutationRecord (withRange s i x) rec ov = withRange (queueMutationRecord s rec ov) i x := by
-  unfold queueMutationRecord
+  rw [queueMutationRecord_eq, queueMutationRecord_eq]
   have hi : interestedObservers (withRange s i x) rec ov = interestedObservers s rec ov := rfl
   simp only [hi]
-  rw [← queueMutationObserverMicrotask_withRange, ← foldl_addPendingObserver_withRange]
-  rfl
+  split
+  · rfl
+  · rw [← queueMutationObserverMicrotask_withRange, ← foldl_addPendingObserver_withRange]
+    rfl
 
 theorem queueTreeMutationRecord_withRange (s : DOMState) (i : Nat) (x : RangeState)
     (target : NodeId) (a r : List NodeId) (p n : Option NodeId) :
@@ -66,10 +68,23 @@ theorem queueCharacterDataRecord_withRange (s : DOMState) (i : Nat) (x : RangeSt
       withRange (queueCharacterDataRecord s target old) i x :=
   queueMutationRecord_withRange ..
 
+theorem foldl_pendTransient_withRange (i : Nat) (x : RangeState) :
+    ∀ (l : List Registration) (s : DOMState),
+      l.foldl pendTransient (withRange s i x) = withRange (l.foldl pendTransient s) i x
+  | [], _ => rfl
+  | r :: rest, s => by
+    simp only [List.foldl_cons, pendTransient]
+    rw [addPendingObserver_withRange, queueMutationObserverMicrotask_withRange]
+    exact foldl_pendTransient_withRange i x rest _
+
 theorem addTransientObservers_withRange (s : DOMState) (i : Nat) (x : RangeState)
     (node parent : NodeId) :
     addTransientObservers (withRange s i x) node parent =
-      withRange (addTransientObservers s node parent) i x := rfl
+      withRange (addTransientObservers s node parent) i x := by
+  rw [addTransientObservers_eq, addTransientObservers_eq]
+  have hn : newTransients (withRange s i x) node parent = newTransients s node parent := rfl
+  rw [hn, ← foldl_pendTransient_withRange]
+  rfl
 
 theorem iteratorPreRemove_withRange (s : DOMState) (i : Nat) (x : RangeState) (node : NodeId) :
     iteratorPreRemove (withRange s i x) node = withRange (iteratorPreRemove s node) i x := rfl

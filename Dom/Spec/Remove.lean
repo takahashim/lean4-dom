@@ -20,18 +20,16 @@ import Dom.Spec.Record
 
 ## 構成
 
-仕様の remove は五つの副作用を持つので、`RemoveSpec` もその連言にしてある。
+仕様の remove は三つの段に分かれるので、`RemoveSpec` も途中の状態を挟んで段を並べる。
 
 | component | 仕様の step |
 | --- | --- |
 | `RemovePre` | 1-2 |
-| `RangeAdjusted` | 3（live range pre-remove steps） |
-| `IteratorAdjusted` | 4（NodeIterator pre-remove steps） |
-| `TreeRemoved` | 7 |
-| `TransientAdded` | 20 |
-| `RecordQueued` | 21 |
+| `Detached`（`RangeAdjusted`・`IteratorAdjusted`・`TreeRemoved`） | 3-4（live range と NodeIterator の pre-remove steps）、7 |
+| `TransientAdded` | 15（add transient registered observers） |
+| `RecordQueued` | 16 |
 
-step 8-10（slot）・11/15（removing steps）・13-14（custom element）は
+step 8-10（slot）・11/14.1（removing steps）・13/14.2（custom element）・17（children changed steps）は
 model の対象外である（`docs/traceability.md` の「未対応と対象外」）。
 -/
 
@@ -167,60 +165,86 @@ structure TreeRemoved (t t' : Tree) (node parent : NodeId) : Prop where
       d'.prefix = d.prefix ∧ d'.localName = d.localName ∧
       d'.isHTMLDocument = d.isHTMLDocument ∧ d'.mode = d.mode ∧ NodeData.SameExtraProps d d'
 
-/-! ## step 20：transient registered observer -/
-
-/-- 二つの registration が observer と options を共有していること。 -/
-def SameObserverOptions (a b : Registration) : Prop :=
-  a.observer = b.observer ∧ a.subtree = b.subtree ∧ a.childList = b.childList ∧
-    a.attributes = b.attributes ∧ a.attributeOldValue = b.attributeOldValue ∧
-    a.attributeFilter = b.attributeFilter ∧ a.characterData = b.characterData ∧
-    a.characterDataOldValue = b.characterDataOldValue
+/-! ## step 3-7 をまとめる -/
 
 /--
-仕様の step 20。
+step 3-4 と 7。live range と NodeIterator を調整し、木から外す。observer の側は何も動かない。
 
-`parent` の inclusive ancestor に subtree 付きで登録されている registration ごとに、
-それを source とする transient registered observer が `node` に足される。
-元の registration は残る。
+`move` の step 9-10, 13 も同じ形なので、`MoveSpec` もこれを使う。
+-/
+def Detached (s s' : DOMState) (node parent : NodeId) (index : Nat) : Prop :=
+  RangeAdjusted s s' node parent index ∧
+  IteratorAdjusted s s' node ∧
+  TreeRemoved s.tree s'.tree node parent ∧
+  ObserversUntouched s s'
 
-**並びも決める。** registered observer list の順は、後でこの node（あるいはその下）が target になったとき、
-"queue a mutation record" が interested observers を並べる順、つまり pending mutation observers の順と
-配送の順に出る。本文は ancestor を下から上へ、各 ancestor の registered observer list を list の順に回って
-`node` の registered observer list の末尾に足すので、`node` の list は元の list にその順の transient を
-続けたものになる（`TransientOrdered`）。ほかの node の list は変わらない。
+/-! ## step 15：add transient registered observers -/
 
-observer の node list（`ObserverState.nodeList`）については何も言わない。
-仕様の step 20 は registered observer list にしか触れないが、model は配送時の掃除が
-届くように node list にも足している（`Dom/Observer/Record.lean` の doc comment）。
-その差は record の中身には出ないので、ここでは扱わない。
+/--
+§4.3 "add transient registered observers" step 1.3 の source。
+
+transient registered observer ならその source、そうでなければ registered 自身である。
+model の source は registration の node で表す（`Registration.source` の doc comment）。
+-/
+def sourceOf (r : Registration) : Option NodeId :=
+  if r.transient then r.source else some r.node
+
+/--
+"add transient registered observers" step 1.1-1.5 を一つの registered について。
+
+`existing` は `node` の元の registered observer list、`acc` はここまでに足した transient である。
+subtree が false なら何もせず（step 1.1）、`node` の list に source が同じ transient があれば足さない（step 1.4）。
+そうでなければ、observer と options を registered から写し、source を step 1.3 のものにした transient を足す
+（step 1.5）。source の options ではなく registered の options を写すのは、transient の options が
+その source の options と等しいからである（`observe()` step 8.1 が options を差し替える前にそれを外す）。
+-/
+def transientAppend (node : NodeId) (existing acc : List Registration) (r : Registration) :
+    List Registration :=
+  if r.subtree = true ∧
+      ¬ ∃ t ∈ existing ++ acc, t.transient = true ∧ t.observer = r.observer ∧ t.source = sourceOf r
+  then acc ++ [{ r with node := node, transient := true, source := sourceOf r }]
+  else acc
+
+/--
+step 1 で `node` に足す transient の列。
+
+`nodes`（`parent` の inclusive ancestor を下から上へ）の順に、各 node の registered observer list を list の順に回る。
 -/
 def transientsFor (regs : List Registration) (nodes : List NodeId) (node : NodeId) :
     List Registration :=
-  nodes.flatMap fun a => ((regsOn regs a).filter (·.subtree)).map fun r =>
-    { r with node := node, transient := true, source := some r.node }
-
-/-- step 20 の順：`node` の registered observer list の末尾に、`parent` の inclusive ancestor の順に transient を足す。 -/
-def TransientOrdered (s s' : DOMState) (node parent : NodeId) : Prop :=
-  ∃ nodes, InclusiveAncestorsUp s.tree parent nodes ∧
-    ∀ n, regsOn s'.registrations n =
-      if n = node then regsOn s.registrations node ++ transientsFor s.registrations nodes node
-      else regsOn s.registrations n
-
-def TransientAdded (s s' : DOMState) (node parent : NodeId) : Prop :=
-  (∀ r ∈ s.registrations, r ∈ s'.registrations) ∧
-  (∀ src ∈ s.registrations, src.subtree = true → InclusiveAncestor s.tree src.node parent →
-    ∃ r ∈ s'.registrations, SameObserverOptions r src ∧ r.node = node ∧
-      r.transient = true ∧ r.source = some src.node) ∧
-  (∀ r ∈ s'.registrations, r ∉ s.registrations →
-    ∃ src ∈ s.registrations, SameObserverOptions r src ∧ src.subtree = true ∧
-      InclusiveAncestor s.tree src.node parent ∧ r.node = node ∧
-      r.transient = true ∧ r.source = some src.node) ∧
-  TransientOrdered s s' node parent
-
-/-! ## step 21：mutation record -/
+  (nodes.flatMap (regsOn regs)).foldl (transientAppend node (regsOn regs node)) []
 
 /--
-仕様の step 21。`suppressObservers` が false なら childList の record を積む。
+**"add transient registered observers" の関係。**
+
+`node` の registered observer list は、元の list に `transientsFor` の transient を続けたものになり、
+ほかの node の list は変わらない（step 1.5）。足した transient の observer は、その順に pending mutation
+observers へ append され（step 1.7）、一つでも足せば microtask が予約される（step 1.8）。
+
+step 1.6 の transient node set は観測に出ない（`ObserverState.nodeList`）ので、ここでは扱わない。
+-/
+structure TransientAdded (s s' : DOMState) (node parent : NodeId) : Prop where
+  tree : s'.tree = s.tree
+  ranges : s'.ranges = s.ranges
+  iterators : s'.iterators = s.iterators
+  observersLength : s'.observers.length = s.observers.length
+  records : ∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
+    s'.observers[mo]? = some o' → o'.records = o.records
+  added : ∃ nodes, InclusiveAncestorsUp s.tree parent nodes ∧
+    (∀ n, regsOn s'.registrations n =
+      if n = node then regsOn s.registrations node ++ transientsFor s.registrations nodes node
+      else regsOn s.registrations n) ∧
+    s'.pendingObservers =
+      appendNew s.pendingObservers ((transientsFor s.registrations nodes node).map (·.observer)) ∧
+    s'.microtaskQueued =
+      (s.microtaskQueued || !(transientsFor s.registrations nodes node).isEmpty)
+  /-- `Dom/Basic/State.lean` の `Untouched`。 -/
+  untouched : Untouched s s'
+
+/-! ## step 16：mutation record -/
+
+/--
+仕様の step 16。`suppressObservers` が false なら childList の record を積む。
 
 一般形は `Dom/Spec/Record.lean` の `TreeRecordQueued` にある。
 remove が積むのは「`parent` を target とし、`node` を removedNodes とする record」である。
@@ -236,18 +260,21 @@ def RecordQueued (s s' : DOMState) (node parent : NodeId)
 
 `RemoveSpec s node suppress s'` は「状態 `s` で `node` を remove すると `s'` になる」と読む。
 仕様の step のうち model が扱うものをすべて含む。
+
+`s₁` は木から外した後、`s₂` は transient registered observer を足した後の状態である。
+record の interested observers は `s₂` で数える。record に載る兄弟は木を変える前の値である（step 5-6）。
 -/
 def RemoveSpec (s : DOMState) (node : NodeId) (suppress : Bool) (s' : DOMState) : Prop :=
-  ∃ parent index,
+  ∃ parent index s₁ s₂,
     RemovePre s.tree node parent ∧
     index = ((Dom.index s.tree node).getD 0) ∧
-    RangeAdjusted s s' node parent index ∧
-    IteratorAdjusted s s' node ∧
-    TreeRemoved s.tree s'.tree node parent ∧
-    TransientAdded s s' node parent ∧
-    RecordQueued s s' node parent (previousSibling s.tree node) (nextSibling s.tree node) suppress ∧
-    -- `walkers` / `listeners` / `detachedAttrs` には触れない（`Dom/Spec/Frame.lean`）
-    Untouched s s'
+    -- step 3-4, 7
+    Detached s s₁ node parent index ∧
+    -- step 15
+    TransientAdded s₁ s₂ node parent ∧
+    -- step 16
+    RecordQueued s₂ s' node parent (previousSibling s.tree node) (nextSibling s.tree node) suppress ∧
+    ObserverOnly s₂ s'
 
 /-! ## 列に対する remove -/
 
@@ -261,5 +288,34 @@ inductive RemoveEachSpec : DOMState → List NodeId → Bool → DOMState → Pr
   | nil {s : DOMState} {b : Bool} : RemoveEachSpec s [] b s
   | cons {s s₁ s₂ : DOMState} {n : NodeId} {ns : List NodeId} {b : Bool} :
       RemoveSpec s n b s₁ → RemoveEachSpec s₁ ns b s₂ → RemoveEachSpec s (n :: ns) b s₂
+
+/-! ## 段から全体へ -/
+
+/-- `RemoveSpec` の木は、元の木から `node` を外したものである。 -/
+theorem RemoveSpec.treeRemoved {s s' : DOMState} {node : NodeId} {suppress : Bool}
+    (h : RemoveSpec s node suppress s') :
+    ∃ parent, RemovePre s.tree node parent ∧ TreeRemoved s.tree s'.tree node parent := by
+  obtain ⟨parent, -, s₁, s₂, hpre, -, ⟨-, -, htr, -⟩, hta, -, hoo⟩ := h
+  refine ⟨parent, hpre, ?_⟩
+  rw [hoo.tree, hta.tree]
+  exact htr
+
+/-- `RemoveSpec` の live range は step 3 の調整を受けたものである。 -/
+theorem RemoveSpec.rangeAdjusted {s s' : DOMState} {node : NodeId} {suppress : Bool}
+    (h : RemoveSpec s node suppress s') :
+    ∃ parent, RemovePre s.tree node parent ∧
+      RangeAdjusted s s' node parent ((Dom.index s.tree node).getD 0) := by
+  obtain ⟨parent, index, s₁, s₂, hpre, hidx, ⟨hra, -, -, -⟩, hta, -, hoo⟩ := h
+  refine ⟨parent, hpre, ?_⟩
+  subst hidx
+  obtain ⟨hlen, hadj⟩ := hra
+  refine ⟨by rw [hoo.ranges, hta.ranges, hlen], fun i r r' hr hr' => hadj i r r' hr ?_⟩
+  rw [← hta.ranges, ← hoo.ranges]; exact hr'
+
+/-- `RemoveSpec` は walker・listener・detach された `Attr` に触れない。 -/
+theorem RemoveSpec.untouched {s s' : DOMState} {node : NodeId} {suppress : Bool}
+    (h : RemoveSpec s node suppress s') : Untouched s s' := by
+  obtain ⟨_, _, s₁, s₂, _, _, ⟨_, _, _, hu⟩, hta, _, hoo⟩ := h
+  exact (hu.untouched.trans (TransientAdded.untouched hta)).trans hoo.untouched
 
 end Dom.Spec

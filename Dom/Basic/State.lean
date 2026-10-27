@@ -155,7 +155,7 @@ DOM Standard §4.3.3 の registered observer。
 `node` を持つ一つの list にまとめる。同じ node の登録は list の順に並ぶので、
 仕様の「node の registered observer list を順に見る」はその部分列を見ることになる。
 
-`transient` は transient registered observer であることを表す（remove step 20）。
+`transient` は transient registered observer であることを表す（"add transient registered observers"）。
 `observer` は `DOMState.observers` の index である。
 -/
 structure Registration where
@@ -176,10 +176,10 @@ structure Registration where
   /--
   仕様の transient registered observer の `source`。
 
-  仕様は source registration そのものを持つが、
+  仕様は source registration そのもの（transient でない registered observer）を持つが、
   一つの observer が一つの node に持つ非 transient な registration は高々一つなので
-  （`observe` step 7 は既存のものの options を差し替える）、
-  その node の id で一意に指せる。
+  （`observe` step 8 は既存のものの options を差し替える）、
+  observer とその node の id で一意に指せる。
   -/
   source : Option NodeId := none
 deriving DecidableEq, Repr, Inhabited
@@ -194,12 +194,11 @@ record は `takeRecords` で取り出すまで貯まる。
 structure ObserverState where
   records : List MutationRecord := []
   /--
-  仕様の `MutationObserver` の node list。
+  仕様の `MutationObserver` の node list と transient node set を合わせたもの。
 
-  `observe` が target を足す。加えて remove step 20 が transient を足した node も足す。
-  仕様本文は remove step 20 で node list に触れないが、そう読まないと
-  "notify mutation observers" step 5.2 と `observe` step 7.1 の掃除が
-  transient を置いた node に届かない（`docs/traceability.md` の近似の表を参照）。
+  `observe` が target を足し、"add transient registered observers" が transient を置いた node を足す。
+  notify も `observe` も `disconnect` も、この observer の registration を node に依らず外すので、
+  二つを分けなくても結果は変わらない（`Dom/Observer/Deliver.lean` の冒頭）。
   -/
   nodeList : List NodeId := []
 deriving DecidableEq, Repr, Inhabited

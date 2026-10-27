@@ -4,7 +4,7 @@ WHATWG DOM Standard の algorithm と、Lean の実行関数・契約・固定 s
 Dommy 側の WPT 由来 test を結ぶ対応表である。
 
 参照する仕様は `docs/spec-version.md` に固定した commit
-`a2331a45360129e8645ef7e0a04740241b6e3726`（2026-08-25）である。
+`3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177`（2026-10-19）である。
 step 番号だけに頼ると仕様改訂でずれるので、各行に短い step 要約も置く。
 
 step 単位の対応は `Trace/Dom/` の表が持ち、CI が網羅を検査する。algorithm ごとの集計は
@@ -96,7 +96,7 @@ live range として妥当な range では、渡す fuel が足りる（`rangeFr
 同じ `get?` を持つ表現が複数ある。そこで結論は `Dom.Spec.ObsEq` の一致である。
 木は `get?`、observer は record queue、registration は node ごとの registered observer list の列、
 pending mutation observers は列で比べる。関係は pending への append の順（`PendingAppended`）と
-transient の並び（`TransientOrdered`）を決めるので、completeness からそのまま配送結果の一致が出る
+transient の並び（`TransientAdded`）を決めるので、completeness からそのまま配送結果の一致が出る
 （`Dom/Spec/ObserverComplete.lean`）。
 
 `insert` のように関係を繋いだものの一意性には、`_deterministic` だけでは足りない。
@@ -110,16 +110,15 @@ transient の並び（`TransientOrdered`）を決めるので、completeness か
 `insertAt` の step 4（`child` が `parent` の子であること）を与える。挿入する node が `parent` の inclusive ancestor で
 ないことは仮定に置く。仕様でもこの検査は呼び出し側（pre-insert の validity）にある。
 
-record を積む step は種類ごとに切り出してある。childList（`remove` の step 21 と
-`insert` の step 4.2 / 9）は `Dom.Spec.TreeRecordQueued`、characterData
+record を積む step は種類ごとに切り出してある。childList（`remove` の step 16、
+`insert` の step 4.2 / 9、`move` の step 26-27）は `Dom.Spec.TreeRecordQueued`、characterData
 （`replace data` の step 4）は `Dom.Spec.CharacterDataRecordQueued` である。
 後者は oldValue が載る条件（interested な registration のどれかが
 `characterDataOldValue` を持つこと）まで書いてある。
 
-`RemoveSpec` は仕様の副作用ごとに六つの component に分かれていて、
-soundness も component 単位で証明してある
-（`RemovePre` / `RangeAdjusted` / `IteratorAdjusted` / `TreeRemoved` /
-`TransientAdded` / `RecordQueued`）。
+`RemoveSpec` は仕様の段ごとに、途中の状態を挟んで component を並べる
+（`RemovePre` / `Detached`（`RangeAdjusted`・`IteratorAdjusted`・`TreeRemoved`）/
+`TransientAdded` / `RecordQueued`）。soundness も component 単位で証明してある。
 関係の側は実行側の algorithm（`liveRangePreRemove` / `detach` / `adjustNodePointer` /
 `addTransientObservers` / `queueTreeMutationRecord`）を一切呼ばず、
 `parentOf` / `childrenOf` / `ancestors` / `precedes` といった観測の語彙だけで書いてある。
@@ -132,11 +131,11 @@ soundness も component 単位で証明してある
 | pre-insert | 1 validity / 2-3 reference child のずらし / 4 insert | `preInsert` | success `preInsert_succeeds_iff`、exception `preInsert_error_iff`、preservation `admissible_preInsert`、委譲 `insertBefore_refines_preInsert`、reference child `ensurePreInsertionValidity_shift` | 同上 | `test_wpt_node_mutation.rb` | 済 |
 | insert | 1-3 nodes と count / 4 fragment の children を外す / 5 live range の offset 調整 / 6 previousSibling / 7 adopt して入れる / 9 record | `insert`, `insertNodesAt`, `insertEachAt`, `insertEach` | preservation `admissible_insert`、success `insert_isOk_of_validity`（`Insertable`）、effect `insert_parentOf` `insert_children_split` `insert_preserves_endpoints`、frame `insertAt_frame`、negative `exists_insert_breaking_boundaryLE` | `basic-insert-remove`, `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb`, `test_wpt_mutation_record_insertion_point.rb` | 済 |
 | append | 1 pre-insert(child=null) | `append` | success `append_succeeds_iff`、委譲 `append_refines_preInsert`、preservation `admissible_append` | `basic-insert-remove` | `test_wpt_node_mutation.rb` | 済 |
-| remove | 1-2 parent の assert / 3 live range の pre-remove / 4 NodeIterator の pre-remove / 14 children から外す / 20 transient observer / 21 record | `remove`, `detachWithLiveAdjust`, `detach` | preservation `admissible_remove`、success `remove_succeeds_iff`、exception `remove_error_iff`、effect `remove_parentOf` `remove_not_mem_childrenOf` `remove_ranges` `remove_iterators`、frame `detach_frame` | `basic-insert-remove`, `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_mutation_primitives.rb`, `test_wpt_transient_registered_observer.rb` | 済 |
+| remove | 1-2 parent の assert / 3 live range の pre-remove / 4 NodeIterator の pre-remove / 7 children から外す / 15 transient observer / 16 record | `remove`, `detachWithLiveAdjust`, `detach` | preservation `admissible_remove`、success `remove_succeeds_iff`、exception `remove_error_iff`、effect `remove_parentOf` `remove_not_mem_childrenOf` `remove_ranges` `remove_iterators`、frame `detach_frame` | `basic-insert-remove`, `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_mutation_primitives.rb`, `test_wpt_transient_registered_observer.rb` | 済 |
 | pre-remove | 1 parent の一致 / 2 remove | `preRemove` | success `preRemove_succeeds_iff`、exception `preRemove_error_iff` `preRemove_error_notFound`、委譲 `removeChild_refines_preRemove` | `basic-insert-remove` | `test_wpt_node_methods_on_every_node.rb` | 済 |
 | replace | 1 validity(child を除外) / 2-3 reference child / 4 previousSibling / 6 adopt / 7 child を外す / 9 insert / 10 record | `replace` | success `replace_succeeds_iff`、exception `replace_error_iff`、preservation `admissible_replace`、exception `replace_cycle_precedes_notFound`、effect `replace_reference_head` | `replacewith-bypasses-validity` | `test_wpt_mutation_record_insertion_point.rb` | 済 |
 | replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | relation `ReplaceAllSpec`、success `replaceAll_isOk`、preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
-| move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 10-11 pre-remove / 14 外す / 16 offset 調整 / 18 入れる / 23-24 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、success `moveBefore_succeeds_iff` `move_isOk_of_validity`、exception `moveBefore_error_iff` `moveBefore_error_receiver`、exception 順序 `moveValidity_step1`〜`_step4`、step 7-9 の assert `moveValidity_parentOf_isSome`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move` | `test_wpt_move_before.rb` | 済 |
+| move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 9-10 pre-remove / 13 外す / 17 transient observer / 18 offset 調整 / 20-21 入れる / 26-27 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、success `moveBefore_succeeds_iff` `move_isOk_of_validity`、exception `moveBefore_error_iff` `moveBefore_error_receiver`、exception 順序 `moveValidity_step1`〜`_step4`、step 7-9 の assert `moveValidity_parentOf_isSome`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move`, `move-adds-transient-registered-observers` | `test_wpt_move_before.rb` | 済 |
 
 ## §4.4 `Node.normalize()`
 
@@ -270,13 +269,14 @@ scenario が最初から walker を与える形にしてある。
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| queue a mutation record | 1-2 inclusive ancestor を辿って observer を集める / 2.3 registration ごとの条件（型・scope・attributeFilter）/ 2.3.3 oldValue / 3-6 record を積む | `queueMutationRecord`, `interestedObservers`, `Registration.interestedIn` | relation `PendingAppended`（step 3-4 の順）、`pendingAppended_queueMutationRecord`、`pendingAppended_unique`、preservation `preservesRegs_*` | `observer-uninterested-registration-does-not-shadow`, `observer-attribute-filter-does-not-shadow`, `observer-attribute-filter-skips-namespaced`, `observer-old-value-from-any-registration` | `test_wpt_mutation_record_details.rb`, `test_wpt_mutation_observer_order.rb`, `test_wpt_mutation_observer_attribute_options.rb` | 済 |
+| queue a mutation record | 1-3 inclusive ancestor を辿って observer を集める / 3.2 registration ごとの条件（型・scope・attributeFilter）/ 3.2.3 oldValue / 4 interested observers が空なら返る / 5-6 record を積む | `queueMutationRecord`, `interestedObservers`, `Registration.interestedIn` | relation `PendingAppended`（step 3-6 の順と microtask）、`pendingAppended_queueMutationRecord`、`pendingAppended_unique`、preservation `preservesRegs_*` | `observer-uninterested-registration-does-not-shadow`, `observer-attribute-filter-does-not-shadow`, `observer-attribute-filter-skips-namespaced`, `observer-old-value-from-any-registration` | `test_wpt_mutation_record_details.rb`, `test_wpt_mutation_observer_order.rb`, `test_wpt_mutation_observer_attribute_options.rb` | 済 |
 | queue a tree mutation record | 1 assert / 2 queue | `queueTreeMutationRecord` | 同上 | 同上 | `test_wpt_mutation_record_insertion_point.rb` | 済 |
-| transient registered observer | remove step 20 | `addTransientObservers` | relation `TransientOrdered`（並び）、`transientOrdered_unique`、`preservesRegs_remove` | `observer-transient-follows-existing-registration` | `test_wpt_transient_registered_observer.rb` | 済 |
+| add transient registered observers | 1.1 subtree / 1.3 source は元の registered observer / 1.4 同じ source の transient があれば足さない / 1.5 足す / 1.6 transient node set / 1.7-1.8 pending と microtask（remove step 15・move step 17 が呼ぶ） | `addTransientObservers`, `newTransients`, `collectTransient` | relation `TransientAdded`（並びと pending）、`transientAdded_of_add`、`transientAdded_congr`、`preservesRegs_addTransientObservers` | `observer-transient-follows-existing-registration`, `transient-observer-is-removed-at-notify-without-records`, `move-adds-transient-registered-observers`, `observe-removes-transients-chained-from-transients` | `test_wpt_transient_registered_observer.rb` | 済 |
+| remove transient registered observers | 1-2 | `removeTransients` | relation `ObserverNotified` | `transient-observer-is-removed-at-notify-without-records` | 同上 | 済 |
 | queue a mutation observer microtask | 1-3 | `queueMutationObserverMicrotask`, `addPendingObserver` | preservation `admissible_*`（配送は木を触らない） | `observer-delivery` | `test_wpt_mutation_observer_order.rb` | 済 |
-| notify mutation observers | 1-5 | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | relation `NotifyResult`（`ObserverNotified`・`NotifiedEach`）、`notifyMutationObservers_sound`・`_complete`、congruence `notifyMutationObservers_delivered_congr`、`*_complete_delivered`、`admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | 同上 | 同上 | 済 |
-| `observe(target, options)` | 1-8（step 1-2 の省略の解決と step 3-6 の TypeError を含む。既定値の無い member は省略と false を区別する） | `MutationObserver.observeMethod`（step 3-6 の TypeError は `IdlException.typeError`）, `MutationObserver.observe`, `MutationObserverInit.resolve`, `observeOptionsError` | relation `ObserveResult`（`AttributesResolved`・`CharacterDataResolved`・`ObserveOptionsRejected`、等号で complete）、`admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow`, `observe-old-value-false-implies-type` | 同上 | 済 |
-| `disconnect()` | 1-2 | `MutationObserver.disconnect` | relation `DisconnectResult`、`disconnect_sound`・`disconnect_complete`、`admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
+| notify mutation observers | 1-6（step 2 は creation index の順に並べる） | `notifyMutationObservers`, `notifyEach`, `notifyOne`, `removeTransients` | relation `NotifyResult`（`ObserverNotified`・`NotifiedEach`）、`notifyMutationObservers_sound`・`_complete`、congruence `notifyMutationObservers_delivered_congr`、`*_complete_delivered`、`admissible_notifyMutationObservers`, `notifyMutationObservers_tree/_ranges/_iterators` | `observer-delivery`, `notify-order-follows-creation-index` | 同上 | 済 |
+| `observe(target, options)` | 1-9（step 1-2 の省略の解決と step 3-6 の TypeError を含む。既定値の無い member は省略と false を区別する。step 7 は transient でない registered observer を探す） | `MutationObserver.observeMethod`（step 3-6 の TypeError は `IdlException.typeError`）, `MutationObserver.observe`, `MutationObserverInit.resolve`, `observeOptionsError` | relation `ObserveResult`（`AttributesResolved`・`CharacterDataResolved`・`ObserveOptionsRejected`、等号で complete）、`admissible_observe`, `observe_tree/_ranges/_iterators` | `observer-uninterested-registration-does-not-shadow`, `observe-old-value-false-implies-type`, `observe-removes-transients-chained-from-transients` | 同上 | 済 |
+| `disconnect()` | 1-4（step 3 で node list を空にする） | `MutationObserver.disconnect` | relation `DisconnectResult`、`disconnect_sound`・`disconnect_complete`、`admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
 | `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | relation `TakeRecordsResult`、`takeRecords_sound`・`takeRecords_complete`、`admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |
 
 ## §4.9 Attr / §1.3 名前の検査

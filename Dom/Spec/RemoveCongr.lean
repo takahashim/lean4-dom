@@ -4,18 +4,16 @@ import Dom.Spec.ObsEq
 /-!
 # 観測が等しい状態は `RemoveSpec` に同じ答えを返させる
 
-`Dom/Spec/RemoveDeterministic.lean` は「同じ状態から出た二つの結果は観測が一致する」を言う。
+`Dom/Spec/RemoveDeterministic.lean` は段ごとに「同じ状態から出た二つの結果は観測が一致する」を言う。
 関係を繋いだもの（`insert` のように途中に `remove` を持つもの）の一意性には、
 それでは足りない。途中の状態は観測としてしか一致しないからである。
 
 そこで **congruence**「入力の観測が等しければ出力の観測も等しい」を示す。
 
-やり方は二段である。
-
-1. **transport**：`RemoveSpec` の各 component は観測の語彙だけで書かれているので、
-   入力を観測の等しい状態に差し替えても成り立つ。
-2. 差し替えてしまえば両方が同じ入力から出た結果になるので、
-   `removeSpec_deterministic` がそのまま使える。
+`RemoveSpec` は途中の状態を挟んで段を並べるので、段ごとに congruence を示して繋ぐ。
+木から外す段は、各 component が観測の語彙だけで書かれているので、入力を観測の等しい状態に
+差し替えても成り立つ（**transport**）。差し替えれば同じ入力から出た結果になるので、
+`Dom/Spec/RemoveDeterministic.lean` の一意性がそのまま使える。
 
 `precedes` と `root` は fuel を使うので、`Dom/Spec/ObsEq.lean` の
 well-formed を仮定した補題を経由する。
@@ -116,9 +114,10 @@ theorem treeRecordQueued_transport (h : ObsEq s s') {out : DOMState} {target : N
     · rw [hmt, h.microtaskQueued]
     · rw [hpo, h.pendingOrder]
   | false =>
-    obtain ⟨hlen, hrec, hin, hkeep, hout, hmt, hpa⟩ := hq
-    refine ⟨by rw [hlen, h.observers_length], ?_, ?_, ?_, ?_, hmt,
-      pendingAppended_transport h.tree.parentOf h.registrationOrder h.pendingOrder hpa⟩
+    obtain ⟨hlen, hrec, hin, hkeep, hout, hpa⟩ := hq
+    refine ⟨by rw [hlen, h.observers_length], ?_, ?_, ?_, ?_,
+      pendingAppended_transport h.tree.parentOf h.registrationOrder h.pendingOrder
+        h.microtaskQueued hpa⟩
     · intro mo o o' ho ho'
       obtain ⟨o₂, ho₂, hre⟩ := h.exists_observer ho
       obtain ⟨h1, h2⟩ := hrec mo o₂ o' ho₂ ho'
@@ -156,18 +155,74 @@ theorem iteratorAdjusted_transport (hwf : WellFormed s.tree) (h : MutationObsEq 
     rw [if_neg hc] at hrest
     exact hrest
 
-theorem transientAdded_transport (h : ObsEq s s') {out : DOMState} {node parent : NodeId}
-    (hq : TransientAdded s' out node parent) : TransientAdded s out node parent := by
-  obtain ⟨hkeep, hin, hnew, hord⟩ := hq
-  refine ⟨fun r hr => hkeep r ((h.registrations r).mpr hr), ?_, ?_,
-    transientOrdered_transport h.tree.parentOf h.registrationOrder hord⟩
-  · intro src hsrc hsub ha
-    exact hin src ((h.registrations src).mpr hsrc) hsub (h.tree.inclusiveAncestor_iff.mpr ha)
-  · intro r hr hnot
-    obtain ⟨src, hsrc, hsame, hsub, ha, rest⟩ :=
-      hnew r hr fun hc => hnot ((h.registrations r).mp hc)
-    exact ⟨src, (h.registrations src).mp hsrc, hsame, hsub,
-      h.tree.inclusiveAncestor_iff.mp ha, rest⟩
+/-- record queue が長さも中身も変わらない段では、`records` の像も変わらない。 -/
+theorem records_map_of_preserved {s s₁ : DOMState}
+    (hlen : s₁.observers.length = s.observers.length)
+    (hrec : ∀ (mo : Nat) (o o' : ObserverState), s.observers[mo]? = some o →
+      s₁.observers[mo]? = some o' → o'.records = o.records) :
+    ∀ mo : Nat, (s₁.observers[mo]?).map (·.records) = (s.observers[mo]?).map (·.records) :=
+  records_map_congr hlen rfl fun mo o oa ho hoa ob hob => by
+    rw [hob] at ho; cases ho; exact hrec mo _ oa hob hoa
+
+/-- **step 3-7 の congruence。** `move` の step 9-10, 13 も同じ形である。 -/
+theorem detached_congr {sb s₁ s₁' : DOMState} {node p : NodeId} {i : Nat} {nd : NodeData}
+    (hwf : WellFormed s.tree) (h : ObsEq s sb)
+    (hnd : s.tree.get? node = some nd) (hp : parentOf s.tree node = some p)
+    (h₁ : Detached s s₁ node p i) (h₂ : Detached sb s₁' node p i) : ObsEq s₁ s₁' := by
+  obtain ⟨hr₁, hit₁, ht₁, hu₁⟩ := h₁
+  obtain ⟨hr₂, hit₂, ht₂, hu₂⟩ := h₂
+  have hr₂' := rangeAdjusted_transport h.toMutationObsEq hr₂
+  have hit₂' := iteratorAdjusted_transport hwf h.toMutationObsEq hit₂
+  have ht₂' := treeRemoved_transport h.tree ht₂
+  exact
+    { tree := fun m => (treeRemoved_unique ht₁ ht₂' m).symm
+      ranges := (rangeAdjusted_unique hr₁ hr₂').symm
+      iterators := (iteratorAdjusted_unique hwf hnd hp hit₁ hit₂').symm
+      registrations := fun r => by
+        rw [hu₂.registrations, hu₁.registrations]; exact h.registrations r
+      records := fun mo => by rw [hu₂.observers, hu₁.observers]; exact h.records mo
+      pendingObservers := fun mo => by
+        rw [hu₂.pendingObservers, hu₁.pendingObservers]; exact h.pendingObservers mo
+      microtaskQueued := by
+        rw [hu₂.microtaskQueued, h.microtaskQueued, hu₁.microtaskQueued]
+      walkers := by rw [hu₂.untouched.walkers, h.walkers, hu₁.untouched.walkers]
+      listeners := by rw [hu₂.untouched.listeners, h.listeners, hu₁.untouched.listeners]
+      detachedAttrs := by
+        rw [hu₂.untouched.detachedAttrs, h.detachedAttrs, hu₁.untouched.detachedAttrs]
+      registrationOrder := fun m => by
+        rw [hu₂.registrations, hu₁.registrations]; exact h.registrationOrder m
+      pendingOrder := by rw [hu₂.pendingObservers, h.pendingOrder, hu₁.pendingObservers] }
+
+/-- **step 15（add transient registered observers）の congruence。** `move` の step 17 も同じ。 -/
+theorem transientAdded_congr {sb o₁ o₂ : DOMState} {node parent : NodeId} (h : ObsEq s sb)
+    (h₁ : TransientAdded s o₁ node parent) (h₂ : TransientAdded sb o₂ node parent) :
+    ObsEq o₁ o₂ := by
+  obtain ⟨n₁, hn₁, hreg₁, hpend₁, hmt₁⟩ := h₁.added
+  obtain ⟨n₂, hn₂, hreg₂, hpend₂, hmt₂⟩ := h₂.added
+  have hn := inclusiveAncestorsUp_unique (inclusiveAncestorsUp_congr h.tree.parentOf hn₁) hn₂
+  subst hn
+  have htf := transientsFor_congr h.registrationOrder n₁ node
+  have hro : RegistrationsObsEq o₁.registrations o₂.registrations := by
+    intro m
+    rw [hreg₁ m, hreg₂ m, htf, h.registrationOrder node, h.registrationOrder m]
+  have hpo : o₂.pendingObservers = o₁.pendingObservers := by
+    rw [hpend₁, hpend₂, htf, h.pendingOrder]
+  have hrec₁ := records_map_of_preserved h₁.observersLength h₁.records
+  have hrec₂ := records_map_of_preserved h₂.observersLength h₂.records
+  exact
+    { tree := fun m => by rw [h₂.tree, h₁.tree]; exact h.tree m
+      ranges := by rw [h₂.ranges, h.ranges, h₁.ranges]
+      iterators := by rw [h₂.iterators, h.iterators, h₁.iterators]
+      registrations := fun r => hro.mem_iff r
+      records := fun mo => by rw [hrec₂, hrec₁]; exact h.records mo
+      pendingObservers := fun mo => by rw [hpo]
+      microtaskQueued := by rw [hmt₁, hmt₂, htf, h.microtaskQueued]
+      walkers := by rw [h₂.untouched.walkers, h.walkers, h₁.untouched.walkers]
+      listeners := by rw [h₂.untouched.listeners, h.listeners, h₁.untouched.listeners]
+      detachedAttrs := by
+        rw [h₂.untouched.detachedAttrs, h.detachedAttrs, h₁.untouched.detachedAttrs]
+      registrationOrder := hro
+      pendingOrder := hpo }
 
 
 /-! ## `TreeRemoved` は well-formed を保つ
@@ -275,43 +330,82 @@ theorem treeRemoved_wellFormed {u : Tree} {node parent : NodeId} (hwf : WellForm
 /-- したがって `RemoveSpec` の結果も well-formed である。 -/
 theorem removeSpec_wellFormed {out : DOMState} {node : NodeId} {suppress : Bool}
     (hwf : WellFormed s.tree) (hq : RemoveSpec s node suppress out) : WellFormed out.tree := by
-  obtain ⟨parent, index, hpre, -, -, -, htr, -, -⟩ := hq
+  obtain ⟨parent, hpre, htr⟩ := hq.treeRemoved
   exact treeRemoved_wellFormed hwf hpre htr
 
 /-! ## まとめ -/
 
-/-- **`RemoveSpec` は観測の等しい入力に差し替えられる。** -/
-theorem removeSpec_transport (hwf : WellFormed s.tree) (h : ObsEq s s') {out : DOMState}
-    {node : NodeId} {suppress : Bool} (hq : RemoveSpec s' node suppress out) :
-    RemoveSpec s node suppress out := by
-  obtain ⟨parent, index, hpre, hidx, hr, hit, htr, htn, hrec, hun⟩ := hq
-  refine ⟨parent, index, ?_, ?_, rangeAdjusted_transport h.toMutationObsEq hr,
-    iteratorAdjusted_transport hwf h.toMutationObsEq hit, treeRemoved_transport h.tree htr,
-    transientAdded_transport h htn, ?_, h.untouched.trans hun⟩
-  · show parentOf s.tree node = some parent
-    rw [← h.tree.parentOf]; exact hpre
-  · rw [hidx, h.tree.index]
-  · have := treeRecordQueued_transport (target := parent) (added := []) (removed := [node]) h hrec
-    rwa [h.tree.previousSibling, h.tree.nextSibling] at this
+/--
+**record を積む段の congruence。**
+
+`TreeRecordQueued` は observer についてしか言わないので、
+木や range が動かないことは `ObserverOnly` から取る。
+-/
+theorem treeRecordQueued_congr (h : ObsEq s s') {o₁ o₂ : DOMState} {target : NodeId}
+    {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
+    (h₁ : TreeRecordQueued s o₁ target added removed oldPrev oldNext suppress)
+    (h₂ : TreeRecordQueued s' o₂ target added removed oldPrev oldNext suppress)
+    (f₁ : ObserverOnly s o₁) (f₂ : ObserverOnly s' o₂) : ObsEq o₁ o₂ := by
+  have h₂' := treeRecordQueued_transport h h₂
+  obtain ⟨hrec, hpend, hmt⟩ := treeRecordQueued_unique h₁ h₂'
+  have hpo := treeRecordQueued_pending_unique h₁ h₂'
+  refine ⟨?_, fun m => by rw [f₂.registrations, f₁.registrations]; exact h.registrationOrder m,
+    hpo.symm⟩
+  exact
+    { tree := fun m => by rw [f₂.tree, f₁.tree]; exact h.tree m
+      ranges := by rw [f₂.ranges, h.ranges, f₁.ranges]
+      iterators := by rw [f₂.iterators, h.iterators, f₁.iterators]
+      registrations := fun r => by
+        rw [f₂.registrations, f₁.registrations]; exact h.registrations r
+      records := fun mo => (hrec mo).symm
+      pendingObservers := fun mo => (hpend mo).symm
+      microtaskQueued := hmt.symm
+      walkers := by rw [f₂.untouched.walkers, h.walkers, f₁.untouched.walkers]
+      listeners := by rw [f₂.untouched.listeners, h.listeners, f₁.untouched.listeners]
+      detachedAttrs := by
+        rw [f₂.untouched.detachedAttrs, h.detachedAttrs, f₁.untouched.detachedAttrs] }
+
 
 /--
 **`RemoveSpec` の congruence。**
 
 入力の観測が等しければ、出力の観測も等しい。
 `insert` のように `remove` を途中に持つ関係の一意性は、これを繰り返して示す。
+段（木から外す、transient を足す、record を積む）ごとの congruence を繋ぐ。
 -/
 theorem removeSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s s')
     {s₁ s₂ : DOMState} {node : NodeId} {suppress : Bool}
     (h₁ : RemoveSpec s node suppress s₁) (h₂ : RemoveSpec s' node suppress s₂) :
     ObsEq s₁ s₂ := by
-  have h₂' : RemoveSpec s node suppress s₂ := removeSpec_transport hwf h h₂
-  obtain ⟨htree, hrng, hit, hreg, hrec, hpend, hmt, hw, hl, ha⟩ :=
-    removeSpec_deterministic hwf h₁ h₂'
-  obtain ⟨hro, hpo⟩ := removeSpec_order_unique h₁ h₂'
-  exact ⟨⟨fun m => (htree m).symm, hrng.symm, hit.symm, fun r => (hreg r).symm,
-    fun mo => (hrec mo).symm, fun mo => (hpend mo).symm, hmt.symm, hw.symm, hl.symm, ha.symm⟩,
-    hro, hpo.symm⟩
+  obtain ⟨p₁, i₁, a₁, b₁, hp₁, hi₁, hd₁, ht₁, hq₁, hf₁⟩ := h₁
+  obtain ⟨p₂, i₂, a₂, b₂, hp₂, hi₂, hd₂, ht₂, hq₂, hf₂⟩ := h₂
+  -- step 1-2。parent と index は入力の観測から決まる。
+  have hpe : p₂ = p₁ := by
+    unfold RemovePre at hp₁ hp₂
+    rw [h.tree.parentOf, hp₁] at hp₂
+    exact (Option.some.inj hp₂).symm
+  subst hpe
+  have hie : i₂ = i₁ := by rw [hi₁, hi₂, h.tree.index]
+  subst hie
+  obtain ⟨nd, hnd, -⟩ := parentOf_eq_some hp₁
+  have ha : ObsEq a₁ a₂ := detached_congr hwf h hnd hp₁ hd₁ hd₂
+  have hb : ObsEq b₁ b₂ := transientAdded_congr ha ht₁ ht₂
+  refine treeRecordQueued_congr hb hq₁ ?_ hf₁ hf₂
+  unfold RecordQueued at hq₂
+  rwa [h.tree.previousSibling, h.tree.nextSibling] at hq₂
 
+/--
+**`RemoveSpec` は観測を一つに決める。**
+
+木の表現そのものは決まらない（association list なので同じ `get?` を持つ表現が複数ある）が、
+観測できるもの（node ごとの registered observer list と pending の列を含む）はすべて一致する。
+
+soundness（`Dom/Spec/RemoveSound.lean`）と合わせると、
+`remove` の結果は関係が許す唯一の観測になっている、と言える。
+-/
+theorem removeSpec_deterministic (hwf : WellFormed s.tree) {s₁ s₂ : DOMState} {n : NodeId}
+    {b : Bool} (h₁ : RemoveSpec s n b s₁) (h₂ : RemoveSpec s n b s₂) : ObsEq s₁ s₂ :=
+  removeSpec_congr hwf (ObsEq.refl s) h₁ h₂
 
 /--
 **列に対する `remove` の congruence。**
@@ -345,42 +439,11 @@ theorem removeEachSpec_wellFormed {ns : List NodeId} {b : Bool} :
     | cons hr hrest => exact ih (removeSpec_wellFormed hwf hr) hrest
 
 
-/--
-**record を積む段の congruence。**
-
-`TreeRecordQueued` は observer についてしか言わないので、
-木や range が動かないことは `ObserverOnly` から取る。
--/
-theorem treeRecordQueued_congr (h : ObsEq s s') {o₁ o₂ : DOMState} {target : NodeId}
-    {added removed : List NodeId} {oldPrev oldNext : Option NodeId} {suppress : Bool}
-    (h₁ : TreeRecordQueued s o₁ target added removed oldPrev oldNext suppress)
-    (h₂ : TreeRecordQueued s' o₂ target added removed oldPrev oldNext suppress)
-    (f₁ : ObserverOnly s o₁) (f₂ : ObserverOnly s' o₂) : ObsEq o₁ o₂ := by
-  have h₂' := treeRecordQueued_transport h h₂
-  obtain ⟨hrec, hpend, hmt⟩ := treeRecordQueued_unique h₁ h₂'
-  have hpo := treeRecordQueued_pending_unique h₁ h₂'
-  refine ⟨?_, fun m => by rw [f₂.registrations, f₁.registrations]; exact h.registrationOrder m,
-    hpo.symm⟩
-  exact
-    { tree := fun m => by rw [f₂.tree, f₁.tree]; exact h.tree m
-      ranges := by rw [f₂.ranges, h.ranges, f₁.ranges]
-      iterators := by rw [f₂.iterators, h.iterators, f₁.iterators]
-      registrations := fun r => by
-        rw [f₂.registrations, f₁.registrations]; exact h.registrations r
-      records := fun mo => (hrec mo).symm
-      pendingObservers := fun mo => (hpend mo).symm
-      microtaskQueued := hmt.symm
-      walkers := by rw [f₂.untouched.walkers, h.walkers, f₁.untouched.walkers]
-      listeners := by rw [f₂.untouched.listeners, h.listeners, f₁.untouched.listeners]
-      detachedAttrs := by
-        rw [f₂.untouched.detachedAttrs, h.detachedAttrs, f₁.untouched.detachedAttrs] }
-
-
 /-- `remove` は ancestor を増やさない。 -/
 theorem removeSpec_ancestor {out : DOMState} {node : NodeId} {suppress : Bool}
     (hq : RemoveSpec s node suppress out) {a m : NodeId} (h : Ancestor out.tree a m) :
     Ancestor s.tree a m := by
-  obtain ⟨parent, -, -, -, -, -, htr, -, -⟩ := hq
+  obtain ⟨parent, -, htr⟩ := hq.treeRemoved
   exact treeRemoved_ancestor htr h
 
 /-- 列に対する `remove` も ancestor を増やさない。 -/
@@ -404,7 +467,7 @@ theorem removeSpec_data {out : DOMState} {c : NodeId} {b : Bool}
     (hq : RemoveSpec s c b out) {m : NodeId} {d : NodeData} (hd : s.tree.get? m = some d)
     (hm : ∀ p, parentOf s.tree c = some p → m ≠ p) :
     ∃ d', out.tree.get? m = some d' ∧ d'.kind = d.kind ∧ d'.children = d.children := by
-  obtain ⟨parent, -, hpre, -, -, -, htr, -, -⟩ := hq
+  obtain ⟨parent, hpre, htr⟩ := hq.treeRemoved
   obtain ⟨d', hd'⟩ := treeRemoved_exists htr hd
   obtain ⟨hk, -⟩ := htr.sameData m d d' hd hd'
   refine ⟨d', hd', hk, ?_⟩

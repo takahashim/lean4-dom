@@ -70,7 +70,8 @@ theorem remove_result_sound {s : DOMState} (hwf : WellFormed s.tree) (node : Nod
 theorem removeResult_parentOf_isSome {s : DOMState} {node : NodeId} {suppress : Bool}
     {s' : DOMState} (h : RemoveResult s node suppress (.ok s')) :
     (parentOf s.tree node).isSome := by
-  obtain ⟨p, -, hp, -⟩ := h
+  obtain ⟨p, hp, -⟩ := RemoveSpec.treeRemoved h
+  unfold RemovePre at hp
   rw [hp]; rfl
 
 /--

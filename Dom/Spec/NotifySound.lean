@@ -82,11 +82,27 @@ theorem notifyEach_sound :
       rw [if_neg he] at this
       exact this
 
+/-- step 2 の notify list：実行側の `mergeSort` は pending mutation observers を昇順に並べる。 -/
+theorem notifyList_sorted (l : List Nat) :
+    (l.mergeSort (· ≤ ·)).Perm l ∧ (l.mergeSort (· ≤ ·)).Pairwise (· ≤ ·) := by
+  refine ⟨List.mergeSort_perm l _, ?_⟩
+  have := List.pairwise_mergeSort (le := fun a b : Nat => decide (a ≤ b))
+    (fun a b c hab hbc => by simp only [decide_eq_true_eq] at *; omega)
+    (fun a b => by simp only [Bool.or_eq_true, decide_eq_true_eq]; omega) l
+  exact this.imp fun h => of_decide_eq_true h
+
+/-- 昇順に並べた列は一つしかない。 -/
+theorem notifyList_unique {l₁ l₂ l : List Nat} (hp₁ : l₁.Perm l) (hs₁ : l₁.Pairwise (· ≤ ·))
+    (hp₂ : l₂.Perm l) (hs₂ : l₂.Pairwise (· ≤ ·)) : l₁ = l₂ :=
+  List.Perm.eq_of_pairwise (fun _ _ _ _ hab hba => Nat.le_antisymm hab hba) hs₁ hs₂
+    (hp₁.trans hp₂.symm)
+
 /-- **"notify mutation observers" は関係を満たす。** -/
 theorem notifyMutationObservers_sound {s : DOMState} (h : AdmissibleDOMState s) :
     NotifyResult s (notifyMutationObservers s).1 (notifyMutationObservers s).2 :=
-  notifyEach_sound _ ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints,
-    h.iterators, fun r hr => h.observerRegistrations r hr, h.attributes⟩
+  ⟨_, (notifyList_sorted s.pendingObservers).1, (notifyList_sorted s.pendingObservers).2,
+    notifyEach_sound _ ⟨h.structural, h.nodeDocuments, h.documentTrees, h.rangeEndpoints,
+      h.iterators, fun r hr => h.observerRegistrations r hr, h.attributes⟩⟩
 
 theorem observerNotified_deterministic {s s₁ s₂ : DOMState} {mo : Nat} {r₁ r₂ : List MutationRecord}
     (h₁ : ObserverNotified s mo s₁ r₁) (h₂ : ObserverNotified s mo s₂ r₂) : s₁ = s₂ ∧ r₁ = r₂ := by
@@ -110,7 +126,11 @@ theorem notifiedEach_deterministic :
 theorem notifyMutationObservers_complete {s s' : DOMState} {out : List (Nat × List MutationRecord)}
     (h : AdmissibleDOMState s) (hr : NotifyResult s s' out) :
     (s', out) = notifyMutationObservers s := by
-  obtain ⟨h1, h2⟩ := notifiedEach_deterministic hr (notifyMutationObservers_sound h)
+  obtain ⟨l₁, hp₁, hs₁, he₁⟩ := hr
+  obtain ⟨l₂, hp₂, hs₂, he₂⟩ := notifyMutationObservers_sound h
+  have := notifyList_unique hp₁ hs₁ hp₂ hs₂
+  subst this
+  obtain ⟨h1, h2⟩ := notifiedEach_deterministic he₁ he₂
   rw [h1, h2]
 
 /-! ## disconnect・takeRecords -/

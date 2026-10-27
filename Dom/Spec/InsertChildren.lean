@@ -92,7 +92,7 @@ theorem removeSpec_frame {c : NodeId} {b : Bool} (h : RemoveSpec s c b s') :
     ∃ p, parentOf s.tree c = some p ∧ parentOf s'.tree c = none ∧
       (∀ m, m ≠ c → parentOf s'.tree m = parentOf s.tree m) ∧
       (∀ m, m ≠ p → childrenOf s'.tree m = childrenOf s.tree m) := by
-  obtain ⟨p, -, hpre, -, -, -, htr, -, -⟩ := h
+  obtain ⟨p, hpre, htr⟩ := h.treeRemoved
   exact ⟨p, hpre, htr.detached, htr.otherParents, htr.otherChildren⟩
 
 /-- 同じ parent `q` の子を順に外すと、`q` 以外の children は変わらず、外したものは parent を失う。 -/
@@ -235,7 +235,7 @@ theorem insertSpec_children {node parent : NodeId} {child : Option NodeId} {b : 
 
 theorem removeSpec_ranges_length {c : NodeId} {b : Bool} (h : RemoveSpec s c b s') :
     s'.ranges.length = s.ranges.length := by
-  obtain ⟨p, idx, -, -, hra, -⟩ := h
+  obtain ⟨p, -, hra⟩ := h.rangeAdjusted
   exact hra.1
 
 theorem removeEachSpec_ranges_length {b : Bool} : ∀ {ns : List NodeId} {s s' : DOMState},

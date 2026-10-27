@@ -81,14 +81,15 @@ theorem attributeChangeHandled_congr (h : ObsEq s sb) {o₁ o₂ : DOMState} {el
     {a : Attr} {ov : Option String}
     (h₁ : AttributeChangeHandled s o₁ element a ov) (h₂ : AttributeChangeHandled sb o₂ element a ov) :
     ObsEq o₁ o₂ := by
-  obtain ⟨⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁, hpa₁⟩, hoo₁⟩ := h₁
-  obtain ⟨⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂, hpa₂⟩, hoo₂⟩ := h₂
+  obtain ⟨⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hpa₁⟩, hoo₁⟩ := h₁
+  obtain ⟨⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hpa₂⟩, hoo₂⟩ := h₂
   have hint := fun mo => interestedInAttribute_congr h.toMutationObsEq mo element a.localName a.namespace
   have hold := fun mo => attributeOldValueWanted_congr h.toMutationObsEq mo element a.localName a.namespace
   refine ⟨⟨?_, by rw [hoo₂.ranges, hoo₁.ranges, h.ranges],
     by rw [hoo₂.iterators, hoo₁.iterators, h.iterators],
     fun r => by rw [hoo₂.registrations, hoo₁.registrations]; exact h.registrations r,
-    ?_, ?_, by rw [hm₁, hm₂],
+    ?_, ?_,
+    pendingAppended_microtask_unique h.tree.parentOf h.registrationOrder h.microtaskQueued hpa₁ hpa₂,
     by rw [hoo₂.untouched.walkers, hoo₁.untouched.walkers, h.walkers],
     by rw [hoo₂.untouched.listeners, hoo₁.untouched.listeners, h.listeners],
     by rw [hoo₂.untouched.detachedAttrs, hoo₁.untouched.detachedAttrs, h.detachedAttrs]⟩,

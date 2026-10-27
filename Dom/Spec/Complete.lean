@@ -34,12 +34,18 @@ open Dom
 
 関係の step 1-2（parent が非 null）がそのまま契約の成功条件である。
 -/
+theorem remove_complete_of_obsEq {s sx s' : DOMState} {n : NodeId} {b : Bool}
+    (hwf : WellFormed s.tree) (hobs : ObsEq s sx) (h : RemoveSpec s n b s') :
+    ∃ out, remove sx n b = .ok out ∧ ObsEq s' out := by
+  obtain ⟨parent, hpre, -⟩ := h.treeRemoved
+  have hwfx : WellFormed sx.tree := hobs.tree.wellFormed hwf
+  obtain ⟨out, hout⟩ := (remove_succeeds_iff hwfx (n := n) (b := b)).mpr
+    (by unfold RemovePre at hpre; rw [hobs.tree.parentOf, hpre]; rfl)
+  exact ⟨out, hout, removeSpec_congr hwf hobs h (remove_sound hwfx hout)⟩
+
 theorem remove_complete {s s' : DOMState} {n : NodeId} {b : Bool} (hwf : WellFormed s.tree)
-    (h : RemoveSpec s n b s') : ∃ out, remove s n b = .ok out ∧ ObsEq s' out := by
-  have hc := h
-  obtain ⟨parent, -, hpre, -⟩ := hc
-  obtain ⟨out, hout⟩ := (remove_succeeds_iff hwf (n := n) (b := b)).mpr (by rw [hpre]; rfl)
-  exact ⟨out, hout, removeSpec_congr hwf (ObsEq.refl s) h (remove_sound hwf hout)⟩
+    (h : RemoveSpec s n b s') : ∃ out, remove s n b = .ok out ∧ ObsEq s' out :=
+  remove_complete_of_obsEq hwf (ObsEq.refl s) h
 
 /-! ## `adopt` -/
 
@@ -214,9 +220,7 @@ theorem removeEach_complete : ∀ (ns : List NodeId) {s sx out : DOMState} {b : 
     intro s sx out b hwf h hobs
     cases h with
     | @cons _ s₁ _ _ _ _ hr hrest =>
-      have hwfx : WellFormed sx.tree := hobs.tree.wellFormed hwf
-      have hrx : RemoveSpec sx n b s₁ := removeSpec_transport hwfx (ObsEq.symm hobs) hr
-      obtain ⟨o₁, ho₁, hobs₁⟩ := remove_complete hwfx hrx
+      obtain ⟨o₁, ho₁, hobs₁⟩ := remove_complete_of_obsEq hwf hobs hr
       have hwf₁ : WellFormed s₁.tree := removeSpec_wellFormed hwf hr
       obtain ⟨o, hoeq, hoobs⟩ := ih hwf₁ hrest hobs₁
       refine ⟨o, ?_, hoobs⟩
@@ -468,8 +472,7 @@ theorem replace_isOk_of_spec {s s' : DOMState} {child node parent : NodeId}
     simp only [hpx, hrefx, ho₃]
     exact ⟨_, rfl⟩
   · have hqx : parentOf o₁.tree child = some q := by rw [hobs₁.tree.parentOf]; exact hq
-    obtain ⟨o₂, ho₂, hobs₂⟩ :=
-      remove_complete hwfo₁ (removeSpec_transport hwfo₁ (ObsEq.symm hobs₁) hrm)
+    obtain ⟨o₂, ho₂, hobs₂⟩ := remove_complete_of_obsEq hwf₁ hobs₁ hrm
     obtain ⟨o₃, ho₃⟩ := insert_isOk_of_spec_obs hwf₂ hacyc₂ hobs₂ hi
     simp only [hqx, ho₂, hrefx, ho₃]
     exact ⟨_, rfl⟩
@@ -507,12 +510,12 @@ theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : O
     (hv : moveValidity s.tree node newParent child = .ok ())
     (h : MoveSpec s node newParent child s') :
     ∃ out, move s node newParent child = .ok out := by
-  obtain ⟨oldParent, index, idx, newPrev, s₁, sa, s₂, s₃,
-    hp, hidx, hmd, -, -, hra, hti, -, -, -, -, -⟩ := h
+  obtain ⟨oldParent, index, idx, newPrev, s₁, sₜ, sa, s₂, s₃,
+    hp, hidx, hmd, hta, -, -, hra, hti, -, -, -, -, -⟩ := h
   subst hidx
   obtain ⟨nd, pd, hnd, hpd, -, -, -, -⟩ := moveValidity_ok hv
   obtain ⟨hanc0, -⟩ := moveValidity_ok_child hv
-  -- step 10-11, 14：`detach` は成功する
+  -- step 9-10, 13：`detach` は成功する
   obtain ⟨ndn, hndn, hnpn⟩ := parentOf_eq_some hp
   obtain ⟨opd, hopd⟩ : ∃ opd, s.tree.get? oldParent = some opd := exists_data_of_parentOf hwf hp
   have hdet : detach s.tree node = .ok (detachFrom s.tree node oldParent ndn opd) := by
@@ -523,11 +526,11 @@ theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : O
   have hdw : detachWithLiveAdjust s node = .ok e₁ := by
     rw [he₁]; exact detachWithLiveAdjust_of_detach hdet
   have hobs₁ : ObsEq s₁ e₁ :=
-    moveDetached_congr hwf (ObsEq.refl s) hnd hp hmd (moveDetached_of_detach hwf hp hdw)
+    detached_congr hwf (ObsEq.refl s) hnd hp hmd (detached_of_detach hwf hp hdw)
   have htr : TreeRemoved s.tree s₁.tree node oldParent := hmd.2.2.1
   have hwf₁ : WellFormed s₁.tree := treeRemoved_wellFormed hwf hp htr
   have hwfe₁ : WellFormed e₁.tree := hobs₁.tree.wellFormed hwf₁
-  -- step 16-18：`insertAt` の四つの前提
+  -- step 18-21：`insertAt` の四つの前提
   obtain ⟨pd₁, hpd₁⟩ : ∃ pd₁, e₁.tree.get? newParent = some pd₁ := by
     have h1 := htr.sameNodes newParent
     rw [hpd] at h1
@@ -562,21 +565,22 @@ theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : O
   have hchild₁ : ∀ c, child = some c → c ∈ pd₁.children := by
     intro c hc
     have hcm := hti.childIsChild c hc
-    rw [hra.tree] at hcm
+    rw [hra.tree, hta.tree] at hcm
     rw [← childrenOf_eq hpd₁, hobs₁.tree.childrenOf]
     exact hcm
   have hins := insertAt_eq_ok hpd₁ hnd₁ hnp₁ hanc₁ hchild₁
   -- 組み立て
   unfold move
   simp only [hv, hp, hdw]
-  rw [show (liveRangeInsertAdjust e₁ newParent child 1).mapTree
+  rw [show (liveRangeInsertAdjust (addTransientObservers e₁ node oldParent) newParent child 1).mapTree
       (fun t => insertAt t newParent node child) =
-      .ok ((liveRangeInsertAdjust e₁ newParent child 1).withTree
+      .ok ((liveRangeInsertAdjust (addTransientObservers e₁ node oldParent) newParent child 1).withTree
         (insertAtIn e₁.tree newParent node child pd₁ nd₁)) from by
-    show (match insertAt (liveRangeInsertAdjust e₁ newParent child 1).tree newParent node child with
+    show (match insertAt (liveRangeInsertAdjust (addTransientObservers e₁ node oldParent) newParent
+        child 1).tree newParent node child with
       | Except.error e => Except.error e
       | Except.ok t => Except.ok (_root_.Dom.DOMState.withTree _ t)) = _
-    rw [liveRangeInsertAdjust_tree, hins]]
+    rw [liveRangeInsertAdjust_tree, addTransientObservers_tree, hins]]
   exact ⟨_, rfl⟩
 
 /--

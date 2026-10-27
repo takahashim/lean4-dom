@@ -5,7 +5,7 @@ import Dom.Spec.ObserverOrder
 /-!
 # childList の mutation record を積む step の関係意味論（§4.3.4）
 
-`remove` の step 21 と `insert` の step 4.2 / 9 が使う。
+`remove` の step 16、`insert` の step 4.2 / 9、`move` の step 26-27 が使う。
 どちらも「childList の record を一つ積む」だけなので、一つの関係にまとめてある。
 
 childList の record は oldValue を持たないので、"queue a mutation record" の
@@ -28,10 +28,10 @@ def InterestedInChildList (s : DOMState) (mo : Nat) (target : NodeId) : Prop :=
     InclusiveAncestor s.tree r.node target ∧ (r.node = target ∨ r.subtree = true)
 
 /--
-仕様の step 21。`suppressObservers` が false なら childList の record を積む。
+§4.3.4 "queue a tree mutation record"。`suppressObservers` が false なら childList の record を積む。
 
 record は interested な observer の queue の末尾に一つだけ積まれ、
-その observer は pending mutation observers に入り、microtask が予約される。
+その observer は pending mutation observers に入り、interested な observer があれば microtask が予約される。
 -/
 def TreeRecordQueued (s s' : DOMState) (target : NodeId) (added removed : List NodeId)
     (oldPrev oldNext : Option NodeId) (suppress : Bool) : Prop :=
@@ -54,8 +54,7 @@ def TreeRecordQueued (s s' : DOMState) (target : NodeId) (added removed : List N
     (∀ mo, InterestedInChildList s mo target → mo ∈ s'.pendingObservers) ∧
     (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
     (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInChildList s mo target) ∧
-    s'.microtaskQueued = true ∧
-    -- step 4.3 の順。interested observers の順に pending mutation observers の末尾へ足す。
+    -- step 4-6。interested observers の順に pending mutation observers の末尾へ足し、microtask を予約する。
     PendingAppended s s' target (childListInterest target)
 
 /--
@@ -65,9 +64,8 @@ record を積む step の frame。
 `TreeRecordQueued` 自身は observer についてしか言わないので、
 それ以外が動かないことはこちらで言う。
 
-`RemoveSpec` のように、同じ `(s, s')` の組に木の変化を述べる関係を
-並べて連言にする場合には使えない（矛盾する）。
-使うのは `insert` の step 4.2 / 9 のように、record を積むだけの段である。
+同じ `(s, s')` の組に木の変化を述べる関係と並べて連言にする場合には使えない（矛盾する）。
+使うのは `remove` の step 16 や `insert` の step 4.2 / 9 のように、record を積むだけの段である。
 -/
 structure ObserverOnly (s s' : DOMState) : Prop where
   tree : s'.tree = s.tree
@@ -77,12 +75,14 @@ structure ObserverOnly (s s' : DOMState) : Prop where
   /-- `Dom/Basic/State.lean` の `Untouched`。record を積む段は三成分に触れない。 -/
   untouched : Untouched s s'
 
+theorem ObserverOnly.refl (s : DOMState) : ObserverOnly s s :=
+  ⟨rfl, rfl, rfl, rfl, Untouched.refl s⟩
+
 /--
 observer の側が何も変わらないこと。`ObserverOnly` の裏である。
 
-`move` の step 10-18 のように、木と live object だけを動かして record を
-最後にまとめて積む algorithm が使う。`remove` と違って transient registered
-observer も足さないので、registration まで含めて動かない。
+`remove` の step 3-7 や `move` の step 9-13 のように、木と live object だけを動かす段が使う。
+transient registered observer を足す段（`TransientAdded`）は別にあるので、ここでは registration まで含めて動かない。
 -/
 structure ObserversUntouched (s s' : DOMState) : Prop where
   registrations : s'.registrations = s.registrations
@@ -127,7 +127,6 @@ def CharacterDataRecordQueued (s s' : DOMState) (target : NodeId) (oldValue : St
   (∀ mo, InterestedInCharacterData s mo target → mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s.pendingObservers, mo ∈ s'.pendingObservers) ∧
   (∀ mo ∈ s'.pendingObservers, mo ∈ s.pendingObservers ∨ InterestedInCharacterData s mo target) ∧
-  s'.microtaskQueued = true ∧
   PendingAppended s s' target (characterDataInterest target)
 
 /-! ## record を積む段の一意性が共通に使う形 -/

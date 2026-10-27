@@ -9,14 +9,14 @@ DOM Standard §4.3 の "queue a mutation observer microtask"、
 callback は model の外なので、`notifyMutationObservers` は
 「どの observer に何が配送されるか」を返す形にしてある。
 
-## 仕様の読み方
+## node list と transient node set
 
-"notify mutation observers" step 5.2 と `observe` step 7.1 は、
-transient registered observer を **observer の node list に載っている node から** 取り除く。
-一方 remove step 20 は transient を「外す node」に足すだけで node list には触れない。
-本文どおりだと transient が決して掃除されないので、
-remove step 20 が node list にもその node を足すと読む。
-実装（ブラウザと Dommy）もそう振る舞う。
+本文の observer は、`observe()` が target を足す node list と、"add transient registered observers" が
+transient を置いた node を足す transient node set を別に持つ。model の `ObserverState.nodeList` は
+その二つを合わせたもので、notify step 6.3、`observe()` step 8.1、`disconnect()` step 1-2 は
+どれも「この observer の registered observer（または transient）を全部外す」と書く。
+admissible な状態では registration の node はその observer の node list にある（`ListedIn`）ので、
+本文どおり node を回って外すのと同じ結果になる。
 -/
 
 namespace Dom
@@ -90,7 +90,7 @@ def observeOptionsError (opts₀ : MutationObserverInit) : Option IdlException :
   else none
 
 /--
-DOM Standard §4.3 `MutationObserver.observe(target, options)` の step 1-2 と step 7-8。
+DOM Standard §4.3 `MutationObserver.observe(target, options)` の step 1-2 と step 7-9。
 
 options を解決して registered observer を足すか差し替える。step 3-6 の検査は含まない。
 検査を含めた method 全体は `observeMethod` である。
@@ -109,17 +109,17 @@ def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts₀ : MutationObser
         attributeFilter := opts.attributeFilter,
         characterData := opts.characterData == some true,
         characterDataOldValue := opts.characterDataOldValue == some true }
-    -- step 7。既にこの observer の registration が target にあるか。
+    -- step 7。target にこの observer の registered observer（transient でないもの）があるか。
     if s.registrations.any (fun r => r.observer == mo && r.node == target && !r.transient) then
-      -- step 7.1.1：この registration を source とする transient を取り除く。
-      -- step 7.1.2：options を差し替える。
+      -- step 8.1：この registered observer を source とする transient を取り除く。
+      -- step 8.2：options を差し替える。
       .ok { s with
               registrations := s.registrations.filterMap fun r =>
                 if r.transient && r.observer == mo && r.source == some target then none
                 else if r.observer == mo && r.node == target && !r.transient then some reg
                 else some r }
     else
-      -- step 7.2：registration を足し、target を node list に足す。
+      -- step 9：registration を足し、target を node list に足す。
       .ok { s with
               registrations := s.registrations ++ [reg]
               observers := match s.observers[mo]? with
@@ -148,14 +148,15 @@ def observeMethod (s : DOMState) (mo : Nat) (target : NodeId) (opts : MutationOb
 /--
 DOM Standard §4.3 `MutationObserver.disconnect()`。
 
-node list は空にしない（仕様もそうしている）。
+step 1-2 はこの observer の registered observer を全部外す（model の node list は本文の node list と
+transient node set を合わせたもの）。step 3 で node list を、step 4 で record queue を空にする。
 -/
 def disconnect (s : DOMState) (mo : Nat) : DOMState :=
   { s with
       registrations := s.registrations.filter fun r => r.observer != mo
       observers := match s.observers[mo]? with
         | none => s.observers
-        | some o => s.observers.set mo { o with records := [] } }
+        | some o => s.observers.set mo { o with nodeList := [], records := [] } }
 
 /-- DOM Standard §4.3 `MutationObserver.takeRecords()`。 -/
 def takeRecords (s : DOMState) (mo : Nat) : DOMState × List MutationRecord :=
@@ -167,12 +168,12 @@ end MutationObserver
 
 /-! ## notify -/
 
-/-- ある observer の transient registration を全部外す。 -/
+/-- "remove transient registered observers"。ある observer の transient registration を全部外す。 -/
 def removeTransients (s : DOMState) (mo : Nat) : DOMState :=
   { s with registrations := s.registrations.filter fun r => !(r.transient && r.observer == mo) }
 
 /--
-DOM Standard §4.3 "notify mutation observers" の step 5。
+DOM Standard §4.3 "notify mutation observers" の step 6.1-6.3。
 
 一つの observer について、record queue を空にし、transient registration を外し、
 配送する record を返す。
@@ -181,7 +182,7 @@ def notifyOne (s : DOMState) (mo : Nat) : DOMState × List MutationRecord :=
   let (s₁, records) := MutationObserver.takeRecords s mo
   (removeTransients s₁ mo, records)
 
-/-- step 5 の繰り返し。 -/
+/-- step 6 の繰り返し。 -/
 def notifyEach : DOMState → List Nat → DOMState × List (Nat × List MutationRecord)
   | s, [] => (s, [])
   | s, mo :: rest =>
@@ -192,15 +193,17 @@ def notifyEach : DOMState → List Nat → DOMState × List (Nat × List Mutatio
 /--
 DOM Standard §4.3 "notify mutation observers"。
 
+step 2 は pending mutation observers を creation index の順に並べる。
+observer は scenario の初期状態でだけ作るので、creation index は `observers` の添字である。
 signal slots（slotchange の発火）は Shadow DOM なので扱わない。
 callback の呼び出しも model の外なので、
 「どの observer に何が配送されるか」を返す形にしてある。
 record が空の observer は callback を呼ばないので、返り値にも出さない。
 -/
 def notifyMutationObservers (s : DOMState) : DOMState × List (Nat × List MutationRecord) :=
-  let notifySet := s.pendingObservers
+  let notifyList := s.pendingObservers.mergeSort (· ≤ ·)
   let s₀ := { s with microtaskQueued := false, pendingObservers := [] }
-  notifyEach s₀ notifySet
+  notifyEach s₀ notifyList
 
 /-! ## 木も live object も変えないこと -/
 

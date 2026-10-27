@@ -439,7 +439,6 @@ theorem move_eq_remove_insertAt {s s' : DOMState} {node newParent : NodeId}
           have he : s'.tree = s₂.tree := by
             rw [← Except.ok.inj h]
             simp only [queueTreeMutationRecord_tree]
-            split <;> simp
           rw [he, ht]
           simpa using (DOMState.mapTree_eq_ok hi).1
 
@@ -466,9 +465,8 @@ theorem move_ranges {s s' : DOMState} {node newParent : NodeId} {child : Option 
           have he : s'.ranges = s₂.ranges := by
             rw [← Except.ok.inj h]
             simp only [queueTreeMutationRecord_ranges]
-            split <;> simp
           rw [he, (DOMState.mapTree_eq_ok hi).2, DOMState.withTree_ranges]
-          exact liveRangeInsertAdjust_ranges_congr ht.symm hr.symm
+          exact liveRangeInsertAdjust_ranges_congr (by rw [ht]; simp) (by rw [hr]; simp)
 
 /--
 move の step 2-3。validity を通ったなら、cycle は無く reference child は新 parent の子である。
@@ -606,9 +604,8 @@ theorem move_iterators {s s' : DOMState} {node newParent : NodeId} {child : Opti
           have he : s'.iterators = s₂.iterators := by
             rw [← Except.ok.inj h]
             simp only [queueTreeMutationRecord_iterators]
-            split <;> simp
           rw [he, (DOMState.mapTree_eq_ok hi).2, DOMState.withTree_iterators,
-            liveRangeInsertAdjust_iterators, hit]
+            liveRangeInsertAdjust_iterators, hit, addTransientObservers_iterators]
 
 /-- PLAN §6.3。`move` は well-formedness を保つ。 -/
 theorem move_preserves_wellformed {s s' : DOMState} {node newParent : NodeId}

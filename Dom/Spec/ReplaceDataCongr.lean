@@ -56,12 +56,13 @@ theorem characterDataRecordQueued_congr (h : ObsEq s sb) {s₁ s₂ : DOMState} 
       (∀ mo : Nat, mo ∈ s₁.pendingObservers ↔ mo ∈ s₂.pendingObservers) ∧
       s₁.microtaskQueued = s₂.microtaskQueued ∧
       s₁.pendingObservers = s₂.pendingObservers := by
-  obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hm₁, hpa₁⟩ := h₁
-  obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hm₂, hpa₂⟩ := h₂
+  obtain ⟨hl₁, hr₁, hin₁, hkeep₁, hout₁, hpa₁⟩ := h₁
+  obtain ⟨hl₂, hr₂, hin₂, hkeep₂, hout₂, hpa₂⟩ := h₂
   have hint := fun mo => interestedInCharacterData_congr h mo target
   have hold := fun mo => characterDataOldValueWanted_congr h mo target
   refine ⟨records_map_congr_obs h hl₁ hl₂ (fun mo o oa ob ob' ho hoa hob hob' => ?_), ?_,
-    by rw [hm₁, hm₂],
+    (pendingAppended_microtask_unique h.tree.parentOf h.registrationOrder h.microtaskQueued
+      hpa₁ hpa₂).symm,
     (pendingAppended_unique h.tree.parentOf h.registrationOrder h.pendingOrder hpa₁ hpa₂).symm⟩
   · have hre : ob.records = o.records := h.records_of ho hob
     by_cases hi : InterestedInCharacterData s mo target

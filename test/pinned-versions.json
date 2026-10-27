@@ -2,8 +2,8 @@
   "_note": "差分テストを再現するために固定する version。更新するときは、固定 scenario と生成 scenario を両方通してから上げる。",
   "spec": {
     "repository": "https://github.com/whatwg/dom",
-    "commit": "a2331a45360129e8645ef7e0a04740241b6e3726",
-    "date": "2026-08-25"
+    "commit": "3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177",
+    "date": "2026-10-19"
   },
   "webidl": {
     "repository": "https://github.com/whatwg/webidl",
@@ -22,7 +22,7 @@
     "commit": "c241e2e9cdb92f167e6b1beca486012856b1c2ce",
     "path": "gems/dommy",
     "ref": "main",
-    "_note": "main（`c241e2e9`、2026-10-20、v0.17.0 の release の merge）を指す。findings 59-68 の修正（PR #142・#143・#145・#150）と findings 70 の修正（`52417b47`）を含み、`makiri ~> 0.16.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 258 ok / 18 skip / 11 known / 0 mismatch、JS の側から動かす runner（dommy-js-quickjs `522b405`）で 255 ok / 21 skip / 11 known / 0 mismatch。11 known は仕様側が未決着の 19・20、model の読みが疑わしい `dataset` の 2 本、ブラウザに合わせた split の record の並び（findings 69。`splitText` と、split を通る `insertNode`・`surroundContents` の 5 本）（`known-divergences.yml`）。findings 69 は生成 scenario では当てない（`test/generate.rb` の `separate_split_records`）。生成 scenario は Ruby の API を呼ぶ runner で nightly の 3 設定 × seed 1-10（3000 本）、JS の側から動かす runner で seed 1 の固定 seed の設定と nightly の 2 設定 × seed 2・3・6 で mismatch 0（unsupported のみ）。"
+    "_note": "main（`c241e2e9`、2026-10-20、v0.17.0 の release の merge）を指す。findings 59-68 の修正（PR #142・#143・#145・#150）と findings 70 の修正（`52417b47`）を含み、`makiri ~> 0.16.0` を要求する。固定 scenario は Ruby の API を呼ぶ runner で 266 ok / 24 skip / 16 known / 0 mismatch、JS の側から動かす runner（dommy-js-quickjs `522b405`）で 267 ok / 26 skip / 13 known / 0 mismatch（DOM の固定版 `3c53f93` で、2026-10-27）。known は仕様側が未決着の 19・20、model の読みが疑わしい `dataset` の 2 本、ブラウザに合わせた split の record の並び（findings 69。`splitText` と、split を通る `insertNode`・`surroundContents` の 5 本）、featureless な virtual scoping root、whatwg/dom 3071e5f より前の transient registered observer と配送順（Ruby の API で 4 本、JS の側で 1 本）（`known-divergences.yml`）。findings 69 は生成 scenario では当てない（`test/generate.rb` の `separate_split_records`）。生成 scenario は Ruby の API を呼ぶ runner で nightly の 3 設定 × seed 1-10（3000 本）、JS の側から動かす runner で seed 1 の固定 seed の設定と nightly の 2 設定 × seed 2・3・6 で mismatch 0（unsupported のみ）。"
   },
   "dommy-js-quickjs": {
     "repository": "https://github.com/takahashim/dommy-js-quickjs",

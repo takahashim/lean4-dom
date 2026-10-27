@@ -147,7 +147,7 @@ theorem childHasParent_some_iff {t : Tree} {c parent : NodeId} :
 
 /--
 remove と move が共有する部分。
-仕様の remove step 3,4,7 と move step 10,11,14 に対応する。
+仕様の remove step 3,4,7 と move step 9,10,13 に対応する。
 -/
 def detachWithLiveAdjust (s : DOMState) (node : NodeId) : Except DOMException DOMState :=
   (iteratorPreRemove (liveRangePreRemove s node) node).mapTree fun t => detach t node
@@ -178,32 +178,32 @@ DOM Standard §4.2.3 "remove"。
 
 step 1-2 は parent が非 null であることの assert なので、model では
 parent が無ければ `notFoundError` を返す。
-step 15 の removing steps は他仕様のための拡張点なので扱わない。
+step 11 と 14.1 の removing steps は他仕様のための拡張点なので扱わない。
 -/
 def remove (s : DOMState) (node : NodeId) (suppressObservers : Bool := false) :
     Except DOMException DOMState :=
   match parentOf s.tree node with
   | none => .error .notFoundError
   | some parent =>
-    -- step 12-13。木を変える前の兄弟を控える。
+    -- step 5-6。木を変える前の兄弟を控える。
     let oldPreviousSibling := previousSibling s.tree node
     let oldNextSibling := nextSibling s.tree node
     match detachWithLiveAdjust s node with
     | .error e => .error e
     | .ok s₁ =>
-      -- step 20。外す部分木の中の変更も subtree observer が配送まで見続けられるようにする。
+      -- step 15。外す部分木の中の変更も subtree observer が次の notify まで見続けられるようにする。
       -- `parent` の ancestor は node を外しても変わらないので、
-      -- 仕様どおり step 14 の後で数えてよい。
+      -- 仕様どおり step 7 の後で数えてよい。
       let s₂ := addTransientObservers s₁ node parent
-      -- step 21
+      -- step 16
       if suppressObservers then .ok s₂
       else .ok (queueTreeMutationRecord s₂ parent [] [node] oldPreviousSibling oldNextSibling)
 
 /--
 `remove` が成功したときに通った経路を、本体を開かずに取り出す。
 
-step 1-2 で parent があり、step 3-7 が `detachWithLiveAdjust`、step 20 が
-transient observer、step 21 で record を積むかどうかが決まる。
+step 1-2 で parent があり、step 3-7 が `detachWithLiveAdjust`、step 15 が
+transient observer、step 16 で record を積むかどうかが決まる。
 -/
 theorem remove_cases {s s' : DOMState} {node : NodeId} {b : Bool}
     (h : remove s node b = .ok s') :
@@ -224,7 +224,7 @@ theorem remove_cases {s s' : DOMState} {node : NodeId} {b : Bool}
       · next hb => exact Or.inl ⟨by simpa using hb, (Except.ok.inj h).symm⟩
       · next hb => exact Or.inr ⟨by simpa using hb, (Except.ok.inj h).symm⟩
 
-/-- step 1-2 と step 3-7 が通れば `remove` は通り、残りは step 20-21 だけである。 -/
+/-- step 1-2 と step 3-7 が通れば `remove` は通り、残りは step 15-16 だけである。 -/
 theorem remove_of_detach {s s₁ : DOMState} {node parent : NodeId} {b : Bool}
     (hp : parentOf s.tree node = some parent)
     (hd : detachWithLiveAdjust s node = .ok s₁) :
@@ -853,8 +853,8 @@ remove と insert の合成と違う点は次の三つである。
 * node document を付け替えない（step 1 が同じ root であることを要求するため）。
 * validity の検査が `ensure pre-insert validity` ではなく step 1-6 の独自のものである。
 
-live range と NodeIterator の pre-remove steps（step 10-11）と
-挿入側の offset 調整（step 16）は走らせる。
+live range と NodeIterator の pre-remove steps（step 9-10）、
+transient registered observer（step 17）、挿入側の offset 調整（step 18）は走らせる。
 したがって木・Range・NodeIterator に射影した結果は remove と insert の合成と一致する。
 これを `move_eq_remove_insertAt` で示す。
 -/
@@ -884,37 +884,36 @@ def moveValidity (t : Tree) (node newParent : NodeId) (child : Option NodeId) :
         .error .hierarchyRequestError
       else .ok ()
 
-/-- DOM Standard §4.2.3 "move" の step 1-6（validity）と step 7-18（本体）。 -/
+/-- DOM Standard §4.2.3 "move" の step 1-6（validity）と step 7-27（本体）。 -/
 def move (s : DOMState) (node newParent : NodeId) (child : Option NodeId) :
     Except DOMException DOMState :=
   match moveValidity s.tree node newParent child with
   | .error e => .error e
   | .ok () =>
-    -- step 7-9（oldParent が非 null であることの assert。step 1-2 から従う）
+    -- step 7-8（oldParent が非 null であることの assert。step 1-2 から従う）
     match parentOf s.tree node with
     | none => .error .hierarchyRequestError
-    | some _ =>
-      -- step 12-13
+    | some p =>
+      -- step 11-12
       let oldPreviousSibling := previousSibling s.tree node
       let oldNextSibling := nextSibling s.tree node
-      let oldParent := parentOf s.tree node
-      -- step 10-11, 14
+      -- step 9-10, 13
       match detachWithLiveAdjust s node with
       | .error e => .error e
       | .ok s₁ =>
-        -- step 17。挿入前の兄弟。
+        -- step 17
+        let sₜ := addTransientObservers s₁ node p
+        -- step 19。挿入前の兄弟。
         let newPreviousSibling := match child with
-          | some c => previousSibling s₁.tree c
-          | none => (childrenOf s₁.tree newParent).getLast?
-        -- step 16-18
-        match (liveRangeInsertAdjust s₁ newParent child 1).mapTree fun t =>
+          | some c => previousSibling sₜ.tree c
+          | none => (childrenOf sₜ.tree newParent).getLast?
+        -- step 18, 20-21
+        match (liveRangeInsertAdjust sₜ newParent child 1).mapTree fun t =>
           insertAt t newParent node child with
         | .error e => .error e
         | .ok s₂ =>
-          -- step 23-24。旧 parent に removal、新 parent に addition の二つ。
-          let s₃ := match oldParent with
-            | none => s₂
-            | some p => queueTreeMutationRecord s₂ p [] [node] oldPreviousSibling oldNextSibling
+          -- step 26-27。旧 parent に removal、新 parent に addition の二つ。
+          let s₃ := queueTreeMutationRecord s₂ p [] [node] oldPreviousSibling oldNextSibling
           .ok (queueTreeMutationRecord s₃ newParent [node] [] newPreviousSibling child)
 
 end Dom

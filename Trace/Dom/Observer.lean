@@ -22,20 +22,33 @@ def entries : List Entry := [
     spec := [``Dom.Spec.NotifyResult, ``Dom.Spec.NotifiedEach, ``Dom.Spec.ObserverNotified,
              ``Dom.Spec.notifyMutationObservers_sound, ``Dom.Spec.notifyMutationObservers_complete]
     omitted := [("4-5", .shadow), ("7", .shadow)]
-    approx := [("6.3", "node list の node に限らず、その observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`。remove が transient を置いた node を node list にも足す）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`）"),
+    approx := [("2", "creation index は `observers` の添字である。observer は scenario の初期状態でだけ作り、その並びが作った順である"),
                ("6.4", "callback は呼ばない。records が空でない observer と records の組を返り値に並べる")] },
+  { alg := "add-transient-registered-observers"
+    impl := [``Dom.addTransientObservers, ``Dom.newTransients, ``Dom.collectTransient,
+             ``Dom.hasTransientFrom, ``Dom.Registration.sourceNode, ``Dom.Registration.transientOn,
+             ``Dom.transientStep, ``Dom.pendTransient]
+    spec := [``Dom.Spec.TransientAdded, ``Dom.Spec.transientsFor, ``Dom.Spec.transientAdded_of_add]
+    approx := [("1.3-1.4", "source は registered observer ではなく、その node で表す。source が同じかどうかは observer と node で比べる（一つの observer が一つの node に持つ transient でない registered observer は高々一つ）"),
+               ("1.5", "options は source のものではなく registered のものを写す。registered が transient でも、その options は source の options と等しい（`observe()` step 8.1 は options を差し替える前に、その source の transient を外す）"),
+               ("1.6", "transient node set は node list と合わせて一つの list（`ObserverState.nodeList`）で持つ")] },
+  { alg := "remove-transient-registered-observers"
+    impl := [``Dom.removeTransients]
+    spec := [``Dom.Spec.ObserverNotified, ``Dom.Spec.notifyMutationObservers_sound]
+    approx := [("1", "transient node set の node に限らず、この observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`）"),
+               ("2", "transient node set は node list と合わせて持つので、空にしない。残った node には この observer の transient が無いので、観測に出ない")] },
   { alg := "dom-mutationobserver-observe"
     -- step 3-6 の TypeError は `DOMException` ではなく `IdlException.typeError`（`observeMethod`）。
     impl := [``Dom.MutationObserver.observeMethod, ``Dom.MutationObserver.observe,
              ``Dom.MutationObserverInit.resolve, ``Dom.MutationObserver.observeOptionsError,
              ``Dom.Idl.toMutationObserverInit]
     spec := [``Dom.Spec.ObserveResult, ``Dom.Spec.ObserveOptionsRejected]
-    approx := [("7", "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた"),
-               ("7.1", "node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す")] },
+    approx := [("8.1", "transient node set の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す")] },
   { alg := "dom-mutationobserver-disconnect"
     impl := [``Dom.MutationObserver.disconnect]
     spec := [``Dom.Spec.DisconnectResult, ``Dom.Spec.disconnect_sound, ``Dom.Spec.disconnect_complete]
-    approx := [("1", "node list の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`）")] },
+    approx := [("1-2", "node list と transient node set の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`）"),
+               ("3", "model の node list は transient node set と合わせたもので、両方をここで空にする")] },
   { alg := "dom-mutationobserver-takerecords"
     impl := [``Dom.MutationObserver.takeRecords]
     spec := [``Dom.Spec.TakeRecordsResult, ``Dom.Spec.takeRecords_sound, ``Dom.Spec.takeRecords_complete] },
@@ -55,7 +68,7 @@ def entries : List Entry := [
 
 def exclusions : List Exclusion := [
   { target := "dom-mutationobserver-mutationobserver"
-    reason := .other "callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い" }
+    reason := .other "callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い。creation index（step 2-3）は `observers` の添字である" }
 ]
 
 end Trace.Dom.Observer

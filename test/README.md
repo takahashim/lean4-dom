@@ -105,8 +105,8 @@ scenario を評価する本体は `test/js/scenario.js` にあり、Node から�
 読み込むと `globalThis.__domScenario` が生える。
 
 JS 側で比べられないものが二つある。**`notify`（MutationObserver の配送）**は
-配送順が notify set の並びで決まり、仕様には queue を覗く口が無いので復元できない
-（record queue 自体は `takeRecords()` で引き取って積み直しているので比べられる）。
+microtask checkpoint で起き、transient registered observer も外すが、scenario は同期で走らせるので
+step の間にその時点を作れない（record queue 自体は `takeRecords()` で引き取って積み直しているので比べられる）。
 **lone surrogate** を含む文字列は JSON で Ruby 側へ渡せないので、その step で止める。
 
 ## 実行

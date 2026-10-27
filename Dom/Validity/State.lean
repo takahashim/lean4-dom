@@ -30,11 +30,12 @@ MutationObserver の登録の整合性。
 * registration が指す observer は `observers` の範囲内にある。
 * registration が指す node は木の中にある。
 * registration が指す node は、その observer の node list にある（`ListedIn`）。`observe()` は target を
-  node list に足し、remove step 15 は transient を置いた node を node list に足す（model の読み。
-  `Dom/Observer/Deliver.lean` の冒頭）。notify step 6.3 と `disconnect()` step 1 は「node list の node から」
-  外すので、この条件があれば「その observer の registration を全部外す」と同じになる。
+  node list に足し、"add transient registered observers" は transient を置いた node を transient node set に足す
+  （model の node list は二つを合わせたもの。`Dom/Observer/Deliver.lean` の冒頭）。notify step 6.3 と
+  `disconnect()` step 1-2 は「node list（transient node set）の node から」外すので、この条件があれば
+  「その observer の registration を全部外す」と同じになる。
 
-transient registration は配送（"notify mutation observers" step 5）まで残るので、
+transient registration は次の notify（"notify mutation observers" step 6.3）まで残るので、
 その間も指す先が壊れていないことをここで要求する。
 -/
 def ObserverRegistrationsValid (s : DOMState) : Prop :=

@@ -66,8 +66,7 @@ def entries : List Entry := [
     spec := [``Dom.createProcessingInstruction_creates] },
   { alg := "dom-document-createcdatasection"
     impl := [``Dom.createCDATASection, ``Dom.containsSubstr]
-    spec := [``Dom.createCDATASection_creates]
-    approx := [("3-4", "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）")] },
+    spec := [``Dom.createCDATASection_creates] },
   { alg := "dom-document-importnode"
     impl := [``Dom.importNode, ``Dom.importAttr, ``Dom.cloneNodeIn, ``Dom.Exec.idlCheck,
              ``Dom.importNodeSubtree, ``Dom.Idl.toImportNodeOptions]

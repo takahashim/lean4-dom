@@ -4,14 +4,15 @@ import Dom.Basic.Order
 /-!
 # observer に関わる順序（§4.3）
 
-MutationObserver の配送は順序が観測に出る。notify は pending mutation observers を列の順に回り
-（§4.3 notify step 6）、どの observer が pending に入るかの順は "queue a mutation record" が決める。
+MutationObserver の配送は順序が観測に出る。notify は pending mutation observers を creation index の順に
+並べ直してから回る（§4.3 notify step 2、6）ので、配送の順に出るのは pending の所属である。model は pending の列
+そのものも本文どおりに保つ。どの observer が pending に入るかの順は "queue a mutation record" が決める。
 その順は次の二つから決まる。
 
 * **interested observers の順**（"queue a mutation record" step 3-4）：target の inclusive ancestor を
   下から上へ、各 node の registered observer list を list の順に見て、条件を満たす registered の observer を
   初めて出てきた順に並べる（interestedObservers は ordered map である）。
-* **pending mutation observers への append**（step 4.3）：ordered set への append なので、既にあれば何もしない。
+* **pending mutation observers への append**（step 5.3）：ordered set への append なので、既にあれば何もしない。
 
 registered observer list は node ごとにあり、異なる node の list のあいだの順は本文に無い。
 model は registration を一つの列（`DOMState.registrations`）で持つので、観測に出るのは
@@ -23,7 +24,7 @@ model は registration を一つの列（`DOMState.registrations`）で持つの
 | `regsOn regs n` | `n` の registered observer list |
 | `appendNew acc xs` | ordered set への append を `xs` の順に繰り返す |
 | `interestedOrder` | "queue a mutation record" の interestedObservers の key の順 |
-| `PendingAppended` | step 4.3 を interested observers の順に行った後の pending mutation observers |
+| `PendingAppended` | step 4-6 の後の pending mutation observers と microtask |
 | `RegistrationsObsEq` | node ごとの registered observer list がどれも等しい |
 -/
 
@@ -70,12 +71,15 @@ def attributeInterest (target : NodeId) (name : String) (ns : Option String) (r 
      | some f => f.contains name && ns.isNone)
 
 /--
-**step 4.3 の後の pending mutation observers。** target の inclusive ancestor の列で interested observers の
-順を決め、その順に pending mutation observers へ append する。
+**step 4-6 の後の pending mutation observers と microtask。** target の inclusive ancestor の列で
+interested observers の順を決め、その順に pending mutation observers へ append する（step 5.3）。
+interested observers が空なら step 4 で返るので、microtask は予約しない（step 6）。
 -/
 def PendingAppended (s s' : DOMState) (target : NodeId) (P : Registration → Bool) : Prop :=
   ∃ nodes, InclusiveAncestorsUp s.tree target nodes ∧
-    s'.pendingObservers = appendNew s.pendingObservers (interestedOrder s.registrations nodes P)
+    s'.pendingObservers = appendNew s.pendingObservers (interestedOrder s.registrations nodes P) ∧
+    s'.microtaskQueued =
+      (s.microtaskQueued || !(interestedOrder s.registrations nodes P).isEmpty)
 
 /-- node ごとの registered observer list がどれも等しい。 -/
 def RegistrationsObsEq (regs regs' : List Registration) : Prop :=
@@ -138,20 +142,36 @@ theorem pendingAppended_unique {s sb o₁ o₂ : DOMState} {target : NodeId} {P 
     (hp : sb.pendingObservers = s.pendingObservers)
     (h₁ : PendingAppended s o₁ target P) (h₂ : PendingAppended sb o₂ target P) :
     o₂.pendingObservers = o₁.pendingObservers := by
-  obtain ⟨n₁, hn₁, he₁⟩ := h₁
-  obtain ⟨n₂, hn₂, he₂⟩ := h₂
+  obtain ⟨n₁, hn₁, he₁, -⟩ := h₁
+  obtain ⟨n₂, hn₂, he₂, -⟩ := h₂
   have := inclusiveAncestorsUp_unique (inclusiveAncestorsUp_congr ht hn₁) hn₂
   subst this
   rw [he₁, he₂, hp, interestedOrder_congr hr]
 
-/-- 親の関係・node ごとの registration・pending が等しい入力へ、`PendingAppended` を差し替える。 -/
+/-- 同じく、microtask の結果も等しい。 -/
+theorem pendingAppended_microtask_unique {s sb o₁ o₂ : DOMState} {target : NodeId}
+    {P : Registration → Bool}
+    (ht : ∀ m, parentOf sb.tree m = parentOf s.tree m)
+    (hr : RegistrationsObsEq s.registrations sb.registrations)
+    (hm : sb.microtaskQueued = s.microtaskQueued)
+    (h₁ : PendingAppended s o₁ target P) (h₂ : PendingAppended sb o₂ target P) :
+    o₂.microtaskQueued = o₁.microtaskQueued := by
+  obtain ⟨n₁, hn₁, -, he₁⟩ := h₁
+  obtain ⟨n₂, hn₂, -, he₂⟩ := h₂
+  have := inclusiveAncestorsUp_unique (inclusiveAncestorsUp_congr ht hn₁) hn₂
+  subst this
+  rw [he₁, he₂, hm, interestedOrder_congr hr]
+
+/-- 親の関係・node ごとの registration・pending・microtask が等しい入力へ、`PendingAppended` を差し替える。 -/
 theorem pendingAppended_transport {s s' out : DOMState} {target : NodeId} {P : Registration → Bool}
     (ht : ∀ m, parentOf s'.tree m = parentOf s.tree m)
     (hr : RegistrationsObsEq s.registrations s'.registrations)
     (hp : s'.pendingObservers = s.pendingObservers)
+    (hm : s'.microtaskQueued = s.microtaskQueued)
     (h : PendingAppended s' out target P) : PendingAppended s out target P := by
-  obtain ⟨nodes, hn, he⟩ := h
-  refine ⟨nodes, inclusiveAncestorsUp_congr (fun m => (ht m).symm) hn, ?_⟩
-  rw [he, hp, interestedOrder_congr hr]
+  obtain ⟨nodes, hn, he, hme⟩ := h
+  refine ⟨nodes, inclusiveAncestorsUp_congr (fun m => (ht m).symm) hn, ?_, ?_⟩
+  · rw [he, hp, interestedOrder_congr hr]
+  · rw [hme, hm, interestedOrder_congr hr]
 
 end Dom.Spec

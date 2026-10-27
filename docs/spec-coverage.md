@@ -2,17 +2,17 @@
 
 このファイルは `ruby spec-trace/check.rb --write` が `Trace/` の対応表と `spec-trace/dom.json` から作る。手で編集しない。
 
-対象は DOM Standard の `dom.bs` commit `a2331a45360129e8645ef7e0a04740241b6e3726` である。algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。
+対象は DOM Standard の `dom.bs` commit `3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177` である。algorithm の鍵は描画された仕様の anchor で、各行はその commit の snapshot に張ってある。
 
 | 項目 | 数 |
 | --- | --- |
-| `dom.bs` の algorithm | 391 |
-| 表に載せたもの | 262 |
+| `dom.bs` の algorithm | 394 |
+| 表に載せたもの | 265 |
 | 対象外としたもの | 129 |
-| 表に載せた algorithm の step | 1152 |
-| そのうち実装したもの | 699 |
-| そのうち近似したもの | 258 |
-| そのうち外したもの | 195 |
+| 表に載せた algorithm の step | 1172 |
+| そのうち実装したもの | 710 |
+| そのうち近似したもの | 265 |
+| そのうち外したもの | 197 |
 
 step の数は入れ子の step も一つと数える。step を持たない一文の algorithm は一つと数える。
 「関係」の列は、仕様本文から独立に書いた関係（`Dom/Spec/` ほか）である。
@@ -23,423 +23,431 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-ordered-set-parser](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-ordered-set-parser) | 2/4（近似 2） | `Dom.orderedSetParse`<br>`Dom.splitWsAux` | `Dom.Spec.ClassToken` |
-| [concept-ordered-set-serializer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-ordered-set-serializer) | 0/1（近似 1） | `Dom.tokenListUpdate` |  |
+| [concept-ordered-set-parser](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-ordered-set-parser) | 2/4（近似 2） | `Dom.orderedSetParse`<br>`Dom.splitWsAux` | `Dom.Spec.ClassToken` |
+| [concept-ordered-set-serializer](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-ordered-set-serializer) | 0/1（近似 1） | `Dom.tokenListUpdate` |  |
 
 ### §1.3（`selectors`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [scope-match-a-selectors-string](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#scope-match-a-selectors-string) | 2/3（近似 1） | `Dom.scopeMatch`<br>`Dom.matchTree`<br>`Selectors.parseSelector`<br>`Dom.matchSelList` | `Dom.Spec.ScopeMatchResult`<br>`Dom.Spec.MatchAgainstTree`<br>`Dom.Spec.SelectorListMatches` |
+| [scope-match-a-selectors-string](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#scope-match-a-selectors-string) | 2/3（近似 1） | `Dom.scopeMatch`<br>`Dom.matchTree`<br>`Selectors.parseSelector`<br>`Dom.matchSelList` | `Dom.Spec.ScopeMatchResult`<br>`Dom.Spec.MatchAgainstTree`<br>`Dom.Spec.SelectorListMatches` |
 
 ### §1.4（`namespaces`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [valid-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-namespace-prefix) | 1/1 | `Dom.isValidNamespacePrefix` | `Dom.Spec.ValidNamespacePrefix`<br>`Dom.Spec.validNamespacePrefix_iff` |
-| [valid-attribute-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-attribute-local-name) | 1/1 | `Dom.isValidAttributeLocalName` | `Dom.Spec.ValidAttributeLocalName`<br>`Dom.Spec.validAttributeLocalName_iff` |
-| [valid-element-local-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#valid-element-local-name) | 7/7 | `Dom.isValidElementLocalName` | `Dom.Spec.ValidElementLocalName`<br>`Dom.Spec.validElementLocalName_iff` |
-| [validate-and-extract](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#validate-and-extract) | 14/15 | `Dom.validateAndExtractAttribute`<br>`Dom.validateAndExtractElement`<br>`Dom.validateAndExtractError`<br>`Dom.splitAtFirstColon`<br>`Dom.normalizeNamespace` | `Dom.Spec.validateAndExtractSteps`<br>`Dom.Spec.validateAndExtractAttribute_eq_steps`<br>`Dom.Spec.validateAndExtractElement_eq_steps`<br>`Dom.Spec.FirstColonSplit`<br>`Dom.Spec.splitAtFirstColon_spec`<br>`Dom.Spec.ValidateAndExtractResult`<br>`Dom.Spec.validateAndExtractAttribute_spec`<br>`Dom.Spec.validateAndExtractElement_spec` |
+| [valid-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#valid-namespace-prefix) | 1/1 | `Dom.isValidNamespacePrefix` | `Dom.Spec.ValidNamespacePrefix`<br>`Dom.Spec.validNamespacePrefix_iff` |
+| [valid-attribute-local-name](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#valid-attribute-local-name) | 1/1 | `Dom.isValidAttributeLocalName` | `Dom.Spec.ValidAttributeLocalName`<br>`Dom.Spec.validAttributeLocalName_iff` |
+| [valid-element-local-name](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#valid-element-local-name) | 7/7 | `Dom.isValidElementLocalName` | `Dom.Spec.ValidElementLocalName`<br>`Dom.Spec.validElementLocalName_iff` |
+| [validate-and-extract](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#validate-and-extract) | 14/15 | `Dom.validateAndExtractAttribute`<br>`Dom.validateAndExtractElement`<br>`Dom.validateAndExtractError`<br>`Dom.splitAtFirstColon`<br>`Dom.normalizeNamespace` | `Dom.Spec.validateAndExtractSteps`<br>`Dom.Spec.validateAndExtractAttribute_eq_steps`<br>`Dom.Spec.validateAndExtractElement_eq_steps`<br>`Dom.Spec.FirstColonSplit`<br>`Dom.Spec.splitAtFirstColon_spec`<br>`Dom.Spec.ValidateAndExtractResult`<br>`Dom.Spec.validateAndExtractAttribute_spec`<br>`Dom.Spec.validateAndExtractElement_spec` |
 
 ### §2.2（`interface-event`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-event-stoppropagation](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-event-stoppropagation) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
-| [dom-event-stopimmediatepropagation](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-event-stopimmediatepropagation) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
-| [set-the-canceled-flag](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#set-the-canceled-flag) | 1/1 | `Dom.setCanceledFlag`<br>`Dom.runAction` | `Dom.Spec.CallbackRan` |
-| [dom-event-preventdefault](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-event-preventdefault) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
+| [dom-event-stoppropagation](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-event-stoppropagation) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
+| [dom-event-stopimmediatepropagation](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-event-stopimmediatepropagation) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
+| [set-the-canceled-flag](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#set-the-canceled-flag) | 1/1 | `Dom.setCanceledFlag`<br>`Dom.runAction` | `Dom.Spec.CallbackRan` |
+| [dom-event-preventdefault](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-event-preventdefault) | 0/1（近似 1） | `Dom.runAction` | `Dom.Spec.CallbackRan` |
 
 ### §2.7（`interface-eventtarget`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-flatten-options](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-flatten-options) | 2/2 | `Dom.flattenOptions` |  |
-| [event-flatten-more](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#event-flatten-more) | 5/8（近似 2） | `Dom.flattenMoreOptions` |  |
-| [default-passive-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#default-passive-value) | 1/2（近似 1） | `Dom.defaultPassiveValue`<br>`Dom.bodyElementOf` | `Dom.Spec.DefaultPassive`<br>`Dom.Spec.BodyElement` |
-| [add-an-event-listener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#add-an-event-listener) | 1/7（近似 1） | `Dom.addListener`<br>`Dom.addEventListener`<br>`Dom.defaultPassiveValue` | `Dom.Spec.ListenerAdded`<br>`Dom.Spec.AddEventListenerResult`<br>`Dom.Spec.DefaultPassive` |
-| [dom-eventtarget-addeventlistener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-addeventlistener) | 0/2（近似 2） | `Dom.addEventListener`<br>`Dom.addListener`<br>`Dom.flattenMoreOptions`<br>`Dom.Idl.toAddEventListenerOptions` | `Dom.Spec.AddEventListenerResult` |
-| [remove-an-event-listener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#remove-an-event-listener) | 0/2（近似 1） | `Dom.removeListenerAt` | `Dom.Spec.ListenerRemovedAt` |
-| [dom-eventtarget-removeeventlistener](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-removeeventlistener) | 2/2 | `Dom.removeEventListener`<br>`Dom.removeListenerAt`<br>`Dom.flattenOptions`<br>`Dom.Idl.toEventListenerOptions` | `Dom.Spec.RemoveEventListenerResult` |
-| [dom-eventtarget-dispatchevent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-eventtarget-dispatchevent) | 0/3（近似 1） | `Dom.dispatchEvent` | `Dom.Spec.DispatchResult` |
+| [concept-flatten-options](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-flatten-options) | 2/2 | `Dom.flattenOptions` |  |
+| [event-flatten-more](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#event-flatten-more) | 5/8（近似 2） | `Dom.flattenMoreOptions` |  |
+| [default-passive-value](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#default-passive-value) | 1/2（近似 1） | `Dom.defaultPassiveValue`<br>`Dom.bodyElementOf` | `Dom.Spec.DefaultPassive`<br>`Dom.Spec.BodyElement` |
+| [add-an-event-listener](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#add-an-event-listener) | 1/7（近似 1） | `Dom.addListener`<br>`Dom.addEventListener`<br>`Dom.defaultPassiveValue` | `Dom.Spec.ListenerAdded`<br>`Dom.Spec.AddEventListenerResult`<br>`Dom.Spec.DefaultPassive` |
+| [dom-eventtarget-addeventlistener](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-eventtarget-addeventlistener) | 0/2（近似 2） | `Dom.addEventListener`<br>`Dom.addListener`<br>`Dom.flattenMoreOptions`<br>`Dom.Idl.toAddEventListenerOptions` | `Dom.Spec.AddEventListenerResult` |
+| [remove-an-event-listener](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#remove-an-event-listener) | 0/2（近似 1） | `Dom.removeListenerAt` | `Dom.Spec.ListenerRemovedAt` |
+| [dom-eventtarget-removeeventlistener](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-eventtarget-removeeventlistener) | 2/2 | `Dom.removeEventListener`<br>`Dom.removeListenerAt`<br>`Dom.flattenOptions`<br>`Dom.Idl.toEventListenerOptions` | `Dom.Spec.RemoveEventListenerResult` |
+| [dom-eventtarget-dispatchevent](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-eventtarget-dispatchevent) | 0/3（近似 1） | `Dom.dispatchEvent` | `Dom.Spec.DispatchResult` |
 
 ### §2.9（`dispatching-events`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-event-dispatch](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-dispatch) | 1/58（近似 22） | `Dom.dispatchEvent`<br>`Dom.eventPath`<br>`Dom.runPass`<br>`Dom.invokeItem` | `Dom.Spec.DispatchResult`<br>`Dom.Spec.EventPathSpec`<br>`Dom.Spec.PassRan` |
-| [concept-event-path-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-path-append) | 0/5（近似 1） | `Dom.eventPath` | `Dom.Spec.EventPathSpec` |
-| [concept-event-listener-invoke](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-listener-invoke) | 2/15（近似 2） | `Dom.invokeItem`<br>`Dom.innerInvoke` | `Dom.Spec.Invoked`<br>`Dom.Spec.ListenersOf` |
-| [concept-event-listener-inner-invoke](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-event-listener-inner-invoke) | 8/21 | `Dom.innerInvoke`<br>`Dom.invokeOne`<br>`Dom.runAction`<br>`Dom.removeListenerAt` | `Dom.Spec.InnerInvoked`<br>`Dom.Spec.CallbackRan` |
+| [concept-event-dispatch](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-event-dispatch) | 1/58（近似 22） | `Dom.dispatchEvent`<br>`Dom.eventPath`<br>`Dom.runPass`<br>`Dom.invokeItem` | `Dom.Spec.DispatchResult`<br>`Dom.Spec.EventPathSpec`<br>`Dom.Spec.PassRan` |
+| [concept-event-path-append](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-event-path-append) | 0/5（近似 1） | `Dom.eventPath` | `Dom.Spec.EventPathSpec` |
+| [concept-event-listener-invoke](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-event-listener-invoke) | 2/15（近似 2） | `Dom.invokeItem`<br>`Dom.innerInvoke` | `Dom.Spec.Invoked`<br>`Dom.Spec.ListenersOf` |
+| [concept-event-listener-inner-invoke](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-event-listener-inner-invoke) | 8/23（近似 1） | `Dom.innerInvoke`<br>`Dom.invokeOne`<br>`Dom.runAction`<br>`Dom.removeListenerAt` | `Dom.Spec.InnerInvoked`<br>`Dom.Spec.CallbackRan` |
 
 ### §4.2（`node-trees`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-node-length](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-length) | 2/3（近似 1） | `Dom.lengthOf`<br>`Dom.NodeData.length` |  |
+| [concept-node-length](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-length) | 2/3（近似 1） | `Dom.lengthOf`<br>`Dom.NodeData.length` |  |
 
 ### §4.2.3（`mutation-algorithms`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-node-ensure-pre-insertion-validity](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-ensure-pre-insertion-validity) | 17/17 | `Dom.ensurePreInsertionValidity` | `Dom.Spec.PreInsertValidity` |
-| [concept-node-pre-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-pre-insert) | 5/5 | `Dom.preInsert`<br>`Dom.preInsertReferenceChild` | `Dom.Spec.PreInsertResult` |
-| [concept-node-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-insert) | 15/31 | `Dom.insert`<br>`Dom.insertNodesAt`<br>`Dom.insertEachAt`<br>`Dom.insertEach`<br>`Dom.insertPrevSibling` | `Dom.Spec.InsertSpec` |
-| [concept-node-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-append) | 1/1 | `Dom.append` | `Dom.Spec.append_result_sound` |
-| [move](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#move) | 20/33（近似 1） | `Dom.move`<br>`Dom.moveValidity` | `Dom.Spec.MoveSpec`<br>`Dom.Spec.MoveValidity` |
-| [concept-node-replace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-replace) | 13/13 | `Dom.replace` | `Dom.Spec.ReplaceSpec`<br>`Dom.Spec.ReplaceResult` |
-| [concept-node-replace-all](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-replace-all) | 7/7 | `Dom.replaceAll`<br>`Dom.replaceAllNodes` | `Dom.Spec.ReplaceAllSpec` |
-| [concept-node-pre-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-pre-remove) | 3/3 | `Dom.preRemove` | `Dom.Spec.PreRemoveResult`<br>`Dom.Spec.preRemove_result_sound` |
-| [concept-node-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-remove) | 9/21 | `Dom.remove`<br>`Dom.detachWithLiveAdjust` | `Dom.Spec.RemoveSpec`<br>`Dom.Spec.RemoveResult` |
+| [concept-node-ensure-pre-insertion-validity](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-ensure-pre-insertion-validity) | 17/17 | `Dom.ensurePreInsertionValidity` | `Dom.Spec.PreInsertValidity` |
+| [concept-node-pre-insert](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-pre-insert) | 5/5 | `Dom.preInsert`<br>`Dom.preInsertReferenceChild` | `Dom.Spec.PreInsertResult` |
+| [concept-node-insert](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-insert) | 15/31 | `Dom.insert`<br>`Dom.insertNodesAt`<br>`Dom.insertEachAt`<br>`Dom.insertEach`<br>`Dom.insertPrevSibling` | `Dom.Spec.InsertSpec` |
+| [concept-node-append](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-append) | 1/1 | `Dom.append` | `Dom.Spec.append_result_sound` |
+| [move](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#move) | 21/34（近似 1） | `Dom.move`<br>`Dom.moveValidity`<br>`Dom.detachWithLiveAdjust`<br>`Dom.addTransientObservers` | `Dom.Spec.MoveSpec`<br>`Dom.Spec.MoveValidity` |
+| [concept-node-replace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-replace) | 13/13 | `Dom.replace` | `Dom.Spec.ReplaceSpec`<br>`Dom.Spec.ReplaceResult` |
+| [concept-node-replace-all](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-replace-all) | 7/7 | `Dom.replaceAll`<br>`Dom.replaceAllNodes` | `Dom.Spec.ReplaceAllSpec` |
+| [concept-node-pre-remove](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-pre-remove) | 3/3 | `Dom.preRemove` | `Dom.Spec.PreRemoveResult`<br>`Dom.Spec.preRemove_result_sound` |
+| [concept-node-remove](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-remove) | 9/21 | `Dom.remove`<br>`Dom.detachWithLiveAdjust`<br>`Dom.addTransientObservers` | `Dom.Spec.RemoveSpec`<br>`Dom.Spec.RemoveResult` |
 
 ### §4.2.4（`interface-nonelementparentnode`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [get-an-element-by-id](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-an-element-by-id) | 1/1 | `Dom.getElementById`<br>`Dom.descendantElements`<br>`Dom.elementIdOf` | `Dom.Spec.HasId`<br>`Dom.Spec.getElementById_first` |
-| [dom-nonelementparentnode-getelementbyid](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nonelementparentnode-getelementbyid) | 1/1 | `Dom.getElementById`<br>`Dom.requireNonElementParentNode` | `Dom.Spec.getElementById_first` |
+| [get-an-element-by-id](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#get-an-element-by-id) | 1/1 | `Dom.getElementById`<br>`Dom.descendantElements`<br>`Dom.elementIdOf` | `Dom.Spec.HasId`<br>`Dom.Spec.getElementById_first` |
+| [dom-nonelementparentnode-getelementbyid](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nonelementparentnode-getelementbyid) | 1/1 | `Dom.getElementById`<br>`Dom.requireNonElementParentNode` | `Dom.Spec.getElementById_first` |
 
 ### §4.2.6（`interface-parentnode`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [convert-nodes-into-a-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#convert-nodes-into-a-node) | 5/5 | `Dom.convertNodesIntoNode`<br>`Dom.textsFor`<br>`Dom.appendAll`<br>`Dom.discardAll` |  |
-| [dom-parentnode-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-children) | 0/1（近似 1） | `Dom.elementChildrenOf` |  |
-| [dom-parentnode-firstelementchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-firstelementchild) | 1/1 | `Dom.firstElementChild` |  |
-| [dom-parentnode-lastelementchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-lastelementchild) | 1/1 | `Dom.lastElementChild` |  |
-| [dom-parentnode-childelementcount](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-childelementcount) | 1/1 | `Dom.childElementCount` |  |
-| [dom-parentnode-prepend](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-prepend) | 2/2 | `Dom.prependNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.preInsert` | `Dom.Spec.prepend_single_result_sound` |
-| [dom-parentnode-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-append) | 2/2 | `Dom.appendNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.append` | `Dom.Spec.append_single_result_sound` |
-| [dom-parentnode-replacechildren](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-replacechildren) | 3/3 | `Dom.replaceChildrenNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.replaceChildren`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.replaceAll` | `Dom.Spec.ReplaceChildrenResult` |
-| [dom-parentnode-movebefore](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-movebefore) | 3/3 | `Dom.moveBefore`<br>`Dom.move` | `Dom.Spec.MoveResult` |
-| [dom-parentnode-queryselector](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-queryselector) | 1/1 | `Dom.querySelector`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` | `Dom.Spec.querySelector_result_sound` |
-| [dom-parentnode-queryselectorall](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-parentnode-queryselectorall) | 0/1（近似 1） | `Dom.querySelectorAll`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` | `Dom.Spec.querySelectorAll_result_sound` |
+| [convert-nodes-into-a-node](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#convert-nodes-into-a-node) | 5/5 | `Dom.convertNodesIntoNode`<br>`Dom.textsFor`<br>`Dom.appendAll`<br>`Dom.discardAll` |  |
+| [dom-parentnode-children](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-children) | 0/1（近似 1） | `Dom.elementChildrenOf` |  |
+| [dom-parentnode-firstelementchild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-firstelementchild) | 1/1 | `Dom.firstElementChild` |  |
+| [dom-parentnode-lastelementchild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-lastelementchild) | 1/1 | `Dom.lastElementChild` |  |
+| [dom-parentnode-childelementcount](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-childelementcount) | 1/1 | `Dom.childElementCount` |  |
+| [dom-parentnode-prepend](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-prepend) | 2/2 | `Dom.prependNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.preInsert` | `Dom.Spec.prepend_single_result_sound` |
+| [dom-parentnode-append](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-append) | 2/2 | `Dom.appendNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.append` | `Dom.Spec.append_single_result_sound` |
+| [dom-parentnode-replacechildren](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-replacechildren) | 3/3 | `Dom.replaceChildrenNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.replaceChildren`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.replaceAll` | `Dom.Spec.ReplaceChildrenResult` |
+| [dom-parentnode-movebefore](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-movebefore) | 3/3 | `Dom.moveBefore`<br>`Dom.move` | `Dom.Spec.MoveResult` |
+| [dom-parentnode-queryselector](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-queryselector) | 1/1 | `Dom.querySelector`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` | `Dom.Spec.querySelector_result_sound` |
+| [dom-parentnode-queryselectorall](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-parentnode-queryselectorall) | 0/1（近似 1） | `Dom.querySelectorAll`<br>`Dom.scopeMatch`<br>`Dom.matchTree`<br>`Dom.requireParentNode` | `Dom.Spec.querySelectorAll_result_sound` |
 
 ### §4.2.7（`interface-nondocumenttypechildnode`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-nondocumenttypechildnode-previouselementsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nondocumenttypechildnode-previouselementsibling) | 1/1 | `Dom.previousElementSibling` |  |
-| [dom-nondocumenttypechildnode-nextelementsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nondocumenttypechildnode-nextelementsibling) | 1/1 | `Dom.nextElementSibling` |  |
+| [dom-nondocumenttypechildnode-previouselementsibling](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nondocumenttypechildnode-previouselementsibling) | 1/1 | `Dom.previousElementSibling` |  |
+| [dom-nondocumenttypechildnode-nextelementsibling](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nondocumenttypechildnode-nextelementsibling) | 1/1 | `Dom.nextElementSibling` |  |
 
 ### §4.2.8（`interface-childnode`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-childnode-before](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-before) | 6/6 | `Dom.beforeNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viablePreviousSibling`<br>`Dom.preInsert` | `Dom.Spec.BeforeResult`<br>`Dom.Spec.ViablePreviousSibling`<br>`Dom.beforeNodes_single` |
-| [dom-childnode-after](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-after) | 5/5 | `Dom.afterNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viableNextSibling`<br>`Dom.preInsert` | `Dom.Spec.AfterResult`<br>`Dom.Spec.ViableNextSibling`<br>`Dom.afterNodes_single` |
-| [dom-childnode-replacewith](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-replacewith) | 6/6 | `Dom.replaceWithNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viableNextSibling`<br>`Dom.replace`<br>`Dom.preInsert` | `Dom.Spec.ReplaceWithResult`<br>`Dom.Spec.ViableNextSibling`<br>`Dom.replaceWithNodes_single` |
-| [dom-childnode-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-childnode-remove) | 2/2 | `Dom.nodeRemove`<br>`Dom.remove` | `Dom.Spec.NodeRemoveResult` |
+| [dom-childnode-before](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-childnode-before) | 6/6 | `Dom.beforeNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viablePreviousSibling`<br>`Dom.preInsert` | `Dom.Spec.BeforeResult`<br>`Dom.Spec.ViablePreviousSibling`<br>`Dom.beforeNodes_single` |
+| [dom-childnode-after](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-childnode-after) | 5/5 | `Dom.afterNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viableNextSibling`<br>`Dom.preInsert` | `Dom.Spec.AfterResult`<br>`Dom.Spec.ViableNextSibling`<br>`Dom.afterNodes_single` |
+| [dom-childnode-replacewith](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-childnode-replacewith) | 6/6 | `Dom.replaceWithNodes`<br>`Dom.convertNodesIntoNode`<br>`Dom.viableNextSibling`<br>`Dom.replace`<br>`Dom.preInsert` | `Dom.Spec.ReplaceWithResult`<br>`Dom.Spec.ViableNextSibling`<br>`Dom.replaceWithNodes_single` |
+| [dom-childnode-remove](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-childnode-remove) | 2/2 | `Dom.nodeRemove`<br>`Dom.remove` | `Dom.Spec.NodeRemoveResult` |
 
 ### §4.2.10.2（`interface-htmlcollection`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-htmlcollection-nameditem](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-htmlcollection-nameditem) | 0/2（近似 2） | `Dom.childrenNamedItem`<br>`Dom.elementIdOf` |  |
+| [dom-htmlcollection-nameditem](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-htmlcollection-nameditem) | 0/2（近似 2） | `Dom.childrenNamedItem`<br>`Dom.elementIdOf` |  |
 
 ### §4.3（`mutation-observers`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [queue-a-mutation-observer-compound-microtask](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#queue-a-mutation-observer-compound-microtask) | 2/3（近似 1） | `Dom.queueMutationObserverMicrotask` |  |
-| [notify-mutation-observers](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#notify-mutation-observers) | 6/11（近似 2） | `Dom.notifyMutationObservers`<br>`Dom.notifyEach`<br>`Dom.notifyOne`<br>`Dom.MutationObserver.takeRecords`<br>`Dom.removeTransients` | `Dom.Spec.NotifyResult`<br>`Dom.Spec.NotifiedEach`<br>`Dom.Spec.ObserverNotified`<br>`Dom.Spec.notifyMutationObservers_sound`<br>`Dom.Spec.notifyMutationObservers_complete` |
+| [queue-a-mutation-observer-compound-microtask](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#queue-a-mutation-observer-compound-microtask) | 2/3（近似 1） | `Dom.queueMutationObserverMicrotask` |  |
+| [notify-mutation-observers](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#notify-mutation-observers) | 6/11（近似 2） | `Dom.notifyMutationObservers`<br>`Dom.notifyEach`<br>`Dom.notifyOne`<br>`Dom.MutationObserver.takeRecords`<br>`Dom.removeTransients` | `Dom.Spec.NotifyResult`<br>`Dom.Spec.NotifiedEach`<br>`Dom.Spec.ObserverNotified`<br>`Dom.Spec.notifyMutationObservers_sound`<br>`Dom.Spec.notifyMutationObservers_complete` |
+| [add-transient-registered-observers](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#add-transient-registered-observers) | 5/9（近似 4） | `Dom.addTransientObservers`<br>`Dom.newTransients`<br>`Dom.collectTransient`<br>`Dom.hasTransientFrom`<br>`Dom.Registration.sourceNode`<br>`Dom.Registration.transientOn`<br>`Dom.transientStep`<br>`Dom.pendTransient` | `Dom.Spec.TransientAdded`<br>`Dom.Spec.transientsFor`<br>`Dom.Spec.transientAdded_of_add` |
+| [remove-transient-registered-observers](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#remove-transient-registered-observers) | 0/2（近似 2） | `Dom.removeTransients` | `Dom.Spec.ObserverNotified`<br>`Dom.Spec.notifyMutationObservers_sound` |
 
 ### §4.3.1（`interface-mutationobserver`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-observe) | 9/12（近似 3） | `Dom.MutationObserver.observeMethod`<br>`Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError`<br>`Dom.Idl.toMutationObserverInit` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
-| [dom-mutationobserver-disconnect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-disconnect) | 1/2（近似 1） | `Dom.MutationObserver.disconnect` | `Dom.Spec.DisconnectResult`<br>`Dom.Spec.disconnect_sound`<br>`Dom.Spec.disconnect_complete` |
-| [dom-mutationobserver-takerecords](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-mutationobserver-takerecords) | 3/3 | `Dom.MutationObserver.takeRecords` | `Dom.Spec.TakeRecordsResult`<br>`Dom.Spec.takeRecords_sound`<br>`Dom.Spec.takeRecords_complete` |
+| [dom-mutationobserver-observe](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-mutationobserver-observe) | 12/13（近似 1） | `Dom.MutationObserver.observeMethod`<br>`Dom.MutationObserver.observe`<br>`Dom.MutationObserverInit.resolve`<br>`Dom.MutationObserver.observeOptionsError`<br>`Dom.Idl.toMutationObserverInit` | `Dom.Spec.ObserveResult`<br>`Dom.Spec.ObserveOptionsRejected` |
+| [dom-mutationobserver-disconnect](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-mutationobserver-disconnect) | 1/4（近似 3） | `Dom.MutationObserver.disconnect` | `Dom.Spec.DisconnectResult`<br>`Dom.Spec.disconnect_sound`<br>`Dom.Spec.disconnect_complete` |
+| [dom-mutationobserver-takerecords](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-mutationobserver-takerecords) | 3/3 | `Dom.MutationObserver.takeRecords` | `Dom.Spec.TakeRecordsResult`<br>`Dom.Spec.takeRecords_sound`<br>`Dom.Spec.takeRecords_complete` |
 
 ### §4.3.2（`queueing-a-mutation-record`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [queue-a-mutation-record](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#queue-a-mutation-record) | 13/13 | `Dom.queueMutationRecord`<br>`Dom.interestedObservers`<br>`Dom.Registration.interestedIn`<br>`Dom.addInterested`<br>`Dom.enqueueRecord`<br>`Dom.addPendingObserver`<br>`Dom.queueMutationObserverMicrotask` | `Dom.Spec.TreeRecordQueued`<br>`Dom.Spec.CharacterDataRecordQueued`<br>`Dom.Spec.AttributeRecordQueued` |
-| [queue-a-tree-mutation-record](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#queue-a-tree-mutation-record) | 2/2 | `Dom.queueTreeMutationRecord`<br>`Dom.queueMutationRecord` | `Dom.Spec.TreeRecordQueued`<br>`Dom.Spec.treeRecordQueued_of_queue` |
+| [queue-a-mutation-record](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#queue-a-mutation-record) | 14/14 | `Dom.queueMutationRecord`<br>`Dom.interestedObservers`<br>`Dom.Registration.interestedIn`<br>`Dom.addInterested`<br>`Dom.enqueueRecord`<br>`Dom.addPendingObserver`<br>`Dom.queueMutationObserverMicrotask` | `Dom.Spec.TreeRecordQueued`<br>`Dom.Spec.CharacterDataRecordQueued`<br>`Dom.Spec.AttributeRecordQueued` |
+| [queue-a-tree-mutation-record](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#queue-a-tree-mutation-record) | 2/2 | `Dom.queueTreeMutationRecord`<br>`Dom.queueMutationRecord` | `Dom.Spec.TreeRecordQueued`<br>`Dom.Spec.treeRecordQueued_of_queue` |
 
 ### §4.4（`interface-node`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [create-a-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-node) | 1/2（近似 1） | `Dom.withFresh` |  |
-| [dom-node-nodetype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodetype) | 0/1（近似 1） | `Dom.NodeKind.nodeType`<br>`Dom.kindOf` |  |
-| [dom-node-nodename](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodename) | 1/1 | `Dom.nodeName`<br>`Dom.Exec.attrQueryValue` |  |
-| [dom-node-isconnected](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isconnected) | 0/1（近似 1） | `Dom.isConnected`<br>`Dom.Exec.attrQueryValue` |  |
-| [dom-node-ownerdocument](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-ownerdocument) | 1/1 | `Dom.ownerDocumentGetter`<br>`Dom.Exec.attrQueryValue` |  |
-| [dom-node-getrootnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-getrootnode) | 0/1（近似 1） | `Dom.getRootNode`<br>`Dom.attrGetRootNode` | `Dom.Spec.IsRoot` |
-| [dom-node-parentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-parentnode) | 1/1 | `Dom.parentOf`<br>`Dom.attrParentNode` |  |
-| [dom-node-parentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-parentelement) | 1/1 | `Dom.parentElement` |  |
-| [dom-node-haschildnodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-haschildnodes) | 1/1 | `Dom.childrenOf` |  |
-| [dom-node-childnodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-childnodes) | 0/1（近似 1） | `Dom.childrenOf` |  |
-| [dom-node-firstchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-firstchild) | 1/1 | `Dom.childrenOf` |  |
-| [dom-node-lastchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-lastchild) | 1/1 | `Dom.childrenOf` |  |
-| [dom-node-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-previoussibling) | 1/1 | `Dom.previousSibling` |  |
-| [dom-node-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nextsibling) | 1/1 | `Dom.nextSibling` |  |
-| [dom-node-nodevalue](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodevalue) | 1/1 | `Dom.getNodeValue`<br>`Dom.Exec.attrQueryValue` |  |
-| [dom-node-nodevalue/setter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-nodevalue) | 0/1（近似 1） | `Dom.setNodeValue`<br>`Dom.setAttrValue` | `Dom.Spec.SetNodeValueResult`<br>`Dom.Spec.setNodeValue_result_sound` |
-| [get-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-text-content) | 1/1 | `Dom.getTextContent`<br>`Dom.descendantTextContent`<br>`Dom.Exec.attrQueryValue` | `Dom.Spec.descendantTextContent_spec` |
-| [dom-node-textcontent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-textcontent) | 1/1 | `Dom.getTextContent`<br>`Dom.Exec.attrQueryValue` | `Dom.Spec.descendantTextContent_spec` |
-| [string-replace-all](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#string-replace-all) | 3/3 | `Dom.stringReplaceAll`<br>`Dom.createTextNode`<br>`Dom.replaceAll` | `Dom.Spec.StringReplaceAllResult`<br>`Dom.Spec.stringReplaceAll_result_sound` |
-| [set-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#set-text-content) | 0/1（近似 1） | `Dom.setTextContent`<br>`Dom.stringReplaceAll`<br>`Dom.setAttrValue` | `Dom.Spec.SetTextContentResult`<br>`Dom.Spec.setTextContent_result_sound` |
-| [dom-node-textcontent/setter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-textcontent) | 1/1 | `Dom.setTextContent`<br>`Dom.setAttrValue` | `Dom.Spec.setTextContent_result_sound` |
-| [dom-node-normalize](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-normalize) | 3/13（近似 10） | `Dom.normalize`<br>`Dom.normalizeList`<br>`Dom.normalizeRun`<br>`Dom.normalizeMergeOne`<br>`Dom.normalizeMergeRange`<br>`Dom.normalizeMergeBP`<br>`Dom.followingTexts` | `Dom.Spec.NormalizeEngineSpec`<br>`Dom.Spec.NormalizeStandardSpec`<br>`Dom.Spec.NormalizeResult` |
-| [concept-node-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-clone) | 5/14 | `Dom.cloneNodeIn`<br>`Dom.cloneMany`<br>`Dom.cloneAppend` | `Dom.CloneOf`<br>`Dom.cloneNode_cloneOf`<br>`Dom.cloneNodeIn_deep_spec` |
-| [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#clone-a-single-node) | 12/18（近似 2） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` | `Dom.cloneNodeIn_shallow_spec` |
-| [dom-node-clonenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-clonenode) | 1/2 | `Dom.cloneNode`<br>`Dom.cloneAttr` | `Dom.cloneNode_cloneOf`<br>`Dom.Spec.cloneNode_nodeEquals` |
-| [concept-node-equals](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-equals) | 1/1 | `Dom.nodeEqualsFuel`<br>`Dom.nodeOwnPropertiesEqual`<br>`Dom.attrEquals`<br>`Dom.nodeRefEquals` | `Dom.Spec.NodeEquals`<br>`Dom.Spec.nodeEquals_iff`<br>`Dom.Spec.cloneOf_nodeEquals` |
-| [dom-node-isequalnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isequalnode) | 1/1 | `Dom.nodeEquals`<br>`Dom.nodeRefEquals`<br>`Dom.Exec.Operation.isEqualNodeNull` | `Dom.Spec.nodeEquals_iff` |
-| [dom-node-comparedocumentposition](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-comparedocumentposition) | 15/15 | `Dom.compareDocumentPosition`<br>`Dom.compareDocumentPositionRef` | `Dom.Spec.DocumentPositionSpec` |
-| [dom-node-contains](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-contains) | 1/1 | `Dom.nodeContains`<br>`Dom.nodeContainsRef`<br>`Dom.Exec.Operation.nodeContainsNull` | `Dom.Spec.nodeContains_eq_true_iff` |
-| [locate-a-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#locate-a-namespace-prefix) | 4/4 | `Dom.locateNamespacePrefixIn`<br>`Dom.elementChain` | `Dom.Spec.LocatePrefixElem`<br>`Dom.Spec.locatePrefixIn_sound` |
-| [locate-a-namespace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#locate-a-namespace) | 6/6 | `Dom.locateNamespace`<br>`Dom.locateNamespaceIn`<br>`Dom.elementChain`<br>`Dom.attrLookupNamespaceURI` | `Dom.Spec.LocateNamespace`<br>`Dom.Spec.LocateNamespaceElem`<br>`Dom.Spec.locateNamespace_sound` |
-| [dom-node-lookupprefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-lookupprefix) | 8/8 | `Dom.lookupPrefix`<br>`Dom.attrLookupPrefix` | `Dom.Spec.LookupPrefixResult`<br>`Dom.Spec.lookupPrefix_sound` |
-| [dom-node-lookupnamespaceuri](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-lookupnamespaceuri) | 2/2 | `Dom.lookupNamespaceURI`<br>`Dom.attrLookupNamespaceURI` | `Dom.Spec.lookupNamespaceURI_sound` |
-| [dom-node-isdefaultnamespace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-isdefaultnamespace) | 3/3 | `Dom.isDefaultNamespace`<br>`Dom.attrIsDefaultNamespace` | `Dom.Spec.isDefaultNamespace_sound` |
-| [dom-node-insertbefore](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-insertbefore) | 1/1 | `Dom.insertBefore` | `Dom.Spec.insertBefore_result_sound` |
-| [dom-node-appendchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-appendchild) | 1/1 | `Dom.appendChild`<br>`Dom.appendChildRef` | `Dom.Spec.appendChild_result_sound` |
-| [dom-node-replacechild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-replacechild) | 1/1 | `Dom.replaceChild` | `Dom.Spec.replaceChild_result_sound` |
-| [dom-node-removechild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-node-removechild) | 1/1 | `Dom.removeChild` | `Dom.Spec.removeChild_result_sound` |
+| [create-a-node](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#create-a-node) | 1/2（近似 1） | `Dom.withFresh` |  |
+| [dom-node-nodetype](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-nodetype) | 0/1（近似 1） | `Dom.NodeKind.nodeType`<br>`Dom.kindOf` |  |
+| [dom-node-nodename](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-nodename) | 1/1 | `Dom.nodeName`<br>`Dom.Exec.attrQueryValue` |  |
+| [dom-node-isconnected](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-isconnected) | 0/1（近似 1） | `Dom.isConnected`<br>`Dom.Exec.attrQueryValue` |  |
+| [dom-node-ownerdocument](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-ownerdocument) | 1/1 | `Dom.ownerDocumentGetter`<br>`Dom.Exec.attrQueryValue` |  |
+| [dom-node-getrootnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-getrootnode) | 0/1（近似 1） | `Dom.getRootNode`<br>`Dom.attrGetRootNode` | `Dom.Spec.IsRoot` |
+| [dom-node-parentnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-parentnode) | 1/1 | `Dom.parentOf`<br>`Dom.attrParentNode` |  |
+| [dom-node-parentelement](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-parentelement) | 1/1 | `Dom.parentElement` |  |
+| [dom-node-haschildnodes](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-haschildnodes) | 1/1 | `Dom.childrenOf` |  |
+| [dom-node-childnodes](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-childnodes) | 0/1（近似 1） | `Dom.childrenOf` |  |
+| [dom-node-firstchild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-firstchild) | 1/1 | `Dom.childrenOf` |  |
+| [dom-node-lastchild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-lastchild) | 1/1 | `Dom.childrenOf` |  |
+| [dom-node-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-previoussibling) | 1/1 | `Dom.previousSibling` |  |
+| [dom-node-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-nextsibling) | 1/1 | `Dom.nextSibling` |  |
+| [dom-node-nodevalue](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-nodevalue) | 1/1 | `Dom.getNodeValue`<br>`Dom.Exec.attrQueryValue` |  |
+| [dom-node-nodevalue/setter](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-nodevalue) | 0/1（近似 1） | `Dom.setNodeValue`<br>`Dom.setAttrValue` | `Dom.Spec.SetNodeValueResult`<br>`Dom.Spec.setNodeValue_result_sound` |
+| [get-text-content](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#get-text-content) | 1/1 | `Dom.getTextContent`<br>`Dom.descendantTextContent`<br>`Dom.Exec.attrQueryValue` | `Dom.Spec.descendantTextContent_spec` |
+| [dom-node-textcontent](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-textcontent) | 1/1 | `Dom.getTextContent`<br>`Dom.Exec.attrQueryValue` | `Dom.Spec.descendantTextContent_spec` |
+| [string-replace-all](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#string-replace-all) | 3/3 | `Dom.stringReplaceAll`<br>`Dom.createTextNode`<br>`Dom.replaceAll` | `Dom.Spec.StringReplaceAllResult`<br>`Dom.Spec.stringReplaceAll_result_sound` |
+| [set-text-content](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#set-text-content) | 0/1（近似 1） | `Dom.setTextContent`<br>`Dom.stringReplaceAll`<br>`Dom.setAttrValue` | `Dom.Spec.SetTextContentResult`<br>`Dom.Spec.setTextContent_result_sound` |
+| [dom-node-textcontent/setter](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-textcontent) | 1/1 | `Dom.setTextContent`<br>`Dom.setAttrValue` | `Dom.Spec.setTextContent_result_sound` |
+| [dom-node-normalize](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-normalize) | 3/13（近似 10） | `Dom.normalize`<br>`Dom.normalizeList`<br>`Dom.normalizeRun`<br>`Dom.normalizeMergeOne`<br>`Dom.normalizeMergeRange`<br>`Dom.normalizeMergeBP`<br>`Dom.followingTexts` | `Dom.Spec.NormalizeEngineSpec`<br>`Dom.Spec.NormalizeStandardSpec`<br>`Dom.Spec.NormalizeResult` |
+| [concept-node-clone](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-clone) | 5/14 | `Dom.cloneNodeIn`<br>`Dom.cloneMany`<br>`Dom.cloneAppend` | `Dom.CloneOf`<br>`Dom.cloneNode_cloneOf`<br>`Dom.cloneNodeIn_deep_spec` |
+| [clone-a-single-node](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#clone-a-single-node) | 12/19（近似 2） | `Dom.cloneSingle`<br>`Dom.cloneData`<br>`Dom.cloneDocumentOf`<br>`Dom.cloneAttrIn` | `Dom.cloneNodeIn_shallow_spec` |
+| [dom-node-clonenode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-clonenode) | 1/2 | `Dom.cloneNode`<br>`Dom.cloneAttr` | `Dom.cloneNode_cloneOf`<br>`Dom.Spec.cloneNode_nodeEquals` |
+| [concept-node-equals](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-equals) | 1/1 | `Dom.nodeEqualsFuel`<br>`Dom.nodeOwnPropertiesEqual`<br>`Dom.attrEquals`<br>`Dom.nodeRefEquals` | `Dom.Spec.NodeEquals`<br>`Dom.Spec.nodeEquals_iff`<br>`Dom.Spec.cloneOf_nodeEquals` |
+| [dom-node-isequalnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-isequalnode) | 1/1 | `Dom.nodeEquals`<br>`Dom.nodeRefEquals`<br>`Dom.Exec.Operation.isEqualNodeNull` | `Dom.Spec.nodeEquals_iff` |
+| [dom-node-comparedocumentposition](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-comparedocumentposition) | 15/15 | `Dom.compareDocumentPosition`<br>`Dom.compareDocumentPositionRef` | `Dom.Spec.DocumentPositionSpec` |
+| [dom-node-contains](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-contains) | 1/1 | `Dom.nodeContains`<br>`Dom.nodeContainsRef`<br>`Dom.Exec.Operation.nodeContainsNull` | `Dom.Spec.nodeContains_eq_true_iff` |
+| [locate-a-namespace-prefix](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#locate-a-namespace-prefix) | 4/4 | `Dom.locateNamespacePrefixIn`<br>`Dom.elementChain` | `Dom.Spec.LocatePrefixElem`<br>`Dom.Spec.locatePrefixIn_sound` |
+| [locate-a-namespace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#locate-a-namespace) | 6/6 | `Dom.locateNamespace`<br>`Dom.locateNamespaceIn`<br>`Dom.elementChain`<br>`Dom.attrLookupNamespaceURI` | `Dom.Spec.LocateNamespace`<br>`Dom.Spec.LocateNamespaceElem`<br>`Dom.Spec.locateNamespace_sound` |
+| [dom-node-lookupprefix](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-lookupprefix) | 8/8 | `Dom.lookupPrefix`<br>`Dom.attrLookupPrefix` | `Dom.Spec.LookupPrefixResult`<br>`Dom.Spec.lookupPrefix_sound` |
+| [dom-node-lookupnamespaceuri](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-lookupnamespaceuri) | 2/2 | `Dom.lookupNamespaceURI`<br>`Dom.attrLookupNamespaceURI` | `Dom.Spec.lookupNamespaceURI_sound` |
+| [dom-node-isdefaultnamespace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-isdefaultnamespace) | 3/3 | `Dom.isDefaultNamespace`<br>`Dom.attrIsDefaultNamespace` | `Dom.Spec.isDefaultNamespace_sound` |
+| [dom-node-insertbefore](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-insertbefore) | 1/1 | `Dom.insertBefore` | `Dom.Spec.insertBefore_result_sound` |
+| [dom-node-appendchild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-appendchild) | 1/1 | `Dom.appendChild`<br>`Dom.appendChildRef` | `Dom.Spec.appendChild_result_sound` |
+| [dom-node-replacechild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-replacechild) | 1/1 | `Dom.replaceChild` | `Dom.Spec.replaceChild_result_sound` |
+| [dom-node-removechild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-node-removechild) | 1/1 | `Dom.removeChild` | `Dom.Spec.removeChild_result_sound` |
 
 ### §4.5（`interface-document`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-document-compatmode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-compatmode) | 1/1 | `Dom.compatMode`<br>`Dom.inQuirksModeOf` |  |
-| [dom-document-contenttype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-contenttype) | 1/1 | `Dom.NodeData.contentType` |  |
-| [dom-document-doctype](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-doctype) | 1/1 | `Dom.doctypeOf` |  |
-| [dom-document-documentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-documentelement) | 1/1 | `Dom.documentElement` |  |
-| [dom-document-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` | `Dom.Spec.QualifiedNameMatches`<br>`Dom.Spec.getElementsByTagName_sorted` |
-| [dom-document-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` | `Dom.Spec.NamespaceLocalNameMatches`<br>`Dom.Spec.getElementsByTagNameNS_sorted` |
-| [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` | `Dom.Spec.HasClass`<br>`Dom.Spec.getElementsByClassName_sorted` |
-| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` | `Dom.Spec.CreateElementResult`<br>`Dom.Spec.createElement_result_sound` |
-| [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` | `Dom.createElementNS_creates` |
-| [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck`<br>`Dom.Idl.elementCreationOptionsOk` |  |
-| [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` | `Dom.createDocumentFragment_creates` |
-| [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` | `Dom.createTextNode_creates` |
-| [dom-document-createcdatasection](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcdatasection) | 3/5（近似 2） | `Dom.createCDATASection`<br>`Dom.containsSubstr` | `Dom.createCDATASection_creates` |
-| [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createcomment) | 1/1 | `Dom.createComment` | `Dom.createComment_creates` |
-| [dom-document-createprocessinginstruction](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createprocessinginstruction) | 1/1 | `Dom.createProcessingInstruction`<br>`Dom.matchesName`<br>`Dom.isNameStartChar`<br>`Dom.isNameChar`<br>`Dom.containsSubstr` | `Dom.createProcessingInstruction_creates` |
-| [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-importnode) | 4/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn`<br>`Dom.Exec.idlCheck`<br>`Dom.importNodeSubtree`<br>`Dom.Idl.toImportNodeOptions` | `Dom.Spec.importNode_eq_clone`<br>`Dom.cloneNodeIn_deep_spec`<br>`Dom.cloneNodeIn_shallow_spec` |
-| [concept-node-adopt](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-adopt) | 2/14（近似 4） | `Dom.adopt`<br>`Dom.setOwnerDocument`<br>`Dom.NodeData.withOwnerDocument`<br>`Dom.adoptAttr` | `Dom.Spec.AdoptSpec` |
-| [dom-document-adoptnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-adoptnode) | 3/4 | `Dom.adoptNode`<br>`Dom.adoptAttr`<br>`Dom.Exec.idlCheck` | `Dom.Spec.adoptNode_sound` |
-| [dom-document-createattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createattribute) | 3/3 | `Dom.createAttribute`<br>`Dom.isValidAttributeLocalName`<br>`Dom.createAttributeIn` |  |
-| [dom-document-createattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-document-createattributens) | 2/2 | `Dom.createAttributeNS`<br>`Dom.validateAndExtractAttribute`<br>`Dom.createAttributeIn` |  |
+| [dom-document-compatmode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-compatmode) | 1/1 | `Dom.compatMode`<br>`Dom.inQuirksModeOf` |  |
+| [dom-document-contenttype](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-contenttype) | 1/1 | `Dom.NodeData.contentType` |  |
+| [dom-document-doctype](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-doctype) | 1/1 | `Dom.doctypeOf` |  |
+| [dom-document-documentelement](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-documentelement) | 1/1 | `Dom.documentElement` |  |
+| [dom-document-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` | `Dom.Spec.QualifiedNameMatches`<br>`Dom.Spec.getElementsByTagName_sorted` |
+| [dom-document-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` | `Dom.Spec.NamespaceLocalNameMatches`<br>`Dom.Spec.getElementsByTagNameNS_sorted` |
+| [dom-document-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.orderedSetParse`<br>`Dom.elementClassesOf`<br>`Dom.receiverInQuirksMode` | `Dom.Spec.HasClass`<br>`Dom.Spec.getElementsByClassName_sorted` |
+| [dom-document-createelement](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createelement) | 3/5（近似 1） | `Dom.createElement`<br>`Dom.isValidElementLocalName`<br>`Dom.Exec.idlCheck` | `Dom.Spec.CreateElementResult`<br>`Dom.Spec.createElement_result_sound` |
+| [internal-createelementns-steps](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#internal-createelementns-steps) | 1/3（近似 1） | `Dom.createElementNS`<br>`Dom.validateAndExtractElement` | `Dom.createElementNS_creates` |
+| [dom-document-createelementns](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createelementns) | 0/1（近似 1） | `Dom.createElementNS`<br>`Dom.Exec.idlCheck`<br>`Dom.Idl.elementCreationOptionsOk` |  |
+| [dom-document-createdocumentfragment](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createdocumentfragment) | 1/1 | `Dom.createDocumentFragment` | `Dom.createDocumentFragment_creates` |
+| [dom-document-createtextnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createtextnode) | 1/1 | `Dom.createTextNode` | `Dom.createTextNode_creates` |
+| [dom-document-createcdatasection](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createcdatasection) | 3/3 | `Dom.createCDATASection`<br>`Dom.containsSubstr` | `Dom.createCDATASection_creates` |
+| [dom-document-createcomment](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createcomment) | 1/1 | `Dom.createComment` | `Dom.createComment_creates` |
+| [dom-document-createprocessinginstruction](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createprocessinginstruction) | 1/1 | `Dom.createProcessingInstruction`<br>`Dom.matchesName`<br>`Dom.isNameStartChar`<br>`Dom.isNameChar`<br>`Dom.containsSubstr` | `Dom.createProcessingInstruction_creates` |
+| [dom-document-importnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-importnode) | 4/10（近似 2） | `Dom.importNode`<br>`Dom.importAttr`<br>`Dom.cloneNodeIn`<br>`Dom.Exec.idlCheck`<br>`Dom.importNodeSubtree`<br>`Dom.Idl.toImportNodeOptions` | `Dom.Spec.importNode_eq_clone`<br>`Dom.cloneNodeIn_deep_spec`<br>`Dom.cloneNodeIn_shallow_spec` |
+| [concept-node-adopt](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-adopt) | 2/14（近似 4） | `Dom.adopt`<br>`Dom.setOwnerDocument`<br>`Dom.NodeData.withOwnerDocument`<br>`Dom.adoptAttr` | `Dom.Spec.AdoptSpec` |
+| [dom-document-adoptnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-adoptnode) | 3/4 | `Dom.adoptNode`<br>`Dom.adoptAttr`<br>`Dom.Exec.idlCheck` | `Dom.Spec.adoptNode_sound` |
+| [dom-document-createattribute](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createattribute) | 3/3 | `Dom.createAttribute`<br>`Dom.isValidAttributeLocalName`<br>`Dom.createAttributeIn` |  |
+| [dom-document-createattributens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-document-createattributens) | 2/2 | `Dom.createAttributeNS`<br>`Dom.validateAndExtractAttribute`<br>`Dom.createAttributeIn` |  |
 
 ### §4.7（`interface-documentfragment`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-tree-host-including-inclusive-ancestor](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-tree-host-including-inclusive-ancestor) | 0/1（近似 1） | `Dom.isInclusiveAncestorOf` | `Dom.isInclusiveAncestorOf_iff` |
-| [create-a-document-fragment](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-document-fragment) | 1/1 | `Dom.createDocumentFragment` | `Dom.createDocumentFragment_creates` |
+| [concept-tree-host-including-inclusive-ancestor](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-tree-host-including-inclusive-ancestor) | 0/1（近似 1） | `Dom.isInclusiveAncestorOf` | `Dom.isInclusiveAncestorOf_iff` |
+| [create-a-document-fragment](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#create-a-document-fragment) | 1/1 | `Dom.createDocumentFragment` | `Dom.createDocumentFragment_creates` |
 
 ### §4.9（`interface-element`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [element-html-uppercased-qualified-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#element-html-uppercased-qualified-name) | 3/3 | `Dom.tagName`<br>`Dom.isHTMLDocumentOf`<br>`Dom.NodeData.qualifiedName` |  |
-| [concept-create-element](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-create-element) | 4/40（近似 1） | `Dom.createElement`<br>`Dom.createElementNS`<br>`Dom.withFresh` | `Dom.Spec.CreateElementResult`<br>`Dom.createElementNS_creates` |
-| [create-an-element-internal](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-an-element-internal) | 2/4（近似 2） | `Dom.withFresh` |  |
-| [handle-attribute-changes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#handle-attribute-changes) | 1/3 | `Dom.handleAttributeChanges` | `Dom.Spec.AttributeChangeHandled`<br>`Dom.Spec.AttributeRecordQueued` |
-| [concept-element-attributes-change](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-change) | 2/3（近似 1） | `Dom.changeAttribute` | `Dom.Spec.AttributeChanged` |
-| [concept-element-attributes-append](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-append) | 3/4（近似 1） | `Dom.appendAttribute` | `Dom.Spec.AttributeAppended` |
-| [concept-element-attributes-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-remove) | 3/4（近似 1） | `Dom.detachAttribute`<br>`Dom.removeAttributeFrom` | `Dom.Spec.AttributeDetached`<br>`Dom.Spec.AttributeRemoved` |
-| [concept-element-attributes-replace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-replace) | 4/6（近似 2） | `Dom.replaceAttributeWith` | `Dom.Spec.AttributeReplacedWith` |
-| [concept-element-attributes-get-by-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-get-by-name) | 2/2 | `Dom.getAttributeByName`<br>`Dom.attrNameFor` | `Dom.Spec.AttrByName`<br>`Dom.Spec.AttrNameNormalized` |
-| [concept-element-attributes-get-by-namespace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-get-by-namespace) | 2/2 | `Dom.getAttributeByKey`<br>`Dom.normalizeNamespace` | `Dom.Spec.AttrByKey` |
-| [concept-element-attributes-get-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-get-value) | 3/3 | `Dom.getAttributeValue` |  |
-| [concept-element-attributes-set](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-set) | 6/8（近似 1） | `Dom.setAttributeNode`<br>`Dom.findAttr`<br>`Dom.removeDetached` | `Dom.Spec.SetAttributeNodeResult` |
-| [concept-element-attributes-set-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-set-value) | 3/3 | `Dom.setAttributeValue` | `Dom.Spec.SetAttributeValueResult` |
-| [concept-element-attributes-remove-by-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-remove-by-name) | 3/3 | `Dom.removeAttribute`<br>`Dom.removeNamedItem` | `Dom.Spec.RemoveAttributeResult`<br>`Dom.Spec.RemoveNamedItemResult` |
-| [concept-element-attributes-remove-by-namespace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-element-attributes-remove-by-namespace) | 3/3 | `Dom.removeAttributeNS` | `Dom.Spec.RemoveAttributeNSResult` |
-| [dom-element-namespaceuri](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-namespaceuri) | 1/1 | `Dom.NodeData.namespace` |  |
-| [dom-element-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-prefix) | 1/1 | `Dom.NodeData.prefix` |  |
-| [dom-element-localname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-localname) | 1/1 | `Dom.NodeData.localName` |  |
-| [dom-element-tagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-tagname) | 1/1 | `Dom.tagName` |  |
-| [concept-reflect](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-reflect) | 1/1 | `Dom.getReflected`<br>`Dom.getReflectedProp`<br>`Dom.setReflectedProp` |  |
-| [dom-element-classlist](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-classlist) | 0/1（近似 1） | `Dom.classTokenSet`<br>`Dom.classListContains`<br>`Dom.classListAdd` | `Dom.Spec.tokenSetOk_classTokenSet` |
-| [dom-element-hasattributes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-hasattributes) | 1/1 | `Dom.hasAttributes` |  |
-| [dom-element-getattributenames](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributenames) | 1/1 | `Dom.getAttributeNames` |  |
-| [dom-element-getattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattribute) | 3/3 | `Dom.getAttribute`<br>`Dom.getAttributeByName` | `Dom.Spec.getAttribute_spec` |
-| [dom-element-getattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributens) | 3/3 | `Dom.getAttributeNS`<br>`Dom.getAttributeByKey` | `Dom.Spec.getAttributeNS_spec` |
-| [dom-element-setattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-setattribute) | 6/7 | `Dom.setAttribute`<br>`Dom.attrNameFor`<br>`Dom.isValidAttributeLocalName` | `Dom.Spec.SetAttributeResult` |
-| [dom-element-setattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-setattributens) | 2/3 | `Dom.setAttributeNS`<br>`Dom.validateAndExtractAttribute`<br>`Dom.setAttributeValue` | `Dom.Spec.SetAttributeValueResult` |
-| [dom-element-removeattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-removeattribute) | 1/1 | `Dom.removeAttribute` | `Dom.Spec.RemoveAttributeResult` |
-| [dom-element-removeattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-removeattributens) | 1/1 | `Dom.removeAttributeNS` | `Dom.Spec.RemoveAttributeNSResult` |
-| [dom-element-hasattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-hasattribute) | 2/2 | `Dom.hasAttribute`<br>`Dom.getAttributeByName` | `Dom.Spec.getAttribute_spec` |
-| [dom-element-toggleattribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-toggleattribute) | 8/8 | `Dom.toggleAttribute` | `Dom.Spec.ToggleAttributeResult` |
-| [dom-element-hasattributens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-hasattributens) | 2/2 | `Dom.hasAttributeNS`<br>`Dom.getAttributeByKey` | `Dom.Spec.getAttributeNS_spec` |
-| [dom-element-getattributenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributenode) | 1/1 | `Dom.getAttributeNode` | `Dom.Spec.getAttributeNode_spec` |
-| [dom-element-getattributenodens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getattributenodens) | 1/1 | `Dom.getAttributeNodeNS` | `Dom.Spec.getAttributeNodeNS_spec` |
-| [dom-element-setattributenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-setattributenode) | 1/1 | `Dom.setAttributeNode` | `Dom.Spec.SetAttributeNodeResult` |
-| [dom-element-removeattributenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-removeattributenode) | 3/3 | `Dom.removeAttributeNode`<br>`Dom.detachAttribute` | `Dom.Spec.RemoveAttributeNodeResult` |
-| [dom-element-closest](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-closest) | 3/5（近似 2） | `Dom.closest`<br>`Dom.inclusiveAncestorElements` | `Dom.Spec.ClosestResult`<br>`Dom.Spec.closest_result_sound` |
-| [dom-element-matches](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-matches) | 1/3（近似 2） | `Dom.matchesSelector` | `Dom.Spec.matches_result_sound` |
-| [dom-element-webkitmatchesselector](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-webkitmatchesselector) | 1/3（近似 2） | `Dom.matchesSelector` | `Dom.Spec.matches_result_sound` |
-| [dom-element-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` | `Dom.Spec.QualifiedNameMatches`<br>`Dom.Spec.getElementsByTagName_sorted` |
-| [dom-element-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` | `Dom.Spec.NamespaceLocalNameMatches`<br>`Dom.Spec.getElementsByTagNameNS_sorted` |
-| [dom-element-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.elementClassesOf` | `Dom.Spec.HasClass`<br>`Dom.Spec.getElementsByClassName_sorted` |
-| [insert-adjacent](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#insert-adjacent) | 1/1 | `Dom.insertAdjacent`<br>`Dom.adjacentPosition?`<br>`Dom.preInsert` | `Dom.Spec.InsertAdjacentResult`<br>`Dom.Spec.insertAdjacent_result_sound` |
-| [dom-element-insertadjacentelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-insertadjacentelement) | 1/1 | `Dom.insertAdjacentElement`<br>`Dom.insertAdjacent` | `Dom.Spec.insertAdjacent_result_sound` |
-| [dom-element-insertadjacenttext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-element-insertadjacenttext) | 1/2（近似 1） | `Dom.insertAdjacentText`<br>`Dom.createTextNode`<br>`Dom.insertAdjacent` | `Dom.Spec.insertAdjacent_result_sound` |
+| [element-html-uppercased-qualified-name](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#element-html-uppercased-qualified-name) | 3/3 | `Dom.tagName`<br>`Dom.isHTMLDocumentOf`<br>`Dom.NodeData.qualifiedName` |  |
+| [concept-create-element](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-create-element) | 4/40（近似 1） | `Dom.createElement`<br>`Dom.createElementNS`<br>`Dom.withFresh` | `Dom.Spec.CreateElementResult`<br>`Dom.createElementNS_creates` |
+| [create-an-element-internal](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#create-an-element-internal) | 2/4（近似 2） | `Dom.withFresh` |  |
+| [handle-attribute-changes](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#handle-attribute-changes) | 1/3 | `Dom.handleAttributeChanges` | `Dom.Spec.AttributeChangeHandled`<br>`Dom.Spec.AttributeRecordQueued` |
+| [concept-element-attributes-change](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-change) | 2/3（近似 1） | `Dom.changeAttribute` | `Dom.Spec.AttributeChanged` |
+| [concept-element-attributes-append](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-append) | 3/4（近似 1） | `Dom.appendAttribute` | `Dom.Spec.AttributeAppended` |
+| [concept-element-attributes-remove](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-remove) | 3/4（近似 1） | `Dom.detachAttribute`<br>`Dom.removeAttributeFrom` | `Dom.Spec.AttributeDetached`<br>`Dom.Spec.AttributeRemoved` |
+| [concept-element-attributes-replace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-replace) | 4/6（近似 2） | `Dom.replaceAttributeWith` | `Dom.Spec.AttributeReplacedWith` |
+| [concept-element-attributes-get-by-name](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-get-by-name) | 2/2 | `Dom.getAttributeByName`<br>`Dom.attrNameFor` | `Dom.Spec.AttrByName`<br>`Dom.Spec.AttrNameNormalized` |
+| [concept-element-attributes-get-by-namespace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-get-by-namespace) | 2/2 | `Dom.getAttributeByKey`<br>`Dom.normalizeNamespace` | `Dom.Spec.AttrByKey` |
+| [concept-element-attributes-get-value](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-get-value) | 3/3 | `Dom.getAttributeValue` |  |
+| [concept-element-attributes-set](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-set) | 6/8（近似 1） | `Dom.setAttributeNode`<br>`Dom.findAttr`<br>`Dom.removeDetached` | `Dom.Spec.SetAttributeNodeResult` |
+| [concept-element-attributes-set-value](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-set-value) | 3/3 | `Dom.setAttributeValue` | `Dom.Spec.SetAttributeValueResult` |
+| [concept-element-attributes-remove-by-name](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-remove-by-name) | 3/3 | `Dom.removeAttribute`<br>`Dom.removeNamedItem` | `Dom.Spec.RemoveAttributeResult`<br>`Dom.Spec.RemoveNamedItemResult` |
+| [concept-element-attributes-remove-by-namespace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-element-attributes-remove-by-namespace) | 3/3 | `Dom.removeAttributeNS` | `Dom.Spec.RemoveAttributeNSResult` |
+| [dom-element-namespaceuri](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-namespaceuri) | 1/1 | `Dom.NodeData.namespace` |  |
+| [dom-element-prefix](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-prefix) | 1/1 | `Dom.NodeData.prefix` |  |
+| [dom-element-localname](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-localname) | 1/1 | `Dom.NodeData.localName` |  |
+| [dom-element-tagname](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-tagname) | 1/1 | `Dom.tagName` |  |
+| [concept-reflect](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-reflect) | 1/1 | `Dom.getReflected`<br>`Dom.getReflectedProp`<br>`Dom.setReflectedProp` |  |
+| [dom-element-classlist](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-classlist) | 0/1（近似 1） | `Dom.classTokenSet`<br>`Dom.classListContains`<br>`Dom.classListAdd` | `Dom.Spec.tokenSetOk_classTokenSet` |
+| [dom-element-hasattributes](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-hasattributes) | 1/1 | `Dom.hasAttributes` |  |
+| [dom-element-getattributenames](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getattributenames) | 1/1 | `Dom.getAttributeNames` |  |
+| [dom-element-getattribute](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getattribute) | 3/3 | `Dom.getAttribute`<br>`Dom.getAttributeByName` | `Dom.Spec.getAttribute_spec` |
+| [dom-element-getattributens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getattributens) | 3/3 | `Dom.getAttributeNS`<br>`Dom.getAttributeByKey` | `Dom.Spec.getAttributeNS_spec` |
+| [dom-element-setattribute](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-setattribute) | 6/7 | `Dom.setAttribute`<br>`Dom.attrNameFor`<br>`Dom.isValidAttributeLocalName` | `Dom.Spec.SetAttributeResult` |
+| [dom-element-setattributens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-setattributens) | 2/3 | `Dom.setAttributeNS`<br>`Dom.validateAndExtractAttribute`<br>`Dom.setAttributeValue` | `Dom.Spec.SetAttributeValueResult` |
+| [dom-element-removeattribute](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-removeattribute) | 1/1 | `Dom.removeAttribute` | `Dom.Spec.RemoveAttributeResult` |
+| [dom-element-removeattributens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-removeattributens) | 1/1 | `Dom.removeAttributeNS` | `Dom.Spec.RemoveAttributeNSResult` |
+| [dom-element-hasattribute](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-hasattribute) | 2/2 | `Dom.hasAttribute`<br>`Dom.getAttributeByName` | `Dom.Spec.getAttribute_spec` |
+| [dom-element-toggleattribute](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-toggleattribute) | 8/8 | `Dom.toggleAttribute` | `Dom.Spec.ToggleAttributeResult` |
+| [dom-element-hasattributens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-hasattributens) | 2/2 | `Dom.hasAttributeNS`<br>`Dom.getAttributeByKey` | `Dom.Spec.getAttributeNS_spec` |
+| [dom-element-getattributenode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getattributenode) | 1/1 | `Dom.getAttributeNode` | `Dom.Spec.getAttributeNode_spec` |
+| [dom-element-getattributenodens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getattributenodens) | 1/1 | `Dom.getAttributeNodeNS` | `Dom.Spec.getAttributeNodeNS_spec` |
+| [dom-element-setattributenode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-setattributenode) | 1/1 | `Dom.setAttributeNode` | `Dom.Spec.SetAttributeNodeResult` |
+| [dom-element-removeattributenode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-removeattributenode) | 3/3 | `Dom.removeAttributeNode`<br>`Dom.detachAttribute` | `Dom.Spec.RemoveAttributeNodeResult` |
+| [dom-element-closest](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-closest) | 3/5（近似 2） | `Dom.closest`<br>`Dom.inclusiveAncestorElements` | `Dom.Spec.ClosestResult`<br>`Dom.Spec.closest_result_sound` |
+| [dom-element-matches](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-matches) | 1/3（近似 2） | `Dom.matchesSelector` | `Dom.Spec.matches_result_sound` |
+| [dom-element-webkitmatchesselector](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-webkitmatchesselector) | 1/3（近似 2） | `Dom.matchesSelector` | `Dom.Spec.matches_result_sound` |
+| [dom-element-getelementsbytagname](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getelementsbytagname) | 0/1（近似 1） | `Dom.getElementsByTagName`<br>`Dom.descendantElements` | `Dom.Spec.QualifiedNameMatches`<br>`Dom.Spec.getElementsByTagName_sorted` |
+| [dom-element-getelementsbytagnamens](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getelementsbytagnamens) | 0/1（近似 1） | `Dom.getElementsByTagNameNS`<br>`Dom.descendantElements`<br>`Dom.normalizeNamespace` | `Dom.Spec.NamespaceLocalNameMatches`<br>`Dom.Spec.getElementsByTagNameNS_sorted` |
+| [dom-element-getelementsbyclassname](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-getelementsbyclassname) | 0/1（近似 1） | `Dom.getElementsByClassName`<br>`Dom.elementClassesOf` | `Dom.Spec.HasClass`<br>`Dom.Spec.getElementsByClassName_sorted` |
+| [insert-adjacent](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#insert-adjacent) | 1/1 | `Dom.insertAdjacent`<br>`Dom.adjacentPosition?`<br>`Dom.preInsert` | `Dom.Spec.InsertAdjacentResult`<br>`Dom.Spec.insertAdjacent_result_sound` |
+| [dom-element-insertadjacentelement](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-insertadjacentelement) | 1/1 | `Dom.insertAdjacentElement`<br>`Dom.insertAdjacent` | `Dom.Spec.insertAdjacent_result_sound` |
+| [dom-element-insertadjacenttext](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-element-insertadjacenttext) | 1/2（近似 1） | `Dom.insertAdjacentText`<br>`Dom.createTextNode`<br>`Dom.insertAdjacent` | `Dom.Spec.insertAdjacent_result_sound` |
 
 ### §4.9.1（`interface-namednodemap`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-namednodemap-getnameditem](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-getnameditem) | 0/1（近似 1） | `Dom.getAttributeNode`<br>`Dom.getAttributeByName` | `Dom.Spec.getAttributeNode_spec` |
-| [dom-namednodemap-getnameditemns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-getnameditemns) | 0/1（近似 1） | `Dom.getAttributeNodeNS`<br>`Dom.getAttributeByKey` | `Dom.Spec.getAttributeNodeNS_spec` |
-| [dom-namednodemap-setnameditem](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-setnameditem) | 0/1（近似 1） | `Dom.setAttributeNode` | `Dom.Spec.setAttributeNode_result_sound` |
-| [dom-namednodemap-setnameditemns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-setnameditemns) | 0/1（近似 1） | `Dom.setAttributeNode` | `Dom.Spec.setAttributeNode_result_sound` |
-| [dom-namednodemap-removenameditem](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-removenameditem) | 3/3 | `Dom.removeNamedItem`<br>`Dom.removeAttributeNode` | `Dom.Spec.RemoveNamedItemResult` |
-| [dom-namednodemap-removenameditemns](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-namednodemap-removenameditemns) | 2/3（近似 1） | `Dom.removeNamedItemNS`<br>`Dom.getAttributeByKey`<br>`Dom.removeAttributeNode` | `Dom.Spec.RemoveNamedItemNSResult`<br>`Dom.Spec.removeNamedItemNS_result_sound` |
+| [dom-namednodemap-getnameditem](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-namednodemap-getnameditem) | 0/1（近似 1） | `Dom.getAttributeNode`<br>`Dom.getAttributeByName` | `Dom.Spec.getAttributeNode_spec` |
+| [dom-namednodemap-getnameditemns](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-namednodemap-getnameditemns) | 0/1（近似 1） | `Dom.getAttributeNodeNS`<br>`Dom.getAttributeByKey` | `Dom.Spec.getAttributeNodeNS_spec` |
+| [dom-namednodemap-setnameditem](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-namednodemap-setnameditem) | 0/1（近似 1） | `Dom.setAttributeNode` | `Dom.Spec.setAttributeNode_result_sound` |
+| [dom-namednodemap-setnameditemns](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-namednodemap-setnameditemns) | 0/1（近似 1） | `Dom.setAttributeNode` | `Dom.Spec.setAttributeNode_result_sound` |
+| [dom-namednodemap-removenameditem](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-namednodemap-removenameditem) | 3/3 | `Dom.removeNamedItem`<br>`Dom.removeAttributeNode` | `Dom.Spec.RemoveNamedItemResult` |
+| [dom-namednodemap-removenameditemns](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-namednodemap-removenameditemns) | 2/3（近似 1） | `Dom.removeNamedItemNS`<br>`Dom.getAttributeByKey`<br>`Dom.removeAttributeNode` | `Dom.Spec.RemoveNamedItemNSResult`<br>`Dom.Spec.removeNamedItemNS_result_sound` |
 
 ### §4.9.2（`interface-attr`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [create-an-attribute](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-an-attribute) | 2/3（近似 1） | `Dom.createAttributeIn`<br>`Dom.Attr.normalized` |  |
-| [dom-attr-namespaceuri](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-attr-namespaceuri) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.namespace` |  |
-| [dom-attr-prefix](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-attr-prefix) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.prefix` |  |
-| [dom-attr-localname](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-attr-localname) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.localName` |  |
-| [dom-attr-name](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-attr-name) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.qualifiedName` |  |
-| [dom-attr-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-attr-value) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.value` |  |
-| [set-an-existing-attribute-value](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#set-an-existing-attribute-value) | 3/5 | `Dom.setAttrValue`<br>`Dom.modifyAttr`<br>`Dom.changeAttribute` |  |
-| [dom-attr-value/setter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-attr-value) | 1/1 | `Dom.setAttrValue` |  |
-| [dom-attr-ownerelement](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-attr-ownerelement) | 1/1 | `Dom.attrOwnerElement`<br>`Dom.ownerElementOf` |  |
+| [create-an-attribute](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#create-an-attribute) | 2/3（近似 1） | `Dom.createAttributeIn`<br>`Dom.Attr.normalized` |  |
+| [dom-attr-namespaceuri](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-attr-namespaceuri) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.namespace` |  |
+| [dom-attr-prefix](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-attr-prefix) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.prefix` |  |
+| [dom-attr-localname](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-attr-localname) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.localName` |  |
+| [dom-attr-name](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-attr-name) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.qualifiedName` |  |
+| [dom-attr-value](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-attr-value) | 1/1 | `Dom.findAttr`<br>`Dom.Attr.value` |  |
+| [set-an-existing-attribute-value](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#set-an-existing-attribute-value) | 3/5 | `Dom.setAttrValue`<br>`Dom.modifyAttr`<br>`Dom.changeAttribute` |  |
+| [dom-attr-value/setter](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-attr-value) | 1/1 | `Dom.setAttrValue` |  |
+| [dom-attr-ownerelement](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-attr-ownerelement) | 1/1 | `Dom.attrOwnerElement`<br>`Dom.ownerElementOf` |  |
 
 ### §4.10（`interface-characterdata`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-cd-replace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-cd-replace) | 8/13（近似 3） | `Dom.replaceData`<br>`Dom.adjustedCount`<br>`Dom.spliceData?`<br>`Dom.queueCharacterDataRecord`<br>`Dom.replaceDataAdjustRange`<br>`Dom.replaceDataAdjustBP` | `Dom.Spec.ReplaceDataSpec`<br>`Dom.Spec.ReplaceDataResult` |
-| [concept-cd-substring](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-cd-substring) | 2/4（近似 2） | `Dom.substringData`<br>`Dom.adjustedCount` | `Dom.Spec.SubstringResult`<br>`Dom.Spec.substringData_result_sound` |
-| [dom-characterdata-data](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-characterdata-data) | 1/1 | `Dom.NodeData.data`<br>`Dom.setData` | `Dom.Spec.SetDataResult` |
-| [dom-characterdata-length](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-characterdata-length) | 1/1 | `Dom.NodeData.length`<br>`Dom.Utf16.length` |  |
-| [dom-characterdata-substringdata](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-characterdata-substringdata) | 1/1 | `Dom.substringData` | `Dom.Spec.substringData_result_sound` |
-| [dom-characterdata-appenddata](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-characterdata-appenddata) | 1/1 | `Dom.appendData` | `Dom.Spec.AppendDataResult` |
-| [dom-characterdata-insertdata](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-characterdata-insertdata) | 1/1 | `Dom.insertData` | `Dom.Spec.ReplaceDataResult` |
-| [dom-characterdata-deletedata](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-characterdata-deletedata) | 1/1 | `Dom.deleteData` | `Dom.Spec.ReplaceDataResult` |
-| [dom-characterdata-replacedata](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-characterdata-replacedata) | 1/1 | `Dom.replaceData` | `Dom.Spec.ReplaceDataResult` |
+| [concept-cd-replace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-cd-replace) | 8/13（近似 3） | `Dom.replaceData`<br>`Dom.adjustedCount`<br>`Dom.spliceData?`<br>`Dom.queueCharacterDataRecord`<br>`Dom.replaceDataAdjustRange`<br>`Dom.replaceDataAdjustBP` | `Dom.Spec.ReplaceDataSpec`<br>`Dom.Spec.ReplaceDataResult` |
+| [concept-cd-substring](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-cd-substring) | 2/4（近似 2） | `Dom.substringData`<br>`Dom.adjustedCount` | `Dom.Spec.SubstringResult`<br>`Dom.Spec.substringData_result_sound` |
+| [dom-characterdata-data](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-characterdata-data) | 1/1 | `Dom.NodeData.data`<br>`Dom.setData` | `Dom.Spec.SetDataResult` |
+| [dom-characterdata-length](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-characterdata-length) | 1/1 | `Dom.NodeData.length`<br>`Dom.Utf16.length` |  |
+| [dom-characterdata-substringdata](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-characterdata-substringdata) | 1/1 | `Dom.substringData` | `Dom.Spec.substringData_result_sound` |
+| [dom-characterdata-appenddata](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-characterdata-appenddata) | 1/1 | `Dom.appendData` | `Dom.Spec.AppendDataResult` |
+| [dom-characterdata-insertdata](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-characterdata-insertdata) | 1/1 | `Dom.insertData` | `Dom.Spec.ReplaceDataResult` |
+| [dom-characterdata-deletedata](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-characterdata-deletedata) | 1/1 | `Dom.deleteData` | `Dom.Spec.ReplaceDataResult` |
+| [dom-characterdata-replacedata](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-characterdata-replacedata) | 1/1 | `Dom.replaceData` | `Dom.Spec.ReplaceDataResult` |
 
 ### §4.11（`interface-text`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [exclusive-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#exclusive-text-node) | 1/1 | `Dom.isExclusiveText` | `Dom.Spec.ExclusiveText` |
-| [contiguous-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-text-nodes) | 1/1 | `Dom.contiguousTextNodes`<br>`Dom.contiguousTextNodes.isTextNode` |  |
-| [contiguous-exclusive-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#contiguous-exclusive-text-nodes) | 0/1（近似 1） | `Dom.followingTexts`<br>`Dom.isExclusiveText` | `Dom.Spec.FollowingContiguousTexts` |
-| [concept-descendant-text-content](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-descendant-text-content) | 1/1 | `Dom.descendantTextContent` | `Dom.Spec.DescendantTextContent`<br>`Dom.Spec.descendantTextContent_spec` |
-| [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-text-node) | 3/3 | `Dom.createTextNode`<br>`Dom.withFresh` | `Dom.createTextNode_creates` |
-| [concept-text-split](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-text-split) | 8/14（近似 6） | `Dom.splitText`<br>`Dom.splitTextAdjust`<br>`Dom.splitTextRange`<br>`Dom.splitTextBP`<br>`Dom.splitTextMoved`<br>`Dom.guardBP` | `Dom.Spec.SplitTextResult`<br>`Dom.Spec.SplitAdjusted`<br>`Dom.Spec.RangesSplit`<br>`Dom.Spec.splitText_result_sound` |
-| [dom-text-splittext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-splittext) | 1/1 | `Dom.splitText` | `Dom.Spec.splitText_result_sound` |
-| [dom-text-wholetext](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-text-wholetext) | 1/1 | `Dom.wholeText`<br>`Dom.contiguousTextNodes` |  |
+| [exclusive-text-node](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#exclusive-text-node) | 1/1 | `Dom.isExclusiveText` | `Dom.Spec.ExclusiveText` |
+| [contiguous-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#contiguous-text-nodes) | 1/1 | `Dom.contiguousTextNodes`<br>`Dom.contiguousTextNodes.isTextNode` |  |
+| [contiguous-exclusive-text-nodes](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#contiguous-exclusive-text-nodes) | 0/1（近似 1） | `Dom.followingTexts`<br>`Dom.isExclusiveText` | `Dom.Spec.FollowingContiguousTexts` |
+| [concept-descendant-text-content](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-descendant-text-content) | 1/1 | `Dom.descendantTextContent` | `Dom.Spec.DescendantTextContent`<br>`Dom.Spec.descendantTextContent_spec` |
+| [create-a-text-node](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#create-a-text-node) | 3/3 | `Dom.createTextNode`<br>`Dom.withFresh` | `Dom.createTextNode_creates` |
+| [concept-text-split](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-text-split) | 8/14（近似 6） | `Dom.splitText`<br>`Dom.splitTextAdjust`<br>`Dom.splitTextRange`<br>`Dom.splitTextBP`<br>`Dom.splitTextMoved`<br>`Dom.guardBP` | `Dom.Spec.SplitTextResult`<br>`Dom.Spec.SplitAdjusted`<br>`Dom.Spec.RangesSplit`<br>`Dom.Spec.splitText_result_sound` |
+| [dom-text-splittext](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-text-splittext) | 1/1 | `Dom.splitText` | `Dom.Spec.splitText_result_sound` |
+| [dom-text-wholetext](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-text-wholetext) | 1/1 | `Dom.wholeText`<br>`Dom.contiguousTextNodes` |  |
+
+### §4.12（`interface-cdatasection`）
+
+| algorithm | step | 実行関数 | 関係 |
+| --- | --- | --- | --- |
+| [create-a-cdata-section-node](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#create-a-cdata-section-node) | 1/3（近似 2） | `Dom.createCDATASection`<br>`Dom.withFresh` | `Dom.createCDATASection_creates` |
 
 ### §4.14（`interface-comment`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [create-a-comment-node](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#create-a-comment-node) | 3/3 | `Dom.createComment`<br>`Dom.withFresh` | `Dom.createComment_creates` |
+| [create-a-comment-node](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#create-a-comment-node) | 3/3 | `Dom.createComment`<br>`Dom.withFresh` | `Dom.createComment_creates` |
 
 ### §5.2（`boundary-points`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-range-bp-position](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-bp-position) | 6/8（近似 2） | `Dom.bpPosition`<br>`Dom.bpPositionDown`<br>`Dom.childTowards` | `Dom.Spec.BPBefore` |
+| [concept-range-bp-position](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-range-bp-position) | 6/8（近似 2） | `Dom.bpPosition`<br>`Dom.bpPositionDown`<br>`Dom.childTowards` | `Dom.Spec.BPBefore` |
 
 ### §5.3（`interface-abstractrange`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [range-collapsed](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#range-collapsed) | 0/1（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.rangeInsertNode`<br>`Dom.contentsInto` |  |
-| [dom-range-startcontainer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-startcontainer) | 1/1 | `Dom.RangeState.start`<br>`Dom.BoundaryPoint.node`<br>`Dom.observe` |  |
-| [dom-range-startoffset](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-startoffset) | 1/1 | `Dom.RangeState.start`<br>`Dom.BoundaryPoint.offset`<br>`Dom.observe` |  |
-| [dom-range-endcontainer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-endcontainer) | 1/1 | `Dom.RangeState.end`<br>`Dom.BoundaryPoint.node`<br>`Dom.observe` |  |
-| [dom-range-endoffset](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-endoffset) | 1/1 | `Dom.RangeState.end`<br>`Dom.BoundaryPoint.offset`<br>`Dom.observe` |  |
+| [range-collapsed](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#range-collapsed) | 0/1（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.rangeInsertNode`<br>`Dom.contentsInto` |  |
+| [dom-range-startcontainer](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-startcontainer) | 1/1 | `Dom.RangeState.start`<br>`Dom.BoundaryPoint.node`<br>`Dom.observe` |  |
+| [dom-range-startoffset](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-startoffset) | 1/1 | `Dom.RangeState.start`<br>`Dom.BoundaryPoint.offset`<br>`Dom.observe` |  |
+| [dom-range-endcontainer](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-endcontainer) | 1/1 | `Dom.RangeState.end`<br>`Dom.BoundaryPoint.node`<br>`Dom.observe` |  |
+| [dom-range-endoffset](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-endoffset) | 1/1 | `Dom.RangeState.end`<br>`Dom.BoundaryPoint.offset`<br>`Dom.observe` |  |
 
 ### §5.5（`interface-range`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [live-range-pre-remove-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#live-range-pre-remove-steps) | 3/7（近似 4） | `Dom.liveRangePreRemove`<br>`Dom.liveRangePreRemoveRange`<br>`Dom.liveRangePreRemoveBP`<br>`Dom.rangeMoveOutOfSubtree`<br>`Dom.rangeShiftAfterRemove` | `Dom.Spec.RangeAdjusted`<br>`Dom.Spec.BoundaryAdjusted`<br>`Dom.liveRangePreRemoveBP_comm` |
-| [get-the-common-ancestor](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#get-the-common-ancestor) | 2/3（近似 1） | `Dom.commonAncestor` | `Dom.Spec.CommonAncestor`<br>`Dom.Spec.commonAncestor_spec` |
-| [dom-range-commonancestorcontainer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-commonancestorcontainer) | 0/1（近似 1） | `Dom.rangeCommonAncestorContainer`<br>`Dom.commonAncestor` | `Dom.Spec.commonAncestor_spec` |
-| [concept-range-bp-set](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-bp-set) | 3/8（近似 5） | `Dom.setStartBP`<br>`Dom.setEndBP`<br>`Dom.rangeBoundaryError`<br>`Dom.rangeNeedsCollapse` | `Dom.Spec.StartSet`<br>`Dom.Spec.EndSet`<br>`Dom.Spec.BoundaryPointError`<br>`Dom.Spec.BoundaryPointOk` |
-| [dom-range-setstart](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setstart) | 1/1 | `Dom.rangeSetStart` | `Dom.Spec.SetStartResult` |
-| [dom-range-setend](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setend) | 1/1 | `Dom.rangeSetEnd` | `Dom.Spec.SetEndResult` |
-| [dom-range-setstartbefore](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setstartbefore) | 3/3 | `Dom.rangeSetStartSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetStartSiblingResult`<br>`Dom.Spec.SiblingPoint` |
-| [dom-range-setstartafter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setstartafter) | 3/3 | `Dom.rangeSetStartSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetStartSiblingResult`<br>`Dom.Spec.SiblingPoint` |
-| [dom-range-setendbefore](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setendbefore) | 3/3 | `Dom.rangeSetEndSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetEndSiblingResult`<br>`Dom.Spec.SiblingPoint` |
-| [dom-range-setendafter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-setendafter) | 3/3 | `Dom.rangeSetEndSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetEndSiblingResult`<br>`Dom.Spec.SiblingPoint` |
-| [dom-range-collapse](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-collapse) | 1/1 | `Dom.rangeCollapse` | `Dom.Spec.CollapseResult` |
-| [concept-range-select](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-select) | 5/5 | `Dom.rangeSelectNode` | `Dom.Spec.SelectNodeResult` |
-| [dom-range-selectnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-selectnode) | 1/1 | `Dom.rangeSelectNode` | `Dom.Spec.SelectNodeResult` |
-| [dom-range-selectnodecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-selectnodecontents) | 4/4 | `Dom.rangeSelectNodeContents` | `Dom.Spec.SelectNodeContentsResult` |
-| [dom-range-compareboundarypoints](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-compareboundarypoints) | 5/5 | `Dom.rangeCompareBoundaryPoints`<br>`Dom.bpPosition` | `Dom.Spec.CompareBoundaryPointsResult`<br>`Dom.Spec.compareHowPoints`<br>`Dom.Spec.PositionResult` |
-| [dom-range-deletecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-deletecontents) | 15/16（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.nodesToRemove`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.removeEach`<br>`Dom.replaceData` | `Dom.Spec.DeleteContentsResult`<br>`Dom.Spec.NodesToRemove`<br>`Dom.Spec.Contained`<br>`Dom.Spec.DeleteNewBP`<br>`Dom.Spec.rangeDeleteContents_result_sound` |
-| [concept-range-extract](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-extract) | 35/47（近似 12） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.partiallyContained`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.setSelf`<br>`Dom.dataPart`<br>`Dom.appendDataClone`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.subContents`<br>`Dom.appendEach` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.PartialFirst`<br>`Dom.Spec.PartialLast`<br>`Dom.Spec.SubContents`<br>`Dom.Spec.DataPartResult`<br>`Dom.Spec.AppendEachResult`<br>`Dom.Spec.SingleClone`<br>`Dom.Spec.Setup`<br>`Dom.Spec.CommonAncestor`<br>`Dom.Spec.PartiallyContained`<br>`Dom.Spec.FirstPartial`<br>`Dom.Spec.LastPartial`<br>`Dom.Spec.ContainedChildren`<br>`Dom.Spec.SelfSet`<br>`Dom.Spec.contentsInto_sound` |
-| [dom-range-extractcontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-extractcontents) | 0/1（近似 1） | `Dom.rangeExtractContents`<br>`Dom.rangeExtractInto`<br>`Dom.discardCreated` | `Dom.Spec.rangeExtractContents_result_sound`<br>`Dom.Spec.rangeExtractContents_result_complete`<br>`Dom.Spec.contentsResult_deterministic` |
-| [concept-range-clone](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-clone) | 30/39（近似 9） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.dataPart`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.subContents`<br>`Dom.cloneEach`<br>`Dom.cloneNodeIn` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.SubContents`<br>`Dom.Spec.CloneEachResult`<br>`Dom.Spec.DeepClone`<br>`Dom.Spec.contentsInto_sound` |
-| [dom-range-clonecontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-clonecontents) | 0/1（近似 1） | `Dom.rangeCloneContents`<br>`Dom.rangeCloneInto`<br>`Dom.discardCreated` | `Dom.Spec.rangeCloneContents_result_sound`<br>`Dom.Spec.rangeCloneContents_result_complete`<br>`Dom.Spec.cloneResult_deterministic` |
-| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-range-insert) | 10/13（近似 3） | `Dom.rangeInsertNode`<br>`Dom.rangeInsertNodeTail`<br>`Dom.refBP`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.splitText`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset`<br>`Dom.Spec.SplitTextResult`<br>`Dom.Spec.rangeInsertNode_result_sound_of_admissible` |
-| [dom-range-insertnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-insertnode) | 1/1 | `Dom.rangeInsertNode` | `Dom.Spec.InsertNodeResult` |
-| [dom-range-surroundcontents](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-surroundcontents) | 6/7（近似 1） | `Dom.rangeSurroundContents`<br>`Dom.partiallyContainsNonText`<br>`Dom.rangeExtractInto`<br>`Dom.replaceAll`<br>`Dom.rangeInsertNode`<br>`Dom.append`<br>`Dom.rangeSelectNode`<br>`Dom.discardFragmentOnError` | `Dom.Spec.SurroundResult`<br>`Dom.Spec.rangeSurroundContents_result_sound` |
-| [dom-range-ispointinrange](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-ispointinrange) | 5/5 | `Dom.rangeIsPointInRange` | `Dom.Spec.IsPointInRangeResult` |
-| [dom-range-comparepoint](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-comparepoint) | 6/6 | `Dom.rangeComparePoint` | `Dom.Spec.ComparePointResult` |
-| [dom-range-intersectsnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-intersectsnode) | 6/6 | `Dom.rangeIntersectsNode` | `Dom.Spec.IntersectsNodeResult` |
-| [dom-range-stringifier](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-range-stringifier) | 2/6（近似 4） | `Dom.rangeToString`<br>`Dom.containedInRange`<br>`Dom.substringData` |  |
+| [live-range-pre-remove-steps](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#live-range-pre-remove-steps) | 3/7（近似 4） | `Dom.liveRangePreRemove`<br>`Dom.liveRangePreRemoveRange`<br>`Dom.liveRangePreRemoveBP`<br>`Dom.rangeMoveOutOfSubtree`<br>`Dom.rangeShiftAfterRemove` | `Dom.Spec.RangeAdjusted`<br>`Dom.Spec.BoundaryAdjusted`<br>`Dom.liveRangePreRemoveBP_comm` |
+| [get-the-common-ancestor](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#get-the-common-ancestor) | 2/3（近似 1） | `Dom.commonAncestor` | `Dom.Spec.CommonAncestor`<br>`Dom.Spec.commonAncestor_spec` |
+| [dom-range-commonancestorcontainer](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-commonancestorcontainer) | 0/1（近似 1） | `Dom.rangeCommonAncestorContainer`<br>`Dom.commonAncestor` | `Dom.Spec.commonAncestor_spec` |
+| [concept-range-bp-set](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-range-bp-set) | 3/8（近似 5） | `Dom.setStartBP`<br>`Dom.setEndBP`<br>`Dom.rangeBoundaryError`<br>`Dom.rangeNeedsCollapse` | `Dom.Spec.StartSet`<br>`Dom.Spec.EndSet`<br>`Dom.Spec.BoundaryPointError`<br>`Dom.Spec.BoundaryPointOk` |
+| [dom-range-setstart](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-setstart) | 1/1 | `Dom.rangeSetStart` | `Dom.Spec.SetStartResult` |
+| [dom-range-setend](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-setend) | 1/1 | `Dom.rangeSetEnd` | `Dom.Spec.SetEndResult` |
+| [dom-range-setstartbefore](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-setstartbefore) | 3/3 | `Dom.rangeSetStartSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetStartSiblingResult`<br>`Dom.Spec.SiblingPoint` |
+| [dom-range-setstartafter](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-setstartafter) | 3/3 | `Dom.rangeSetStartSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetStartSiblingResult`<br>`Dom.Spec.SiblingPoint` |
+| [dom-range-setendbefore](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-setendbefore) | 3/3 | `Dom.rangeSetEndSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetEndSiblingResult`<br>`Dom.Spec.SiblingPoint` |
+| [dom-range-setendafter](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-setendafter) | 3/3 | `Dom.rangeSetEndSibling`<br>`Dom.siblingBP` | `Dom.Spec.SetEndSiblingResult`<br>`Dom.Spec.SiblingPoint` |
+| [dom-range-collapse](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-collapse) | 1/1 | `Dom.rangeCollapse` | `Dom.Spec.CollapseResult` |
+| [concept-range-select](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-range-select) | 5/5 | `Dom.rangeSelectNode` | `Dom.Spec.SelectNodeResult` |
+| [dom-range-selectnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-selectnode) | 1/1 | `Dom.rangeSelectNode` | `Dom.Spec.SelectNodeResult` |
+| [dom-range-selectnodecontents](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-selectnodecontents) | 4/4 | `Dom.rangeSelectNodeContents` | `Dom.Spec.SelectNodeContentsResult` |
+| [dom-range-compareboundarypoints](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-compareboundarypoints) | 5/5 | `Dom.rangeCompareBoundaryPoints`<br>`Dom.bpPosition` | `Dom.Spec.CompareBoundaryPointsResult`<br>`Dom.Spec.compareHowPoints`<br>`Dom.Spec.PositionResult` |
+| [dom-range-deletecontents](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-deletecontents) | 15/16（近似 1） | `Dom.rangeDeleteContents`<br>`Dom.nodesToRemove`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.removeEach`<br>`Dom.replaceData` | `Dom.Spec.DeleteContentsResult`<br>`Dom.Spec.NodesToRemove`<br>`Dom.Spec.Contained`<br>`Dom.Spec.DeleteNewBP`<br>`Dom.Spec.rangeDeleteContents_result_sound` |
+| [concept-range-extract](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-range-extract) | 35/47（近似 12） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.partiallyContained`<br>`Dom.containedInRange`<br>`Dom.deleteContentsNewBP`<br>`Dom.setSelf`<br>`Dom.dataPart`<br>`Dom.appendDataClone`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.subContents`<br>`Dom.appendEach` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.PartialFirst`<br>`Dom.Spec.PartialLast`<br>`Dom.Spec.SubContents`<br>`Dom.Spec.DataPartResult`<br>`Dom.Spec.AppendEachResult`<br>`Dom.Spec.SingleClone`<br>`Dom.Spec.Setup`<br>`Dom.Spec.CommonAncestor`<br>`Dom.Spec.PartiallyContained`<br>`Dom.Spec.FirstPartial`<br>`Dom.Spec.LastPartial`<br>`Dom.Spec.ContainedChildren`<br>`Dom.Spec.SelfSet`<br>`Dom.Spec.contentsInto_sound` |
+| [dom-range-extractcontents](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-extractcontents) | 0/1（近似 1） | `Dom.rangeExtractContents`<br>`Dom.rangeExtractInto`<br>`Dom.discardCreated` | `Dom.Spec.rangeExtractContents_result_sound`<br>`Dom.Spec.rangeExtractContents_result_complete`<br>`Dom.Spec.contentsResult_deterministic` |
+| [concept-range-clone](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-range-clone) | 30/39（近似 9） | `Dom.rangeFragment`<br>`Dom.contentsInto`<br>`Dom.commonAncestor`<br>`Dom.firstPartiallyContainedChild`<br>`Dom.lastPartiallyContainedChild`<br>`Dom.containedChildren`<br>`Dom.dataPart`<br>`Dom.partialFirst`<br>`Dom.partialLast`<br>`Dom.appendShallowClone`<br>`Dom.subContents`<br>`Dom.cloneEach`<br>`Dom.cloneNodeIn` | `Dom.Spec.ContentsResult`<br>`Dom.Spec.ContentsInto`<br>`Dom.Spec.SubContents`<br>`Dom.Spec.CloneEachResult`<br>`Dom.Spec.DeepClone`<br>`Dom.Spec.contentsInto_sound` |
+| [dom-range-clonecontents](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-clonecontents) | 0/1（近似 1） | `Dom.rangeCloneContents`<br>`Dom.rangeCloneInto`<br>`Dom.discardCreated` | `Dom.Spec.rangeCloneContents_result_sound`<br>`Dom.Spec.rangeCloneContents_result_complete`<br>`Dom.Spec.cloneResult_deterministic` |
+| [concept-range-insert](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-range-insert) | 10/13（近似 3） | `Dom.rangeInsertNode`<br>`Dom.rangeInsertNodeTail`<br>`Dom.refBP`<br>`Dom.ensurePreInsertionValidity`<br>`Dom.splitText`<br>`Dom.preInsert`<br>`Dom.remove`<br>`Dom.siblingBP` | `Dom.Spec.InsertNodeResult`<br>`Dom.Spec.InsertNodeTail`<br>`Dom.Spec.NewOffset`<br>`Dom.Spec.InsertNodeHierarchyError`<br>`Dom.Spec.ChildAtOffset`<br>`Dom.Spec.SplitTextResult`<br>`Dom.Spec.rangeInsertNode_result_sound_of_admissible` |
+| [dom-range-insertnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-insertnode) | 1/1 | `Dom.rangeInsertNode` | `Dom.Spec.InsertNodeResult` |
+| [dom-range-surroundcontents](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-surroundcontents) | 6/7（近似 1） | `Dom.rangeSurroundContents`<br>`Dom.partiallyContainsNonText`<br>`Dom.rangeExtractInto`<br>`Dom.replaceAll`<br>`Dom.rangeInsertNode`<br>`Dom.append`<br>`Dom.rangeSelectNode`<br>`Dom.discardFragmentOnError` | `Dom.Spec.SurroundResult`<br>`Dom.Spec.rangeSurroundContents_result_sound` |
+| [dom-range-ispointinrange](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-ispointinrange) | 5/5 | `Dom.rangeIsPointInRange` | `Dom.Spec.IsPointInRangeResult` |
+| [dom-range-comparepoint](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-comparepoint) | 6/6 | `Dom.rangeComparePoint` | `Dom.Spec.ComparePointResult` |
+| [dom-range-intersectsnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-intersectsnode) | 6/6 | `Dom.rangeIntersectsNode` | `Dom.Spec.IntersectsNodeResult` |
+| [dom-range-stringifier](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-range-stringifier) | 2/6（近似 4） | `Dom.rangeToString`<br>`Dom.containedInRange`<br>`Dom.substringData` |  |
 
 ### §6（`traversal`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-node-filter](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-node-filter) | 2/8（近似 1） | `Dom.showsNode`<br>`Dom.walkerAccepts` |  |
+| [concept-node-filter](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-node-filter) | 2/8（近似 1） | `Dom.showsNode`<br>`Dom.walkerAccepts` |  |
 
 ### §6.1（`interface-nodeiterator`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [nodeiterator-pre-removing-steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#nodeiterator-pre-removing-steps) | 1/2 | `Dom.iteratorPreRemove`<br>`Dom.iteratorPreRemoveOne` | `Dom.Spec.IteratorAdjusted` |
-| [nodeiterator-adjust-a-node-pointer](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#nodeiterator-adjust-a-node-pointer) | 6/6 | `Dom.adjustNodePointer`<br>`Dom.firstFollowingOutside` | `Dom.Spec.PointerAdjusted`<br>`Dom.Spec.FirstFollowingOutside`<br>`Dom.Spec.LastBeforeRemoval` |
-| [dom-nodeiterator-root](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-root) | 1/1 | `Dom.IteratorState.root`<br>`Dom.observe` |  |
-| [dom-nodeiterator-referencenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-referencenode) | 1/1 | `Dom.IteratorState.reference`<br>`Dom.observe` |  |
-| [dom-nodeiterator-pointerbeforereferencenode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-pointerbeforereferencenode) | 1/1 | `Dom.IteratorState.pointerBeforeReference`<br>`Dom.observe` |  |
-| [dom-nodeiterator-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-whattoshow) | 1/1 | `Dom.IteratorState.whatToShow`<br>`Dom.observe` |  |
-| [concept-nodeiterator-traverse](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-nodeiterator-traverse) | 1/21（近似 20） | `Dom.nextNode`<br>`Dom.previousNode`<br>`Dom.iteratorCollection`<br>`Dom.showsNode`<br>`Dom.Exec.stepIterator` | `Dom.Spec.NextNodeResult`<br>`Dom.Spec.PreviousNodeResult`<br>`Dom.Spec.NextCandidate`<br>`Dom.Spec.PreviousCandidate` |
-| [dom-nodeiterator-nextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-nextnode) | 1/1 | `Dom.nextNode`<br>`Dom.Exec.stepIterator` | `Dom.Spec.NextNodeResult`<br>`Dom.Spec.nextNode_result_sound` |
-| [dom-nodeiterator-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-nodeiterator-previousnode) | 1/1 | `Dom.previousNode`<br>`Dom.Exec.stepIterator` | `Dom.Spec.PreviousNodeResult`<br>`Dom.Spec.previousNode_result_sound` |
+| [nodeiterator-pre-removing-steps](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#nodeiterator-pre-removing-steps) | 1/2 | `Dom.iteratorPreRemove`<br>`Dom.iteratorPreRemoveOne` | `Dom.Spec.IteratorAdjusted` |
+| [nodeiterator-adjust-a-node-pointer](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#nodeiterator-adjust-a-node-pointer) | 6/6 | `Dom.adjustNodePointer`<br>`Dom.firstFollowingOutside` | `Dom.Spec.PointerAdjusted`<br>`Dom.Spec.FirstFollowingOutside`<br>`Dom.Spec.LastBeforeRemoval` |
+| [dom-nodeiterator-root](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nodeiterator-root) | 1/1 | `Dom.IteratorState.root`<br>`Dom.observe` |  |
+| [dom-nodeiterator-referencenode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nodeiterator-referencenode) | 1/1 | `Dom.IteratorState.reference`<br>`Dom.observe` |  |
+| [dom-nodeiterator-pointerbeforereferencenode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nodeiterator-pointerbeforereferencenode) | 1/1 | `Dom.IteratorState.pointerBeforeReference`<br>`Dom.observe` |  |
+| [dom-nodeiterator-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nodeiterator-whattoshow) | 1/1 | `Dom.IteratorState.whatToShow`<br>`Dom.observe` |  |
+| [concept-nodeiterator-traverse](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-nodeiterator-traverse) | 1/21（近似 20） | `Dom.nextNode`<br>`Dom.previousNode`<br>`Dom.iteratorCollection`<br>`Dom.showsNode`<br>`Dom.Exec.stepIterator` | `Dom.Spec.NextNodeResult`<br>`Dom.Spec.PreviousNodeResult`<br>`Dom.Spec.NextCandidate`<br>`Dom.Spec.PreviousCandidate` |
+| [dom-nodeiterator-nextnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nodeiterator-nextnode) | 1/1 | `Dom.nextNode`<br>`Dom.Exec.stepIterator` | `Dom.Spec.NextNodeResult`<br>`Dom.Spec.nextNode_result_sound` |
+| [dom-nodeiterator-previousnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-nodeiterator-previousnode) | 1/1 | `Dom.previousNode`<br>`Dom.Exec.stepIterator` | `Dom.Spec.PreviousNodeResult`<br>`Dom.Spec.previousNode_result_sound` |
 
 ### §6.2（`interface-treewalker`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [dom-treewalker-root](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-root) | 1/1 | `Dom.WalkerState.root`<br>`Dom.observe` |  |
-| [dom-treewalker-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-whattoshow) | 1/1 | `Dom.WalkerState.whatToShow`<br>`Dom.observe` |  |
-| [dom-treewalker-currentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-currentnode) | 1/1 | `Dom.WalkerState.current`<br>`Dom.observe` |  |
-| [dom-treewalker-parentnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-parentnode) | 2/5（近似 3） | `Dom.walkerParentNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerParentNodeResult`<br>`Dom.Spec.walkerParentNode_result_sound`<br>`Dom.Spec.walkerParentNode_result_complete` |
-| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.cutAtRootExit`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.WalkerChildCandidate`<br>`Dom.Spec.WalkerLastChildCandidate`<br>`Dom.Spec.LastDescendantOf`<br>`Dom.Spec.MirrorPrecedes`<br>`Dom.Spec.MirrorLastDescendantOf` |
-| [dom-treewalker-firstchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-firstchild) | 1/1 | `Dom.walkerFirstChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.walkerFirstChild_result_sound`<br>`Dom.Spec.walkerFirstChild_result_complete` |
-| [dom-treewalker-lastchild](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-lastchild) | 1/1 | `Dom.walkerLastChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.walkerLastChild_result_sound`<br>`Dom.Spec.walkerLastChild_result_complete` |
-| [concept-traverse-siblings](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-traverse-siblings) | 2/13（近似 11） | `Dom.walkerSibling`<br>`Dom.siblingLevels`<br>`Dom.siblingCandidates`<br>`Dom.followingSiblings`<br>`Dom.precedingSiblings`<br>`Dom.cutAtRootExit`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.WalkerNextSiblingCandidate`<br>`Dom.Spec.WalkerPreviousSiblingCandidate`<br>`Dom.Spec.SiblingClimb`<br>`Dom.Spec.FollowingSibling`<br>`Dom.Spec.PrecedingSibling` |
-| [dom-treewalker-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextsibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.walkerNextSibling_result_sound`<br>`Dom.Spec.walkerNextSibling_result_complete` |
-| [dom-treewalker-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previoussibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.walkerPreviousSibling_result_sound`<br>`Dom.Spec.walkerPreviousSibling_result_complete` |
-| [dom-treewalker-previousnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-previousnode) | 2/15（近似 13） | `Dom.walkerPreviousNode`<br>`Dom.previousStopsAtRoot`<br>`Dom.precedingSiblings`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerPreviousNodeResult`<br>`Dom.Spec.WalkerPreviousCandidate`<br>`Dom.Spec.PreviousStopsAtRoot`<br>`Dom.Spec.walkerPreviousNode_result_sound`<br>`Dom.Spec.walkerPreviousNode_result_complete` |
-| [dom-treewalker-nextnode](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-treewalker-nextnode) | 2/18（近似 16） | `Dom.walkerNextNode`<br>`Dom.lastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextNodeResult`<br>`Dom.Spec.walkerNextNode_result_sound`<br>`Dom.Spec.walkerNextNode_result_complete` |
+| [dom-treewalker-root](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-root) | 1/1 | `Dom.WalkerState.root`<br>`Dom.observe` |  |
+| [dom-treewalker-whattoshow](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-whattoshow) | 1/1 | `Dom.WalkerState.whatToShow`<br>`Dom.observe` |  |
+| [dom-treewalker-currentnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-currentnode) | 1/1 | `Dom.WalkerState.current`<br>`Dom.observe` |  |
+| [dom-treewalker-parentnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-parentnode) | 2/5（近似 3） | `Dom.walkerParentNode`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerParentNodeResult`<br>`Dom.Spec.walkerParentNode_result_sound`<br>`Dom.Spec.walkerParentNode_result_complete` |
+| [concept-traverse-children](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-traverse-children) | 1/15（近似 14） | `Dom.walkerFirstChild`<br>`Dom.walkerLastChild`<br>`Dom.mirrorPreorder`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.cutAtRootExit`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.WalkerChildCandidate`<br>`Dom.Spec.WalkerLastChildCandidate`<br>`Dom.Spec.LastDescendantOf`<br>`Dom.Spec.MirrorPrecedes`<br>`Dom.Spec.MirrorLastDescendantOf` |
+| [dom-treewalker-firstchild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-firstchild) | 1/1 | `Dom.walkerFirstChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerFirstChildResult`<br>`Dom.Spec.walkerFirstChild_result_sound`<br>`Dom.Spec.walkerFirstChild_result_complete` |
+| [dom-treewalker-lastchild](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-lastchild) | 1/1 | `Dom.walkerLastChild`<br>`Dom.walkerStep` | `Dom.Spec.WalkerLastChildResult`<br>`Dom.Spec.walkerLastChild_result_sound`<br>`Dom.Spec.walkerLastChild_result_complete` |
+| [concept-traverse-siblings](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-traverse-siblings) | 2/13（近似 11） | `Dom.walkerSibling`<br>`Dom.siblingLevels`<br>`Dom.siblingCandidates`<br>`Dom.followingSiblings`<br>`Dom.precedingSiblings`<br>`Dom.cutAtRootExit`<br>`Dom.lastDescendant`<br>`Dom.mirrorLastDescendant`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.WalkerNextSiblingCandidate`<br>`Dom.Spec.WalkerPreviousSiblingCandidate`<br>`Dom.Spec.SiblingClimb`<br>`Dom.Spec.FollowingSibling`<br>`Dom.Spec.PrecedingSibling` |
+| [dom-treewalker-nextsibling](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-nextsibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerNextSiblingResult`<br>`Dom.Spec.walkerNextSibling_result_sound`<br>`Dom.Spec.walkerNextSibling_result_complete` |
+| [dom-treewalker-previoussibling](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-previoussibling) | 1/1 | `Dom.walkerSibling`<br>`Dom.walkerStep` | `Dom.Spec.WalkerPreviousSiblingResult`<br>`Dom.Spec.walkerPreviousSibling_result_sound`<br>`Dom.Spec.walkerPreviousSibling_result_complete` |
+| [dom-treewalker-previousnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-previousnode) | 2/15（近似 13） | `Dom.walkerPreviousNode`<br>`Dom.previousStopsAtRoot`<br>`Dom.precedingSiblings`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerPreviousNodeResult`<br>`Dom.Spec.WalkerPreviousCandidate`<br>`Dom.Spec.PreviousStopsAtRoot`<br>`Dom.Spec.walkerPreviousNode_result_sound`<br>`Dom.Spec.walkerPreviousNode_result_complete` |
+| [dom-treewalker-nextnode](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-treewalker-nextnode) | 2/18（近似 16） | `Dom.walkerNextNode`<br>`Dom.lastDescendant`<br>`Dom.takeUntilIncl`<br>`Dom.walkerStep`<br>`Dom.walkerRun` | `Dom.Spec.WalkerNextNodeResult`<br>`Dom.Spec.walkerNextNode_result_sound`<br>`Dom.Spec.walkerNextNode_result_complete` |
 
 ### §7.1（`interface-domtokenlist`）
 
 | algorithm | step | 実行関数 | 関係 |
 | --- | --- | --- | --- |
-| [concept-dtl-update](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-dtl-update) | 0/2（近似 2） | `Dom.tokenListUpdate`<br>`Dom.getAttributeByKey`<br>`Dom.setAttributeValue` | `Dom.Spec.orderedSetParse_serialize` |
-| [concept-dtl-serialize](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#concept-dtl-serialize) | 0/1（近似 1） | `Dom.getAttributeValue` |  |
-| [algorithm:DOMTokenList/attribute change steps](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#algorithm:DOMTokenList/attribute change steps) | 0/2（近似 2） | `Dom.classTokenSet`<br>`Dom.orderedSetParse` | `Dom.Spec.orderedSetParse_serialize`<br>`Dom.Spec.TokenSetOk` |
-| [algorithm:DOMTokenList/created](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#algorithm:DOMTokenList/created) | 0/4（近似 4） | `Dom.classTokenSet` |  |
-| [dom-domtokenlist-contains](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-contains) | 1/1 | `Dom.classListContains`<br>`Dom.classTokenSet` | `Dom.Spec.mem_orderedSetParse_iff` |
-| [dom-domtokenlist-add](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-add) | 5/5 | `Dom.classListAdd`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.orderedSetAppend`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_add` |
-| [dom-domtokenlist-remove](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-remove) | 5/5 | `Dom.classListRemove`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_filter` |
-| [dom-domtokenlist-toggle](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-toggle) | 7/7 | `Dom.classListToggle`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_filter`<br>`Dom.Spec.tokenSetOk_append_new` |
-| [dom-domtokenlist-replace](https://dom.spec.whatwg.org/commit-snapshots/a2331a45360129e8645ef7e0a04740241b6e3726/#dom-domtokenlist-replace) | 6/6 | `Dom.classListReplace`<br>`Dom.orderedSetReplace`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_replace` |
+| [concept-dtl-update](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-dtl-update) | 0/2（近似 2） | `Dom.tokenListUpdate`<br>`Dom.getAttributeByKey`<br>`Dom.setAttributeValue` | `Dom.Spec.orderedSetParse_serialize` |
+| [concept-dtl-serialize](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#concept-dtl-serialize) | 0/1（近似 1） | `Dom.getAttributeValue` |  |
+| [algorithm:DOMTokenList/attribute change steps](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#algorithm:DOMTokenList/attribute change steps) | 0/2（近似 2） | `Dom.classTokenSet`<br>`Dom.orderedSetParse` | `Dom.Spec.orderedSetParse_serialize`<br>`Dom.Spec.TokenSetOk` |
+| [algorithm:DOMTokenList/created](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#algorithm:DOMTokenList/created) | 0/4（近似 4） | `Dom.classTokenSet` |  |
+| [dom-domtokenlist-contains](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-domtokenlist-contains) | 1/1 | `Dom.classListContains`<br>`Dom.classTokenSet` | `Dom.Spec.mem_orderedSetParse_iff` |
+| [dom-domtokenlist-add](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-domtokenlist-add) | 5/5 | `Dom.classListAdd`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.orderedSetAppend`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_add` |
+| [dom-domtokenlist-remove](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-domtokenlist-remove) | 5/5 | `Dom.classListRemove`<br>`Dom.validateTokens`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_filter` |
+| [dom-domtokenlist-toggle](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-domtokenlist-toggle) | 7/7 | `Dom.classListToggle`<br>`Dom.validateToken`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_filter`<br>`Dom.Spec.tokenSetOk_append_new` |
+| [dom-domtokenlist-replace](https://dom.spec.whatwg.org/commit-snapshots/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/#dom-domtokenlist-replace) | 6/6 | `Dom.classListReplace`<br>`Dom.orderedSetReplace`<br>`Dom.tokenListUpdate` | `Dom.Spec.tokenSetOk_replace` |
 
 ## 外した step
 
@@ -477,10 +485,11 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-event-listener-invoke | 11 | other：isTrusted が常に false なので起きない |
 | concept-event-listener-inner-invoke | 1 | other：found を計算しない。使い道の invoke step 11 が isTrusted=false で起きない |
 | concept-event-listener-inner-invoke | 2.2 | other：found を計算しない |
-| concept-event-listener-inner-invoke | 2.6-2.8 | host |
-| concept-event-listener-inner-invoke | 2.10 | host |
-| concept-event-listener-inner-invoke | 2.11.1-2.11.2 | host |
-| concept-event-listener-inner-invoke | 2.13 | host |
+| concept-event-listener-inner-invoke | 2.6-2.7 | host |
+| concept-event-listener-inner-invoke | 2.9-2.10 | host |
+| concept-event-listener-inner-invoke | 2.12 | host |
+| concept-event-listener-inner-invoke | 2.13.1-2.13.2 | host |
+| concept-event-listener-inner-invoke | 2.15 | host |
 | concept-event-listener-inner-invoke | 3 | other：found を返さない |
 | concept-node-insert | 7.4-7.6 | shadow |
 | concept-node-insert | 7.7.1 | hook |
@@ -488,9 +497,9 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-node-insert | 9 | hook |
 | concept-node-insert | 10-12 | hook |
 | move | 14-16 | shadow |
-| move | 21-23 | shadow |
-| move | 24.1-24.2 | hook |
-| move | 24.3 | custom-elements |
+| move | 22-24 | shadow |
+| move | 25.1-25.2 | hook |
+| move | 25.3 | custom-elements |
 | concept-node-remove | 8-10 | shadow |
 | concept-node-remove | 11 | hook |
 | concept-node-remove | 12-13 | custom-elements |
@@ -502,7 +511,8 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-node-clone | 3 | hook |
 | concept-node-clone | 6 | shadow |
 | clone-a-single-node | 2.1-2.3 | custom-elements |
-| clone-a-single-node | 5.2 | custom-elements |
+| clone-a-single-node | 5.2 | todo：document の URL も base URL override も持たない（`dom-node-baseuri` と同じ） |
+| clone-a-single-node | 5.3 | custom-elements |
 | dom-node-clonenode | 1 | shadow |
 | dom-document-createelement | 3 | custom-elements |
 | internal-createelementns-steps | 2 | custom-elements |
@@ -558,18 +568,24 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-event-path-append | 5 | item は invocation target の node だけ。shadow-adjusted target は `runPass` が先頭（target）かどうかで決め、relatedTarget と touch target list は持たない |
 | concept-event-listener-invoke | 7 | currentTarget は event に持たず、`innerInvoke` の引数 `cur` として呼び出しの記録（`Invocation`）に残す |
 | concept-event-listener-invoke | 8 | clone は listener の index の列。外された listener は clone の時点で除き、その後に外されたものは inner invoke が現在の状態の `removed` を見て飛ばす |
-| concept-event-listener-inner-invoke | 2.11 | callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない |
+| concept-event-listener-inner-invoke | 2.8 | global object も browsing context も持たないので、どの Document も fully active とみなし、continue しない |
+| concept-event-listener-inner-invoke | 2.13 | callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない |
 | concept-node-length | 1 | Attr は木の node ではない（NodeKind に無い）ので、DocumentType だけが 0 になる |
 | move | 1 | shadow-including root ではなく root で比べる（shadow tree が無いので同じ値） |
 | dom-parentnode-children | * | live な HTMLCollection は作らない。collection が表す element children を、読んだ時点の list として返す |
 | dom-parentnode-queryselectorall | * | static な NodeList ではなく、element の list を返す |
 | dom-htmlcollection-nameditem | * | collection は `ParentNode.children` のものに限る（他の HTMLCollection は model に無い） |
 | queue-a-mutation-observer-compound-microtask | 3 | microtask は積まず、flag を立てるだけである。notify mutation observers は harness の `notify` 操作として呼ぶ |
-| notify-mutation-observers | 6.3 | node list の node に限らず、その observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`。remove が transient を置いた node を node list にも足す）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`） |
+| notify-mutation-observers | 2 | creation index は `observers` の添字である。observer は scenario の初期状態でだけ作り、その並びが作った順である |
 | notify-mutation-observers | 6.4 | callback は呼ばない。records が空でない observer と records の組を返り値に並べる |
-| dom-mutationobserver-observe | 7 | target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた |
-| dom-mutationobserver-observe | 7.1 | node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す |
-| dom-mutationobserver-disconnect | 1 | node list の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`） |
+| add-transient-registered-observers | 1.3-1.4 | source は registered observer ではなく、その node で表す。source が同じかどうかは observer と node で比べる（一つの observer が一つの node に持つ transient でない registered observer は高々一つ） |
+| add-transient-registered-observers | 1.5 | options は source のものではなく registered のものを写す。registered が transient でも、その options は source の options と等しい（`observe()` step 8.1 は options を差し替える前に、その source の transient を外す） |
+| add-transient-registered-observers | 1.6 | transient node set は node list と合わせて一つの list（`ObserverState.nodeList`）で持つ |
+| remove-transient-registered-observers | 1 | transient node set の node に限らず、この observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`） |
+| remove-transient-registered-observers | 2 | transient node set は node list と合わせて持つので、空にしない。残った node には この observer の transient が無いので、観測に出ない |
+| dom-mutationobserver-observe | 8.1 | transient node set の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す |
+| dom-mutationobserver-disconnect | 1-2 | node list と transient node set の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`） |
+| dom-mutationobserver-disconnect | 3 | model の node list は transient node set と合わせたもので、両方をここで空にする |
 | create-a-node | 2 | realm を持たない。node document を与えた `NodeData` を `freshId` の位置に置く |
 | dom-node-nodetype | * | `NodeKind` に Attr が無いので ATTRIBUTE_NODE (2) は返らない（`Attr` は木の外の別の型で、`getProperty` も `Attr` の nodeType を読まない） |
 | dom-node-isconnected | * | shadow tree が無いので、shadow-including root の代わりに root を見る |
@@ -588,7 +604,6 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | dom-document-createelement | 5 | create an element を呼ばず、`NodeData` を直に作る（is・synchronous custom elements flag・registry は無い） |
 | internal-createelementns-steps | 3 | create an element を呼ばず、`NodeData` を直に作る（is・registry は無い） |
 | dom-document-createelementns | * | options は WebIDL の変換だけを行い（`customElementRegistry` を持つ dictionary は TypeError）、is と registry は使わない |
-| dom-document-createcdatasection | 3-4 | data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う） |
 | dom-document-importnode | 1 | Document だけを弾く。shadow root は model に無いので検査しない |
 | dom-document-importnode | 7 | fallbackRegistry を渡さない（custom element registry が無い） |
 | concept-node-adopt | 3 | shadow-including inclusive descendant ではなく inclusive descendant をたどる（shadow tree が無いので同じ集合） |
@@ -622,6 +637,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | concept-text-split | 4 | offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す |
 | concept-text-split | 7.1 | insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ（`validity_freshText`、`splitText_result_sound`） |
 | concept-text-split | 7.2-7.5 | 動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査 |
+| create-a-cdata-section-node | 1-2 | data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う） |
 | concept-range-bp-position | 1 | assert は書かない。呼び出し側（`BoundaryLE`・`rangeNeedsCollapse` など）が root を別に比べる |
 | concept-range-bp-position | 3 | 自分自身を入れ替えて呼ぶ代わりに、`bpPositionDown` を入れ替えて呼んだ結果を `swap` する（入れ子は高々一段） |
 | range-collapsed | * | 専用の定義は無く、使う側（deleteContents step 1・insert step 13・extract と clone the contents の step 2）が `r.start == r.end` を直に書く |
@@ -665,7 +681,7 @@ step の数は入れ子の step も一つと数える。step を持たない一�
 | legacy | dom-attr-specified, dom-customevent-initcustomevent, dom-domimplementation-hasfeature, dom-event-initevent, dom-event-srcelement, dom-nodeiterator-detach, dom-range-detach |
 | other：HTML（document.open()）が使う道具。model の操作からは呼ばれず、実行関数も無い | remove-all-event-listeners |
 | other：XPath（§8）は model の対象外。XPath の評価器を持たない | dom-xpathevaluatorbase-creatensresolver |
-| other：callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い | dom-mutationobserver-mutationobserver |
+| other：callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い。creation index（step 2-3）は `observers` の添字である | dom-mutationobserver-mutationobserver |
 | other：他の仕様（と §3 の abort steps）が使う道具。model の操作からは呼ばれない | concept-event-fire |
 | shadow | assign-a-slot, assign-slotables, assign-slotables-for-a-tree, concept-attach-a-shadow-root, dom-element-attachshadow, dom-element-shadowroot, dom-shadowroot-clonable, dom-shadowroot-delegatesfocus, dom-shadowroot-host, dom-shadowroot-mode, dom-shadowroot-serializable, dom-shadowroot-slotassignment, dom-slotable-assignedslot, exclusive-documentfragment-node, find-a-slot, find-flattened-slotables, find-slotables, retarget, signal-a-slot-change |
 | todo：AbortController と AbortSignal（abort reason・abort algorithms・dependent signal）が無い | abortcontroller-signal-abort, abortsignal-add, abortsignal-remove, abortsignal-signal-abort, create-a-dependent-abort-signal, dom-abortcontroller-abort, dom-abortcontroller-abortcontroller, dom-abortcontroller-signal, dom-abortsignal-abort, dom-abortsignal-aborted, dom-abortsignal-any, dom-abortsignal-reason, dom-abortsignal-throwifaborted, dom-abortsignal-timeout, run-the-abort-steps |

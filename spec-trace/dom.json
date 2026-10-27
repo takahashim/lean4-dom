@@ -1,6 +1,6 @@
 {
   "spec": "dom",
-  "commit": "a2331a45360129e8645ef7e0a04740241b6e3726",
+  "commit": "3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177",
   "algorithms": [
     {
       "key": "concept-ordered-set-parser",
@@ -1591,66 +1591,76 @@
         },
         {
           "n": "2.6",
-          "hash": "6bfd65e6b53d5a5b",
-          "text": "Let global be listener callback's associated realm's global object."
+          "hash": "91f2189aec0cba99",
+          "text": "Let targetGlobal be event's currentTarget's node document's relevant global object if event's currentTarget is a node; otherwise event's currentTarget's relevan"
         },
         {
           "n": "2.7",
+          "hash": "50d56fa67501a911",
+          "text": "Let listenerGlobal be listener callback's associated realm's global object."
+        },
+        {
+          "n": "2.8",
+          "hash": "95f3ec076cf2121f",
+          "text": "If targetGlobal or listenerGlobal is a Window object whose associated Document is not fully active, then continue."
+        },
+        {
+          "n": "2.9",
           "hash": "8f73a9d6f50ef7e6",
           "text": "Let currentEvent be undefined."
         },
         {
-          "n": "2.8",
-          "hash": "020dbdb3bd656c59",
-          "text": "If global is a Window object:"
+          "n": "2.10",
+          "hash": "67215cc0d82a842c",
+          "text": "If listenerGlobal is a Window object:"
         },
         {
-          "n": "2.8.1",
-          "hash": "34c9418c205e1285",
-          "text": "Set currentEvent to global's current event."
+          "n": "2.10.1",
+          "hash": "86e881825ee733a5",
+          "text": "Set currentEvent to listenerGlobal's current event."
         },
         {
-          "n": "2.8.2",
-          "hash": "777a37597b3b6597",
-          "text": "If invocationTargetInShadowTree is false, then set global's current event to event."
+          "n": "2.10.2",
+          "hash": "432fed9a74cf6c4b",
+          "text": "If invocationTargetInShadowTree is false, then set listenerGlobal's current event to event."
         },
         {
-          "n": "2.9",
+          "n": "2.11",
           "hash": "2a84458120e6c7c6",
           "text": "If listener's passive is true, then set event's in passive listener flag."
         },
         {
-          "n": "2.10",
-          "hash": "76792bea0345e260",
-          "text": "If global is a Window object, then record timing info for event listener given event and listener."
+          "n": "2.12",
+          "hash": "553e404a949e763d",
+          "text": "If listenerGlobal is a Window object, then record timing info for event listener given event and listener."
         },
         {
-          "n": "2.11",
+          "n": "2.13",
           "hash": "15de45e05e150792",
           "text": "Call a user object's operation with listener's callback, \"handleEvent\", « event », and event's currentTarget attribute value. If this throws an exception except"
         },
         {
-          "n": "2.11.1",
+          "n": "2.13.1",
           "hash": "fcd9c6da5a33d58b",
           "text": "Report exception for listener's callback's corresponding JavaScript object's associated realm's global object."
         },
         {
-          "n": "2.11.2",
+          "n": "2.13.2",
           "hash": "5d651ae583fce372",
           "text": "Set legacyOutputDidListenersThrowFlag if given."
         },
         {
-          "n": "2.12",
+          "n": "2.14",
           "hash": "1ea86a3f1152283b",
           "text": "Unset event's in passive listener flag."
         },
         {
-          "n": "2.13",
-          "hash": "b78640e943dedeaa",
-          "text": "If global is a Window object, then set global's current event to currentEvent."
+          "n": "2.15",
+          "hash": "cb68222cecc5ee27",
+          "text": "If listenerGlobal is a Window object, then set listenerGlobal's current event to currentEvent."
         },
         {
-          "n": "2.14",
+          "n": "2.16",
           "hash": "f778fe6b6f6f3197",
           "text": "If event's stop immediate propagation flag is set, then break."
         },
@@ -1660,7 +1670,7 @@
           "text": "Return found."
         }
       ],
-      "hash": "769bc11b107d97e9"
+      "hash": "19ae6a4cbe616765"
     },
     {
       "key": "concept-event-fire",
@@ -1670,36 +1680,61 @@
         "events",
         "firing-events"
       ],
-      "line": 1766,
+      "line": 1776,
       "title": "To fire an event named e at target, optionally using an eventConstructor, with a description of how IDL attributes are to be initialized, and a legacy target ov",
       "steps": [
         {
           "n": "1",
+          "hash": "e747327f7d95894e",
+          "text": "Let recordingTimingAsTask be the result of calling start recording task time if needed given target's relevant settings object."
+        },
+        {
+          "n": "2",
           "hash": "728ff76cb3e63b53",
           "text": "If eventConstructor is not given, then let eventConstructor be Event."
         },
         {
-          "n": "2",
+          "n": "3",
           "hash": "fa7ec00ddc2e49f5",
           "text": "Let event be the result of creating an event given eventConstructor, in the relevant realm of target."
         },
         {
-          "n": "3",
+          "n": "4",
           "hash": "2483356462304114",
           "text": "Initialize event's type attribute to e."
         },
         {
-          "n": "4",
+          "n": "5",
           "hash": "94168fa60c265102",
           "text": "Initialize any other IDL attributes of event as described in the invocation of this algorithm."
         },
         {
-          "n": "5",
-          "hash": "84fb86d5e7434af0",
-          "text": "Return the result of dispatching event at target, with legacy target override flag set if set."
+          "n": "6",
+          "hash": "7902550ea6f1b32e",
+          "text": "Let result be the result of dispatching event at target, with legacy target override flag set if set."
+        },
+        {
+          "n": "7",
+          "hash": "b01bbbf8e8e5e2d3",
+          "text": "If recordingTimingAsTask is true:"
+        },
+        {
+          "n": "7.1",
+          "hash": "c0e5afb27d457dac",
+          "text": "Assert: target's relevant settings object is a Document."
+        },
+        {
+          "n": "7.2",
+          "hash": "28da12ed61873e61",
+          "text": "Record task end time given the unsafe shared current time and target's relevant settings object."
+        },
+        {
+          "n": "8",
+          "hash": "2ff78678f9bffc36",
+          "text": "Return result."
         }
       ],
-      "hash": "8afd32a05105c198"
+      "hash": "d365fb4e624bc2b8"
     },
     {
       "key": "dom-abortcontroller-abortcontroller",
@@ -1709,7 +1744,7 @@
         "aborting-ongoing-activities",
         "interface-abortcontroller"
       ],
-      "line": 1919,
+      "line": 1945,
       "title": "The new AbortController() constructor steps are:",
       "steps": [
         {
@@ -1733,7 +1768,7 @@
         "aborting-ongoing-activities",
         "interface-abortcontroller"
       ],
-      "line": 1930,
+      "line": 1956,
       "title": "The signal getter steps are to return this's signal.",
       "steps": [],
       "hash": "1bee1a047153d596"
@@ -1746,7 +1781,7 @@
         "aborting-ongoing-activities",
         "interface-abortcontroller"
       ],
-      "line": 1934,
+      "line": 1960,
       "title": "The abort(reason) method steps are to signal abort on this with reason if it is given.",
       "steps": [],
       "hash": "50d128f0dbdcd287"
@@ -1759,7 +1794,7 @@
         "aborting-ongoing-activities",
         "interface-abortcontroller"
       ],
-      "line": 1939,
+      "line": 1965,
       "title": "To signal abort on an AbortController controller with an optional reason, signal abort on controller's signal with reason if it is given.",
       "steps": [],
       "hash": "87b93ed6e63d81fb"
@@ -1772,7 +1807,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2013,
+      "line": 2039,
       "title": "The static abort(reason) method steps are:",
       "steps": [
         {
@@ -1801,7 +1836,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2027,
+      "line": 2053,
       "title": "The static timeout(milliseconds) method steps are:",
       "steps": [
         {
@@ -1840,7 +1875,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2054,
+      "line": 2080,
       "title": "The static any(signals) method steps are to return the result of creating a dependent abort signal from signals using AbortSignal and the current realm.",
       "steps": [],
       "hash": "ae9700ba81e8cc4d"
@@ -1853,7 +1888,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2059,
+      "line": 2085,
       "title": "The aborted getter steps are to return true if this is [=AbortSignal/aborted=]; otherwise false.",
       "steps": [],
       "hash": "2881b82dc479bb1a"
@@ -1866,7 +1901,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2062,
+      "line": 2088,
       "title": "The reason getter steps are to return this's abort reason.",
       "steps": [],
       "hash": "3497dc4b959f2489"
@@ -1879,7 +1914,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2065,
+      "line": 2091,
       "title": "The throwIfAborted() method steps are to throw this's abort reason, if this is [=AbortSignal/aborted=].",
       "steps": [],
       "hash": "da531432e8bd7794"
@@ -1892,7 +1927,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2105,
+      "line": 2131,
       "title": "To add an algorithm algorithm to an AbortSignal object signal:",
       "steps": [
         {
@@ -1916,7 +1951,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2117,
+      "line": 2143,
       "title": "To remove an algorithm algorithm from an AbortSignal signal, remove algorithm from signal's abort algorithms.",
       "steps": [],
       "hash": "4ef3e9009da74af2"
@@ -1929,7 +1964,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2123,
+      "line": 2149,
       "title": "To signal abort, given an AbortSignal object signal and an optional reason:",
       "steps": [
         {
@@ -1988,7 +2023,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2159,
+      "line": 2185,
       "title": "To run the abort steps for an AbortSignal signal:",
       "steps": [
         {
@@ -2017,7 +2052,7 @@
         "aborting-ongoing-activities",
         "interface-AbortSignal"
       ],
-      "line": 2172,
+      "line": 2198,
       "title": "To create a dependent abort signal from a list of AbortSignal objects signals, using signalInterface, which must be either AbortSignal or an interface that inhe",
       "steps": [
         {
@@ -2091,7 +2126,7 @@
         "nodes",
         "node-trees"
       ],
-      "line": 2421,
+      "line": 2447,
       "title": "To determine the length of a node node, run these steps:",
       "steps": [
         {
@@ -2122,7 +2157,7 @@
         "shadow-trees",
         "finding-slots-and-slotables"
       ],
-      "line": 2561,
+      "line": 2587,
       "title": "To find a slot for a given slottable slottable and an optional boolean open (default false):",
       "steps": [
         {
@@ -2168,7 +2203,7 @@
         "shadow-trees",
         "finding-slots-and-slotables"
       ],
-      "line": 2587,
+      "line": 2613,
       "title": "To find slottables for a given slot slot:",
       "steps": [
         {
@@ -2234,7 +2269,7 @@
         "shadow-trees",
         "finding-slots-and-slotables"
       ],
-      "line": 2625,
+      "line": 2651,
       "title": "To find flattened slottables for a given slot slot:",
       "steps": [
         {
@@ -2300,7 +2335,7 @@
         "shadow-trees",
         "assigning-slotables-and-slots"
       ],
-      "line": 2665,
+      "line": 2691,
       "title": "To assign slottables for a slot slot:",
       "steps": [
         {
@@ -2336,7 +2371,7 @@
         "shadow-trees",
         "assigning-slotables-and-slots"
       ],
-      "line": 2681,
+      "line": 2707,
       "title": "To assign slottables for a tree, given a node root, run assign slottables for each slot of root's inclusive descendants, in tree order.",
       "steps": [],
       "hash": "b8366ad258720c68"
@@ -2351,7 +2386,7 @@
         "shadow-trees",
         "assigning-slotables-and-slots"
       ],
-      "line": 2687,
+      "line": 2713,
       "title": "To assign a slot, given a slottable slottable:",
       "steps": [
         {
@@ -2377,7 +2412,7 @@
         "shadow-trees",
         "signaling-slot-change"
       ],
-      "line": 2702,
+      "line": 2728,
       "title": "To signal a slot change, for a slot slot:",
       "steps": [
         {
@@ -2402,7 +2437,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 2716,
+      "line": 2742,
       "title": "To ensure pre-insert validity given a node node, a node parent, null or a node child, and a list of nodes childrenToExclude:",
       "steps": [
         {
@@ -2502,7 +2537,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 2805,
+      "line": 2831,
       "title": "To pre-insert a node node into a node parent before null or node child:",
       "steps": [
         {
@@ -2542,7 +2577,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 2825,
+      "line": 2851,
       "title": "Specifications may define insertion steps for all or some nodes. The algorithm is passed insertedNode, as indicated in the insert algorithm below. These steps m",
       "steps": [],
       "hash": "e0ca59fce79c1ad6"
@@ -2556,7 +2591,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 2879,
+      "line": 2905,
       "title": "Specifications may also define post-connection steps for all or some nodes. The algorithm is passed connectedNode, as indicated in the insert algorithm below.",
       "steps": [],
       "hash": "7ce4e3672c580621"
@@ -2570,7 +2605,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 2894,
+      "line": 2920,
       "title": "Specifications may define children changed steps for all or some nodes. The algorithm is passed no argument and is called from insert, remove, and replace data.",
       "steps": [],
       "hash": "c66b4cfd4f060821"
@@ -2584,7 +2619,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 2901,
+      "line": 2927,
       "title": "To insert a node node into a node parent before null or a node child, with an optional boolean suppressObservers (default false):",
       "steps": [
         {
@@ -2754,7 +2789,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3041,
+      "line": 3067,
       "title": "To append a node node to a node parent: pre-insert node into parent before null.",
       "steps": [],
       "hash": "675107f8f786bd03"
@@ -2768,7 +2803,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3049,
+      "line": 3075,
       "title": "Specifications may define moving steps for all or some nodes. The algorithm is passed a node movedNode, a boolean isSubtreeRoot, and a node oldAncestor as indic",
       "steps": [],
       "hash": "38a7091c19aee4b8"
@@ -2782,7 +2817,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3061,
+      "line": 3087,
       "title": "To move a node node into a node newParent before null or a node child:",
       "steps": [
         {
@@ -2877,81 +2912,86 @@
         },
         {
           "n": "17",
+          "hash": "334398de2b7df888",
+          "text": "Add transient registered observers given node and oldParent."
+        },
+        {
+          "n": "18",
           "hash": "592f22b43f225825",
           "text": "If child is non-null:"
         },
         {
-          "n": "17.1",
+          "n": "18.1",
           "hash": "0504037013b29ae2",
           "text": "For each live range whose start node is newParent and start offset is greater than child's index: increase its start offset by 1."
         },
         {
-          "n": "17.2",
+          "n": "18.2",
           "hash": "a578fae3aee30837",
           "text": "For each live range whose end node is newParent and end offset is greater than child's index: increase its end offset by 1."
         },
         {
-          "n": "18",
+          "n": "19",
           "hash": "7b79cd0c199cdd76",
           "text": "Let newPreviousSibling be child's previous sibling if child is non-null, and newParent's last child otherwise."
         },
         {
-          "n": "19",
+          "n": "20",
           "hash": "2b808747f2b47639",
           "text": "If child is null, then append node to newParent's children."
         },
         {
-          "n": "20",
+          "n": "21",
           "hash": "8133df2946645f3c",
           "text": "Otherwise, insert node into newParent's children before child's index."
         },
         {
-          "n": "21",
+          "n": "22",
           "hash": "a3d67dbc37327169",
           "text": "If newParent is a shadow host whose shadow root's slot assignment is \"named\" and node is a slottable, then assign a slot for node."
         },
         {
-          "n": "22",
+          "n": "23",
           "hash": "a090c209821b3b03",
           "text": "If newParent's root is a shadow root, and newParent is a slot whose assigned nodes is empty, then run signal a slot change for newParent."
         },
         {
-          "n": "23",
+          "n": "24",
           "hash": "117544cb2970cfc3",
           "text": "Run assign slottables for a tree with node's root."
         },
         {
-          "n": "24",
+          "n": "25",
           "hash": "165c8f081d46983d",
           "text": "For each shadow-including inclusive descendant inclusiveDescendant of node, in shadow-including tree order:"
         },
         {
-          "n": "24.1",
+          "n": "25.1",
           "hash": "2706d025afeda6b8",
           "text": "Let isSubtreeRoot be true if inclusiveDescendant is node; otherwise false."
         },
         {
-          "n": "24.2",
+          "n": "25.2",
           "hash": "1bf8316bfb0e0438",
           "text": "Run the moving steps with inclusiveDescendant, isSubtreeRoot, and oldParent."
         },
         {
-          "n": "24.3",
+          "n": "25.3",
           "hash": "0e51249fb6bbc585",
           "text": "If inclusiveDescendant is custom and newParent is connected, then enqueue a custom element callback reaction with inclusiveDescendant, callback name \"connectedM"
         },
         {
-          "n": "25",
+          "n": "26",
           "hash": "0445616d9801777e",
           "text": "Queue a tree mutation record for oldParent with « », « node », oldPreviousSibling, and oldNextSibling."
         },
         {
-          "n": "26",
+          "n": "27",
           "hash": "acf559480fe3c8db",
           "text": "Queue a tree mutation record for newParent with « node », « », newPreviousSibling, and child."
         }
       ],
-      "hash": "3c3a77dcbb14237e"
+      "hash": "f6165c99762fdefa"
     },
     {
       "key": "concept-node-replace",
@@ -2962,7 +3002,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3194,
+      "line": 3222,
       "title": "To replace a node child with a node node within a node parent:",
       "steps": [
         {
@@ -3042,7 +3082,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3240,
+      "line": 3268,
       "title": "To replace all with a node or null node within a node parent:",
       "steps": [
         {
@@ -3092,7 +3132,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3271,
+      "line": 3299,
       "title": "To pre-remove a node child from a node parent:",
       "steps": [
         {
@@ -3122,7 +3162,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3286,
+      "line": 3314,
       "title": "Specifications may define removing steps for all or some nodes. The algorithm is passed a node removedNode, a boolean isSubtreeRoot, and a node oldAncestor as i",
       "steps": [],
       "hash": "81efacbcdcee0a85"
@@ -3136,7 +3176,7 @@
         "node-trees",
         "mutation-algorithms"
       ],
-      "line": 3294,
+      "line": 3322,
       "title": "To remove a node node, with an optional boolean suppressObservers (default false):",
       "steps": [
         {
@@ -3231,8 +3271,8 @@
         },
         {
           "n": "15",
-          "hash": "df60d9ec90de16e8",
-          "text": "For each inclusive ancestor inclusiveAncestor of parent, and then for each registered of inclusiveAncestor's registered observer list, if registered's options[\""
+          "hash": "aada6f84cdbb3661",
+          "text": "Add transient registered observers given node and parent."
         },
         {
           "n": "16",
@@ -3245,7 +3285,7 @@
           "text": "Run the children changed steps for parent."
         }
       ],
-      "hash": "bae9713884396893"
+      "hash": "a7aafcf63cf315ea"
     },
     {
       "key": "get-an-element-by-id",
@@ -3256,7 +3296,7 @@
         "node-trees",
         "interface-nonelementparentnode"
       ],
-      "line": 3396,
+      "line": 3415,
       "title": "To get an element by ID, given a node node and a string elementId, return the first element, in tree order, within node's descendants, whose ID is elementId; ot",
       "steps": [],
       "hash": "3adcadc5af03e1f5"
@@ -3270,7 +3310,7 @@
         "node-trees",
         "interface-nonelementparentnode"
       ],
-      "line": 3403,
+      "line": 3422,
       "title": "The getElementById(elementId) method steps are to return the result of getting an element by ID given this and elementId.",
       "steps": [],
       "hash": "e0dfe6632a7366e5"
@@ -3284,7 +3324,7 @@
         "node-trees",
         "mixin-documentorshadowroot"
       ],
-      "line": 3426,
+      "line": 3445,
       "title": "The customElementRegistry getter steps are:",
       "steps": [
         {
@@ -3314,7 +3354,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3447,
+      "line": 3466,
       "title": "To convert nodes into a node, given a list of nodes and strings nodes, and document document:",
       "steps": [
         {
@@ -3354,7 +3394,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3547,
+      "line": 3566,
       "title": "The children getter steps are to return an HTMLCollection collection rooted at this matching only element children.",
       "steps": [],
       "hash": "f5446497ef3d5624"
@@ -3368,7 +3408,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3553,
+      "line": 3572,
       "title": "The firstElementChild getter steps are to return the first child that is an element; otherwise null.",
       "steps": [],
       "hash": "b2071c29131d01d7"
@@ -3382,7 +3422,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3558,
+      "line": 3577,
       "title": "The lastElementChild getter steps are to return the last child that is an element; otherwise null.",
       "steps": [],
       "hash": "051208b56fca43a6"
@@ -3396,7 +3436,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3563,
+      "line": 3582,
       "title": "The childElementCount getter steps are to return the number of children of this that are elements.",
       "steps": [],
       "hash": "7323af5051a8f770"
@@ -3410,7 +3450,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3568,
+      "line": 3587,
       "title": "The prepend(nodes) method steps are:",
       "steps": [
         {
@@ -3435,7 +3475,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3580,
+      "line": 3599,
       "title": "The append(nodes) method steps are:",
       "steps": [
         {
@@ -3460,7 +3500,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3591,
+      "line": 3610,
       "title": "The replaceChildren(nodes) method steps are:",
       "steps": [
         {
@@ -3490,7 +3530,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3606,
+      "line": 3625,
       "title": "The moveBefore(node, child) method steps are:",
       "steps": [
         {
@@ -3520,7 +3560,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3620,
+      "line": 3639,
       "title": "The querySelector(selectors) method steps are to return the first result of running scope-match a selectors string selectors against this, if the result is not ",
       "steps": [],
       "hash": "ef3cce33f4d61808"
@@ -3534,7 +3574,7 @@
         "node-trees",
         "interface-parentnode"
       ],
-      "line": 3626,
+      "line": 3645,
       "title": "The querySelectorAll(selectors) method steps are to return the static result of running scope-match a selectors string selectors against this.",
       "steps": [],
       "hash": "40d5a8b3b370b185"
@@ -3548,7 +3588,7 @@
         "node-trees",
         "interface-nondocumenttypechildnode"
       ],
-      "line": 3658,
+      "line": 3677,
       "title": "The previousElementSibling getter steps are to return the first preceding sibling that is an element; otherwise null.",
       "steps": [],
       "hash": "29e33856b1a9070f"
@@ -3562,7 +3602,7 @@
         "node-trees",
         "interface-nondocumenttypechildnode"
       ],
-      "line": 3664,
+      "line": 3683,
       "title": "The nextElementSibling getter steps are to return the first following sibling that is an element; otherwise null.",
       "steps": [],
       "hash": "095b83a87e0c9211"
@@ -3576,7 +3616,7 @@
         "node-trees",
         "interface-childnode"
       ],
-      "line": 3714,
+      "line": 3733,
       "title": "The before(nodes) method steps are:",
       "steps": [
         {
@@ -3621,7 +3661,7 @@
         "node-trees",
         "interface-childnode"
       ],
-      "line": 3737,
+      "line": 3756,
       "title": "The after(nodes) method steps are:",
       "steps": [
         {
@@ -3661,7 +3701,7 @@
         "node-trees",
         "interface-childnode"
       ],
-      "line": 3756,
+      "line": 3775,
       "title": "The replaceWith(nodes) method steps are:",
       "steps": [
         {
@@ -3706,7 +3746,7 @@
         "node-trees",
         "interface-childnode"
       ],
-      "line": 3781,
+      "line": 3800,
       "title": "The remove() method steps are:",
       "steps": [
         {
@@ -3731,7 +3771,7 @@
         "node-trees",
         "mixin-slotable"
       ],
-      "line": 3802,
+      "line": 3821,
       "title": "The assignedSlot getter steps are to return the result of find a slot given this and true.",
       "steps": [],
       "hash": "f92c2b57fa239020"
@@ -3746,7 +3786,7 @@
         "old-style-collections",
         "interface-htmlcollection"
       ],
-      "line": 3906,
+      "line": 3925,
       "title": "The length getter steps are to return the number of nodes represented by the collection.",
       "steps": [],
       "hash": "78bed67a6d45690b"
@@ -3761,7 +3801,7 @@
         "old-style-collections",
         "interface-htmlcollection"
       ],
-      "line": 3909,
+      "line": 3928,
       "title": "The item(index) method steps are to return the indexth element in the collection. If there is no indexth element in the collection, then the method must return ",
       "steps": [],
       "hash": "b7244e147ae3ea4f"
@@ -3776,7 +3816,7 @@
         "old-style-collections",
         "interface-htmlcollection"
       ],
-      "line": 3914,
+      "line": 3933,
       "title": "The supported property names are the values from the list returned by these steps:",
       "steps": [
         {
@@ -3817,7 +3857,7 @@
         "old-style-collections",
         "interface-htmlcollection"
       ],
-      "line": 3937,
+      "line": 3956,
       "title": "The namedItem(key) method steps are:",
       "steps": [
         {
@@ -3841,7 +3881,7 @@
         "nodes",
         "mutation-observers"
       ],
-      "line": 3970,
+      "line": 3992,
       "title": "To queue a mutation observer microtask:",
       "steps": [
         {
@@ -3870,7 +3910,7 @@
         "nodes",
         "mutation-observers"
       ],
-      "line": 3984,
+      "line": 4006,
       "title": "To notify mutation observers:",
       "steps": [
         {
@@ -3880,8 +3920,8 @@
         },
         {
           "n": "2",
-          "hash": "9fb27ebd7d227e17",
-          "text": "Let notifySet be a clone of the surrounding agent's pending mutation observers."
+          "hash": "f3b961904dfa0ad4",
+          "text": "Let notifyList be the result of sorting the surrounding agent's pending mutation observers in ascending order, with a being less than b if a's creation index is"
         },
         {
           "n": "3",
@@ -3900,8 +3940,8 @@
         },
         {
           "n": "6",
-          "hash": "c81cb7894ea10ec2",
-          "text": "For each mo of notifySet:"
+          "hash": "8068286276591ed7",
+          "text": "For each mo of notifyList:"
         },
         {
           "n": "6.1",
@@ -3915,8 +3955,8 @@
         },
         {
           "n": "6.3",
-          "hash": "545d384c214c793d",
-          "text": "For each node of mo's node list: remove all transient registered observers whose observer is mo from node's registered observer list."
+          "hash": "66448791dde3fe06",
+          "text": "Remove transient registered observers for mo."
         },
         {
           "n": "6.4",
@@ -3929,7 +3969,90 @@
           "text": "For each slot of signalSet: fire an event named slotchange, with its bubbles attribute set to true, at slot."
         }
       ],
-      "hash": "ed4d7fccfacf587f"
+      "hash": "820e6d7a237cfeee"
+    },
+    {
+      "key": "add-transient-registered-observers",
+      "section": "4.3",
+      "heading": "mutation-observers",
+      "headings": [
+        "nodes",
+        "mutation-observers"
+      ],
+      "line": 4065,
+      "title": "To add transient registered observers given a node node and a node parent:",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "5a0b03fd17eae508",
+          "text": "For each inclusive ancestor inclusiveAncestor of parent, and then for each registered of inclusiveAncestor's registered observer list:"
+        },
+        {
+          "n": "1.1",
+          "hash": "cd35736eef3ce2e8",
+          "text": "If registered's options[\"subtree\"] is false, then continue."
+        },
+        {
+          "n": "1.2",
+          "hash": "a12b500e22ecf67c",
+          "text": "Let observer be registered's observer."
+        },
+        {
+          "n": "1.3",
+          "hash": "a0ab6e458f0a25b2",
+          "text": "Let source be registered's source if registered is a transient registered observer; otherwise registered."
+        },
+        {
+          "n": "1.4",
+          "hash": "7eba5b8e5b8aef51",
+          "text": "If node's registered observer list contains a transient registered observer whose source is source, then continue."
+        },
+        {
+          "n": "1.5",
+          "hash": "c1fdd364a573049e",
+          "text": "Append a new transient registered observer whose observer is observer, options is source's options, and source is source to node's registered observer list."
+        },
+        {
+          "n": "1.6",
+          "hash": "44c8a7fc7a594f36",
+          "text": "Append a weak reference to node to observer's transient node set."
+        },
+        {
+          "n": "1.7",
+          "hash": "8b9a544606ec7b17",
+          "text": "Append observer to the surrounding agent's pending mutation observers."
+        },
+        {
+          "n": "1.8",
+          "hash": "e60b620a548a34a5",
+          "text": "Queue a mutation observer microtask."
+        }
+      ],
+      "hash": "c9be100ad102952b"
+    },
+    {
+      "key": "remove-transient-registered-observers",
+      "section": "4.3",
+      "heading": "mutation-observers",
+      "headings": [
+        "nodes",
+        "mutation-observers"
+      ],
+      "line": 4113,
+      "title": "To remove transient registered observers for a MutationObserver object observer:",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "9b7b139462e14735",
+          "text": "For each node of observer's transient node set: remove all transient registered observers whose observer is observer from node's registered observer list."
+        },
+        {
+          "n": "2",
+          "hash": "c20f44bbdd4ce639",
+          "text": "Empty observer's transient node set."
+        }
+      ],
+      "hash": "ec33b7b649bddc58"
     },
     {
       "key": "dom-mutationobserver-mutationobserver",
@@ -3940,10 +4063,26 @@
         "mutation-observers",
         "interface-mutationobserver"
       ],
-      "line": 4155,
-      "title": "The new MutationObserver(callback) constructor steps are to set this's callback to callback.",
-      "steps": [],
-      "hash": "54d0386d25bc3e95"
+      "line": 4242,
+      "title": "The new MutationObserver(callback) constructor steps are:",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "7fb0572a1d253dc3",
+          "text": "Set this's callback to callback."
+        },
+        {
+          "n": "2",
+          "hash": "0c1891d57665c5bc",
+          "text": "Set this's creation index to this's relevant agent's mutation observer counter."
+        },
+        {
+          "n": "3",
+          "hash": "89dac81dca4fe0e4",
+          "text": "Increase this's relevant agent's mutation observer counter by 1."
+        }
+      ],
+      "hash": "dcdfee3466dfbdbe"
     },
     {
       "key": "dom-mutationobserver-observe",
@@ -3954,7 +4093,7 @@
         "mutation-observers",
         "interface-mutationobserver"
       ],
-      "line": 4162,
+      "line": 4257,
       "title": "The observe(target, options) method steps are:",
       "steps": [
         {
@@ -3989,36 +4128,41 @@
         },
         {
           "n": "7",
-          "hash": "8119ed4c5e002354",
-          "text": "For each registered of target's registered observer list: if registered's observer is this:"
+          "hash": "ff3d8942c5c2f26c",
+          "text": "Let registered be the registered observer in target's registered observer list that is not a transient registered observer and whose observer is this, if any; o"
         },
         {
-          "n": "7.1",
-          "hash": "214c8de47c0eafff",
-          "text": "For each node of this's node list: remove all transient registered observers whose source is registered from node's registered observer list."
+          "n": "8",
+          "hash": "c4c9e7606ea40826",
+          "text": "If registered is non-null:"
         },
         {
-          "n": "7.2",
+          "n": "8.1",
+          "hash": "75a4ba96c6d81d33",
+          "text": "For each node of this's transient node set: remove all transient registered observers whose source is registered from node's registered observer list."
+        },
+        {
+          "n": "8.2",
           "hash": "826dd306f0e573ca",
           "text": "Set registered's options to options."
         },
         {
-          "n": "8",
+          "n": "9",
           "hash": "0024bc98e97a55e7",
           "text": "Otherwise:"
         },
         {
-          "n": "8.1",
+          "n": "9.1",
           "hash": "fac19a0af09341da",
           "text": "Append a new registered observer whose observer is this and options is options to target's registered observer list."
         },
         {
-          "n": "8.2",
+          "n": "9.2",
           "hash": "2dfd4cad276883ea",
           "text": "Append a weak reference to target to this's node list."
         }
       ],
-      "hash": "790f284e08717b0a"
+      "hash": "68b9e4744944d3ea"
     },
     {
       "key": "dom-mutationobserver-disconnect",
@@ -4029,7 +4173,7 @@
         "mutation-observers",
         "interface-mutationobserver"
       ],
-      "line": 4225,
+      "line": 4328,
       "title": "The disconnect() method steps are:",
       "steps": [
         {
@@ -4039,11 +4183,21 @@
         },
         {
           "n": "2",
+          "hash": "ad80cc89904ad766",
+          "text": "Remove transient registered observers for this."
+        },
+        {
+          "n": "3",
+          "hash": "3537bf56e802e582",
+          "text": "Empty this's node list."
+        },
+        {
+          "n": "4",
           "hash": "402338e2b4523e2d",
           "text": "Empty this's record queue."
         }
       ],
-      "hash": "d28db6556e3d7227"
+      "hash": "83f0472ab46f9050"
     },
     {
       "key": "dom-mutationobserver-takerecords",
@@ -4054,7 +4208,7 @@
         "mutation-observers",
         "interface-mutationobserver"
       ],
-      "line": 4238,
+      "line": 4345,
       "title": "The takeRecords() method steps are:",
       "steps": [
         {
@@ -4084,7 +4238,7 @@
         "mutation-observers",
         "queueing-a-mutation-record"
       ],
-      "line": 4254,
+      "line": 4361,
       "title": "To queue a mutation record of type for target with name, namespace, oldValue, addedNodes, removedNodes, previousSibling, and nextSibling:",
       "steps": [
         {
@@ -4129,31 +4283,36 @@
         },
         {
           "n": "4",
+          "hash": "b628f7a859c9bcfe",
+          "text": "If interestedObservers is empty, then return."
+        },
+        {
+          "n": "5",
           "hash": "1975a4802c23eccd",
           "text": "For each observer → mappedOldValue of interestedObservers:"
         },
         {
-          "n": "4.1",
+          "n": "5.1",
           "hash": "87fdc4b022397a72",
           "text": "Let record be a new MutationRecord object with its type set to type, target set to target, attributeName set to name, attributeNamespace set to namespace, oldVa"
         },
         {
-          "n": "4.2",
+          "n": "5.2",
           "hash": "a9a976a0813e85e2",
           "text": "Enqueue record to observer's record queue."
         },
         {
-          "n": "4.3",
+          "n": "5.3",
           "hash": "8b9a544606ec7b17",
           "text": "Append observer to the surrounding agent's pending mutation observers."
         },
         {
-          "n": "5",
+          "n": "6",
           "hash": "e60b620a548a34a5",
           "text": "Queue a mutation observer microtask."
         }
       ],
-      "hash": "6615076c668f72f0"
+      "hash": "623466076eed6e8e"
     },
     {
       "key": "queue-a-tree-mutation-record",
@@ -4164,7 +4323,7 @@
         "mutation-observers",
         "queueing-a-mutation-record"
       ],
-      "line": 4337,
+      "line": 4446,
       "title": "To queue a tree mutation record for target with addedNodes, removedNodes, previousSibling, and nextSibling:",
       "steps": [
         {
@@ -4188,7 +4347,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4511,
+      "line": 4620,
       "title": "To create a node that implements an interface interface, given a document document:",
       "steps": [
         {
@@ -4212,7 +4371,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4595,
+      "line": 4704,
       "title": "The nodeType getter steps are to return the first matching statement, switching on the interface this implements:",
       "steps": [],
       "hash": "6bf0c06b08c36b28"
@@ -4225,7 +4384,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4627,
+      "line": 4736,
       "title": "The nodeName getter steps are to return the first matching statement, switching on the interface this implements:",
       "steps": [],
       "hash": "17c1c4b347226737"
@@ -4238,10 +4397,26 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4666,
-      "title": "The baseURI getter steps are to return this's node document's document base URL, serialized.",
-      "steps": [],
-      "hash": "7add3b8c6ab32777"
+      "line": 4775,
+      "title": "The baseURI getter steps are:",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "5215675a0c217242",
+          "text": "Let baseURL be the result of running this's node document's get the base URL algorithm."
+        },
+        {
+          "n": "2",
+          "hash": "dc7e53b92af4cd27",
+          "text": "If baseURL is null, then set baseURL to this's node document's URL."
+        },
+        {
+          "n": "3",
+          "hash": "389793ed98f64e38",
+          "text": "Return baseURL, serialized."
+        }
+      ],
+      "hash": "60c573f44e7fd102"
     },
     {
       "key": "dom-node-isconnected",
@@ -4251,7 +4426,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4714,
+      "line": 4832,
       "title": "The isConnected getter steps are to return true, if this is connected; otherwise false.",
       "steps": [],
       "hash": "82cc5a593ecf9e36"
@@ -4264,7 +4439,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4717,
+      "line": 4835,
       "title": "The ownerDocument getter steps are to return null, if this is a document; otherwise this's node document.",
       "steps": [],
       "hash": "fdfbfce52e4d6f2d"
@@ -4277,7 +4452,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4724,
+      "line": 4842,
       "title": "The getRootNode(options) method steps are to return this's shadow-including root if options[\"composed\"] is true; otherwise this's root.",
       "steps": [],
       "hash": "d24efc4ee5fb143a"
@@ -4290,7 +4465,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4729,
+      "line": 4847,
       "title": "The parentNode getter steps are to return this's parent.",
       "steps": [],
       "hash": "292a7d67699ca9a2"
@@ -4303,7 +4478,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4732,
+      "line": 4850,
       "title": "The parentElement getter steps are to return this's parent element.",
       "steps": [],
       "hash": "d20aa57538178a1a"
@@ -4316,7 +4491,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4735,
+      "line": 4853,
       "title": "The hasChildNodes() method steps are to return true if this has children; otherwise false.",
       "steps": [],
       "hash": "a4be9ae72972b2f6"
@@ -4329,7 +4504,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4738,
+      "line": 4856,
       "title": "The childNodes getter steps are to return a NodeList rooted at this matching only children.",
       "steps": [],
       "hash": "39fed2550da693e7"
@@ -4342,7 +4517,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4741,
+      "line": 4859,
       "title": "The firstChild getter steps are to return this's first child.",
       "steps": [],
       "hash": "4b69519031105c58"
@@ -4355,7 +4530,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4744,
+      "line": 4862,
       "title": "The lastChild getter steps are to return this's last child.",
       "steps": [],
       "hash": "37db558c77dc15b4"
@@ -4368,7 +4543,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4747,
+      "line": 4865,
       "title": "The previousSibling getter steps are to return this's previous sibling.",
       "steps": [],
       "hash": "e5fd3731373945c2"
@@ -4381,7 +4556,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4750,
+      "line": 4868,
       "title": "The nextSibling getter steps are to return this's next sibling.",
       "steps": [],
       "hash": "b8d857912df6481c"
@@ -4394,7 +4569,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4757,
+      "line": 4875,
       "title": "The nodeValue getter steps are to return the following, switching on the interface this implements:",
       "steps": [],
       "hash": "617550ce27a06efb"
@@ -4407,7 +4582,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4771,
+      "line": 4889,
       "title": "The nodeValue setter steps are to, if the given value is null, act as if it was the empty string instead, and then do as described below, switching on the inter",
       "steps": [],
       "hash": "dde41d22c83bb68d"
@@ -4420,7 +4595,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4787,
+      "line": 4905,
       "title": "To get text content with a node node, return the following, switching on the interface node implements:",
       "steps": [],
       "hash": "6bf9b0338998b36f"
@@ -4433,7 +4608,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4805,
+      "line": 4923,
       "title": "The textContent getter steps are to return the result of running get text content with this.",
       "steps": [],
       "hash": "dd3ee74957be3001"
@@ -4446,7 +4621,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4808,
+      "line": 4926,
       "title": "To string replace all with a string string within a node parent, run these steps:",
       "steps": [
         {
@@ -4475,7 +4650,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4821,
+      "line": 4939,
       "title": "To set text content with a node node and a string value, do as defined below, switching on the interface node implements:",
       "steps": [],
       "hash": "b37d1ddafa58f1a2"
@@ -4488,7 +4663,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4840,
+      "line": 4958,
       "title": "The textContent setter steps are to, if the given value is null, act as if it was the empty string instead, and then run set text content with this and the give",
       "steps": [],
       "hash": "a6383ff679cddbb8"
@@ -4501,7 +4676,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4853,
+      "line": 4971,
       "title": "The normalize() method steps are to run these steps for each descendant exclusive Text node node of this:",
       "steps": [
         {
@@ -4580,7 +4755,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 4927,
+      "line": 5045,
       "title": "To clone a node given a node node and an optional document document (default node's node document), boolean subtree (default false), node-or-null parent (defaul",
       "steps": [
         {
@@ -4664,7 +4839,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5001,
+      "line": 5119,
       "title": "To clone a single node given a node node, document document, and null or a CustomElementRegistry object fallbackRegistry:",
       "steps": [
         {
@@ -4734,6 +4909,11 @@
         },
         {
           "n": "5.2",
+          "hash": "b65c769338f1af4e",
+          "text": "Set copy's base URL override to the result of running node's get the base URL."
+        },
+        {
+          "n": "5.3",
           "hash": "a81d3905cae4ba35",
           "text": "If node's custom element registry's is scoped is true, then set copy's custom element registry to node's custom element registry."
         },
@@ -4758,7 +4938,7 @@
           "text": "Return copy."
         }
       ],
-      "hash": "7786f92efb2d53e6"
+      "hash": "72e2244e9c4d76d4"
     },
     {
       "key": "dom-node-clonenode",
@@ -4768,7 +4948,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5096,
+      "line": 5217,
       "title": "The cloneNode(subtree) method steps are:",
       "steps": [
         {
@@ -4792,7 +4972,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5108,
+      "line": 5229,
       "title": "A node A equals a node B if all of the following conditions are true:",
       "steps": [],
       "hash": "00d103e5cd0e7c83"
@@ -4805,7 +4985,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5151,
+      "line": 5272,
       "title": "The isEqualNode(otherNode) method steps are to return true if otherNode is non-null and this equals otherNode; otherwise false.",
       "steps": [],
       "hash": "67ab291b6c3e94c2"
@@ -4818,7 +4998,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5157,
+      "line": 5278,
       "title": "The isSameNode(otherNode) method steps are to return true if otherNode is this; otherwise false.",
       "steps": [],
       "hash": "545e4ca4f17975f0"
@@ -4831,7 +5011,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5207,
+      "line": 5328,
       "title": "The compareDocumentPosition(other) method steps are:",
       "steps": [
         {
@@ -4920,7 +5100,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5280,
+      "line": 5401,
       "title": "The contains(other) method steps are to return true if other is an inclusive descendant of this; otherwise false (including when other is null).",
       "steps": [],
       "hash": "3224e81f3cdb7dc2"
@@ -4933,7 +5113,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5294,
+      "line": 5415,
       "title": "To locate a namespace prefix for an element using namespace, run these steps:",
       "steps": [
         {
@@ -4967,7 +5147,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5314,
+      "line": 5435,
       "title": "To locate a namespace for a node using prefix, switch on the interface node implements:",
       "steps": [
         {
@@ -5011,7 +5191,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5375,
+      "line": 5496,
       "title": "The lookupPrefix(namespace) method steps are:",
       "steps": [
         {
@@ -5065,7 +5245,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5421,
+      "line": 5542,
       "title": "The lookupNamespaceURI(prefix) method steps are:",
       "steps": [
         {
@@ -5089,7 +5269,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5431,
+      "line": 5552,
       "title": "The isDefaultNamespace(namespace) method steps are:",
       "steps": [
         {
@@ -5118,7 +5298,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5446,
+      "line": 5567,
       "title": "The insertBefore(node, child) method steps are to return the result of pre-inserting node into this before child.",
       "steps": [],
       "hash": "41ded7c4ea89a938"
@@ -5131,7 +5311,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5450,
+      "line": 5571,
       "title": "The appendChild(node) method steps are to return the result of appending node to this.",
       "steps": [],
       "hash": "548e394e5fa18843"
@@ -5144,7 +5324,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5453,
+      "line": 5574,
       "title": "The replaceChild(node, child) method steps are to return the result of replacing child with node within this.",
       "steps": [],
       "hash": "359bd0b642b3d019"
@@ -5157,7 +5337,7 @@
         "nodes",
         "interface-node"
       ],
-      "line": 5457,
+      "line": 5578,
       "title": "The removeChild(child) method steps are to return the result of pre-removing child from this.",
       "steps": [],
       "hash": "e6298afe7f16fdba"
@@ -5170,7 +5350,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5666,
+      "line": 5798,
       "title": "To create a document that implements an interface interface, given a realm realm:",
       "steps": [
         {
@@ -5194,7 +5374,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5705,
+      "line": 5837,
       "title": "The new Document() constructor steps are to set this's origin to the origin of current global object's associated Document. [[!HTML]]",
       "steps": [],
       "hash": "58e38c4b37f64dbb"
@@ -5207,7 +5387,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5712,
+      "line": 5844,
       "title": "The implementation getter steps are to return the DOMImplementation object that is associated with this.",
       "steps": [],
       "hash": "834ad9229e2cf8e0"
@@ -5220,7 +5400,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5716,
+      "line": 5848,
       "title": "The URL and documentURI getter steps are to return this's URL, serialized.",
       "steps": [],
       "hash": "034263d5c09424f7"
@@ -5233,7 +5413,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5716,
+      "line": 5848,
       "title": "The URL and documentURI getter steps are to return this's URL, serialized.",
       "steps": [],
       "hash": "034263d5c09424f7"
@@ -5246,7 +5426,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5720,
+      "line": 5852,
       "title": "The compatMode getter steps are to return \"BackCompat\" if this's mode is \"quirks\"; otherwise \"CSS1Compat\".",
       "steps": [],
       "hash": "b7a14a6f4bb4151d"
@@ -5259,7 +5439,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5724,
+      "line": 5856,
       "title": "The characterSet, charset, and inputEncoding getter steps are to return this's encoding's name.",
       "steps": [],
       "hash": "3e57d90dc8d1fbd9"
@@ -5272,7 +5452,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5724,
+      "line": 5856,
       "title": "The characterSet, charset, and inputEncoding getter steps are to return this's encoding's name.",
       "steps": [],
       "hash": "3e57d90dc8d1fbd9"
@@ -5285,7 +5465,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5724,
+      "line": 5856,
       "title": "The characterSet, charset, and inputEncoding getter steps are to return this's encoding's name.",
       "steps": [],
       "hash": "3e57d90dc8d1fbd9"
@@ -5298,7 +5478,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5729,
+      "line": 5861,
       "title": "The contentType getter steps are to return this's content type.",
       "steps": [],
       "hash": "9ca1d93a0933a4e4"
@@ -5311,7 +5491,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5779,
+      "line": 5911,
       "title": "The doctype getter steps are to return the child of this that is a doctype; otherwise null.",
       "steps": [],
       "hash": "8049fefd5b669dc1"
@@ -5324,7 +5504,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5782,
+      "line": 5914,
       "title": "The documentElement getter steps are to return this's document element.",
       "steps": [],
       "hash": "ffef4fb3d1a64ca9"
@@ -5337,7 +5517,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5785,
+      "line": 5917,
       "title": "The getElementsByTagName(qualifiedName) method steps are to return the list of elements with qualified name qualifiedName for this.",
       "steps": [],
       "hash": "9c713ee2c3259963"
@@ -5350,7 +5530,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5796,
+      "line": 5928,
       "title": "The getElementsByTagNameNS(namespace, localName) method steps are to return the list of elements with namespace namespace and local name localName for this.",
       "steps": [],
       "hash": "42c03e9feb259a62"
@@ -5363,7 +5543,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5801,
+      "line": 5933,
       "title": "The getElementsByClassName(classNames) method steps are to return the list of elements with class names classNames for this.",
       "steps": [],
       "hash": "44ef25f7443bdf16"
@@ -5376,7 +5556,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5931,
+      "line": 6063,
       "title": "The createElement(localName, options) method steps are:",
       "steps": [
         {
@@ -5415,7 +5595,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5955,
+      "line": 6087,
       "title": "The internal createElementNS steps, given document, namespace, qualifiedName, and options, are as follows:",
       "steps": [
         {
@@ -5444,7 +5624,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5973,
+      "line": 6105,
       "title": "The createElementNS(namespace, qualifiedName, options) method steps are to return the result of running the internal createElementNS steps, given this, namespac",
       "steps": [],
       "hash": "38dbea7181b4294f"
@@ -5457,7 +5637,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 5981,
+      "line": 6113,
       "title": "To flatten element creation options, given a string or ElementCreationOptions dictionary options and a document document:",
       "steps": [
         {
@@ -5516,7 +5696,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6022,
+      "line": 6154,
       "title": "The createDocumentFragment() method steps are to return the result of creating a document fragment given this.",
       "steps": [],
       "hash": "f018e1ffd0f5bcbb"
@@ -5529,7 +5709,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6025,
+      "line": 6157,
       "title": "The createTextNode(data) method steps are to return the result of creating a text node given this and data.",
       "steps": [],
       "hash": "f0aee6bbfa404c1b"
@@ -5542,7 +5722,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6028,
+      "line": 6160,
       "title": "The createCDATASection(data) method steps are:",
       "steps": [
         {
@@ -5557,21 +5737,11 @@
         },
         {
           "n": "3",
-          "hash": "62996bcb39c17ba7",
-          "text": "Let node be the result of creating a node that implements CDATASection, given this."
-        },
-        {
-          "n": "4",
-          "hash": "6981f47000568c41",
-          "text": "Set node's data to data."
-        },
-        {
-          "n": "5",
-          "hash": "e79c9e3b37576a7c",
-          "text": "Return node."
+          "hash": "8a7ec526b75513a8",
+          "text": "Return the result of creating a CDATA section node given this and data."
         }
       ],
-      "hash": "4a6582444a0e9c60"
+      "hash": "fcc715886977f998"
     },
     {
       "key": "dom-document-createcomment",
@@ -5581,7 +5751,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6046,
+      "line": 6174,
       "title": "The createComment(data) method steps are to return the result of creating a comment node given this and data.",
       "steps": [],
       "hash": "def76cac06247cc1"
@@ -5594,7 +5764,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6049,
+      "line": 6177,
       "title": "The createProcessingInstruction(target, data) method steps are to return the result of creating a processing instruction node given this, target, and data.",
       "steps": [],
       "hash": "287ef5e74bcbfff4"
@@ -5607,7 +5777,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6079,
+      "line": 6207,
       "title": "The importNode(node, options) method steps are:",
       "steps": [
         {
@@ -5671,7 +5841,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6118,
+      "line": 6246,
       "title": "Specifications may define adopting steps for all or some nodes. The algorithm is passed node and oldDocument, as indicated in the adopt algorithm.",
       "steps": [],
       "hash": "81844eb37458fd6e"
@@ -5684,7 +5854,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6125,
+      "line": 6253,
       "title": "To adopt a node node into a document document:",
       "steps": [
         {
@@ -5768,7 +5938,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6201,
+      "line": 6329,
       "title": "The adoptNode(node) method steps are:",
       "steps": [
         {
@@ -5802,7 +5972,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6234,
+      "line": 6362,
       "title": "The createAttribute(localName) method steps are:",
       "steps": [
         {
@@ -5831,7 +6001,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6247,
+      "line": 6375,
       "title": "The createAttributeNS(namespace, qualifiedName) method steps are:",
       "steps": [
         {
@@ -5855,7 +6025,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6262,
+      "line": 6390,
       "title": "The createEvent(interface) method steps are:",
       "steps": [
         {
@@ -5919,7 +6089,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6330,
+      "line": 6458,
       "title": "The createRange() method steps are to return a new live range with (this, 0) as its start an end.",
       "steps": [],
       "hash": "083e1b408e9a9d78"
@@ -5932,7 +6102,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6337,
+      "line": 6465,
       "title": "The createNodeIterator(root, whatToShow, filter) method steps are:",
       "steps": [
         {
@@ -5976,7 +6146,7 @@
         "nodes",
         "interface-document"
       ],
-      "line": 6355,
+      "line": 6483,
       "title": "The createTreeWalker(root, whatToShow, filter) method steps are:",
       "steps": [
         {
@@ -6016,7 +6186,7 @@
         "interface-document",
         "interface-domimplementation"
       ],
-      "line": 6421,
+      "line": 6549,
       "title": "The createDocumentType(name, publicId, systemId) method steps are:",
       "steps": [
         {
@@ -6041,7 +6211,7 @@
         "interface-document",
         "interface-domimplementation"
       ],
-      "line": 6433,
+      "line": 6561,
       "title": "The createDocument(namespace, qualifiedName, doctype) method steps are:",
       "steps": [
         {
@@ -6096,7 +6266,7 @@
         "interface-document",
         "interface-domimplementation"
       ],
-      "line": 6471,
+      "line": 6599,
       "title": "The createHTMLDocument(title) method steps are:",
       "steps": [
         {
@@ -6176,7 +6346,7 @@
         "interface-document",
         "interface-domimplementation"
       ],
-      "line": 6515,
+      "line": 6643,
       "title": "The hasFeature() method steps are to return true.",
       "steps": [],
       "hash": "0aca519a275a8f78"
@@ -6189,7 +6359,7 @@
         "nodes",
         "interface-documenttype"
       ],
-      "line": 6545,
+      "line": 6673,
       "title": "To create a doctype given a document document, a string name, and optionally a string publicId (default the empty string) and a string systemId (default the emp",
       "steps": [
         {
@@ -6218,7 +6388,7 @@
         "nodes",
         "interface-documenttype"
       ],
-      "line": 6560,
+      "line": 6688,
       "title": "The name getter steps are to return this's name.",
       "steps": [],
       "hash": "79ea65e17832c381"
@@ -6231,7 +6401,7 @@
         "nodes",
         "interface-documenttype"
       ],
-      "line": 6563,
+      "line": 6691,
       "title": "The publicId getter steps are to return this's public ID.",
       "steps": [],
       "hash": "abb60754d9623b7f"
@@ -6244,7 +6414,7 @@
         "nodes",
         "interface-documenttype"
       ],
-      "line": 6566,
+      "line": 6694,
       "title": "The systemId getter steps are to return this's system ID.",
       "steps": [],
       "hash": "b4d151a8439ad74f"
@@ -6257,7 +6427,7 @@
         "nodes",
         "interface-documentfragment"
       ],
-      "line": 6587,
+      "line": 6715,
       "title": "An exclusive DocumentFragment node is a DocumentFragment node that is not a ShadowRoot node.",
       "steps": [],
       "hash": "ab54551d9f2fed0b"
@@ -6270,7 +6440,7 @@
         "nodes",
         "interface-documentfragment"
       ],
-      "line": 6596,
+      "line": 6724,
       "title": "An object A is a host-including inclusive ancestor of an object B, if either A is an inclusive ancestor of B, or if B's root has a non-null host and A is a host",
       "steps": [],
       "hash": "49979e150dbfa62d"
@@ -6283,7 +6453,7 @@
         "nodes",
         "interface-documentfragment"
       ],
-      "line": 6609,
+      "line": 6737,
       "title": "To create a document fragment given a document document: return the result of creating a node that implements DocumentFragment, given document.",
       "steps": [],
       "hash": "565ee337d82b7579"
@@ -6296,7 +6466,7 @@
         "nodes",
         "interface-documentfragment"
       ],
-      "line": 6615,
+      "line": 6743,
       "title": "The new DocumentFragment() constructor steps are to set this's node document to current global object's associated Document.",
       "steps": [],
       "hash": "9864225c21188932"
@@ -6309,7 +6479,7 @@
         "nodes",
         "interface-shadowroot"
       ],
-      "line": 6690,
+      "line": 6818,
       "title": "The mode getter steps are to return this's mode.",
       "steps": [],
       "hash": "18c5a86a08f96f3f"
@@ -6322,7 +6492,7 @@
         "nodes",
         "interface-shadowroot"
       ],
-      "line": 6693,
+      "line": 6821,
       "title": "The delegatesFocus getter steps are to return this's delegates focus.",
       "steps": [],
       "hash": "d1cefe5c457eb9d5"
@@ -6335,7 +6505,7 @@
         "nodes",
         "interface-shadowroot"
       ],
-      "line": 6696,
+      "line": 6824,
       "title": "The serializable getter steps are to return this's serializable.",
       "steps": [],
       "hash": "3951aeb97fe78ad6"
@@ -6348,7 +6518,7 @@
         "nodes",
         "interface-shadowroot"
       ],
-      "line": 6699,
+      "line": 6827,
       "title": "The slotAssignment getter steps are to return this's slot assignment.",
       "steps": [],
       "hash": "2feaeb99bcd4da72"
@@ -6361,7 +6531,7 @@
         "nodes",
         "interface-shadowroot"
       ],
-      "line": 6702,
+      "line": 6830,
       "title": "The clonable getter steps are to return this's clonable.",
       "steps": [],
       "hash": "ffe81548c2e29472"
@@ -6374,7 +6544,7 @@
         "nodes",
         "interface-shadowroot"
       ],
-      "line": 6705,
+      "line": 6833,
       "title": "The host getter steps are to return this's host.",
       "steps": [],
       "hash": "9c1384f7fef77d7b"
@@ -6387,7 +6557,7 @@
         "nodes",
         "interface-shadowroot"
       ],
-      "line": 6762,
+      "line": 6890,
       "title": "To retarget an object A against an object B, repeat these steps until they return an object:",
       "steps": [
         {
@@ -6411,7 +6581,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 6940,
+      "line": 7068,
       "title": "An element's HTML-uppercased qualified name is the return value of these steps:",
       "steps": [
         {
@@ -6440,7 +6610,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 6957,
+      "line": 7085,
       "title": "To create an element, given a document document, string localName, string-or-null namespace, and optionally a string-or-null prefix (default null), string-or-nu",
       "steps": [
         {
@@ -6654,7 +6824,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7155,
+      "line": 7283,
       "title": "To create an element internal given a document document, an interface interface a string localName, a string-or-null namespace, a string-or-null prefix, a strin",
       "steps": [
         {
@@ -6688,7 +6858,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7192,
+      "line": 7320,
       "title": "To handle attribute changes for an attribute attribute with element, oldValue, and newValue, run these steps:",
       "steps": [
         {
@@ -6717,7 +6887,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7211,
+      "line": 7339,
       "title": "To change an attribute attribute to value:",
       "steps": [
         {
@@ -6746,7 +6916,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7225,
+      "line": 7353,
       "title": "To append an attribute attribute to an element element:",
       "steps": [
         {
@@ -6780,7 +6950,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7243,
+      "line": 7371,
       "title": "To remove an attribute attribute:",
       "steps": [
         {
@@ -6814,7 +6984,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7260,
+      "line": 7388,
       "title": "To replace an attribute oldAttribute with an attribute newAttribute:",
       "steps": [
         {
@@ -6858,7 +7028,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7285,
+      "line": 7413,
       "title": "To get an attribute by name given a string qualifiedName and an element element:",
       "steps": [
         {
@@ -6882,7 +7052,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7299,
+      "line": 7427,
       "title": "To get an attribute by namespace and local name given null or a string namespace, a string localName, and an element element:",
       "steps": [
         {
@@ -6906,7 +7076,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7314,
+      "line": 7442,
       "title": "To get an attribute value given an element element, a string localName, and an optional null or string namespace (default null):",
       "steps": [
         {
@@ -6935,7 +7105,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7330,
+      "line": 7458,
       "title": "To set an attribute given an attribute attr and an element element:",
       "steps": [
         {
@@ -6989,7 +7159,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7361,
+      "line": 7489,
       "title": "To set an attribute value given an element element, a string localName, a string value, an optional null or string prefix (default null), and an optional null o",
       "steps": [
         {
@@ -7018,7 +7188,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7381,
+      "line": 7509,
       "title": "To remove an attribute by name given a string qualifiedName and an element element:",
       "steps": [
         {
@@ -7047,7 +7217,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7396,
+      "line": 7524,
       "title": "To remove an attribute by namespace and local name given null or a string namespace, a string localName, and an element element:",
       "steps": [
         {
@@ -7076,7 +7246,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7463,
+      "line": 7591,
       "title": "The namespaceURI getter steps are to return this's namespace.",
       "steps": [],
       "hash": "adf59976f64459ee"
@@ -7089,7 +7259,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7466,
+      "line": 7594,
       "title": "The prefix getter steps are to return this's namespace prefix.",
       "steps": [],
       "hash": "293384021c4425d8"
@@ -7102,7 +7272,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7469,
+      "line": 7597,
       "title": "The localName getter steps are to return this's local name.",
       "steps": [],
       "hash": "0f4552eb0cb8901b"
@@ -7115,7 +7285,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7472,
+      "line": 7600,
       "title": "The tagName getter steps are to return this's HTML-uppercased qualified name.",
       "steps": [],
       "hash": "94dfab88d5b738df"
@@ -7128,7 +7298,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7495,
+      "line": 7623,
       "title": "IDL attributes that are defined to reflect a string name, must have these getter and setter steps:",
       "steps": [],
       "hash": "0491b00a6548213f"
@@ -7141,7 +7311,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7513,
+      "line": 7641,
       "title": "The classList getter steps are to return a DOMTokenList object whose associated element is this and whose associated attribute's local name is class. The token ",
       "steps": [],
       "hash": "4a7801c0c1d388ad"
@@ -7154,7 +7324,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7580,
+      "line": 7708,
       "title": "The hasAttributes() method steps are to return false if this's attribute list is empty; otherwise true.",
       "steps": [],
       "hash": "b8f477653c5232fd"
@@ -7167,7 +7337,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7585,
+      "line": 7713,
       "title": "The attributes getter steps are to return the associated NamedNodeMap.",
       "steps": [],
       "hash": "494313abaaf2c952"
@@ -7180,7 +7350,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7590,
+      "line": 7718,
       "title": "The getAttributeNames() method steps are to return the qualified names of the attributes in this's attribute list, in order; otherwise a new list.",
       "steps": [],
       "hash": "cba076c8b36caf50"
@@ -7193,7 +7363,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7599,
+      "line": 7727,
       "title": "The getAttribute(qualifiedName) method steps are:",
       "steps": [
         {
@@ -7222,7 +7392,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7614,
+      "line": 7742,
       "title": "The getAttributeNS(namespace, localName) method steps are:",
       "steps": [
         {
@@ -7251,7 +7421,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7630,
+      "line": 7758,
       "title": "The setAttribute(qualifiedName, value) method steps are:",
       "steps": [
         {
@@ -7300,7 +7470,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7667,
+      "line": 7795,
       "title": "The setAttributeNS(namespace, qualifiedName, value) method steps are:",
       "steps": [
         {
@@ -7329,7 +7499,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7686,
+      "line": 7814,
       "title": "The removeAttribute(qualifiedName) method steps are to remove an attribute given qualifiedName and this, and then return undefined.",
       "steps": [],
       "hash": "5ad514a643179bb8"
@@ -7342,7 +7512,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7693,
+      "line": 7821,
       "title": "The removeAttributeNS(namespace, localName) method steps are to remove an attribute given namespace, localName, and this, and then return undefined.",
       "steps": [],
       "hash": "ca551ca3c66929db"
@@ -7355,7 +7525,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7700,
+      "line": 7828,
       "title": "The hasAttribute(qualifiedName) method steps are:",
       "steps": [
         {
@@ -7379,7 +7549,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7714,
+      "line": 7842,
       "title": "The toggleAttribute(qualifiedName, force) method steps are:",
       "steps": [
         {
@@ -7433,7 +7603,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7755,
+      "line": 7883,
       "title": "The hasAttributeNS(namespace, localName) method steps are:",
       "steps": [
         {
@@ -7457,7 +7627,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7771,
+      "line": 7899,
       "title": "The getAttributeNode(qualifiedName) method steps are to return the result of getting an attribute given qualifiedName and this.",
       "steps": [],
       "hash": "9e72ff5f50f38411"
@@ -7470,7 +7640,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7777,
+      "line": 7905,
       "title": "The getAttributeNodeNS(namespace, localName) method steps are to return the result of getting an attribute given namespace, localName, and this.",
       "steps": [],
       "hash": "5daf20a9d30938a3"
@@ -7483,7 +7653,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7785,
+      "line": 7913,
       "title": "The setAttributeNode(attr) and setAttributeNodeNS(attr) methods steps are to return the result of setting an attribute given attr and this.",
       "steps": [],
       "hash": "85bc9771721d21a7"
@@ -7496,7 +7666,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7792,
+      "line": 7920,
       "title": "The removeAttributeNode(attr) method steps are:",
       "steps": [
         {
@@ -7525,7 +7695,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7844,
+      "line": 7972,
       "title": "The attachShadow(init) method steps are:",
       "steps": [
         {
@@ -7564,7 +7734,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7870,
+      "line": 7998,
       "title": "To attach a shadow root, given an element element, a string mode, a boolean delegatesFocus, a boolean serializable, a string slotAssignment, a boolean clonable,",
       "steps": [
         {
@@ -7688,7 +7858,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7953,
+      "line": 8081,
       "title": "The shadowRoot getter steps are:",
       "steps": [
         {
@@ -7717,7 +7887,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7973,
+      "line": 8101,
       "title": "The customElementRegistry getter steps are to return this's custom element registry.",
       "steps": [],
       "hash": "8e68be94d138c242"
@@ -7730,7 +7900,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 7991,
+      "line": 8119,
       "title": "The closest(selectors) method steps are:",
       "steps": [
         {
@@ -7769,7 +7939,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8012,
+      "line": 8140,
       "title": "The matches(selectors) and webkitMatchesSelector(selectors) method steps are:",
       "steps": [
         {
@@ -7798,7 +7968,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8012,
+      "line": 8140,
       "title": "The matches(selectors) and webkitMatchesSelector(selectors) method steps are:",
       "steps": [
         {
@@ -7827,7 +7997,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8031,
+      "line": 8159,
       "title": "The getElementsByTagName(qualifiedName) method steps are to return the list of elements with qualified name qualifiedName for this.",
       "steps": [],
       "hash": "15cca1660c2a1142"
@@ -7840,7 +8010,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8035,
+      "line": 8163,
       "title": "The getElementsByTagNameNS(namespace, localName) method steps are to return the list of elements with namespace namespace and local name localName for this.",
       "steps": [],
       "hash": "cfbca458bd654f00"
@@ -7853,7 +8023,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8040,
+      "line": 8168,
       "title": "The getElementsByClassName(classNames) method steps are to return the list of elements with class names classNames for this.",
       "steps": [],
       "hash": "bcbdafc393fa810a"
@@ -7866,7 +8036,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8046,
+      "line": 8174,
       "title": "To insert adjacent, given an element element, string where, and a node node, run the steps associated with the first ASCII case-insensitive match for where:",
       "steps": [],
       "hash": "766b928918bb422d"
@@ -7879,7 +8049,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8077,
+      "line": 8205,
       "title": "The insertAdjacentElement(where, element) method steps are to return the result of running insert adjacent, give this, where, and element.",
       "steps": [],
       "hash": "d66d803a867aa784"
@@ -7892,7 +8062,7 @@
         "nodes",
         "interface-element"
       ],
-      "line": 8082,
+      "line": 8210,
       "title": "The insertAdjacentText(where, data) method steps are:",
       "steps": [
         {
@@ -7917,7 +8087,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8129,
+      "line": 8257,
       "title": "The length getter steps are to return the attribute list's size.",
       "steps": [],
       "hash": "9eda2093f9c7f27a"
@@ -7931,7 +8101,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8132,
+      "line": 8260,
       "title": "The item(index) method steps are:",
       "steps": [
         {
@@ -7956,7 +8126,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8141,
+      "line": 8269,
       "title": "A NamedNodeMap object's supported property names are the return value of running these steps:",
       "steps": [
         {
@@ -7996,7 +8166,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8167,
+      "line": 8295,
       "title": "The getNamedItem(qualifiedName) method steps are to return the result of getting an attribute given qualifiedName and element.",
       "steps": [],
       "hash": "3d41053ec7fdc30f"
@@ -8010,7 +8180,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8171,
+      "line": 8299,
       "title": "The getNamedItemNS(namespace, localName) method steps are to return the result of getting an attribute given namespace, localName, and element.",
       "steps": [],
       "hash": "abe3800da06dad87"
@@ -8024,7 +8194,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8177,
+      "line": 8305,
       "title": "The setNamedItem(attr) and setNamedItemNS(attr) method steps are to return the result of setting an attribute given attr and element.",
       "steps": [],
       "hash": "c82a30fba045f4e7"
@@ -8038,7 +8208,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8177,
+      "line": 8305,
       "title": "The setNamedItem(attr) and setNamedItemNS(attr) method steps are to return the result of setting an attribute given attr and element.",
       "steps": [],
       "hash": "c82a30fba045f4e7"
@@ -8052,7 +8222,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8182,
+      "line": 8310,
       "title": "The removeNamedItem(qualifiedName) method steps are:",
       "steps": [
         {
@@ -8082,7 +8252,7 @@
         "interface-element",
         "interface-namednodemap"
       ],
-      "line": 8196,
+      "line": 8324,
       "title": "The removeNamedItemNS(namespace, localName) method steps are:",
       "steps": [
         {
@@ -8112,7 +8282,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8251,
+      "line": 8379,
       "title": "To create an attribute given a document document, a string localName, and optionally a string-or-null namespace (default null), a string-or-null prefix (default",
       "steps": [
         {
@@ -8142,7 +8312,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8279,
+      "line": 8407,
       "title": "The namespaceURI getter steps are to return this's namespace.",
       "steps": [],
       "hash": "a63cc35a9dfe2aac"
@@ -8156,7 +8326,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8282,
+      "line": 8410,
       "title": "The prefix getter steps are to return this's namespace prefix.",
       "steps": [],
       "hash": "0ede762cc2c9342c"
@@ -8170,7 +8340,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8285,
+      "line": 8413,
       "title": "The localName getter steps are to return this's local name.",
       "steps": [],
       "hash": "d2326d5422198d46"
@@ -8184,7 +8354,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8288,
+      "line": 8416,
       "title": "The name getter steps are to return this's qualified name.",
       "steps": [],
       "hash": "bef2f00cc560d051"
@@ -8198,7 +8368,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8291,
+      "line": 8419,
       "title": "The value getter steps are to return this's value.",
       "steps": [],
       "hash": "2ec7521c778b01d2"
@@ -8212,7 +8382,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8294,
+      "line": 8422,
       "title": "To set an existing attribute value, given an attribute attribute and string value, run these steps:",
       "steps": [
         {
@@ -8252,7 +8422,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8314,
+      "line": 8442,
       "title": "The value setter steps are to set an existing attribute value with this and the given value.",
       "steps": [],
       "hash": "536dfc0a9982e094"
@@ -8266,7 +8436,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8319,
+      "line": 8447,
       "title": "The ownerElement getter steps are to return this's element.",
       "steps": [],
       "hash": "80eb00aa122dc91c"
@@ -8280,7 +8450,7 @@
         "interface-element",
         "interface-attr"
       ],
-      "line": 8324,
+      "line": 8452,
       "title": "The specified getter steps are to return true.",
       "steps": [],
       "hash": "069a9e4c4634857e"
@@ -8293,7 +8463,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8349,
+      "line": 8477,
       "title": "To replace data of a node node with an integer offset, integer count, string data, and an optional boolean piAttributesAlreadyUpdated (default false):",
       "steps": [
         {
@@ -8372,7 +8542,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8428,
+      "line": 8556,
       "title": "To substring data of a node node with an integer offset and integer count:",
       "steps": [
         {
@@ -8406,7 +8576,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8450,
+      "line": 8578,
       "title": "The data getter steps are to return this's data. Its setter steps are to replace data of this with 0, this's length, and the given value.",
       "steps": [],
       "hash": "f22a29b888f01645"
@@ -8419,7 +8589,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8456,
+      "line": 8584,
       "title": "The length getter steps are to return this's length.",
       "steps": [],
       "hash": "05d11b0c96e59f42"
@@ -8432,7 +8602,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8461,
+      "line": 8589,
       "title": "The substringData(offset, count) method steps are to return the result of substringing data of this with offset and count.",
       "steps": [],
       "hash": "0d2e868719e3bd1f"
@@ -8445,7 +8615,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8468,
+      "line": 8596,
       "title": "The appendData(data) method steps are to replace data of this with this's length, 0, and data.",
       "steps": [],
       "hash": "2294e60aad19650e"
@@ -8458,7 +8628,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8474,
+      "line": 8602,
       "title": "The insertData(offset, data) method steps are to replace data of this with offset, 0, and data.",
       "steps": [],
       "hash": "cccf6df65898a5a1"
@@ -8471,7 +8641,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8481,
+      "line": 8609,
       "title": "The deleteData(offset, count) method steps are to replace data of this with offset, count, and the empty string.",
       "steps": [],
       "hash": "6cc59e741a540774"
@@ -8484,7 +8654,7 @@
         "nodes",
         "interface-characterdata"
       ],
-      "line": 8488,
+      "line": 8616,
       "title": "The replaceData(offset, count, data) method steps are to replace data of this with offset, count, and data.",
       "steps": [],
       "hash": "15d496e8805f27a6"
@@ -8497,7 +8667,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8526,
+      "line": 8654,
       "title": "An exclusive Text node is a Text node that is not a CDATASection node.",
       "steps": [],
       "hash": "b7d66fed7a35cdb1"
@@ -8510,7 +8680,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8531,
+      "line": 8659,
       "title": "The contiguous Text nodes of a node node are node, node's previous sibling Text node, if any, and its contiguous Text nodes, and node's next sibling Text node, ",
       "steps": [],
       "hash": "59f763c2825bbe21"
@@ -8523,7 +8693,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8539,
+      "line": 8667,
       "title": "The contiguous exclusive Text nodes of a node node are node, node's previous sibling exclusive Text node, if any, and its contiguous exclusive Text nodes, and n",
       "steps": [],
       "hash": "ca8dc34fde71401c"
@@ -8536,7 +8706,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8548,
+      "line": 8676,
       "title": "The child text content of a node node is the concatenation of the data of all the Text node children of node, in tree order.",
       "steps": [],
       "hash": "9e7d0d2c891d0e8f"
@@ -8549,7 +8719,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8554,
+      "line": 8682,
       "title": "The descendant text content of a node node is the concatenation of the data of all the Text node descendants of node, in tree order.",
       "steps": [],
       "hash": "e1424afa5f969cbe"
@@ -8562,7 +8732,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8561,
+      "line": 8689,
       "title": "To create a text node given a document document and a string data:",
       "steps": [
         {
@@ -8591,7 +8761,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8577,
+      "line": 8705,
       "title": "The new Text(data) constructor steps are to set this's data to data and this's node document to current global object's associated Document.",
       "steps": [],
       "hash": "86b51b3dc10e6e88"
@@ -8604,7 +8774,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8584,
+      "line": 8712,
       "title": "To split a Text node node with integer offset:",
       "steps": [
         {
@@ -8688,7 +8858,7 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8641,
+      "line": 8769,
       "title": "The splitText(offset) method steps are to split this with offset offset.",
       "steps": [],
       "hash": "7583b6c9e8c6968e"
@@ -8701,10 +8871,39 @@
         "nodes",
         "interface-text"
       ],
-      "line": 8646,
+      "line": 8774,
       "title": "The wholeText getter steps are to return the concatenation of the data of the contiguous Text nodes of this, in tree order.",
       "steps": [],
       "hash": "725e8fad1a0462a1"
+    },
+    {
+      "key": "create-a-cdata-section-node",
+      "section": "4.12",
+      "heading": "interface-cdatasection",
+      "headings": [
+        "nodes",
+        "interface-cdatasection"
+      ],
+      "line": 8788,
+      "title": "To create a CDATA section node given a document document and a string data:",
+      "steps": [
+        {
+          "n": "1",
+          "hash": "ae8b2e5b853e930d",
+          "text": "Let node be the result of creating a node that implements CDATASection, given document."
+        },
+        {
+          "n": "2",
+          "hash": "6981f47000568c41",
+          "text": "Set node's data to data."
+        },
+        {
+          "n": "3",
+          "hash": "e79c9e3b37576a7c",
+          "text": "Return node."
+        }
+      ],
+      "hash": "17930010ee1f538a"
     },
     {
       "key": "create-a-processing-instruction-node",
@@ -8714,7 +8913,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8723,
+      "line": 8865,
       "title": "To create a processing instruction node given a document document, a string target, and a string data:",
       "steps": [
         {
@@ -8743,7 +8942,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8738,
+      "line": 8880,
       "title": "To initialize a ProcessingInstruction node pi, with target and data:",
       "steps": [
         {
@@ -8782,7 +8981,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8757,
+      "line": 8899,
       "title": "To update attributes from data, given a ProcessingInstruction node pi:",
       "steps": [
         {
@@ -8816,7 +9015,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8777,
+      "line": 8919,
       "title": "To update data from attributes, given a ProcessingInstruction node pi:",
       "steps": [
         {
@@ -8861,8 +9060,8 @@
         },
         {
           "n": "2.7",
-          "hash": "b1e609f8856796a3",
-          "text": "Replace any U+003D (>) in value with \">\"."
+          "hash": "c9f5ab4d910ead48",
+          "text": "Replace any U+003E (>) in value with \">\"."
         },
         {
           "n": "2.8",
@@ -8885,7 +9084,7 @@
           "text": "Replace data of pi with 0, pi's length, data, and true."
         }
       ],
-      "hash": "f1cd5a341c780258"
+      "hash": "c47d171dcb47703b"
     },
     {
       "key": "get-a-processing-instruction-attribute",
@@ -8895,7 +9094,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8815,
+      "line": 8957,
       "title": "To get a processing instruction attribute, given a ProcessingInstruction node pi and a string name: return pi's attribute map[name] with default null.",
       "steps": [],
       "hash": "0d6237cf7bf61ae2"
@@ -8908,7 +9107,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8823,
+      "line": 8965,
       "title": "The new ProcessingInstruction(target, data) constructor steps are:",
       "steps": [
         {
@@ -8932,7 +9131,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8837,
+      "line": 8979,
       "title": "The target getter steps are to return this's target.",
       "steps": [],
       "hash": "f292653c447e8792"
@@ -8945,7 +9144,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8842,
+      "line": 8984,
       "title": "The hasAttributes() method steps are to return false if this's attribute map is empty; otherwise true.",
       "steps": [],
       "hash": "46afe192df3f5dbf"
@@ -8958,7 +9157,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8848,
+      "line": 8990,
       "title": "The getAttributeNames() method steps are to return the result of getting the keys of this's attribute map.",
       "steps": [],
       "hash": "e9dbc8d5a2704de6"
@@ -8971,7 +9170,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8854,
+      "line": 8996,
       "title": "The getAttribute(name) method steps are to return the result of getting a processing instruction attribute given this and name.",
       "steps": [],
       "hash": "5f47987a72b81a96"
@@ -8984,7 +9183,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8860,
+      "line": 9002,
       "title": "The setAttribute(name, value) method steps are:",
       "steps": [
         {
@@ -9013,7 +9212,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8876,
+      "line": 9018,
       "title": "The removeAttribute(name) method steps are:",
       "steps": [
         {
@@ -9037,7 +9236,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8888,
+      "line": 9030,
       "title": "The toggleAttribute(name, force) method steps are:",
       "steps": [
         {
@@ -9086,7 +9285,7 @@
         "nodes",
         "interface-processinginstruction"
       ],
-      "line": 8918,
+      "line": 9060,
       "title": "The hasAttribute(name) method steps are to return true if this's attribute map[name] exists; otherwise false.",
       "steps": [],
       "hash": "3d91650bbc84d2c0"
@@ -9099,7 +9298,7 @@
         "nodes",
         "interface-comment"
       ],
-      "line": 8941,
+      "line": 9083,
       "title": "To create a comment node given a document document and a string data:",
       "steps": [
         {
@@ -9128,7 +9327,7 @@
         "nodes",
         "interface-comment"
       ],
-      "line": 8955,
+      "line": 9097,
       "title": "The new Comment(data) constructor steps are to set this's data to data and this's node document to current global object's associated Document.",
       "steps": [],
       "hash": "cc02666d90ef00fb"
@@ -9141,7 +9340,7 @@
         "ranges",
         "boundary-points"
       ],
-      "line": 9041,
+      "line": 9183,
       "title": "The position of a boundary point (nodeA, offsetA) relative to a boundary point (nodeB, offsetB) is before, equal, or after, as returned by these steps:",
       "steps": [
         {
@@ -9195,7 +9394,7 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9111,
+      "line": 9253,
       "title": "A range is collapsed if its start node is its end node and its start offset is its end offset.",
       "steps": [],
       "hash": "041276c992bd4a06"
@@ -9208,7 +9407,7 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9133,
+      "line": 9275,
       "title": "The startContainer getter steps are to return this's start node.",
       "steps": [],
       "hash": "a133eb25fcf09da0"
@@ -9221,7 +9420,7 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9139,
+      "line": 9281,
       "title": "The startOffset getter steps are to return this's start offset.",
       "steps": [],
       "hash": "e927f2c6e250a663"
@@ -9234,7 +9433,7 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9144,
+      "line": 9286,
       "title": "The endContainer getter steps are to return this's end node.",
       "steps": [],
       "hash": "425036e82706a12f"
@@ -9247,7 +9446,7 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9149,
+      "line": 9291,
       "title": "The endOffset getter steps are to return this's end offset.",
       "steps": [],
       "hash": "e5b50fe112e70089"
@@ -9260,7 +9459,7 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9154,
+      "line": 9296,
       "title": "The collapsed getter steps are to return true if this is collapsed; otherwise false.",
       "steps": [],
       "hash": "979f82e138958a51"
@@ -9273,7 +9472,7 @@
         "ranges",
         "interface-staticrange"
       ],
-      "line": 9181,
+      "line": 9323,
       "title": "The new StaticRange(init) constructor steps are:",
       "steps": [
         {
@@ -9297,7 +9496,7 @@
         "ranges",
         "interface-staticrange"
       ],
-      "line": 9199,
+      "line": 9341,
       "title": "A StaticRange is valid if all of the following are true:",
       "steps": [],
       "hash": "0ebc130f9b0581eb"
@@ -9310,7 +9509,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9331,
+      "line": 9473,
       "title": "The live range pre-remove steps given a node node, are:",
       "steps": [
         {
@@ -9359,7 +9558,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9365,
+      "line": 9507,
       "title": "The new Range() constructor steps are to set this's start and end to (current global object's associated Document, 0).",
       "steps": [],
       "hash": "aff6ef257870f154"
@@ -9372,7 +9571,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9380,
+      "line": 9522,
       "title": "To get the common ancestor of a live range range:",
       "steps": [
         {
@@ -9401,7 +9600,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9394,
+      "line": 9536,
       "title": "The commonAncestorContainer getter steps are to return the result of getting the common ancestor of this.",
       "steps": [],
       "hash": "68c4b8610236d0ed"
@@ -9414,7 +9613,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9401,
+      "line": 9543,
       "title": "To set the start or end of a range to a boundary point (node, offset):",
       "steps": [
         {
@@ -9468,7 +9667,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9442,
+      "line": 9584,
       "title": "The setStart(node, offset) method steps are to set the start of this to boundary point (node, offset).",
       "steps": [],
       "hash": "d3c3b2fe0536ef3d"
@@ -9481,7 +9680,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9448,
+      "line": 9590,
       "title": "The setEnd(node, offset) method steps are to set the end of this to boundary point (node, offset).",
       "steps": [],
       "hash": "7a627e825b1b1d3f"
@@ -9494,7 +9693,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9454,
+      "line": 9596,
       "title": "The setStartBefore(node) method steps are:",
       "steps": [
         {
@@ -9523,7 +9722,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9468,
+      "line": 9610,
       "title": "The setStartAfter(node) method steps are:",
       "steps": [
         {
@@ -9552,7 +9751,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9482,
+      "line": 9624,
       "title": "The setEndBefore(node) method steps are:",
       "steps": [
         {
@@ -9581,7 +9780,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9496,
+      "line": 9638,
       "title": "The setEndAfter(node) method steps are:",
       "steps": [
         {
@@ -9610,7 +9809,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9510,
+      "line": 9652,
       "title": "The collapse(toStart) method steps are to, if toStart is true, set end to start; otherwise set start to end.",
       "steps": [],
       "hash": "ffcf57b925dfed29"
@@ -9623,7 +9822,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9516,
+      "line": 9658,
       "title": "To select a node node within a range range:",
       "steps": [
         {
@@ -9662,7 +9861,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9536,
+      "line": 9678,
       "title": "The selectNode(node) method steps are to select node within this.",
       "steps": [],
       "hash": "f88998d517854726"
@@ -9675,7 +9874,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9541,
+      "line": 9683,
       "title": "The selectNodeContents(node) method steps are:",
       "steps": [
         {
@@ -9709,7 +9908,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9559,
+      "line": 9701,
       "title": "The compareBoundaryPoints(how, sourceRange) method steps are:",
       "steps": [
         {
@@ -9748,7 +9947,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9641,
+      "line": 9783,
       "title": "The deleteContents() method steps are:",
       "steps": [
         {
@@ -9842,7 +10041,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9715,
+      "line": 9857,
       "title": "To extract a live range range:",
       "steps": [
         {
@@ -10091,7 +10290,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9914,
+      "line": 10056,
       "title": "The extractContents() method steps are to return the result of extracting this.",
       "steps": [],
       "hash": "655a9744f3f55552"
@@ -10104,7 +10303,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 9919,
+      "line": 10061,
       "title": "To clone the contents of a live range range:",
       "steps": [
         {
@@ -10313,7 +10512,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10081,
+      "line": 10223,
       "title": "The cloneContents() method steps are to return the result of cloning the contents of this.",
       "steps": [],
       "hash": "aacd89bdac6a3966"
@@ -10326,7 +10525,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10086,
+      "line": 10228,
       "title": "To insert a node node into a live range range:",
       "steps": [
         {
@@ -10405,7 +10604,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10181,
+      "line": 10323,
       "title": "The insertNode(node) method steps are to insert node into this.",
       "steps": [],
       "hash": "278a3ea7f38bc758"
@@ -10418,7 +10617,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10186,
+      "line": 10328,
       "title": "The surroundContents(newParent) method steps are:",
       "steps": [
         {
@@ -10467,7 +10666,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10235,
+      "line": 10377,
       "title": "The cloneRange() method steps are to return a new live range with the same start and end as this.",
       "steps": [],
       "hash": "6d3dcc5e8a96587b"
@@ -10480,7 +10679,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10240,
+      "line": 10382,
       "title": "The detach() method steps are to do nothing. Its functionality (disabling a Range object) was removed, but the method itself is preserved for compatibility.",
       "steps": [],
       "hash": "2b36a0acc2146fab"
@@ -10493,7 +10692,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10258,
+      "line": 10400,
       "title": "The isPointInRange(node, offset) method steps are:",
       "steps": [
         {
@@ -10532,7 +10731,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10295,
+      "line": 10437,
       "title": "The comparePoint(node, offset) method steps are:",
       "steps": [
         {
@@ -10576,7 +10775,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10330,
+      "line": 10472,
       "title": "The intersectsNode(node) method steps are:",
       "steps": [
         {
@@ -10620,7 +10819,7 @@
         "ranges",
         "interface-range"
       ],
-      "line": 10358,
+      "line": 10500,
       "title": "The stringification behavior must run these steps:",
       "steps": [
         {
@@ -10663,7 +10862,7 @@
       "headings": [
         "traversal"
       ],
-      "line": 10409,
+      "line": 10551,
       "title": "To filter a node node within a NodeIterator or TreeWalker object traverser:",
       "steps": [
         {
@@ -10717,7 +10916,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10479,
+      "line": 10621,
       "title": "The NodeIterator pre-remove steps given a NodeIterator object nodeIterator and node toBeRemovedNode, are:",
       "steps": [
         {
@@ -10741,7 +10940,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10498,
+      "line": 10640,
       "title": "To adjust a node pointer given a node pointer nodePointer, a NodeIterator object nodeIterator, and a node toBeRemovedNode, perform the following steps. They ret",
       "steps": [
         {
@@ -10785,7 +10984,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10532,
+      "line": 10674,
       "title": "The root getter steps are to return this's root.",
       "steps": [],
       "hash": "59dfc83f5f977b12"
@@ -10798,7 +10997,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10537,
+      "line": 10679,
       "title": "The referenceNode getter steps are to return this's reference's node.",
       "steps": [],
       "hash": "b535c98418225efa"
@@ -10811,7 +11010,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10542,
+      "line": 10684,
       "title": "The pointerBeforeReferenceNode getter steps are to return this's reference's pointer before.",
       "steps": [],
       "hash": "06bf7043db735e10"
@@ -10824,7 +11023,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10548,
+      "line": 10690,
       "title": "The whatToShow getter steps are to return this's whatToShow.",
       "steps": [],
       "hash": "3113e53f1c725af8"
@@ -10837,7 +11036,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10553,
+      "line": 10695,
       "title": "The filter getter steps are to return this's filter.",
       "steps": [],
       "hash": "85f30008c4d27b1b"
@@ -10850,7 +11049,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10558,
+      "line": 10700,
       "title": "To traverse, given a NodeIterator object iterator and \"next\" or \"previous\" type:",
       "steps": [
         {
@@ -10969,7 +11168,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10645,
+      "line": 10787,
       "title": "The nextNode() method steps are to return the result of traversing with this and \"next\".",
       "steps": [],
       "hash": "a9ed83a0a6442784"
@@ -10982,7 +11181,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10650,
+      "line": 10792,
       "title": "The previousNode() method steps are to return the result of traversing with this and \"previous\".",
       "steps": [],
       "hash": "ce7449e418ec225e"
@@ -10995,7 +11194,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10655,
+      "line": 10797,
       "title": "The detach() method steps are to do nothing. Its functionality (disabling a NodeIterator object) was removed, but the method itself is preserved for compatibili",
       "steps": [],
       "hash": "2c2c9d2cc8d1a77b"
@@ -11008,7 +11207,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10690,
+      "line": 10832,
       "title": "The root getter steps are to return this's root.",
       "steps": [],
       "hash": "da314e896d3c7d99"
@@ -11021,7 +11220,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10695,
+      "line": 10837,
       "title": "The whatToShow getter steps are to return this's whatToShow.",
       "steps": [],
       "hash": "98caf88f3b2d8ac7"
@@ -11034,7 +11233,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10700,
+      "line": 10842,
       "title": "The filter getter steps are to return this's filter.",
       "steps": [],
       "hash": "8413453a8c9d97d0"
@@ -11047,7 +11246,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10705,
+      "line": 10847,
       "title": "The currentNode getter steps are to return this's current.",
       "steps": [],
       "hash": "edf48ee23136a067"
@@ -11060,7 +11259,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10710,
+      "line": 10852,
       "title": "The currentNode setter steps are to set this's current to the given value.",
       "steps": [],
       "hash": "21f966015d15c553"
@@ -11073,7 +11272,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10717,
+      "line": 10859,
       "title": "The parentNode() method steps are:",
       "steps": [
         {
@@ -11112,7 +11311,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10739,
+      "line": 10881,
       "title": "To traverse children, given a TreeWalker object walker and \"first\" or \"last\" type:",
       "steps": [
         {
@@ -11201,7 +11400,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10795,
+      "line": 10937,
       "title": "The firstChild() method steps are to traverse children with this and \"first\".",
       "steps": [],
       "hash": "e33ddec0340d7d98"
@@ -11214,7 +11413,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10800,
+      "line": 10942,
       "title": "The lastChild() method steps are to traverse children with this and \"last\".",
       "steps": [],
       "hash": "9ca635f671e3e5ce"
@@ -11227,7 +11426,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10805,
+      "line": 10947,
       "title": "To traverse siblings, given a TreeWalker object walker and \"next\" or \"previous\" type:",
       "steps": [
         {
@@ -11306,7 +11505,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10854,
+      "line": 10996,
       "title": "The nextSibling() method steps are to traverse siblings with this and \"next\".",
       "steps": [],
       "hash": "58cbbc7bb3d37a26"
@@ -11319,7 +11518,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10859,
+      "line": 11001,
       "title": "The previousSibling() method steps are to traverse siblings with this and \"previous\".",
       "steps": [],
       "hash": "48ab4df7f6649436"
@@ -11332,7 +11531,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10864,
+      "line": 11006,
       "title": "The previousNode() method steps are:",
       "steps": [
         {
@@ -11421,7 +11620,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10916,
+      "line": 11058,
       "title": "The nextNode() method steps are:",
       "steps": [
         {
@@ -11525,7 +11724,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11066,
+      "line": 11208,
       "title": "A DOMTokenList object set's validation steps for a given token are:",
       "steps": [
         {
@@ -11559,7 +11758,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11086,
+      "line": 11228,
       "title": "A DOMTokenList object set's update steps are:",
       "steps": [
         {
@@ -11583,7 +11782,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11101,
+      "line": 11243,
       "title": "A DOMTokenList object set's serialize steps are to return the result of running get an attribute value given set's element and set's attribute name.",
       "steps": [],
       "hash": "184f01ab8452eec4"
@@ -11596,7 +11795,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11110,
+      "line": 11252,
       "title": "A DOMTokenList object set has these attribute change steps for set's element:",
       "steps": [
         {
@@ -11620,7 +11819,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11125,
+      "line": 11267,
       "title": "When a DOMTokenList object set is created:",
       "steps": [
         {
@@ -11654,7 +11853,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11201,
+      "line": 11343,
       "title": "The length getter steps are to return this's token set's size.",
       "steps": [],
       "hash": "10d6563ef0ed3b65"
@@ -11667,7 +11866,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11210,
+      "line": 11352,
       "title": "The item(index) method steps are:",
       "steps": [
         {
@@ -11691,7 +11890,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11221,
+      "line": 11363,
       "title": "The contains(token) method steps are to return true if this's token set[token] exists; otherwise false.",
       "steps": [],
       "hash": "9dc3a56ca3565916"
@@ -11704,7 +11903,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11227,
+      "line": 11369,
       "title": "The add(tokens&hellip;) method steps are:",
       "steps": [
         {
@@ -11743,7 +11942,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11251,
+      "line": 11393,
       "title": "The remove(tokens&hellip;) method steps are:",
       "steps": [
         {
@@ -11782,7 +11981,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11275,
+      "line": 11417,
       "title": "The toggle(token, force) method steps are:",
       "steps": [
         {
@@ -11831,7 +12030,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11307,
+      "line": 11449,
       "title": "The replace(token, newToken) method steps are:",
       "steps": [
         {
@@ -11875,7 +12074,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11335,
+      "line": 11477,
       "title": "The supports(token) method steps are:",
       "steps": [
         {
@@ -11899,7 +12098,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11348,
+      "line": 11490,
       "title": "The value getter steps are to return the result of running this's serialize steps.",
       "steps": [],
       "hash": "28175bbac417c7ce"
@@ -11912,7 +12111,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11353,
+      "line": 11495,
       "title": "The value setter steps are to set an attribute value for this's element using this's attribute name and the given value.",
       "steps": [],
       "hash": "e0c2af463591ccdd"
@@ -11925,7 +12124,7 @@
         "xpath",
         "mixin-xpathevaluatorbase"
       ],
-      "line": 11427,
+      "line": 11569,
       "title": "The createNSResolver(nodeResolver) method steps are to return nodeResolver.",
       "steps": [],
       "hash": "dcfd9d50e2e40cd5"

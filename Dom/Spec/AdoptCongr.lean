@@ -165,7 +165,7 @@ theorem adoptStep2_facts {nd : NodeData} (hnd : s.tree.get? node = some nd) {s�
       (∀ d, IsDocument s.tree d → IsDocument s₁.tree d) := by
   rcases h with ⟨hp, rfl⟩ | ⟨-, hr⟩
   · exact ⟨⟨nd, hnd⟩, hp, fun _ _ ha => ha, fun _ hd => hd⟩
-  · obtain ⟨parent, -, -, -, -, -, htr, -, -⟩ := hr
+  · obtain ⟨parent, -, htr⟩ := hr.treeRemoved
     exact ⟨treeRemoved_exists htr hnd, htr.detached,
       fun _ _ ha => treeRemoved_ancestor htr ha, fun _ hd => treeRemoved_isDocument htr hd⟩
 
@@ -231,7 +231,7 @@ theorem adoptSpec_step2 (hwf : WellFormed s.tree) (h : ObsEq s sb) {s₁ s₂ : 
       simp at hp₂
   · rcases h₂ with ⟨hp₂, rfl⟩ | ⟨-, hr₂⟩
     · exfalso
-      obtain ⟨parent, -, hpre, -⟩ := hr₁
+      obtain ⟨parent, hpre, -⟩ := hr₁.treeRemoved
       rw [h.tree.parentOf, hpre] at hp₂
       simp at hp₂
     · exact ⟨removeSpec_congr hwf h hr₁ hr₂, removeSpec_wellFormed hwf hr₁⟩
@@ -347,7 +347,7 @@ theorem adoptSpec_parentOf {out : DOMState} (hq : AdoptSpec s node doc out)
   rw [(adoptStep3_facts hnd₁ hst3).1 m]
   rcases hst2 with ⟨-, rfl⟩ | ⟨-, hr⟩
   · rfl
-  · obtain ⟨parent, -, -, -, -, -, htr, -, -⟩ := hr
+  · obtain ⟨parent, -, htr⟩ := hr.treeRemoved
     exact htr.otherParents m hm
 
 end Dom.Spec

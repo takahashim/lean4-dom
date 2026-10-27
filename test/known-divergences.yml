@@ -924,3 +924,43 @@
   scenario: range-surround-ancestor
   digest: 9d24650caeb1d1b2
   reason: *surround_replace_all
+
+- impl: dommy
+  scenario: notify-order-follows-creation-index
+  digest: b4b6933f8c1f5e34
+  reason: &transient_bookkeeping |
+    whatwg/dom 3071e5f "Correct transient registered observer bookkeeping and callback order"
+    （2026-10）より前の本文に従っている。この commit は次を変えた。
+
+    * notify mutation observers は pending mutation observers を creation index の順に並べてから
+      回る（step 2）。前の本文は pending になった順だった。
+    * add transient registered observers は、足した transient の observer を pending にする
+      （step 1.7）。record の無い observer の transient も次の notify で外れる。
+    * transient から作った transient の source は、元の registered observer である（step 1.3）。
+      `observe()` で options を差し替えると、その transient も外れる（step 8.1）。
+
+    commit message によれば、どれも実装（Chromium・Gecko・WebKit）に合わせた改訂である。
+    固定 scenario のうち notify を含まないもの（`observe-removes-transients-chained-from-transients`）は
+    Chromium・Firefox・WebKit とも model と一致した。Dommy の `move` はすでに transient を足す
+    （`move-adds-transient-registered-observers` は一致する）。
+    https://github.com/whatwg/dom/commit/3071e5f
+
+- impl: dommy
+  scenario: observer-transient-follows-existing-registration
+  digest: 9599a225791c415c
+  reason: *transient_bookkeeping
+
+- impl: dommy
+  scenario: transient-observer-is-removed-at-notify-without-records
+  digest: 1791697f740adf78
+  reason: *transient_bookkeeping
+
+- impl: dommy
+  scenario: observe-removes-transients-chained-from-transients
+  digest: ae08f0ce4483dbdc
+  reason: *transient_bookkeeping
+
+- impl: dommy-js
+  scenario: observe-removes-transients-chained-from-transients
+  digest: 00418b0063764eeb
+  reason: *transient_bookkeeping

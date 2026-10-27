@@ -306,7 +306,7 @@ theorem attrFrame_move {s s' : DOMState} {node newParent : NodeId} {child : Opti
       | ok s₁ =>
         rw [hd] at h
         simp only [] at h
-        generalize hm : (liveRangeInsertAdjust s₁ newParent child 1).mapTree
+        generalize hm : (liveRangeInsertAdjust (addTransientObservers s₁ node p) newParent child 1).mapTree
           (fun t => insertAt t newParent node child) = r at h
         cases r with
         | error e => cases h

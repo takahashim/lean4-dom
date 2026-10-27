@@ -110,11 +110,12 @@ def entries : List Entry := [
     spec := [``Dom.Spec.InnerInvoked, ``Dom.Spec.CallbackRan]
     omitted := [("1", .other "found を計算しない。使い道の invoke step 11 が isTrusted=false で起きない"),
                 ("2.2", .other "found を計算しない"),
-                ("2.6-2.8", .host),
-                ("2.10", .host), ("2.11.1-2.11.2", .host),
-                ("2.13", .host),
+                ("2.6-2.7", .host),
+                ("2.9-2.10", .host), ("2.12", .host), ("2.13.1-2.13.2", .host),
+                ("2.15", .host),
                 ("3", .other "found を返さない")]
-    approx := [("2.11", "callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない")] }
+    approx := [("2.8", "global object も browsing context も持たないので、どの Document も fully active とみなし、continue しない"),
+               ("2.13", "callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない")] }
 ]
 
 def exclusions : List Exclusion := [

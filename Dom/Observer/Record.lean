@@ -5,10 +5,11 @@ import Dom.Basic.Order
 # MutationObserver の record
 
 DOM Standard §4.3.4 の "queue a mutation record" と "queue a tree mutation record"、
-および §4.2.3 remove step 20 の transient registered observer を定義する。
+および §4.3 "add transient registered observers"（remove step 15 と move step 17 が呼ぶ）を定義する。
 
 配送そのもの（"notify mutation observers"）は `Dom/Observer/Deliver.lean` にある。
-ここは record を積むところまでで、transient registered observer を消すのは配送の側である。
+ここは record を積むところまでで、transient registered observer を消すのは配送の側
+（"remove transient registered observers"）である。
 -/
 
 namespace Dom
@@ -93,17 +94,30 @@ def enqueueRecord (obs : List ObserverState) (mo : Nat) (rec : MutationRecord) :
 /--
 DOM Standard §4.3.4 "queue a mutation record"。
 
-step 4 が record を積んで pending mutation observers に足し、
-step 5 が microtask を予約する。step 5 は interested observers が空でも走る。
+interested observers が空なら step 4 で返る。そうでなければ step 5 が record を積んで
+pending mutation observers に足し、step 6 が microtask を予約する。
 -/
 def queueMutationRecord (s : DOMState) (rec : MutationRecord) (oldValue : Option String) :
     DOMState :=
   let interested := interestedObservers s rec oldValue
-  let s₁ := { s with
-      observers := interested.foldl
-        (fun obs p => enqueueRecord obs p.1 { rec with oldValue := p.2 }) s.observers }
-  let s₂ := interested.foldl (fun st p => addPendingObserver st p.1) s₁
-  queueMutationObserverMicrotask s₂
+  if interested.isEmpty then s
+  else
+    let s₁ := { s with
+        observers := interested.foldl
+          (fun obs p => enqueueRecord obs p.1 { rec with oldValue := p.2 }) s.observers }
+    let s₂ := interested.foldl (fun st p => addPendingObserver st p.1) s₁
+    queueMutationObserverMicrotask s₂
+
+/-- `queueMutationRecord` の本体を `let` を開いた形で書いたもの。 -/
+theorem queueMutationRecord_eq (s : DOMState) (rec : MutationRecord) (ov : Option String) :
+    queueMutationRecord s rec ov =
+      if (interestedObservers s rec ov).isEmpty then s
+      else queueMutationObserverMicrotask ((interestedObservers s rec ov).foldl
+        (fun st p => addPendingObserver st p.1)
+        { s with
+            observers := (interestedObservers s rec ov).foldl
+              (fun obs p => enqueueRecord obs p.1 { rec with oldValue := p.2 }) s.observers }) :=
+  rfl
 
 /--
 DOM Standard §4.3.4 "queue a tree mutation record"。
@@ -128,33 +142,105 @@ def queueCharacterDataRecord (s : DOMState) (target : NodeId) (oldValue : String
 /-! ## transient registered observer -/
 
 /--
-DOM Standard §4.2.3 remove step 20。
+transient を足す一歩。observer の node list は伸びるだけで、その observer の node list には node が入る。
 
-`parent` の inclusive ancestor に subtree 付きで登録されている observer を、
-取り除く `node` の registered observer list に transient として足す。
-これがあると、subtree observer は外された部分木の中の変更も配送まで見続ける。
+model の node list（`ObserverState.nodeList`）は、本文の node list と transient node set を合わせたものである。
+"add transient registered observers" step 1.6 はここで transient node set に node を足す。
+-/
+def transientStep (node : NodeId) (obs : List ObserverState) (r : Registration) : List ObserverState :=
+  match obs[r.observer]? with
+  | none => obs
+  | some o =>
+    if o.nodeList.contains node then obs
+    else obs.set r.observer { o with nodeList := o.nodeList ++ [node] }
 
-対象は registered observer list の **全部** である。
-仕様の transient registered observer は「source を持つ registered observer」なので、
-それ自身が registered observer list に入り、次の removal の source にもなる。
-すでに外れた部分木の中でさらに removal が起きても、追跡が途切れないのはこのためである。
+/--
+"add transient registered observers" step 1.3 の source。
+
+transient registered observer なら その source、そうでなければ registered 自身である。
+model は source を registration の node で表す（`Registration.source` の doc comment）。
+-/
+def Registration.sourceNode (r : Registration) : Option NodeId :=
+  if r.transient then r.source else some r.node
+
+/-- step 1.5 で足す transient registered observer。options は registered のものを写す。 -/
+def Registration.transientOn (r : Registration) (node : NodeId) : Registration :=
+  { r with node := node, transient := true, source := r.sourceNode }
+
+/-- step 1.4：`regs` に、source が `r` の source である transient registered observer があるか。 -/
+def hasTransientFrom (regs : List Registration) (r : Registration) : Bool :=
+  regs.any fun t => t.transient && t.observer == r.observer && t.source == r.sourceNode
+
+/--
+step 1.1-1.5 を一つの registered について行う。
+
+`existing` は node の元の registered observer list、`acc` はここまでに足した transient である。
+-/
+def collectTransient (node : NodeId) (existing acc : List Registration) (r : Registration) :
+    List Registration :=
+  if r.subtree && !hasTransientFrom (existing ++ acc) r then acc ++ [r.transientOn node] else acc
+
+/--
+step 1 の繰り返しで `node` に足す transient registered observer の列。
+
+`parent` の inclusive ancestor を下から上へ、各 node の registered observer list を list の順に回る。
+-/
+def newTransients (s : DOMState) (node parent : NodeId) : List Registration :=
+  ((parent :: ancestors s.tree parent).flatMap fun n =>
+      s.registrations.filter fun r => r.node == n).foldl
+    (collectTransient node (s.registrations.filter fun r => r.node == node)) []
+
+/-- step 1.7-1.8：足した transient の observer を pending にし、microtask を予約する。 -/
+def pendTransient (s : DOMState) (r : Registration) : DOMState :=
+  queueMutationObserverMicrotask (addPendingObserver s r.observer)
+
+/--
+DOM Standard §4.3 "add transient registered observers"。remove step 15 と move step 17 が呼ぶ。
+
+`parent` の inclusive ancestor に subtree 付きで登録されている registered observer ごとに、
+`node` に transient registered observer を足す。
+これがあると、subtree observer は外された部分木の中の変更も次の notify まで見続ける。
+
+registered が transient なら、足す transient の source はその source である（step 1.3）。
+すでに外れた部分木の中でさらに removal が起きても、追跡は元の registered observer から続く。
+同じ source の transient が `node` にあれば足さない（step 1.4）。
+
+足した transient の observer は pending になる（step 1.7）。record が無くても、次の notify で
+transient が外れるためである。
 -/
 def addTransientObservers (s : DOMState) (node parent : NodeId) : DOMState :=
-  let nodes := parent :: ancestors s.tree parent
-  let added := nodes.flatMap fun n =>
-    (s.registrations.filter fun r => r.node == n && r.subtree).map fun r =>
-      { r with node := node, transient := true, source := some r.node }
-  -- transient を置いた node を、その observer の node list にも足す。
-  -- こうしないと "notify mutation observers" step 5.2 と `observe` step 7.1 の掃除が
-  -- この node に届かない（`Dom/Observer/Deliver.lean` の doc comment を参照）。
-  let observers := added.foldl (fun obs r =>
-    match obs[r.observer]? with
-    | none => obs
-    | some o =>
-      if o.nodeList.contains node then obs
-      else obs.set r.observer { o with nodeList := o.nodeList ++ [node] }) s.observers
-  { s with registrations := s.registrations ++ added, observers := observers }
+  let added := newTransients s node parent
+  let s₁ := { s with
+      registrations := s.registrations ++ added
+      -- step 1.6。transient を置いた node を、その observer の transient node set（model では node list）に足す。
+      observers := added.foldl (transientStep node) s.observers }
+  added.foldl pendTransient s₁
 
+
+/-- step 1.7-1.8 の畳み込みは、`f` が見る成分を変えない。 -/
+theorem foldl_pendTransient_frame {β : Type} (f : DOMState → β)
+    (hf : ∀ st r, f (pendTransient st r) = f st) :
+    ∀ (l : List Registration) (st : DOMState), f (l.foldl pendTransient st) = f st
+  | [], _ => rfl
+  | r :: l, st => by
+    rw [List.foldl_cons, foldl_pendTransient_frame f hf l, hf]
+
+/-- `addTransientObservers` の、step 1.7-1.8 の前の状態。 -/
+theorem addTransientObservers_eq (s : DOMState) (node parent : NodeId) :
+    addTransientObservers s node parent =
+      (newTransients s node parent).foldl pendTransient
+        { s with
+            registrations := s.registrations ++ newTransients s node parent
+            observers := (newTransients s node parent).foldl (transientStep node) s.observers } :=
+  rfl
+
+/-- `addTransientObservers` は、`f` が見る成分のうち registration と observer 列以外を変えない。 -/
+theorem addTransientObservers_frame {β : Type} (f : DOMState → β)
+    (hf : ∀ st r, f (pendTransient st r) = f st)
+    (hs : ∀ (st : DOMState) regs obs,
+      f { st with registrations := regs, observers := obs } = f st)
+    (s : DOMState) (node parent : NodeId) : f (addTransientObservers s node parent) = f s := by
+  rw [addTransientObservers_eq, foldl_pendTransient_frame f hf, hs]
 
 /-! ## walker・listener・detach された `Attr` には触れない -/
 
@@ -180,8 +266,10 @@ theorem foldl_addPendingObserver_walkers :
 
 @[simp] theorem queueMutationRecord_walkers (s : DOMState) (rec : MutationRecord)
     (ov : Option String) : (queueMutationRecord s rec ov).walkers = s.walkers := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_walkers, foldl_addPendingObserver_walkers]
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_walkers, foldl_addPendingObserver_walkers]
 
 @[simp] theorem queueTreeMutationRecord_walkers (s : DOMState) (t : NodeId)
     (a r : List NodeId) (p n : Option NodeId) :
@@ -196,7 +284,8 @@ theorem foldl_addPendingObserver_walkers :
   unfold queueCharacterDataRecord; simp
 
 @[simp] theorem addTransientObservers_walkers (s : DOMState) (n p : NodeId) :
-    (addTransientObservers s n p).walkers = s.walkers := rfl
+    (addTransientObservers s n p).walkers = s.walkers :=
+  addTransientObservers_frame (·.walkers) (fun st r => by simp [pendTransient]) (fun _ _ _ => rfl) s n p
 
 @[simp] theorem queueMutationObserverMicrotask_listeners (s : DOMState) :
     (queueMutationObserverMicrotask s).listeners = s.listeners := by
@@ -216,8 +305,10 @@ theorem foldl_addPendingObserver_listeners :
 
 @[simp] theorem queueMutationRecord_listeners (s : DOMState) (rec : MutationRecord)
     (ov : Option String) : (queueMutationRecord s rec ov).listeners = s.listeners := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_listeners, foldl_addPendingObserver_listeners]
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_listeners, foldl_addPendingObserver_listeners]
 
 @[simp] theorem queueTreeMutationRecord_listeners (s : DOMState) (t : NodeId)
     (a r : List NodeId) (p n : Option NodeId) :
@@ -232,7 +323,8 @@ theorem foldl_addPendingObserver_listeners :
   unfold queueCharacterDataRecord; simp
 
 @[simp] theorem addTransientObservers_listeners (s : DOMState) (n p : NodeId) :
-    (addTransientObservers s n p).listeners = s.listeners := rfl
+    (addTransientObservers s n p).listeners = s.listeners :=
+  addTransientObservers_frame (·.listeners) (fun st r => by simp [pendTransient]) (fun _ _ _ => rfl) s n p
 
 @[simp] theorem queueMutationObserverMicrotask_detachedAttrs (s : DOMState) :
     (queueMutationObserverMicrotask s).detachedAttrs = s.detachedAttrs := by
@@ -252,8 +344,10 @@ theorem foldl_addPendingObserver_detachedAttrs :
 
 @[simp] theorem queueMutationRecord_detachedAttrs (s : DOMState) (rec : MutationRecord)
     (ov : Option String) : (queueMutationRecord s rec ov).detachedAttrs = s.detachedAttrs := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_detachedAttrs, foldl_addPendingObserver_detachedAttrs]
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_detachedAttrs, foldl_addPendingObserver_detachedAttrs]
 
 @[simp] theorem queueTreeMutationRecord_detachedAttrs (s : DOMState) (t : NodeId)
     (a r : List NodeId) (p n : Option NodeId) :
@@ -268,7 +362,8 @@ theorem foldl_addPendingObserver_detachedAttrs :
   unfold queueCharacterDataRecord; simp
 
 @[simp] theorem addTransientObservers_detachedAttrs (s : DOMState) (n p : NodeId) :
-    (addTransientObservers s n p).detachedAttrs = s.detachedAttrs := rfl
+    (addTransientObservers s n p).detachedAttrs = s.detachedAttrs :=
+  addTransientObservers_frame (·.detachedAttrs) (fun st r => by simp [pendTransient]) (fun _ _ _ => rfl) s n p
 
 theorem untouched_queueMutationRecord (s : DOMState) (rec : MutationRecord)
     (oldValue : Option String) : Untouched s (queueMutationRecord s rec oldValue) :=
@@ -283,7 +378,7 @@ theorem untouched_queueCharacterDataRecord (s : DOMState) (target : NodeId) (old
     Untouched s (queueCharacterDataRecord s target oldValue) := ⟨by simp, by simp, by simp⟩
 
 theorem untouched_addTransientObservers (s : DOMState) (node parent : NodeId) :
-    Untouched s (addTransientObservers s node parent) := ⟨rfl, rfl, rfl⟩
+    Untouched s (addTransientObservers s node parent) := ⟨by simp, by simp, by simp⟩
 
 /-! ## microtask と pending は他の成分を変えない -/
 
@@ -372,23 +467,31 @@ theorem foldl_addPendingObserver_observers :
 
 @[simp] theorem queueMutationRecord_tree (s : DOMState) (rec : MutationRecord)
     (ov : Option String) : (queueMutationRecord s rec ov).tree = s.tree := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_tree, foldl_addPendingObserver_tree]
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_tree, foldl_addPendingObserver_tree]
 
 @[simp] theorem queueMutationRecord_ranges (s : DOMState) (rec : MutationRecord)
     (ov : Option String) : (queueMutationRecord s rec ov).ranges = s.ranges := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_ranges, foldl_addPendingObserver_ranges]
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_ranges, foldl_addPendingObserver_ranges]
 
 @[simp] theorem queueMutationRecord_iterators (s : DOMState) (rec : MutationRecord)
     (ov : Option String) : (queueMutationRecord s rec ov).iterators = s.iterators := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_iterators, foldl_addPendingObserver_iterators]
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_iterators, foldl_addPendingObserver_iterators]
 
 @[simp] theorem queueMutationRecord_registrations (s : DOMState) (rec : MutationRecord)
     (ov : Option String) : (queueMutationRecord s rec ov).registrations = s.registrations := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_registrations, foldl_addPendingObserver_registrations]
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_registrations, foldl_addPendingObserver_registrations]
 
 @[simp] theorem queueTreeMutationRecord_tree (s : DOMState) (t : NodeId)
     (a r : List NodeId) (p n : Option NodeId) :
@@ -427,43 +530,16 @@ theorem foldl_addPendingObserver_observers :
   unfold queueCharacterDataRecord; simp
 
 @[simp] theorem addTransientObservers_tree (s : DOMState) (n p : NodeId) :
-    (addTransientObservers s n p).tree = s.tree := rfl
+    (addTransientObservers s n p).tree = s.tree :=
+  addTransientObservers_frame (·.tree) (fun st r => by simp [pendTransient]) (fun _ _ _ => rfl) s n p
 
 @[simp] theorem addTransientObservers_ranges (s : DOMState) (n p : NodeId) :
-    (addTransientObservers s n p).ranges = s.ranges := rfl
+    (addTransientObservers s n p).ranges = s.ranges :=
+  addTransientObservers_frame (·.ranges) (fun st r => by simp [pendTransient]) (fun _ _ _ => rfl) s n p
 
 @[simp] theorem addTransientObservers_iterators (s : DOMState) (n p : NodeId) :
-    (addTransientObservers s n p).iterators = s.iterators := rfl
-
-/-- transient を足しても observer の数は変わらない。 -/
-theorem foldl_transient_observers_length :
-    ∀ (l : List Registration) (obs : List ObserverState) (node : NodeId),
-      (l.foldl (fun obs r =>
-        match obs[r.observer]? with
-        | none => obs
-        | some o =>
-          if o.nodeList.contains node then obs
-          else obs.set r.observer { o with nodeList := o.nodeList ++ [node] }) obs).length
-        = obs.length
-  | [], _, _ => rfl
-  | x :: xs, obs, node => by
-    show (xs.foldl _ (match obs[x.observer]? with
-      | none => obs
-      | some o =>
-        if o.nodeList.contains node then obs
-        else obs.set x.observer { o with nodeList := o.nodeList ++ [node] })).length = obs.length
-    rw [foldl_transient_observers_length xs]
-    split
-    · rfl
-    · split <;> simp
-
-/-- transient を足す一歩。observer の node list は伸びるだけで、その observer の node list には node が入る。 -/
-def transientStep (node : NodeId) (obs : List ObserverState) (r : Registration) : List ObserverState :=
-  match obs[r.observer]? with
-  | none => obs
-  | some o =>
-    if o.nodeList.contains node then obs
-    else obs.set r.observer { o with nodeList := o.nodeList ++ [node] }
+    (addTransientObservers s n p).iterators = s.iterators :=
+  addTransientObservers_frame (·.iterators) (fun st r => by simp [pendTransient]) (fun _ _ _ => rfl) s n p
 
 theorem transientStep_grow (node : NodeId) (obs : List ObserverState) (r : Registration)
     {i : Nat} {o : ObserverState} (h : obs[i]? = some o) :
@@ -536,15 +612,35 @@ theorem foldl_transientStep_listed (node : NodeId) :
 /-- `addTransientObservers` の observer 列は、元の列に `transientStep` を当てたもの。 -/
 theorem addTransientObservers_observers (s : DOMState) (n p : NodeId) :
     (addTransientObservers s n p).observers =
-      ((p :: ancestors s.tree p).flatMap fun m =>
-        (s.registrations.filter fun r => r.node == m && r.subtree).map fun r =>
-          { r with node := n, transient := true, source := some r.node }).foldl
-        (transientStep n) s.observers := rfl
+      (newTransients s n p).foldl (transientStep n) s.observers := by
+  rw [addTransientObservers_eq,
+    foldl_pendTransient_frame (·.observers) (fun st r => by simp [pendTransient])]
+
+/-- `addTransientObservers` の registration は、元の列に step 1.5 の transient を続けたもの。 -/
+theorem addTransientObservers_registrations (s : DOMState) (n p : NodeId) :
+    (addTransientObservers s n p).registrations = s.registrations ++ newTransients s n p := by
+  rw [addTransientObservers_eq,
+    foldl_pendTransient_frame (·.registrations) (fun st r => by simp [pendTransient])]
 
 @[simp] theorem addTransientObservers_observers_length (s : DOMState) (n p : NodeId) :
     (addTransientObservers s n p).observers.length = s.observers.length := by
-  unfold addTransientObservers
-  exact foldl_transient_observers_length _ _ _
+  rw [addTransientObservers_observers]
+  exact foldl_transientStep_length _ _ _
+
+/-- step 1.7-1.8 の畳み込みの microtask。transient を一つでも足せば予約される。 -/
+theorem microtaskQueued_foldl_pendTransient :
+    ∀ (l : List Registration) (st : DOMState),
+      (l.foldl pendTransient st).microtaskQueued = (st.microtaskQueued || !l.isEmpty)
+  | [], st => by simp
+  | r :: l, st => by
+    rw [List.foldl_cons, microtaskQueued_foldl_pendTransient l]
+    unfold pendTransient queueMutationObserverMicrotask addPendingObserver
+    split <;> split <;> simp_all
+
+theorem addTransientObservers_microtaskQueued (s : DOMState) (n p : NodeId) :
+    (addTransientObservers s n p).microtaskQueued =
+      (s.microtaskQueued || !(newTransients s n p).isEmpty) := by
+  rw [addTransientObservers_eq, microtaskQueued_foldl_pendTransient]
 
 @[simp] theorem queueTreeMutationRecord_registrations (s : DOMState) (t : NodeId)
     (a r : List NodeId) (p n : Option NodeId) :
@@ -573,9 +669,11 @@ theorem foldl_enqueue_length :
 @[simp] theorem queueMutationRecord_observers_length (s : DOMState) (rec : MutationRecord)
     (ov : Option String) :
     (queueMutationRecord s rec ov).observers.length = s.observers.length := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_observers, foldl_addPendingObserver_observers]
-  exact foldl_enqueue_length _ _ _
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_observers, foldl_addPendingObserver_observers]
+    exact foldl_enqueue_length _ _ _
 
 @[simp] theorem queueTreeMutationRecord_observers_length (s : DOMState) (t : NodeId)
     (a r : List NodeId) (p n : Option NodeId) :
@@ -624,9 +722,11 @@ theorem foldl_enqueue_nodeLists :
 @[simp] theorem queueMutationRecord_nodeLists (s : DOMState) (rec : MutationRecord)
     (ov : Option String) :
     (queueMutationRecord s rec ov).observers.map (·.nodeList) = s.observers.map (·.nodeList) := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_observers, foldl_addPendingObserver_observers]
-  exact foldl_enqueue_nodeLists _ _ _
+  rw [queueMutationRecord_eq]
+  split
+  · rfl
+  · rw [queueMutationObserverMicrotask_observers, foldl_addPendingObserver_observers]
+    exact foldl_enqueue_nodeLists _ _ _
 
 @[simp] theorem queueTreeMutationRecord_nodeLists (s : DOMState) (t : NodeId)
     (a r : List NodeId) (p n : Option NodeId) :
@@ -641,19 +741,52 @@ theorem foldl_enqueue_nodeLists :
     (queueCharacterDataRecord s t v).observers.map (·.nodeList) = s.observers.map (·.nodeList) :=
   queueMutationRecord_nodeLists ..
 
+/-- step 1 の畳み込みが足すのは、列の中の subtree 付きの registered から作った transient だけである。 -/
+theorem mem_foldl_collectTransient (node : NodeId) (ex : List Registration) :
+    ∀ (l acc : List Registration) {t : Registration}, t ∈ l.foldl (collectTransient node ex) acc →
+      t ∈ acc ∨ ∃ r ∈ l, r.subtree = true ∧ t = r.transientOn node
+  | [], acc, t, h => Or.inl h
+  | r :: l, acc, t, h => by
+    rw [List.foldl_cons] at h
+    rcases mem_foldl_collectTransient node ex l _ h with h | ⟨r', hr', hs, he⟩
+    · unfold collectTransient at h
+      split at h
+      · next hc =>
+        rcases List.mem_append.mp h with h | h
+        · exact Or.inl h
+        · refine Or.inr ⟨r, List.mem_cons_self .., ?_, List.mem_singleton.mp h⟩
+          simp only [Bool.and_eq_true] at hc
+          exact hc.1
+      · exact Or.inl h
+    · exact Or.inr ⟨r', List.mem_cons_of_mem _ hr', hs, he⟩
+
+/-- `newTransients` の要素は、`parent` の inclusive ancestor の上の subtree 付きの registered から作る。 -/
+theorem mem_newTransients {s : DOMState} {node parent : NodeId} {t : Registration}
+    (h : t ∈ newTransients s node parent) :
+    ∃ r ∈ s.registrations, r.node ∈ parent :: ancestors s.tree parent ∧ r.subtree = true ∧
+      t = r.transientOn node := by
+  rcases mem_foldl_collectTransient node _ _ [] h with h | ⟨r, hr, hs, he⟩
+  · cases h
+  · obtain ⟨m, hm, hr⟩ := List.mem_flatMap.mp hr
+    obtain ⟨hr, hn⟩ := List.mem_filter.mp hr
+    have hn : r.node = m := by simpa using hn
+    exact ⟨r, hr, hn ▸ hm, hs, he⟩
+
+/-- `newTransients` の要素はどれも `node` の上の transient である。 -/
+theorem node_of_mem_newTransients {s : DOMState} {node parent : NodeId} {t : Registration}
+    (h : t ∈ newTransients s node parent) : t.node = node := by
+  obtain ⟨r, -, -, -, rfl⟩ := mem_newTransients h
+  rfl
+
 /-- transient registration の observer index は、元の registration から受け継ぐ。 -/
 theorem addTransientObservers_observer_lt (s : DOMState) (n p : NodeId) {r : Registration}
     (h : r ∈ (addTransientObservers s n p).registrations)
     (hall : ∀ r' ∈ s.registrations, r'.observer < s.observers.length) :
     r.observer < s.observers.length := by
-  unfold addTransientObservers at h
-  simp only [List.mem_append] at h
-  rcases h with h | h
+  rw [addTransientObservers_registrations] at h
+  rcases List.mem_append.mp h with h | h
   · exact hall r h
-  · obtain ⟨x, _, hx⟩ := List.mem_flatMap.mp h
-    obtain ⟨r₀, hr₀mem, hr₀⟩ := List.mem_map.mp hx
-    have := hall r₀ (List.mem_filter.mp hr₀mem).1
-    rw [← hr₀]
-    exact this
+  · obtain ⟨r₀, hr₀, -, -, rfl⟩ := mem_newTransients h
+    exact hall r₀ hr₀
 
 end Dom

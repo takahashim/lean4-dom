@@ -4,7 +4,7 @@
 
 | 仕様 | 版 | commit |
 | --- | --- | --- |
-| WHATWG DOM Standard | Living Standard, 2026-08-25 | `a2331a45360129e8645ef7e0a04740241b6e3726` |
+| WHATWG DOM Standard | Living Standard, 2026-10-19 | `3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177` |
 | WHATWG Web IDL Standard | Living Standard, 2026-10-26 | `7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf` |
 | ECMA-262（ECMAScript Language Specification） | draft, 2026-10-23 | `40ce6f206b5669e69bf010a38267ae24a2843404` |
 
@@ -17,8 +17,9 @@
   Web IDL の変換が呼ぶ抽象操作（ToBoolean、ToNumber、StringToNumber、ToString、Number::toString、ToPrimitive）と
   `Array.prototype.join`（`Dom/Idl/`）がこの版に従う。対応表は `Trace/Ecma.lean` にある。
 
-上記 commit は `dom.bs` に対する 2026-08-25 時点の最新 commit である。
-Phase 3 の algorithm はこの版の本文から step を写している。
+上記 commit は `dom.bs` に対する 2026-10-19 時点の最新 commit である。
+Phase 3 の algorithm は 2026-08-25 の版（`a2331a4`）の本文から step を写し、2026-10 にこの版へ上げた
+（`docs/status.md` の「DOM の固定版を上げた」）。
 
 各定義の doc comment には、対応する節番号と algorithm 名、および仕様の step 番号を記す。
 仕様が改訂されたときは、この表の commit を更新したうえで step 番号の差分を追う。

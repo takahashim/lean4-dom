@@ -11,7 +11,8 @@ method 全体（`Dom/Observer/Deliver.lean` の `MutationObserver.observeMethod`
 step 1-2 の「`attributeOldValue` / `characterDataOldValue` / `attributeFilter` が存在する」は、
 値を問わず `none` でないことである（IDL はこの三つに既定値を与えない）。
 
-step 7.1.1 は「node list の各 node から、source が registered の transient を取り除く」である。
+step 7 は target の registered observer list から、transient でない この observer のものを探す。
+step 8.1 は「transient node set の各 node から、source が registered の transient を取り除く」である。
 model の registered observer list は一本で、transient は source の node（`source`）を持つので、
 「この observer の transient で、source が target のもの」を取り除く。
 -/
@@ -48,7 +49,7 @@ def ObserveOptionsRejected (o : MutationObserverInit) : Prop :=
       (o.attributeFilter ≠ none ∧ a = some false) ∨
       (o.characterDataOldValue = some true ∧ c = some false))
 
-/-- step 7-8 で使う registered observer（options は解決後の値）。 -/
+/-- step 8-9 で使う registered observer（options は解決後の値）。 -/
 def registrationFor (mo : Nat) (target : NodeId) (o : MutationObserverInit) (a c : Option Bool) :
     Registration :=
   { node := target, observer := mo, subtree := o.subtree, childList := o.childList,
@@ -56,7 +57,7 @@ def registrationFor (mo : Nat) (target : NodeId) (o : MutationObserverInit) (a c
     attributeFilter := o.attributeFilter, characterData := decide (c = some true),
     characterDataOldValue := decide (o.characterDataOldValue = some true) }
 
-/-- step 7.1：source がこの registration の transient を落とし、registration の options を差し替える。 -/
+/-- step 8：source がこの registration の transient を落とし（8.1）、registration の options を差し替える（8.2）。 -/
 def reregistered (mo : Nat) (target : NodeId) (reg r : Registration) : Option Registration :=
   if r.transient = true ∧ r.observer = mo ∧ r.source = some target then none
   else if r.observer = mo ∧ r.node = target ∧ r.transient = false then some reg
@@ -69,9 +70,9 @@ def reregistered (mo : Nat) (target : NodeId) (reg r : Registration) : Option Re
 
 target が木に無い、または observer が無いのは model の都合で `NotFoundError`。
 
-7. target の registered observer list にこの observer のものがあれば、
-   1. source がそれである transient を取り除き、2. options を差し替える。
-8. 無ければ、registered observer を足し、target を node list に足す。
+7. target の registered observer list から、transient でない この observer のものを探す。
+8. あれば、1. source がそれである transient を取り除き、2. options を差し替える。
+9. 無ければ、registered observer を足し、target を node list に足す。
 -/
 def ObserveResult (s : DOMState) (mo : Nat) (target : NodeId) (o : MutationObserverInit) :
     Except IdlException DOMState → Prop
@@ -81,11 +82,11 @@ def ObserveResult (s : DOMState) (mo : Nat) (target : NodeId) (o : MutationObser
   | .ok s' => (∃ d, s.tree.get? target = some d) ∧ mo < s.observers.length ∧
       ¬ ObserveOptionsRejected o ∧
       ∃ a c, AttributesResolved o a ∧ CharacterDataResolved o c ∧
-        -- step 7
+        -- step 7-8
         (((∃ r ∈ s.registrations, r.observer = mo ∧ r.node = target ∧ r.transient = false) ∧
             s' = { s with registrations :=
               s.registrations.filterMap (reregistered mo target (registrationFor mo target o a c)) }) ∨
-          -- step 8
+          -- step 9
           ((¬ ∃ r ∈ s.registrations, r.observer = mo ∧ r.node = target ∧ r.transient = false) ∧
             ∃ ob, s.observers[mo]? = some ob ∧
               s' = { s with

@@ -1,0 +1,68 @@
+{
+  "_note": "move も step 17 で add transient registered observers を呼ぶ。node 2 を observer 0 が subtree で見ている node 1 から node 3 へ動かすと、node 2 には transient が付き、動かした後の node 2 の attribute の変更も observer 0 に届く。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
+    "algorithm": [
+      "move",
+      "add transient registered observers",
+      "queue a mutation record"
+    ],
+    "steps": "move 17 / add transient registered observers 1.5",
+    "note": "node 3 は observer 0 の target の外にある。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 4,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 4
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 4
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "subtree": true,
+      "childList": false,
+      "attributes": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "moveBefore",
+      "parent": 3,
+      "node": 2,
+      "child": null
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "a",
+      "value": "1"
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    }
+  ]
+}

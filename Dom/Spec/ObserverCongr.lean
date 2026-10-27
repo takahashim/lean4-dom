@@ -51,6 +51,6 @@ theorem notifyMutationObservers_delivered_congr {s sb : DOMState} (h : ObsEq s s
     (notifyMutationObservers sb).2 = (notifyMutationObservers s).2 := by
   unfold notifyMutationObservers
   rw [h.pendingOrder]
-  exact notifyEach_delivered_congr s.pendingObservers h.records
+  exact notifyEach_delivered_congr _ h.records
 
 end Dom.Spec

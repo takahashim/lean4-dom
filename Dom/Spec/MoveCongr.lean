@@ -7,8 +7,8 @@ import Dom.Spec.InsertCongr
 `move` は `remove` も `insert` も呼ばないので、congruence も component を直接繋ぐ。
 道具はすべて `remove` と `insert` のために作ったものである。
 
-* 木から外す段は `remove` の三つの一意性（`treeRemoved_unique` /
-  `rangeAdjusted_unique` / `iteratorAdjusted_unique`）
+* 木から外す段は `remove` と同じ `detached_congr`
+* transient registered observer の段は `remove` と同じ `transientAdded_congr`
 * 入れる段は `rangeInsertAdjusted_congr` と `treeInserted_congr`
 * record の段は `treeRecordQueued_congr`
 
@@ -23,45 +23,16 @@ open Dom
 
 variable {s sb : DOMState} {node newParent : NodeId} {child : Option NodeId}
 
-/-- **step 10-11, 14 の congruence。** -/
-theorem moveDetached_congr {s₁ s₁' : DOMState} {p : NodeId} {i : Nat} {nd : NodeData}
-    (hwf : WellFormed s.tree) (h : ObsEq s sb)
-    (hnd : s.tree.get? node = some nd) (hp : parentOf s.tree node = some p)
-    (h₁ : MoveDetached s s₁ node p i) (h₂ : MoveDetached sb s₁' node p i) : ObsEq s₁ s₁' := by
-  obtain ⟨hr₁, hit₁, ht₁, hu₁⟩ := h₁
-  obtain ⟨hr₂, hit₂, ht₂, hu₂⟩ := h₂
-  have hr₂' := rangeAdjusted_transport h.toMutationObsEq hr₂
-  have hit₂' := iteratorAdjusted_transport hwf h.toMutationObsEq hit₂
-  have ht₂' := treeRemoved_transport h.tree ht₂
-  exact
-    { tree := fun m => (treeRemoved_unique ht₁ ht₂' m).symm
-      ranges := (rangeAdjusted_unique hr₁ hr₂').symm
-      iterators := (iteratorAdjusted_unique hwf hnd hp hit₁ hit₂').symm
-      registrations := fun r => by
-        rw [hu₂.registrations, hu₁.registrations]; exact h.registrations r
-      records := fun mo => by rw [hu₂.observers, hu₁.observers]; exact h.records mo
-      pendingObservers := fun mo => by
-        rw [hu₂.pendingObservers, hu₁.pendingObservers]; exact h.pendingObservers mo
-      microtaskQueued := by
-        rw [hu₂.microtaskQueued, h.microtaskQueued, hu₁.microtaskQueued]
-      walkers := by rw [hu₂.untouched.walkers, h.walkers, hu₁.untouched.walkers]
-      listeners := by rw [hu₂.untouched.listeners, h.listeners, hu₁.untouched.listeners]
-      detachedAttrs := by
-        rw [hu₂.untouched.detachedAttrs, h.detachedAttrs, hu₁.untouched.detachedAttrs]
-      registrationOrder := fun m => by
-        rw [hu₂.registrations, hu₁.registrations]; exact h.registrationOrder m
-      pendingOrder := by rw [hu₂.pendingObservers, h.pendingOrder, hu₁.pendingObservers] }
-
 /-! ## 全体 -/
 
 /-- **`MoveSpec` の congruence。** -/
 theorem moveSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : ObsEq s sb)
     (h₁ : MoveSpec s node newParent child o₁) (h₂ : MoveSpec sb node newParent child o₂) :
     ObsEq o₁ o₂ := by
-  obtain ⟨oldParent, index, idx, newPrev, s₁, sa, s₂, s₃,
-    hp₁, hix₁, hdet₁, hprev₁, hidx₁, hri₁, hti₁, hl₁, hq₁, hf₁, hq₁', hf₁'⟩ := h₁
-  obtain ⟨oldParent', index', idx', newPrev', s₁', sa', s₂', s₃',
-    hp₂, hix₂, hdet₂, hprev₂, hidx₂, hri₂, hti₂, hl₂, hq₂, hf₂, hq₂', hf₂'⟩ := h₂
+  obtain ⟨oldParent, index, idx, newPrev, s₁, sₜ, sa, s₂, s₃,
+    hp₁, hix₁, hdet₁, hta₁, hprev₁, hidx₁, hri₁, hti₁, hl₁, hq₁, hf₁, hq₁', hf₁'⟩ := h₁
+  obtain ⟨oldParent', index', idx', newPrev', s₁', sₜ', sa', s₂', s₃',
+    hp₂, hix₂, hdet₂, hta₂, hprev₂, hidx₂, hri₂, hti₂, hl₂, hq₂, hf₂, hq₂', hf₂'⟩ := h₂
   -- step 7-9。旧 parent と index は入力の観測から決まる。
   have hoe : oldParent' = oldParent := by
     rw [h.tree.parentOf, hp₁] at hp₂
@@ -70,16 +41,18 @@ theorem moveSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : Obs
   have hie : index' = index := by rw [hix₁, hix₂, h.tree.index]
   subst hie
   obtain ⟨nd, hnd, -⟩ := parentOf_eq_some hp₁
-  -- step 10-11, 14
-  have hobs₁ : ObsEq s₁ s₁' := moveDetached_congr hwf h hnd hp₁ hdet₁ hdet₂
-  -- step 16-17
+  -- step 9-10, 13
+  have hobs₀ : ObsEq s₁ s₁' := detached_congr hwf h hnd hp₁ hdet₁ hdet₂
+  -- step 17
+  have hobs₁ : ObsEq sₜ sₜ' := transientAdded_congr hobs₀ hta₁ hta₂
+  -- step 18-19
   have hpe : newPrev' = newPrev :=
     (previousSiblingOf_unique hobs₁.tree hprev₁ hprev₂).symm
   subst hpe
   have hde : idx' = idx := (childIndex_unique hobs₁.tree hidx₁ hidx₂).symm
   subst hde
   have hobsa : ObsEq sa sa' := rangeInsertAdjusted_congr hobs₁ hri₁ hri₂
-  -- step 18
+  -- step 20-21
   have hobs₂ : ObsEq s₂ s₂' :=
     { tree := treeInserted_congr hobsa.tree hti₁ hti₂
       ranges := by rw [hl₂.ranges, hobsa.ranges, hl₁.ranges]
@@ -98,7 +71,7 @@ theorem moveSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : Obs
       registrationOrder := fun m => by
         rw [hl₂.registrations, hl₁.registrations]; exact hobsa.registrationOrder m
       pendingOrder := by rw [hl₂.pendingObservers, hobsa.pendingOrder, hl₁.pendingObservers] }
-  -- step 23-24
+  -- step 26-27
   have hobs₃ : ObsEq s₃ s₃' := by
     refine treeRecordQueued_congr hobs₂ hq₁ ?_ hf₁ hf₂
     rwa [h.tree.previousSibling, h.tree.nextSibling] at hq₂

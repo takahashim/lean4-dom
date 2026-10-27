@@ -706,28 +706,35 @@
           }
         },
         {
-          "steps": "2.6-2.8",
+          "steps": "2.6-2.7",
           "why": {
             "reason": "host",
             "detail": ""
           }
         },
         {
-          "steps": "2.10",
+          "steps": "2.9-2.10",
           "why": {
             "reason": "host",
             "detail": ""
           }
         },
         {
-          "steps": "2.11.1-2.11.2",
+          "steps": "2.12",
           "why": {
             "reason": "host",
             "detail": ""
           }
         },
         {
-          "steps": "2.13",
+          "steps": "2.13.1-2.13.2",
+          "why": {
+            "reason": "host",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "2.15",
           "why": {
             "reason": "host",
             "detail": ""
@@ -743,7 +750,11 @@
       ],
       "approx": [
         {
-          "steps": "2.11",
+          "steps": "2.8",
+          "what": "global object も browsing context も持たないので、どの Document も fully active とみなし、continue しない"
+        },
+        {
+          "steps": "2.13",
           "what": "callback を呼ぶ代わりに、listener の `ListenerAction`（stopPropagation・preventDefault・listener の追加と削除など）を `runAction` で走らせる。callback は例外を投げない"
         }
       ]
@@ -852,7 +863,9 @@
       ],
       "impl": [
         "Dom.move",
-        "Dom.moveValidity"
+        "Dom.moveValidity",
+        "Dom.detachWithLiveAdjust",
+        "Dom.addTransientObservers"
       ],
       "spec": [
         "Dom.Spec.MoveSpec",
@@ -867,21 +880,21 @@
           }
         },
         {
-          "steps": "21-23",
+          "steps": "22-24",
           "why": {
             "reason": "shadow",
             "detail": ""
           }
         },
         {
-          "steps": "24.1-24.2",
+          "steps": "25.1-25.2",
           "why": {
             "reason": "hook",
             "detail": ""
           }
         },
         {
-          "steps": "24.3",
+          "steps": "25.3",
           "why": {
             "reason": "custom-elements",
             "detail": ""
@@ -947,7 +960,8 @@
       ],
       "impl": [
         "Dom.remove",
-        "Dom.detachWithLiveAdjust"
+        "Dom.detachWithLiveAdjust",
+        "Dom.addTransientObservers"
       ],
       "spec": [
         "Dom.Spec.RemoveSpec",
@@ -1390,12 +1404,72 @@
       ],
       "approx": [
         {
-          "steps": "6.3",
-          "what": "node list の node に限らず、その observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`。remove が transient を置いた node を node list にも足す）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`）"
+          "steps": "2",
+          "what": "creation index は `observers` の添字である。observer は scenario の初期状態でだけ作り、その並びが作った順である"
         },
         {
           "steps": "6.4",
           "what": "callback は呼ばない。records が空でない observer と records の組を返り値に並べる"
+        }
+      ]
+    },
+    {
+      "alg": "add-transient-registered-observers",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.addTransientObservers",
+        "Dom.newTransients",
+        "Dom.collectTransient",
+        "Dom.hasTransientFrom",
+        "Dom.Registration.sourceNode",
+        "Dom.Registration.transientOn",
+        "Dom.transientStep",
+        "Dom.pendTransient"
+      ],
+      "spec": [
+        "Dom.Spec.TransientAdded",
+        "Dom.Spec.transientsFor",
+        "Dom.Spec.transientAdded_of_add"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1.3-1.4",
+          "what": "source は registered observer ではなく、その node で表す。source が同じかどうかは observer と node で比べる（一つの observer が一つの node に持つ transient でない registered observer は高々一つ）"
+        },
+        {
+          "steps": "1.5",
+          "what": "options は source のものではなく registered のものを写す。registered が transient でも、その options は source の options と等しい（`observe()` step 8.1 は options を差し替える前に、その source の transient を外す）"
+        },
+        {
+          "steps": "1.6",
+          "what": "transient node set は node list と合わせて一つの list（`ObserverState.nodeList`）で持つ"
+        }
+      ]
+    },
+    {
+      "alg": "remove-transient-registered-observers",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.removeTransients"
+      ],
+      "spec": [
+        "Dom.Spec.ObserverNotified",
+        "Dom.Spec.notifyMutationObservers_sound"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1",
+          "what": "transient node set の node に限らず、この observer の transient registered observer を全部外す。admissible な状態では registration の node はその observer の node list にある（`ObserverRegistrationsValid` の `ListedIn`）ので同じ結果になる（`filter_listed`、`notifyMutationObservers_sound`）"
+        },
+        {
+          "steps": "2",
+          "what": "transient node set は node list と合わせて持つので、空にしない。残った node には この observer の transient が無いので、観測に出ない"
         }
       ]
     },
@@ -1418,12 +1492,8 @@
       "omit": [],
       "approx": [
         {
-          "steps": "7",
-          "what": "target の registered observer list のうち transient でないものだけを見る。transient registered observer しか無ければ step 8 に進む。固定版の本文は transient も探すが、whatwg/dom 3071e5f で本文もこの読みに改められた"
-        },
-        {
-          "steps": "7.1",
-          "what": "node list の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す"
+          "steps": "8.1",
+          "what": "transient node set の node に限らず、source が target のこの observer の transient を全部外す。source は registered observer ではなく、その node で表す"
         }
       ]
     },
@@ -1443,8 +1513,12 @@
       "omit": [],
       "approx": [
         {
-          "steps": "1",
-          "what": "node list の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`）"
+          "steps": "1-2",
+          "what": "node list と transient node set の node に限らず、この observer の registered observer を全部外す。admissible な状態では同じ結果になる（`disconnect_sound`）"
+        },
+        {
+          "steps": "3",
+          "what": "model の node list は transient node set と合わせたもので、両方をここで空にする"
         }
       ]
     },
@@ -1914,6 +1988,13 @@
         },
         {
           "steps": "5.2",
+          "why": {
+            "reason": "todo",
+            "detail": "document の URL も base URL override も持たない（`dom-node-baseuri` と同じ）"
+          }
+        },
+        {
+          "steps": "5.3",
           "why": {
             "reason": "custom-elements",
             "detail": ""
@@ -2424,12 +2505,7 @@
         "Dom.createCDATASection_creates"
       ],
       "omit": [],
-      "approx": [
-        {
-          "steps": "3-4",
-          "what": "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）"
-        }
-      ]
+      "approx": []
     },
     {
       "alg": "dom-document-importnode",
@@ -3733,6 +3809,26 @@
         {
           "steps": "7.2-7.5",
           "what": "動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査"
+        }
+      ]
+    },
+    {
+      "alg": "create-a-cdata-section-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createCDATASection",
+        "Dom.withFresh"
+      ],
+      "spec": [
+        "Dom.createCDATASection_creates"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）"
         }
       ]
     },
@@ -5470,7 +5566,7 @@
       "target": "dom-mutationobserver-mutationobserver",
       "why": {
         "reason": "other",
-        "detail": "callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い"
+        "detail": "callback（script の関数）は model の外。observer は scenario の初期状態でだけ作り、constructor に当たる操作は無い。creation index（step 2-3）は `observers` の添字である"
       }
     },
     {

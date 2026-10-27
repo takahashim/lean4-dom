@@ -252,16 +252,16 @@ theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}
 ```
 
 `RemoveSpec`（`Dom/Spec/Remove.lean`）は仕様本文から独立に書き写した関係で、
-実行側の algorithm を一つも呼ばない。仕様の副作用ごとに六つの component に分かれる。
+実行側の algorithm を一つも呼ばない。仕様の段ごとに、途中の状態を挟んで component を並べる。
 
 | component | 仕様の step | soundness |
 | --- | --- | --- |
-| `RemovePre` | 1-2 | `remove_ok` |
-| `RangeAdjusted` | 3 | `Dom.Spec.remove_sound_range` |
-| `IteratorAdjusted` | 4 | `Dom.Spec.remove_sound_iterator` |
-| `TreeRemoved` | 7 | `Dom.Spec.remove_sound_tree` |
-| `TransientAdded` | 20 | `Dom.Spec.remove_sound_transient` |
-| `RecordQueued` | 21 | `Dom.Spec.remove_sound_record` |
+| `RemovePre` | 1-2 | `remove_cases` |
+| `Detached`（`RangeAdjusted`・`IteratorAdjusted`・`TreeRemoved`） | 3-4、7 | `Dom.Spec.detached_of_detach`（`remove_sound_range` / `_iterator` / `_tree`） |
+| `TransientAdded` | 15（add transient registered observers） | `Dom.Spec.transientAdded_of_add` |
+| `RecordQueued` | 16 | `Dom.Spec.treeRecordQueued_of_queue` / `treeRecordQueued_of_suppress` |
+
+`move`（§4.2.3）の関係 `MoveSpec` も、木から外す段と transient を足す段に同じ `Detached` と `TransientAdded` を使う。
 
 `adopt`（§4.5）と `insert`（§4.2.3）も同じ形で入れた。`insert` は step 4 で `remove` を、
 step 7.1 で `adopt` を呼ぶので、関係もそれぞれ `RemoveSpec` / `AdoptSpec` を composition する
@@ -271,18 +271,18 @@ step 7.1 で `adopt` を呼ぶので、関係もそれぞれ `RemoveSpec` / `Ado
 
 | 定理 | module |
 | --- | --- |
-| `Dom.Spec.removeSpec_deterministic` | `Dom/Spec/RemoveDeterministic.lean` |
+| `Dom.Spec.removeSpec_deterministic` | `Dom/Spec/RemoveCongr.lean` |
 
 ```lean
-theorem removeSpec_deterministic {s s₁ s₂ : DOMState} {n : NodeId} {b : Bool}
-    (hwf : WellFormed s.tree) (h₁ : RemoveSpec s n b s₁) (h₂ : RemoveSpec s n b s₂) :
-    (∀ m, s₁.tree.get? m = s₂.tree.get? m) ∧ s₁.ranges = s₂.ranges ∧ ...
+theorem removeSpec_deterministic (hwf : WellFormed s.tree) {s₁ s₂ : DOMState} {n : NodeId}
+    {b : Bool} (h₁ : RemoveSpec s n b s₁) (h₂ : RemoveSpec s n b s₂) : ObsEq s₁ s₂
 ```
 
 木の表現そのものは決まらない（store が association list なので、同じ `get?` を持つ表現が
-複数ある）。決まるのは **観測**である。この定理は registration と pending observer を所属で比べる。
-列の順は `removeSpec_order_unique`（同じ module）が決める。node ごとの registered observer list
-（step 20 の transient の並びを含む）と pending mutation observers の列は一つに決まる。
+複数ある）。決まるのは **観測**（`ObsEq`）である。node ごとの registered observer list
+（step 15 の transient の並びを含む）と pending mutation observers の列も一つに決まる。
+途中の状態は観測としてしか一致しないので、段ごとの congruence（`detached_congr`・`transientAdded_congr`・
+`treeRecordQueued_congr`）を繋いだ `removeSpec_congr` から出す。
 soundness と合わせると「`remove` の結果は、関係が許す唯一の観測である」と言える。
 
 completeness（関係を満たす状態があるなら実行関数は成功して同じ観測を作ること）も
@@ -333,7 +333,8 @@ pre-insertion validity が保証するもので、`insert` 本体は前提とし
 
 * **registration の順**（`RegistrationsObsEq`）：node ごとの registered observer list が列として等しい。
   model は registration を一つの列で持つが、異なる node の list のあいだの順は本文に無いので、node ごとに比べる。
-* **pending の順**：pending mutation observers の列が等しい。
+* **pending の順**：pending mutation observers の列が等しい。notify は pending を creation index の順に
+  並べ直してから回るので、配送の順に出るのは pending の所属だけだが、model は列そのものも本文どおりに保つ。
 
 determinism・congruence・completeness と `ResultObsEq` は `ObsEq` について述べる。
 remove・adopt・insert・replace・move・replace data・attribute の変更・normalize・range の
@@ -343,19 +344,19 @@ remove・adopt・insert・replace・move・replace data・attribute の変更・
 
 | 定義 | module | 本文 |
 | --- | --- | --- |
-| `Dom.Spec.PendingAppended` | `Dom/Spec/ObserverOrder.lean` | "queue a mutation record" step 3-4。inclusive ancestor を下から上へ、各 node の list の順に interested observers を並べ、その順に pending へ append する |
-| `Dom.Spec.TransientOrdered` | `Dom/Spec/Remove.lean` | remove step 20。parent の inclusive ancestor を下から上へ、各 list の順に transient を removed node の list の末尾へ足す |
+| `Dom.Spec.PendingAppended` | `Dom/Spec/ObserverOrder.lean` | "queue a mutation record" step 3-6。inclusive ancestor を下から上へ、各 node の list の順に interested observers を並べ、その順に pending へ append する。interested observers が空なら microtask を予約しない |
+| `Dom.Spec.TransientAdded` | `Dom/Spec/Remove.lean` | "add transient registered observers"。parent の inclusive ancestor を下から上へ、各 list の順に、source が同じ transient の無いものだけを node の list の末尾へ足し、その observer を pending にする |
 
 childList・characterData・attributes の record を積む関係（`TreeRecordQueued` /
-`CharacterDataRecordQueued` / `AttributeRecordQueued`）は `PendingAppended` を含み、
-`TransientAdded` は `TransientOrdered` を含む。実行関数がこれを満たすことは
-`pendingAppended_queueMutationRecord`（`Dom/Spec/ObserverOrderSound.lean`）と `remove_sound` が示す。
+`CharacterDataRecordQueued` / `AttributeRecordQueued`）は `PendingAppended` を含む。
+実行関数がこれを満たすことは `pendingAppended_queueMutationRecord`（`Dom/Spec/ObserverOrderSound.lean`）と
+`transientAdded_of_add`（`Dom/Spec/RemoveSound.lean`）が示す。
 
 | 定理 | module |
 | --- | --- |
-| `Dom.Spec.pendingAppended_unique` | `Dom/Spec/ObserverOrder.lean` |
+| `Dom.Spec.pendingAppended_unique` / `pendingAppended_microtask_unique` | `Dom/Spec/ObserverOrder.lean` |
 | `Dom.Spec.pendingAppended_queueMutationRecord` | `Dom/Spec/ObserverOrderSound.lean` |
-| `Dom.Spec.transientOrdered_unique` / `removeSpec_order_unique` | `Dom/Spec/RemoveDeterministic.lean` |
+| `Dom.Spec.transientAdded_congr` | `Dom/Spec/RemoveCongr.lean` |
 | `Dom.Spec.notifyMutationObservers_delivered_congr` | `Dom/Spec/ObserverCongr.lean` |
 | `Dom.Spec.ResultObsEq.delivered` | `Dom/Spec/ObserverComplete.lean` |
 | `Dom.Spec.remove_complete_delivered` / `insert_complete_delivered` | `Dom/Spec/ObserverComplete.lean` |

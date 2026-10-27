@@ -138,26 +138,6 @@ theorem pending_foldl_addPendingObserver :
     · rw [if_pos (by simpa using h), if_pos h]
     · rw [if_neg (by simpa using h), if_neg h]
 
-/-- **`queueMutationRecord` は pending mutation observers を本文の順に伸ばす。** -/
-theorem pendingAppended_queueMutationRecord {s : DOMState} (hwf : WellFormed s.tree)
-    (rec : MutationRecord) (ov : Option String) (P : Registration → Bool)
-    (hP : ∀ r, r.interestedIn rec.target rec.type rec.attributeName rec.attributeNamespace = P r) :
-    PendingAppended s (queueMutationRecord s rec ov) rec.target P := by
-  refine ⟨_, inclusiveAncestorsUp_of_wf hwf rec.target, ?_⟩
-  rw [← map_fst_interestedObservers s rec ov P hP]
-  unfold queueMutationRecord
-  have hmt : ∀ st : DOMState,
-      (queueMutationObserverMicrotask st).pendingObservers = st.pendingObservers := by
-    intro st; unfold queueMutationObserverMicrotask; split <;> rfl
-  rw [hmt]
-  have : ∀ (l : List (Nat × Option String)) (st : DOMState),
-      l.foldl (fun st p => addPendingObserver st p.1) st =
-        (l.map (·.1)).foldl (fun st mo => addPendingObserver st mo) st := by
-    intro l; induction l with
-    | nil => intro st; rfl
-    | cons p l ih => intro st; simp only [List.foldl_cons, List.map_cons]; exact ih _
-  rw [this, pending_foldl_addPendingObserver]
-
 /-- well-formed を仮定しない形。interested observers の順は実行側の `ancestors` の列で決まる。 -/
 theorem pending_queueMutationRecord (st : DOMState) (rec : MutationRecord) (ov : Option String)
     (P : Registration → Bool)
@@ -165,19 +145,38 @@ theorem pending_queueMutationRecord (st : DOMState) (rec : MutationRecord) (ov :
     (queueMutationRecord st rec ov).pendingObservers =
       appendNew st.pendingObservers
         (interestedOrder st.registrations (rec.target :: ancestors st.tree rec.target) P) := by
-  rw [← map_fst_interestedObservers st rec ov P hP]
-  unfold queueMutationRecord
-  have hmt : ∀ x : DOMState,
-      (queueMutationObserverMicrotask x).pendingObservers = x.pendingObservers := by
-    intro x; unfold queueMutationObserverMicrotask; split <;> rfl
-  rw [hmt]
-  have : ∀ (l : List (Nat × Option String)) (x : DOMState),
-      l.foldl (fun x p => addPendingObserver x p.1) x =
-        (l.map (·.1)).foldl (fun x mo => addPendingObserver x mo) x := by
-    intro l; induction l with
-    | nil => intro x; rfl
-    | cons p l ih => intro x; simp only [List.foldl_cons, List.map_cons]; exact ih _
-  rw [this, pending_foldl_addPendingObserver]
+  rw [← map_fst_interestedObservers st rec ov P hP, queueMutationRecord_eq]
+  split
+  · next h => rw [List.isEmpty_iff.mp h]; rfl
+  · have hmt : ∀ x : DOMState,
+        (queueMutationObserverMicrotask x).pendingObservers = x.pendingObservers := by
+      intro x; unfold queueMutationObserverMicrotask; split <;> rfl
+    rw [hmt]
+    have : ∀ (l : List (Nat × Option String)) (x : DOMState),
+        l.foldl (fun x p => addPendingObserver x p.1) x =
+          (l.map (·.1)).foldl (fun x mo => addPendingObserver x mo) x := by
+      intro l; induction l with
+      | nil => intro x; rfl
+      | cons p l ih => intro x; simp only [List.foldl_cons, List.map_cons]; exact ih _
+    rw [this, pending_foldl_addPendingObserver]
+
+/-- microtask の結果。interested observers が空でなければ予約される。 -/
+theorem microtask_queueMutationRecord (st : DOMState) (rec : MutationRecord) (ov : Option String)
+    (P : Registration → Bool)
+    (hP : ∀ r, r.interestedIn rec.target rec.type rec.attributeName rec.attributeNamespace = P r) :
+    (queueMutationRecord st rec ov).microtaskQueued =
+      (st.microtaskQueued ||
+        !(interestedOrder st.registrations (rec.target :: ancestors st.tree rec.target) P).isEmpty) := by
+  rw [microtaskQueued_queueMutationRecord, ← map_fst_interestedObservers st rec ov P hP,
+    List.isEmpty_map]
+
+/-- **`queueMutationRecord` は pending mutation observers を本文の順に伸ばす。** -/
+theorem pendingAppended_queueMutationRecord {s : DOMState} (hwf : WellFormed s.tree)
+    (rec : MutationRecord) (ov : Option String) (P : Registration → Bool)
+    (hP : ∀ r, r.interestedIn rec.target rec.type rec.attributeName rec.attributeNamespace = P r) :
+    PendingAppended s (queueMutationRecord s rec ov) rec.target P :=
+  ⟨_, inclusiveAncestorsUp_of_wf hwf rec.target, pending_queueMutationRecord s rec ov P hP,
+    microtask_queueMutationRecord s rec ov P hP⟩
 
 /-- 列に無い node の上の registration を足しても、interested observers の順は変わらない。 -/
 theorem interestedOrder_append_off (regs B : List Registration) (nodes : List NodeId)

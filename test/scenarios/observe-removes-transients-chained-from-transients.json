@@ -1,0 +1,77 @@
+{
+  "_note": "transient から作った transient の source は、元の registered observer である（add transient registered observers step 1.3）。node 2 を node 1 から外すと node 2 に transient が付き、続けて node 3 を node 2 から外すと node 3 にも、source が node 1 の registered observer の transient が付く。observer 0 が node 1 を observe し直すと、step 8.1 がその source の transient を両方外すので、node 3 の attribute の変更は届かない。whatwg/dom 3071e5f より前の本文では、node 3 の transient の source は node 2 の transient で、外れずに残った。",
+  "_basis": {
+    "kind": "spec",
+    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
+    "algorithm": [
+      "add transient registered observers",
+      "MutationObserver.observe()"
+    ],
+    "steps": "add transient registered observers 1.3 / observe 7-8",
+    "note": "notify を挟まないので、transient は observe だけが外す。"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "document"
+    },
+    {
+      "id": 1,
+      "kind": "element",
+      "parent": 0
+    },
+    {
+      "id": 2,
+      "kind": "element",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "kind": "element",
+      "parent": 2
+    }
+  ],
+  "ranges": [],
+  "iterators": [],
+  "observers": [
+    {
+      "target": 1,
+      "subtree": true,
+      "childList": false,
+      "attributes": true
+    }
+  ],
+  "operations": [
+    {
+      "op": "remove",
+      "target": 2
+    },
+    {
+      "op": "remove",
+      "target": 3
+    },
+    {
+      "op": "observe",
+      "observer": 0,
+      "target": 1,
+      "subtree": true,
+      "attributes": true
+    },
+    {
+      "op": "setAttribute",
+      "element": 3,
+      "name": "a",
+      "value": "1"
+    },
+    {
+      "op": "setAttribute",
+      "element": 2,
+      "name": "b",
+      "value": "2"
+    },
+    {
+      "op": "takeRecords",
+      "observer": 0
+    }
+  ]
+}

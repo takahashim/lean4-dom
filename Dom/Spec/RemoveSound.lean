@@ -5,6 +5,7 @@ import Dom.Properties.Algorithms
 import Dom.Properties.Record
 import Dom.Properties.TreeOrder
 import Dom.Spec.ObserverOrderSound
+import Dom.Spec.RecordSound
 
 /-!
 # `remove` は関係意味論を満たす（soundness）
@@ -148,278 +149,94 @@ theorem ancestors_eq_after_detach {s s₁ : DOMState} {n p : NodeId} (hwf : Well
   obtain ⟨pd', hpd'⟩ := exists_get?_of_kindPreserving (shapePreserving_detach hdt) hpd
   exact ancestors_detach_eq hwf hwf' hdt hpd hpd' (not_inclusiveAncestor_of_parentOf hwf hp)
 
-/-! ## step 20：transient registered observer -/
+/-! ## step 15：add transient registered observers -/
 
-/-- `remove` の step 3-7 は registration を変えない。 -/
-theorem remove_registrations_before_transient {s s₁ : DOMState} {n : NodeId}
-    (hd : detachWithLiveAdjust s n = .ok s₁) : s₁.registrations = s.registrations := by
-  obtain ⟨_, _, hs⟩ := detachWithLiveAdjust_cases hd
-  rw [hs, DOMState.withTree_registrations, iteratorPreRemove_registrations,
-    liveRangePreRemove_registrations]
+/-- step 1.1-1.5 の一歩は、本文の書き方と一致する。 -/
+theorem collectTransient_eq (node : NodeId) (ex acc : List Registration) (r : Registration) :
+    collectTransient node ex acc r = transientAppend node ex acc r := by
+  have hsrc : r.sourceNode = sourceOf r := rfl
+  unfold collectTransient transientAppend hasTransientFrom Registration.transientOn
+  rw [hsrc]
+  by_cases hc : r.subtree = true ∧
+      ¬ ∃ t ∈ ex ++ acc, t.transient = true ∧ t.observer = r.observer ∧ t.source = sourceOf r
+  · rw [if_pos hc, if_pos]
+    obtain ⟨hs, hn⟩ := hc
+    simp only [hs, Bool.true_and, Bool.not_eq_eq_eq_not, Bool.not_true, List.any_eq_false,
+      Bool.and_eq_true, beq_iff_eq]
+    intro t ht ⟨⟨h1, h2⟩, h3⟩
+    exact hn ⟨t, ht, h1, h2, h3⟩
+  · rw [if_neg hc, if_neg]
+    intro hb
+    simp only [Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true, List.any_eq_false,
+      Bool.and_eq_true, beq_iff_eq] at hb
+    refine hc ⟨hb.1, ?_⟩
+    rintro ⟨t, ht, h1, h2, h3⟩
+    exact hb.2 t ht ⟨⟨h1, h2⟩, h3⟩
 
-/-- `remove` が積む registration は、step 20 が足す transient の分だけである。 -/
-theorem remove_registrations {s s' : DOMState} {n p : NodeId} {b : Bool}
-    (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
-    ∃ s₁, detachWithLiveAdjust s n = .ok s₁ ∧
-      s'.registrations = s.registrations ++
-        ((p :: ancestors s₁.tree p).flatMap fun m =>
-          (s.registrations.filter fun r => r.node == m && r.subtree).map fun r =>
-            { r with node := n, transient := true, source := some r.node }) := by
-  obtain ⟨p', s₁, hp', hd, hrec⟩ := remove_cases h
-  rw [hp] at hp'
-  cases hp'
-  refine ⟨s₁, hd, ?_⟩
-  have hreg : s₁.registrations = s.registrations := remove_registrations_before_transient hd
-  have h₂ : s'.registrations = (addTransientObservers s₁ n p).registrations := by
-    rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> simp
-  rw [h₂]
-  show s₁.registrations ++ _ = _
-  rw [hreg]
+/-- 実行側の `newTransients` は、本文の inclusive ancestor の列で `transientsFor` を取ったものである。 -/
+theorem newTransients_eq (s : DOMState) (node parent : NodeId) :
+    newTransients s node parent =
+      transientsFor s.registrations (parent :: ancestors s.tree parent) node := by
+  unfold newTransients transientsFor
+  have : collectTransient node (s.registrations.filter fun r => r.node == node) =
+      transientAppend node (regsOn s.registrations node) := by
+    funext acc r; exact collectTransient_eq _ _ _ _
+  rw [this]
+  rfl
 
-/-- 足される transient はどれも `node` の上にあるので、node ごとの list は `node` だけが伸びる。 -/
-theorem regsOn_append_transients (regs : List Registration) (nodes : List NodeId) (node m : NodeId) :
-    regsOn (regs ++ (nodes.flatMap fun a =>
-        (regs.filter fun r => r.node == a && r.subtree).map fun r =>
-          { r with node := node, transient := true, source := some r.node })) m =
-      if m = node then regsOn regs node ++ transientsFor regs nodes node else regsOn regs m := by
-  generalize hB : (nodes.flatMap fun a =>
-      (regs.filter fun r => r.node == a && r.subtree).map fun r =>
-        ({ r with node := node, transient := true, source := some r.node } : Registration)) = B
-  have hall : ∀ x ∈ B, x.node = node := by
-    intro x hx
-    rw [← hB] at hx
-    obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
-    obtain ⟨r, -, rfl⟩ := List.mem_map.mp hx
-    rfl
-  have htr : transientsFor regs nodes node = B := by
-    rw [← hB]
-    unfold transientsFor regsOn
+/-- step 1.7 の畳み込みは、足した transient の observer を順に pending へ append する。 -/
+theorem pending_foldl_pendTransient :
+    ∀ (l : List Registration) (st : DOMState),
+      (l.foldl pendTransient st).pendingObservers = appendNew st.pendingObservers (l.map (·.observer))
+  | [], _ => rfl
+  | r :: l, st => by
+    rw [List.foldl_cons, pending_foldl_pendTransient l, List.map_cons, appendNew_cons]
     congr 1
-    funext a
-    rw [List.filter_filter]
-    congr 2
-    funext r
-    simp [Bool.and_comm]
-  unfold regsOn
-  rw [List.filter_append, htr]
-  by_cases hm : m = node
-  · subst hm
-    rw [if_pos rfl]
-    congr 1
-    exact List.filter_eq_self.mpr (fun x hx => by simp [hall x hx])
-  · rw [if_neg hm]
-    have : B.filter (fun r => r.node == m) = [] :=
-      List.filter_eq_nil_iff.mpr (fun x hx => by simp [hall x hx, Ne.symm hm])
-    rw [this, List.append_nil]
+    have hmt : ∀ x : DOMState,
+        (queueMutationObserverMicrotask x).pendingObservers = x.pendingObservers := by
+      intro x; unfold queueMutationObserverMicrotask; split <;> rfl
+    unfold pendTransient
+    rw [hmt]
+    unfold addPendingObserver
+    by_cases h : r.observer ∈ st.pendingObservers
+    · rw [if_pos (by simpa using h), if_pos h]
+    · rw [if_neg (by simpa using h), if_neg h]
 
-/-- **step 20 の soundness。** -/
-theorem remove_sound_transient {s s' : DOMState} {n p : NodeId} {b : Bool}
-    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
-    TransientAdded s s' n p := by
-  obtain ⟨s₁, hd, hreg⟩ := remove_registrations hp h
-  rw [ancestors_eq_after_detach hwf hp hd] at hreg
-  refine ⟨fun r hr => by rw [hreg]; exact List.mem_append_left _ hr, ?_, ?_, ?_⟩
-  · intro src hsrc hsub hanc'
-    refine ⟨{ src with node := n, transient := true, source := some src.node }, ?_, ?_, rfl, rfl, rfl⟩
-    · rw [hreg]
-      refine List.mem_append_right _ (List.mem_flatMap.mpr ⟨src.node, ?_, ?_⟩)
-      · rcases hanc' with he | ha
-        · exact List.mem_cons.mpr (Or.inl he)
-        · exact List.mem_cons_of_mem _ ((mem_ancestors_iff hwf p src.node).mpr ha)
-      · exact List.mem_map.mpr ⟨src, List.mem_filter.mpr ⟨hsrc, by simp [hsub]⟩, rfl⟩
-    · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
-  · intro r hr hnot
-    rw [hreg] at hr
-    rcases List.mem_append.mp hr with hmem | hmem
-    · exact absurd hmem hnot
-    · obtain ⟨m, hm, hrm⟩ := List.mem_flatMap.mp hmem
-      obtain ⟨src, hsrc, rfl⟩ := List.mem_map.mp hrm
-      obtain ⟨hsrcmem, hcond⟩ := List.mem_filter.mp hsrc
-      simp only [Bool.and_eq_true, beq_iff_eq] at hcond
-      refine ⟨src, hsrcmem, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, hcond.2, ?_, rfl, rfl, rfl⟩
-      rcases List.mem_cons.mp hm with he | hm'
-      · exact Or.inl (by rw [hcond.1, he])
-      · exact Or.inr (by rw [hcond.1]; exact (mem_ancestors_iff hwf p m).mp hm')
-  · refine ⟨_, inclusiveAncestorsUp_of_wf hwf p, fun m => ?_⟩
-    rw [hreg]
-    exact regsOn_append_transients _ _ n m
+/-- **step 15 の soundness。** `addTransientObservers` は `TransientAdded` を満たす。 -/
+theorem transientAdded_of_add {s : DOMState} (hwf : WellFormed s.tree) (node parent : NodeId) :
+    TransientAdded s (addTransientObservers s node parent) node parent where
+  tree := by simp
+  ranges := by simp
+  iterators := by simp
+  observersLength := by simp
+  records := fun mo o o' ho ho' => records_addTransientObservers s node parent mo o o' ho ho'
+  added := by
+    refine ⟨_, inclusiveAncestorsUp_of_wf hwf parent, fun n => ?_, ?_, ?_⟩
+    · rw [addTransientObservers_registrations, ← newTransients_eq]
+      unfold regsOn
+      rw [List.filter_append]
+      by_cases hn : n = node
+      · subst hn
+        rw [if_pos rfl]
+        congr 1
+        exact List.filter_eq_self.mpr fun x hx => by simp [node_of_mem_newTransients hx]
+      · rw [if_neg hn]
+        have : (newTransients s node parent).filter (fun r => r.node == n) = [] :=
+          List.filter_eq_nil_iff.mpr fun x hx => by
+            simp [node_of_mem_newTransients hx, Ne.symm hn]
+        rw [this, List.append_nil]
+    · rw [addTransientObservers_eq, pending_foldl_pendTransient, ← newTransients_eq]
+    · rw [addTransientObservers_microtaskQueued, newTransients_eq]
+  untouched := untouched_addTransientObservers s node parent
 
-/-! ## step 21：mutation record -/
+/-! ## step 3-7 -/
 
-/-- 実行側が `s₂` で数える interested observer は、元の状態で数えたものと同じである。 -/
-theorem interestedIn_childList_bridge {s s₁ : DOMState} {n p : NodeId} (hwf : WellFormed s.tree)
-    (hp : parentOf s.tree n = some p) (hd : detachWithLiveAdjust s n = .ok s₁)
-    (mo : Nat) (rec : MutationRecord) (hrec : rec.target = p)
-    (hty : rec.type = RecordType.childList)
-    (hna : rec.attributeName = none) (hns : rec.attributeNamespace = none) :
-    mo ∈ (((interestedObservers (addTransientObservers s₁ n p) rec none)).map (·.1)) ↔
-      InterestedInChildList s mo p := by
-  rw [mem_interestedObservers]
-  have htree : (addTransientObservers s₁ n p).tree = s₁.tree := rfl
-  have hanc : ancestors s₁.tree p = ancestors s.tree p := ancestors_eq_after_detach hwf hp hd
-  have hreg : (addTransientObservers s₁ n p).registrations = s.registrations ++
-      ((p :: ancestors s.tree p).flatMap fun m =>
-        (s.registrations.filter fun r => r.node == m && r.subtree).map fun r =>
-          { r with node := n, transient := true, source := some r.node }) := by
-    show s₁.registrations ++ _ = _
-    rw [remove_registrations_before_transient hd, hanc]
-  have hcond : ∀ r : Registration,
-      Registration.interestedIn r rec.target rec.type rec.attributeName rec.attributeNamespace
-        = ((r.node == p || r.subtree) && r.childList) := by
-    intro r
-    rw [hrec, hty, hna, hns]
-    rfl
-  constructor
-  · rintro ⟨r, hrmem, hnode, hc, rfl⟩
-    rw [hcond] at hc
-    simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hc
-    rw [hreg] at hrmem
-    rcases List.mem_append.mp hrmem with hmem | hmem
-    · refine ⟨r, hmem, rfl, hc.2, ?_, hc.1⟩
-      rw [htree, hrec, hanc] at hnode
-      rcases List.mem_cons.mp hnode with he | hm
-      · exact Or.inl he
-      · exact Or.inr ((mem_ancestors_iff hwf p r.node).mp hm)
-    · -- step 20 が足した transient は node（外した node）に付くので、
-      -- parent の inclusive ancestor にはならない。
-      exfalso
-      obtain ⟨m, -, hrm⟩ := List.mem_flatMap.mp hmem
-      obtain ⟨src, -, rfl⟩ := List.mem_map.mp hrm
-      rw [htree, hrec, hanc] at hnode
-      refine not_inclusiveAncestor_of_parentOf hwf hp ?_
-      rcases List.mem_cons.mp hnode with he | hm
-      · exact Or.inl he
-      · exact Or.inr ((mem_ancestors_iff hwf p n).mp hm)
-  · rintro ⟨r, hrmem, rfl, hchild, hanc', hsub⟩
-    refine ⟨r, ?_, ?_, ?_, rfl⟩
-    · rw [hreg]; exact List.mem_append_left _ hrmem
-    · rw [htree, hrec, hanc]
-      rcases hanc' with he | ha
-      · exact List.mem_cons.mpr (Or.inl he)
-      · exact List.mem_cons_of_mem _ ((mem_ancestors_iff hwf p r.node).mpr ha)
-    · rw [hcond]
-      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq]
-      exact ⟨hsub, hchild⟩
-
-/-- 一つの observer が受け取る record は、interested なら一つ、そうでなければ無い。 -/
-theorem records_after_queue {s₂ s₃ : DOMState} {rec : MutationRecord} {mo : Nat}
-    {o o' : ObserverState}
-    (hov : rec.oldValue = none)
-    (hq : s₃ = queueMutationRecord s₂ rec none)
-    (ho : s₂.observers[mo]? = some o) (ho' : s₃.observers[mo]? = some o') :
-    (mo ∈ ((interestedObservers s₂ rec none).map (·.1)) → o'.records = o.records ++ [rec]) ∧
-      (mo ∉ ((interestedObservers s₂ rec none).map (·.1)) → o'.records = o.records) := by
-  rw [hq, observers_queueMutationRecord] at ho'
-  have hfold := records_foldl_enqueue rec _ s₂.observers mo o o' ho ho'
-  constructor
-  · intro hmem
-    obtain ⟨q, hq', hq1⟩ := List.mem_map.mp hmem
-    have hq2 : q.2 = none := oldValue_none_of_childList s₂ rec q hq'
-    have hqe : q = (mo, none) := by
-      cases q with
-      | mk a bb => simp only at hq1 hq2; rw [hq1, hq2]
-    rw [hfold, filterMap_eq_single
-      (fun r : Nat × Option String => ({ rec with oldValue := r.2 } : MutationRecord)) mo none _
-      (nodup_interestedObservers s₂ rec none) (by rw [← hqe]; exact hq')]
-    have : ({ rec with oldValue := (none : Option String) } : MutationRecord) = rec := by
-      rw [← hov]
-    rw [this]
-  · intro hmem
-    rw [hfold, filterMap_eq_nil_of_not_mem
-      (fun r : Nat × Option String => ({ rec with oldValue := r.2 } : MutationRecord)) mo _ hmem]
-    simp
-
-/-- **step 21 の soundness。** -/
-theorem remove_sound_record {s s' : DOMState} {n p : NodeId} {b : Bool}
-    (hwf : WellFormed s.tree) (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
-    RecordQueued s s' n p (previousSibling s.tree n) (nextSibling s.tree n) b := by
-  obtain ⟨p', s₁, hp', hd, hrec⟩ := remove_cases h
-  rw [hp] at hp'
-  cases hp'
-  have hobs₁ := detachWithLiveAdjust_observers hd
-  have hpend₁ := detachWithLiveAdjust_pending hd
-  have hmt₁ := detachWithLiveAdjust_microtask hd
-  -- step 20 の後の状態。record を積むのはこの上である。
-  have hlen₂ : (addTransientObservers s₁ n p).observers.length = s.observers.length := by
-    rw [addTransientObservers_observers_length, hobs₁]
-  have hget₂ : ∀ (mo : Nat) (o : ObserverState), s.observers[mo]? = some o →
-      ∃ o₂, (addTransientObservers s₁ n p).observers[mo]? = some o₂ ∧ o₂.records = o.records := by
-    intro mo o ho
-    rcases hq : (addTransientObservers s₁ n p).observers[mo]? with _ | o₂
-    · exfalso
-      rw [List.getElem?_eq_none_iff, hlen₂] at hq
-      rcases Nat.lt_or_ge mo s.observers.length with hk | hk
-      · omega
-      · rw [List.getElem?_eq_none hk] at ho; simp at ho
-    · exact ⟨o₂, rfl, records_addTransientObservers s₁ n p mo o o₂ (by rw [hobs₁]; exact ho) hq⟩
-  unfold RecordQueued TreeRecordQueued
-  rcases hrec with ⟨hb, rfl⟩ | ⟨hb, rfl⟩
-  · -- suppressObservers が true なら record は積まない。
-    rw [if_pos (by simpa using hb)]
-    refine ⟨hlen₂, ?_, ?_, ?_⟩
-    · intro mo o o' ho ho'
-      exact records_addTransientObservers s₁ n p mo o o' (by rw [hobs₁]; exact ho) ho'
-    · intro mo
-      have hp' : (addTransientObservers s₁ n p).pendingObservers = s.pendingObservers := hpend₁
-      rw [hp']
-    · exact ⟨hmt₁, hpend₁⟩
-  · rw [if_neg (by simpa using hb)]
-    have hqueue : queueTreeMutationRecord (addTransientObservers s₁ n p) p [] [n]
-        (previousSibling s.tree n) (nextSibling s.tree n)
-          = queueMutationRecord (addTransientObservers s₁ n p)
-            { type := .childList, target := p, addedNodes := [], removedNodes := [n],
-              previousSibling := previousSibling s.tree n,
-              nextSibling := nextSibling s.tree n } none := by
-      unfold queueTreeMutationRecord
-      rw [if_neg (by simp)]
-    have hbridge := fun mo => interestedIn_childList_bridge hwf hp hd mo
-      ({ type := .childList, target := p, addedNodes := [], removedNodes := [n],
-         previousSibling := previousSibling s.tree n,
-         nextSibling := nextSibling s.tree n } : MutationRecord) rfl rfl rfl rfl
-    rw [hqueue]
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
-    · rw [queueMutationRecord_observers_length, hlen₂]
-    · intro mo o o' ho ho'
-      obtain ⟨o₂, ho₂, hrec₂⟩ := hget₂ mo o ho
-      have := records_after_queue (mo := mo) rfl rfl ho₂ ho'
-      constructor
-      · intro hint
-        rw [this.1 ((hbridge mo).mpr hint), hrec₂]
-      · intro hint
-        rw [this.2 (fun hm => hint ((hbridge mo).mp hm)), hrec₂]
-    · intro mo hint
-      refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inr ?_)
-      exact (hbridge mo).mpr hint
-    · intro mo hmo
-      refine (mem_pendingObservers_queueMutationRecord _ _ _ mo).mpr (Or.inl ?_)
-      show mo ∈ s₁.pendingObservers
-      rw [hpend₁]
-      exact hmo
-    · intro mo hmo
-      rcases (mem_pendingObservers_queueMutationRecord _ _ _ mo).mp hmo with hm | hm
-      · left
-        have hm' : mo ∈ s₁.pendingObservers := hm
-        rw [hpend₁] at hm'
-        exact hm'
-      · exact Or.inr ((hbridge mo).mp hm)
-    · refine ⟨microtaskQueued_queueMutationRecord _ _ _, p :: ancestors s.tree p,
-        inclusiveAncestorsUp_of_wf hwf p, ?_⟩
-      rw [pending_queueMutationRecord _ _ none (childListInterest p)
-        (fun r => interestedIn_childList p r)]
-      have hanc : ancestors s₁.tree p = ancestors s.tree p := ancestors_eq_after_detach hwf hp hd
-      have hnot : n ∉ p :: ancestors s.tree p := by
-        intro hm
-        have hpn : Ancestor s.tree p n := Ancestor.step hp
-        rcases List.mem_cons.mp hm with he | hm
-        · subst he; exact ancestor_irrefl hwf _ hpn
-        · exact ancestor_asymm hwf hpn ((mem_ancestors_iff hwf p n).mp hm)
-      show appendNew s₁.pendingObservers (interestedOrder (s₁.registrations ++ _)
-          (p :: ancestors s₁.tree p) (childListInterest p)) = _
-      rw [hpend₁, hanc, remove_registrations_before_transient hd, interestedOrder_append_off]
-      intro x hx
-      obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
-      obtain ⟨r, -, rfl⟩ := List.mem_map.mp hx
-      exact hnot
+/-- `detachWithLiveAdjust` は「observer を抑えた `remove`」の前半である。 -/
+theorem remove_suppress_of_detach {s s₁ : DOMState} {node p : NodeId}
+    (hp : parentOf s.tree node = some p) (h : detachWithLiveAdjust s node = .ok s₁) :
+    remove s node true = .ok (addTransientObservers s₁ node p) := by
+  rw [remove_of_detach hp h]
+  simp
 
 /-! ## step 4：NodeIterator pre-remove steps -/
 
@@ -599,22 +416,24 @@ theorem remove_sound_iterator {s s' : DOMState} {n p : NodeId} {b : Bool}
 /-! ## まとめ -/
 
 /--
-`remove` は walker・listener・detach された `Attr` に触れない。
+**`detachWithLiveAdjust` は `Detached` を満たす。**
 
-step のどれもその三つを読まないので、状態の更新がそのまま持ち越す。
+後半（transient registered observer と record）は木・live range・NodeIterator を触らないので、
+`suppressObservers` を立てた `remove` に読み替えれば step 3・4・7 の定理がそのまま効く。
 -/
-theorem remove_sound_untouched {s s' : DOMState} {n : NodeId} {b : Bool}
-    (h : remove s n b = .ok s') : Untouched s s' := by
-  obtain ⟨p, sd, hp, hd, hrec⟩ := remove_cases h
-  obtain ⟨t', -, hsd⟩ := detachWithLiveAdjust_cases hd
-  have hstep : Untouched s sd := by
-    rw [hsd]
-    exact ((untouched_liveRangePreRemove s n).trans
-      (untouched_iteratorPreRemove _ n)).trans (DOMState.untouched_withTree _ t')
-  refine hstep.trans ?_
-  rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩
-  · exact untouched_addTransientObservers ..
-  · exact (untouched_addTransientObservers sd n p).trans (untouched_queueTreeMutationRecord ..)
+theorem detached_of_detach {s s₁ : DOMState} {node p : NodeId} (hwf : WellFormed s.tree)
+    (hp : parentOf s.tree node = some p) (h : detachWithLiveAdjust s node = .ok s₁) :
+    Detached s s₁ node p ((index s.tree node).getD 0) := by
+  have hr := remove_suppress_of_detach hp h
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · have hq := remove_sound_range hwf hp hr
+    simpa [RangeAdjusted] using hq
+  · have hq := remove_sound_iterator hwf hp hr
+    simpa [IteratorAdjusted] using hq
+  · have hq := remove_sound_tree hwf hp hr
+    simpa using hq
+  · obtain ⟨-, hs⟩ := DOMState.mapTree_eq_ok h
+    refine ⟨?_, ?_, ?_, ?_, ⟨?_, ?_, ?_⟩⟩ <;> rw [hs] <;> first | rfl | simp
 
 /--
 **`remove` は `RemoveSpec` を満たす。**
@@ -624,10 +443,14 @@ theorem remove_sound_untouched {s s' : DOMState} {n : NodeId} {b : Bool}
 -/
 theorem remove_sound {s s' : DOMState} {n : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (h : remove s n b = .ok s') : RemoveSpec s n b s' := by
-  obtain ⟨⟨p, hp⟩, -⟩ := remove_ok h
-  exact ⟨p, (index s.tree n).getD 0, hp, rfl,
-    remove_sound_range hwf hp h, remove_sound_iterator hwf hp h,
-    remove_sound_tree hwf hp h, remove_sound_transient hwf hp h, remove_sound_record hwf hp h,
-    remove_sound_untouched h⟩
+  obtain ⟨p, s₁, hp, hd, hrec⟩ := remove_cases h
+  have hwf₁ : WellFormed s₁.tree :=
+    detach_preserves_wellformed hwf (detachWithLiveAdjust_tree hd)
+  refine ⟨p, (index s.tree n).getD 0, s₁, addTransientObservers s₁ n p, hp, rfl,
+    detached_of_detach hwf hp hd, transientAdded_of_add hwf₁ n p, ?_⟩
+  rcases hrec with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+  · exact ⟨treeRecordQueued_of_suppress .., ObserverOnly.refl _⟩
+  · exact ⟨treeRecordQueued_of_queue _ (by simpa using hwf₁) p [] [n] _ _ (by simp),
+      ⟨by simp, by simp, by simp, by simp, untouched_queueTreeMutationRecord ..⟩⟩
 
 end Dom.Spec

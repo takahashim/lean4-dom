@@ -560,20 +560,16 @@ theorem records_foldl_preserved {α : Type} (step : List ObserverState → α �
       · exact ⟨o₁, rfl⟩
     rw [ih _ mo o₁ o' h₁ h', hstep obs a mo o o₁ h h₁]
 
-/-- §4.2.3 remove step 20 は record queue を変えない（node list だけを触る）。 -/
+/-- "add transient registered observers" は record queue を変えない（node list だけを触る）。 -/
 theorem records_addTransientObservers (s : DOMState) (n p : NodeId) (mo : Nat)
     (o o' : ObserverState) (h : s.observers[mo]? = some o)
     (h' : (addTransientObservers s n p).observers[mo]? = some o') : o'.records = o.records := by
-  unfold addTransientObservers at h'
+  rw [addTransientObservers_observers] at h'
   refine records_foldl_preserved _ ?_ ?_ _ s.observers mo o o' h h'
-  · intro obs r
-    split
-    · rfl
-    · split
-      · rfl
-      · exact List.length_set ..
+  · exact transientStep_length n
   · intro obs r mo₁ o₁ o₂ h₁ h₂
     revert h₂
+    unfold transientStep
     split
     · intro h₂; rw [h₁] at h₂; cases h₂; rfl
     · next oo hoo =>
@@ -596,28 +592,37 @@ theorem observers_queueMutationRecord (s : DOMState) (rec : MutationRecord) (ov 
     (queueMutationRecord s rec ov).observers =
       (interestedObservers s rec ov).foldl
         (fun obs q => enqueueRecord obs q.1 { rec with oldValue := q.2 }) s.observers := by
-  unfold queueMutationRecord
-  rw [queueMutationObserverMicrotask_observers, foldl_addPendingObserver_observers]
+  rw [queueMutationRecord_eq]
+  split
+  · next h => rw [List.isEmpty_iff.mp h]; rfl
+  · rw [queueMutationObserverMicrotask_observers, foldl_addPendingObserver_observers]
 
 theorem mem_pendingObservers_queueMutationRecord (s : DOMState) (rec : MutationRecord)
     (ov : Option String) (mo : Nat) :
     mo ∈ (queueMutationRecord s rec ov).pendingObservers ↔
       mo ∈ s.pendingObservers ∨ mo ∈ ((interestedObservers s rec ov).map (·.1)) := by
-  unfold queueMutationRecord
-  have hmt : ∀ st : DOMState,
-      (queueMutationObserverMicrotask st).pendingObservers = st.pendingObservers := by
-    intro st; unfold queueMutationObserverMicrotask; split <;> rfl
-  rw [hmt, mem_foldl_addPendingObserver]
+  rw [queueMutationRecord_eq]
+  split
+  · next h => rw [List.isEmpty_iff.mp h]; simp
+  · have hmt : ∀ st : DOMState,
+        (queueMutationObserverMicrotask st).pendingObservers = st.pendingObservers := by
+      intro st; unfold queueMutationObserverMicrotask; split <;> rfl
+    rw [hmt, mem_foldl_addPendingObserver]
 
+/-- step 4 で返らなければ microtask は予約される。 -/
 theorem microtaskQueued_queueMutationRecord (s : DOMState) (rec : MutationRecord)
-    (ov : Option String) : (queueMutationRecord s rec ov).microtaskQueued = true := by
+    (ov : Option String) :
+    (queueMutationRecord s rec ov).microtaskQueued =
+      (s.microtaskQueued || !(interestedObservers s rec ov).isEmpty) := by
   have hmt : ∀ st : DOMState, (queueMutationObserverMicrotask st).microtaskQueued = true := by
     intro st
     unfold queueMutationObserverMicrotask
     split
     · next h => exact h
     · rfl
-  unfold queueMutationRecord
-  exact hmt _
+  rw [queueMutationRecord_eq]
+  split
+  · next h => simp [h]
+  · next h => rw [hmt]; simp [h]
 
 end Dom
