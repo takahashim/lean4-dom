@@ -139,7 +139,7 @@ def NodeRef.exists (s : DOMState) : NodeRef → Bool
   | .attr a => (findAttr s a).isSome
 
 /--
-`compareDocumentPosition` の step 5 で、同じ木にないものの前後を一貫して決める全順序。
+`compareDocumentPosition` の step 6 で、同じ木にないものの前後を一貫して決める全順序。
 node どうしは `compareDocumentPosition` と同じく id の順、node は `Attr` より前に置く。
 -/
 def NodeRef.orderKey : NodeRef → Nat × Nat
@@ -150,7 +150,7 @@ def NodeRef.orderKey : NodeRef → Nat × Nat
 def NodeRef.before (x y : NodeRef) : Bool :=
   x.orderKey.1 < y.orderKey.1 || (x.orderKey.1 == y.orderKey.1 && x.orderKey.2 < y.orderKey.2)
 
-/-- `Attr` を element に置き換える（step 3・4）。node ならそのまま。element が null なら `none`。 -/
+/-- `Attr` を element に置き換える（step 4・5.1）。node ならそのまま。element が null なら `none`。 -/
 def NodeRef.elementOf (s : DOMState) : NodeRef → Option NodeId
   | .node n => some n
   | .attr a => attrOwnerElement s a
@@ -158,21 +158,21 @@ def NodeRef.elementOf (s : DOMState) : NodeRef → Option NodeId
 /--
 DOM Standard §4.4 `compareDocumentPosition(other)`。`this` が `node`、`other` が `other`。
 
-step 4.2 の "equals" は attribute の `equals`（namespace・local name・value）である。
+step 5.2 の "equals" は attribute の `equals`（namespace・local name・value）である。
 同じ element の attribute list では鍵が一意なので、同じ `Attr` のときだけ当たる。
 -/
 def compareDocumentPositionRef (s : DOMState) (node other : NodeRef) : Nat :=
   -- step 1
   if node = other then 0
   else
-    -- step 2-4。`Attr` は element に置き換える。
+    -- step 2-5.1。`Attr` は element に置き換える。
     let attr1 : Option Attr := match other with
       | .attr a => (findAttr s a).map (·.1) | .node _ => none
     let attr2 : Option Attr := match node with
       | .attr a => (findAttr s a).map (·.1) | .node _ => none
     match other.elementOf s, node.elementOf s with
     | some n1, some n2 =>
-      -- step 4.2：同じ element の attribute どうしは attribute list の順。
+      -- step 5.2：同じ element の attribute どうしは attribute list の順。
       let sameElement : Option Nat :=
         match attr1, attr2 with
         | some a1, some a2 =>
@@ -189,21 +189,21 @@ def compareDocumentPositionRef (s : DOMState) (node other : NodeRef) : Nat :=
       match sameElement with
       | some r => r
       | none =>
-        -- step 5
+        -- step 6
         if root s.tree n1 != root s.tree n2 then
           DocumentPosition.disconnected + DocumentPosition.implementationSpecific +
             (if other.before node then DocumentPosition.preceding else DocumentPosition.following)
-        -- step 6
+        -- step 7
         else if (isAncestorOf s.tree n1 n2 && attr1.isNone) || (n1 == n2 && attr2.isSome) then
           DocumentPosition.contains + DocumentPosition.preceding
-        -- step 7
+        -- step 8
         else if (isAncestorOf s.tree n2 n1 && attr2.isNone) || (n1 == n2 && attr1.isSome) then
           DocumentPosition.containedBy + DocumentPosition.following
-        -- step 8
-        else if precedes s.tree n1 n2 then DocumentPosition.preceding
         -- step 9
+        else if precedes s.tree n1 n2 then DocumentPosition.preceding
+        -- step 10
         else DocumentPosition.following
-    -- step 5：element の無い `Attr` が絡む。
+    -- step 6：element の無い `Attr` が絡む。
     | _, _ =>
       DocumentPosition.disconnected + DocumentPosition.implementationSpecific +
         (if other.before node then DocumentPosition.preceding else DocumentPosition.following)

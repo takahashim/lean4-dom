@@ -6,10 +6,10 @@ import Dom.Properties.ReplaceContract
 `move` が落ちうるのは三箇所である。
 
 * step 1-6 の `moveValidity`
-* step 10-11, 14 の `detach`
-* step 16-18 の `insertAt`
+* step 9-10, 13 の `detach`
+* step 18, 20-21 の `insertAt`
 
-`detach` は step 7-9 の assert（`moveValidity_parentOf_isSome`）から落ちない。
+`detach` は step 7-8 の assert（`moveValidity_parentOf_isSome`）から落ちない。
 `insertAt` の四つの前提は `moveValidity` が与える——ただし
 **reference child が `node` 自身でない**ことだけは別に要る。
 
@@ -25,8 +25,8 @@ import Dom.Properties.ReplaceContract
 `child ≠ some node` が要り、`moveBefore` の側では要らない。
 
 `child` が `node` のまま `move` に入ったときの**仕様の**振る舞いは定まっている。
-step 14 で `node` を外すと `node` は parent を失うので preceding sibling が 0 個、
-§1.1 の定義により index は 0 になり、step 18 は「先頭に入れる」になる。
+step 13 で `node` を外すと `node` は parent を失うので preceding sibling が 0 個、
+§1.1 の定義により index は 0 になり、step 21 は「先頭に入れる」になる。
 
 **model はそこで `notFoundError` を返す。** `insertAt` が「`child` は `parent` の子」を
 primitive の前提として検査するからである（`Dom/Mutation/Insert.lean`）。
@@ -91,7 +91,7 @@ theorem move_isOk_of_validity {s : DOMState} {node newParent : NodeId}
     intro hq
     rw [(isInclusiveAncestorOf_iff hwf node newParent).mpr hq] at hanc
     exact Bool.noConfusion hanc
-  -- step 7-9：node は parent を持つ（step 1-2 から従う）
+  -- step 7-8：node は parent を持つ（step 1-2 から従う）
   obtain ⟨p, hp⟩ := Option.isSome_iff_exists.mp (moveValidity_parentOf_isSome hwf hv)
   obtain ⟨nd', hnd', hnp'⟩ := parentOf_eq_some hp
   obtain ⟨ppd, hppd⟩ : ∃ ppd, s.tree.get? p = some ppd := exists_data_of_parentOf hwf hp
@@ -107,7 +107,7 @@ theorem move_isOk_of_validity {s : DOMState} {node newParent : NodeId}
   have hd₁ : detach s.tree node = .ok s₁.tree := by rw [htree₁]; exact hdet
   have hwf₁ : WellFormed s₁.tree := detach_preserves_wellformed hwf hd₁
   have hsp₁ : ShapePreserving s.tree s₁.tree := shapePreserving_detach hd₁
-  -- step 16-18：`insertAt` の四つの前提
+  -- step 18, 20-21：`insertAt` の四つの前提
   obtain ⟨pd₁, hpd₁⟩ := exists_get?_of_kindPreserving hsp₁ hpd
   obtain ⟨nd₁, hnd₁⟩ := exists_get?_of_kindPreserving hsp₁ hnd
   have hnp₁ : nd₁.parent = none := by
@@ -183,7 +183,7 @@ theorem moveBefore_succeeds_iff {s : DOMState} (hwf : WellFormed s.tree)
 receiver が `ParentNode` であるときの話である。receiver 自身の二つの失敗
 （木に無い・`ParentNode` でない）は `moveBefore_error_receiver` に分けてある。
 
-step 7-9 の `detach` と step 16-18 の `insertAt` は落ちないので
+step 9-10, 13 の `detach` と step 18, 20-21 の `insertAt` は落ちないので
 （`move_isOk_of_validity`）、返る例外は step 1-6 のものだけになる。
 -/
 theorem moveBefore_error_iff {s : DOMState} (hwf : WellFormed s.tree)

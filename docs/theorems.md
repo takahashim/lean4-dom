@@ -449,7 +449,7 @@ selector を使わない `getElementsByClassName()` と `getElementsByName()` �
 
 `Attr` を `Node` として渡す `compareDocumentPosition` は、node どうしなら元の定義と同じで
 （`compareDocumentPositionRef_nodes`）、element の無い `Attr` が絡めば向きを入れ替えると PRECEDING と
-FOLLOWING が入れ替わる（`compareDocumentPositionRef_disconnected_consistent`、step 5 の「一貫していること」）。
+FOLLOWING が入れ替わる（`compareDocumentPositionRef_disconnected_consistent`、step 6 の「一貫していること」）。
 `Attr` は子にも親にもなれない（`appendChildRef_attr_fails`）。
 
 ## 17. scoping root が見えるのは `:scope` からだけ

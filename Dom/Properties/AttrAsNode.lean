@@ -7,7 +7,7 @@ import Dom.Properties.NodeQuery
 * `compareDocumentPositionRef` は node どうしでは `compareDocumentPosition` と同じで
   （`compareDocumentPositionRef_nodes`）、自分自身とは 0、element の無い `Attr` が絡めば
   同じ木にない扱いで、向きを入れ替えると PRECEDING と FOLLOWING が入れ替わる
-  （`compareDocumentPositionRef_disconnected_consistent`、step 5 の「一貫していること」）。
+  （`compareDocumentPositionRef_disconnected_consistent`、step 6 の「一貫していること」）。
 * `Attr` は子にも親にもなれない（`appendChildRef_attr_fails`）。
 * `contains` は `Attr` と node をまたがない（`nodeContainsRef_node_attr` ほか）。
 * clone / import した `Attr` は element を持たず、namespace・local name・value が元と同じで、
@@ -71,7 +71,7 @@ theorem NodeRef.before_asymm {x y : NodeRef} (h : x.before y = true) : y.before 
 
 /--
 **element の無い `Attr` が絡めば同じ木にない扱いで、向きを入れ替えると PRECEDING と FOLLOWING が
-入れ替わる。** 仕様 step 5 の "with the constraint that this is to be consistent"。
+入れ替わる。** 仕様 step 6 の "with the constraint that this is to be consistent"。
 -/
 theorem compareDocumentPositionRef_disconnected_consistent (s : DOMState) {x y : NodeRef}
     (hne : x ≠ y) (hnone : x.elementOf s = none ∨ y.elementOf s = none) :

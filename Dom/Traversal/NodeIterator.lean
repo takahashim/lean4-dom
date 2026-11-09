@@ -32,7 +32,7 @@ def iteratorCollection (t : Tree) (root : NodeId) : List NodeId :=
 /--
 DOM Standard §6.1 "filter"、ただし `filter` は null。
 
-step 1-2 だけが残り、node type の bit が立っていれば FILTER_ACCEPT、
+step 2-4 だけが残り、node type の bit が立っていれば FILTER_ACCEPT、
 立っていなければ FILTER_SKIP になる。
 -/
 def showsNode (t : Tree) (whatToShow : Nat) (n : NodeId) : Bool :=

@@ -41,7 +41,7 @@ namespace Dom
 copy の node data。parent・children・node document（attribute の node document を含む）以外は
 そのまま写す。
 
-**attribute には新しい id を振る。** 仕様の "clone a single node" step 2.1 は
+**attribute には新しい id を振る。** 仕様の "clone a single node" step 2.5 は
 attribute ごとに clone を作るので、copy の `Attr` は原本とは別のものである。
 `base` から list 順に振る。呼び出し側は `maxAttrId + 1` を渡す。
 -/

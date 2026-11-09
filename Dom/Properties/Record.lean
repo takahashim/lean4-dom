@@ -393,7 +393,7 @@ theorem allNone_foldl_of_step {α : Type}
   | nil => intro acc h; exact h
   | cons a rest ih => intro acc h; exact ih (step acc a) (hstep acc a h)
 
-/-- `queue a mutation record` の step 2.3.3。childList の record は oldValue を持たない。 -/
+/-- `queue a mutation record` の step 3.2.3。childList の record は oldValue を持たない。 -/
 theorem oldValue_none_of_childList (s : DOMState) (rec : MutationRecord) :
     ∀ p ∈ interestedObservers s rec none, p.2 = none := by
   unfold interestedObservers

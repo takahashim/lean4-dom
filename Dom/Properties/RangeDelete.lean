@@ -64,9 +64,9 @@ theorem root_eq_of_containedInRange {n : NodeId} (h : containedInRange t r n = t
   simp only [Bool.and_eq_true, beq_iff_eq] at h
   exact h.1.1
 
-/-! ## step 5-6 の新しい boundary point -/
+/-! ## step 5-7 の新しい boundary point -/
 
-/-- start が end の inclusive ancestor なら、その場に潰れる（step 5）。 -/
+/-- start が end の inclusive ancestor なら、その場に潰れる（step 6）。 -/
 theorem deleteContentsNewBP_of_inclusiveAncestor
     (h : isInclusiveAncestorOf t r.start.node r.«end».node = true) :
     deleteContentsNewBP t r = r.start := by

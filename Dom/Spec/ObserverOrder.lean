@@ -9,7 +9,7 @@ MutationObserver の配送は順序が観測に出る。notify は pending mutat
 そのものも本文どおりに保つ。どの observer が pending に入るかの順は "queue a mutation record" が決める。
 その順は次の二つから決まる。
 
-* **interested observers の順**（"queue a mutation record" step 3-4）：target の inclusive ancestor を
+* **interested observers の順**（"queue a mutation record" step 3）：target の inclusive ancestor を
   下から上へ、各 node の registered observer list を list の順に見て、条件を満たす registered の observer を
   初めて出てきた順に並べる（interestedObservers は ordered map である）。
 * **pending mutation observers への append**（step 5.3）：ordered set への append なので、既にあれば何もしない。

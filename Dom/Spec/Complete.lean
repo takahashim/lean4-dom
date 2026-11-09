@@ -268,7 +268,7 @@ theorem insert_no_extra_models {s s' out : DOMState} {node parent : NodeId}
     ObsEq s' out :=
   insertSpec_congr hwf (ObsEq.refl s) hacyc h (insert_sound hwf hok)
 
-/-- **step 5-7 の実現可能性。** -/
+/-- **step 7 の実現可能性。** -/
 theorem insertEachAt_complete {parent : NodeId} {child : Option NodeId} {doc : NodeId}
     {nodes : List NodeId} {s sx out : DOMState} {pd : NodeData}
     (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree doc)
@@ -499,8 +499,8 @@ theorem replace_complete {s s' : DOMState} {child node parent : NodeId}
 /--
 **`move` は関係を満たす状態があるなら成功する。**
 
-落ちうるのは step 10-11,14 の `detach` と step 16-18 の `insertAt` の二箇所である。
-前者は「`node` に parent がある」から出る（関係の step 7-9 が言っている）。
+落ちうるのは step 9-10, 13 の `detach` と step 18-21 の `insertAt` の二箇所である。
+前者は「`node` に parent がある」から出る（関係の step 7-8 が言っている）。
 後者の四つの前提のうち三つは step 1-6 の validity から、
 **`child` が新しい parent の子であること**は関係の `TreeInserted.childIsChild` から出る。
 外した後の木で子であることは validity だけでは言えない（`child = node` がその場合である）。

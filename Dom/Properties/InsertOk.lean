@@ -270,7 +270,7 @@ theorem insertEach_isOk : ∀ (ns : List NodeId) {s : DOMState} {parent : NodeId
     have hwf₁ : WellFormed s₁.tree := adopt_preserves_wellformed hwf hdoc hadopt
     have hdoc₁ : IsDocument s₁.tree doc :=
       isDocument_of_shapePreserving (shapePreserving_adopt hadopt) hdoc
-    -- step 7.2：insertAt の四つの前提
+    -- step 7.2-7.3：insertAt の四つの前提
     obtain ⟨pd₁, hpd₁⟩ := h₁.parentExists
     obtain ⟨nd₁, hnd₁⟩ := h₁.present n (by simp)
     have hnp₁ : nd₁.parent = none := by
@@ -380,7 +380,7 @@ theorem insertNodesAt_isOk_of_insertable {s : DOMState} {parent : NodeId}
 /--
 **`insert` は四つの事実があれば必ず成功する。**
 
-pre-insertion validity が与えるもののうち、kind の検査（step 4-6）は要らない。
+pre-insertion validity が与えるもののうち、kind の検査（step 4-11）は要らない。
 落ちうるのは step 4 の `removeEach` と step 7 の `adopt` / `insertAt` で、
 そこに効くのはこの四つだけだからである。
 

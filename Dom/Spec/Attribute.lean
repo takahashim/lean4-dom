@@ -28,7 +28,7 @@ open Dom
 /-! ## §4.3.2 attributes の record -/
 
 /--
-"queue a mutation record" の step 2.3 のうち、attributes record に効く部分。
+"queue a mutation record" の step 3.2 のうち、attributes record に効く部分。
 
 options の attributes が true で、`attributeFilter` が無いか、あって name を含み namespace が null。
 -/
@@ -38,7 +38,7 @@ def InterestedInAttribute (s : DOMState) (mo : Nat) (target : NodeId) (name : St
     InclusiveAncestor s.tree r.node target ∧ (r.node = target ∨ r.subtree = true) ∧
     (r.attributeFilter = none ∨ ∃ f, r.attributeFilter = some f ∧ name ∈ f ∧ ns = none)
 
-/-- step 2.3.3。`attributeOldValue` を持つ interested な registration があること。 -/
+/-- step 3.2.3。`attributeOldValue` を持つ interested な registration があること。 -/
 def AttributeOldValueWanted (s : DOMState) (mo : Nat) (target : NodeId) (name : String)
     (ns : Option String) : Prop :=
   ∃ r ∈ s.registrations, r.observer = mo ∧ r.attributes = true ∧ r.attributeOldValue = true ∧
@@ -131,8 +131,8 @@ def AttributeChanged (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr)
     AttributeChangeHandled s₁ s' element a (some a.value)
 
 /--
-**"append an attribute"。** 3. attribute の node document を element のものにする。
-4. list の末尾に足す。1. handle attribute changes（oldValue は null）。
+**"append an attribute"。** 1. list の末尾に足す。3. attribute の node document を element のものにする。
+4. handle attribute changes（oldValue は null）。
 -/
 def AttributeAppended (s : DOMState) (element : NodeId) (d : NodeData) (a₀ : Attr)
     (s' : DOMState) : Prop :=
@@ -183,7 +183,7 @@ def IsElementData (s : DOMState) (element : NodeId) (d : NodeData) : Prop :=
 **`setAttribute(qualifiedName, value)` の、結果まで含めた関係。**
 
 1. qualifiedName が valid attribute local name でなければ InvalidCharacterError。
-3-4. get an attribute by name。
+4. get an attribute by name。
 5. あれば change an attribute。
 6-7. 無ければ（step 2 で正規化した名前で）attribute を作って append する。
 -/
@@ -199,9 +199,9 @@ def SetAttributeResult (s : DOMState) (element : NodeId) (qn value : String) :
               ownerDocument := d.ownerDocument } s'))
 
 /--
-**"set an attribute value"（`setAttributeNS` の step 2 から先）。**
+**"set an attribute value"（`setAttributeNS` の step 3 から先）。**
 
-2. get an attribute by namespace and local name。無ければ作って append。
+1-2. get an attribute by namespace and local name。無ければ作って append。
 3. あれば change an attribute。
 -/
 def SetAttributeValueResult (s : DOMState) (element : NodeId) (localName value : String)

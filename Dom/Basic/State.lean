@@ -167,7 +167,7 @@ structure Registration where
   attributeOldValue : Bool := false
   /--
   仕様の `attributeFilter`。存在しないことと空 list であることは区別される
-  （"queue a mutation record" step 2.3 の三つ目の条件が、存在するかどうかで分岐する）。
+  （"queue a mutation record" step 3.2 の三つ目の条件が、存在するかどうかで分岐する）。
   -/
   attributeFilter : Option (List String) := none
   characterData : Bool := false

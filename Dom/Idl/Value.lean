@@ -244,8 +244,8 @@ theorem toLegacyNullDOMString_error {v : JsValue} {e : IdlException}
 **JavaScript の値を IDL の `sequence<DOMString>` に変換する。**
 
 1. object でなければ TypeError。
-2. `@@iterator` を引く。undefined なら TypeError（普通の object がこれに当たる）。
-3. iterator が返す値を順に DOMString に変換する（配列は要素を順に返す）。
+2-3. `@@iterator` を引く。undefined なら TypeError（普通の object がこれに当たる）。
+4. iterator が返す値を順に DOMString に変換する（配列は要素を順に返す）。
 -/
 def toSequenceDOMString : JsValue → Except IdlException (List String)
   | .array xs => xs.mapM toDOMString

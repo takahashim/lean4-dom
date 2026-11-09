@@ -95,7 +95,7 @@ def isValidElementLocalName (s : String) : Bool :=
     else false
 
 /--
-DOM Standard §1.4 "validate and extract" の step 6 と step 8-11。
+DOM Standard §1.4 "validate and extract" の step 6-11。
 
 prefix の検査（step 4.3）を終えた後の検査をまとめる。
 切り出してあるのは、失敗の条件を単体で述べられるようにするためである。
@@ -103,7 +103,7 @@ prefix の検査（step 4.3）を終えた後の検査をまとめる。
 def validateAndExtractError (validLocalName : String → Bool)
     («namespace» «prefix» : Option String)
     (localName qualifiedName : String) : Option DOMException :=
-  -- step 6。context が "attribute" か "element" かで local name の条件が違う。
+  -- step 6-7。context が "attribute" か "element" かで local name の条件が違う。
   if !validLocalName localName then some .invalidCharacterError
   -- step 8
   else if «prefix».isSome && «namespace».isNone then some .namespaceError
@@ -242,7 +242,7 @@ def validateAndExtractAttribute («namespace» : Option String) (qualifiedName :
 /--
 DOM Standard §1.4 "validate and extract"、context は "element"。
 
-attribute 版との違いは step 6 の local name の条件だけである。
+attribute 版との違いは local name の条件だけである（attribute は step 6、element は step 7）。
 -/
 def validateAndExtractElement («namespace» : Option String) (qualifiedName : String) :
     Except DOMException (Option String × Option String × String) :=

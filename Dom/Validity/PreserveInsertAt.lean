@@ -119,7 +119,7 @@ theorem doctypeFollows_insertAt_self {t t' : Tree} {parent node : NodeId}
 `insertAt` は parent の children に一つ挿すだけなので、
 挿す node の kind に関する条件があれば Document の children 制約は保たれる。
 
-条件は §4.2.3 "ensure pre-insertion validity" step 6 / 9 と
+条件は §4.2.3 "ensure pre-insertion validity" step 6 / 9 / 11 と
 "move" step 5 / 6 が確立するものと同じである。
 -/
 theorem documentChildrenOk_of_insertAt {t t' : Tree} {parent node : NodeId}

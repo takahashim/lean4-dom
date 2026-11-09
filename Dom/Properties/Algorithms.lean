@@ -548,7 +548,7 @@ theorem moveValidity_ok {t : Tree} {node newParent : NodeId} {child : Option Nod
                       exact h6
 
 /--
-**move の step 7-9 の assert は step 1-2 から従う。**
+**move の step 7-8 の assert は step 1-2 から従う。**
 
 `move` の本体には「`oldParent` が非 null であることの assert」と書いてあるが、
 その根拠は validity にある。`node` に parent が無ければ `node` は自分の木の root なので、
@@ -687,7 +687,7 @@ theorem insert_single {s s' : DOMState} {node parent : NodeId} {child : Option N
       insertAt s₁.tree parent node child = .ok s'.tree ∧ s'.ranges = s₁.ranges := by
   rw [insert_of_not_fragment hnd (by simpa using hk)] at h
   obtain ⟨sx, hx, hstep⟩ := insertNodesAt_cases h
-  -- step 9 の record は木も range も変えない。
+  -- step 8 の record は木も range も変えない。
   have ht : s'.tree = sx.tree ∧ s'.ranges = sx.ranges := by
     rcases hstep with ⟨_, rfl⟩ | ⟨_, rfl⟩
     · exact ⟨rfl, rfl⟩

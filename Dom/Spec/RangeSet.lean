@@ -39,7 +39,7 @@ def StartSet (t : Tree) (r : RangeState) (bp : BoundaryPoint) (r' : RangeState) 
   ((root t r.start.node ≠ root t bp.node ∨ BPBefore t r.«end» bp) ∧ r' = ⟨bp, bp⟩) ∨
     (¬ (root t r.start.node ≠ root t bp.node ∨ BPBefore t r.«end» bp) ∧ r' = { r with start := bp })
 
-/-- "set the end" の step 5。bp が start の before なら start も bp にする。 -/
+/-- "set the end" の step 4。bp が start の before なら start も bp にする。 -/
 def EndSet (t : Tree) (r : RangeState) (bp : BoundaryPoint) (r' : RangeState) : Prop :=
   ((root t r.start.node ≠ root t bp.node ∨ BPBefore t bp r.start) ∧ r' = ⟨bp, bp⟩) ∨
     (¬ (root t r.start.node ≠ root t bp.node ∨ BPBefore t bp r.start) ∧ r' = { r with «end» := bp })

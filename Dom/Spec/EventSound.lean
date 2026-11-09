@@ -225,7 +225,7 @@ theorem innerInvoke_complete {capturing : Bool} {cur : NodeId} {idxs : List Nat}
     rw [← e₂']
     simp [hst]
 
-/-! ## invoke の step 6：listener list の clone -/
+/-! ## invoke の step 8：listener list の clone -/
 
 private theorem pairwise_zipIdx_snd {α : Type _} :
     ∀ (l : List α) (k : Nat), (l.zipIdx k).Pairwise (fun p q => p.2 < q.2)

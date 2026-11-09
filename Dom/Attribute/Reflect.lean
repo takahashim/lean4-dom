@@ -211,7 +211,7 @@ def datasetDelete (s : DOMState) (element : NodeId) (name : String) :
 def classTokenSet (d : NodeData) : List String :=
   orderedSetParse (getAttributeValue d none "class")
 
-/-- `add` / `remove` / `toggle` の token の検査（DOM §7.1 の各 method の step 1）。 -/
+/-- `add` / `remove` / `toggle` の token の検査（DOM §7.1 の `add`・`remove` の step 1.1-1.2、`toggle` の step 1-2）。 -/
 def validateToken (token : String) : Option DOMException :=
   if token.isEmpty then some .syntaxError
   else if token.toList.any isAsciiWhitespace then some .invalidCharacterError
@@ -268,17 +268,17 @@ def classListRemove (s : DOMState) (element : NodeId) (tokens : List String) :
 def classListToggle (s : DOMState) (element : NodeId) (token : String) (force : Option Bool) :
     Except DOMException (DOMState × Bool) := do
   let d ← requireElementData s.tree element
-  -- step 1
+  -- step 1-2
   if let some e := validateToken token then throw e
   let set := classTokenSet d
-  -- step 2
+  -- step 3
   if set.contains token then
     if force == some true then return (s, true)
     else return (← tokenListUpdate s element d (set.filter (· != token)), false)
-  -- step 3
+  -- step 4
   else if force != some false then
     return (← tokenListUpdate s element d (set ++ [token]), true)
-  -- step 4
+  -- step 5
   else return (s, false)
 
 /-- DOM §7.1 `replace(token, newToken)`。返り値の `Bool` は置き換えたか。 -/

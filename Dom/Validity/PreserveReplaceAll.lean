@@ -36,7 +36,7 @@ theorem removeEach_childrenOf_sub :
         exact ((ListUtil.mem_removeAll _ _ _).mp hx₁).1 rfl
       · exact hnot m hm'
 
-/-- §4.2.3 replace all step 4 の後、parent の children は空になる。 -/
+/-- §4.2.3 replace all step 5 の後、parent の children は空になる。 -/
 theorem removeEach_childrenOf_nil {s s' : DOMState} {parent : NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (hr : removeEach s (childrenOf s.tree parent) b = .ok s') :
     childrenOf s'.tree parent = [] := by

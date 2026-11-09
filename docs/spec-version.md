@@ -65,11 +65,10 @@ sequence、union）と、operation の関数（this の検査、引数の変換�
 それらの変換が呼ぶ ECMAScript の抽象操作（ToBoolean、ToNumber、StringToNumber と StringNumericValue、RoundMVResult、
 ToString、Number::toString、ToPrimitive、OrdinaryToPrimitive）と `Array.prototype.join` は、ECMA-262 の表に載せた。
 
-Lean のコメントにある step 番号と節番号は、表とは別に人が書いたものである。2026-10 の時点で、
-固定版より前の step 番号のまま残っているものが数十あった（例：`remove` の「step 20」は固定版の step 15。
-2025-03 の `moveBefore` の導入で live range の調整が "live range pre-remove steps" にまとめられ、
-後ろの step が繰り上がった）。2026-11 に §5 の節番号と、range・NodeIterator の調整と
-record を積む step の番号を固定版に合わせたが、ほかのコメントの step 番号はすべてを見直してはいない。
+Lean のコメントと文書にある step 番号と節番号は、表とは別に人が書いたものであり、機械では検査しない。
+2026-11 に、`Dom/`・`Trace/`・`docs/`・`test/` の DOM・Web IDL・ECMA-262 の参照（step 番号は約 1,700 行）を
+固定版の snapshot と突き合わせて直した（`docs/status.md` の「DOM と Web IDL の固定版を上げた」）。
+それまでは、改訂より前の番号のまま残ったものが二百ほどあった（例：`remove` の「step 20」は固定版の step 15）。
 番号の正は、step は表、節は snapshot（`spec-trace/dom.json` の `section`）のほうである。
 
 ## 版を上げる手順

@@ -145,7 +145,7 @@ def replaceAttributeWith (s : DOMState) (element : NodeId) (d : NodeData) (old n
 /--
 DOM Standard §4.9 "set an attribute" と `Element.setAttributeNode(attr)`。
 
-step 1 の Trusted Types は対象外なので、step 6 の value の書き換えは何もしない。
+step 1 の Trusted Types は対象外なので、step 5 の value の書き換えは何もしない。
 `setAttributeNodeNS` も同じ step を走るので、この一つで両方を表す。
 -/
 def setAttributeNode (s : DOMState) (element : NodeId) (aid : AttrId) :
@@ -166,10 +166,10 @@ def setAttributeNode (s : DOMState) (element : NodeId) (aid : AttrId) :
         | some old =>
           -- step 4
           if old.id == aid then .ok (some aid, s)
-          -- step 7
+          -- step 6
           else .ok (some old.id,
             replaceAttributeWith (removeDetached s aid) element d old a₀.normalized)
-        -- step 8
+        -- step 7
         | none => .ok (none, appendAttribute (removeDetached s aid) element d a₀.normalized)
 
 /--

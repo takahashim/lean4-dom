@@ -7,10 +7,10 @@ import Dom.Properties.InsertOk
 
 * `replaceAll_sound`：成功した `replaceAll` は `ReplaceAllSpec` を満たす。
 * `replaceAllSpec_deterministic`：関係は出力を観測として一つに決める。
-* `replaceAll_isOk`：step 5 の insert が要る事実があれば、`replaceAll` は失敗しない。
+* `replaceAll_isOk`：step 6 の insert が要る事実があれば、`replaceAll` は失敗しない。
 * `ReplaceChildrenResult`：`replaceChildren` の、例外まで含めた関係。
 
-determinism は `replace` と同じく、step 5 の insert が要る acyclicity を仮定する。
+determinism は `replace` と同じく、step 6 の insert が要る acyclicity を仮定する。
 `replaceChildren` の step 2（ensure pre-insertion validity）がそれを保証する。
 -/
 
@@ -18,7 +18,7 @@ namespace Dom.Spec
 
 open Dom
 
-/-! ## step 4 の removal が保つもの -/
+/-! ## step 5 の removal が保つもの -/
 
 /--
 外す node のどの祖先でもない node は、kind と children が残る。
@@ -44,7 +44,7 @@ theorem removeEachSpec_data {ns : List NodeId} {b : Bool} {m : NodeId} :
       exact ⟨d₂, hd₂, by rw [hk₂, hk₁], by rw [hch₂, hch₁]⟩
 
 /--
-**step 5 の insert が要る acyclicity を `s` から removal の後へ移す。**
+**step 6 の insert が要る acyclicity を `s` から removal の後へ移す。**
 
 `node` が `parent` の inclusive ancestor でなければ、`parent` の children のどの祖先でもない。
 したがって `node` の kind と children は removal を跨いで残り、
@@ -88,7 +88,7 @@ theorem replaceAll_sound {s s' : DOMState} {node : Option NodeId} {parent : Node
   obtain ⟨s₁, s₂, hr, hins, hs'⟩ := replaceAll_cases h
   have hwf₁ : WellFormed s₁.tree := removeEach_preserves_wellformed _ hwf hr
   have hsp : ShapePreserving s.tree s₁.tree := shapePreserving_removeEach _ hr
-  -- step 2-3 と step 5
+  -- step 2-4 と step 6
   have hstep : AddedNodes s.tree node (replaceAllNodes s.tree node) ∧
       ReplaceAllInserted s₁ node parent s₂ ∧ WellFormed s₂.tree := by
     rcases hins with ⟨rfl, rfl⟩ | ⟨n, rfl, hi⟩
@@ -112,7 +112,7 @@ theorem replaceAll_sound {s s' : DOMState} {node : Option NodeId} {parent : Node
       · exact Or.inr ⟨hk, by rw [if_neg (by simp [hk])]⟩
   obtain ⟨hadded, hinserted, hwf₂⟩ := hstep
   refine ⟨_, _, s₁, s₂, rfl, hadded, removeEach_sound _ hwf hr, hinserted, ?_⟩
-  -- step 6-7
+  -- step 7
   by_cases hemp : ((replaceAllNodes s.tree node).isEmpty &&
       (childrenOf s.tree parent).isEmpty) = true
   · simp only [Bool.and_eq_true, List.isEmpty_iff] at hemp
@@ -132,7 +132,7 @@ theorem replaceAll_sound {s s' : DOMState} {node : Option NodeId} {parent : Node
 /--
 **`ReplaceAllSpec` は出力を観測として一つに決める。**
 
-`node` が null でないときは、step 5 の insert が要る事実を仮定する。
+`node` が null でないときは、step 6 の insert が要る事実を仮定する。
 `node` が木にあり、`parent` の inclusive ancestor でなく、入る node 列のどれも
 `parent` の inclusive ancestor でないこと。どれも pre-insertion validity が保証する。
 -/
@@ -147,7 +147,7 @@ theorem replaceAllSpec_deterministic {s o₁ o₂ : DOMState} {node : Option Nod
   obtain ⟨r₁, a₁, s₁, s₂, rfl, ha₁, hre₁, hin₁, hrec₁⟩ := h₁
   obtain ⟨r₂, a₂, s₁', s₂', hr₂, ha₂, hre₂, hin₂, hrec₂⟩ := h₂
   subst hr₂
-  -- step 1-3
+  -- step 1-4
   have hae : a₂ = a₁ := by
     rcases ha₁ with ⟨rfl, rfl⟩ | ⟨n, rfl, hn₁⟩ <;> rcases ha₂ with ⟨he, rfl⟩ | ⟨n', he, hn₂⟩
     · rfl
@@ -156,10 +156,10 @@ theorem replaceAllSpec_deterministic {s o₁ o₂ : DOMState} {node : Option Nod
     · cases he
       exact nodesToInsert_unique (TreeObsEq.refl _) hn₂ hn₁
   subst hae
-  -- step 4
+  -- step 5
   have hobs₁ : ObsEq s₁ s₁' := removeEachSpec_congr hwf (ObsEq.refl s) hre₁ hre₂
   have hwf₁ : WellFormed s₁.tree := removeEachSpec_wellFormed hwf hre₁
-  -- step 5
+  -- step 6
   have hobs₂ : ObsEq s₂ s₂' := by
     rcases hin₁ with ⟨rfl, rfl⟩ | ⟨n, rfl, hi₁⟩ <;> rcases hin₂ with ⟨he, rfl⟩ | ⟨n', he, hi₂⟩
     · exact hobs₁
@@ -168,7 +168,7 @@ theorem replaceAllSpec_deterministic {s o₁ o₂ : DOMState} {node : Option Nod
     · cases he
       obtain ⟨⟨d, hd⟩, hna, hacyc⟩ := hfacts n rfl
       exact insertSpec_congr hwf₁ hobs₁ (replaceAll_acyc_step5 hwf hd hna hacyc hre₁) hi₁ hi₂
-  -- step 6-7
+  -- step 7
   rcases hrec₁ with ⟨hae, hre, rfl⟩ | ⟨hne, hq₁, hoo₁⟩ <;>
     rcases hrec₂ with ⟨hae', hre', rfl⟩ | ⟨hne', hq₂, hoo₂⟩
   · exact hobs₂
@@ -179,9 +179,9 @@ theorem replaceAllSpec_deterministic {s o₁ o₂ : DOMState} {node : Option Nod
 /-! ## 成功 -/
 
 /--
-**`replaceAll` は step 5 の insert が要る事実があれば成功する。**
+**`replaceAll` は step 6 の insert が要る事実があれば成功する。**
 
-step 4 の removal は parent の children を外すだけなので必ず通る。
+step 5 の removal は parent の children を外すだけなので必ず通る。
 -/
 theorem replaceAll_isOk {s : DOMState} {node : Option NodeId} {parent : NodeId}
     (hwf : WellFormed s.tree)

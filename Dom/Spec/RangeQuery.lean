@@ -247,7 +247,7 @@ def IntersectsNodeResult (t : Tree) (r : RangeState) (n : NodeId) :
     ReturnIf (BPBefore t ⟨p, i⟩ r.«end» ∧ BPBefore t r.start ⟨p, i + 1⟩) true
       (Returns false) res
 
-/-- DOM §5.6 `compareBoundaryPoints(how, sourceRange)` の step 3 の表。 -/
+/-- DOM §5.6 `compareBoundaryPoints(how, sourceRange)` の step 4 の表。 -/
 def compareHowPoints (r source : RangeState) : Nat → BoundaryPoint × BoundaryPoint
   -- START_TO_START
   | 0 => (r.start, source.start)
@@ -269,7 +269,7 @@ def CompareBoundaryPointsResult (t : Tree) (r source : RangeState) (how : Nat) :
   ThrowIf (3 < how) .notSupportedError <|
   -- step 2
   ThrowIf (¬ SameTree t r.start.node source.start.node) .wrongDocumentError <|
-  -- step 3-4
+  -- step 3-5
   PositionResult t (compareHowPoints r source how).1 (compareHowPoints r source how).2
 
 /-! ## 実行関数との一致 -/

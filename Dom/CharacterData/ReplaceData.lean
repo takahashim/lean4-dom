@@ -127,7 +127,7 @@ def replaceData (s : DOMState) (n : NodeId) (offset count : Nat) (data : String)
         let c := adjustedCount d.length offset count
         -- step 4。record は data を変える前に、変える前の値を oldValue として積む。
         let s₀ := queueCharacterDataRecord s n d.data
-        -- step 5-9
+        -- step 5-11
         .ok { s₀ with
                 tree :=
                   { s.tree with

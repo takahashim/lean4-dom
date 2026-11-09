@@ -224,7 +224,7 @@ module Generate
   ATTR_NAMESPACES = [nil, "http://example.com/ns", XML_NS, XMLNS_NS].freeze
 
   # **必ず失敗する** (namespace, qualifiedName) の組。
-  # 上から §1.4 "validate and extract" の step 6 / 8 / 9 / 10 / 11 に当たる。
+  # 上から §1.4 "validate and extract" の step 6-7 / 8 / 9 / 10 / 11 に当たる。
   # local name の `"a b"` は attribute でも element でも不正なので、
   # createElementNS と createAttributeNS の両方に使える。
   BAD_NS_NAMES = [
@@ -1355,7 +1355,7 @@ module Generate
     operations.each { |op| drop_split_record_type(op, op["observer"]) if op["op"] == "observe" }
   end
 
-  # `observe` の step 1-2 は、characterData が省略されていて characterDataOldValue が存在すれば
+  # `observe` の step 2 は、characterData が省略されていて characterDataOldValue が存在すれば
   # characterData を true にする。値は ToBoolean を通るので、真偽は Ruby の真偽ではなく JS の真偽で見る。
   def drop_split_record_type(opts, index)
     js_true = ->(v) { ![nil, false, 0, ""].include?(v) }

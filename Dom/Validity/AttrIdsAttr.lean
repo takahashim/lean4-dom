@@ -473,7 +473,7 @@ theorem removeDetached_split {s : DOMState} {a : Attr} (hu : AttrIdsUnique s)
   rw [hsplit]
   exact Dom.Spec.eraseFirst_split pre post (fun x hx => by simpa using hpre x hx) (by simp)
 
-/-- detach された `a₀` を、`element` に足す（`setAttributeNode` の step 8）。 -/
+/-- detach された `a₀` を、`element` に足す（`setAttributeNode` の step 7）。 -/
 theorem unique_appendDetached {s : DOMState} (hu : AttrIdsUnique s) {element : NodeId}
     {d : NodeData} (hd : s.tree.get? element = some d) {a₀ : Attr} (ha : a₀ ∈ s.detachedAttrs) :
     AttrIdsUnique (appendAttribute (removeDetached s a₀.id) element d a₀.normalized) := by
@@ -541,7 +541,7 @@ theorem unique_appendDetached {s : DOMState} (hu : AttrIdsUnique s) {element : N
     · exact Or.inl h
     · exact Or.inr (Or.inr h)
 
-/-- detach された `a₀` で、付いている `old` を置き換える（`setAttributeNode` の step 7）。 -/
+/-- detach された `a₀` で、付いている `old` を置き換える（`setAttributeNode` の step 6）。 -/
 theorem unique_replaceDetached {s : DOMState} (hu : AttrIdsUnique s) (hav : AttributesValid s.tree)
     {element : NodeId}
     {d : NodeData} (hd : s.tree.get? element = some d) (hkeys : (d.attributes.map Attr.key).Nodup)

@@ -48,8 +48,8 @@ def MatchAgainstTree (t : Tree) (sel : Selectors.SelectorList) (rootNode scope :
 /--
 **DOM §1.3 "scope-match a selectors string" の、結果まで含めた関係。**
 
-1. selector を parse する。failure なら SyntaxError。
-2. node の root について、scoping root を node として "match a selector against a tree" の結果を返す。
+1-2. selector を parse する。failure なら SyntaxError。
+3. node の root について、scoping root を node として "match a selector against a tree" の結果を返す。
 -/
 def ScopeMatchResult (t : Tree) (selectors : String) (node : NodeId) :
     Except DOMException (List NodeId) → Prop

@@ -129,7 +129,7 @@ def rangeSelectNodeContents (s : DOMState) (i : Nat) (n : NodeId) :
 DOM Standard §5.6 `Range.compareBoundaryPoints(how, sourceRange)`。
 
 `how` は 0 START_TO_START / 1 START_TO_END / 2 END_TO_END / 3 END_TO_START。
-step 3 の組み合わせは対称ではない。1 は「this の end と source の start」、
+step 4 の組み合わせは対称ではない。1 は「this の end と source の start」、
 3 は「this の start と source の end」である。
 -/
 def rangeCompareBoundaryPoints (s : DOMState) (i : Nat) (how : Nat) (j : Nat) :

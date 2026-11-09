@@ -12,7 +12,7 @@ import Dom.Properties.NodeQuery
 | `IsRoot t r n` | §4.2 の root。`n` の inclusive ancestor で parent を持たないもの |
 | `SameTree t x y` | 二つの node が同じ root を持つ |
 | `PrecedesStruct t x y` | §4.2 の tree order で `x` が `y` に先行する（`Dom/Properties/Tree.lean`） |
-| `DocumentPositionSpec` | §4.4 `compareDocumentPosition` の step 6-10 |
+| `DocumentPositionSpec` | §4.4 `compareDocumentPosition` の step 1、6-10 |
 
 `PrecedesStruct` は「ancestor であるか、共通の parent の下で index の小さい子の側にいる」という
 構造で書いた tree order で、preorder の列を使わない。
@@ -40,7 +40,7 @@ def SameTree (t : Tree) (x y : NodeId) : Prop :=
 
 /-- DOM §4.4 `compareDocumentPosition(other)` の戻り値の条件（attribute の枝を除く）。 -/
 def DocumentPositionSpec (t : Tree) (node other : NodeId) (v : Nat) : Prop :=
-  -- step 2
+  -- step 1
   (node = other ∧ v = 0) ∨
   -- step 6
   (node ≠ other ∧ ¬ SameTree t node other ∧
@@ -191,7 +191,7 @@ theorem documentPositionSpec_unique (hwf : WellFormed t) {node other : NodeId} {
 /--
 **同じ木にある二つの node について、`compareDocumentPosition` の値は §4.4 の条件ちょうどである。**
 
-同じ node は同じ木にあるので、step 2 もここに含まれる。
+同じ node は同じ木にあるので、step 1 もここに含まれる。
 -/
 theorem compareDocumentPosition_eq_iff (hwf : WellFormed t) {node other : NodeId}
     (hsame : SameTree t node other) (v : Nat) :

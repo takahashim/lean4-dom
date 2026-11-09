@@ -26,7 +26,7 @@ namespace Dom.Spec
 
 open Dom
 
-/-! ## §2.9 dispatch step 5.4-5.10：event path -/
+/-! ## §2.9 dispatch step 6.3-6.9：event path -/
 
 /--
 target から get the parent を辿った列。Document の get the parent は（`Window` が無いので）null、
@@ -56,7 +56,7 @@ def ListenerAdded (s s' : DOMState) (l : EventListener) : Prop :=
       x.callback = l.callback ∧ x.capture = l.capture) ∧
       s' = { s with listeners := s.listeners ++ [l] })
 
-/-- `item` の listener list（invoke の step 6 の clone）：その listener の index を list の順に並べた列。 -/
+/-- `item` の listener list（invoke の step 8 の clone）：その listener の index を list の順に並べた列。 -/
 def ListenersOf (s : DOMState) (item : NodeId) (idxs : List Nat) : Prop :=
   idxs.Pairwise (· < ·) ∧
     ∀ i, i ∈ idxs ↔ ∃ l, s.listeners[i]? = some l ∧ l.target = item ∧ l.removed = false
@@ -136,10 +136,10 @@ def CallbackRan (s : DOMState) (e : EventState) (l : EventListener) (s' : DOMSta
 2.1. type が違えば飛ばす。
 2.3-2.4. phase が capturing で capture が false、bubbling で capture が true なら飛ばす。
 2.5. once なら、呼ぶ前に外す。
-2.9. passive なら in passive listener flag を立てる。
-2.11. callback を呼ぶ。呼ばれたことを記録する。
-2.12. in passive listener flag を落とす。
-2.14. stop immediate propagation flag が立てば終わる。
+2.11. passive なら in passive listener flag を立てる。
+2.13. callback を呼ぶ。呼ばれたことを記録する。
+2.14. in passive listener flag を落とす。
+2.16. stop immediate propagation flag が立てば終わる。
 -/
 inductive InnerInvoked (capturing : Bool) (cur : NodeId) :
     DOMState → EventState → List Nat → DOMState → EventState → List Invocation → Prop where
@@ -158,14 +158,14 @@ inductive InnerInvoked (capturing : Bool) (cur : NodeId) :
       s.listeners[i]? = some l → l.removed = false → l.type = e.type → l.capture = capturing →
       -- step 2.5
       ((l.once = true ∧ ListenerRemovedAt s s₁ i) ∨ (l.once = false ∧ s₁ = s)) →
-      -- step 2.9 と 2.11
+      -- step 2.11 と 2.13
       CallbackRan s₁ (if l.passive then { e with inPassiveListener := true } else e) l s₂ e₂ →
       e₂.stopImmediate = false →
-      -- step 2.12
+      -- step 2.14
       InnerInvoked capturing cur s₂ { e₂ with inPassiveListener := false } rest s' e' log →
       InnerInvoked capturing cur s e (i :: rest) s' e'
         (⟨l.callback, cur, e.eventPhase⟩ :: log)
-  /-- step 2.14：stop immediate propagation flag が立てば、残りは呼ばない。 -/
+  /-- step 2.16：stop immediate propagation flag が立てば、残りは呼ばない。 -/
   | callStop {s s₁ s₂ : DOMState} {e e₂ : EventState} {i : Nat} {rest : List Nat}
       {l : EventListener} :
       s.listeners[i]? = some l → l.removed = false → l.type = e.type → l.capture = capturing →
@@ -177,15 +177,15 @@ inductive InnerInvoked (capturing : Bool) (cur : NodeId) :
 
 /-! ## §2.9 invoke と dispatch -/
 
-/-- dispatch の step 5.13-5.14 が決める eventPhase。 -/
+/-- dispatch の step 6.13-6.14 が決める eventPhase。 -/
 def phaseOf (capturing isTarget : Bool) : Nat :=
   if isTarget then 2 else if capturing then 1 else 3
 
 /--
-dispatch の step 5.13-5.14 の一つの item と "invoke"。
+dispatch の step 6.13-6.14 の一つの item と "invoke"。
 
-eventPhase を決めてから invoke する。invoke の step 4：stop propagation flag が立っていれば
-何もしない。step 6：listener list を clone する。step 7：inner invoke。
+eventPhase を決めてから invoke する。invoke の step 6：stop propagation flag が立っていれば
+何もしない。step 8：listener list を clone する。step 10：inner invoke。
 -/
 def Invoked (s : DOMState) (e : EventState) (capturing : Bool) (item : NodeId) (isTarget : Bool)
     (s' : DOMState) (e' : EventState) (log : List Invocation) : Prop :=
@@ -196,7 +196,7 @@ def Invoked (s : DOMState) (e : EventState) (capturing : Bool) (item : NodeId) (
         s' e' log)
 
 /--
-dispatch の step 5.13（capture の周、path を逆順に）と step 5.14（bubble の周、path の順）。
+dispatch の step 6.13（capture の周、path を逆順に）と step 6.14（bubble の周、path の順）。
 
 bubble の周では、target 以外の item は event の bubbles が false なら飛ばす。
 -/

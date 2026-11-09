@@ -154,7 +154,7 @@ def key (a : Attr) : Option String × String := (a.namespace, a.localName)
 同一性を落とした attribute。
 
 clone は attribute を写すが、copy の `Attr` は原本とは別のものである（仕様の
-"clone a single node" step 2.1 が attribute ごとに clone を作る）。
+"clone a single node" step 2.5 が attribute ごとに clone を作る）。
 「id と node document 以外は同じ」を言うのにこれを使う（import した copy は node document も違う）。
 -/
 def anon (a : Attr) : Attr := { a with id := ⟨0⟩, ownerDocument := ⟨0⟩ }

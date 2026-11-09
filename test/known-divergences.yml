@@ -346,7 +346,7 @@
   digest: b086b73b2d171e9e
   reason: |
     上の chromium の entry と同じ形。WebKit も characterData の record を二つ先に積み、
-    そのあとで childList を二つ積む。仕様の step 6・7・8 の順なら characterData・childList・
+    そのあとで childList を二つ積む。仕様の step 9・10・11 の順なら characterData・childList・
     childList・characterData である。
     https://dom.spec.whatwg.org/#dom-range-deletecontents
 
@@ -910,7 +910,7 @@
   reason: &surround_replace_all |
     DOM §5.6 `surroundContents()` の step 4 は、newParent が children を持てば "replace all" with null を行う。
     replace all（§4.2.3）は children を suppress observers flag 付きで外し、外した node を全部 removedNodes に
-    並べた childList の record を一つだけ積む（step 4-7）。Chromium と jsdom 30.1.2 は children を先頭から一つずつ
+    並べた childList の record を一つだけ積む（step 5-7）。Chromium と jsdom 30.1.2 は children を先頭から一つずつ
     外して子ごとに record を積み、Firefox は末尾から一つずつ外す。WebKit は本文どおり record を一つ積む。
     木・live range・例外は本文どおりで、違うのは MutationObserver に届く record の数と並びだけである。
     https://dom.spec.whatwg.org/#dom-range-surroundcontents

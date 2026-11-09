@@ -448,7 +448,7 @@ def insertPrevSibling (t : Tree) (parent : NodeId) (child : Option NodeId) : Opt
 @[simp] theorem insertPrevSibling_none (t : Tree) (parent : NodeId) :
     insertPrevSibling t parent none = (childrenOf t parent).getLast? := rfl
 
-/-- DOM Standard §4.2.3 insert step 5-9。 -/
+/-- DOM Standard §4.2.3 insert step 5-8。 -/
 def insertNodesAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
     (nodes : List NodeId) (suppressObservers : Bool := false) :
     Except DOMException DOMState :=
@@ -456,7 +456,7 @@ def insertNodesAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
   match insertEachAt (liveRangeInsertAdjust s parent child nodes.length) parent child nodes with
   | .error e => .error e
   | .ok s' =>
-    -- step 9。step 6 の previous sibling は木を変える前の値。
+    -- step 8。step 6 の previous sibling は木を変える前の値。
     if suppressObservers then .ok s'
     else .ok (queueTreeMutationRecord s' parent nodes [] (insertPrevSibling s.tree parent child)
       child)
@@ -464,7 +464,7 @@ def insertNodesAt (s : DOMState) (parent : NodeId) (child : Option NodeId)
 /--
 `insertNodesAt` が成功したときの形を、本体を開かずに取り出す。
 
-step 5-7 が通り、step 9 で record を積むかどうかが `suppressObservers` で決まる。
+step 5-7 が通り、step 8 で record を積むかどうかが `suppressObservers` で決まる。
 -/
 theorem insertNodesAt_cases {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
     {nodes : List NodeId} {b : Bool} (h : insertNodesAt s parent child nodes b = .ok s') :
@@ -556,7 +556,7 @@ theorem insert_cases {s s' : DOMState} {node parent : NodeId} {child : Option No
       exact Or.inr (Or.inr ⟨by simpa using hkind, h⟩)
 
 /--
-fragment でない node の `insert` は step 1-3 と step 5-9 だけ、つまり
+fragment でない node の `insert` は step 1-3 と step 5-8 だけ、つまり
 `insertNodesAt` そのものである。`insert` の結果を作る側の証明はこれを使う。
 -/
 theorem insert_of_not_fragment {s : DOMState} {node parent : NodeId} {child : Option NodeId}
@@ -771,7 +771,7 @@ theorem replace_of_validity_error {s : DOMState} {child node parent : NodeId}
   rw [hv]
 
 /--
-DOM Standard §4.2.3 "replace all" step 2 の addedNodes。
+DOM Standard §4.2.3 "replace all" step 2-4 の addedNodes。
 
 `node` が null なら空、そうでなければ `replace` の step 8 と同じ列である。
 -/
@@ -792,24 +792,24 @@ DOM Standard §4.2.3 "replace all"。
 -/
 def replaceAll (s : DOMState) (node : Option NodeId) (parent : NodeId) :
     Except DOMException DOMState :=
-  -- step 4。step 1-3 の removedNodes / addedNodes は木を変える前の値。
+  -- step 5。step 1-4 の removedNodes / addedNodes は木を変える前の値。
   match removeEach s (childrenOf s.tree parent) true with
   | .error e => .error e
   | .ok s₁ =>
-    -- step 5
+    -- step 6
     match (match node with
            | none => (.ok s₁ : Except DOMException DOMState)
            | some n => insert s₁ n parent none true) with
     | .error e => .error e
     | .ok s₂ =>
-      -- step 6-7
+      -- step 7
       .ok (queueTreeMutationRecord s₂ parent (replaceAllNodes s.tree node)
         (childrenOf s.tree parent) none none)
 
 /--
 `replace all` が成功したときに通った経路を、本体を開かずに取り出す。
 
-step 4 の removal は必ず走り、step 5 の insert は `node` が null でないときだけ走る。
+step 5 の removal は必ず走り、step 6 の insert は `node` が null でないときだけ走る。
 -/
 theorem replaceAll_cases {s s' : DOMState} {node : Option NodeId} {parent : NodeId}
     (h : replaceAll s node parent = .ok s') :

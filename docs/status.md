@@ -7193,6 +7193,30 @@ model の定義と関係は変えず、表と snapshot だけを直した。
   （§3.4.6）、`DOMException`（DOM §3.3 ではなく Web IDL §2.8）。表の `CharacterData.lean` と `ParentNode.lean` は、
   別の節の entry が見出しの下に並んでいたので並べ替えた。
 
+### コメントと文書の step 番号の見直し
+
+表の外にある step 番号（`Dom/`・`Trace/` のコメント、`docs/`、`test/` の約 1,700 行）を、固定版の snapshot と一行ずつ
+突き合わせた。各参照がどの algorithm の step かを決め、コメントが述べる動作と snapshot の step の本文を比べた。
+直したのは二百ほどで、多くは改訂で後ろの step が繰り下がったのに追従していなかったものである。
+
+* **replace all**：addedNodes が step 2-4 に分かれたので、removal は step 5、insert は step 6、record は step 7。
+* **insert**：record は step 8（step 9 は children changed steps で、表では hook として除外）。`step 5-9` は `step 5-8`。
+* **queue a mutation record**：`interestedObservers` を集める loop が step 3 になり、条件は 3.2、oldValue は 3.2.3。
+* **dispatch・invoke・inner invoke**：dispatch は `clearTargets`（step 5）の後の step 6 の下に event path（6.3-6.9）と
+  二つの周（6.13-6.14）がある。invoke は stop propagation が step 6、clone が 8、inner invoke が 10。inner invoke は
+  2.6-2.8 が入ったので、passive は 2.11・2.14、callback は 2.13、stop immediate propagation は 2.16。
+* **deleteContents**：新しい端点は step 5-7、端点を置くのは 8、replace data・remove・replace data は 9-11。
+* **set an attribute**：value を Trusted Types の値に書き換えるのが step 5、replace は 6、append は 7。
+* **compareDocumentPosition**：this が other なら 0 が step 1、別の木は step 6、以降 7-10。`compareDocumentPositionRef` の
+  コメントは step 3 を数え落として一つずつ少なかった。
+* **move**：assert は step 7-8、detach は 9-10・13、insert 側は 18・20-21。
+* そのほか `DOMTokenList.toggle()`（検査が step 1-2）、"validate and extract"（local name の検査は attribute が step 6、
+  element が step 7）、`compareBoundaryPoints()`（how の表が step 4）、"filter"（filter が null なら step 2-4）、
+  "clone a single node"（attribute の clone は step 2.5）、Web IDL の sequence の変換、scope-match。
+
+`docs/traceability.md` の "WHATWG steps" の列と、番号付きの箇条で step を書いた docstring も同じく直した。
+定理の名前 `replaceAll_acyc_step5` は旧い番号（今の step 6）のまま残した。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。

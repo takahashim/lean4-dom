@@ -458,7 +458,7 @@ theorem insertSpec_congr {s sb o₁ o₂ : DOMState} {suppress : Bool}
     -- step 7
     have hobs₃ : ObsEq s₃ s₃' :=
       insertedEach_congr ns₁ hwf₂ hdoc₂ hacyc₂ hobs₂ hie₁ hie₂
-    -- step 9
+    -- step 8
     exact treeRecordQueued_congr hobs₃ hrec₁ hrec₂ hfr₁ hfr₂
 
 /--

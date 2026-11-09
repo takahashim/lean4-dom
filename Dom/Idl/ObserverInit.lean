@@ -19,7 +19,7 @@ dictionary MutationObserverInit {
 WebIDL の dictionary への変換（§3.2.17）は次のとおりである。
 
 1. 値が undefined、null、object のどれでもなければ TypeError。
-2. member を辞書順に読む。各 member は、値が null か undefined なら undefined とみなし、そうでなければ
+2-4. member を辞書順に読む。各 member は、値が null か undefined なら undefined とみなし、そうでなければ
    `Get` で読む。undefined でなければ member の型へ変換し、undefined なら既定値を使う。既定値が無ければ
    member は存在しない。
 

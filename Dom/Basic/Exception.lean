@@ -27,7 +27,7 @@ inductive DOMException where
   | notSupportedError
   /-- §4.9 の attribute 名検査。valid attribute local name / valid namespace prefix。 -/
   | invalidCharacterError
-  /-- §4.9 の namespace 検査（"validate and extract" の step 7-10）。 -/
+  /-- §4.9 の namespace 検査（"validate and extract" の step 8-11）。 -/
   | namespaceError
   /-- §4.9 "set an attribute" step 2。別の element に付いている `Attr` を渡した場合。 -/
   | inUseAttributeError
