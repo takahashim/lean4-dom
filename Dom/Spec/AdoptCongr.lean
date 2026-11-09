@@ -15,7 +15,7 @@ import Dom.Properties.Algorithms
 
 `DocumentAssigned` は node document しか変えないので木の well-formed も保つ。
 ただし `ownerDocument_is_document` を保つには `doc` が document である必要がある。
-それは `adopt` の呼び出し側（§4.2.1 の pre-insert）が保証する前提なので、
+それは `adopt` の呼び出し側（§4.2.3 の pre-insert）が保証する前提なので、
 仮定として持ち回る。
 -/
 
@@ -286,7 +286,7 @@ theorem adoptSpec_congr (hwf : WellFormed s.tree) (h : ObsEq s sb) {o₁ o₂ : 
 /--
 `AdoptSpec` の結果も well-formed である。
 
-`doc` が document であることは `adopt` 自身は保証しない。§4.2.1 の pre-insert が
+`doc` が document であることは `adopt` 自身は保証しない。§4.2.3 の pre-insert が
 document から呼ぶので、呼び出し側の前提として仮定する。
 -/
 theorem adoptSpec_wellFormed (hwf : WellFormed s.tree) (hdoc : IsDocument s.tree doc)

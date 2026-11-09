@@ -12,7 +12,7 @@ attribute を **namespace が null で、その local name を持つもの**と�
 | DOM §4.9 `Element.id` / `className` / `slot`、HTML の `title` / `lang` / `accessKey` / `inert` / `autofocus`（reflect） | `reflectSpec`, `getReflectedProp`, `setReflectedProp`, `setReflectedBool` |
 | HTML §3.2.6.8 `dataset`（`DOMStringMap`） | `datasetPairs`, `datasetGet`, `datasetSet`, `datasetDelete`, `datasetKeys` |
 | DOM §7.1 `DOMTokenList`（`Element.classList`） | `classListAdd` ほか |
-| DOM §4.2.10.1 `HTMLCollection.namedItem(key)`（`ParentNode.children`） | `childrenNamedItem` |
+| DOM §4.2.10.2 `HTMLCollection.namedItem(key)`（`ParentNode.children`） | `childrenNamedItem` |
 
 reflect の getter は "get an attribute value"（namespace は null）、setter は
 "set an attribute value"（namespace も prefix も null）である。qualified name で引く
@@ -302,7 +302,7 @@ def classListContains (t : Tree) (element : NodeId) (token : String) : Except DO
 /-! ## `HTMLCollection.namedItem(key)` -/
 
 /--
-DOM §4.2.10.1 `namedItem(key)` を `ParentNode.children` に対して呼んだもの。
+DOM §4.2.10.2 `namedItem(key)` を `ParentNode.children` に対して呼んだもの。
 受け手の検査は `querySelector` と同じ `requireParentNode`（`Dom/Selector/Api.lean`）。
 
 1. key が空文字列なら null。

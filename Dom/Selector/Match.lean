@@ -61,7 +61,7 @@ def isElementNode (t : Tree) (n : NodeId) : Bool := kindOf t n == some NodeKind.
 def elementChildrenOf (t : Tree) (n : NodeId) : List NodeId :=
   (childrenOf t n).filter (isElementNode t)
 
-/-- §3.1 の inclusive sibling のうち element であるもの。parent が無ければ自分だけ。 -/
+/-- DOM §1.1 の inclusive sibling のうち element であるもの。parent が無ければ自分だけ。 -/
 def elementSiblings (t : Tree) (n : NodeId) : List NodeId :=
   match parentOf t n with
   | none => [n]

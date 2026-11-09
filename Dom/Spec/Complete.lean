@@ -494,7 +494,7 @@ theorem replace_complete {s s' : DOMState} {child node parent : NodeId}
   obtain ⟨out, hok⟩ := replace_isOk_of_spec hsv.wellFormed hacyc hv h
   exact ⟨out, hok, replace_no_extra_models hsv hacyc h hok⟩
 
-/-! ## §4.2.4 move -/
+/-! ## §4.2.3 move -/
 
 /--
 **`move` は関係を満たす状態があるなら成功する。**
@@ -586,7 +586,7 @@ theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : O
 /--
 **`move` の完全性。**
 
-これで §4.2.3 / §4.2.4 の六つの関係すべてに soundness と completeness が揃う。
+これで §4.2.3 の六つの関係すべてに soundness と completeness が揃う。
 -/
 theorem move_complete {s s' : DOMState} {node newParent : NodeId} {child : Option NodeId}
     (hwf : WellFormed s.tree)

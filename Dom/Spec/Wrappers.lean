@@ -15,7 +15,7 @@ import Dom.Spec.Namespace
 import Dom.Spec.TreeOrder
 
 /-!
-# 既存の関係を呼ぶだけの method（§4.2.3、§4.2.6、§4.4、§4.5、§4.8、§4.9）
+# 既存の関係を呼ぶだけの method（§4.2.3、§4.2.6、§4.4、§4.5、§4.9）
 
 本文の method の多くは、別の algorithm を呼んでその結果を返すだけである。ここでは、その algorithm の関係
 （`PreInsertResult`・`ReplaceResult`・`RemoveResult`・`ReplaceAllSpec`・`ReplaceDataResult`・`AdoptSpec`・
@@ -220,7 +220,7 @@ theorem importNode_eq_clone {s : DOMState} {doc n : NodeId} {dd d : NodeData}
   unfold importNode
   simp [requireDocument, hdd, hk, hn, hnk]
 
-/-! ## §4.2.6・§4.8 の selector の method -/
+/-! ## §4.2.6・§4.9 の selector の method -/
 
 /-- §4.2.6 `querySelectorAll(selectors)` は scope-match の結果。 -/
 theorem querySelectorAll_result_sound {t : Tree} (hwf : WellFormed t) (hav : AttributesValid t)
@@ -251,7 +251,7 @@ theorem querySelector_result_sound {t : Tree} (hwf : WellFormed t) (hav : Attrib
   | error e => rw [h] at hs; exact Or.inl ⟨e, rfl, hs⟩
   | ok l => rw [h] at hs; exact Or.inr ⟨l, rfl, hs⟩
 
-/-- §4.8 `matches(selectors)`：parse に失敗すれば SyntaxError、そうでなければ element が selector に当たるか。 -/
+/-- §4.9 `matches(selectors)`：parse に失敗すれば SyntaxError、そうでなければ element が selector に当たるか。 -/
 theorem matches_result_sound {t : Tree} (hwf : WellFormed t) (hav : AttributesValid t)
     {e : NodeId} {d : NodeData} (he : t.get? e = some d) (hk : d.kind = .element)
     (selectors : String) :
@@ -269,7 +269,7 @@ theorem matches_result_sound {t : Tree} (hwf : WellFormed t) (hav : AttributesVa
     exact Or.inr ⟨sel, _, rfl, rfl, matchSelList_iff_spec hwf hav rfl sel e⟩
 
 /--
-§4.8 `closest(selectors)`：parse に失敗すれば SyntaxError。そうでなければ、element から root へ向かって
+§4.9 `closest(selectors)`：parse に失敗すれば SyntaxError。そうでなければ、element から root へ向かって
 最初に selector に当たる inclusive ancestor の element、無ければ null。
 -/
 def ClosestResult (t : Tree) (selectors : String) (e : NodeId)

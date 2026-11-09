@@ -26,7 +26,7 @@ import Dom.Properties.ReplaceContract
 
 `child` が `node` のまま `move` に入ったときの**仕様の**振る舞いは定まっている。
 step 14 で `node` を外すと `node` は parent を失うので preceding sibling が 0 個、
-§1.4 の定義により index は 0 になり、step 18 は「先頭に入れる」になる。
+§1.1 の定義により index は 0 になり、step 18 は「先頭に入れる」になる。
 
 **model はそこで `notFoundError` を返す。** `insertAt` が「`child` は `parent` の子」を
 primitive の前提として検査するからである（`Dom/Mutation/Insert.lean`）。

@@ -2,7 +2,7 @@ import Dom.Spec.Result
 import Dom.Validity.PreserveInsertAt
 
 /-!
-# §4.2.9 `ChildNode` の mutation method の、結果まで含めた関係
+# §4.2.8 `ChildNode` の mutation method の、結果まで含めた関係
 
 `before` / `after` / `replaceWith` / `remove` は、仕様が pre-insert・replace・remove への
 委譲として書いている。ここでは委譲の前の手順（parent が無ければ何もしない、
@@ -25,7 +25,7 @@ open Dom
 /-! ## viable sibling -/
 
 /--
-**§4.2.9 before の step 3：viable previous sibling。**
+**§4.2.8 before の step 3：viable previous sibling。**
 
 this の preceding sibling のうち `nodes` に無い、this に最も近いもの。無ければ null。
 this の parent を `parent`、その children を `pre ++ this :: post` と分けたとき、
@@ -40,7 +40,7 @@ def ViablePreviousSibling (t : Tree) (this : NodeId) (nodes : List NodeId) :
       childrenOf t parent = pre ++ this :: post → ∀ x ∈ pre, x ∈ nodes
 
 /--
-**§4.2.9 after / replaceWith の step 3：viable next sibling。**
+**§4.2.8 after / replaceWith の step 3：viable next sibling。**
 
 this の following sibling のうち `nodes` に無い、this に最も近いもの。無ければ null。
 -/
@@ -174,7 +174,7 @@ theorem viableNextSibling_spec {t : Tree} (hwf : WellFormed t) (this : NodeId)
 /-! ## `before(nodes)` -/
 
 /--
-**§4.2.9 `before(nodes)` の、結果まで含めた関係。**
+**§4.2.8 `before(nodes)` の、結果まで含めた関係。**
 
 1-2. parent が null なら何もしない。
 3. viablePreviousSibling を取る。
@@ -222,7 +222,7 @@ theorem before_result_complete {s : DOMState} (hwf : WellFormed s.tree)
 /-! ## `after(nodes)` -/
 
 /--
-**§4.2.9 `after(nodes)` の、結果まで含めた関係。**
+**§4.2.8 `after(nodes)` の、結果まで含めた関係。**
 
 1-2. parent が null なら何もしない。
 3. viableNextSibling を取る。
@@ -265,7 +265,7 @@ theorem after_result_complete {s : DOMState} (hwf : WellFormed s.tree)
 /-! ## `replaceWith(nodes)` -/
 
 /--
-**§4.2.9 `replaceWith(nodes)` の、結果まで含めた関係。**
+**§4.2.8 `replaceWith(nodes)` の、結果まで含めた関係。**
 
 1-2. parent が null なら何もしない。
 5. this の parent がまだ parent なら、this を node で replace する。
@@ -309,7 +309,7 @@ theorem replaceWith_result_complete {s : DOMState} (hsv : StructurallyValid s.tr
 /-! ## `remove()` -/
 
 /--
-**§4.2.9 `remove()` の、結果まで含めた関係。**
+**§4.2.8 `remove()` の、結果まで含めた関係。**
 
 parent が null なら何もせず、そうでなければ remove する。
 -/

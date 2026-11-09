@@ -66,7 +66,7 @@ def getElementById (t : Tree) (node : NodeId) (elementId : String) :
 
 /-! ## `getElementsByClassName()` -/
 
-/-- DOM §2.3 の ordered set parser。ASCII whitespace で区切り、重複を落とす。 -/
+/-- DOM §1.2 の ordered set parser。ASCII whitespace で区切り、重複を落とす。 -/
 def orderedSetParse (s : String) : List String :=
   ((splitWsAux [] s.toList).map String.ofList).eraseDups
 

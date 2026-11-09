@@ -123,7 +123,7 @@ deriving DecidableEq, Repr, Inhabited
 
 /-! ## MutationObserver -/
 
-/-- DOM Standard §4.3.1 の `MutationRecord` の type。 -/
+/-- DOM Standard §4.3.3 の `MutationRecord` の type。 -/
 inductive RecordType where
   | attributes
   | childList
@@ -131,7 +131,7 @@ inductive RecordType where
 deriving DecidableEq, Repr, Inhabited
 
 /--
-DOM Standard §4.3.1 の `MutationRecord`。
+DOM Standard §4.3.3 の `MutationRecord`。
 
 `attributeName` は attribute の local name、`attributeNamespace` は namespace である
 （"handle attribute changes" step 1）。type が `attributes` 以外なら両方 `none`。
@@ -149,7 +149,7 @@ structure MutationRecord where
 deriving DecidableEq, Repr, Inhabited
 
 /--
-DOM Standard §4.3.3 の registered observer。
+DOM Standard §4.3 の registered observer。
 
 仕様では node ごとの registered observer list だが、model では
 `node` を持つ一つの list にまとめる。同じ node の登録は list の順に並ぶので、
@@ -185,7 +185,7 @@ structure Registration where
 deriving DecidableEq, Repr, Inhabited
 
 /--
-DOM Standard §4.3.2 の `MutationObserver`。
+DOM Standard §4.3.1 の `MutationObserver`。
 
 callback は model の対象外なので、record queue だけを持つ。
 配送（queue a mutation observer microtask）も扱わないので、

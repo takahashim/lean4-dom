@@ -1132,30 +1132,6 @@
       "approx": []
     },
     {
-      "alg": "dom-nondocumenttypechildnode-previouselementsibling",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.previousElementSibling"
-      ],
-      "spec": [],
-      "omit": [],
-      "approx": []
-    },
-    {
-      "alg": "dom-nondocumenttypechildnode-nextelementsibling",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.nextElementSibling"
-      ],
-      "spec": [],
-      "omit": [],
-      "approx": []
-    },
-    {
       "alg": "dom-parentnode-prepend",
       "steps": [
         "*"
@@ -1258,6 +1234,30 @@
           "what": "static な NodeList ではなく、element の list を返す"
         }
       ]
+    },
+    {
+      "alg": "dom-nondocumenttypechildnode-previouselementsibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.previousElementSibling"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-nondocumenttypechildnode-nextelementsibling",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.nextElementSibling"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
     },
     {
       "alg": "dom-childnode-before",
@@ -3778,101 +3778,6 @@
       ]
     },
     {
-      "alg": "concept-text-split",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.splitText",
-        "Dom.splitTextAdjust",
-        "Dom.splitTextRange",
-        "Dom.splitTextBP",
-        "Dom.splitTextMoved",
-        "Dom.guardBP"
-      ],
-      "spec": [
-        "Dom.Spec.SplitTextResult",
-        "Dom.Spec.SplitAdjusted",
-        "Dom.Spec.RangesSplit",
-        "Dom.Spec.splitText_result_sound"
-      ],
-      "omit": [],
-      "approx": [
-        {
-          "steps": "4",
-          "what": "offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す"
-        },
-        {
-          "steps": "7.1",
-          "what": "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ（`validity_freshText`、`splitText_result_sound`）"
-        },
-        {
-          "steps": "7.2-7.5",
-          "what": "動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査"
-        }
-      ]
-    },
-    {
-      "alg": "create-a-cdata-section-node",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.createCDATASection",
-        "Dom.withFresh"
-      ],
-      "spec": [
-        "Dom.createCDATASection_creates"
-      ],
-      "omit": [],
-      "approx": [
-        {
-          "steps": "1-2",
-          "what": "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）"
-        }
-      ]
-    },
-    {
-      "alg": "dom-text-splittext",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.splitText"
-      ],
-      "spec": [
-        "Dom.Spec.splitText_result_sound"
-      ],
-      "omit": [],
-      "approx": []
-    },
-    {
-      "alg": "contiguous-text-nodes",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.contiguousTextNodes",
-        "Dom.contiguousTextNodes.isTextNode"
-      ],
-      "spec": [],
-      "omit": [],
-      "approx": []
-    },
-    {
-      "alg": "dom-text-wholetext",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.wholeText",
-        "Dom.contiguousTextNodes"
-      ],
-      "spec": [],
-      "omit": [],
-      "approx": []
-    },
-    {
       "alg": "concept-cd-substring",
       "steps": [
         "*"
@@ -3992,6 +3897,81 @@
       "approx": []
     },
     {
+      "alg": "concept-text-split",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.splitText",
+        "Dom.splitTextAdjust",
+        "Dom.splitTextRange",
+        "Dom.splitTextBP",
+        "Dom.splitTextMoved",
+        "Dom.guardBP"
+      ],
+      "spec": [
+        "Dom.Spec.SplitTextResult",
+        "Dom.Spec.SplitAdjusted",
+        "Dom.Spec.RangesSplit",
+        "Dom.Spec.splitText_result_sound"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "4",
+          "what": "offset か offset + count が surrogate pair の途中なら、結果の文字列を Lean の String で表せないので __outsideModel__ を返す"
+        },
+        {
+          "steps": "7.1",
+          "what": "insert の代わりに pre-insert を使う。parent は Text の親（Element か DocumentFragment）なので検査は通り、参照する child（node の次の兄弟）は新しい Text ではないので insert と同じ（`validity_freshText`、`splitText_result_sound`）"
+        },
+        {
+          "steps": "7.2-7.5",
+          "what": "動かした先の boundary point が妥当でなければ動かさない。admissible な状態では必ず妥当なので検査は効かない（`splitAdjusted_splitTextBP`）。妥当性の保存を insert 後の木の形を追わずに示すための検査"
+        }
+      ]
+    },
+    {
+      "alg": "dom-text-splittext",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.splitText"
+      ],
+      "spec": [
+        "Dom.Spec.splitText_result_sound"
+      ],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "contiguous-text-nodes",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.contiguousTextNodes",
+        "Dom.contiguousTextNodes.isTextNode"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-text-wholetext",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.wholeText",
+        "Dom.contiguousTextNodes"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
       "alg": "exclusive-text-node",
       "steps": [
         "*"
@@ -4054,6 +4034,26 @@
       ],
       "omit": [],
       "approx": []
+    },
+    {
+      "alg": "create-a-cdata-section-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.createCDATASection",
+        "Dom.withFresh"
+      ],
+      "spec": [
+        "Dom.createCDATASection_creates"
+      ],
+      "omit": [],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "data を与えた `NodeData` を `withFresh` で置く（create a node と data の設定を一度に行う）"
+        }
+      ]
     },
     {
       "alg": "create-a-comment-node",
@@ -5830,7 +5830,7 @@
       "target": "interface-processinginstruction",
       "why": {
         "reason": "todo",
-        "detail": "ProcessingInstruction の target は持ち `getProperty` で読め、`createProcessingInstruction` もあるが、attribute map（§4.11 の `setAttribute` ほか）が無い"
+        "detail": "ProcessingInstruction の target は持ち `getProperty` で読め、`createProcessingInstruction` もあるが、attribute map（§4.13 の `setAttribute` ほか）が無い"
       }
     },
     {

@@ -16,7 +16,7 @@ Dommy がどの例外を投げるかまで model と一致させるため、
 
 namespace Dom
 
-/-- DOM Standard §3.3 の `DOMException` のうち、本 model が投げうるもの。 -/
+/-- Web IDL §2.8.1 の `DOMException` の error name のうち、本 model が投げうるもの。 -/
 inductive DOMException where
   | hierarchyRequestError
   | notFoundError
@@ -71,7 +71,7 @@ end DOMException
 instance : ToString DOMException := ⟨DOMException.name⟩
 
 /--
-WebIDL の exception（§3.14.1）のうち、本 model が投げうるもの。
+WebIDL の exception（§2.8）のうち、本 model が投げうるもの。
 
 `dom` は `DOMException`、`typeError` は simple exception の `TypeError` である。
 -/

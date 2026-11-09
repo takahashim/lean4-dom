@@ -2,7 +2,7 @@ import Dom.Spec.Record
 import Dom.Attribute.Name
 
 /-!
-# attribute の変更と record の関係意味論（§4.9・§4.3.4）
+# attribute の変更と record の関係意味論（§4.9・§4.3.2）
 
 `replace` などと同じ方針。仕様本文から独立に書き写した関係を置き、
 実行関数（`Dom/Attribute/Algorithms.lean`）がそれを満たすことは
@@ -25,7 +25,7 @@ namespace Dom.Spec
 
 open Dom
 
-/-! ## §4.3.4 attributes の record -/
+/-! ## §4.3.2 attributes の record -/
 
 /--
 "queue a mutation record" の step 2.3 のうち、attributes record に効く部分。

@@ -36,7 +36,7 @@ open Dom.ListUtil
 
 /-! ## 木の走査に使う補助定義 -/
 
-/-- `nodes` に含まれない、`n` の最初の preceding sibling（DOM Standard §4.2.9）。 -/
+/-- `nodes` に含まれない、`n` の最初の preceding sibling（DOM Standard §4.2.8）。 -/
 def viablePreviousSibling (t : Tree) (n : NodeId) (nodes : List NodeId) : Option NodeId :=
   match parentOf t n with
   | none => none
@@ -45,7 +45,7 @@ def viablePreviousSibling (t : Tree) (n : NodeId) (nodes : List NodeId) : Option
     | none => none
     | some (before, _) => before.reverse.find? fun x => !nodes.contains x
 
-/-- `nodes` に含まれない、`n` の最初の following sibling（DOM Standard §4.2.9）。 -/
+/-- `nodes` に含まれない、`n` の最初の following sibling（DOM Standard §4.2.8）。 -/
 def viableNextSibling (t : Tree) (n : NodeId) (nodes : List NodeId) : Option NodeId :=
   match parentOf t n with
   | none => none

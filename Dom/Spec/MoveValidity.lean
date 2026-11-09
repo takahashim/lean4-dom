@@ -1,7 +1,7 @@
 import Dom.Spec.Validity
 
 /-!
-# `move` の pre-move validity の関係意味論（§4.2.4）
+# `move` の pre-move validity の関係意味論（§4.2.3）
 
 `Dom/Properties/MoveContract.lean` の `moveBefore_error_iff` は失敗側を実行側の
 `moveValidity` に委ねていた。`Dom/Spec/Validity.lean` が `PreInsertResult` について
@@ -63,7 +63,7 @@ def MoveElementInsertionBlocked (t : Tree) (parent : NodeId) (child : Option Nod
 /-! ## 全体 -/
 
 /--
-**§4.2.4 "move" の pre-move validity（step 1-6）の関係意味論。**
+**§4.2.3 "move" の pre-move validity（step 1-6）の関係意味論。**
 
 仕様の `<ol>` の先頭六つをそのまま写した形である。
 -/

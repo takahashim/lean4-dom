@@ -4,7 +4,7 @@ import Dom.Properties.Tree
 /-!
 # record を積む step の効果
 
-`queueMutationRecord`（§4.3.4）が、どの observer の queue に何を積むかを述べる。
+`queueMutationRecord`（§4.3.2）が、どの observer の queue に何を積むかを述べる。
 
 `interestedObservers` は「target の inclusive ancestor を下から上へ、
 各 node の registered observer list を順に見て、条件を満たす observer を初出順に集める」

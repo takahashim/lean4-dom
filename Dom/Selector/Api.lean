@@ -4,7 +4,7 @@ import Dom.Selector.Match
 # selector を使う DOM の API
 
 DOM Standard §1.3 "scope-match a selectors string"、§4.2.6 `ParentNode` の
-`querySelector()` / `querySelectorAll()`、§4.8 `Element` の `matches()` / `closest()`。
+`querySelector()` / `querySelectorAll()`、§4.9 `Element` の `matches()` / `closest()`。
 
 どれも parse に失敗したら `SyntaxError` を投げる。
 -/
@@ -73,7 +73,7 @@ def querySelectorAll (t : Tree) (selectors : String) (node : NodeId) :
   | .error e => .error e
   | .ok _ => scopeMatch t selectors node
 
-/-- §4.8 `Element.matches()`。scoping root は element 自身である。 -/
+/-- §4.9 `Element.matches()`。scoping root は element 自身である。 -/
 def matchesSelector (t : Tree) (selectors : String) (element : NodeId) :
     Except DOMException Bool :=
   match requireElementNode t element with
@@ -92,7 +92,7 @@ def inclusiveAncestorElements (t : Tree) (n : NodeId) : List NodeId :=
   (n :: ancestors t n).filter (isElementNode t)
 
 /--
-§4.8 `Element.closest()`。
+§4.9 `Element.closest()`。
 
 inclusive ancestor を tree order の逆、つまり自分から root へ向かって見る。
 -/

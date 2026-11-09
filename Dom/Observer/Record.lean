@@ -4,7 +4,7 @@ import Dom.Basic.Order
 /-!
 # MutationObserver の record
 
-DOM Standard §4.3.4 の "queue a mutation record" と "queue a tree mutation record"、
+DOM Standard §4.3.2 の "queue a mutation record" と "queue a tree mutation record"、
 および §4.3 "add transient registered observers"（remove step 15 と move step 17 が呼ぶ）を定義する。
 
 配送そのもの（"notify mutation observers"）は `Dom/Observer/Deliver.lean` にある。
@@ -92,7 +92,7 @@ def enqueueRecord (obs : List ObserverState) (mo : Nat) (rec : MutationRecord) :
   | some o => obs.set mo { o with records := o.records ++ [rec] }
 
 /--
-DOM Standard §4.3.4 "queue a mutation record"。
+DOM Standard §4.3.2 "queue a mutation record"。
 
 interested observers が空なら step 4 で返る。そうでなければ step 5 が record を積んで
 pending mutation observers に足し、step 6 が microtask を予約する。
@@ -120,7 +120,7 @@ theorem queueMutationRecord_eq (s : DOMState) (rec : MutationRecord) (ov : Optio
   rfl
 
 /--
-DOM Standard §4.3.4 "queue a tree mutation record"。
+DOM Standard §4.3.2 "queue a tree mutation record"。
 
 仕様は addedNodes か removedNodes の一方が空でないことを assert するので、
 両方空なら何もしない。

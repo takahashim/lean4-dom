@@ -141,7 +141,7 @@ deriving DecidableEq, Repr, Inhabited
 
 namespace Attr
 
-/-- DOM Standard §1.4 の qualified name。prefix があれば `prefix:localName`。 -/
+/-- DOM Standard §4.9.2 の qualified name。prefix があれば `prefix:localName`。 -/
 def qualifiedName (a : Attr) : String :=
   match a.prefix with
   | none => a.localName
@@ -214,7 +214,7 @@ deriving DecidableEq, Repr, Inhabited
 * `data` — 仕様 §4.10 `CharacterData` の data。CharacterData 以外では空文字列とする。
 * `attributes` — 仕様 §4.9 の attribute list。Element 以外では空とする。
   順序に意味がある（`getAttributeNames` と qualified name による探索が list 順）ので `List` で持つ。
-* `namespace` / `prefix` / `localName` — 仕様 §4.8 Element の namespace・namespace prefix・
+* `namespace` / `prefix` / `localName` — 仕様 §4.9 Element の namespace・namespace prefix・
   local name。Element 以外では `none` / `none` / `""` とする。
 * `isHTMLDocument` — 仕様 §4.5 Document の type が "html" であること。
   Document 以外では `false` とする。
@@ -329,7 +329,7 @@ theorem shapeAnon_congr {d e : NodeData} (h : d.shape = e.shape) : d.shapeAnon =
   rw [h]
 
 /--
-DOM Standard §1.4 の qualified name。prefix があれば `prefix:localName`。
+DOM Standard §4.9 の qualified name。prefix があれば `prefix:localName`。
 
 Element の `tagName` はこれを、HTML namespace の element が HTML document にあるときは
 ASCII uppercase したものである。

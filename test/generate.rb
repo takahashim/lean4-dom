@@ -73,7 +73,7 @@ module Generate
                     nodeValue textContent isConnected hasChildNodes firstChild].freeze
   ATTR_SETTERS = %w[value nodeValue textContent].freeze
 
-  # selector を取る操作（§4.2.6 / §4.8）。
+  # selector を取る操作（§4.2.6 / §4.9）。
   SELECTOR_PARENT_OPS = %w[querySelector querySelectorAll].freeze
   SELECTOR_ELEMENT_OPS = %w[matches closest].freeze
   SELECTOR_OPS = (SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS).freeze
@@ -192,7 +192,7 @@ module Generate
   # 作る系の操作が今まで成功しかしなかったのはこの予測のためで、
   # `InvalidCharacterError` は 15,000 step 回しても一度も出なかった。
   #
-  # §1.3 valid attribute local name は「空でなく、ASCII whitespace・NUL・
+  # §1.4 valid attribute local name は「空でなく、ASCII whitespace・NUL・
   # `/`・`=`・`>` を含まない」。valid element local name は先頭が ASCII alpha なら
   # `=` を許すので、element 側は別に並べる。
   BAD_ATTR_NAMES = ["", "a b", "a=b", "a/b", "a>b"].freeze
@@ -224,7 +224,7 @@ module Generate
   ATTR_NAMESPACES = [nil, "http://example.com/ns", XML_NS, XMLNS_NS].freeze
 
   # **必ず失敗する** (namespace, qualifiedName) の組。
-  # 上から §1.3 "validate and extract" の step 6 / 8 / 9 / 10 / 11 に当たる。
+  # 上から §1.4 "validate and extract" の step 6 / 8 / 9 / 10 / 11 に当たる。
   # local name の `"a b"` は attribute でも element でも不正なので、
   # createElementNS と createAttributeNS の両方に使える。
   BAD_NS_NAMES = [

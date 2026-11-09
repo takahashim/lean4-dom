@@ -3,7 +3,7 @@ import Dom.Basic.Order
 import Dom.Spec.ObserverOrder
 
 /-!
-# childList の mutation record を積む step の関係意味論（§4.3.4）
+# childList の mutation record を積む step の関係意味論（§4.3.2）
 
 `remove` の step 16、`insert` の step 4.2 / 8、`move` の step 26-27 が使う。
 どちらも「childList の record を一つ積む」だけなので、一つの関係にまとめてある。
@@ -18,7 +18,7 @@ namespace Dom.Spec
 open Dom
 
 /--
-§4.3.4 "queue a mutation record" の step 2.3 のうち、childList record に効く部分。
+§4.3.2 "queue a mutation record" の step 2.3 のうち、childList record に効く部分。
 
 childList の record は oldValue を持たないので、step 2.3.2-2.3.3 の
 「同じ observer が二度出たら oldValue を上書きする」は効かない。
@@ -28,7 +28,7 @@ def InterestedInChildList (s : DOMState) (mo : Nat) (target : NodeId) : Prop :=
     InclusiveAncestor s.tree r.node target ∧ (r.node = target ∨ r.subtree = true)
 
 /--
-§4.3.4 "queue a tree mutation record"。`suppressObservers` が false なら childList の record を積む。
+§4.3.2 "queue a tree mutation record"。`suppressObservers` が false なら childList の record を積む。
 
 record は interested な observer の queue の末尾に一つだけ積まれ、
 その observer は pending mutation observers に入り、interested な observer があれば microtask が予約される。
@@ -95,7 +95,7 @@ structure ObserversUntouched (s s' : DOMState) : Prop where
 /-! ## characterData の record -/
 
 /--
-§4.3.4 "queue a mutation record" の step 2.3 のうち、characterData record に効く部分。
+§4.3.2 "queue a mutation record" の step 2.3 のうち、characterData record に効く部分。
 -/
 def InterestedInCharacterData (s : DOMState) (mo : Nat) (target : NodeId) : Prop :=
   ∃ r ∈ s.registrations, r.observer = mo ∧ r.characterData = true ∧

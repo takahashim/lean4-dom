@@ -1,9 +1,9 @@
 import Dom.Validity.Create
 
 /-!
-# 名前の検査と element の作成の関係仕様（§1.3、§4.5）
+# 名前の検査と element の作成の関係仕様（§1.4、§4.5）
 
-§1.3 の三つの名前の条件を本文の言い方のまま命題に書き、実行側の Boolean の検査と一致させる
+§1.4 の三つの名前の条件を本文の言い方のまま命題に書き、実行側の Boolean の検査と一致させる
 （`validElementLocalName_iff` ほか）。そのうえで `createElement()` を、「Document でなければ失敗し、
 名前が valid element local name でなければ InvalidCharacterError、そうでなければ step 2-5 の element を一つ作る」
 という関係 `CreateElementResult` に書き、実行関数がそれを満たすことを示す（`createElement_result_sound`）。
@@ -17,22 +17,22 @@ open Dom Infra
 def ForbiddenNameChar (c : Char) : Prop :=
   isAsciiWhitespace c = true ∨ c.toNat = 0 ∨ c = '/' ∨ c = '>'
 
-/-- §1.3 valid namespace prefix。 -/
+/-- §1.4 valid namespace prefix。 -/
 def ValidNamespacePrefix (s : String) : Prop :=
   s.toList ≠ [] ∧ ∀ c ∈ s.toList, ¬ ForbiddenNameChar c
 
-/-- §1.3 valid attribute local name。 -/
+/-- §1.4 valid attribute local name。 -/
 def ValidAttributeLocalName (s : String) : Prop :=
   s.toList ≠ [] ∧ ∀ c ∈ s.toList, ¬ ForbiddenNameChar c ∧ c ≠ '='
 
 /-- ASCII alpha。 -/
 def IsAsciiAlpha (c : Char) : Prop := ('a' ≤ c ∧ c ≤ 'z') ∨ ('A' ≤ c ∧ c ≤ 'Z')
 
-/-- §1.3 valid element local name の step 4 で許す後続の code point。 -/
+/-- §1.4 valid element local name の step 4 で許す後続の code point。 -/
 def ElementNameRestChar (c : Char) : Prop :=
   IsAsciiAlpha c ∨ ('0' ≤ c ∧ c ≤ '9') ∨ c = '-' ∨ c = '.' ∨ c = ':' ∨ c = '_' ∨ 0x80 ≤ c.toNat
 
-/-- §1.3 valid element local name（step 1-5）。 -/
+/-- §1.4 valid element local name（step 1-5）。 -/
 def ValidElementLocalName (s : String) : Prop :=
   ∃ c rest, s.toList = c :: rest ∧
     ((IsAsciiAlpha c ∧ ∀ x ∈ c :: rest, ¬ ForbiddenNameChar x) ∨

@@ -390,7 +390,7 @@ theorem replaceResult_not_ok_of_validity_error {s s' : DOMState} (hwf : WellForm
 /-! ## public API：`moveBefore` -/
 
 /--
-**§4.2.4 move の、結果まで含めた関係。**
+**§4.2.3 move の、結果まで含めた関係。**
 
 `moveBefore` は `ParentNode` の method なので、失敗しうる箇所が三つある。
 

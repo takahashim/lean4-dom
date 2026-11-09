@@ -7185,10 +7185,17 @@ model の定義と関係は変えず、表と snapshot だけを直した。
   §5.2）も直した。同じ所で、固定版より前の step 番号のまま残っていたものも直した（pre-remove steps の調整は
   step 4-5・6-7、move の pre-remove は step 9・10、offset の調整は step 18、remove の transient と record は step 15-16、
   insert の record は step 8、deleteContents の record は step 9-11）。
+* §5 以外のコメントの節番号も snapshot と突き合わせて直した。DOM は Element（§4.8 → §4.9）、`ChildNode`（§4.2.9 → §4.2.8）、
+  move と pre-insert（§4.2.4・§4.2.1 → §4.2.3）、queue a mutation record（§4.3.4 → §4.3.2）、`MutationObserver`・
+  `MutationRecord`・registered observer（§4.3.1・§4.3.3・§4.3）、名前の検査（§1.3 → §1.4）、木の順序と index（§1.4 → §1.1）、
+  ordered set parser（§2.3 → §1.2）、`HTMLCollection`（§4.2.10.1 → §4.2.10.2）、PI の `setAttribute`（§4.11 → §4.13）。
+  Web IDL は operation の関数（§3.7.5 → §3.7.7）、sequence・union・nullable・boolean の変換、`[LegacyNullToEmptyString]`
+  （§3.4.6）、`DOMException`（DOM §3.3 ではなく Web IDL §2.8）。表の `CharacterData.lean` と `ParentNode.lean` は、
+  別の節の entry が見出しの下に並んでいたので並べ替えた。
 
 ## 未着手
 
-* ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
+* ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。
   element の attribute list とは別の仕組みで、attribute の mutation record を積まない。
   Dommy も未実装なので差分テストで裏を取れない。
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、

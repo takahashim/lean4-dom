@@ -122,7 +122,7 @@ module DommyRunner
     "getElementsByTagName" => ["name", [1, 9]]
   }.freeze
 
-  # selector を取る method（§4.2.6 / §4.8）。受け手の種別が合わなければ TypeError。
+  # selector を取る method（§4.2.6 / §4.9）。受け手の種別が合わなければ TypeError。
   SELECTOR_OPS = %w[querySelector querySelectorAll matches closest].freeze
   # `matches` と `closest` は Element の method である。
   SELECTOR_ELEMENT_OPS = %w[matches closest].freeze
@@ -199,7 +199,7 @@ module DommyRunner
                      toggleAttribute].freeze
 
   # §4.9 の reflect（`id` / `className` / `slot`）、§7.1 の `classList`、
-  # §4.2.10.1 の `children.namedItem`。どれも namespace が null の attribute を読み書きする。
+  # §4.2.10.2 の `children.namedItem`。どれも namespace が null の attribute を読み書きする。
   # Ruby 側の名前が揃っていないので、bridge（`__js_get__` / `__js_set__` / `__js_call__`）を通す。
   REFLECT_OPS = %w[getReflected setReflected classListAdd classListRemove classListToggle
                    classListReplace classListContains childrenNamedItem

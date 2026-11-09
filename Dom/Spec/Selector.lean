@@ -681,7 +681,7 @@ theorem includes_whitespace_never (test : AttrTest) (value : String)
 数え始めと向きを取り違えうるのはそこである。
 -/
 
-/-- §3.1 の inclusive sibling のうち element。parent が無ければ自分だけである。 -/
+/-- DOM §1.1 の inclusive sibling のうち element。parent が無ければ自分だけである。 -/
 def InclusiveElementSibling (t : Tree) (m n : NodeId) : Prop :=
   isElementNode t m = true ∧ (m = n ∨ ∃ p, parentOf t n = some p ∧ parentOf t m = some p)
 

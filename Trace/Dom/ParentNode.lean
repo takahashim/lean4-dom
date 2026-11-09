@@ -40,11 +40,6 @@ def entries : List Entry := [
     impl := [``Dom.lastElementChild] },
   { alg := "dom-parentnode-childelementcount"
     impl := [``Dom.childElementCount] },
-  -- §4.2.7
-  { alg := "dom-nondocumenttypechildnode-previouselementsibling"
-    impl := [``Dom.previousElementSibling] },
-  { alg := "dom-nondocumenttypechildnode-nextelementsibling"
-    impl := [``Dom.nextElementSibling] },
   { alg := "dom-parentnode-prepend"
     impl := [``Dom.prependNodes, ``Dom.convertNodesIntoNode, ``Dom.preInsert]
     spec := [``Dom.Spec.prepend_single_result_sound] },
@@ -66,6 +61,11 @@ def entries : List Entry := [
     impl := [``Dom.querySelectorAll, ``Dom.scopeMatch, ``Dom.matchTree, ``Dom.requireParentNode]
     spec := [``Dom.Spec.querySelectorAll_result_sound]
     approx := [("*", "static な NodeList ではなく、element の list を返す")] },
+  -- §4.2.7
+  { alg := "dom-nondocumenttypechildnode-previouselementsibling"
+    impl := [``Dom.previousElementSibling] },
+  { alg := "dom-nondocumenttypechildnode-nextelementsibling"
+    impl := [``Dom.nextElementSibling] },
   -- §4.2.8
   { alg := "dom-childnode-before"
     impl := [``Dom.beforeNodes, ``Dom.convertNodesIntoNode, ``Dom.viablePreviousSibling, ``Dom.preInsert]
