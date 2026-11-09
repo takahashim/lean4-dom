@@ -93,7 +93,7 @@ node 自体はその位置より手前に挿入されるため、結果として
 25 件は Dommy 側、2 件（番号 9 および 27）はモデル側の不具合であった。主な事例は以下の通りである。
 
 * `insertBefore` / `replaceChild` が、mutation record の挿入位置を「木構造が変更された後」の状態で参照していた（正しくは insert step 6 および replace step 4 の通り、変更前の値を用いる必要がある）。
-* remove step 20（transient registered observer）が `suppressObservers` によって誤って抑制されていた（仕様上抑制されるのは step 21 の record のみである）。
+* remove step 15（transient registered observer）が `suppressObservers` によって誤って抑制されていた（仕様上抑制されるのは step 16 の record のみである）。
 * `Node.ownerDocument` が Element と Attr にしか実装されていなかった。
 * live range の挿入に伴う位置調整処理が、仕様で定められた位置に存在しなかった。
 * MutationObserver の通知順序が、仕様にある inclusive ancestor の走査順ではなく、observer の生成順になっていた。

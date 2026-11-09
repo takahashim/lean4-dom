@@ -7,14 +7,14 @@ import Dom.Basic.Exception
 scenario が JSON で運ぶ JavaScript の値（`JsValue`）と、WebIDL Standard（`docs/spec-version.md` の版）の
 変換のうち、`addEventListener` と `removeEventListener` の options と、`MutationObserverInit` に要るものを書く。
 
-* boolean への変換は ECMAScript の ToBoolean である（§3.2.2）。
+* boolean への変換は ECMAScript の ToBoolean である（§3.2.3）。
 * dictionary への変換は、継承の根から順に、各 dictionary の member を辞書順に `Get` で読み、undefined でなければ
   member の型へ変換し、undefined なら既定値を使う（§3.2.17）。
 * DOMString への変換は ECMAScript の ToString である（§3.2.10）。
 * `sequence<T>` への変換は、object でなければ TypeError、`@@iterator` が無ければ TypeError、あれば
-  iterator が返す値を順に T へ変換する（§3.2.20）。
+  iterator が返す値を順に T へ変換する（§3.2.21）。
 * union への変換は、null と undefined なら dictionary、object なら dictionary、boolean ならそのまま、
-  それ以外（数と文字列）は union が string 型も numeric 型も含まないので boolean へ変換する（§3.2.24）。
+  それ以外（数と文字列）は union が string 型も numeric 型も含まないので boolean へ変換する（§3.2.25）。
 
 ## 対象外
 
@@ -194,7 +194,7 @@ def toDOMString (v : JsValue) : Except IdlException String := v.toJsString
 
 /--
 **JavaScript の値を IDL の `DOMString?` に変換する。** undefined と null は null、それ以外は DOMString へ
-変換する（§3.2.22 nullable types）。
+変換する（§3.2.20 nullable types）。
 -/
 def toNullableDOMString (v : JsValue) : Except IdlException (Option String) :=
   match v with
@@ -203,7 +203,7 @@ def toNullableDOMString (v : JsValue) : Except IdlException (Option String) :=
 
 /--
 **`[LegacyNullToEmptyString]` の付いた `DOMString` に変換する。** null は ToString ではなく空文字列になる
-（§3.3.11）。CharacterData の `data` の setter がこれである。
+（§3.4.6）。CharacterData の `data` の setter がこれである。
 -/
 def toLegacyNullDOMString (v : JsValue) : Except IdlException String :=
   match v with
@@ -244,8 +244,8 @@ theorem toLegacyNullDOMString_error {v : JsValue} {e : IdlException}
 **JavaScript の値を IDL の `sequence<DOMString>` に変換する。**
 
 1. object でなければ TypeError。
-2. `@@iterator` を引く。undefined なら TypeError（普通の object がこれに当たる）。
-3. iterator が返す値を順に DOMString に変換する（配列は要素を順に返す）。
+2-3. `@@iterator` を引く。undefined なら TypeError（普通の object がこれに当たる）。
+4. iterator が返す値を順に DOMString に変換する（配列は要素を順に返す）。
 -/
 def toSequenceDOMString : JsValue → Except IdlException (List String)
   | .array xs => xs.mapM toDOMString
@@ -360,7 +360,7 @@ def elementCreationOptionsOk (v : JsValue) : Bool :=
   if v.isObjectOrNullish then
     registryOk && isOk
   else
-    -- DOMString への変換（§3.2.24 step 12 以降）
+    -- DOMString への変換（§3.2.25 step 12 以降）
     !(match v.toJsString with | .error .typeError => true | _ => false)
 where
   /-- `customElementRegistry` は nullable で、CustomElementRegistry を表せないので undefined と null だけ通る。 -/

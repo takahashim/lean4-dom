@@ -18,13 +18,13 @@ Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）は木だけ�
 
 namespace Dom
 
-/-- DOM Standard §5.3 の boundary point。 -/
+/-- DOM Standard §5.2 の boundary point。 -/
 structure BoundaryPoint where
   node : NodeId
   offset : Nat
 deriving DecidableEq, Repr, Inhabited
 
-/-- DOM Standard §5.5 の live range。 -/
+/-- DOM Standard §5.6 の live range。 -/
 structure RangeState where
   start : BoundaryPoint
   «end» : BoundaryPoint
@@ -123,7 +123,7 @@ deriving DecidableEq, Repr, Inhabited
 
 /-! ## MutationObserver -/
 
-/-- DOM Standard §4.3.1 の `MutationRecord` の type。 -/
+/-- DOM Standard §4.3.3 の `MutationRecord` の type。 -/
 inductive RecordType where
   | attributes
   | childList
@@ -131,7 +131,7 @@ inductive RecordType where
 deriving DecidableEq, Repr, Inhabited
 
 /--
-DOM Standard §4.3.1 の `MutationRecord`。
+DOM Standard §4.3.3 の `MutationRecord`。
 
 `attributeName` は attribute の local name、`attributeNamespace` は namespace である
 （"handle attribute changes" step 1）。type が `attributes` 以外なら両方 `none`。
@@ -149,7 +149,7 @@ structure MutationRecord where
 deriving DecidableEq, Repr, Inhabited
 
 /--
-DOM Standard §4.3.3 の registered observer。
+DOM Standard §4.3 の registered observer。
 
 仕様では node ごとの registered observer list だが、model では
 `node` を持つ一つの list にまとめる。同じ node の登録は list の順に並ぶので、
@@ -167,7 +167,7 @@ structure Registration where
   attributeOldValue : Bool := false
   /--
   仕様の `attributeFilter`。存在しないことと空 list であることは区別される
-  （"queue a mutation record" step 2.3 の三つ目の条件が、存在するかどうかで分岐する）。
+  （"queue a mutation record" step 3.2 の三つ目の条件が、存在するかどうかで分岐する）。
   -/
   attributeFilter : Option (List String) := none
   characterData : Bool := false
@@ -185,7 +185,7 @@ structure Registration where
 deriving DecidableEq, Repr, Inhabited
 
 /--
-DOM Standard §4.3.2 の `MutationObserver`。
+DOM Standard §4.3.1 の `MutationObserver`。
 
 callback は model の対象外なので、record queue だけを持つ。
 配送（queue a mutation observer microtask）も扱わないので、

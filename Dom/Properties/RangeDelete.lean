@@ -4,7 +4,7 @@ import Dom.Properties.Range
 /-!
 # `Range.deleteContents()` の契約
 
-§5.5 の `deleteContents` は step 4 で「range に含まれる node のうち、親が含まれない
+§5.6 の `deleteContents` は step 4 で「range に含まれる node のうち、親が含まれない
 ものだけ」を集めて順に外す。この形が `removeEach` にとって安全であること
 （外した node の子孫をもう一度外そうとしない）は仕様の意図だが、
 差分テストからは出てこないのでここで示す。
@@ -64,9 +64,9 @@ theorem root_eq_of_containedInRange {n : NodeId} (h : containedInRange t r n = t
   simp only [Bool.and_eq_true, beq_iff_eq] at h
   exact h.1.1
 
-/-! ## step 5-6 の新しい boundary point -/
+/-! ## step 5-7 の新しい boundary point -/
 
-/-- start が end の inclusive ancestor なら、その場に潰れる（step 5）。 -/
+/-- start が end の inclusive ancestor なら、その場に潰れる（step 6）。 -/
 theorem deleteContentsNewBP_of_inclusiveAncestor
     (h : isInclusiveAncestorOf t r.start.node r.«end».node = true) :
     deleteContentsNewBP t r = r.start := by

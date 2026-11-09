@@ -3,7 +3,7 @@ import Dom.Mutation.Clone
 import Dom.Mutation.Variadic
 
 /-!
-# `Range` の extract・clone the contents・`surroundContents()`（§5.5）
+# `Range` の extract・clone the contents・`surroundContents()`（§5.6）
 
 ## subrange は状態に持たない
 
@@ -39,7 +39,7 @@ extract は step 15 で range を置き直し、step 16-20 で木を変えてか
 namespace Dom
 
 /--
-DOM Standard §5.5 "get the common ancestor"。
+DOM Standard §5.6 "get the common ancestor"。
 
 start node の inclusive ancestor を近い順にたどり、end node の inclusive ancestor である最初のもの。
 二つの端点が別の木にあれば無い（本文は親が null になるところで止まらない）。
@@ -48,7 +48,7 @@ def commonAncestor (t : Tree) (r : RangeState) : Option NodeId :=
   (r.start.node :: ancestors t r.start.node).find? fun x => isInclusiveAncestorOf t x r.«end».node
 
 /--
-DOM Standard §5.5 "partially contained"。
+DOM Standard §5.6 "partially contained"。
 
 node が start node と end node のどちらか一方だけの inclusive ancestor であること。
 -/
@@ -240,7 +240,7 @@ def setSelf (s : DOMState) (self : Option Nat) (bp : BoundaryPoint) :
     else .error (.outsideModel, s)
 
 /--
-DOM Standard §5.5 "extract"（`cut = true`）と "clone the contents"（`cut = false`）の、
+DOM Standard §5.6 "extract"（`cut = true`）と "clone the contents"（`cut = false`）の、
 step 1 の fragment を作った後の部分。`into` は fragment（再帰では clone）である。
 
 二つの algorithm は同じ形をしていて、違いは次の三つだけである。
@@ -326,7 +326,7 @@ def discardCreated {α : Type} (base : NodeId) :
   | .ok (a, s) => .ok (a, discardAfter base s)
 
 /--
-DOM Standard §5.5 `extractContents()` の、subfragment を消す前の部分。fragment と状態を返す。
+DOM Standard §5.6 `extractContents()` の、subfragment を消す前の部分。fragment と状態を返す。
 
 `surroundContents()` はこれを呼ぶ。step 1 を通った range の partially contained な node は Text だけなので、
 subfragment は作られない。
@@ -341,12 +341,12 @@ def rangeExtractInto (s : DOMState) (i : Nat) :
     | .ok (frag, s₁) =>
       discardOnError frag ((contentsInto true (s₁.tree.size + 1) s₁ r (some i) frag).map (frag, ·))
 
-/-- DOM Standard §5.5 `extractContents()`。fragment と状態を返す。 -/
+/-- DOM Standard §5.6 `extractContents()`。fragment と状態を返す。 -/
 def rangeExtractContents (s : DOMState) (i : Nat) :
     Except (DOMException × DOMState) (NodeId × DOMState) :=
   discardCreated (freshId s.tree) (rangeExtractInto s i)
 
-/-- DOM Standard §5.5 `cloneContents()` の、subfragment を消す前の部分。 -/
+/-- DOM Standard §5.6 `cloneContents()` の、subfragment を消す前の部分。 -/
 def rangeCloneInto (s : DOMState) (i : Nat) :
     Except (DOMException × DOMState) (NodeId × DOMState) :=
   match s.ranges[i]? with
@@ -357,7 +357,7 @@ def rangeCloneInto (s : DOMState) (i : Nat) :
     | .ok (frag, s₁) =>
       discardOnError frag ((contentsInto false (s₁.tree.size + 1) s₁ r none frag).map (frag, ·))
 
-/-- DOM Standard §5.5 `cloneContents()`。fragment と状態を返す。 -/
+/-- DOM Standard §5.6 `cloneContents()`。fragment と状態を返す。 -/
 def rangeCloneContents (s : DOMState) (i : Nat) :
     Except (DOMException × DOMState) (NodeId × DOMState) :=
   discardCreated (freshId s.tree) (rangeCloneInto s i)
@@ -368,7 +368,7 @@ def partiallyContainsNonText (t : Tree) (r : RangeState) : Bool :=
     fun n => partiallyContained t r n && !((kindOf t n).map NodeKind.isText).getD false
 
 /--
-DOM Standard §5.5 `surroundContents(newParent)`。
+DOM Standard §5.6 `surroundContents(newParent)`。
 
 step 6 で newParent に append したあとの fragment は空で、どこからも辿れないので消す。
 step 3 より後で失敗したときは、その時点の状態を返す（辿れなくなった fragment は消す。`discardFragmentOnError`）。
@@ -407,7 +407,7 @@ def rangeSurroundContents (s : DOMState) (i : Nat) (newParent : NodeId) :
     dropErr (failWith s r) = r := by
   cases r <;> rfl
 
-/-- DOM Standard §5.5 `commonAncestorContainer`。 -/
+/-- DOM Standard §5.6 `commonAncestorContainer`。 -/
 def rangeCommonAncestorContainer (s : DOMState) (i : Nat) : Except DOMException NodeId :=
   match s.ranges[i]? with
   | none => .error .notFoundError

@@ -16,24 +16,24 @@ Dommy がどの例外を投げるかまで model と一致させるため、
 
 namespace Dom
 
-/-- DOM Standard §3.3 の `DOMException` のうち、本 model が投げうるもの。 -/
+/-- Web IDL §2.8.1 の `DOMException` の error name のうち、本 model が投げうるもの。 -/
 inductive DOMException where
   | hierarchyRequestError
   | notFoundError
   | indexSizeError
   | invalidNodeTypeError
   | wrongDocumentError
-  /-- §5.5 `compareBoundaryPoints(how, …)` の `how` が四つの定数のどれでもない場合。 -/
+  /-- §5.6 `compareBoundaryPoints(how, …)` の `how` が四つの定数のどれでもない場合。 -/
   | notSupportedError
   /-- §4.9 の attribute 名検査。valid attribute local name / valid namespace prefix。 -/
   | invalidCharacterError
-  /-- §4.9 の namespace 検査（"validate and extract" の step 7-10）。 -/
+  /-- §4.9 の namespace 検査（"validate and extract" の step 8-11）。 -/
   | namespaceError
   /-- §4.9 "set an attribute" step 2。別の element に付いている `Attr` を渡した場合。 -/
   | inUseAttributeError
   /-- §1.3 "scope-match a selectors string" step 2。selector を読めなかった場合。 -/
   | syntaxError
-  /-- §5.5 `surroundContents()` step 1。Text でない node が partially contained の場合。 -/
+  /-- §5.6 `surroundContents()` step 1。Text でない node が partially contained の場合。 -/
   | invalidStateError
   /--
   model の対象外。**仕様の例外ではない。**
@@ -71,7 +71,7 @@ end DOMException
 instance : ToString DOMException := ⟨DOMException.name⟩
 
 /--
-WebIDL の exception（§3.14.1）のうち、本 model が投げうるもの。
+WebIDL の exception（§2.8）のうち、本 model が投げうるもの。
 
 `dom` は `DOMException`、`typeError` は simple exception の `TypeError` である。
 -/

@@ -4,7 +4,7 @@ import Dom.Properties.Tree
 /-!
 # record を積む step の効果
 
-`queueMutationRecord`（§4.3.4）が、どの observer の queue に何を積むかを述べる。
+`queueMutationRecord`（§4.3.2）が、どの observer の queue に何を積むかを述べる。
 
 `interestedObservers` は「target の inclusive ancestor を下から上へ、
 各 node の registered observer list を順に見て、条件を満たす observer を初出順に集める」
@@ -393,7 +393,7 @@ theorem allNone_foldl_of_step {α : Type}
   | nil => intro acc h; exact h
   | cons a rest ih => intro acc h; exact ih (step acc a) (hstep acc a h)
 
-/-- `queue a mutation record` の step 2.3.3。childList の record は oldValue を持たない。 -/
+/-- `queue a mutation record` の step 3.2.3。childList の record は oldValue を持たない。 -/
 theorem oldValue_none_of_childList (s : DOMState) (rec : MutationRecord) :
     ∀ p ∈ interestedObservers s rec none, p.2 = none := by
   unfold interestedObservers

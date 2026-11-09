@@ -1,6 +1,6 @@
 {
   "spec": "dom",
-  "commit": "3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177",
+  "commit": "6cc24159f1fe0857686d6712affb37d33229777e",
   "algorithms": [
     {
       "key": "concept-ordered-set-parser",
@@ -6090,9 +6090,9 @@
         "interface-document"
       ],
       "line": 6458,
-      "title": "The createRange() method steps are to return a new live range with (this, 0) as its start an end.",
+      "title": "The createRange() method steps are to return a new Range object with (this, 0) as its start and end.",
       "steps": [],
-      "hash": "083e1b408e9a9d78"
+      "hash": "2ddff1e212407467"
     },
     {
       "key": "dom-document-createnodeiterator",
@@ -9394,23 +9394,10 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9253,
+      "line": 9251,
       "title": "A range is collapsed if its start node is its end node and its start offset is its end offset.",
       "steps": [],
       "hash": "041276c992bd4a06"
-    },
-    {
-      "key": "dom-range-startcontainer",
-      "section": "5.3",
-      "heading": "interface-abstractrange",
-      "headings": [
-        "ranges",
-        "interface-abstractrange"
-      ],
-      "line": 9275,
-      "title": "The startContainer getter steps are to return this's start node.",
-      "steps": [],
-      "hash": "a133eb25fcf09da0"
     },
     {
       "key": "dom-range-startoffset",
@@ -9420,23 +9407,10 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9281,
-      "title": "The startOffset getter steps are to return this's start offset.",
+      "line": 9273,
+      "title": "The startOffset getter steps are to return the result of running this's get start offset.",
       "steps": [],
-      "hash": "e927f2c6e250a663"
-    },
-    {
-      "key": "dom-range-endcontainer",
-      "section": "5.3",
-      "heading": "interface-abstractrange",
-      "headings": [
-        "ranges",
-        "interface-abstractrange"
-      ],
-      "line": 9286,
-      "title": "The endContainer getter steps are to return this's end node.",
-      "steps": [],
-      "hash": "425036e82706a12f"
+      "hash": "6ce3dd083ca987bb"
     },
     {
       "key": "dom-range-endoffset",
@@ -9446,10 +9420,10 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9291,
-      "title": "The endOffset getter steps are to return this's end offset.",
+      "line": 9279,
+      "title": "The endOffset getter steps are to return the result of running this's get end offset.",
       "steps": [],
-      "hash": "e5b50fe112e70089"
+      "hash": "d76ea7d98a8f880e"
     },
     {
       "key": "dom-range-collapsed",
@@ -9459,20 +9433,85 @@
         "ranges",
         "interface-abstractrange"
       ],
-      "line": 9296,
-      "title": "The collapsed getter steps are to return true if this is collapsed; otherwise false.",
+      "line": 9285,
+      "title": "The collapsed getter steps are to return the result of running this's get collapsed.",
       "steps": [],
-      "hash": "979f82e138958a51"
+      "hash": "57ee006adbadc74f"
+    },
+    {
+      "key": "algorithm:NodeRange get start offset",
+      "section": "5.4",
+      "heading": "interface-noderange",
+      "headings": [
+        "ranges",
+        "interface-noderange"
+      ],
+      "line": 9310,
+      "title": "The get start offset steps of a NodeRange object range are to return range's start offset.",
+      "steps": [],
+      "hash": "7d3bd855636a7083"
+    },
+    {
+      "key": "algorithm:NodeRange get end offset",
+      "section": "5.4",
+      "heading": "interface-noderange",
+      "headings": [
+        "ranges",
+        "interface-noderange"
+      ],
+      "line": 9315,
+      "title": "The get end offset steps of a NodeRange object range are to return range's end offset.",
+      "steps": [],
+      "hash": "bf78d81f396c5f4e"
+    },
+    {
+      "key": "algorithm:NodeRange get collapsed",
+      "section": "5.4",
+      "heading": "interface-noderange",
+      "headings": [
+        "ranges",
+        "interface-noderange"
+      ],
+      "line": 9320,
+      "title": "The get collapsed steps of a NodeRange object range are to return true if range is collapsed; otherwise false.",
+      "steps": [],
+      "hash": "7c5f1f14c7abf453"
+    },
+    {
+      "key": "dom-range-startcontainer",
+      "section": "5.4",
+      "heading": "interface-noderange",
+      "headings": [
+        "ranges",
+        "interface-noderange"
+      ],
+      "line": 9327,
+      "title": "The startContainer getter steps are to return this's start node.",
+      "steps": [],
+      "hash": "88ca64db0503821b"
+    },
+    {
+      "key": "dom-range-endcontainer",
+      "section": "5.4",
+      "heading": "interface-noderange",
+      "headings": [
+        "ranges",
+        "interface-noderange"
+      ],
+      "line": 9333,
+      "title": "The endContainer getter steps are to return this's end node.",
+      "steps": [],
+      "hash": "94a4ec661463f227"
     },
     {
       "key": "dom-staticrange-staticrange",
-      "section": "5.4",
+      "section": "5.5",
       "heading": "interface-staticrange",
       "headings": [
         "ranges",
         "interface-staticrange"
       ],
-      "line": 9323,
+      "line": 9360,
       "title": "The new StaticRange(init) constructor steps are:",
       "steps": [
         {
@@ -9490,26 +9529,26 @@
     },
     {
       "key": "staticrange-valid",
-      "section": "5.4",
+      "section": "5.5",
       "heading": "interface-staticrange",
       "headings": [
         "ranges",
         "interface-staticrange"
       ],
-      "line": 9341,
+      "line": 9378,
       "title": "A StaticRange is valid if all of the following are true:",
       "steps": [],
       "hash": "0ebc130f9b0581eb"
     },
     {
       "key": "live-range-pre-remove-steps",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9473,
+      "line": 9510,
       "title": "The live range pre-remove steps given a node node, are:",
       "steps": [
         {
@@ -9552,26 +9591,26 @@
     },
     {
       "key": "dom-range-range",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9507,
+      "line": 9544,
       "title": "The new Range() constructor steps are to set this's start and end to (current global object's associated Document, 0).",
       "steps": [],
       "hash": "aff6ef257870f154"
     },
     {
       "key": "get-the-common-ancestor",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9522,
+      "line": 9559,
       "title": "To get the common ancestor of a live range range:",
       "steps": [
         {
@@ -9594,26 +9633,26 @@
     },
     {
       "key": "dom-range-commonancestorcontainer",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9536,
+      "line": 9573,
       "title": "The commonAncestorContainer getter steps are to return the result of getting the common ancestor of this.",
       "steps": [],
       "hash": "68c4b8610236d0ed"
     },
     {
       "key": "concept-range-bp-set",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9543,
+      "line": 9580,
       "title": "To set the start or end of a range to a boundary point (node, offset):",
       "steps": [
         {
@@ -9661,39 +9700,39 @@
     },
     {
       "key": "dom-range-setstart",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9584,
+      "line": 9621,
       "title": "The setStart(node, offset) method steps are to set the start of this to boundary point (node, offset).",
       "steps": [],
       "hash": "d3c3b2fe0536ef3d"
     },
     {
       "key": "dom-range-setend",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9590,
+      "line": 9627,
       "title": "The setEnd(node, offset) method steps are to set the end of this to boundary point (node, offset).",
       "steps": [],
       "hash": "7a627e825b1b1d3f"
     },
     {
       "key": "dom-range-setstartbefore",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9596,
+      "line": 9633,
       "title": "The setStartBefore(node) method steps are:",
       "steps": [
         {
@@ -9716,13 +9755,13 @@
     },
     {
       "key": "dom-range-setstartafter",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9610,
+      "line": 9647,
       "title": "The setStartAfter(node) method steps are:",
       "steps": [
         {
@@ -9745,13 +9784,13 @@
     },
     {
       "key": "dom-range-setendbefore",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9624,
+      "line": 9661,
       "title": "The setEndBefore(node) method steps are:",
       "steps": [
         {
@@ -9774,13 +9813,13 @@
     },
     {
       "key": "dom-range-setendafter",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9638,
+      "line": 9675,
       "title": "The setEndAfter(node) method steps are:",
       "steps": [
         {
@@ -9803,26 +9842,26 @@
     },
     {
       "key": "dom-range-collapse",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9652,
+      "line": 9689,
       "title": "The collapse(toStart) method steps are to, if toStart is true, set end to start; otherwise set start to end.",
       "steps": [],
       "hash": "ffcf57b925dfed29"
     },
     {
       "key": "concept-range-select",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9658,
+      "line": 9695,
       "title": "To select a node node within a range range:",
       "steps": [
         {
@@ -9855,26 +9894,26 @@
     },
     {
       "key": "dom-range-selectnode",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9678,
+      "line": 9715,
       "title": "The selectNode(node) method steps are to select node within this.",
       "steps": [],
       "hash": "f88998d517854726"
     },
     {
       "key": "dom-range-selectnodecontents",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9683,
+      "line": 9720,
       "title": "The selectNodeContents(node) method steps are:",
       "steps": [
         {
@@ -9902,13 +9941,13 @@
     },
     {
       "key": "dom-range-compareboundarypoints",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9701,
+      "line": 9738,
       "title": "The compareBoundaryPoints(how, sourceRange) method steps are:",
       "steps": [
         {
@@ -9941,13 +9980,13 @@
     },
     {
       "key": "dom-range-deletecontents",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9783,
+      "line": 9820,
       "title": "The deleteContents() method steps are:",
       "steps": [
         {
@@ -10035,13 +10074,13 @@
     },
     {
       "key": "concept-range-extract",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 9857,
+      "line": 9894,
       "title": "To extract a live range range:",
       "steps": [
         {
@@ -10201,8 +10240,8 @@
         },
         {
           "n": "17.3",
-          "hash": "3fbed9f6e23e8a62",
-          "text": "Let subrange be a new live range whose start is (originalStartNode, originalStartOffset) and whose end is (firstPartiallyContainedChild, firstPartiallyContained"
+          "hash": "dcfa554fc4a93815",
+          "text": "Let subrange be a new Range object whose start is (originalStartNode, originalStartOffset) and whose end is (firstPartiallyContainedChild, firstPartiallyContain"
         },
         {
           "n": "17.4",
@@ -10261,8 +10300,8 @@
         },
         {
           "n": "20.3",
-          "hash": "b58e2d2362c63043",
-          "text": "Let subrange be a new live range whose start is (lastPartiallyContainedChild, 0) and whose end is (originalEndNode, originalEndOffset)."
+          "hash": "89ecd11c39051149",
+          "text": "Let subrange be a new Range object whose start is (lastPartiallyContainedChild, 0) and whose end is (originalEndNode, originalEndOffset)."
         },
         {
           "n": "20.4",
@@ -10280,30 +10319,30 @@
           "text": "Return fragment."
         }
       ],
-      "hash": "a1727f2c1b5a173a"
+      "hash": "9ca1f2491b347df5"
     },
     {
       "key": "dom-range-extractcontents",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10056,
+      "line": 10093,
       "title": "The extractContents() method steps are to return the result of extracting this.",
       "steps": [],
       "hash": "655a9744f3f55552"
     },
     {
       "key": "concept-range-clone",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10061,
+      "line": 10098,
       "title": "To clone the contents of a live range range:",
       "steps": [
         {
@@ -10418,8 +10457,8 @@
         },
         {
           "n": "13.3",
-          "hash": "3fbed9f6e23e8a62",
-          "text": "Let subrange be a new live range whose start is (originalStartNode, originalStartOffset) and whose end is (firstPartiallyContainedChild, firstPartiallyContained"
+          "hash": "dcfa554fc4a93815",
+          "text": "Let subrange be a new Range object whose start is (originalStartNode, originalStartOffset) and whose end is (firstPartiallyContainedChild, firstPartiallyContain"
         },
         {
           "n": "13.4",
@@ -10483,8 +10522,8 @@
         },
         {
           "n": "16.3",
-          "hash": "b58e2d2362c63043",
-          "text": "Let subrange be a new live range whose start is (lastPartiallyContainedChild, 0) and whose end is (originalEndNode, originalEndOffset)."
+          "hash": "89ecd11c39051149",
+          "text": "Let subrange be a new Range object whose start is (lastPartiallyContainedChild, 0) and whose end is (originalEndNode, originalEndOffset)."
         },
         {
           "n": "16.4",
@@ -10502,30 +10541,30 @@
           "text": "Return fragment."
         }
       ],
-      "hash": "d9af0fe2bbe87d5d"
+      "hash": "8141c3db9a6e52c9"
     },
     {
       "key": "dom-range-clonecontents",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10223,
+      "line": 10260,
       "title": "The cloneContents() method steps are to return the result of cloning the contents of this.",
       "steps": [],
       "hash": "aacd89bdac6a3966"
     },
     {
       "key": "concept-range-insert",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10228,
+      "line": 10265,
       "title": "To insert a node node into a live range range:",
       "steps": [
         {
@@ -10598,26 +10637,26 @@
     },
     {
       "key": "dom-range-insertnode",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10323,
+      "line": 10360,
       "title": "The insertNode(node) method steps are to insert node into this.",
       "steps": [],
       "hash": "278a3ea7f38bc758"
     },
     {
       "key": "dom-range-surroundcontents",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10328,
+      "line": 10365,
       "title": "The surroundContents(newParent) method steps are:",
       "steps": [
         {
@@ -10660,39 +10699,39 @@
     },
     {
       "key": "dom-range-clonerange",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10377,
-      "title": "The cloneRange() method steps are to return a new live range with the same start and end as this.",
+      "line": 10414,
+      "title": "The cloneRange() method steps are to return a new Range object with the same start and end as this.",
       "steps": [],
-      "hash": "6d3dcc5e8a96587b"
+      "hash": "17f6a18d583568fc"
     },
     {
       "key": "dom-range-detach",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10382,
+      "line": 10419,
       "title": "The detach() method steps are to do nothing. Its functionality (disabling a Range object) was removed, but the method itself is preserved for compatibility.",
       "steps": [],
       "hash": "2b36a0acc2146fab"
     },
     {
       "key": "dom-range-ispointinrange",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10400,
+      "line": 10437,
       "title": "The isPointInRange(node, offset) method steps are:",
       "steps": [
         {
@@ -10725,13 +10764,13 @@
     },
     {
       "key": "dom-range-comparepoint",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10437,
+      "line": 10474,
       "title": "The comparePoint(node, offset) method steps are:",
       "steps": [
         {
@@ -10769,13 +10808,13 @@
     },
     {
       "key": "dom-range-intersectsnode",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10472,
+      "line": 10509,
       "title": "The intersectsNode(node) method steps are:",
       "steps": [
         {
@@ -10813,13 +10852,13 @@
     },
     {
       "key": "dom-range-stringifier",
-      "section": "5.5",
+      "section": "5.6",
       "heading": "interface-range",
       "headings": [
         "ranges",
         "interface-range"
       ],
-      "line": 10500,
+      "line": 10537,
       "title": "The stringification behavior must run these steps:",
       "steps": [
         {
@@ -10862,7 +10901,7 @@
       "headings": [
         "traversal"
       ],
-      "line": 10551,
+      "line": 10588,
       "title": "To filter a node node within a NodeIterator or TreeWalker object traverser:",
       "steps": [
         {
@@ -10916,7 +10955,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10621,
+      "line": 10658,
       "title": "The NodeIterator pre-remove steps given a NodeIterator object nodeIterator and node toBeRemovedNode, are:",
       "steps": [
         {
@@ -10940,7 +10979,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10640,
+      "line": 10677,
       "title": "To adjust a node pointer given a node pointer nodePointer, a NodeIterator object nodeIterator, and a node toBeRemovedNode, perform the following steps. They ret",
       "steps": [
         {
@@ -10984,7 +11023,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10674,
+      "line": 10711,
       "title": "The root getter steps are to return this's root.",
       "steps": [],
       "hash": "59dfc83f5f977b12"
@@ -10997,7 +11036,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10679,
+      "line": 10716,
       "title": "The referenceNode getter steps are to return this's reference's node.",
       "steps": [],
       "hash": "b535c98418225efa"
@@ -11010,7 +11049,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10684,
+      "line": 10721,
       "title": "The pointerBeforeReferenceNode getter steps are to return this's reference's pointer before.",
       "steps": [],
       "hash": "06bf7043db735e10"
@@ -11023,7 +11062,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10690,
+      "line": 10727,
       "title": "The whatToShow getter steps are to return this's whatToShow.",
       "steps": [],
       "hash": "3113e53f1c725af8"
@@ -11036,7 +11075,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10695,
+      "line": 10732,
       "title": "The filter getter steps are to return this's filter.",
       "steps": [],
       "hash": "85f30008c4d27b1b"
@@ -11049,7 +11088,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10700,
+      "line": 10737,
       "title": "To traverse, given a NodeIterator object iterator and \"next\" or \"previous\" type:",
       "steps": [
         {
@@ -11168,7 +11207,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10787,
+      "line": 10824,
       "title": "The nextNode() method steps are to return the result of traversing with this and \"next\".",
       "steps": [],
       "hash": "a9ed83a0a6442784"
@@ -11181,7 +11220,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10792,
+      "line": 10829,
       "title": "The previousNode() method steps are to return the result of traversing with this and \"previous\".",
       "steps": [],
       "hash": "ce7449e418ec225e"
@@ -11194,7 +11233,7 @@
         "traversal",
         "interface-nodeiterator"
       ],
-      "line": 10797,
+      "line": 10834,
       "title": "The detach() method steps are to do nothing. Its functionality (disabling a NodeIterator object) was removed, but the method itself is preserved for compatibili",
       "steps": [],
       "hash": "2c2c9d2cc8d1a77b"
@@ -11207,7 +11246,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10832,
+      "line": 10869,
       "title": "The root getter steps are to return this's root.",
       "steps": [],
       "hash": "da314e896d3c7d99"
@@ -11220,7 +11259,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10837,
+      "line": 10874,
       "title": "The whatToShow getter steps are to return this's whatToShow.",
       "steps": [],
       "hash": "98caf88f3b2d8ac7"
@@ -11233,7 +11272,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10842,
+      "line": 10879,
       "title": "The filter getter steps are to return this's filter.",
       "steps": [],
       "hash": "8413453a8c9d97d0"
@@ -11246,7 +11285,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10847,
+      "line": 10884,
       "title": "The currentNode getter steps are to return this's current.",
       "steps": [],
       "hash": "edf48ee23136a067"
@@ -11259,7 +11298,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10852,
+      "line": 10889,
       "title": "The currentNode setter steps are to set this's current to the given value.",
       "steps": [],
       "hash": "21f966015d15c553"
@@ -11272,7 +11311,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10859,
+      "line": 10896,
       "title": "The parentNode() method steps are:",
       "steps": [
         {
@@ -11311,7 +11350,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10881,
+      "line": 10918,
       "title": "To traverse children, given a TreeWalker object walker and \"first\" or \"last\" type:",
       "steps": [
         {
@@ -11400,7 +11439,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10937,
+      "line": 10974,
       "title": "The firstChild() method steps are to traverse children with this and \"first\".",
       "steps": [],
       "hash": "e33ddec0340d7d98"
@@ -11413,7 +11452,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10942,
+      "line": 10979,
       "title": "The lastChild() method steps are to traverse children with this and \"last\".",
       "steps": [],
       "hash": "9ca635f671e3e5ce"
@@ -11426,7 +11465,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10947,
+      "line": 10984,
       "title": "To traverse siblings, given a TreeWalker object walker and \"next\" or \"previous\" type:",
       "steps": [
         {
@@ -11505,7 +11544,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 10996,
+      "line": 11033,
       "title": "The nextSibling() method steps are to traverse siblings with this and \"next\".",
       "steps": [],
       "hash": "58cbbc7bb3d37a26"
@@ -11518,7 +11557,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 11001,
+      "line": 11038,
       "title": "The previousSibling() method steps are to traverse siblings with this and \"previous\".",
       "steps": [],
       "hash": "48ab4df7f6649436"
@@ -11531,7 +11570,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 11006,
+      "line": 11043,
       "title": "The previousNode() method steps are:",
       "steps": [
         {
@@ -11620,7 +11659,7 @@
         "traversal",
         "interface-treewalker"
       ],
-      "line": 11058,
+      "line": 11095,
       "title": "The nextNode() method steps are:",
       "steps": [
         {
@@ -11724,7 +11763,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11208,
+      "line": 11245,
       "title": "A DOMTokenList object set's validation steps for a given token are:",
       "steps": [
         {
@@ -11758,7 +11797,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11228,
+      "line": 11265,
       "title": "A DOMTokenList object set's update steps are:",
       "steps": [
         {
@@ -11782,7 +11821,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11243,
+      "line": 11280,
       "title": "A DOMTokenList object set's serialize steps are to return the result of running get an attribute value given set's element and set's attribute name.",
       "steps": [],
       "hash": "184f01ab8452eec4"
@@ -11795,7 +11834,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11252,
+      "line": 11289,
       "title": "A DOMTokenList object set has these attribute change steps for set's element:",
       "steps": [
         {
@@ -11819,7 +11858,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11267,
+      "line": 11304,
       "title": "When a DOMTokenList object set is created:",
       "steps": [
         {
@@ -11853,7 +11892,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11343,
+      "line": 11380,
       "title": "The length getter steps are to return this's token set's size.",
       "steps": [],
       "hash": "10d6563ef0ed3b65"
@@ -11866,7 +11905,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11352,
+      "line": 11389,
       "title": "The item(index) method steps are:",
       "steps": [
         {
@@ -11890,7 +11929,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11363,
+      "line": 11400,
       "title": "The contains(token) method steps are to return true if this's token set[token] exists; otherwise false.",
       "steps": [],
       "hash": "9dc3a56ca3565916"
@@ -11903,7 +11942,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11369,
+      "line": 11406,
       "title": "The add(tokens&hellip;) method steps are:",
       "steps": [
         {
@@ -11942,7 +11981,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11393,
+      "line": 11430,
       "title": "The remove(tokens&hellip;) method steps are:",
       "steps": [
         {
@@ -11981,7 +12020,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11417,
+      "line": 11454,
       "title": "The toggle(token, force) method steps are:",
       "steps": [
         {
@@ -12030,7 +12069,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11449,
+      "line": 11486,
       "title": "The replace(token, newToken) method steps are:",
       "steps": [
         {
@@ -12074,7 +12113,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11477,
+      "line": 11514,
       "title": "The supports(token) method steps are:",
       "steps": [
         {
@@ -12098,7 +12137,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11490,
+      "line": 11527,
       "title": "The value getter steps are to return the result of running this's serialize steps.",
       "steps": [],
       "hash": "28175bbac417c7ce"
@@ -12111,7 +12150,7 @@
         "sets",
         "interface-domtokenlist"
       ],
-      "line": 11495,
+      "line": 11532,
       "title": "The value setter steps are to set an attribute value for this's element using this's attribute name and the given value.",
       "steps": [],
       "hash": "e0c2af463591ccdd"
@@ -12124,7 +12163,7 @@
         "xpath",
         "mixin-xpathevaluatorbase"
       ],
-      "line": 11569,
+      "line": 11606,
       "title": "The createNSResolver(nodeResolver) method steps are to return nodeResolver.",
       "steps": [],
       "hash": "dcfd9d50e2e40cd5"

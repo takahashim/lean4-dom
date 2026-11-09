@@ -7162,9 +7162,64 @@ Dommy（`c241e2e9`）は改訂前の本文に従っているので、割れる 4
 * `5e70d79`：`createCDATASection()` の本体が "create a CDATA section node" に移った（editorial）。表に足した。
 * `94f3fee`（fire an event）と `b76da7a`（PI の serialize）は、表に載せていない algorithm だけを変えた。
 
+## DOM と Web IDL の固定版を上げた（2026-11-09）
+
+週次の `spec-drift.yml` が whatwg/dom と whatwg/webidl の改訂で失敗したので、DOM を `3c53f93`（2026-10-19）から
+`6cc2415`（2026-11-04）に、Web IDL を `7b9f91b`（2026-10-26）から `e340c2e`（2026-11-07）に上げた。
+model の定義と関係は変えず、表と snapshot だけを直した。
+
+* DOM `11fac8e` "Prepare for OpaqueRange" は §5.4 に `NodeRange` interface を足し、`StaticRange` と `Range` をその
+  subclass にした。`startContainer`・`endContainer` は `NodeRange` に移り、`AbstractRange` の `startOffset`・`endOffset`・
+  `collapsed` の getter は subclass が定める get start offset・get end offset・get collapsed の steps を呼ぶ形になった。
+  `NodeRange` の三つの steps は、改訂前の getter と同じく start offset・end offset・collapsed を返す。model の range はどれも
+  `Range` で、`this` の interface を検査しない（range は番号で指す）ので、観測は変わらない。
+  `NodeRange` の get start offset・get end offset は `RangeState` の両端の offset として表に載せ、get collapsed は
+  `collapsed` の getter と同じ理由で対象外にした。後ろの節が一つずつ繰り下がった（`StaticRange` は §5.5、`Range` は §5.6）。
+* DOM `6cc2415` は extract（step 17.3・20.3）と clone the contents（step 13.3・16.3）の subrange、`createRange()`・
+  `cloneRange()` の戻り値を "a new live range" から "a new `Range` object" に書き換えた（editorial）。`Range` object は
+  live range なので、subrange を端点の組として渡す読みはそのままである。
+* Web IDL `c812515` は js-to-union step 11.1.1.2 の async sequence の method を `asyncMethod` に直した。model の扱う union は
+  async sequence を含まず、この step は表で除外している。残りの commit は表に載せていない algorithm（default toJSON、
+  interface object の作成、attribute の setter、wait for all ほか）だけを変えた。
+* コメントの節番号を直した。`Range` の節（§5.5 → §5.6）に加え、boundary point を §5.3 と書いていたもの（改訂前から
+  §5.2）も直した。同じ所で、固定版より前の step 番号のまま残っていたものも直した（pre-remove steps の調整は
+  step 4-5・6-7、move の pre-remove は step 9・10、offset の調整は step 18、remove の transient と record は step 15-16、
+  insert の record は step 8、deleteContents の record は step 9-11）。
+* §5 以外のコメントの節番号も snapshot と突き合わせて直した。DOM は Element（§4.8 → §4.9）、`ChildNode`（§4.2.9 → §4.2.8）、
+  move と pre-insert（§4.2.4・§4.2.1 → §4.2.3）、queue a mutation record（§4.3.4 → §4.3.2）、`MutationObserver`・
+  `MutationRecord`・registered observer（§4.3.1・§4.3.3・§4.3）、名前の検査（§1.3 → §1.4）、木の順序と index（§1.4 → §1.1）、
+  ordered set parser（§2.3 → §1.2）、`HTMLCollection`（§4.2.10.1 → §4.2.10.2）、PI の `setAttribute`（§4.11 → §4.13）。
+  Web IDL は operation の関数（§3.7.5 → §3.7.7）、sequence・union・nullable・boolean の変換、`[LegacyNullToEmptyString]`
+  （§3.4.6）、`DOMException`（DOM §3.3 ではなく Web IDL §2.8）。表の `CharacterData.lean` と `ParentNode.lean` は、
+  別の節の entry が見出しの下に並んでいたので並べ替えた。
+
+### コメントと文書の step 番号の見直し
+
+表の外にある step 番号（`Dom/`・`Trace/` のコメント、`docs/`、`test/` の約 1,700 行）を、固定版の snapshot と一行ずつ
+突き合わせた。各参照がどの algorithm の step かを決め、コメントが述べる動作と snapshot の step の本文を比べた。
+直したのは二百ほどで、多くは改訂で後ろの step が繰り下がったのに追従していなかったものである。
+
+* **replace all**：addedNodes が step 2-4 に分かれたので、removal は step 5、insert は step 6、record は step 7。
+* **insert**：record は step 8（step 9 は children changed steps で、表では hook として除外）。`step 5-9` は `step 5-8`。
+* **queue a mutation record**：`interestedObservers` を集める loop が step 3 になり、条件は 3.2、oldValue は 3.2.3。
+* **dispatch・invoke・inner invoke**：dispatch は `clearTargets`（step 5）の後の step 6 の下に event path（6.3-6.9）と
+  二つの周（6.13-6.14）がある。invoke は stop propagation が step 6、clone が 8、inner invoke が 10。inner invoke は
+  2.6-2.8 が入ったので、passive は 2.11・2.14、callback は 2.13、stop immediate propagation は 2.16。
+* **deleteContents**：新しい端点は step 5-7、端点を置くのは 8、replace data・remove・replace data は 9-11。
+* **set an attribute**：value を Trusted Types の値に書き換えるのが step 5、replace は 6、append は 7。
+* **compareDocumentPosition**：this が other なら 0 が step 1、別の木は step 6、以降 7-10。`compareDocumentPositionRef` の
+  コメントは step 3 を数え落として一つずつ少なかった。
+* **move**：assert は step 7-8、detach は 9-10・13、insert 側は 18・20-21。
+* そのほか `DOMTokenList.toggle()`（検査が step 1-2）、"validate and extract"（local name の検査は attribute が step 6、
+  element が step 7）、`compareBoundaryPoints()`（how の表が step 4）、"filter"（filter が null なら step 2-4）、
+  "clone a single node"（attribute の clone は step 2.5）、Web IDL の sequence の変換、scope-match。
+
+`docs/traceability.md` の "WHATWG steps" の列と、番号付きの箇条で step を書いた docstring も同じく直した。
+定理の名前 `replaceAll_acyc_step5` は旧い番号（今の step 6）のまま残した。
+
 ## 未着手
 
-* ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。
+* ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。
   element の attribute list とは別の仕組みで、attribute の mutation record を積まない。
   Dommy も未実装なので差分テストで裏を取れない。
 * Shadow DOM。node tree に shadow tree / host / slot assignment が加わるので、

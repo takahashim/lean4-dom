@@ -12,7 +12,7 @@ attribute を **namespace が null で、その local name を持つもの**と�
 | DOM §4.9 `Element.id` / `className` / `slot`、HTML の `title` / `lang` / `accessKey` / `inert` / `autofocus`（reflect） | `reflectSpec`, `getReflectedProp`, `setReflectedProp`, `setReflectedBool` |
 | HTML §3.2.6.8 `dataset`（`DOMStringMap`） | `datasetPairs`, `datasetGet`, `datasetSet`, `datasetDelete`, `datasetKeys` |
 | DOM §7.1 `DOMTokenList`（`Element.classList`） | `classListAdd` ほか |
-| DOM §4.2.10.1 `HTMLCollection.namedItem(key)`（`ParentNode.children`） | `childrenNamedItem` |
+| DOM §4.2.10.2 `HTMLCollection.namedItem(key)`（`ParentNode.children`） | `childrenNamedItem` |
 
 reflect の getter は "get an attribute value"（namespace は null）、setter は
 "set an attribute value"（namespace も prefix も null）である。qualified name で引く
@@ -211,7 +211,7 @@ def datasetDelete (s : DOMState) (element : NodeId) (name : String) :
 def classTokenSet (d : NodeData) : List String :=
   orderedSetParse (getAttributeValue d none "class")
 
-/-- `add` / `remove` / `toggle` の token の検査（DOM §7.1 の各 method の step 1）。 -/
+/-- `add` / `remove` / `toggle` の token の検査（DOM §7.1 の `add`・`remove` の step 1.1-1.2、`toggle` の step 1-2）。 -/
 def validateToken (token : String) : Option DOMException :=
   if token.isEmpty then some .syntaxError
   else if token.toList.any isAsciiWhitespace then some .invalidCharacterError
@@ -268,17 +268,17 @@ def classListRemove (s : DOMState) (element : NodeId) (tokens : List String) :
 def classListToggle (s : DOMState) (element : NodeId) (token : String) (force : Option Bool) :
     Except DOMException (DOMState × Bool) := do
   let d ← requireElementData s.tree element
-  -- step 1
+  -- step 1-2
   if let some e := validateToken token then throw e
   let set := classTokenSet d
-  -- step 2
+  -- step 3
   if set.contains token then
     if force == some true then return (s, true)
     else return (← tokenListUpdate s element d (set.filter (· != token)), false)
-  -- step 3
+  -- step 4
   else if force != some false then
     return (← tokenListUpdate s element d (set ++ [token]), true)
-  -- step 4
+  -- step 5
   else return (s, false)
 
 /-- DOM §7.1 `replace(token, newToken)`。返り値の `Bool` は置き換えたか。 -/
@@ -302,7 +302,7 @@ def classListContains (t : Tree) (element : NodeId) (token : String) : Except DO
 /-! ## `HTMLCollection.namedItem(key)` -/
 
 /--
-DOM §4.2.10.1 `namedItem(key)` を `ParentNode.children` に対して呼んだもの。
+DOM §4.2.10.2 `namedItem(key)` を `ParentNode.children` に対して呼んだもの。
 受け手の検査は `querySelector` と同じ `requireParentNode`（`Dom/Selector/Api.lean`）。
 
 1. key が空文字列なら null。

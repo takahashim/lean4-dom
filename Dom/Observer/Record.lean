@@ -4,7 +4,7 @@ import Dom.Basic.Order
 /-!
 # MutationObserver の record
 
-DOM Standard §4.3.4 の "queue a mutation record" と "queue a tree mutation record"、
+DOM Standard §4.3.2 の "queue a mutation record" と "queue a tree mutation record"、
 および §4.3 "add transient registered observers"（remove step 15 と move step 17 が呼ぶ）を定義する。
 
 配送そのもの（"notify mutation observers"）は `Dom/Observer/Deliver.lean` にある。
@@ -17,7 +17,7 @@ namespace Dom
 /-! ## interested observers -/
 
 /--
-"queue a mutation record" step 2.3 の条件。
+"queue a mutation record" step 3.2 の条件。
 
 仕様は「次のいずれも真でないなら」という否定の形なので、ここでは肯定に直してある。
 `name` と `namespace` は record の `attributeName` / `attributeNamespace` である。
@@ -41,7 +41,7 @@ def Registration.interestedIn (r : Registration) (target : NodeId) (type : Recor
      | .characterData => r.characterData
      | .childList => r.childList)
 
-/-- "queue a mutation record" step 2.3.2。observer を初出順に集め、oldValue を上書きする。 -/
+/-- "queue a mutation record" step 3.2.2-3.2.3。observer を初出順に集め、oldValue を上書きする。 -/
 def addInterested (acc : List (Nat × Option String)) (mo : Nat) (ov : Option String) :
     List (Nat × Option String) :=
   if acc.any (fun p => p.1 == mo) then
@@ -52,11 +52,11 @@ def addInterested (acc : List (Nat × Option String)) (mo : Nat) (ov : Option St
     acc ++ [(mo, ov)]
 
 /--
-"queue a mutation record" の step 1-2。
+"queue a mutation record" の step 1-3。
 
 target の inclusive ancestor を下から上へ、各 node の registered observer list を
 list の順に見て、条件を満たす observer を初出順に集める。
-第二成分は record に載せる oldValue で（step 2.3.3）、
+第二成分は record に載せる oldValue で（step 3.2.3）、
 characterData かつ `characterDataOldValue`、または attributes かつ `attributeOldValue`
 のときだけ非 `none` になる。
 -/
@@ -92,7 +92,7 @@ def enqueueRecord (obs : List ObserverState) (mo : Nat) (rec : MutationRecord) :
   | some o => obs.set mo { o with records := o.records ++ [rec] }
 
 /--
-DOM Standard §4.3.4 "queue a mutation record"。
+DOM Standard §4.3.2 "queue a mutation record"。
 
 interested observers が空なら step 4 で返る。そうでなければ step 5 が record を積んで
 pending mutation observers に足し、step 6 が microtask を予約する。
@@ -120,7 +120,7 @@ theorem queueMutationRecord_eq (s : DOMState) (rec : MutationRecord) (ov : Optio
   rfl
 
 /--
-DOM Standard §4.3.4 "queue a tree mutation record"。
+DOM Standard §4.3.2 "queue a tree mutation record"。
 
 仕様は addedNodes か removedNodes の一方が空でないことを assert するので、
 両方空なら何もしない。

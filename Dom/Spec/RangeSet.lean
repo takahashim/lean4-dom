@@ -1,12 +1,12 @@
 import Dom.Spec.RangeQuery
 
 /-!
-# Range の端点を動かす method の関係意味論（§5.5）
+# Range の端点を動かす method の関係意味論（§5.6）
 
 `setStart` / `setEnd`、`setStartBefore` ほかの sibling setter、`collapse`、`selectNode`、
 `selectNodeContents` を、例外まで含めた関係で書き、実行関数の結果と**等しい**ことを示す。
 
-「set the start / end」の step 4-5 は、§5.3 の `BPBefore` と range の root で書く。
+「set the start / end」の step 4 は、§5.2 の `BPBefore` と range の root で書く。
 range の root は start node の root である。実行関数の `setStart` は新しい端点の root を
 end node の root と比べているが、妥当な range（`RangeValid`）では start と end の root は等しいので、
 定理はそれを仮定する。
@@ -39,7 +39,7 @@ def StartSet (t : Tree) (r : RangeState) (bp : BoundaryPoint) (r' : RangeState) 
   ((root t r.start.node ≠ root t bp.node ∨ BPBefore t r.«end» bp) ∧ r' = ⟨bp, bp⟩) ∨
     (¬ (root t r.start.node ≠ root t bp.node ∨ BPBefore t r.«end» bp) ∧ r' = { r with start := bp })
 
-/-- "set the end" の step 5。bp が start の before なら start も bp にする。 -/
+/-- "set the end" の step 4。bp が start の before なら start も bp にする。 -/
 def EndSet (t : Tree) (r : RangeState) (bp : BoundaryPoint) (r' : RangeState) : Prop :=
   ((root t r.start.node ≠ root t bp.node ∨ BPBefore t bp r.start) ∧ r' = ⟨bp, bp⟩) ∨
     (¬ (root t r.start.node ≠ root t bp.node ∨ BPBefore t bp r.start) ∧ r' = { r with «end» := bp })

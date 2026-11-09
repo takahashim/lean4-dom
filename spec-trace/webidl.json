@@ -1,6 +1,6 @@
 {
   "spec": "webidl",
-  "commit": "7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf",
+  "commit": "e340c2e5c40b2c3616d8b1393dcc34f0b6db0e4b",
   "algorithms": [
     {
       "key": "interface-inclusive-inherited-interfaces",
@@ -194,7 +194,7 @@
         "idl-members",
         "idl-overloading"
       ],
-      "line": 3179,
+      "line": 3180,
       "title": "The algorithm below describes how to compute the effective overload set. The following input variables are used, if they are required: * the identifier of the o",
       "steps": [
         {
@@ -225,7 +225,7 @@
         "idl-overloading",
         "idl-overloading-vs-union"
       ],
-      "line": 3824,
+      "line": 3825,
       "title": "The supports(property, value) method steps are:",
       "steps": [
         {
@@ -251,7 +251,7 @@
         "idl-overloading",
         "idl-overloading-vs-union"
       ],
-      "line": 3842,
+      "line": 3843,
       "title": "The supports(|propertyOrConditionText|, |value|) method steps are:",
       "steps": [
         {
@@ -296,7 +296,7 @@
         "idl-exceptions",
         "idl-DOMException-derived-predefineds"
       ],
-      "line": 5347,
+      "line": 5348,
       "title": "The new QuotaExceededError(|message|, |options|) constructor steps are:",
       "steps": [
         {
@@ -356,7 +356,7 @@
         "idl-exceptions",
         "idl-DOMException-derived-predefineds"
       ],
-      "line": 5390,
+      "line": 5391,
       "title": "Their [=serialization steps=], given |value| and |serialized|, are:",
       "steps": [
         {
@@ -386,7 +386,7 @@
         "idl-exceptions",
         "idl-DOMException-derived-predefineds"
       ],
-      "line": 5400,
+      "line": 5401,
       "title": "Their [=deserialization steps=], given |serialized| and |value|, are:",
       "steps": [
         {
@@ -416,7 +416,7 @@
         "idl-types",
         "idl-union"
       ],
-      "line": 6381,
+      "line": 6382,
       "title": "The flattened member types of a [=union type=], possibly [=annotated type|annotated=], is a set of types determined as follows:",
       "steps": [
         {
@@ -471,7 +471,7 @@
         "idl-types",
         "idl-union"
       ],
-      "line": 6410,
+      "line": 6411,
       "title": "The number of nullable member types of a [=union type=] is an integer determined as follows:",
       "steps": [
         {
@@ -536,7 +536,7 @@
         "idl-types",
         "idl-annotated-types"
       ],
-      "line": 6500,
+      "line": 6501,
       "title": "The extended attributes associated with an IDL type |type| are determined as follows:",
       "steps": [
         {
@@ -591,7 +591,7 @@
         "js-type-mapping",
         "js-any"
       ],
-      "line": 7338,
+      "line": 7339,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL any value by running the following algorithm:",
       "steps": [
         {
@@ -646,7 +646,7 @@
         "js-type-mapping",
         "js-boolean"
       ],
-      "line": 7392,
+      "line": 7393,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL boolean value by running the following algorithm:",
       "steps": [
         {
@@ -672,7 +672,7 @@
         "js-integer-types",
         "js-byte"
       ],
-      "line": 7426,
+      "line": 7427,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL byte value by running the following algorithm:",
       "steps": [
         {
@@ -698,7 +698,7 @@
         "js-integer-types",
         "js-octet"
       ],
-      "line": 7448,
+      "line": 7449,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL octet value by running the following algorithm:",
       "steps": [
         {
@@ -724,7 +724,7 @@
         "js-integer-types",
         "js-short"
       ],
-      "line": 7471,
+      "line": 7472,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL short value by running the following algorithm:",
       "steps": [
         {
@@ -750,7 +750,7 @@
         "js-integer-types",
         "js-unsigned-short"
       ],
-      "line": 7495,
+      "line": 7496,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL unsigned short value by running the following algorithm:",
       "steps": [
         {
@@ -776,7 +776,7 @@
         "js-integer-types",
         "js-long"
       ],
-      "line": 7518,
+      "line": 7519,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL long value by running the following algorithm:",
       "steps": [
         {
@@ -802,7 +802,7 @@
         "js-integer-types",
         "js-unsigned-long"
       ],
-      "line": 7541,
+      "line": 7542,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL unsigned long value by running the following algorithm:",
       "steps": [
         {
@@ -828,7 +828,7 @@
         "js-integer-types",
         "js-long-long"
       ],
-      "line": 7564,
+      "line": 7565,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL long long value by running the following algorithm:",
       "steps": [
         {
@@ -854,7 +854,7 @@
         "js-integer-types",
         "js-unsigned-long-long"
       ],
-      "line": 7591,
+      "line": 7592,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL unsigned long long value by running the following algorithm:",
       "steps": [
         {
@@ -880,7 +880,7 @@
         "js-integer-types",
         "js-integer-types-abstract-ops"
       ],
-      "line": 7617,
+      "line": 7618,
       "title": "IntegerPart(|n|):",
       "steps": [
         {
@@ -911,7 +911,7 @@
         "js-integer-types",
         "js-integer-types-abstract-ops"
       ],
-      "line": 7626,
+      "line": 7627,
       "title": "ConvertToInt(|V|, |bitLength|, |signedness|):",
       "steps": [
         {
@@ -1056,7 +1056,7 @@
         "js-type-mapping",
         "js-float"
       ],
-      "line": 7675,
+      "line": 7676,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL float value by running the following algorithm:",
       "steps": [
         {
@@ -1106,7 +1106,7 @@
         "js-type-mapping",
         "js-unrestricted-float"
       ],
-      "line": 7708,
+      "line": 7709,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL unrestricted float value by running the following algorithm:",
       "steps": [
         {
@@ -1161,7 +1161,7 @@
         "js-type-mapping",
         "js-unrestricted-float"
       ],
-      "line": 7735,
+      "line": 7736,
       "title": "The result of [=convert to a JavaScript value|converting=] an IDL unrestricted float value to a JavaScript value is a Number:",
       "steps": [
         {
@@ -1186,7 +1186,7 @@
         "js-type-mapping",
         "js-double"
       ],
-      "line": 7752,
+      "line": 7753,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL double value by running the following algorithm:",
       "steps": [
         {
@@ -1216,7 +1216,7 @@
         "js-type-mapping",
         "js-unrestricted-double"
       ],
-      "line": 7776,
+      "line": 7777,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL unrestricted double value by running the following algorithm:",
       "steps": [
         {
@@ -1246,7 +1246,7 @@
         "js-type-mapping",
         "js-unrestricted-double"
       ],
-      "line": 7795,
+      "line": 7796,
       "title": "The result of [=converted to a JavaScript value|converting=] an IDL unrestricted double value to a JavaScript value is a Number:",
       "steps": [
         {
@@ -1271,7 +1271,7 @@
         "js-type-mapping",
         "js-bigint"
       ],
-      "line": 7811,
+      "line": 7812,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL bigint value by running the following algorithm:",
       "steps": [
         {
@@ -1296,7 +1296,7 @@
         "js-type-mapping",
         "js-bigint"
       ],
-      "line": 7821,
+      "line": 7822,
       "title": "The result of [=converted to a JavaScript value|converting=] an IDL bigint value to a JavaScript value is a BigInt:",
       "steps": [
         {
@@ -1316,7 +1316,7 @@
         "js-type-mapping",
         "js-bigint"
       ],
-      "line": 7831,
+      "line": 7832,
       "title": "A JavaScript value |V| is converted to an IDL [=numeric type=] |T| or bigint value by running the following algorithm:",
       "steps": [
         {
@@ -1356,7 +1356,7 @@
         "js-type-mapping",
         "js-DOMString"
       ],
-      "line": 7847,
+      "line": 7848,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL DOMString value by running the following algorithm:",
       "steps": [
         {
@@ -1386,7 +1386,7 @@
         "js-type-mapping",
         "js-ByteString"
       ],
-      "line": 7872,
+      "line": 7873,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL ByteString value by running the following algorithm:",
       "steps": [
         {
@@ -1416,7 +1416,7 @@
         "js-type-mapping",
         "js-USVString"
       ],
-      "line": 7899,
+      "line": 7900,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL USVString value by running the following algorithm:",
       "steps": [
         {
@@ -1441,7 +1441,7 @@
         "js-type-mapping",
         "js-USVString"
       ],
-      "line": 7911,
+      "line": 7912,
       "title": "The result of [=converted to a JavaScript value|converting=] an IDL USVString value |S| to a JavaScript value is |S|.",
       "steps": [],
       "hash": "b35a81884e8e166d"
@@ -1455,7 +1455,7 @@
         "js-type-mapping",
         "js-object"
       ],
-      "line": 7925,
+      "line": 7926,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL object value by running the following algorithm:",
       "steps": [
         {
@@ -1480,7 +1480,7 @@
         "js-type-mapping",
         "js-symbol"
       ],
-      "line": 7948,
+      "line": 7949,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL symbol value by running the following algorithm:",
       "steps": [
         {
@@ -1505,7 +1505,7 @@
         "js-type-mapping",
         "js-interface"
       ],
-      "line": 7970,
+      "line": 7971,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL [=interface type=] value by running the following algorithm (where |I| is the [=inte",
       "steps": [
         {
@@ -1530,7 +1530,7 @@
         "js-type-mapping",
         "js-callback-interface"
       ],
-      "line": 7995,
+      "line": 7996,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL [=callback interface type=] value by running the following algorithm:",
       "steps": [
         {
@@ -1555,7 +1555,7 @@
         "js-type-mapping",
         "js-dictionary"
       ],
-      "line": 8022,
+      "line": 8023,
       "title": "A JavaScript value |jsDict| is [=converted to an IDL value|converted=] to an IDL [=dictionary type=] value by running the following algorithm (where |D| is the ",
       "steps": [
         {
@@ -1660,7 +1660,7 @@
         "js-type-mapping",
         "js-dictionary"
       ],
-      "line": 8055,
+      "line": 8056,
       "title": "An IDL dictionary value |V| is [=converted to a JavaScript value|converted=] to a JavaScript Object value by running the following algorithm (where |D| is the [",
       "steps": [
         {
@@ -1720,7 +1720,7 @@
         "js-type-mapping",
         "js-enumeration"
       ],
-      "line": 8084,
+      "line": 8085,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL [=enumeration|enumeration type=] value as follows (where |E| is the [=enumeration=])",
       "steps": [
         {
@@ -1750,7 +1750,7 @@
         "js-type-mapping",
         "js-callback-function"
       ],
-      "line": 8112,
+      "line": 8113,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL [=callback function type=] value by running the following algorithm:",
       "steps": [
         {
@@ -1775,7 +1775,7 @@
         "js-type-mapping",
         "js-nullable-type"
       ],
-      "line": 8146,
+      "line": 8147,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL [=nullable type=] |T|? value (where |T| is the [=nullable types/inner type=]) as fol",
       "steps": [
         {
@@ -1810,7 +1810,7 @@
         "js-type-mapping",
         "js-nullable-type"
       ],
-      "line": 8173,
+      "line": 8174,
       "title": "The result of [=converted to a JavaScript value|converting=] an IDL [=nullable type=] value to a JavaScript value is:",
       "steps": [
         {
@@ -1835,7 +1835,7 @@
         "js-type-mapping",
         "js-sequence"
       ],
-      "line": 8193,
+      "line": 8194,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL sequence<T> value as follows:",
       "steps": [
         {
@@ -1870,7 +1870,7 @@
         "js-type-mapping",
         "js-sequence"
       ],
-      "line": 8208,
+      "line": 8209,
       "title": "An IDL sequence value |S| of type sequence<T> is [=converted to a JavaScript value|converted=] to a JavaScript Array object as follows:",
       "steps": [
         {
@@ -1936,7 +1936,7 @@
         "js-sequence",
         "create-sequence-from-iterable"
       ],
-      "line": 8233,
+      "line": 8234,
       "title": "To create an IDL value of type sequence<|T|> given an iterable |iterable| and an iterator getter |method|, perform the following steps:",
       "steps": [
         {
@@ -1986,7 +1986,7 @@
         "js-type-mapping",
         "js-async-iterable"
       ],
-      "line": 8342,
+      "line": 8343,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL async_sequence<T> value as follows:",
       "steps": [
         {
@@ -2036,7 +2036,7 @@
         "js-type-mapping",
         "js-async-iterable"
       ],
-      "line": 8360,
+      "line": 8361,
       "title": "An IDL async_sequence<T> value |V| is [=converted to a JavaScript value|converted=] to a JavaScript object as follows:",
       "steps": [
         {
@@ -2057,7 +2057,7 @@
         "js-async-iterable",
         "js-async-sequence-iteration"
       ],
-      "line": 8376,
+      "line": 8377,
       "title": "To open an async_sequence<T> |sequence|:",
       "steps": [
         {
@@ -2088,7 +2088,7 @@
         "js-async-iterable",
         "js-async-sequence-iteration"
       ],
-      "line": 8392,
+      "line": 8393,
       "title": "To get the next value of an [=async iterator=] |iterator|:",
       "steps": [
         {
@@ -2164,7 +2164,7 @@
         "js-async-iterable",
         "js-async-sequence-iteration"
       ],
-      "line": 8417,
+      "line": 8418,
       "title": "To close an async iterator<T> |iterator|, with an ECMAScript value |reason|:",
       "steps": [
         {
@@ -2234,7 +2234,7 @@
         "js-type-mapping",
         "js-record"
       ],
-      "line": 8493,
+      "line": 8494,
       "title": "A JavaScript value |O| is [=converted to an IDL value|converted=] to an IDL [=record=]<|K|, |V|> value as follows:",
       "steps": [
         {
@@ -2299,7 +2299,7 @@
         "js-type-mapping",
         "js-record"
       ],
-      "line": 8517,
+      "line": 8518,
       "title": "An IDL [=record=]<…> value |D| is [=converted to a JavaScript value|converted=] to a JavaScript value as follows:",
       "steps": [
         {
@@ -2349,7 +2349,7 @@
         "js-type-mapping",
         "js-promise"
       ],
-      "line": 8589,
+      "line": 8590,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL Promise<T> value as follows:",
       "steps": [
         {
@@ -2380,7 +2380,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8629,
+      "line": 8630,
       "title": "To create a new Promise<T> in a [=realm=] |realm|, perform the following steps:",
       "steps": [
         {
@@ -2406,7 +2406,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8639,
+      "line": 8640,
       "title": "To create a resolved promise of type Promise<|T|>, with |x| (a value of type |T|) in a [=realm=] |realm|, perform the following steps:",
       "steps": [
         {
@@ -2447,7 +2447,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8654,
+      "line": 8655,
       "title": "To create a rejected promise of type Promise<T>, with reason |r| (a JavaScript value) in a [=realm=] |realm|, perform the following steps:",
       "steps": [
         {
@@ -2483,7 +2483,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8667,
+      "line": 8668,
       "title": "To resolve a Promise<|T|> |p| with |x| (a value of type |T|), perform the following steps:",
       "steps": [
         {
@@ -2514,7 +2514,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8680,
+      "line": 8681,
       "title": "To reject a Promise<T> |p| with reason |r| (a JavaScript value), perform the following steps:",
       "steps": [
         {
@@ -2535,7 +2535,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8688,
+      "line": 8689,
       "title": "To react to a Promise<|T|> |promise|, given one or two sets of steps to perform, covering when the promise is fulfilled, rejected, or both, perform the followin",
       "steps": [
         {
@@ -2560,8 +2560,8 @@
         },
         {
           "n": "2",
-          "hash": "6b4c093020a2ed2f",
-          "text": "Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):"
+          "hash": "0ad2a2165971a724",
+          "text": "Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »)."
         },
         {
           "n": "3",
@@ -2585,8 +2585,8 @@
         },
         {
           "n": "4",
-          "hash": "45fb354cca12ae56",
-          "text": "Let |onRejected| be [$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):"
+          "hash": "d2f9a56c7c06581f",
+          "text": "Let |onRejected| be [$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »)."
         },
         {
           "n": "5",
@@ -2599,7 +2599,7 @@
           "text": "Let |newCapability| be [=?=] [$NewPromiseCapability$](|constructor|)."
         }
       ],
-      "hash": "86a00f85bd197f92"
+      "hash": "02ae61e63768258c"
     },
     {
       "key": "upon-fulfillment",
@@ -2611,7 +2611,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8727,
+      "line": 8728,
       "title": "To perform some steps upon fulfillment of a Promise<|T|> |promise| given some steps |steps| taking a value of type |T|, perform the following steps:",
       "steps": [
         {
@@ -2637,7 +2637,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8738,
+      "line": 8739,
       "title": "To perform some steps upon rejection of a Promise<T> |promise| given some steps |steps| taking a JavaScript value, perform the following steps:",
       "steps": [
         {
@@ -2663,13 +2663,13 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8749,
+      "line": 8750,
       "title": "To wait for all with a [=list=] of Promise<|T|> values |promises|, with success steps |successSteps| that take a [=list=] of |T| values and failure steps |failu",
       "steps": [
         {
           "n": "1",
-          "hash": "5243309e1db21a2d",
-          "text": "Let |fullfilledCount| be 0."
+          "hash": "89c64bbb43e56da1",
+          "text": "Let |fulfilledCount| be 0."
         },
         {
           "n": "2",
@@ -2698,8 +2698,8 @@
         },
         {
           "n": "4",
-          "hash": "e0c124d4d4091e40",
-          "text": "Let |rejectionHandler| be [$CreateBuiltinFunction$](|rejectionHandlerSteps|, 1, \"\", « »):"
+          "hash": "4859900e52e50a33",
+          "text": "Let |rejectionHandler| be [$CreateBuiltinFunction$](|rejectionHandlerSteps|, 1, \"\", « »)."
         },
         {
           "n": "5",
@@ -2743,8 +2743,8 @@
         },
         {
           "n": "9.2",
-          "hash": "7197196ec105fc51",
-          "text": "Let |fulfillmentHandler| be the following steps given |arg|:"
+          "hash": "f6f40a52134d0775",
+          "text": "Let |fulfillmentHandlerSteps| be the following steps given |arg|:"
         },
         {
           "n": "9.2.1",
@@ -2753,18 +2753,18 @@
         },
         {
           "n": "9.2.2",
-          "hash": "0d3298921ab5fd33",
-          "text": "Set |fullfilledCount| to |fullfilledCount| + 1."
+          "hash": "633875c7798074ee",
+          "text": "Set |fulfilledCount| to |fulfilledCount| + 1."
         },
         {
           "n": "9.2.3",
-          "hash": "295ea6c46f6a407b",
-          "text": "If |fullfilledCount| equals |total|, then perform |successSteps| given |result|."
+          "hash": "165352fdd65bf671",
+          "text": "If |fulfilledCount| equals |total|, then perform |successSteps| given |result|."
         },
         {
           "n": "9.3",
-          "hash": "49671138cc8ecf52",
-          "text": "Let |fulfillmentHandler| be [$CreateBuiltinFunction$](|fulfillmentHandler|, 1, \"\", « »):"
+          "hash": "77e8f41a2dbaa146",
+          "text": "Let |fulfillmentHandler| be [$CreateBuiltinFunction$](|fulfillmentHandlerSteps|, 1, \"\", « »)."
         },
         {
           "n": "9.4",
@@ -2777,7 +2777,7 @@
           "text": "Set |index| to |index| + 1."
         }
       ],
-      "hash": "bc4d5b64504c6413"
+      "hash": "4822593631cfbb2a"
     },
     {
       "key": "waiting-for-all-promise",
@@ -2789,7 +2789,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8780,
+      "line": 8781,
       "title": "To get a promise for waiting for all with a [=list=] of Promise<|T|> values |promises| and a [=realm=] |realm|, perform the following steps:",
       "steps": [
         {
@@ -2840,7 +2840,7 @@
         "js-promise",
         "js-promise-manipulation"
       ],
-      "line": 8803,
+      "line": 8804,
       "title": "To mark as handled a Promise<T> |promise|, set |promise|.\\[[Promise]].\\[[PromiseIsHandled]] to true.",
       "steps": [],
       "hash": "47454cedcdaa0e13"
@@ -2854,7 +2854,7 @@
         "js-type-mapping",
         "js-union"
       ],
-      "line": 9015,
+      "line": 9016,
       "title": "To [=converted to an IDL value|convert a JavaScript value=] |V| to an IDL [=union type=] value is done as follows:",
       "steps": [
         {
@@ -2994,8 +2994,8 @@
         },
         {
           "n": "11.1.1.2",
-          "hash": "71f4dfcb54fe97d2",
-          "text": "If |asyncMethod| is not undefined, return an IDL [=async sequence=] value with [=JS async sequence/object=] set to |V|, [=JS async sequence/method=] set to |syn"
+          "hash": "45bfb49123a52220",
+          "text": "If |asyncMethod| is not undefined, return an IDL [=async sequence=] value with [=JS async sequence/object=] set to |V|, [=JS async sequence/method=] set to |asy"
         },
         {
           "n": "11.1.1.3",
@@ -3118,7 +3118,7 @@
           "text": "[=JavaScript/Throw=] a TypeError."
         }
       ],
-      "hash": "1a336d99d9c4fdee"
+      "hash": "a2fbb33964f2893e"
     },
     {
       "key": "js-to-buffer-source",
@@ -3129,7 +3129,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9192,
+      "line": 9193,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL ArrayBuffer value by running the following algorithm:",
       "steps": [
         {
@@ -3164,7 +3164,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9211,
+      "line": 9212,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL SharedArrayBuffer value by running the following algorithm:",
       "steps": [
         {
@@ -3199,7 +3199,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9229,
+      "line": 9230,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL DataView value by running the following algorithm:",
       "steps": [
         {
@@ -3234,7 +3234,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9249,
+      "line": 9250,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL Int8Array, Int16Array, Int32Array, Uint8Array, Uint16Array, Uint32Array, Uint8Clampe",
       "steps": [
         {
@@ -3274,7 +3274,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9283,
+      "line": 9284,
       "title": "The result of [=converted to a JavaScript value|converting=] an IDL value of any [=buffer source type=] to a JavaScript value is the Object value that represent",
       "steps": [],
       "hash": "f13eda1de9b0635a"
@@ -3288,7 +3288,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9293,
+      "line": 9294,
       "title": "To create an ArrayBuffer from a [=byte sequence=] |bytes| in a [=realm=] |realm|:",
       "steps": [
         {
@@ -3323,7 +3323,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9306,
+      "line": 9307,
       "title": "To create a SharedArrayBuffer from a [=byte sequence=] |bytes| in a [=realm=] |realm|:",
       "steps": [
         {
@@ -3358,7 +3358,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9319,
+      "line": 9320,
       "title": "To create one of the ArrayBufferView types from a [=byte sequence=] |bytes| in a [=realm=] |realm|:",
       "steps": [
         {
@@ -3403,7 +3403,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9335,
+      "line": 9336,
       "title": "To get a copy of the bytes held by the buffer source given a [=buffer source type=] instance |bufferSource|:",
       "steps": [
         {
@@ -3493,7 +3493,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9361,
+      "line": 9362,
       "title": "The byte length of a [=buffer source type=] instance |bufferSource| is the value returned by the following steps:",
       "steps": [
         {
@@ -3523,7 +3523,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9373,
+      "line": 9374,
       "title": "The underlying buffer of a [=buffer source type=] instance |bufferSource| is the value returned by the following steps:",
       "steps": [
         {
@@ -3563,7 +3563,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9387,
+      "line": 9388,
       "title": "To write a [=byte sequence=] |bytes| into a [=buffer type=] instance |arrayBuffer|, optionally given a |startingOffset| (default 0):",
       "steps": [
         {
@@ -3593,7 +3593,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9403,
+      "line": 9404,
       "title": "To write a [=byte sequence=] |bytes| into an ArrayBufferView |view|, optionally given a |startingOffset| (default 0):",
       "steps": [
         {
@@ -3633,7 +3633,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9434,
+      "line": 9435,
       "title": "To detach an ArrayBuffer |arrayBuffer|:",
       "steps": [
         {
@@ -3658,7 +3658,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9449,
+      "line": 9450,
       "title": "A [=buffer source type=] instance |bufferSource| is detached if the following steps return true:",
       "steps": [
         {
@@ -3688,7 +3688,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9460,
+      "line": 9461,
       "title": "A [=buffer source type=] instance |bufferSource| is transferable if the following steps return true:",
       "steps": [
         {
@@ -3733,7 +3733,7 @@
         "js-type-mapping",
         "js-buffer-source-types"
       ],
-      "line": 9475,
+      "line": 9476,
       "title": "To transfer an ArrayBuffer |arrayBuffer|, optionally given a [=realm=] |targetRealm|:",
       "steps": [
         {
@@ -3798,7 +3798,7 @@
         "js-type-mapping",
         "js-frozen-array"
       ],
-      "line": 9514,
+      "line": 9515,
       "title": "A JavaScript value |V| is [=converted to an IDL value|converted=] to an IDL FrozenArray<|T|> value by running the following algorithm:",
       "steps": [
         {
@@ -3823,7 +3823,7 @@
         "js-type-mapping",
         "js-frozen-array"
       ],
-      "line": 9528,
+      "line": 9529,
       "title": "To create a frozen array from a sequence of values of type |T|, follow these steps:",
       "steps": [
         {
@@ -3854,7 +3854,7 @@
         "js-frozen-array",
         "create-frozen-array-from-iterable"
       ],
-      "line": 9548,
+      "line": 9549,
       "title": "To create an IDL value of type FrozenArray<|T|> given an iterable |iterable| and an iterator getter |method|, perform the following steps:",
       "steps": [
         {
@@ -3879,7 +3879,7 @@
         "js-type-mapping",
         "js-observable-array"
       ],
-      "line": 9570,
+      "line": 9571,
       "title": "The [=observable array attribute/backing list=] for an observable array attribute in the JavaScript binding, given a [=platform object=] |obj| and an attribute ",
       "steps": [
         {
@@ -3909,7 +3909,7 @@
         "js-extended-attributes",
         "Exposed"
       ],
-      "line": 9989,
+      "line": 9990,
       "title": "The exposure set intersection of a construct |C| and interface-or-null |H| is defined as follows:",
       "steps": [
         {
@@ -3954,7 +3954,7 @@
         "js-extended-attributes",
         "Exposed"
       ],
-      "line": 10006,
+      "line": 10007,
       "title": "To get the exposure set of a construct |C|, run the following steps:",
       "steps": [
         {
@@ -4044,7 +4044,7 @@
         "js-extended-attributes",
         "Exposed"
       ],
-      "line": 10079,
+      "line": 10080,
       "title": "An [=interface=], [=callback interface=], [=namespace=], or [=member=] |construct| is exposed in a given [=realm=] |realm| if the following steps return true:",
       "steps": [
         {
@@ -4079,7 +4079,7 @@
         "js-extended-attributes",
         "Exposed"
       ],
-      "line": 10094,
+      "line": 10095,
       "title": "An [=interface=], [=callback interface=], [=namespace=], or [=member=] |construct| is conditionally exposed on a given [=extended attribute=] |exposure conditio",
       "steps": [
         {
@@ -4163,7 +4163,7 @@
         "javascript-binding",
         "js-overloads"
       ],
-      "line": 11550,
+      "line": 11551,
       "title": "In order to define how function invocations are resolved, the overload resolution algorithm is defined. Its input is an [=effective overload set=], |S|, and a l",
       "steps": [
         {
@@ -4497,7 +4497,7 @@
         "javascript-binding",
         "js-interfaces"
       ],
-      "line": 11904,
+      "line": 11905,
       "title": "Some JavaScript methods defined in this section will perform an implementation check in their opening steps, to ensure they're being called on the correct kind ",
       "steps": [
         {
@@ -4532,7 +4532,7 @@
         "js-interfaces",
         "interface-object"
       ],
-      "line": 11964,
+      "line": 11965,
       "title": "The [=interface object=] for a given [=interface=] |I| with [=identifier=] |id| and in [=realm=] |realm| is created as follows:",
       "steps": [
         {
@@ -4617,26 +4617,51 @@
         },
         {
           "n": "4",
+          "hash": "526348a65b85e9c8",
+          "text": "Let |length| be 0."
+        },
+        {
+          "n": "5",
+          "hash": "1e3d151a55ad03c8",
+          "text": "If |I| was declared with a [=constructor operation=], then"
+        },
+        {
+          "n": "5.1",
+          "hash": "33ca094aedb6cb8f",
+          "text": "[=Compute the effective overload set=] for constructors with [=identifier=] |id| on [=interface=] |I| and with argument count 0, and let |S| be the result."
+        },
+        {
+          "n": "5.2",
+          "hash": "c5ae2315e576bf41",
+          "text": "Set |length| to the length of the shortest argument list of the entries in |S|."
+        },
+        {
+          "n": "6",
+          "hash": "853bd29621e54a3e",
+          "text": "Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, « \\[[Unforgeables]] », |realm|, |constructorProto|)."
+        },
+        {
+          "n": "7",
           "hash": "42e245470287af50",
           "text": "Let |unforgeables| be [$OrdinaryObjectCreate$](null)."
         },
         {
-          "n": "5",
+          "n": "8",
           "hash": "dddd3c61d19bcc7c",
           "text": "[=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|."
         },
         {
-          "n": "6",
+          "n": "9",
           "hash": "6a6bfc511cbcff26",
           "text": "[=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|."
         },
         {
-          "n": "7",
+          "n": "10",
           "hash": "9f13140963b7565f",
           "text": "Set |F|.\\[[Unforgeables]] to |unforgeables|."
         }
       ],
-      "hash": "2e68435ebbf59867"
+      "hash": "1169f79c2294b9fa"
     },
     {
       "key": "create-a-legacy-factory-function",
@@ -4647,7 +4672,7 @@
         "js-interfaces",
         "legacy-factory-functions"
       ],
-      "line": 12033,
+      "line": 12034,
       "title": "The [=legacy factory function=] with [=LegacyFactoryFunction identifier|identifier=] |id| for a given [=interface=] |I| in [=realm=] |realm| is created as follo",
       "steps": [
         {
@@ -4752,7 +4777,7 @@
         "js-interfaces",
         "interface-prototype-object"
       ],
-      "line": 12075,
+      "line": 12076,
       "title": "The [=interface prototype object=] for a given [=interface=] |interface| and [=realm=] |realm| is created as follows:",
       "steps": [
         {
@@ -4927,7 +4952,7 @@
         "js-interfaces",
         "named-properties-object"
       ],
-      "line": 12181,
+      "line": 12182,
       "title": "The [=named properties object=] for a given [=interface=] |interface| and [=realm=] |realm|, is created as follows:",
       "steps": [
         {
@@ -4998,7 +5023,7 @@
         "named-properties-object",
         "named-properties-object-getownproperty"
       ],
-      "line": 12212,
+      "line": 12213,
       "title": "When the \\[[GetOwnProperty]] internal method of a [=named properties object=] |O| is called with property key |P|, the following steps are taken:",
       "steps": [
         {
@@ -5084,7 +5109,7 @@
         "named-properties-object",
         "named-properties-object-defineownproperty"
       ],
-      "line": 12247,
+      "line": 12248,
       "title": "When the \\[[DefineOwnProperty]] internal method of a [=named properties object=] is called, the following steps are taken:",
       "steps": [
         {
@@ -5105,7 +5130,7 @@
         "named-properties-object",
         "named-properties-object-delete"
       ],
-      "line": 12257,
+      "line": 12258,
       "title": "When the \\[[Delete]] internal method of a [=named properties object=] is called, the following steps are taken:",
       "steps": [
         {
@@ -5126,7 +5151,7 @@
         "named-properties-object",
         "named-properties-object-setprototypeof"
       ],
-      "line": 12268,
+      "line": 12269,
       "title": "When the \\[[SetPrototypeOf]] internal method of a [=named properties object=] |O| is called with JavaScript language value |V|, the following step is taken:",
       "steps": [
         {
@@ -5152,7 +5177,7 @@
         "named-properties-object",
         "named-properties-object-preventextensions"
       ],
-      "line": 12282,
+      "line": 12283,
       "title": "When the \\[[PreventExtensions]] internal method of a [=named properties object=] is called, the following steps are taken:",
       "steps": [
         {
@@ -5172,7 +5197,7 @@
         "js-interfaces",
         "js-constants"
       ],
-      "line": 12302,
+      "line": 12303,
       "title": "To define the constants of [=interface=], [=callback interface=], or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5217,7 +5242,7 @@
         "js-interfaces",
         "js-attributes"
       ],
-      "line": 12326,
+      "line": 12327,
       "title": "To define the regular attributes of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5247,7 +5272,7 @@
         "js-interfaces",
         "js-attributes"
       ],
-      "line": 12335,
+      "line": 12336,
       "title": "To define the static attributes of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5272,7 +5297,7 @@
         "js-interfaces",
         "js-attributes"
       ],
-      "line": 12343,
+      "line": 12344,
       "title": "To define the unforgeable regular attributes of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5297,7 +5322,7 @@
         "js-interfaces",
         "js-attributes"
       ],
-      "line": 12351,
+      "line": 12352,
       "title": "To define the attributes |attributes| of [=interface=] or [=namespace=] |definition| on |target| given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5332,7 +5357,7 @@
         "js-interfaces",
         "js-attributes"
       ],
-      "line": 12377,
+      "line": 12378,
       "title": "The attribute getter is created as follows, given an [=attribute=] |attribute|, a [=namespace=] or [=interface=] |target|, and a [=realm=] |realm|:",
       "steps": [
         {
@@ -5437,7 +5462,7 @@
         "js-interfaces",
         "js-attributes"
       ],
-      "line": 12419,
+      "line": 12420,
       "title": "The attribute setter is created as follows, given an [=attribute=] |attribute|, a [=namespace=] or [=interface=] |target|, and a [=realm=] |realm|:",
       "steps": [
         {
@@ -5652,8 +5677,8 @@
         },
         {
           "n": "5",
-          "hash": "866eacc7c5b13527",
-          "text": "Let |name| be the string \"set \" prepended to |id|."
+          "hash": "33dad01cb569ef72",
+          "text": "Let |name| be the string \"set \" prepended to |attribute|'s [=identifier=]."
         },
         {
           "n": "6",
@@ -5666,7 +5691,7 @@
           "text": "Return |F|."
         }
       ],
-      "hash": "4916d7763babb2ef"
+      "hash": "5691326032069c96"
     },
     {
       "key": "define-the-regular-operations",
@@ -5677,7 +5702,7 @@
         "js-interfaces",
         "js-operations"
       ],
-      "line": 12524,
+      "line": 12525,
       "title": "To define the regular operations of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5707,7 +5732,7 @@
         "js-interfaces",
         "js-operations"
       ],
-      "line": 12533,
+      "line": 12534,
       "title": "To define the static operations of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5732,7 +5757,7 @@
         "js-interfaces",
         "js-operations"
       ],
-      "line": 12541,
+      "line": 12542,
       "title": "To define the unforgeable regular operations of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5757,7 +5782,7 @@
         "js-interfaces",
         "js-operations"
       ],
-      "line": 12549,
+      "line": 12550,
       "title": "To define the operations |operations| of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -5807,7 +5832,7 @@
         "js-interfaces",
         "js-operations"
       ],
-      "line": 12566,
+      "line": 12567,
       "title": "To create an operation function, given an [=operation=] |op|, a [=namespace=] or [=interface=] |target|, and a [=realm=] |realm|:",
       "steps": [
         {
@@ -5944,7 +5969,7 @@
         "js-default-operations",
         "js-default-tojson"
       ],
-      "line": 12648,
+      "line": 12649,
       "title": "The default toJSON steps for an [=interface=] |I| are:",
       "steps": [
         {
@@ -6006,7 +6031,7 @@
         "js-default-operations",
         "js-default-tojson"
       ],
-      "line": 12665,
+      "line": 12666,
       "title": "To collect attribute values of an inheritance stack given a [=platform object=] |object|, a [=stack=] |stack|, and an [=ordered map=] |map|:",
       "steps": [
         {
@@ -6038,7 +6063,7 @@
         "js-default-operations",
         "js-default-tojson"
       ],
-      "line": 12676,
+      "line": 12677,
       "title": "To collect attribute values given a [=platform object=] |object|, an [=interface=] |I|, and an [=ordered map=] |map|:",
       "steps": [
         {
@@ -6048,21 +6073,26 @@
         },
         {
           "n": "1.1",
+          "hash": "691a649eaaf4b234",
+          "text": "If |attr|'s type is not a [=JSON type=], then [=iteration/continue=]."
+        },
+        {
+          "n": "1.2",
           "hash": "e86d819c5f41ea50",
           "text": "Let |id| be the [=identifier=] of |attr|."
         },
         {
-          "n": "1.2",
+          "n": "1.3",
           "hash": "863eb98cdac5af28",
           "text": "Let |value| be the result of running the [=getter steps=] of |attr| with |object| as [=this=]."
         },
         {
-          "n": "1.3",
-          "hash": "eee932801d18a9bb",
-          "text": "If |value| is a [=JSON type=], then [=map/set=] |map|[|id|] to |value|."
+          "n": "1.4",
+          "hash": "47a2c7ac1d24a966",
+          "text": "[=map/Set=] |map|[|id|] to |value|."
         }
       ],
-      "hash": "282c141ff42547e6"
+      "hash": "e9f69bb8a4e994b9"
     },
     {
       "key": "create-an-inheritance-stack",
@@ -6075,7 +6105,7 @@
         "js-default-operations",
         "js-default-tojson"
       ],
-      "line": 12691,
+      "line": 12693,
       "title": "To create an inheritance stack for [=interface=] |I|, run the following steps:",
       "steps": [
         {
@@ -6120,7 +6150,7 @@
         "js-interfaces",
         "js-stringifier"
       ],
-      "line": 12791,
+      "line": 12793,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|toStringSteps|, 0, \"toString\", « »), where |toStringSteps| is the follo",
       "steps": [
         {
@@ -6170,7 +6200,7 @@
         "js-interfaces",
         "js-iterable"
       ],
-      "line": 12823,
+      "line": 12825,
       "title": "To define the iteration methods of [=interface=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -6431,7 +6461,7 @@
         "js-iterable",
         "js-iterator-prototype-object"
       ],
-      "line": 12946,
+      "line": 12948,
       "title": "The iterator result for a [=value pair=] |pair| and a kind |kind| is given by the following steps:",
       "steps": [
         {
@@ -6512,7 +6542,7 @@
         "js-iterable",
         "js-iterator-prototype-object"
       ],
-      "line": 12973,
+      "line": 12975,
       "title": "An [=iterator prototype object=] must have a next data property with attributes { \\[[Writable]]: true, \\[[Enumerable]]: true, \\[[Configurable]]: true } and whos",
       "steps": [
         {
@@ -6592,7 +6622,7 @@
         "js-interfaces",
         "js-asynchronous-iterable"
       ],
-      "line": 13008,
+      "line": 13010,
       "title": "To define the asynchronous iteration methods of [=interface=] |definition| on |target|, given [=realm=] |realm|, run the following steps:",
       "steps": [
         {
@@ -6807,7 +6837,7 @@
         "js-interfaces",
         "js-asynchronous-iterable"
       ],
-      "line": 13086,
+      "line": 13088,
       "title": "To convert arguments for an asynchronous iterator method, given an [=interface=] |definition| that has an [=asynchronously iterable declaration=] and a [=list=]",
       "steps": [
         {
@@ -6873,7 +6903,7 @@
         "js-asynchronous-iterable",
         "js-asynchronous-iterator-prototype-object"
       ],
-      "line": 13146,
+      "line": 13148,
       "title": "An [=asynchronous iterator prototype object=] must have a next data property with attributes { \\[[Writable]]: true, \\[[Enumerable]]: true, \\[[Configurable]]: tr",
       "steps": [
         {
@@ -7139,7 +7169,7 @@
         "js-asynchronous-iterable",
         "js-asynchronous-iterator-prototype-object"
       ],
-      "line": 13235,
+      "line": 13237,
       "title": "If an [=asynchronous iterator return=] algorithm is defined for the [=interface=], then the [=asynchronous iterator prototype object=] must have a return data p",
       "steps": [
         {
@@ -7320,7 +7350,7 @@
         "js-maplike",
         "js-map-size"
       ],
-      "line": 13330,
+      "line": 13332,
       "title": "The [=map size getter=] is the [=built-in function object=] [$CreateBuiltinFunction$](|sizeSteps|, 0, \"get size\", « »), where |sizeSteps| is the following algor",
       "steps": [
         {
@@ -7351,7 +7381,7 @@
         "js-maplike",
         "js-map-iterator"
       ],
-      "line": 13350,
+      "line": 13352,
       "title": "To create a map iterator from a [=/map=] |map| and a |kind| which is either \"key+value\", \"key\", or \"value\":",
       "steps": [
         {
@@ -7402,7 +7432,7 @@
         "js-maplike",
         "js-map-entries"
       ],
-      "line": 13379,
+      "line": 13381,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|entriesSteps|, 0, \"entries\", « »), where |entriesSteps| is the followin",
       "steps": [
         {
@@ -7433,7 +7463,7 @@
         "js-maplike",
         "js-map-keys"
       ],
-      "line": 13397,
+      "line": 13399,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|keysSteps|, 0, \"keys\", « »), where |keysSteps| is the following algorit",
       "steps": [
         {
@@ -7464,7 +7494,7 @@
         "js-maplike",
         "js-map-values"
       ],
-      "line": 13416,
+      "line": 13418,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|valuesSteps|, 0, \"values\", « »), where |valuesSteps| is the following a",
       "steps": [
         {
@@ -7495,7 +7525,7 @@
         "js-maplike",
         "js-map-forEach"
       ],
-      "line": 13435,
+      "line": 13437,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|forEachSteps|, 1, \"forEach\", « »), where |forEachSteps| is the followin",
       "steps": [
         {
@@ -7546,7 +7576,7 @@
         "js-maplike",
         "js-map-get"
       ],
-      "line": 13458,
+      "line": 13460,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|getSteps|, 1, \"get\", « »), where |getSteps| is the following algorithm ",
       "steps": [
         {
@@ -7592,7 +7622,7 @@
         "js-maplike",
         "js-map-has"
       ],
-      "line": 13481,
+      "line": 13483,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|hasSteps|, 1, \"has\", « »), where |hasSteps| is the following algorithm ",
       "steps": [
         {
@@ -7638,7 +7668,7 @@
         "js-maplike",
         "js-map-set"
       ],
-      "line": 13506,
+      "line": 13508,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|setSteps|, 2, \"set\", « »), where |setSteps| is the following algorithm ",
       "steps": [
         {
@@ -7694,7 +7724,7 @@
         "js-maplike",
         "js-map-delete"
       ],
-      "line": 13536,
+      "line": 13538,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|deleteSteps|, 1, \"delete\", « »), where |deleteSteps| is the following a",
       "steps": [
         {
@@ -7750,7 +7780,7 @@
         "js-maplike",
         "js-map-clear"
       ],
-      "line": 13567,
+      "line": 13569,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|clearSteps|, 0, \"clear\", « »), where |clearSteps| is the following algo",
       "steps": [
         {
@@ -7781,7 +7811,7 @@
         "js-setlike",
         "js-set-size"
       ],
-      "line": 13602,
+      "line": 13604,
       "title": "The [=set size getter=] is the [=built-in function object=] [$CreateBuiltinFunction$](|sizeSteps|, 0, \"get size\", « »), where |sizeSteps| is the following algor",
       "steps": [
         {
@@ -7812,7 +7842,7 @@
         "js-setlike",
         "js-set-iterator"
       ],
-      "line": 13622,
+      "line": 13624,
       "title": "To create a set iterator from a [=/set=] |set| and a |kind| which is either \"key+value\" or \"value\":",
       "steps": [
         {
@@ -7858,7 +7888,7 @@
         "js-setlike",
         "js-set-entries"
       ],
-      "line": 13650,
+      "line": 13652,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|entriesSteps|, 0, \"entries\", « »), where |entriesSteps| is the followin",
       "steps": [
         {
@@ -7889,7 +7919,7 @@
         "js-setlike",
         "js-set-values"
       ],
-      "line": 13678,
+      "line": 13680,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|valuesSteps|, 0, \"values\", « »), where |valuesSteps| is the following a",
       "steps": [
         {
@@ -7920,7 +7950,7 @@
         "js-setlike",
         "js-set-forEach"
       ],
-      "line": 13697,
+      "line": 13699,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|forEachSteps|, 1, \"forEach\", « »), where |forEachSteps| is the followin",
       "steps": [
         {
@@ -7971,7 +8001,7 @@
         "js-setlike",
         "js-set-has"
       ],
-      "line": 13720,
+      "line": 13722,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|hasSteps|, 1, \"has\", « »), where |hasSteps| is the following algorithm ",
       "steps": [
         {
@@ -8017,7 +8047,7 @@
         "js-setlike",
         "js-set-add"
       ],
-      "line": 13745,
+      "line": 13747,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|addSteps|, 1, \"add\", « »), where |addSteps| is the following algorithm ",
       "steps": [
         {
@@ -8068,7 +8098,7 @@
         "js-setlike",
         "js-set-delete"
       ],
-      "line": 13774,
+      "line": 13776,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|deleteSteps|, 1, \"delete\", « »), where |deleteSteps| is the following a",
       "steps": [
         {
@@ -8124,7 +8154,7 @@
         "js-setlike",
         "js-set-clear"
       ],
-      "line": 13803,
+      "line": 13805,
       "title": "The value of the property is the [=built-in function object=] [$CreateBuiltinFunction$](|clearSteps|, 0, \"clear\", « »), where |clearSteps| is the following algo",
       "steps": [
         {
@@ -8153,7 +8183,7 @@
         "javascript-binding",
         "js-platform-objects"
       ],
-      "line": 13825,
+      "line": 13827,
       "title": "A JavaScript value |value| is a platform object if |value| [=is an Object=] and if |value| has a \\[[PrimaryInterface]] internal slot.",
       "steps": [],
       "hash": "4f623961356cf607"
@@ -8166,7 +8196,7 @@
         "javascript-binding",
         "js-platform-objects"
       ],
-      "line": 13830,
+      "line": 13832,
       "title": "A JavaScript value |value| implements an [=interface=] |interface| if |value| [=is a platform object=] and the [=inclusive inherited interfaces=] of |value|.\\[[",
       "steps": [],
       "hash": "b524cbf2fce5d708"
@@ -8179,7 +8209,7 @@
         "javascript-binding",
         "js-platform-objects"
       ],
-      "line": 13848,
+      "line": 13850,
       "title": "To create a new object implementing the interface |interface|, with a [=realm=] |realm|, perform the following steps:",
       "steps": [
         {
@@ -8198,7 +8228,7 @@
         "javascript-binding",
         "js-platform-objects"
       ],
-      "line": 13857,
+      "line": 13859,
       "title": "To internally create a new object implementing the interface |interface|, with a [=realm=] |realm| and a JavaScript value |newTarget|, perform the following ste",
       "steps": [
         {
@@ -8397,7 +8427,7 @@
         "javascript-binding",
         "js-platform-objects"
       ],
-      "line": 13911,
+      "line": 13913,
       "title": "To define the global property references on |target|, given [=realm=] |realm|, perform the following steps:",
       "steps": [
         {
@@ -8521,7 +8551,7 @@
         "javascript-binding",
         "js-platform-objects"
       ],
-      "line": 13969,
+      "line": 13971,
       "title": "The primary interface of a [=platform object=] is the value of the object's \\[[PrimaryInterface]] internal slot, which is the most-derived [=interface=] that it",
       "steps": [],
       "hash": "7686c5b9f801df15"
@@ -8535,7 +8565,7 @@
         "js-platform-objects",
         "platform-object-setprototypeof"
       ],
-      "line": 13995,
+      "line": 13997,
       "title": "When the \\[[SetPrototypeOf]] internal method of a [=platform object=] |O| that implements an [=interface=] with the [Global] [=extended attribute=] is called wi",
       "steps": [
         {
@@ -8560,7 +8590,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-getownproperty"
       ],
-      "line": 14053,
+      "line": 14055,
       "title": "The \\[[GetOwnProperty]] internal method of every [=legacy platform object=] |O| must behave as follows when called with property name |P|:",
       "steps": [
         {
@@ -8580,7 +8610,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-set"
       ],
-      "line": 14064,
+      "line": 14066,
       "title": "The \\[[Set]] internal method of every [=legacy platform object=] |O| must behave as follows when called with property name |P|, value |V|, and JavaScript langua",
       "steps": [
         {
@@ -8640,7 +8670,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-defineownproperty"
       ],
-      "line": 14086,
+      "line": 14088,
       "title": "When the \\[[DefineOwnProperty]] internal method of a [=legacy platform object=] |O| is called with property key |P| and [=Property Descriptor=] |Desc|, the foll",
       "steps": [
         {
@@ -8725,7 +8755,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-delete"
       ],
-      "line": 14125,
+      "line": 14127,
       "title": "The \\[[Delete]] internal method of every [=legacy platform object=] |O| must behave as follows when called with property name |P|.",
       "steps": [
         {
@@ -8830,7 +8860,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-preventextensions"
       ],
-      "line": 14161,
+      "line": 14163,
       "title": "When the \\[[PreventExtensions]] internal method of a [=legacy platform object=] is called, the following steps are taken:",
       "steps": [
         {
@@ -8850,7 +8880,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-ownpropertykeys"
       ],
-      "line": 14181,
+      "line": 14183,
       "title": "When the \\[[OwnPropertyKeys]] internal method of a [=legacy platform object=] |O| is called, the following steps are taken:",
       "steps": [
         {
@@ -8900,7 +8930,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-abstract-ops"
       ],
-      "line": 14204,
+      "line": 14206,
       "title": "To determine if a property name |P| is an [=array index=], the following algorithm is applied:",
       "steps": [
         {
@@ -8950,7 +8980,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-abstract-ops"
       ],
-      "line": 14224,
+      "line": 14226,
       "title": "The named property visibility algorithm is used to determine if a given named property is exposed on an object. Some named properties are not exposed on an obje",
       "steps": [
         {
@@ -9005,7 +9035,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-abstract-ops"
       ],
-      "line": 14263,
+      "line": 14265,
       "title": "To invoke an indexed property setter on a [=platform object=] |O| with property name |P| and JavaScript value |V|, the following steps must be performed:",
       "steps": [
         {
@@ -9065,7 +9095,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-abstract-ops"
       ],
-      "line": 14285,
+      "line": 14287,
       "title": "To invoke a named property setter on a [=platform object=] |O| with property name |P| and JavaScript value |V|, the following steps must be performed:",
       "steps": [
         {
@@ -9120,7 +9150,7 @@
         "js-legacy-platform-objects",
         "legacy-platform-object-abstract-ops"
       ],
-      "line": 14305,
+      "line": 14307,
       "title": "The LegacyPlatformObjectGetOwnProperty abstract operation performs the following steps when called with an object |O|, a property name |P|, and a boolean |ignor",
       "steps": [
         {
@@ -9264,7 +9294,7 @@
         "javascript-binding",
         "js-observable-arrays"
       ],
-      "line": 14384,
+      "line": 14386,
       "title": "To create an observable array exotic object in a [=realm=] |realm|, given Web IDL type |T| and algorithms |setAlgorithm| and |deleteAlgorithm|:",
       "steps": [
         {
@@ -9389,7 +9419,7 @@
         "js-observable-arrays",
         "js-observable-array-defineProperty"
       ],
-      "line": 14415,
+      "line": 14417,
       "title": "The steps for the defineProperty proxy trap for [=observable array exotic objects=], given |O|, |P|, and |descriptorObj| are as follows:",
       "steps": [
         {
@@ -9489,7 +9519,7 @@
         "js-observable-arrays",
         "js-observable-array-deleteProperty"
       ],
-      "line": 14452,
+      "line": 14454,
       "title": "The steps for the deleteProperty proxy trap for [=observable array exotic objects=], given |O| and |P|, are as follows:",
       "steps": [
         {
@@ -9554,7 +9584,7 @@
         "js-observable-arrays",
         "js-observable-array-get"
       ],
-      "line": 14472,
+      "line": 14474,
       "title": "The steps for the get proxy trap for [=observable array exotic objects=], given |O|, |P|, and |Receiver|, are as follows:",
       "steps": [
         {
@@ -9619,7 +9649,7 @@
         "js-observable-arrays",
         "js-observable-array-getOwnPropertyDescriptor"
       ],
-      "line": 14491,
+      "line": 14493,
       "title": "The steps for the getOwnPropertyDescriptor proxy trap for [=observable array exotic objects=], given |O| and |P|, are as follows:",
       "steps": [
         {
@@ -9684,7 +9714,7 @@
         "js-observable-arrays",
         "js-observable-array-has"
       ],
-      "line": 14515,
+      "line": 14517,
       "title": "The steps for the has proxy trap for [=observable array exotic objects=], given |O| and |P|, are as follows:",
       "steps": [
         {
@@ -9734,7 +9764,7 @@
         "js-observable-arrays",
         "js-observable-array-ownKeys"
       ],
-      "line": 14531,
+      "line": 14533,
       "title": "The steps for the ownKeys proxy trap for [=observable array exotic objects=], given |O|, are as follows:",
       "steps": [
         {
@@ -9794,7 +9824,7 @@
         "js-observable-arrays",
         "js-observable-array-preventExtensions"
       ],
-      "line": 14548,
+      "line": 14550,
       "title": "The steps for the preventExtensions proxy trap for [=observable array exotic objects=] are as follows:",
       "steps": [
         {
@@ -9814,7 +9844,7 @@
         "js-observable-arrays",
         "js-observable-array-set"
       ],
-      "line": 14557,
+      "line": 14559,
       "title": "The steps for the set proxy trap for [=observable array exotic objects=], given |O|, |P|, |V|, and |Receiver|, are as follows:",
       "steps": [
         {
@@ -9849,7 +9879,7 @@
         "js-observable-arrays",
         "js-observable-array-abstract-operations"
       ],
-      "line": 14571,
+      "line": 14573,
       "title": "To set the length of an observable array exotic object given |handler| and |newLen|:",
       "steps": [
         {
@@ -9919,7 +9949,7 @@
         "js-observable-arrays",
         "js-observable-array-abstract-operations"
       ],
-      "line": 14589,
+      "line": 14591,
       "title": "To set the indexed value of an observable array exotic object given |handler|, |P|, and |V|:",
       "steps": [
         {
@@ -9983,7 +10013,7 @@
         "javascript-binding",
         "js-user-objects"
       ],
-      "line": 14631,
+      "line": 14633,
       "title": "To convert a Web IDL arguments list to a JavaScript arguments list, given a [=Web IDL arguments list=] |args|, perform the following steps:",
       "steps": [
         {
@@ -10057,7 +10087,7 @@
         "javascript-binding",
         "js-user-objects"
       ],
-      "line": 14652,
+      "line": 14654,
       "title": "To call a user object's operation, given a [=callback interface type=] value |value|, operation name |opName|, [=Web IDL arguments list=] |args|, and optional c",
       "steps": [
         {
@@ -10202,7 +10232,7 @@
         "js-user-objects",
         "legacy-callback-interface-object"
       ],
-      "line": 14724,
+      "line": 14726,
       "title": "The [=legacy callback interface object=] for a given [=callback interface=] |interface| with [=identifier=] |id| and in [=realm=] |realm| is created as follows:",
       "steps": [
         {
@@ -10241,7 +10271,7 @@
         "javascript-binding",
         "js-invoking-callback-functions"
       ],
-      "line": 14746,
+      "line": 14748,
       "title": "To invoke a [=callback function type=] value |callable| with a [=Web IDL arguments list=] |args|, exception behavior |exceptionBehavior| (either \"report\" or \"re",
       "steps": [
         {
@@ -10395,7 +10425,7 @@
         "javascript-binding",
         "js-invoking-callback-functions"
       ],
-      "line": 14810,
+      "line": 14812,
       "title": "To construct a [=callback function type=] value |callable| with a [=Web IDL arguments list=] |args|, perform the following steps. These steps will either return",
       "steps": [
         {
@@ -10495,7 +10525,7 @@
         "js-namespaces",
         "namespace-object"
       ],
-      "line": 14858,
+      "line": 14860,
       "title": "The namespace object for a given [=namespace=] |namespace| and [=realm=] |realm| is created as follows:",
       "steps": [
         {
@@ -10555,7 +10585,7 @@
         "js-exceptions",
         "js-creating-throwing-exceptions"
       ],
-      "line": 14904,
+      "line": 14906,
       "title": "To [=exception/create=] a [=simple exception=] of type |T|:",
       "steps": [
         {
@@ -10590,7 +10620,7 @@
         "js-exceptions",
         "js-creating-throwing-exceptions"
       ],
-      "line": 14922,
+      "line": 14924,
       "title": "To [=exception/create=] a DOMException given a string |name|:",
       "steps": [
         {
@@ -10630,7 +10660,7 @@
         "js-exceptions",
         "js-creating-throwing-exceptions"
       ],
-      "line": 14942,
+      "line": 14944,
       "title": "To [=exception/create=] a DOMException derived interface given the [=interface=] [=identifier=] |type| and additional initialization instructions:",
       "steps": [
         {
@@ -10670,7 +10700,7 @@
         "js-exceptions",
         "js-creating-throwing-exceptions"
       ],
-      "line": 14964,
+      "line": 14966,
       "title": "To [=exception/throw=] an [=exception=]:",
       "steps": [
         {

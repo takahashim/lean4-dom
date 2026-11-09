@@ -3,9 +3,9 @@ import Dom.Spec.RangeDeleteSound
 /-!
 # `deleteContents` の関係の一意性と完全性
 
-step 4 の列は「membership と tree order」で、step 5-6 の boundary point は
+step 4 の列は「membership と tree order」で、step 5-7 の boundary point は
 「start node の inclusive ancestor が一列に並ぶこと」で一つに決まる。
-step 7-9 は `replace data` と `remove` の関係を観測の上で繋ぐ。
+step 9-11 は `replace data` と `remove` の関係を観測の上で繋ぐ。
 -/
 
 namespace Dom.Spec
@@ -54,9 +54,9 @@ theorem nodesToRemove_unique (hwf : WellFormed t) {sd : NodeData}
   rw [precedesIn_asymm hne (hmem x hx) (hmem y hy) e₁] at e₂
   cases e₂
 
-/-! ## step 5-6 -/
+/-! ## step 5-7 -/
 
-/-- **step 5-6 の boundary point は一つに決まる。** -/
+/-- **step 5-7 の boundary point は一つに決まる。** -/
 theorem deleteNewBP_unique {bp₁ bp₂ : BoundaryPoint}
     (h₁ : DeleteNewBP t r bp₁) (h₂ : DeleteNewBP t r bp₂) : bp₁ = bp₂ := by
   rcases h₁ with ⟨ha₁, rfl⟩ | ⟨hn₁, ref₁, p₁, i₁, hrs₁, hre₁, hp₁, hpe₁, hi₁, rfl⟩ <;>
@@ -87,7 +87,7 @@ theorem deleteNewBP_unique {bp₁ bp₂ : BoundaryPoint}
     cases hi₂
     rfl
 
-/-! ## step 7・9 -/
+/-! ## step 9・11 -/
 
 /-- replace data の失敗の条件は木の観測だけで決まる。 -/
 theorem replaceDataResult_error_congr {s sb : DOMState} (h : ObsEq s sb) {n : NodeId}
@@ -127,7 +127,7 @@ theorem replaceDataIfCharacterData_congr {s sb : DOMState} (h : ObsEq s sb) {n :
   · exact absurd ((isCharacterData_congr h n).mpr hc₁) hc₂
   · exact replaceDataResult_congr h hr₁ hr₂
 
-/-- step 7・9 の成功側からは well-formedness が残る。 -/
+/-- step 9・11 の成功側からは well-formedness が残る。 -/
 theorem replaceDataIfCharacterData_wellFormed {s s₁ : DOMState} {n : NodeId} {offset count : Nat}
     (hwf : WellFormed s.tree) (h : ReplaceDataIfCharacterData s n offset count (.ok s₁)) :
     WellFormed s₁.tree := by

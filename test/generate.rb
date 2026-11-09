@@ -73,7 +73,7 @@ module Generate
                     nodeValue textContent isConnected hasChildNodes firstChild].freeze
   ATTR_SETTERS = %w[value nodeValue textContent].freeze
 
-  # selector を取る操作（§4.2.6 / §4.8）。
+  # selector を取る操作（§4.2.6 / §4.9）。
   SELECTOR_PARENT_OPS = %w[querySelector querySelectorAll].freeze
   SELECTOR_ELEMENT_OPS = %w[matches closest].freeze
   SELECTOR_OPS = (SELECTOR_PARENT_OPS + SELECTOR_ELEMENT_OPS).freeze
@@ -192,7 +192,7 @@ module Generate
   # 作る系の操作が今まで成功しかしなかったのはこの予測のためで、
   # `InvalidCharacterError` は 15,000 step 回しても一度も出なかった。
   #
-  # §1.3 valid attribute local name は「空でなく、ASCII whitespace・NUL・
+  # §1.4 valid attribute local name は「空でなく、ASCII whitespace・NUL・
   # `/`・`=`・`>` を含まない」。valid element local name は先頭が ASCII alpha なら
   # `=` を許すので、element 側は別に並べる。
   BAD_ATTR_NAMES = ["", "a b", "a=b", "a/b", "a>b"].freeze
@@ -224,7 +224,7 @@ module Generate
   ATTR_NAMESPACES = [nil, "http://example.com/ns", XML_NS, XMLNS_NS].freeze
 
   # **必ず失敗する** (namespace, qualifiedName) の組。
-  # 上から §1.3 "validate and extract" の step 6 / 8 / 9 / 10 / 11 に当たる。
+  # 上から §1.4 "validate and extract" の step 6-7 / 8 / 9 / 10 / 11 に当たる。
   # local name の `"a b"` は attribute でも element でも不正なので、
   # createElementNS と createAttributeNS の両方に使える。
   BAD_NS_NAMES = [
@@ -926,7 +926,7 @@ module Generate
     nodes.count { |n| n["parent"] == spec["id"] }
   end
 
-  # boundary point になれない kind。仕様 §5.5 の `setStart` / `setEnd` は
+  # boundary point になれない kind。仕様 §5.6 の `setStart` / `setEnd` は
   # doctype を InvalidNodeTypeError で弾く。
   NON_BOUNDARY_KINDS = %w[documentType].freeze
 
@@ -960,7 +960,7 @@ module Generate
 
   # boundary point の key（`Dom/Properties/Path.lean` の `bpKey`）。
   # root からの各段の index の列に offset を付けたもの。
-  # 仕様 §5.3 の boundary point position は、この列の辞書式比較に一致する
+  # 仕様 §5.2 の boundary point position は、この列の辞書式比較に一致する
   # （`bpPosition_eq_lexCmp`）ので、start ≤ end はこれで判定できる。
   def bp_key(nodes, by_id, id, offset)
     path = []
@@ -1355,7 +1355,7 @@ module Generate
     operations.each { |op| drop_split_record_type(op, op["observer"]) if op["op"] == "observe" }
   end
 
-  # `observe` の step 1-2 は、characterData が省略されていて characterDataOldValue が存在すれば
+  # `observe` の step 2 は、characterData が省略されていて characterDataOldValue が存在すれば
   # characterData を true にする。値は ToBoolean を通るので、真偽は Ruby の真偽ではなく JS の真偽で見る。
   def drop_split_record_type(opts, index)
     js_true = ->(v) { ![nil, false, 0, ""].include?(v) }

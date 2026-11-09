@@ -11,9 +11,9 @@ import Dom.Spec.RangePassive
 語彙の対応（contained・nodes to remove・新しい boundary point）を示してから、
 実行関数の step を順に関係へ移す。
 
-## step 10 の boundary point は妥当である
+## step 8 の boundary point は妥当である
 
-実行関数は step 10 で、新しい boundary point が最終状態で妥当かを実行時に検査し、
+実行関数は step 8 で、新しい boundary point が最終状態で妥当かを実行時に検査し、
 妥当でなければ live range の調整が残した端点を使う。ここでその検査が必ず通ることを示す
 （`deleteContentsNewBP_valid`）。芯は「new node の、new offset より前の子は
 original start の before にあるので contained でなく、外されない」である。
@@ -40,7 +40,7 @@ theorem exists_get?_of_root_eq (hwf : WellFormed t) {n m : NodeId} {md : NodeDat
     rw [← hr, hrn, hn] at hrd
     cases hrd
 
-/-- **実行側の `containedInRange` は §5.5 の contained ちょうどである。** -/
+/-- **実行側の `containedInRange` は §5.6 の contained ちょうどである。** -/
 theorem containedInRange_iff (hwf : WellFormed t) {sd ed : NodeData}
     (hs : t.get? r.start.node = some sd) (he : t.get? r.«end».node = some ed)
     (hroot : root t r.start.node = root t r.«end».node) (n : NodeId) :
@@ -107,16 +107,16 @@ theorem nodesToRemove_spec (hwf : WellFormed t) {sd ed : NodeData}
     exact (precedesIn_preorder_iff_struct hwf hrd ((mem_preorder_iff hwf hrd x).mp hx)
       ((mem_preorder_iff hwf hrd y).mp hy) hne).mp hxy
 
-/-! ## step 5-6 -/
+/-! ## step 5-7 -/
 
-/-- step 6 の loop の判定。 -/
+/-- step 7 の loop の判定。 -/
 private def stopAt (t : Tree) (en : NodeId) (x : NodeId) : Bool :=
   match parentOf t x with
   | none => true
   | some p => isInclusiveAncestorOf t p en
 
 /--
-**step 6 の loop は、parent が end node の inclusive ancestor である所で止まる。**
+**step 7 の loop は、parent が end node の inclusive ancestor である所で止まる。**
 
 `x` が end node の inclusive ancestor でなく、同じ木にあれば、`x` から上る列のうち
 最初に止まる node は、parent を持ち、その parent が end node の inclusive ancestor である。
@@ -164,7 +164,7 @@ theorem find_stop (hwf : WellFormed t) {en : NodeId} :
           (by rw [← root_eq_of_parentOf hwf hp]; exact hroot)
         exact ⟨ref, q, hf, hrp.trans_inclusive (Or.inr (Ancestor.step hp)), hre, hq, hqe⟩
 
-/-- **実行側の `deleteContentsNewBP` は step 5-6 の関係を満たす。** -/
+/-- **実行側の `deleteContentsNewBP` は step 5-7 の関係を満たす。** -/
 theorem deleteContentsNewBP_spec (hwf : WellFormed t)
     (hroot : root t r.start.node = root t r.«end».node) :
     DeleteNewBP t r (deleteContentsNewBP t r) := by
@@ -249,7 +249,7 @@ theorem parentOf_isSome_of_contained {n : NodeId} (h : Contained t r n) :
 
 end Order
 
-/-! ## step 8 は失敗しない -/
+/-! ## step 10 は失敗しない -/
 
 /-- 列のどれもが parent を持ち、重複が無ければ、`removeEach` は成功する。 -/
 theorem removeEach_isOk_of_parents {b : Bool} : ∀ (ns : List NodeId) {s : DOMState},
@@ -278,7 +278,7 @@ theorem removeEach_ranges_length {b : Bool} : ∀ (ns : List NodeId) {s s' : DOM
       obtain ⟨⟨p, hp⟩, -⟩ := remove_ok hr
       rw [removeEach_ranges_length rest h, remove_ranges hp hr, List.length_map]
 
-/-! ## step 10 の boundary point は妥当である -/
+/-! ## step 8 の boundary point は妥当である -/
 
 /-- children の先頭 `k` 個の中の node は、`k` より小さい index を持つ。 -/
 theorem index_lt_of_mem_take (hwf : WellFormed t) {p c : NodeId} {k : Nat}
@@ -298,7 +298,7 @@ theorem index_lt_of_mem_take (hwf : WellFormed t) {p c : NodeId} {k : Nat}
     exact (List.nodup_append.mp hnd).2.2 c hm c (by simp) rfl
 
 /--
-**new node の new offset より前の子が残れば、step 10 の boundary point は妥当である。**
+**new node の new offset より前の子が残れば、step 8 の boundary point は妥当である。**
 
 `P` の children の先頭 `k` 個が最終状態でも `P` の子のまま残り、`P` の length が children の
 数で数えられるなら、(P, k) は妥当である。
@@ -333,9 +333,9 @@ theorem validBP_of_kept {s s₃ : DOMState} {P : NodeId} {k : Nat} (hwf : WellFo
   omega
 
 /--
-**step 10 の boundary point は、step 7-9 の後の木で妥当である。**
+**step 8 の boundary point は、step 9-11 の後の木で妥当である。**
 
-step 7-9 は kind を変えず、外す node 以外の parent を変えない（`hsp`・`hpar`）。
+step 9-11 は kind を変えず、外す node 以外の parent を変えない（`hsp`・`hpar`）。
 -/
 theorem deleteContentsNewBP_valid {s s₃ : DOMState} (h : AdmissibleDOMState s)
     (hrv : RangeValid s.tree r)
@@ -355,7 +355,7 @@ theorem deleteContentsNewBP_valid {s s₃ : DOMState} (h : AdmissibleDOMState s)
     rw [hpar c (fun hm => hnot c j hcp hj hjk ((hc c).mp ((mem_nodesToRemove_iff c).mp hm).2.1))]
     exact hcp
   rcases deleteContentsNewBP_spec hwf hroot with ⟨hia, hbp⟩ | ⟨-, ref, p, i, hrs, hre, hp, -, hi, hbp⟩
-  · -- step 5：original start
+  · -- step 6：original start
     rw [hbp]
     by_cases h0 : r.start.offset = 0
     · rw [checkValidBoundaryPoint_iff]
@@ -385,7 +385,7 @@ theorem deleteContentsNewBP_valid {s s₃ : DOMState} (h : AdmissibleDOMState s)
       obtain ⟨cd, hcd, -⟩ := parentOf_eq_some hcp
       exact not_contained_of_before hwf hs hcd (root_eq_of_parentOf hwf hcp)
         (Or.inr (Or.inr (Or.inl ⟨c, j, hcp, hj, Or.inl rfl, hjk⟩)))
-  · -- step 6：reference node の次
+  · -- step 7：reference node の次
     rw [hbp]
     have hcck : ChildCountKind s.tree p := h.childCountKind hp
     obtain ⟨pd, hpd⟩ := exists_data_of_parentOf hwf hp

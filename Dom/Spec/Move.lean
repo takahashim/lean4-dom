@@ -1,7 +1,7 @@
 import Dom.Spec.Insert
 
 /-!
-# `move` の関係意味論（§4.2.4）
+# `move` の関係意味論（§4.2.3）
 
 `remove` / `insert` と違って、`move` はそれらを呼ばない。
 仕様が「pre-remove steps を走らせて木から外し、offset を調整して入れる」と

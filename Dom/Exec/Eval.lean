@@ -580,7 +580,7 @@ def returnValueOf (s : DOMState) : Operation → ReturnValue
   | .compareDocumentPositionRef n o => .int (compareDocumentPositionRef s n.toRef o.toRef)
   | .nodeContainsRef n o => .bool (nodeContainsRef s n.toRef o.toRef)
   | .isEqualNodeRef n o => .bool (nodeRefEquals s n.toRef o.toRef)
-  -- §4.4 `contains` の step 1 と `isEqualNode` の step 1：null なら false。
+  -- §4.4 `contains` と `isEqualNode`：null なら false。
   | .nodeContainsNull _ => .bool false
   | .isEqualNodeNull _ => .bool false
   | .argumentTypeError _ => .unit

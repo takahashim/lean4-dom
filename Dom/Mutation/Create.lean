@@ -153,7 +153,7 @@ def createElement (s : DOMState) (doc : NodeId) (localName : String) :
 /--
 DOM Standard §4.5 `createElementNS(namespace, qualifiedName)`。
 
-§1.3 "validate and extract"（context は "element"）を通してから element を作る。
+§1.4 "validate and extract"（context は "element"）を通してから element を作る。
 -/
 def createElementNS (s : DOMState) (doc : NodeId) («namespace» : Option String)
     (qualifiedName : String) : Except DOMException (NodeId × DOMState) :=

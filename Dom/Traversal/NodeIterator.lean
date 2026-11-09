@@ -32,7 +32,7 @@ def iteratorCollection (t : Tree) (root : NodeId) : List NodeId :=
 /--
 DOM Standard §6.1 "filter"、ただし `filter` は null。
 
-step 1-2 だけが残り、node type の bit が立っていれば FILTER_ACCEPT、
+step 2-4 だけが残り、node type の bit が立っていれば FILTER_ACCEPT、
 立っていなければ FILTER_SKIP になる。
 -/
 def showsNode (t : Tree) (whatToShow : Nat) (n : NodeId) : Bool :=
@@ -81,7 +81,7 @@ def iteratorPreRemoveOne (t : Tree) (toBeRemoved : NodeId) (it : IteratorState) 
   { it with reference := r.1, pointerBeforeReference := r.2 }
 
 /--
-DOM Standard §4.2.3 remove step 4 / move step 11。
+DOM Standard §4.2.3 remove step 4 / move step 10。
 
 仕様どおり、root の node document が削除する node の node document と同じ
 iterator だけを対象にする。

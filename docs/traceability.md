@@ -36,28 +36,28 @@ step 単位の対応は `Trace/Dom/` の表が持ち、CI が網羅を検査す�
 | adopt（§4.5） | `Dom.Spec.AdoptSpec` | `adopt_sound` | `adoptSpec_deterministic` / `adoptSpec_congr` | `adopt_complete` |
 | insert | `Dom.Spec.InsertSpec` | `insert_sound` | `insertSpec_deterministic` / `insertSpec_congr` | `insert_complete` |
 | replace | `Dom.Spec.ReplaceSpec` | `replace_sound` | `replaceSpec_deterministic` / `replaceSpec_congr` | `replace_complete` |
-| move（§4.2.4） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
+| move（§4.2.3） | `Dom.Spec.MoveSpec` | `move_sound` | `moveSpec_deterministic` / `moveSpec_congr` | `move_complete` |
 | replace data（§4.10） | `Dom.Spec.ReplaceDataSpec` | `replaceData_sound` | `replaceDataSpec_deterministic` / `replaceDataSpec_congr` | `replaceData_complete` |
 | normalize（§4.4） | `Dom.Spec.NormalizeEngineSpec` | `normalize_sound` | `normalizeSpec_deterministic` / `normalizedEach_congr` | `normalize_isOk`（`this` が木にあれば成功） |
-| replace all | `Dom.Spec.ReplaceAllSpec` | `replaceAll_sound` | `replaceAllSpec_deterministic` | `replaceAll_isOk`（step 5 の事実があれば成功） |
+| replace all | `Dom.Spec.ReplaceAllSpec` | `replaceAll_sound` | `replaceAllSpec_deterministic` | `replaceAll_isOk`（step 6 の事実があれば成功） |
 | ensure pre-insert validity | `Dom.Spec.PreInsertValidity` | `ensurePreInsertionValidity_spec`（仮定なし） | `preInsertValidity_deterministic` | `preInsertValidity_iff` |
-| move の pre-move validity（§4.2.4） | `Dom.Spec.MoveValidity` | `moveValidity_spec`（仮定なし） | `moveValidity_deterministic` | `moveValidity_iff` |
+| move の pre-move validity（§4.2.3） | `Dom.Spec.MoveValidity` | `moveValidity_spec`（仮定なし） | `moveValidity_deterministic` | `moveValidity_iff` |
 | pre-insert（結果込み） | `Dom.Spec.PreInsertResult` | `preInsert_result_sound` | `preInsert_result_deterministic` | `preInsert_result_complete` |
 | remove（結果込み） | `Dom.Spec.RemoveResult` | `remove_result_sound` | `remove_result_deterministic` | `remove_result_complete` |
 | replace（結果込み） | `Dom.Spec.ReplaceResult` | `replace_result_sound` | `replace_result_deterministic` | `replace_result_complete` |
 | moveBefore（結果込み） | `Dom.Spec.MoveResult` | `move_result_sound` | `move_result_deterministic` | `move_result_complete` |
 | normalize（結果込み） | `Dom.Spec.NormalizeResult` | `normalize_result_sound` | `normalize_result_deterministic` | `normalize_result_complete` |
-| Range `deleteContents()`（結果込み、§5.5） | `Dom.Spec.DeleteContentsResult` | `rangeDeleteContents_result_sound`（`RangeValid` を仮定） | `deleteContents_result_deterministic` | `rangeDeleteContents_result_complete` |
-| Range `insertNode(node)`（結果込み、§5.5） | `Dom.Spec.InsertNodeResult` | `rangeInsertNode_result_sound`（`RangeValid` を仮定） | `insertNode_result_deterministic` | `rangeInsertNode_result_complete` |
+| Range `deleteContents()`（結果込み、§5.6） | `Dom.Spec.DeleteContentsResult` | `rangeDeleteContents_result_sound`（`RangeValid` を仮定） | `deleteContents_result_deterministic` | `rangeDeleteContents_result_complete` |
+| Range `insertNode(node)`（結果込み、§5.6） | `Dom.Spec.InsertNodeResult` | `rangeInsertNode_result_sound`（`RangeValid` を仮定） | `insertNode_result_deterministic` | `rangeInsertNode_result_complete` |
 | `dispatchEvent`（結果込み、§2.9） | `Dom.Spec.DispatchResult` | `dispatchEvent_result_sound` | `dispatchEvent_result_deterministic`（等号） | `dispatchEvent_result_complete`（等号） |
 | `addEventListener` / `removeEventListener`（結果込み、§2.7） | `Dom.Spec.AddEventListenerResult` / `RemoveEventListenerResult` | `addEventListener_result_sound` / `removeEventListener_result_sound` | complete から | `addEventListener_result_complete` / `removeEventListener_result_complete`（等号） |
 | `setAttribute` / `setAttributeNS` の step 2 以降 / `removeAttribute(NS)` / `toggleAttribute`（結果込み、§4.9） | `Dom.Spec.SetAttributeResult` ほか（`AttributeChanged`・`AttributeAppended`・`AttributeRemoved`・`AttributeRecordQueued`） | `setAttribute_result_sound` ほか（`AttributesValid` を仮定） | `setAttribute_result_deterministic` ほか | `setAttribute_result_complete` ほか |
 | `setAttributeNode` / `removeAttributeNode` / `NamedNodeMap.removeNamedItem`（結果込み、§4.9） | `Dom.Spec.SetAttributeNodeResult` ほか（`AttrLocated`・`AttributeReplacedWith`・`AttributeDetached`） | `setAttributeNode_result_sound` ほか（`AttributesValid` と `AttrIdsUnique` を仮定） | `setAttributeNode_result_deterministic` ほか | `setAttributeNode_result_complete` ほか |
 | replaceChildren（結果込み、§4.2.6） | `Dom.Spec.ReplaceChildrenResult` | `replaceChildren_result_sound` | `replaceChildren_result_deterministic` | `replaceChildren_result_complete` |
-| before（結果込み、§4.2.9） | `Dom.Spec.BeforeResult`（`ViablePreviousSibling`） | `before_result_sound` | `before_result_deterministic` | `before_result_complete` |
-| after（結果込み、§4.2.9） | `Dom.Spec.AfterResult`（`ViableNextSibling`） | `after_result_sound` | `after_result_deterministic` | `after_result_complete` |
-| replaceWith（結果込み、§4.2.9） | `Dom.Spec.ReplaceWithResult` | `replaceWith_result_sound` | `replaceWith_result_deterministic` | `replaceWith_result_complete` |
-| `remove()`（結果込み、§4.2.9） | `Dom.Spec.NodeRemoveResult` | `nodeRemove_result_sound` | `nodeRemove_result_deterministic` | `nodeRemove_result_complete` |
+| before（結果込み、§4.2.8） | `Dom.Spec.BeforeResult`（`ViablePreviousSibling`） | `before_result_sound` | `before_result_deterministic` | `before_result_complete` |
+| after（結果込み、§4.2.8） | `Dom.Spec.AfterResult`（`ViableNextSibling`） | `after_result_sound` | `after_result_deterministic` | `after_result_complete` |
+| replaceWith（結果込み、§4.2.8） | `Dom.Spec.ReplaceWithResult` | `replaceWith_result_sound` | `replaceWith_result_deterministic` | `replaceWith_result_complete` |
+| `remove()`（結果込み、§4.2.8） | `Dom.Spec.NodeRemoveResult` | `nodeRemove_result_sound` | `nodeRemove_result_deterministic` | `nodeRemove_result_complete` |
 | replace data（結果込み） | `Dom.Spec.ReplaceDataResult` | `replaceData_result_sound` | `replaceData_result_deterministic` | `replaceData_result_complete` |
 | appendData / setData（結果込み） | `Dom.Spec.AppendDataResult` / `SetDataResult` | `appendData_result_sound` / `setData_result_sound` | `replaceData_result_deterministic` に帰着 | `appendData_result_complete` / `setData_result_complete` |
 | insertData / deleteData（結果込み） | `Dom.Spec.ReplaceDataResult`（引数を固定） | `insertData_result_sound` / `deleteData_result_sound` | 同上 | `insertData_result_complete` / `deleteData_result_complete` |
@@ -111,7 +111,7 @@ transient の並び（`TransientAdded`）を決めるので、completeness か�
 ないことは仮定に置く。仕様でもこの検査は呼び出し側（pre-insert の validity）にある。
 
 record を積む step は種類ごとに切り出してある。childList（`remove` の step 16、
-`insert` の step 4.2 / 9、`move` の step 26-27）は `Dom.Spec.TreeRecordQueued`、characterData
+`insert` の step 4.2 / 8、`move` の step 26-27）は `Dom.Spec.TreeRecordQueued`、characterData
 （`replace data` の step 4）は `Dom.Spec.CharacterDataRecordQueued` である。
 後者は oldValue が載る条件（interested な registration のどれかが
 `characterDataOldValue` を持つこと）まで書いてある。
@@ -129,13 +129,13 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 | --- | --- | --- | --- | --- | --- | --- |
 | ensure pre-insert validity | 1 parent の kind / 2 cycle / 3 child の parent / 4 node の kind / 5 非 Document / 6 Text / 7 CharacterData / 8 fragment / 9 element / 10-11 doctype | `ensurePreInsertionValidity` | exception 順序 `ensurePreInsertionValidity_step1`〜`_step3`、事実の抽出 `_parentCanHaveChildren` `_nodeNotDocument` `_doctypeParentIsDocument` `_childParent` `_documentFacts` | `childnode-after-bypasses-validity`, `childnode-before-leaks-backend-error`, `replacechildren-bypasses-validity`, `replacewith-bypasses-validity` | `test_wpt_child_node_pre_insertion_validity.rb` | 済 |
 | pre-insert | 1 validity / 2-3 reference child のずらし / 4 insert | `preInsert` | success `preInsert_succeeds_iff`、exception `preInsert_error_iff`、preservation `admissible_preInsert`、委譲 `insertBefore_refines_preInsert`、reference child `ensurePreInsertionValidity_shift` | 同上 | `test_wpt_node_mutation.rb` | 済 |
-| insert | 1-3 nodes と count / 4 fragment の children を外す / 5 live range の offset 調整 / 6 previousSibling / 7 adopt して入れる / 9 record | `insert`, `insertNodesAt`, `insertEachAt`, `insertEach` | preservation `admissible_insert`、success `insert_isOk_of_validity`（`Insertable`）、effect `insert_parentOf` `insert_children_split` `insert_preserves_endpoints`、frame `insertAt_frame`、negative `exists_insert_breaking_boundaryLE` | `basic-insert-remove`, `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb`, `test_wpt_mutation_record_insertion_point.rb` | 済 |
+| insert | 1-3 nodes と count / 4 fragment の children を外す / 5 live range の offset 調整 / 6 previousSibling / 7 adopt して入れる / 8 record | `insert`, `insertNodesAt`, `insertEachAt`, `insertEach` | preservation `admissible_insert`、success `insert_isOk_of_validity`（`Insertable`）、effect `insert_parentOf` `insert_children_split` `insert_preserves_endpoints`、frame `insertAt_frame`、negative `exists_insert_breaking_boundaryLE` | `basic-insert-remove`, `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb`, `test_wpt_mutation_record_insertion_point.rb` | 済 |
 | append | 1 pre-insert(child=null) | `append` | success `append_succeeds_iff`、委譲 `append_refines_preInsert`、preservation `admissible_append` | `basic-insert-remove` | `test_wpt_node_mutation.rb` | 済 |
 | remove | 1-2 parent の assert / 3 live range の pre-remove / 4 NodeIterator の pre-remove / 7 children から外す / 15 transient observer / 16 record | `remove`, `detachWithLiveAdjust`, `detach` | preservation `admissible_remove`、success `remove_succeeds_iff`、exception `remove_error_iff`、effect `remove_parentOf` `remove_not_mem_childrenOf` `remove_ranges` `remove_iterators`、frame `detach_frame` | `basic-insert-remove`, `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_mutation_primitives.rb`, `test_wpt_transient_registered_observer.rb` | 済 |
 | pre-remove | 1 parent の一致 / 2 remove | `preRemove` | success `preRemove_succeeds_iff`、exception `preRemove_error_iff` `preRemove_error_notFound`、委譲 `removeChild_refines_preRemove` | `basic-insert-remove` | `test_wpt_node_methods_on_every_node.rb` | 済 |
 | replace | 1 validity(child を除外) / 2-3 reference child / 4 previousSibling / 6 adopt / 7 child を外す / 9 insert / 10 record | `replace` | success `replace_succeeds_iff`、exception `replace_error_iff`、preservation `admissible_replace`、exception `replace_cycle_precedes_notFound`、effect `replace_reference_head` | `replacewith-bypasses-validity` | `test_wpt_mutation_record_insertion_point.rb` | 済 |
-| replace all | 1-3 removedNodes と addedNodes / 4 children を全部外す / 5 insert / 7 record | `replaceAll` | relation `ReplaceAllSpec`、success `replaceAll_isOk`、preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
-| move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 9-10 pre-remove / 13 外す / 17 transient observer / 18 offset 調整 / 20-21 入れる / 26-27 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、success `moveBefore_succeeds_iff` `move_isOk_of_validity`、exception `moveBefore_error_iff` `moveBefore_error_receiver`、exception 順序 `moveValidity_step1`〜`_step4`、step 7-9 の assert `moveValidity_parentOf_isSome`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move`, `move-adds-transient-registered-observers` | `test_wpt_move_before.rb` | 済 |
+| replace all | 1-4 removedNodes と addedNodes / 5 children を全部外す / 6 insert / 7 record | `replaceAll` | relation `ReplaceAllSpec`、success `replaceAll_isOk`、preservation `admissible_replaceAll`、effect `removeEach_childrenOf_nil` | `replacechildren-bypasses-validity` | `test_wpt_node_mutation.rb` | 済 |
+| move | 1 同じ root / 2 cycle / 3 reference child / 4 node の kind / 5 Text と Document / 6 Document の element と doctype / 9-10 pre-remove / 13 外す / 17 transient observer / 18 offset 調整 / 20-21 入れる / 26-27 record | `move`, `moveValidity`, `moveBefore` | preservation `admissible_move` `admissible_moveBefore`、success `moveBefore_succeeds_iff` `move_isOk_of_validity`、exception `moveBefore_error_iff` `moveBefore_error_receiver`、exception 順序 `moveValidity_step1`〜`_step4`、step 7-8 の assert `moveValidity_parentOf_isSome`、effect `move_eq_remove_insertAt` `move_parentOf` `move_childrenOf` `move_ranges` `move_iterators` | `range-adjust-order-on-move`, `move-adds-transient-registered-observers` | `test_wpt_move_before.rb` | 済 |
 
 ## §4.4 `Node.normalize()`
 
@@ -162,32 +162,32 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 | --- | --- | --- | --- | --- | --- | --- |
 | replace data | 1-2 IndexSizeError / 3 count の切り詰め / 4 record / 5-7 data の差し替え / 8-11 live range の調整 | `replaceData` と `appendData` / `insertData` / `deleteData` / `setData` | relation `ReplaceDataResult`（success と exception を含む）、preservation `admissible_replaceData` ほか四つ、effect `replaceData_ok` | `characterdata-index-size-and-clamp`, `characterdata-replace-data-ranges` | `test_wpt_character_data.rb` | 済 |
 
-## §5.5 live Range / §6.1 NodeIterator
+## §5.6 live Range / §6.1 NodeIterator
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| live range pre-remove steps | 1-4 | `liveRangePreRemove` | `remove_preserves_endpoints`, `valid_liveRangePreRemoveBP`, `boundaryLE_detach` | `iterator-adjust-on-remove` | `test_wpt_range_mutations.rb` | 済 |
+| live range pre-remove steps | 1-7 | `liveRangePreRemove` | `remove_preserves_endpoints`, `valid_liveRangePreRemoveBP`, `boundaryLE_detach` | `iterator-adjust-on-remove` | `test_wpt_range_mutations.rb` | 済 |
 | live range の insert 側調整 | insert step 5 | `liveRangeInsertAdjust` | `rangeValidUpTo_liveRangeInsertAdjust` | `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb` | 済 |
-| NodeIterator pre-remove steps | 1-5 | `iteratorPreRemove`, `iteratorPreRemoveOne` | `remove_preserves_iterators_valid`, `remove_iterators_leave_subtree`, `adjustNodePointer_spec` | `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_node_edges.rb` | 済 |
+| NodeIterator pre-remove steps | 1-2 | `iteratorPreRemove`, `iteratorPreRemoveOne` | `remove_preserves_iterators_valid`, `remove_iterators_leave_subtree`, `adjustNodePointer_spec` | `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_node_edges.rb` | 済 |
 | nextNode / previousNode（traverse） | traverse 1-6 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before`, `iterator-whattoshow-skips` | `test_wpt_node_edges.rb` | 済（filter は null） |
 | filter（`whatToShow`、filter は null） | filter 1-3 | `showsNode`, `NodeKind.nodeType` | 同上 | `iterator-whattoshow-skips` | 同上 | 済 |
 
-## §5.5 `Range` の API（boundary point を動かす側）
+## §5.6 `Range` の API（boundary point を動かす側）
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| set the start / set the end | 1 doctype / 2 offset / 3-5 反対の端の正規化 | `rangeSetStart`, `rangeSetEnd`, `setStartBP`, `setEndBP`, `rangeBoundaryError` | relation `SetStartResult` / `SetEndResult`（`StartSet`・`EndSet`、`RangeValid` を仮定、等号で complete）、preservation `admissible_rangeSetStart` `admissible_rangeSetEnd` | `range-setstart-past-end-collapses`, `range-setstart-other-root-carries-range`, `range-setstart-errors` | `test_wpt_range_mutations.rb` | 済 |
+| set the start / set the end | 1 doctype / 2 offset / 3-4 反対の端の正規化 | `rangeSetStart`, `rangeSetEnd`, `setStartBP`, `setEndBP`, `rangeBoundaryError` | relation `SetStartResult` / `SetEndResult`（`StartSet`・`EndSet`、`RangeValid` を仮定、等号で complete）、preservation `admissible_rangeSetStart` `admissible_rangeSetEnd` | `range-setstart-past-end-collapses`, `range-setstart-other-root-carries-range`, `range-setstart-errors` | `test_wpt_range_mutations.rb` | 済 |
 | `Node` 引数の変換（WebIDL） | 引数変換は method の step より先 / `Range` の `Node` は non-nullable | `Operation` の `Option Nat`、`Dom.Exec.withNode` | — | `range-null-node-argument` | `test_range_node_arguments.rb` | 済 |
 | `setStartBefore` / `setStartAfter` / `setEndBefore` / `setEndAfter` | 1 parent / 2 null なら InvalidNodeTypeError / 3 set the start(end) | `rangeSetStartSibling`, `rangeSetEndSibling`, `siblingBP` | relation `SetStartSiblingResult` / `SetEndSiblingResult`、preservation `admissible_rangeSetStartSibling` ほか | `range-sibling-setters-and-collapse`, `range-boundary-needs-parent` | 同上 | 済 |
-| `collapse(toStart)` | 1-2 | `rangeCollapse` | relation `CollapseResult`、preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
+| `collapse(toStart)` | — | `rangeCollapse` | relation `CollapseResult`、preservation `admissible_rangeCollapse` | `range-sibling-setters-and-collapse` | 同上 | 済 |
 | `selectNode(node)` | 1 parent / 2 null なら InvalidNodeTypeError / 3-5 両端 | `rangeSelectNode` | relation `SelectNodeResult`、preservation `admissible_rangeSelectNode` | `range-select-node-and-contents`, `range-boundary-needs-parent` | 同上 | 済 |
 | `selectNodeContents(node)` | 1 doctype / 2-4 両端 | `rangeSelectNodeContents` | relation `SelectNodeContentsResult`、preservation `admissible_rangeSelectNodeContents` | 同上 | 同上 | 済 |
 | `isPointInRange(node, offset)` | 1-5 | `rangeIsPointInRange` | `Spec.rangeIsPointInRange_eq_iff`（`Dom/Spec/RangeQuery.lean`、例外込み） | `range-point-predicates` | 同上 | 済 |
 | `intersectsNode(node)` | 1-6 | `rangeIntersectsNode` | `Spec.rangeIntersectsNode_eq_iff`（同上） | 同上 | 同上 | 済 |
-| `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | `Spec.rangeCompareBoundaryPoints_eq_iff`（同上） | `range-compare-boundary-points` | 同上 | 済 |
+| `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-5 位置 | `rangeCompareBoundaryPoints` | `Spec.rangeCompareBoundaryPoints_eq_iff`（同上） | `range-compare-boundary-points` | 同上 | 済 |
 | `comparePoint(node, offset)` | 1 WrongDocumentError / 2 doctype / 3 offset / 4-6 位置 | `rangeComparePoint` | `Spec.rangeComparePoint_eq_iff`（同上） | 同上 | 同上 | 済 |
 
-## §5.5 `Range` の API（木を変える側）
+## §5.6 `Range` の API（木を変える側）
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -213,14 +213,14 @@ target から根までの祖先列そのものである。`Window` が無いの�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| dispatch | 1-5, 12-13, 14-18 | `dispatchEvent`, `eventPath`, `runPass` | relation `DispatchResult`（`EventPathSpec`・`PassRan`・`Invoked`・`InnerInvoked`）、`dispatchEvent_result_sound` / `_complete`（等号）、preservation `admissible_dispatchEvent`, `listenersOnly_dispatchEvent` | `event-dispatch-phases`, `event-dispatch-at-character-data-target` | `test_wpt_event_dispatch.rb` | 済（shadow / activation は対象外） |
-| invoke | 1-9 | `invokeItem` | 同上 | `event-listener-flags` | 同上 | 済 |
+| dispatch | 1-6.9, 6.13-6.14, 7-13 | `dispatchEvent`, `eventPath`, `runPass` | relation `DispatchResult`（`EventPathSpec`・`PassRan`・`Invoked`・`InnerInvoked`）、`dispatchEvent_result_sound` / `_complete`（等号）、preservation `admissible_dispatchEvent`, `listenersOnly_dispatchEvent` | `event-dispatch-phases`, `event-dispatch-at-character-data-target` | `test_wpt_event_dispatch.rb` | 済（shadow / activation は対象外） |
+| invoke | 1-11 | `invokeItem` | 同上 | `event-listener-flags` | 同上 | 済 |
 | inner invoke | 1-3 | `innerInvoke`, `invokeOne` | 同上 | 同上 | 同上 | 済 |
 | add an event listener / `addEventListener` | add 4-5、flatten more 1-5 | `addListener`, `addEventListener`, `flattenMoreOptions`, `defaultPassiveValue` | relation `AddEventListenerResult`（`ListenerAdded`・`DefaultPassive`）、`addEventListener_result_sound` / `_complete`、`defaultPassiveValue_spec`、preservation `admissible_addEventListener` | `event-listener-add-and-remove`, `event-listener-options-are-converted`, `default-passive-for-document-html-and-body` | 同上 | 済（`signal` は対象外） |
 | remove an event listener / `removeEventListener` | remove 2 | `removeListenerAt`, `removeEventListener` | relation `RemoveEventListenerResult`（`ListenerRemovedAt`）、`removeEventListener_result_sound` / `_complete`、preservation `admissible_removeEventListener` | 同上 | 同上 | 済 |
 | `stopPropagation` / `stopImmediatePropagation` / `preventDefault` | set the canceled flag | `runAction`, `setCanceledFlag` | relation `CallbackRan`、`invokeOne_passive_preventDefault` | `event-listener-flags`, `event-listener-options-are-converted` | 同上 | 済 |
 
-## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.5 stringifier
+## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.6 stringifier
 
 木も live object も変えないので、差分テストでは戻り値だけを比べる。
 
@@ -253,7 +253,7 @@ FILTER_REJECT が出ないぶん、仕様の pointer 走査は
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `nextNode()` | 3.1-3.5 | `walkerNextNode`, `walkerBase` | `exists_data_of_walkerNextNode` | `walker-basic-traversal`, `walker-not-adjusted-by-remove` | `test_wpt_tree_walker.rb` | 済（filter は null） |
+| `nextNode()` | 3.1-3.8 | `walkerNextNode`, `walkerBase` | `exists_data_of_walkerNextNode` | `walker-basic-traversal`, `walker-not-adjusted-by-remove` | `test_wpt_tree_walker.rb` | 済（filter は null） |
 | `previousNode()` | 2.1-2.5 | `walkerPreviousNode`, `previousStopsAtRoot` | relation `WalkerPreviousNodeResult`（`PreviousStopsAtRoot`）、`walkerPreviousNode_result_sound`・`_complete`、`exists_data_of_walkerPreviousNode` | `walker-basic-traversal`, `tree-walker-stops-at-root-from-outside`, `tree-walker-previous-node-passes-leaf-root` | 同上 | 済 |
 | `parentNode()` | 1-3 | `walkerParentNode`, `takeUntilIncl` | relation `WalkerParentNodeResult`、`walkerParentNode_result_sound`・`_complete`、`exists_data_of_walkerParentNode` | `walker-parent-node-leaves-root` | 同上 | 済 |
 | `firstChild()` / `lastChild()`（traverse children） | 1-4 | `walkerFirstChild`, `walkerLastChild`, `mirrorPreorder`, `cutAtRootExit` | relation `WalkerFirstChildResult`・`WalkerLastChildResult`（`MirrorPrecedes`）、`walkerFirstChild_result_sound`・`walkerLastChild_result_sound`（反転した木の `firstChild()`、`walkerLastChild_eq`）と `_complete`、`exists_data_of_walkerFirstChild` ほか | `walker-whattoshow-skips`, `walker-last-child-mirrors-order`, `tree-walker-child-passes-leaf-root` | 同上 | 済 |
@@ -279,7 +279,7 @@ scenario が最初から walker を与える形にしてある。
 | `disconnect()` | 1-4（step 3 で node list を空にする） | `MutationObserver.disconnect` | relation `DisconnectResult`、`disconnect_sound`・`disconnect_complete`、`admissible_disconnect`, `disconnect_tree/_ranges/_iterators` | （生成 scenario の `disconnect`） | 同上 | 済 |
 | `takeRecords()` | 1-3 | `MutationObserver.takeRecords` | relation `TakeRecordsResult`、`takeRecords_sound`・`takeRecords_complete`、`admissible_takeRecords`, `takeRecords_tree/_ranges/_iterators` | （生成 scenario の `takeRecords`） | 同上 | 済 |
 
-## §4.9 Attr / §1.3 名前の検査
+## §4.9 Attr / §1.4 名前の検査
 
 attribute は element の状態として持つが、**同一性は `AttrId` で持つ**。
 新しい attribute の id は `freshStateAttrId`（木にある id と detach された `Attr` の id を合わせた最大より
@@ -289,11 +289,11 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| valid namespace prefix / valid attribute local name | §1.3 | `isValidNamespacePrefix`, `isValidAttributeLocalName` | — | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
+| valid namespace prefix / valid attribute local name | §1.4 | `isValidNamespacePrefix`, `isValidAttributeLocalName` | — | （生成 scenario の `setAttributeNS`） | `test_wpt_attr.rb` | 済 |
 | validate and extract（"attribute" / "element"） | 1-12 | `validateAndExtractAttribute`, `validateAndExtractElement`, `validateAndExtractError` | 本文の step 順に書いた `Dom.Spec.validateAndExtractSteps` と等しい（`validateAndExtractAttribute_eq_steps`・`validateAndExtractElement_eq_steps`）、`validateAndExtractAttribute_ok`（step 1 と step 8）、`validateAndExtractAttribute_wellFormed` と `validateAndExtractElement_wellFormed`（step 8-11、`NamespaceWellFormed`） | 同上 | 同上 | 済（step 11 の prefix がある側は性質に入れていない） |
 | get an attribute by name | 1-2 | `getAttributeByName`, `attrNameFor` | `setAttribute_getAttribute` | `attribute-by-name-uses-qualified-name`, `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
-| valid element local name | §1.3 | `isValidElementLocalName` | — | （loader が検査する） | — | 済 |
-| `Element.tagName` | §4.8 | `tagName` | — | `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
+| valid element local name | §1.4 | `isValidElementLocalName` | — | （loader が検査する） | — | 済 |
+| `Element.tagName` | §4.9 | `tagName` | — | `attribute-name-case-follows-namespace` | `test_wpt_attribute_qualified_name.rb` | 済 |
 | get an attribute by namespace and local name | 1-2 | `getAttributeByKey` | — | （生成 scenario の `removeAttributeNS`） | 同上 | 済 |
 | handle attribute changes | 1（2-3 は hook の位置のみ） | `handleAttributeChanges` | relation `AttributeChangeHandled`（`AttributeRecordQueued`）、`handleAttributeChanges_spec`、congruence `attributeChangeHandled_congr`、preservation `admissible_setAttribute` ほか | `observer-attribute-filter-does-not-shadow` | `test_wpt_mutation_observer_attribute_options.rb` | 済 |
 | change an attribute | 1-3 | `changeAttribute` | relation `AttributeChanged`、`changeAttribute_spec`、`attributesValid_change` | 同上 | 同上 | 済 |
@@ -307,20 +307,20 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | `toggleAttribute(qualifiedName, force)` | 1-6 | `toggleAttribute`, `attrNameFor` | relation `ToggleAttributeResult`（結果込み）、`toggleAttribute_result_complete`、`admissible_toggleAttribute` | 同上 | 同上 | 済 |
 | create an attribute / `createAttribute` / `createAttributeNS` | createAttribute 1-3 / createAttributeNS 1-2 | `createAttributeIn`, `createAttribute`, `createAttributeNS` | preservation `admissible_createAttribute`, `admissible_createAttributeNS` | `attr-node-identity-moves` | — | 済 |
 | `getAttributeNode` / `getAttributeNodeNS` | 全 | `getAttributeNode`, `getAttributeNodeNS` | — | 同上 | — | 済 |
-| set an attribute / `setAttributeNode` | 2 InUseAttributeError / 3-4 同じ鍵を引く / 7 replace / 8 append（step 1 と 6 は Trusted Types なので非対象） | `setAttributeNode`, `replaceAttributeWith` | relation `SetAttributeNodeResult`（結果込み、sound / 一意 / complete）、preservation `admissible_setAttributeNode`、`attributesValid_replace` | 同上 | — | 済（`setAttributeNodeNS` は step が同一なので別に置かない） |
+| set an attribute / `setAttributeNode` | 2 InUseAttributeError / 3-4 同じ鍵を引く / 6 replace / 7 append（step 1 と 5 は Trusted Types なので非対象） | `setAttributeNode`, `replaceAttributeWith` | relation `SetAttributeNodeResult`（結果込み、sound / 一意 / complete）、preservation `admissible_setAttributeNode`、`attributesValid_replace` | 同上 | — | 済（`setAttributeNodeNS` は step が同一なので別に置かない） |
 | replace an attribute | 1-6 | `replaceAttributeWith` | relation `AttributeReplacedWith`、`replaceAttributeWith_spec`、`attributesValid_replace` | 同上 | — | 済 |
 | `removeAttributeNode` | 1 NotFoundError / 2-3 | `removeAttributeNode`, `detachAttribute` | relation `RemoveAttributeNodeResult`（結果込み）・`AttributeDetached`、preservation `admissible_removeAttributeNode` | `remove-attribute-node-checks-the-element` | — | 済 |
-| `NamedNodeMap.removeNamedItem` | 1-2 | `removeNamedItem` | relation `RemoveNamedItemResult`（結果込み）、preservation `admissible_removeNamedItem` | `attr-node-identity-moves` | — | 済（`item` / `length` は attribute list の観測で足りる） |
+| `NamedNodeMap.removeNamedItem` | 1-3 | `removeNamedItem` | relation `RemoveNamedItemResult`（結果込み）、preservation `admissible_removeNamedItem` | `attr-node-identity-moves` | — | 済（`item` / `length` は attribute list の観測で足りる） |
 | `Attr` の node document（create・append・replace・adopt） | create an attribute / append an attribute 3 / replace an attribute 4 / adopt 3.3.1 | `Attr.ownerDocument`, `createAttributeIn`, `appendAttribute`, `replaceAttributeWith`, `NodeData.withOwnerDocument`（`setOwnerDocument`） | `DocumentAssigned`（`Dom/Spec/Adopt.lean`）、`documentAssigned_setOwnerDocument` | `adopting-an-element-moves-its-attributes` | — | 済 |
 | `adoptNode` / `importNode` / `cloneNode` に `Attr` を渡す | adoptNode 1-4 / adopt 1-3 / clone a single node の `Attr` の枝 | `adoptAttr`, `importAttr`, `cloneAttr`, `cloneAttrIn` | `admissible_adoptAttr`, `admissible_importAttr`, `admissible_cloneAttr`, `cloneAttrIn_spec` | `adopt-node-keeps-an-attribute-on-its-element`, `attr-values-and-copies` | — | 済（element から外さない。browser は外す） |
 | set an existing attribute value（`value`・`nodeValue`・`textContent` の setter） | 1-2, 5（3-4 は Trusted Types なので非対象） | `setAttrValue` | `admissible_setAttrValue` | `attr-values-and-copies` | — | 済 |
 | `Attr` の `parentNode`・`getRootNode`・`isConnected`・`hasChildNodes`・`nodeName` ほか | §4.4 の各 getter | `attrParentNode`, `attrGetRootNode`, `attrQueryValue` | — | `attr-is-a-node-outside-the-tree` | — | 済 |
-| `compareDocumentPosition` の step 3-5（`Attr`） | 3-9 | `compareDocumentPositionRef` | `compareDocumentPositionRef_nodes`, `compareDocumentPositionRef_self`, `compareDocumentPositionRef_disconnected_consistent` | `attr-position-follows-its-element` | — | 済 |
+| `compareDocumentPosition` の step 3-5（`Attr`） | 3-10 | `compareDocumentPositionRef` | `compareDocumentPositionRef_nodes`, `compareDocumentPositionRef_self`, `compareDocumentPositionRef_disconnected_consistent` | `attr-position-follows-its-element` | — | 済 |
 | `contains` / `isEqualNode` / namespace の探索に `Attr` | contains / equals の `Attr` の枝 / locate a namespace の `Attr` の枝 | `nodeContainsRef`, `nodeRefEquals`, `attrLookupNamespaceURI`, `attrLookupPrefix`, `attrIsDefaultNamespace` | `nodeContainsRef_attr_attr`, `nodeContainsRef_node_attr` | `attr-position-follows-its-element` | — | 済 |
 | `appendChild` の親か子に `Attr` | ensure pre-insertion validity 1・4 | `appendChildRef` | `appendChildRef_attr_fails`, `admissible_appendChildRef` | `attr-cannot-be-a-child`, `attr-cannot-have-children` | — | 済 |
 | reflect（`id` / `className` / `slot`、HTML の `title` / `lang` / `accessKey` / `inert` / `autofocus`） | DOM §4.9・HTML §2.6.1 の getter と setter（DOMString と boolean） | `reflectSpec`, `getReflectedProp`, `setReflectedProp`, `setReflectedBool` | `SameNullNsView.getReflected`、preservation `admissible_setReflectedProp`, `admissible_setReflectedBool` | `reflect-reads-the-null-namespace-attribute`, `reflect-writes-the-null-namespace-attribute` | — | 済（enumerated・URL・数値の reflect は対象外） |
 | `DOMTokenList`（`classList`） | §7.1 add 1-3 / remove 1-3 / toggle 1-4 / replace 1-6 / contains / update steps 1-2 | `classListAdd`, `classListRemove`, `classListToggle`, `classListReplace`, `classListContains`, `tokenListUpdate` | `SameNullNsView.classListContains`、preservation `admissible_classListAdd` ほか | `class-list-ignores-namespaced-class`, `class-list-add-nothing-creates-no-attribute` | — | 済（`value` と `supports` は対象外） |
-| `HTMLCollection.namedItem(key)`（`children`） | §4.2.10.1 1-2 | `childrenNamedItem` | `SameNullNsView.childrenNamedItem` | `named-item-ignores-namespaced-id-and-name` | — | 済 |
+| `HTMLCollection.namedItem(key)`（`children`） | §4.2.10.2 1-2 | `childrenNamedItem` | `SameNullNsView.childrenNamedItem` | `named-item-ignores-namespaced-id-and-name` | — | 済 |
 | `dataset`（`DOMStringMap`） | HTML §3.2.6.8 name-value pairs 1-3 / setter 1-5 / deleter 1-3 | `datasetPairs`, `datasetGet`, `datasetKeys`, `datasetSet`, `datasetDelete` | preservation `admissible_datasetSet`, `admissible_datasetDelete` | `dataset-reads-by-qualified-name`, `dataset-writes-the-null-namespace-attribute`, `dataset-deletes-by-qualified-name`, `dataset-only-on-html-and-svg` | — | 済（本文の字面どおり。どの browser も字面どおりではない。MathML の element は扱っていない） |
 
 ## normative branch の網羅
@@ -395,7 +395,7 @@ scenario の **件数** ではなく、対象 algorithm の各 normative branch 
 | createElement | 1 valid element local name / 2 HTML document なら ASCII lowercase / 4 HTML document なら HTML namespace | `createElement`, `requireDocument`, `withFresh` | effect `createElement_creates`、preservation `admissible_createsNode` | `create-element-lowercases-in-html-document` | — | 済（custom element の step 3 と 5 は対象外。XML document の側は harness が作れない） |
 | createElementNS | validate and extract（context は "element"）してから element を作る | `createElementNS`, `validateAndExtractElement` | effect `createElementNS_creates` | `create-element-lowercases-in-html-document` | — | 済 |
 | createTextNode / createComment / createDocumentFragment | node を一つ作り node document を this にする | `createTextNode`, `createComment`, `createDocumentFragment` | effect `createTextNode_creates` ほか | `create-node-is-detached-and-owned` | — | 済 |
-| clone a single node | 2 element は create an element で / 2.1 attribute ごとに clone を作る / 3 それ以外は同じ interface で / 3.1 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNodeIn_shallow_spec`、`cloneData_shapeAnon`（id 以外は同じ） | `clone-node-copies-shape-not-identity`, `import-node-keeps-attribute-namespace` | — | 済（shadow root と custom element は対象外） |
+| clone a single node | 2.4 element は create an element で / 2.5 attribute ごとに clone を作る / 3-4 それ以外は同じ interface で / 7 Document の copy の node document は copy 自身 | `cloneSingle`, `cloneData`, `cloneDocumentOf` | effect `cloneNodeIn_shallow_spec`、`cloneData_shapeAnon`（id 以外は同じ） | `clone-node-copies-shape-not-identity`, `import-node-keeps-attribute-namespace` | — | 済（shadow root と custom element は対象外） |
 | clone a node | 2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone（document は引数のまま） | `cloneNode`, `cloneNodeIn`, `cloneMany`, `cloneAppend` | `cloneNode_cloneOf`（同じ形）、`cloneNode_ne`（別の id）、preservation `admissible_cloneNode`、totality `cloneNode_isOk`、frame `cloneNode_keep` と `cloneNode_ranges` | `clone-node-copies-shape-not-identity` | — | 済（step 6 の shadow root は対象外） |
 | importNode | 1 Document なら NotSupportedError / 最終 step で clone a node を document = this、subtree = options で呼ぶ | `importNode` | `importNode_ne`（別の id）、`importNode_cloneOf`（同じ形）、`importNode_ownerDocument`、preservation `admissible_importNode`、totality `importNode_isOk`、frame `importNode_keep` と `importNode_ranges` | `import-node-copies-into-the-receiver` | — | 済（options の dictionary 形と custom element registry は対象外） |
 | adoptNode | 1 Document なら NotSupportedError / 3 adopt する / 4 node を返す | `adoptNode` | `adoptNode_id`（同じ id）、`adoptNode_ownerDocument`、`adoptNode_detached`、`adoptNode_shape`、preservation `admissible_adoptNode` | `adopt-node-moves-the-same-node` | — | 済（step 2 の shadow root は対象外） |
@@ -413,7 +413,7 @@ node document が copy になるのは `append` の中の adopt による。
 | Shadow DOM（shadow-including root / slot） | 未対応 | shadow tree を表す構造が model に無い。`move` step 1 は shadow-including root ではなく root で近似している |
 | MutationObserver の callback 本体 | 対象外 | callback は model の外。`notifyMutationObservers` は「どの observer に何が配送されるか」を返すところまで |
 | `Attr` の node としての性質 | 部分対応 | model の attribute は element の状態で node tree に入らない。node document（`Attr.ownerDocument`）、parent が null であること、root が自分であること、`compareDocumentPosition` の step 3-5、value の setter、clone / import / adopt、子を持てないことは扱う（`Dom/Attribute/AsNode.lean`）。`Attr` を target にした event の配送と、`insertBefore` などの child 側に `Attr` を渡す形は扱わない |
-| ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
+| ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか） | 対象外 | element の attribute list とは別の仕組みで、attribute の mutation record を積まない。Dommy も未実装なので差分テストで裏を取れない |
 | custom element / insertion steps / removing steps | 対象外 | hook の位置だけを保っている |
 | UTF-16 の lone surrogate | 部分モデル | 長さと offset は code unit で数える（`Dom/Basic/Utf16.lean`）。surrogate pair を割った切り出しだけは Lean の `Char` で表せないので `DOMException.outsideModel` を返し、差分テストはその step 以降を比較しない。boundary point が pair の途中を指すことは扱える |
 | node 生成と可変長引数の変換 | 部分対応 | §4.5 の factory・§4.4 の `cloneNode`・§4.5 の `importNode` / `adoptNode` は model にあり、固定 scenario でも生成 scenario でも差分テストに出ている。生成側は必ず成功する形だけを作る。`convert nodes into a node` は `Dom/Mutation/Variadic.lean` が本文どおりに行い、生成器も文字列を混ぜた可変長の引数を作る |
@@ -424,7 +424,7 @@ node document が copy になるのは `append` の中の adopt による。
 | `NodeFilter` の callback | 対象外 | callback は model の外なので filter は常に null。`whatToShow` は純粋なので扱う |
 | WebIDL の TypeError | 済（一部） | method を呼ぶ層（`idlCheck`・`invokeOperation`）が this の interface と、`Range` の `Node` 引数・`setAttributeNode` の `Attr` 引数を検査し、`TypeError` を `DOMException` とは別の型（`IdlException.typeError`）で返す。`observe` の step 3-6 は method steps の TypeError で、`observeMethod` が同じ型で返す。algorithm の層は `DOMException` だけを返し、受け手の guard は model の都合として `NotFoundError` にする。`unsigned long` と `unsigned short` の引数は WebIDL の ConvertToInt（`Dom/Idl/Number.lean`）で変換する（`idl-unsigned-long-wraps-in-character-data`、`idl-unsigned-converts-range-arguments`）。DOMString、dictionary、可変長の引数と union、overload は未着手 |
 
-## §1.3 Selectors / §4.2.6 `ParentNode` / §4.8 `Element`
+## §1.3 Selectors / §4.2.6 `ParentNode` / §4.9 `Element`
 
 selector は CSS の仕様なので、参照する版は `docs/selectors-spec-version.md` に
 別に固定してある。形式化の範囲もそこに書いた。木も live object も変えないので、
@@ -447,9 +447,9 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | `:nth-*()` が数える列 | Selectors §14.3-14.7 | `elementSiblings`, `matchSimple` の `.nth` の枝 | `mem_elementSiblings_iff`, `sameTypeAs_iff`, `matchSimple_nth_iff` | `nth-of-type-counts-only-its-own-type`, `detached-element-is-its-own-only-sibling`, `structural-pseudo-classes-count-elements` | 済 |
 | match a selector against a tree / scope-match a selectors string | Selectors §17.3 / DOM §1.3 | `matchTree`, `scopeMatch`（`Dom/Selector/Api.lean`） | relation `ScopeMatchResult`・`MatchAgainstTree`（Selectors §17 の候補の取り方のまま）、`scopeMatch_result_sound`・`scopeMatch_result_complete`（root ではなく node の部分木を列挙しても列として等しい）、`matchTree_sublist`, `matchTree_nodup`, `mem_matchTree_iff` | `query-selector-finds-in-tree-order`, `scope-pseudo-is-the-scoping-root`, `scope-pseudo-is-the-document-element`, `scope-pseudo-virtual-root-is-featureless` | 済 |
 | `querySelector(selectors)` / `querySelectorAll(selectors)` | DOM §4.2.6 | `querySelector`, `querySelectorAll` | `admissible_mapConst`, `querySelector_eq_head`, `querySelectorAll_eq_matchTree` | `query-selector-finds-in-tree-order`, `selector-is-parsed-before-matching` | 済 |
-| 受け手の種別検査（WebIDL の TypeError） | DOM §4.2.6・§4.8 | `idlCheck`（TypeError）、algorithm の層の guard は `requireParentNode`, `requireElementNode` | `applyOperation_of_invoke` | `query-selector-needs-a-parent-node`, `matches-needs-an-element` | 済 |
+| 受け手の種別検査（WebIDL の TypeError） | DOM §4.2.6・§4.9 | `idlCheck`（TypeError）、algorithm の層の guard は `requireParentNode`, `requireElementNode` | `applyOperation_of_invoke` | `query-selector-needs-a-parent-node`, `matches-needs-an-element` | 済 |
 | scoped selector（subject だけが scope 内） | Selectors §4.4 | `matchTree` | `mem_matchTree_iff` | `only-the-subject-must-be-in-scope`, `query-selector-on-detached-and-fragment` | 済 |
-| `matches(selectors)` / `closest(selectors)` | DOM §4.8 | `matchesSelector`, `closest` | `matchesSelector_eq`, `closest_spec`, `closest_first`, `closest_eq_none_iff`, `closest_self`, `mem_matchTree_iff_matches` | `matches-and-closest-walk-up` | 済 |
+| `matches(selectors)` / `closest(selectors)` | DOM §4.9 | `matchesSelector`, `closest` | `matchesSelector_eq`, `closest_spec`, `closest_first`, `closest_eq_none_iff`, `closest_self`, `mem_matchTree_iff_matches` | `matches-and-closest-walk-up` | 済 |
 | `:scope` が scoping root を表すこと | Selectors §8.2 | `Simple.scope` | `scope_irrelevant`, `matchSelList_scope_irrelevant` | `scope-pseudo-is-the-scoping-root`, `scope-pseudo-is-the-document-element`, `scope-pseudo-virtual-root-is-featureless` | 済 |
 | featureless な virtual scoping root に当たりうる selector | Selectors §3.3 "Featureless Elements" | `allowedS`・`allowedL`・`allowedCp`、`matchSimple` の featureless の枝、`matchCompound` | `allowedL_iff`, `allowedCp_iff`, `matchSimple_iff_spec`, `allowedL_scope_irrelevant` | `scope-pseudo-virtual-root-is-featureless`, `featureless-virtual-root-logical-combinations` | 済 |
 | class・id selector の大文字小文字と document の mode | HTML §"Case-sensitivity of selectors"・DOM §4.5 | `inQuirksModeOf`, `quirksFold`, `matchSimple` の `.id`・`.cls` の枝 | `inQuirksModeOf_iff`, `quirksFold_eq_iff`, `classWordIn_iff`, `matchSimple_iff_spec` | `quirks-mode-folds-class-and-id`, `quirks-mode-belongs-to-the-node-document` | 済（limited-quirks は no-quirks と同じ） |

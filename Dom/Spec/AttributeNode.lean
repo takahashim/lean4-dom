@@ -84,10 +84,10 @@ def AttributeDetached (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr
 2. `attr` の element が null でも element でもなければ InUseAttributeError。
 3. `attr` の namespace と local name で get an attribute（oldAttr）。
 4. oldAttr が `attr` なら `attr` を返す（状態は変えない）。
-7. oldAttr があれば replace an attribute、8. 無ければ append an attribute。9. oldAttr を返す。
+6. oldAttr があれば replace an attribute、7. 無ければ append an attribute。8. oldAttr を返す。
 
 `attr` の element が element なら、attribute list の鍵は一意なので step 3 で `attr` 自身が
-見つかり step 4 で終わる。step 7-8 に来るのは `attr` の element が null のときだけである。
+見つかり step 4 で終わる。step 6-7 に来るのは `attr` の element が null のときだけである。
 -/
 def SetAttributeNodeResult (s : DOMState) (element : NodeId) (aid : AttrId) :
     Except DOMException (Option AttrId × DOMState) → Prop

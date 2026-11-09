@@ -6,7 +6,7 @@ import Dom.Mutation.Algorithms
 
 `docs/status.md` の「admissibility」が立てた層の `DocumentTreesValid`。
 
-Document の children には仕様上の制約がある（§4.2.3 "ensure pre-insertion validity" step 6）。
+Document の children には仕様上の制約がある（§4.2.3 "ensure pre-insertion validity" step 6-11）。
 これまで model はこの制約を **API 境界の検査** としてしか持っておらず、
 状態の invariant として述べていなかった。ここで invariant にする。
 
@@ -26,7 +26,7 @@ Document の children の並びが仕様の制約を満たすか。
 
 四つ目は「doctype の後ろに element が無い」ではなく
 「element の後ろに doctype が無い」として述べる。
-仕様の step 6 が `doctypeFollows`（child より後ろに doctype があるか）で
+仕様の step 9.1 が `doctypeFollows`（child より後ろに doctype があるか）で
 判定しているのと同じ向きである。
 -/
 def DocumentChildrenOk (t : Tree) (doc : NodeId) : Prop :=

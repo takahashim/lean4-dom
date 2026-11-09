@@ -6,7 +6,7 @@ import Dom.Spec.ObserverOrderSound
 # record を積む step は関係意味論を満たす
 
 `queueTreeMutationRecord` が `TreeRecordQueued` を満たすことを示す。
-`remove` の step 16、`insert` の step 4.2 / 9、`move` の step 26-27 が共有する。
+`remove` の step 16、`insert` の step 4.2 / 8、`move` の step 26-27 が共有する。
 -/
 
 namespace Dom.Spec

@@ -4,7 +4,7 @@ import Infra.Ascii
 /-!
 # 名前の検査と namespace の切り出し
 
-DOM Standard §1.3 "Name validation" と "validate and extract"。
+DOM Standard §1.4 "Name validation" と "validate and extract"。
 
 次のものを扱う。
 
@@ -23,7 +23,7 @@ namespace Dom
 export Infra (isAsciiWhitespace asciiLowercase asciiUppercase)
 
 /--
-DOM Standard §1.3 valid namespace prefix。
+DOM Standard §1.4 valid namespace prefix。
 
 長さ 1 以上で、ASCII whitespace / U+0000 / `/` / `>` を含まない。
 -/
@@ -32,7 +32,7 @@ def isValidNamespacePrefix (s : String) : Bool :=
     !isAsciiWhitespace c && c.toNat != 0x00 && c != '/' && c != '>'
 
 /--
-DOM Standard §1.3 valid attribute local name。
+DOM Standard §1.4 valid attribute local name。
 
 valid namespace prefix の条件に `=` を加えたものである。
 -/
@@ -75,7 +75,7 @@ def splitAtFirstColon (s : String) : Option (String × String) :=
   (splitFirstColonChars s.toList).map fun (pre, post) => (String.ofList pre, String.ofList post)
 
 /--
-DOM Standard §1.3 valid element local name。
+DOM Standard §1.4 valid element local name。
 
 ASCII alpha で始まるなら、ASCII whitespace / U+0000 / `/` / `>` を含まなければよい。
 そうでなければ、先頭が `:` / `_` / U+0080 以上で、続きが
@@ -95,7 +95,7 @@ def isValidElementLocalName (s : String) : Bool :=
     else false
 
 /--
-DOM Standard §1.3 "validate and extract" の step 6 と step 8-11。
+DOM Standard §1.4 "validate and extract" の step 6-11。
 
 prefix の検査（step 4.3）を終えた後の検査をまとめる。
 切り出してあるのは、失敗の条件を単体で述べられるようにするためである。
@@ -103,7 +103,7 @@ prefix の検査（step 4.3）を終えた後の検査をまとめる。
 def validateAndExtractError (validLocalName : String → Bool)
     («namespace» «prefix» : Option String)
     (localName qualifiedName : String) : Option DOMException :=
-  -- step 6。context が "attribute" か "element" かで local name の条件が違う。
+  -- step 6-7。context が "attribute" か "element" かで local name の条件が違う。
   if !validLocalName localName then some .invalidCharacterError
   -- step 8
   else if «prefix».isSome && «namespace».isNone then some .namespaceError
@@ -217,7 +217,7 @@ theorem validateAndExtractError_wellFormed {valid : String → Bool}
               simp [hq, hp]
 
 /--
-DOM Standard §1.3 "validate and extract"、context は "attribute"。
+DOM Standard §1.4 "validate and extract"、context は "attribute"。
 
 step 5 の assert は step 4.3 の分岐から従うので書かない。
 返り値は (namespace, prefix, local name)。
@@ -240,9 +240,9 @@ def validateAndExtractAttribute («namespace» : Option String) (qualifiedName :
     | none => .ok (normalizeNamespace «namespace», pfx, localName)
 
 /--
-DOM Standard §1.3 "validate and extract"、context は "element"。
+DOM Standard §1.4 "validate and extract"、context は "element"。
 
-attribute 版との違いは step 6 の local name の条件だけである。
+attribute 版との違いは local name の条件だけである（attribute は step 6、element は step 7）。
 -/
 def validateAndExtractElement («namespace» : Option String) (qualifiedName : String) :
     Except DOMException (Option String × Option String × String) :=

@@ -33,7 +33,7 @@ theorem moveSpec_congr {o₁ o₂ : DOMState} (hwf : WellFormed s.tree) (h : Obs
     hp₁, hix₁, hdet₁, hta₁, hprev₁, hidx₁, hri₁, hti₁, hl₁, hq₁, hf₁, hq₁', hf₁'⟩ := h₁
   obtain ⟨oldParent', index', idx', newPrev', s₁', sₜ', sa', s₂', s₃',
     hp₂, hix₂, hdet₂, hta₂, hprev₂, hidx₂, hri₂, hti₂, hl₂, hq₂, hf₂, hq₂', hf₂'⟩ := h₂
-  -- step 7-9。旧 parent と index は入力の観測から決まる。
+  -- step 7-8。旧 parent と index は入力の観測から決まる。
   have hoe : oldParent' = oldParent := by
     rw [h.tree.parentOf, hp₁] at hp₂
     exact (Option.some.inj hp₂).symm

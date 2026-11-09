@@ -2,13 +2,13 @@
   "_note": "差分テストを再現するために固定する version。更新するときは、固定 scenario と生成 scenario を両方通してから上げる。",
   "spec": {
     "repository": "https://github.com/whatwg/dom",
-    "commit": "3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177",
-    "date": "2026-10-19"
+    "commit": "6cc24159f1fe0857686d6712affb37d33229777e",
+    "date": "2026-11-04"
   },
   "webidl": {
     "repository": "https://github.com/whatwg/webidl",
-    "commit": "7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf",
-    "date": "2026-10-26",
+    "commit": "e340c2e5c40b2c3616d8b1393dcc34f0b6db0e4b",
+    "date": "2026-11-07",
     "_note": "method を呼ぶ層の WebIDL の検査と、整数型の変換（ConvertToInt）が従う版。source は index.bs。"
   },
   "ecma262": {

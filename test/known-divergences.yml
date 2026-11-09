@@ -18,7 +18,7 @@
   digest: 96a0c9a73c5e01b3
   reason: &insert_order |
     §4.2.3 insert の step 5（live range の offset 繰り上げ）と step 7（adopt →
-    remove → §5.5 pre-remove steps）の順序。仕様の番号は step 5 が先である
+    remove → §5.6 pre-remove steps）の順序。仕様の番号は step 5 が先である
     （`pre-insert` に removal は無く、removal は step 7.1 の adopt の中にある）。
     Chromium は removal の調整を先に走らせたかのように振る舞う。
 
@@ -51,8 +51,8 @@
   scenario: range-delete-contents-across-nodes
   digest: ff6562a05551dd35
   reason: |
-    §5.5 deleteContents が record を積む順序。仕様は step 6（original start node が
-    CharacterData なら replace data）→ step 7（nodes to remove を外す）→ step 8
+    §5.6 deleteContents が record を積む順序。仕様は step 9（original start node が
+    CharacterData なら replace data）→ step 10（nodes to remove を外す）→ step 11
     （original end node の replace data）の順で、characterData・childList・childList・
     characterData と積まれる。Chromium は characterData を二つ先に積み、そのあとで
     childList を二つ積む。木の形も live range の端点も一致するので、違うのは
@@ -346,7 +346,7 @@
   digest: b086b73b2d171e9e
   reason: |
     上の chromium の entry と同じ形。WebKit も characterData の record を二つ先に積み、
-    そのあとで childList を二つ積む。仕様の step 6・7・8 の順なら characterData・childList・
+    そのあとで childList を二つ積む。仕様の step 9・10・11 の順なら characterData・childList・
     childList・characterData である。
     https://dom.spec.whatwg.org/#dom-range-deletecontents
 
@@ -364,7 +364,7 @@
   scenario: range-insert-node-moves-preceding-sibling
   digest: d14d5e7724639839
   reason: |
-    §5.5 insertNode は step 9 で node を外し、step 10 で newOffset を数える。node が
+    §5.6 insertNode は step 9 で node を外し、step 10 で newOffset を数える。node が
     同じ parent の前方にいれば外したあとで index が一つ詰まるので、collapsed な range の
     end は一つ前になる。Firefox は外す前に数えたかのように end を一つ後ろにする
     （Dommy の findings 8 と同じ形）。Chromium と WebKit は本文どおり。
@@ -413,9 +413,9 @@
   scenario: transient-observer-chains-through-removals
   digest: 5c6cf2c71f3298c4
   reason: |
-    remove の step 20 が外した node に足す transient registered observer は、その node の
+    remove の step 15 が外した node に足す transient registered observer は、その node の
     registered observer list の要素である。外した木の中からさらに node を外すと、
-    step 21 の "queue a tree mutation record" は parent の inclusive ancestor の list を
+    step 16 の "queue a tree mutation record" は parent の inclusive ancestor の list を
     見るので、transient registered observer（options は元の registration のもの、subtree
     は true）が interested observer になり record が積まれる。Firefox はこの record を
     積まない。Chromium と WebKit はこの scenario の配送順を harness で比べられない（skip）。
@@ -615,7 +615,7 @@
   reason: &variadic_range |
     DOM §4.2.6 "convert nodes into a node" は、引数が二つ以上なら node を新しい DocumentFragment に
     append し、§4.2.3 insert の step 4 はその fragment の子を順に取り除く。取り除くときの
-    live range pre-remove steps（§5.5）が、取り除く node の中にある live range を (fragment, index)
+    live range pre-remove steps（§5.6）が、取り除く node の中にある live range を (fragment, index)
     へ移す。木に無い node の中の range は、その node が fragment から取り除かれると fragment へ
     移り、fragment が空になった後もそこに残る。
     確かめた method は `replaceWith`・`append`・`replaceChildren` である。Chromium はどれでも range を
@@ -729,12 +729,12 @@
   digest: d706b8fa52f5ab3e
   reason: *split_text_record_order_dommy
 
-# extract（§5.5）が end node の data を切る順。
+# extract（§5.6）が end node の data を切る順。
 - impl: chromium
   scenario: range-extract-across-texts
   digest: a6b60884162009d9
   reason: &extract_record_order |
-    DOM §5.5 "extract" は step 18 で contained children を fragment へ append し（元の parent に childList の
+    DOM §5.6 "extract" は step 18 で contained children を fragment へ append し（元の parent に childList の
     record）、そのあと step 19.4 で original end node の data を replace data で切る（characterData の record）。
     本文の順では childList の record が先に積まれる。Chromium と WebKit は end node の data を先に切ってから
     contained children を移すので、characterData の record が先になる。木・live range・data・返す fragment は
@@ -908,9 +908,9 @@
   scenario: range-surround-ancestor
   digest: ababd0d4445e31a1
   reason: &surround_replace_all |
-    DOM §5.5 `surroundContents()` の step 4 は、newParent が children を持てば "replace all" with null を行う。
+    DOM §5.6 `surroundContents()` の step 4 は、newParent が children を持てば "replace all" with null を行う。
     replace all（§4.2.3）は children を suppress observers flag 付きで外し、外した node を全部 removedNodes に
-    並べた childList の record を一つだけ積む（step 4-7）。Chromium と jsdom 30.1.2 は children を先頭から一つずつ
+    並べた childList の record を一つだけ積む（step 5-7）。Chromium と jsdom 30.1.2 は children を先頭から一つずつ
     外して子ごとに record を積み、Firefox は末尾から一つずつ外す。WebKit は本文どおり record を一つ積む。
     木・live range・例外は本文どおりで、違うのは MutationObserver に届く record の数と並びだけである。
     https://dom.spec.whatwg.org/#dom-range-surroundcontents

@@ -5,7 +5,7 @@ import Dom.Properties.Tree
 /-!
 # 名前の検査と attribute 探索の契約
 
-§1.3 の名前検査と §4.9 の attribute 探索について、差分テストからは出てこない
+§1.4 の名前検査と §4.9 の attribute 探索について、差分テストからは出てこない
 性質を書く。名前検査どうしの包含と、`findAttr` が返す owner element の整合が中心である。
 
 最初の colon での分解と round-trip は `Dom/Spec/ValidateAndExtract.lean` で証明する。

@@ -8,7 +8,7 @@ import Dom.Properties.Tree
 `Dom/Spec/Validity.lean` の `DoctypeFollowing` / `ElementPreceding` は、
 仕様の "a doctype is **following** child" / "an element is **preceding** child" を
 **`parent` の children の中での前後**として書いた。仕様の `following` / `preceding` は
-**木の順序**（§1.4）である。
+**木の順序**（§1.1）である。
 
 ここでその二つが一致することを示す。一致するのは step 9 / step 11 の文脈、つまり
 `parent` が Document で `child` がその子であるときだけで、根拠は構造上の制約である。

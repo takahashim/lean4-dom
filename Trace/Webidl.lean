@@ -8,7 +8,7 @@ import Dom
 `ruby spec-trace/check.rb --spec webidl` が `spec-trace/webidl.json` と突き合わせる。
 
 model が実装するのは、JavaScript の値から IDL の値への変換のうち model の操作の引数に要るもの（§3.2）と、
-operation の関数が this を検査し、引数を変換し、method steps を呼ぶ順（§3.7.5）である。
+operation の関数が this を検査し、引数を変換し、method steps を呼ぶ順（§3.7.7）である。
 変換の実装は `Dom/Idl/`、this の検査は `Dom/Exec/Invoke.lean`、例外を投げうる変換は
 `Dom/Exec/Eval.lean` の `invokeChecked`、例外を投げない変換は scenario の読み取り（`Dom/Exec/Json.lean`）にある。
 -/
@@ -98,7 +98,7 @@ def entries : List Entry := [
     approx := [("1-5", "effective overload set は、省略できる引数の数だけ長さが違う一つの operation の entry なので、渡した引数の個数（scenario の `argc`）が必須の個数（`requiredArgs`）より少なければ TypeError とする"),
                ("15-16", "引数の変換は op ごとに書く。渡さなかった optional の引数は field を書かないことで表し、既定値を使う")] },
 
-  /- ## §3.7.5 operation の関数 -/
+  /- ## §3.7.7 operation の関数 -/
   { alg := "dfn-create-operation-function"
     impl := [``Dom.Exec.invokeOperation, ``Dom.Exec.idlCheck, ``Dom.Exec.invokeChecked,
              ``Dom.Exec.returnValueOf]

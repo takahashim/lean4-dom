@@ -232,7 +232,7 @@ inductive Operation where
   | rangeCommonAncestorContainer (range : Nat)
   /-- `TreeWalker` の走査 method（§6.2）。 -/
   | walkerMove (walker : Nat) (method : WalkerMethod)
-  /-- `Range` の stringifier（§5.5）。 -/
+  /-- `Range` の stringifier（§5.6）。 -/
   | rangeToString (range : Nat)
   /-- §4.4 の、値を返すだけの method。 -/
   | compareDocumentPosition (node other : Nat)
@@ -297,7 +297,7 @@ inductive Operation where
   | classListToggle (element : Nat) (token : String) (force : Option Bool)
   | classListReplace (element : Nat) (token newToken : String)
   | classListContains (element : Nat) (token : String)
-  /-- DOM §4.2.10.1 `HTMLCollection.namedItem(key)`。collection は `ParentNode.children`。 -/
+  /-- DOM §4.2.10.2 `HTMLCollection.namedItem(key)`。collection は `ParentNode.children`。 -/
   | childrenNamedItem (node : Nat) (key : String)
   /-- `MutationObserver.observe(target, options)`。options は WebIDL の変換の前の値。 -/
   | observe (observer : Nat) (target : Nat) (options : Idl.JsValue)
@@ -342,7 +342,7 @@ inductive Operation where
   /-- `NamedNodeMap.removeNamedItem(qualifiedName)`。無ければ `NotFoundError`。 -/
   | removeNamedItem (element : Nat) (qualifiedName : String)
   /--
-  §4.2.6 `ParentNode` と §4.8 `Element` の、selector を取る method。
+  §4.2.6 `ParentNode` と §4.9 `Element` の、selector を取る method。
 
   receiver が `ParentNode`（あるいは `Element`）でなければ WebIDL の `TypeError`、
   selector を読めなければ `SyntaxError` になる。

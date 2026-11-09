@@ -5,7 +5,7 @@ import Dom.Properties.Record
 # record を積む実行関数は pending mutation observers の順を本文どおりにする
 
 `queueMutationRecord` は interested observers を二重の畳み込み（inclusive ancestor ごと、registration ごと）で
-集め、その順に `addPendingObserver` する。ここでは、その結果が `PendingAppended`（本文の step 3-4 の順）に
+集め、その順に `addPendingObserver` する。ここでは、その結果が `PendingAppended`（本文の step 3-5 の順）に
 なることを示す（`pendingAppended_queueMutationRecord`）。
 -/
 

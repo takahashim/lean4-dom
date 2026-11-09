@@ -30,8 +30,8 @@ PLAN §5.1 の四つの前提条件を明示的に検査する。
 3. node が parent の inclusive ancestor でない（そうなら `hierarchyRequestError`）
 4. child が指定されていれば parent の子である（違えば `notFoundError`）
 
-3 は DOM Standard §4.2.3 ensure pre-insertion validity の step 1、
-4 は同 step 4 に対応する。
+3 は DOM Standard §4.2.3 ensure pre-insertion validity の step 2、
+4 は同 step 3 に対応する。
 -/
 def insertAt (t : Tree) (parent node : NodeId) (child : Option NodeId) :
     Except DOMException Tree :=

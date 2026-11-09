@@ -321,7 +321,7 @@ theorem insertSpec_deterministic {s o₁ o₂ : DOMState} {suppress : Bool}
     (h₂ : InsertSpec s node parent child suppress o₂) : ObsEq o₁ o₂
 ```
 
-`hacyc`（入れる node が `parent` の inclusive ancestor でない）は §4.2.1 の
+`hacyc`（入れる node が `parent` の inclusive ancestor でない）は §4.2.3 の
 pre-insertion validity が保証するもので、`insert` 本体は前提として受け取る。
 これが無いと木が循環し、`TreeInserted` の結果が well-formed でなくなる。
 
@@ -449,7 +449,7 @@ selector を使わない `getElementsByClassName()` と `getElementsByName()` �
 
 `Attr` を `Node` として渡す `compareDocumentPosition` は、node どうしなら元の定義と同じで
 （`compareDocumentPositionRef_nodes`）、element の無い `Attr` が絡めば向きを入れ替えると PRECEDING と
-FOLLOWING が入れ替わる（`compareDocumentPositionRef_disconnected_consistent`、step 5 の「一貫していること」）。
+FOLLOWING が入れ替わる（`compareDocumentPositionRef_disconnected_consistent`、step 6 の「一貫していること」）。
 `Attr` は子にも親にもなれない（`appendChildRef_attr_fails`）。
 
 ## 17. scoping root が見えるのは `:scope` からだけ
@@ -599,9 +599,9 @@ theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat
       = rangeMoveOutOfSubtree t node parent index (rangeShiftAfterRemove parent index bp)
 ```
 
-§5.5 は step 3-4（部分木の外へ移す）と step 5-6（offset をずらす）の順序を定めるが、
-二つは**無条件に可換**である。step 5-6 は `node` を変えないので step 3-4 の条件に
-影響せず、step 3-4 が移した先の offset はちょうど `index` なので step 5-6 の条件に
+§5.6 は step 4-5（部分木の外へ移す）と step 6-7（offset をずらす）の順序を定めるが、
+二つは**無条件に可換**である。step 6-7 は `node` を変えないので step 4-5 の条件に
+影響せず、step 4-5 が移した先の offset はちょうど `index` なので step 6-7 の条件に
 当てはまらない。
 
 この定理は、差分テストで順序を入れ替えても不一致が出ないことの説明になっている。
@@ -832,7 +832,7 @@ steps が parse して token set に戻す。model は token set を持たず、
 無ければ戻り（`orderedSetParse_serialize`）、`add`・`remove`・`toggle`・`replace` が渡す set はいつもそうである
 （token の検査が `TokenOk` を保証する。`validateTokens_eq_none_iff`）。
 
-## 28. 名前の検査は §1.3 の条件そのものであり、`createElement()` はその条件で失敗する
+## 28. 名前の検査は §1.4 の条件そのものであり、`createElement()` はその条件で失敗する
 
 | 定理 | module |
 | --- | --- |
@@ -841,7 +841,7 @@ steps が parse して token set に戻す。model は token set を持たず、
 | `Dom.Spec.validNamespacePrefix_iff` | 同上 |
 | `Dom.Spec.createElement_result_sound` | 同上 |
 
-§1.3 の valid namespace prefix・valid attribute local name・valid element local name を、本文の言い方
+§1.4 の valid namespace prefix・valid attribute local name・valid element local name を、本文の言い方
 （長さが 1 以上で、使えない文字を含まない。element では先頭の code point で場合を分ける）のまま命題に書き、
 実行側の Boolean の検査と `↔` で結んだ。`createElement()` は、Document の上で、名前がこの条件を満たさなければ
 InvalidCharacterError、満たせば step 2-5 の element（HTML document なら local name を ASCII lowercase、namespace は

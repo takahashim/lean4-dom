@@ -49,7 +49,7 @@ def replaceChildren (s : DOMState) (parent : NodeId) (node : Option NodeId) :
     | .error e => .error e
     | .ok () => replaceAll s (some n) parent
 
-/-- DOM Standard §4.2.9 `ChildNode.before(nodes)`。 -/
+/-- DOM Standard §4.2.8 `ChildNode.before(nodes)`。 -/
 def before (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
   -- step 1-2
   match parentOf s.tree this with
@@ -61,7 +61,7 @@ def before (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
        | none => (childrenOf s.tree parent).head?
        | some v => nextSibling s.tree v)
 
-/-- DOM Standard §4.2.9 `ChildNode.after(nodes)`。 -/
+/-- DOM Standard §4.2.8 `ChildNode.after(nodes)`。 -/
 def after (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
   -- step 1-2
   match parentOf s.tree this with
@@ -70,7 +70,7 @@ def after (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
     -- step 3, 5
     preInsert s node parent (viableNextSibling s.tree this [node])
 
-/-- DOM Standard §4.2.9 `ChildNode.replaceWith(nodes)`。 -/
+/-- DOM Standard §4.2.8 `ChildNode.replaceWith(nodes)`。 -/
 def replaceWith (s : DOMState) (this node : NodeId) : Except DOMException DOMState :=
   -- step 1-2
   match parentOf s.tree this with
@@ -80,7 +80,7 @@ def replaceWith (s : DOMState) (this node : NodeId) : Except DOMException DOMSta
     if parentOf s.tree this = some parent then replace s this node parent
     else preInsert s node parent (viableNextSibling s.tree this [node])
 
-/-- DOM Standard §4.2.9 `ChildNode.remove()`。 -/
+/-- DOM Standard §4.2.8 `ChildNode.remove()`。 -/
 def nodeRemove (s : DOMState) (this : NodeId) : Except DOMException DOMState :=
   -- step 1-2
   match parentOf s.tree this with

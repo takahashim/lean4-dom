@@ -14,7 +14,7 @@ congruence もその二つを composition する。
 `TreeInserted` が well-formed を保つには
 「入れる node がすでに parent を持っていない」ことと
 「入れる node が `parent` の inclusive ancestor でない」ことが要る。
-どちらも §4.2.1 の pre-insertion validity が保証するもので、
+どちらも §4.2.3 の pre-insertion validity が保証するもので、
 `insert` 本体は前提として受け取る。
 -/
 
@@ -406,7 +406,7 @@ theorem fragmentPrepared_congr {s sb s₁ s₂ : DOMState} {nodes : List NodeId}
 /--
 **`InsertSpec` の congruence。**
 
-「入れる node が `parent` の inclusive ancestor でない」は §4.2.1 の
+「入れる node が `parent` の inclusive ancestor でない」は §4.2.3 の
 pre-insertion validity が保証するもので、`insert` 本体は仮定として受け取る。
 -/
 theorem insertSpec_congr {s sb o₁ o₂ : DOMState} {suppress : Bool}
@@ -458,7 +458,7 @@ theorem insertSpec_congr {s sb o₁ o₂ : DOMState} {suppress : Bool}
     -- step 7
     have hobs₃ : ObsEq s₃ s₃' :=
       insertedEach_congr ns₁ hwf₂ hdoc₂ hacyc₂ hobs₂ hie₁ hie₂
-    -- step 9
+    -- step 8
     exact treeRecordQueued_congr hobs₃ hrec₁ hrec₂ hfr₁ hfr₂
 
 /--

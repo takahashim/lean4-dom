@@ -108,7 +108,7 @@ theorem remove_ranges {s s' : DOMState} {n p : NodeId} {b : Bool}
     (hp : parentOf s.tree n = some p) (h : remove s n b = .ok s') :
     s'.ranges = s.ranges.map (liveRangePreRemoveRange s.tree n p ((index s.tree n).getD 0)) := by
   obtain ⟨p', sd, hp', hd, hrec⟩ := remove_cases h
-  -- step 20-21 は range を変えない。
+  -- step 15-16 は range を変えない。
   have hr : s'.ranges = sd.ranges := by
     rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> simp
   rw [hr]
@@ -1217,11 +1217,11 @@ theorem preRemove_preserves_sameNodeOrdered {s s' : DOMState} {child parent : No
 /-! ## pre-remove steps の二つの調整は可換である -/
 
 /--
-**§5.5 の step 3-4 と step 5-6 は、順序を入れ替えても結果が変わらない。**
+**§5.6 の step 4-5 と step 6-7 は、順序を入れ替えても結果が変わらない。**
 
-step 5-6（offset をずらす）は boundary point の `node` を変えないので、
-step 3-4（部分木の外へ移す）の条件に影響しない。逆に step 3-4 が移した先の
-offset はちょうど `index` なので、step 5-6 の条件（`index` より大きい）に当てはまらない。
+step 6-7（offset をずらす）は boundary point の `node` を変えないので、
+step 4-5（部分木の外へ移す）の条件に影響しない。逆に step 4-5 が移した先の
+offset はちょうど `index` なので、step 6-7 の条件（`index` より大きい）に当てはまらない。
 
 仕様は順序を定めているが、この定理があるので実装はどちらの順でもよい。
 差分テストで順序を入れ替えても不一致が出ないのはこのためである

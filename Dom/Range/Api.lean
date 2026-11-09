@@ -4,7 +4,7 @@ import Dom.CharacterData.ReplaceData
 import Dom.CharacterData.SplitText
 
 /-!
-# `Range` の API（§5.5）
+# `Range` の API（§5.6）
 
 boundary point を動かす側の method。木を変えるもの（`deleteContents` ほか）は別に置く。
 
@@ -22,7 +22,7 @@ model の range は `DOMState.ranges` の要素で、scenario が与えた順に
 
 namespace Dom
 
-/-- DOM Standard §5.5 "set the start/end of a range" の step 1-2。 -/
+/-- DOM Standard §5.6 "set the start/end of a range" の step 1-2。 -/
 def rangeBoundaryError (t : Tree) (bp : BoundaryPoint) : Option DOMException :=
   match t.get? bp.node with
   | none => some .notFoundError
@@ -35,12 +35,12 @@ def rangeBoundaryError (t : Tree) (bp : BoundaryPoint) : Option DOMException :=
 def rangeNeedsCollapse (t : Tree) (bp other : BoundaryPoint) : Bool :=
   root t bp.node != root t other.node || bpPosition t bp other == .gt
 
-/-- DOM Standard §5.5 "set the start of a range" の step 3-5。 -/
+/-- DOM Standard §5.6 "set the start of a range" の step 3-4。 -/
 def setStartBP (t : Tree) (r : RangeState) (bp : BoundaryPoint) : RangeState :=
   if rangeNeedsCollapse t bp r.«end» then { start := bp, «end» := bp }
   else { r with start := bp }
 
-/-- DOM Standard §5.5 "set the end of a range" の step 3-5。 -/
+/-- DOM Standard §5.6 "set the end of a range" の step 3-4。 -/
 def setEndBP (t : Tree) (r : RangeState) (bp : BoundaryPoint) : RangeState :=
   if rangeNeedsCollapse t r.start bp then { start := bp, «end» := bp }
   else { r with «end» := bp }
@@ -49,7 +49,7 @@ def setEndBP (t : Tree) (r : RangeState) (bp : BoundaryPoint) : RangeState :=
 def withRange (s : DOMState) (i : Nat) (r : RangeState) : DOMState :=
   { s with ranges := s.ranges.set i r }
 
-/-- DOM Standard §5.5 `Range.setStart(node, offset)`。 -/
+/-- DOM Standard §5.6 `Range.setStart(node, offset)`。 -/
 def rangeSetStart (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
     Except DOMException DOMState :=
   match s.ranges[i]? with
@@ -59,7 +59,7 @@ def rangeSetStart (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
     | some e => .error e
     | none => .ok (withRange s i (setStartBP s.tree r bp))
 
-/-- DOM Standard §5.5 `Range.setEnd(node, offset)`。 -/
+/-- DOM Standard §5.6 `Range.setEnd(node, offset)`。 -/
 def rangeSetEnd (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
     Except DOMException DOMState :=
   match s.ranges[i]? with
@@ -80,21 +80,21 @@ def siblingBP (t : Tree) (n : NodeId) (after : Bool) : Option BoundaryPoint :=
   | some p, some idx => some ⟨p, if after then idx + 1 else idx⟩
   | _, _ => none
 
-/-- DOM Standard §5.5 `Range.setStartBefore` / `setStartAfter`。 -/
+/-- DOM Standard §5.6 `Range.setStartBefore` / `setStartAfter`。 -/
 def rangeSetStartSibling (s : DOMState) (i : Nat) (n : NodeId) (after : Bool) :
     Except DOMException DOMState :=
   match siblingBP s.tree n after with
   | none => .error .invalidNodeTypeError
   | some bp => rangeSetStart s i bp
 
-/-- DOM Standard §5.5 `Range.setEndBefore` / `setEndAfter`。 -/
+/-- DOM Standard §5.6 `Range.setEndBefore` / `setEndAfter`。 -/
 def rangeSetEndSibling (s : DOMState) (i : Nat) (n : NodeId) (after : Bool) :
     Except DOMException DOMState :=
   match siblingBP s.tree n after with
   | none => .error .invalidNodeTypeError
   | some bp => rangeSetEnd s i bp
 
-/-- DOM Standard §5.5 `Range.collapse(toStart)`。 -/
+/-- DOM Standard §5.6 `Range.collapse(toStart)`。 -/
 def rangeCollapse (s : DOMState) (i : Nat) (toStart : Bool) :
     Except DOMException DOMState :=
   match s.ranges[i]? with
@@ -103,7 +103,7 @@ def rangeCollapse (s : DOMState) (i : Nat) (toStart : Bool) :
     let bp := if toStart then r.start else r.«end»
     .ok (withRange s i { start := bp, «end» := bp })
 
-/-- DOM Standard §5.5 `Range.selectNode(node)`。 -/
+/-- DOM Standard §5.6 `Range.selectNode(node)`。 -/
 def rangeSelectNode (s : DOMState) (i : Nat) (n : NodeId) : Except DOMException DOMState :=
   match s.ranges[i]? with
   | none => .error .notFoundError
@@ -113,7 +113,7 @@ def rangeSelectNode (s : DOMState) (i : Nat) (n : NodeId) : Except DOMException 
       .ok (withRange s i { start := ⟨p, idx⟩, «end» := ⟨p, idx + 1⟩ })
     | _, _ => .error .invalidNodeTypeError
 
-/-- DOM Standard §5.5 `Range.selectNodeContents(node)`。 -/
+/-- DOM Standard §5.6 `Range.selectNodeContents(node)`。 -/
 def rangeSelectNodeContents (s : DOMState) (i : Nat) (n : NodeId) :
     Except DOMException DOMState :=
   match s.ranges[i]?, s.tree.get? n with
@@ -126,10 +126,10 @@ def rangeSelectNodeContents (s : DOMState) (i : Nat) (n : NodeId) :
 /-! ## 値を返すだけの method -/
 
 /--
-DOM Standard §5.5 `Range.compareBoundaryPoints(how, sourceRange)`。
+DOM Standard §5.6 `Range.compareBoundaryPoints(how, sourceRange)`。
 
 `how` は 0 START_TO_START / 1 START_TO_END / 2 END_TO_END / 3 END_TO_START。
-step 3 の組み合わせは対称ではない。1 は「this の end と source の start」、
+step 4 の組み合わせは対称ではない。1 は「this の end と source の start」、
 3 は「this の start と source の end」である。
 -/
 def rangeCompareBoundaryPoints (s : DOMState) (i : Nat) (how : Nat) (j : Nat) :
@@ -148,7 +148,7 @@ def rangeCompareBoundaryPoints (s : DOMState) (i : Nat) (how : Nat) (j : Nat) :
            | .gt => 1)
   | _, _ => .error .notFoundError
 
-/-- DOM Standard §5.5 `Range.comparePoint(node, offset)`。 -/
+/-- DOM Standard §5.6 `Range.comparePoint(node, offset)`。 -/
 def rangeComparePoint (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
     Except DOMException Int :=
   match s.ranges[i]? with
@@ -165,7 +165,7 @@ def rangeComparePoint (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
              else 0)
 
 
-/-- DOM Standard §5.5 `Range.isPointInRange(node, offset)`。 -/
+/-- DOM Standard §5.6 `Range.isPointInRange(node, offset)`。 -/
 def rangeIsPointInRange (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
     Except DOMException Bool :=
   match s.ranges[i]? with
@@ -178,7 +178,7 @@ def rangeIsPointInRange (s : DOMState) (i : Nat) (bp : BoundaryPoint) :
       | some e => .error e
       | none => .ok (!(bpPosition s.tree bp r.start == .lt) && !(bpPosition s.tree bp r.«end» == .gt))
 
-/-- DOM Standard §5.5 `Range.intersectsNode(node)`。 -/
+/-- DOM Standard §5.6 `Range.intersectsNode(node)`。 -/
 def rangeIntersectsNode (s : DOMState) (i : Nat) (n : NodeId) : Except DOMException Bool :=
   match s.ranges[i]? with
   | none => .error .notFoundError
@@ -197,7 +197,7 @@ def rangeIntersectsNode (s : DOMState) (i : Nat) (n : NodeId) : Except DOMExcept
 /-! ## `deleteContents` -/
 
 /--
-DOM Standard §5.5 "contained"。
+DOM Standard §5.6 "contained"。
 
 node 全体が range の中に入っていること。
 -/
@@ -207,7 +207,7 @@ def containedInRange (t : Tree) (r : RangeState) (n : NodeId) : Bool :=
     bpPosition t ⟨n, lengthOf t n⟩ r.«end» == .lt
 
 /--
-DOM Standard §5.5 `deleteContents` の step 4。
+DOM Standard §5.6 `deleteContents` の step 4。
 
 range に含まれる node を tree order で並べ、親も含まれるものを落とす。
 -/
@@ -219,7 +219,7 @@ def nodesToRemove (t : Tree) (r : RangeState) : List NodeId :=
         | none => false)
 
 /--
-DOM Standard §5.5 `deleteContents` の step 5-7。
+DOM Standard §5.6 `deleteContents` の step 5-7。
 
 start node が end node の inclusive ancestor ならその場に潰れる。
 そうでなければ、start 側の祖先を「end node の inclusive ancestor の子」になるまで上り、
@@ -237,7 +237,7 @@ def deleteContentsNewBP (t : Tree) (r : RangeState) : BoundaryPoint :=
     | _, _ => r.start
 
 /--
-DOM Standard §5.5 `Range.deleteContents()`。
+DOM Standard §5.6 `Range.deleteContents()`。
 
 本文は step 8 で `this` を (newNode, newOffset) に置いてから step 9-11（replace data と remove）を走らせる。
 ここでは step 9-11 を先に走らせ、最後に点を置く。step 9-11 の live range の調整はこの点を動かさないので
@@ -299,7 +299,7 @@ def refBP (t : Tree) (parent : NodeId) (ref : Option NodeId) : BoundaryPoint :=
   | some c => ⟨parent, (index t c).getD 0⟩
 
 /--
-DOM Standard §5.5 insert の step 8-13。`parent` と `referenceNode` は step 4-7 で決めたもの。
+DOM Standard §5.6 insert の step 8-13。`parent` と `referenceNode` は step 4-7 で決めたもの。
 
 step 10-11 の newOffset は「入った node の最後の次」に等しい。
 model はその形で書く（`siblingBP`）。そうすると端点の妥当性が
@@ -339,7 +339,7 @@ def rangeInsertNodeTail (s : DOMState) (i : Nat) (parent node : NodeId)
         else .ok s₂
 
 /--
-DOM Standard §5.5 `Range.insertNode(node)`。
+DOM Standard §5.6 `Range.insertNode(node)`。
 
 step 7 は start node が Text（CDATASection を含む）なら start offset で split し、
 reference node を新しい Text にする（`splitText`）。
@@ -382,7 +382,7 @@ def rangeInsertNode (s : DOMState) (i : Nat) (node : NodeId) : Except DOMExcepti
 /-! ## stringifier -/
 
 /--
-DOM Standard §5.5 `Range` の stringification behavior。
+DOM Standard §5.6 `Range` の stringification behavior。
 
 step 4 の「contained な Text を tree order で」は `nodesToRemove` と同じ
 `containedInRange` で決まる。**common ancestor の子だけではない。**

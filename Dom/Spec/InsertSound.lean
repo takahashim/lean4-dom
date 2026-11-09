@@ -7,7 +7,7 @@ import Dom.Spec.RecordSound
 
 `Dom/Spec/Insert.lean` の `InsertSpec` を、実行関数 `insert` が満たすことを示す。
 
-step 4 は `remove_sound`、step 7.1 は `adopt_sound`、step 4.2 と step 9 は
+step 4 は `remove_sound`、step 7.1 は `adopt_sound`、step 4.2 と step 8 は
 `treeRecordQueued_of_queue` に帰着する。残るのは step 5（range の調整）と
 step 7.2-7.3（木への挿入）である。
 -/
@@ -190,9 +190,9 @@ theorem exists_childIndex_of_insertEach {s s' : DOMState} {parent c doc n : Node
       rw [if_neg hcn] at hpa
       exact index_isSome hwf hpa
 
-/-! ## step 5-9 -/
+/-! ## step 5-8 -/
 
-/-- **`insertNodesAt` は step 5-9 の関係を満たす。** -/
+/-- **`insertNodesAt` は step 5-8 の関係を満たす。** -/
 theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option NodeId}
     {nodes : List NodeId} {b : Bool} (hwf : WellFormed s.tree) (hne : nodes ≠ [])
     (h : insertNodesAt s parent child nodes b = .ok s') :
@@ -255,7 +255,7 @@ theorem insertNodesAt_sound {s s' : DOMState} {parent : NodeId} {child : Option 
 **`insert` は `InsertSpec` を満たす。**
 
 step 1-3 は `nodes` の決め方、step 4 は fragment を空にする枝、
-step 5-9 は `insertNodesAt_sound` である。
+step 5-8 は `insertNodesAt_sound` である。
 -/
 theorem insert_sound {s s' : DOMState} {node parent : NodeId} {child : Option NodeId} {b : Bool}
     (hwf : WellFormed s.tree) (h : insert s node parent child b = .ok s') :

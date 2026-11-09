@@ -112,7 +112,7 @@ theorem runPass_log_prefix (capturing : Bool) (target : NodeId) :
         (runPass_log_prefix capturing target rest _ _ _)
 
 /--
-**stop propagation flag が立っていれば、その item は何もしない（invoke の step 4）。**
+**stop propagation flag が立っていれば、その item は何もしない（invoke の step 6）。**
 
 eventPhase だけは dispatch が invoke の前に書き換える。
 -/
@@ -141,7 +141,7 @@ theorem runPass_stopPropagation (capturing : Bool) (target : NodeId) :
       exact ⟨ph', hph'⟩
 
 /--
-**`bubbles` が false なら、bubble の周で target 以外は呼ばれない（dispatch の step 13.2.1）。**
+**`bubbles` が false なら、bubble の周で target 以外は呼ばれない（dispatch の step 6.14.2.1）。**
 -/
 theorem runPass_no_bubbles (target : NodeId) :
     ∀ (path : List NodeId) (s : DOMState) (e : EventState) (log : List Invocation),
@@ -156,7 +156,7 @@ theorem runPass_no_bubbles (target : NodeId) :
 
 /-! ## 返り値 -/
 
-/-- **`dispatchEvent` の戻り値は canceled flag の否定である（§2.9 の step 15）。** -/
+/-- **`dispatchEvent` の戻り値は canceled flag の否定である（§2.9 の step 13）。** -/
 theorem dispatchEvent_returns (s : DOMState) (target : NodeId) (ty : String)
     (bubbles cancelable : Bool) {s' : DOMState} {r : Bool} {log : List Invocation}
     (h : dispatchEvent s target ty bubbles cancelable = .ok (s', r, log)) :
@@ -312,8 +312,8 @@ theorem invokeOne_once (s : DOMState) (e : EventState) (l : EventListener) (i : 
   unfold invokeOne; rw [if_pos h]
 
 /--
-**passive な listener の `preventDefault()` は canceled flag を立てない（invoke の step 2.9、
-"set the canceled flag"）。** 呼んだ後の in passive listener flag は落ちている（step 2.12）。
+**passive な listener の `preventDefault()` は canceled flag を立てない（invoke の step 2.11、
+"set the canceled flag"）。** 呼んだ後の in passive listener flag は落ちている（step 2.14）。
 -/
 theorem invokeOne_passive_preventDefault (s : DOMState) (e : EventState) (l : EventListener) (i : Nat)
     (hp : l.passive = true) (ha : l.action = .preventDefault) :

@@ -78,7 +78,7 @@ def isHTMLDocumentOf (t : Tree) (d : NodeData) : Bool :=
   | some doc => doc.isHTMLDocument
 
 /--
-DOM Standard §4.8 `Element.tagName`。
+DOM Standard §4.9 `Element.tagName`。
 
 qualified name を、HTML namespace の element が HTML document にあるときは ASCII uppercase する。
 -/

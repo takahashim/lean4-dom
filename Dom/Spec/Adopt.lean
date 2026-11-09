@@ -7,7 +7,7 @@ import Dom.Spec.Remove
 step 2 が `remove` を呼ぶので、関係も `RemoveSpec` を composition する。
 **これは実行関数の再利用ではない。** 仕様本文が "remove node" と書いているとおりの構成である。
 
-shadow root と custom element registry（step 3.2-3.3）は model の対象外である。
+shadow root と custom element registry（step 3.2・3.3.2-3.3.3）は model の対象外である。
 -/
 
 namespace Dom.Spec

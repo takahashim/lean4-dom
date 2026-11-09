@@ -14,7 +14,7 @@ import Dom.Attribute.Name
 * `Window` が無いので、Document の "get the parent" は null である。
   path は木の中で閉じる。
 * activation behavior（`click` の既定動作）は HTML 側の hook なので扱わない。
-* `isTrusted` は常に false なので、legacy な type の付け替え（invoke の step 10）は起きない。
+* `isTrusted` は常に false なので、legacy な type の付け替え（invoke の step 11）は起きない。
 * callback は model の外だが、**何をするか**は scenario が `ListenerAction` として宣言する。
   そのぶん配送の順序・打ち切り・listener list の変化は model で決まる。
 * `passive` は扱う。`signal`（AbortSignal）は扱わない。
@@ -50,7 +50,7 @@ structure EventState where
 deriving DecidableEq, Repr, Inhabited
 
 /--
-DOM Standard §2.9 dispatch の step 5（event path の構築）。
+DOM Standard §2.9 dispatch の step 6（event path の構築）。
 
 shadow tree が無いので、target から根までの祖先列がそのまま path になる。
 先頭の target だけが "shadow-adjusted target" を持つ（= AT_TARGET になる）。
@@ -132,8 +132,8 @@ def runAction (s : DOMState) (e : EventState) (l : EventListener) : DOMState × 
 /--
 listener を一つ走らせる。
 
-step 2.5 の「`once` は呼ぶ前に外す」、step 2.9 の「passive なら in passive listener flag を立てる」、
-step 2.11 の callback の代わりの副作用、step 2.12 の「in passive listener flag を落とす」をまとめたもの。
+step 2.5 の「`once` は呼ぶ前に外す」、step 2.11 の「passive なら in passive listener flag を立てる」、
+step 2.13 の callback の代わりの副作用、step 2.14 の「in passive listener flag を落とす」をまとめたもの。
 -/
 def invokeOne (s : DOMState) (e : EventState) (l : EventListener) (i : Nat) :
     DOMState × EventState :=
@@ -162,17 +162,17 @@ def innerInvoke (capturing : Bool) (cur : NodeId) :
       -- step 2.3-2.4
       else if capturing != l.capture then innerInvoke capturing cur s e log rest
       else
-        -- step 2.5-2.11
+        -- step 2.5-2.14
         let r := invokeOne s e l i
         let log₂ := log ++ [⟨l.callback, cur, e.eventPhase⟩]
-        -- step 2.14
+        -- step 2.16
         if r.2.stopImmediate then (r.1, r.2, log₂)
         else innerInvoke capturing cur r.1 r.2 log₂ rest
 
 /--
-DOM Standard §2.9 dispatch の step 5.13-5.14（eventPhase を決める）と "invoke"。
+DOM Standard §2.9 dispatch の step 6.13-6.14（eventPhase を決める）と "invoke"。
 
-eventPhase は dispatch が invoke の前に決める。invoke の step 4 の stop propagation flag は
+eventPhase は dispatch が invoke の前に決める。invoke の step 6 の stop propagation flag は
 **その item の listener を呼ぶ前に** 見る。
 -/
 def invokeItem (s : DOMState) (e : EventState) (log : List Invocation)
@@ -190,9 +190,9 @@ def invokeItem (s : DOMState) (e : EventState) (log : List Invocation)
     innerInvoke capturing item s e log idxs
 
 /--
-DOM Standard §2.9 dispatch の step 12-13（capture と bubble の二周）。
+DOM Standard §2.9 dispatch の step 6.13-6.14（capture と bubble の二周）。
 
-bubble の周では、target 以外は `bubbles` が false なら飛ばす（step 13.2.1）。
+bubble の周では、target 以外は `bubbles` が false なら飛ばす（step 6.14.2.1）。
 -/
 def runPass (capturing : Bool) (target : NodeId) :
     DOMState → EventState → List Invocation → List NodeId →

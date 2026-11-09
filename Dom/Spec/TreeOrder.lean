@@ -11,7 +11,7 @@ import Dom.Properties.TreeOrder
 | --- | --- |
 | `TreeOrderList t r l` | `r` の inclusive descendant を tree order に並べた列 |
 | `FirstIn t P n` | `P` を満たす node のうち tree order で最初のもの |
-| `Accepts t whatToShow n` | §6 "filter" の step 1-2（filter が null のとき） |
+| `Accepts t whatToShow n` | §6 "filter" の step 2-4（filter が null のとき） |
 
 `TreeOrderList` は列を一意に決める（`treeOrderList_unique`）ので、「tree order の列」と言うことに
 曖昧さは無い。実行関数の `preorder` がその列である（`treeOrderList_preorder`）。
@@ -29,7 +29,7 @@ def TreeOrderList (t : Tree) (r : NodeId) (l : List NodeId) : Prop :=
 def FirstIn (t : Tree) (P : NodeId → Prop) (n : NodeId) : Prop :=
   P n ∧ ∀ m, P m → ¬ PrecedesStruct t m n
 
-/-- §6 "filter" の step 1-2（filter は null）。node type の bit が whatToShow に立っている。 -/
+/-- §6 "filter" の step 2-4（filter は null）。node type の bit が whatToShow に立っている。 -/
 def Accepts (t : Tree) (whatToShow : Nat) (n : NodeId) : Prop :=
   ∃ d, t.get? n = some d ∧ whatToShow.testBit (d.kind.nodeType - 1) = true
 
