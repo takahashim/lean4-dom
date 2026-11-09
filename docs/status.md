@@ -7162,6 +7162,26 @@ Dommy（`c241e2e9`）は改訂前の本文に従っているので、割れる 4
 * `5e70d79`：`createCDATASection()` の本体が "create a CDATA section node" に移った（editorial）。表に足した。
 * `94f3fee`（fire an event）と `b76da7a`（PI の serialize）は、表に載せていない algorithm だけを変えた。
 
+## DOM と Web IDL の固定版を上げた（2026-11-09）
+
+週次の `spec-drift.yml` が whatwg/dom と whatwg/webidl の改訂で失敗したので、DOM を `3c53f93`（2026-10-19）から
+`6cc2415`（2026-11-04）に、Web IDL を `7b9f91b`（2026-10-26）から `e340c2e`（2026-11-07）に上げた。
+model の定義と関係は変えず、表と snapshot だけを直した。
+
+* DOM `11fac8e` "Prepare for OpaqueRange" は §5.4 に `NodeRange` interface を足し、`StaticRange` と `Range` をその
+  subclass にした。`startContainer`・`endContainer` は `NodeRange` に移り、`AbstractRange` の `startOffset`・`endOffset`・
+  `collapsed` の getter は subclass が定める get start offset・get end offset・get collapsed の steps を呼ぶ形になった。
+  `NodeRange` の三つの steps は、改訂前の getter と同じく start offset・end offset・collapsed を返す。model の range はどれも
+  `Range` で、`this` の interface を検査しない（range は番号で指す）ので、観測は変わらない。
+  `NodeRange` の get start offset・get end offset は `RangeState` の両端の offset として表に載せ、get collapsed は
+  `collapsed` の getter と同じ理由で対象外にした。後ろの節が一つずつ繰り下がった（`StaticRange` は §5.5、`Range` は §5.6）。
+* DOM `6cc2415` は extract（step 17.3・20.3）と clone the contents（step 13.3・16.3）の subrange、`createRange()`・
+  `cloneRange()` の戻り値を "a new live range" から "a new `Range` object" に書き換えた（editorial）。`Range` object は
+  live range なので、subrange を端点の組として渡す読みはそのままである。
+* Web IDL `c812515` は js-to-union step 11.1.1.2 の async sequence の method を `asyncMethod` に直した。model の扱う union は
+  async sequence を含まず、この step は表で除外している。残りの commit は表に載せていない algorithm（default toJSON、
+  interface object の作成、attribute の setter、wait for all ほか）だけを変えた。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.11 の `setAttribute` ほか）。

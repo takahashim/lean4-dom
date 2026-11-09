@@ -2,13 +2,15 @@ import Trace.Basic
 import Dom
 
 /-!
-# §5 Ranges（boundary point、AbstractRange、StaticRange、Range）
+# §5 Ranges（boundary point、AbstractRange、NodeRange、StaticRange、Range）
 
 model の live range は `DOMState.ranges` の要素で、scenario が初期状態に与え、番号で指す。
 `Range` object を作る API（`new Range()`・`createRange()`・`cloneRange()`）と
-`StaticRange` は model に無い。extract と clone the contents の subrange は live range だが、
+`StaticRange` は model に無い。extract と clone the contents の subrange は新しい `Range` object（live range）だが、
 状態には持たず端点の組として渡す（`Dom/Range/Extract.lean`）。
 getter は model の状態（`RangeState` の両端）を読むだけで、各 step の観測（`Dom.observe`）に出る。
+`AbstractRange` の `startOffset`・`endOffset` の getter は subclass の get start offset・get end offset の steps を呼び、
+model の range はどれも `Range`（`NodeRange` の subclass）なので、§5.4 の `NodeRange` の steps が両端を読む。
 -/
 
 namespace Trace.Dom.Range
@@ -26,15 +28,20 @@ def entries : List Entry := [
   { alg := "range-collapsed"
     impl := [``Dom.rangeDeleteContents, ``Dom.rangeInsertNode, ``Dom.contentsInto]
     approx := [("*", "専用の定義は無く、使う側（deleteContents step 1・insert step 13・extract と clone the contents の step 2）が `r.start == r.end` を直に書く")] },
-  { alg := "dom-range-startcontainer"
-    impl := [``Dom.RangeState.start, ``Dom.BoundaryPoint.node, ``Dom.observe] },
   { alg := "dom-range-startoffset"
     impl := [``Dom.RangeState.start, ``Dom.BoundaryPoint.offset, ``Dom.observe] },
-  { alg := "dom-range-endcontainer"
-    impl := [``Dom.RangeState.«end», ``Dom.BoundaryPoint.node, ``Dom.observe] },
   { alg := "dom-range-endoffset"
     impl := [``Dom.RangeState.«end», ``Dom.BoundaryPoint.offset, ``Dom.observe] },
-  -- §5.5 Range
+  -- §5.4 NodeRange
+  { alg := "algorithm:NodeRange get start offset"
+    impl := [``Dom.RangeState.start, ``Dom.BoundaryPoint.offset] },
+  { alg := "algorithm:NodeRange get end offset"
+    impl := [``Dom.RangeState.«end», ``Dom.BoundaryPoint.offset] },
+  { alg := "dom-range-startcontainer"
+    impl := [``Dom.RangeState.start, ``Dom.BoundaryPoint.node, ``Dom.observe] },
+  { alg := "dom-range-endcontainer"
+    impl := [``Dom.RangeState.«end», ``Dom.BoundaryPoint.node, ``Dom.observe] },
+  -- §5.6 Range
   { alg := "live-range-pre-remove-steps"
     impl := [``Dom.liveRangePreRemove, ``Dom.liveRangePreRemoveRange, ``Dom.liveRangePreRemoveBP,
              ``Dom.rangeMoveOutOfSubtree, ``Dom.rangeShiftAfterRemove]
@@ -176,6 +183,8 @@ def entries : List Entry := [
 def exclusions : List Exclusion := [
   { target := "dom-range-collapsed",
     reason := .todo "collapsed getter を返す操作が harness に無い（両端は観測に出るので導ける）" },
+  { target := "algorithm:NodeRange get collapsed",
+    reason := .todo "collapsed getter（`dom-range-collapsed`）が呼ぶ steps。getter を返す操作が harness に無い" },
   { target := "dom-staticrange-staticrange",
     reason := .todo "StaticRange が model に無い" },
   { target := "staticrange-valid",

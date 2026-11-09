@@ -4115,20 +4115,6 @@
       ]
     },
     {
-      "alg": "dom-range-startcontainer",
-      "steps": [
-        "*"
-      ],
-      "impl": [
-        "Dom.RangeState.start",
-        "Dom.BoundaryPoint.node",
-        "Dom.observe"
-      ],
-      "spec": [],
-      "omit": [],
-      "approx": []
-    },
-    {
       "alg": "dom-range-startoffset",
       "steps": [
         "*"
@@ -4143,12 +4129,52 @@
       "approx": []
     },
     {
-      "alg": "dom-range-endcontainer",
+      "alg": "dom-range-endoffset",
       "steps": [
         "*"
       ],
       "impl": [
         "Dom.RangeState.end",
+        "Dom.BoundaryPoint.offset",
+        "Dom.observe"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "algorithm:NodeRange get start offset",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.RangeState.start",
+        "Dom.BoundaryPoint.offset"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "algorithm:NodeRange get end offset",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.RangeState.end",
+        "Dom.BoundaryPoint.offset"
+      ],
+      "spec": [],
+      "omit": [],
+      "approx": []
+    },
+    {
+      "alg": "dom-range-startcontainer",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.RangeState.start",
         "Dom.BoundaryPoint.node",
         "Dom.observe"
       ],
@@ -4157,13 +4183,13 @@
       "approx": []
     },
     {
-      "alg": "dom-range-endoffset",
+      "alg": "dom-range-endcontainer",
       "steps": [
         "*"
       ],
       "impl": [
         "Dom.RangeState.end",
-        "Dom.BoundaryPoint.offset",
+        "Dom.BoundaryPoint.node",
         "Dom.observe"
       ],
       "spec": [],
@@ -5819,6 +5845,13 @@
       "why": {
         "reason": "todo",
         "detail": "collapsed getter を返す操作が harness に無い（両端は観測に出るので導ける）"
+      }
+    },
+    {
+      "target": "algorithm:NodeRange get collapsed",
+      "why": {
+        "reason": "todo",
+        "detail": "collapsed getter（`dom-range-collapsed`）が呼ぶ steps。getter を返す操作が harness に無い"
       }
     },
     {

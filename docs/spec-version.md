@@ -4,8 +4,8 @@
 
 | 仕様 | 版 | commit |
 | --- | --- | --- |
-| WHATWG DOM Standard | Living Standard, 2026-10-19 | `3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177` |
-| WHATWG Web IDL Standard | Living Standard, 2026-10-26 | `7b9f91b43dcbfee2f9ce985edabedcac55dcdcaf` |
+| WHATWG DOM Standard | Living Standard, 2026-11-04 | `6cc24159f1fe0857686d6712affb37d33229777e` |
+| WHATWG Web IDL Standard | Living Standard, 2026-11-07 | `e340c2e5c40b2c3616d8b1393dcc34f0b6db0e4b` |
 | ECMA-262（ECMAScript Language Specification） | draft, 2026-10-23 | `40ce6f206b5669e69bf010a38267ae24a2843404` |
 
 * 本文：https://dom.spec.whatwg.org/
@@ -17,9 +17,9 @@
   Web IDL の変換が呼ぶ抽象操作（ToBoolean、ToNumber、StringToNumber、ToString、Number::toString、ToPrimitive）と
   `Array.prototype.join`（`Dom/Idl/`）がこの版に従う。対応表は `Trace/Ecma.lean` にある。
 
-上記 commit は `dom.bs` に対する 2026-10-19 時点の最新 commit である。
-Phase 3 の algorithm は 2026-08-25 の版（`a2331a4`）の本文から step を写し、2026-10 にこの版へ上げた
-（`docs/status.md` の「DOM の固定版を上げた」）。
+上記 commit は `dom.bs` に対する 2026-11-04 時点の最新 commit である。
+Phase 3 の algorithm は 2026-08-25 の版（`a2331a4`）の本文から step を写し、2026-10 に `3c53f93`、2026-11 にこの版へ上げた
+（`docs/status.md` の「DOM の固定版を上げた」と「DOM と Web IDL の固定版を上げた」）。
 
 各定義の doc comment には、対応する節番号と algorithm 名、および仕様の step 番号を記す。
 仕様が改訂されたときは、この表の commit を更新したうえで step 番号の差分を追う。
@@ -69,6 +69,9 @@ Lean のコメントにある step 番号は、表とは別に人が書いたも
 固定版より前の番号のまま残っているものが数十ある（例：`remove` の「step 20」は固定版の step 15。
 2025-03 の `moveBefore` の導入で live range の調整が "live range pre-remove steps" にまとめられ、
 後ろの step が繰り上がった）。step 番号の正は表のほうである。
+節番号も同じで、2026-11 に §5.4 `NodeRange` が入って `Range` の節は §5.6 になったが、
+コメントには §5.5 と書いたものが残る。boundary point（snapshot では §5.2）を §5.3 と書いたものもある。
+節番号の正は snapshot（`spec-trace/dom.json` の `section`）である。
 
 ## 版を上げる手順
 
