@@ -18,13 +18,13 @@ Phase 2 の primitive（`detach`, `insertAt`, `setOwnerDocument`）は木だけ�
 
 namespace Dom
 
-/-- DOM Standard §5.3 の boundary point。 -/
+/-- DOM Standard §5.2 の boundary point。 -/
 structure BoundaryPoint where
   node : NodeId
   offset : Nat
 deriving DecidableEq, Repr, Inhabited
 
-/-- DOM Standard §5.5 の live range。 -/
+/-- DOM Standard §5.6 の live range。 -/
 structure RangeState where
   start : BoundaryPoint
   «end» : BoundaryPoint

@@ -40,7 +40,7 @@ theorem exists_get?_of_root_eq (hwf : WellFormed t) {n m : NodeId} {md : NodeDat
     rw [← hr, hrn, hn] at hrd
     cases hrd
 
-/-- **実行側の `containedInRange` は §5.5 の contained ちょうどである。** -/
+/-- **実行側の `containedInRange` は §5.6 の contained ちょうどである。** -/
 theorem containedInRange_iff (hwf : WellFormed t) {sd ed : NodeData}
     (hs : t.get? r.start.node = some sd) (he : t.get? r.«end».node = some ed)
     (hroot : root t r.start.node = root t r.«end».node) (n : NodeId) :

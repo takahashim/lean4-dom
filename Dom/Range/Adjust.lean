@@ -13,7 +13,7 @@ namespace Dom
 /-! ## remove に伴う調整 -/
 
 /--
-DOM Standard §5.5 "live range pre-remove steps" の step 3-4。
+DOM Standard §5.6 "live range pre-remove steps" の step 4-5。
 
 start / end node が `node` の inclusive descendant である range を、
 `node` があった位置 `(parent, index)` へ移す。
@@ -23,7 +23,7 @@ def rangeMoveOutOfSubtree (t : Tree) (node parent : NodeId) (index : Nat)
   if isInclusiveAncestorOf t node bp.node then { node := parent, offset := index } else bp
 
 /--
-DOM Standard §5.5 "live range pre-remove steps" の step 5-6。
+DOM Standard §5.6 "live range pre-remove steps" の step 6-7。
 
 `parent` を指し、offset が `index` より大きい boundary point の offset を 1 減らす。
 -/
@@ -66,7 +66,7 @@ theorem rangeShiftAfterRemove_neg {parent : NodeId} {index : Nat} {bp : Boundary
 /--
 **offset をずらしても boundary point の node は変わらない。**
 
-step 5-6 が step 3-4 の条件に影響しないのはこれが理由である。
+step 6-7 が step 4-5 の条件に影響しないのはこれが理由である。
 `simp` 補題にしてあるので、この二つを合成した証明が合成の順序に依らずに書ける。
 -/
 @[simp] theorem rangeShiftAfterRemove_node (parent : NodeId) (index : Nat) (bp : BoundaryPoint) :
@@ -74,11 +74,11 @@ step 5-6 が step 3-4 の条件に影響しないのはこれが理由である�
   unfold rangeShiftAfterRemove; split <;> rfl
 
 /--
-DOM Standard §5.5 "live range pre-remove steps"。
+DOM Standard §5.6 "live range pre-remove steps"。
 
 `node` の removal の直前に走る。仕様の step 順に、まず部分木の外へ移し、次に offset をずらす。
-step 3-4 で移した boundary point の offset はちょうど `index` になるので、
-step 5-6 の条件（`index` より大きい）には当てはまらない。
+step 4-5 で移した boundary point の offset はちょうど `index` になるので、
+step 6-7 の条件（`index` より大きい）には当てはまらない。
 -/
 def liveRangePreRemoveBP (t : Tree) (node parent : NodeId) (index : Nat)
     (bp : BoundaryPoint) : BoundaryPoint :=
@@ -125,7 +125,7 @@ def liveRangePreRemoveRange (t : Tree) (node parent : NodeId) (index : Nat)
     «end» := liveRangePreRemoveBP t node parent index r.«end» }
 
 /--
-DOM Standard §4.2.3 remove step 3 / move step 10。
+DOM Standard §4.2.3 remove step 3 / move step 9。
 
 `node` に parent が無ければ何もしない（仕様では assert により起こらない）。
 -/
@@ -139,7 +139,7 @@ def liveRangePreRemove (s : DOMState) (node : NodeId) : DOMState :=
 /-! ## insert に伴う調整 -/
 
 /--
-DOM Standard §4.2.3 insert step 5 / move step 16。
+DOM Standard §4.2.3 insert step 5 / move step 18。
 
 `parent` を指し、offset が挿入位置より大きい boundary point の offset を `count` だけ増やす。
 -/
@@ -153,7 +153,7 @@ def liveRangeInsertAdjustRange (parent : NodeId) (index count : Nat)
     «end» := rangeShiftAfterInsert parent index count r.«end» }
 
 /--
-DOM Standard §4.2.3 insert step 5 / move step 16。
+DOM Standard §4.2.3 insert step 5 / move step 18。
 
 `child` が `none`（末尾への挿入）なら調整は要らない。
 仕様も step 5 全体を「If child is non-null」で囲んでいる。

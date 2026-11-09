@@ -23,7 +23,7 @@ inductive DOMException where
   | indexSizeError
   | invalidNodeTypeError
   | wrongDocumentError
-  /-- §5.5 `compareBoundaryPoints(how, …)` の `how` が四つの定数のどれでもない場合。 -/
+  /-- §5.6 `compareBoundaryPoints(how, …)` の `how` が四つの定数のどれでもない場合。 -/
   | notSupportedError
   /-- §4.9 の attribute 名検査。valid attribute local name / valid namespace prefix。 -/
   | invalidCharacterError
@@ -33,7 +33,7 @@ inductive DOMException where
   | inUseAttributeError
   /-- §1.3 "scope-match a selectors string" step 2。selector を読めなかった場合。 -/
   | syntaxError
-  /-- §5.5 `surroundContents()` step 1。Text でない node が partially contained の場合。 -/
+  /-- §5.6 `surroundContents()` step 1。Text でない node が partially contained の場合。 -/
   | invalidStateError
   /--
   model の対象外。**仕様の例外ではない。**

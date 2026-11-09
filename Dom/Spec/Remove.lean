@@ -46,7 +46,7 @@ def RemovePre (t : Tree) (node parent : NodeId) : Prop :=
 /-! ## step 3：live range pre-remove steps -/
 
 /--
-§5.5 "live range pre-remove steps" の step 4-7 を、boundary point 一つについて書いたもの。
+§5.6 "live range pre-remove steps" の step 4-7 を、boundary point 一つについて書いたもの。
 
 * step 4-5：`node` の inclusive descendant を指していたら、`node` があった位置へ移す。
 * step 6-7：`parent` を指していて offset が `index` より後ろなら、一つ手前へ詰める。

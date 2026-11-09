@@ -6,13 +6,13 @@ import Dom.Range.Api
 # 値を返す Range の method の関係仕様
 
 `Dom/Range/Api.lean` の `isPointInRange`・`comparePoint`・`intersectsNode`・
-`compareBoundaryPoints` の戻り値（例外を含む）を、§5.3 の boundary point position を
+`compareBoundaryPoints` の戻り値（例外を含む）を、§5.2 の boundary point position を
 **実行側の `bpPosition` を使わずに** 書いた関係 `BPBefore` で言い、実行関数が
 それにちょうど一致することを示す。
 
 ## `BPBefore`
 
-§5.3 の boundary point position は「node が同じなら offset を比べる」「一方が他方の
+§5.2 の boundary point position は「node が同じなら offset を比べる」「一方が他方の
 ancestor なら、子孫の側へ向かう子の index と offset を比べる」「そうでなければ tree order」
 という場合分けである。`BPBefore t a b`（`a` が `b` の before）はこの四つの場合を
 §4.2 の語彙（parent・index・inclusive ancestor）だけで並べたもので、`childTowards` も
@@ -40,7 +40,7 @@ variable {t : Tree}
 
 /-! ## boundary point の前後 -/
 
-/-- DOM §5.3。boundary point `a` は `b` の before である。 -/
+/-- DOM §5.2。boundary point `a` は `b` の before である。 -/
 def BPBefore (t : Tree) (a b : BoundaryPoint) : Prop :=
   -- step 2。同じ node なら offset の順。
   (a.node = b.node ∧ a.offset < b.offset) ∨
@@ -130,7 +130,7 @@ variable (hwf : WellFormed t) {a b : BoundaryPoint} {ad bd : NodeData}
   (hroot : root t a.node = root t b.node)
 include hwf ha hb hroot
 
-/-- **§5.3 の before は、実行側の `bpPosition` が `.lt` を返すことちょうどである。** -/
+/-- **§5.2 の before は、実行側の `bpPosition` が `.lt` を返すことちょうどである。** -/
 theorem bpPosition_eq_lt_iff : bpPosition t a b = .lt ↔ BPBefore t a b := by
   rw [bpPosition_eq_lexCmp hwf ha hb hroot]
   refine ⟨fun h => ?_, lexCmp_bpKey_of_bpBefore hwf⟩
@@ -139,7 +139,7 @@ theorem bpPosition_eq_lt_iff : bpPosition t a b = .lt ↔ BPBefore t a b := by
   · rw [lexCmp_self] at h; cases h
   · rw [lexCmp_swap (bpKey t b), lexCmp_bpKey_of_bpBefore hwf h'] at h; cases h
 
-/-- **§5.3 の equal は、実行側の `bpPosition` が `.eq` を返すことちょうどである。** -/
+/-- **§5.2 の equal は、実行側の `bpPosition` が `.eq` を返すことちょうどである。** -/
 theorem bpPosition_eq_eq_iff : bpPosition t a b = .eq ↔ a = b := by
   rw [bpPosition_eq_lexCmp hwf ha hb hroot]
   refine ⟨fun h => ?_, fun h => by subst h; exact lexCmp_self _⟩
@@ -148,7 +148,7 @@ theorem bpPosition_eq_eq_iff : bpPosition t a b = .eq ↔ a = b := by
   · exact h'
   · rw [lexCmp_swap (bpKey t b), lexCmp_bpKey_of_bpBefore hwf h'] at h; cases h
 
-/-- **§5.3 の after は、実行側の `bpPosition` が `.gt` を返すことちょうどである。** -/
+/-- **§5.2 の after は、実行側の `bpPosition` が `.gt` を返すことちょうどである。** -/
 theorem bpPosition_eq_gt_iff : bpPosition t a b = .gt ↔ BPBefore t b a := by
   rw [bpPosition_eq_lexCmp hwf ha hb hroot]
   refine ⟨fun h => ?_, fun h => by
@@ -203,7 +203,7 @@ theorem returnIf_neg {α : Type} {p : Prop} {v : α} {next : Except DOMException
 
 /-! ## 戻り値の関係 -/
 
-/-- DOM §5.5 `isPointInRange(node, offset)`。 -/
+/-- DOM §5.6 `isPointInRange(node, offset)`。 -/
 def IsPointInRangeResult (t : Tree) (r : RangeState) (bp : BoundaryPoint) :
     Except DOMException Bool → Prop :=
   -- step 1
@@ -217,7 +217,7 @@ def IsPointInRangeResult (t : Tree) (r : RangeState) (bp : BoundaryPoint) :
   -- step 5
   Returns true
 
-/-- DOM §5.5 `comparePoint(node, offset)`。先頭の「木に無い」は model の都合。 -/
+/-- DOM §5.6 `comparePoint(node, offset)`。先頭の「木に無い」は model の都合。 -/
 def ComparePointResult (t : Tree) (r : RangeState) (bp : BoundaryPoint) :
     Except DOMException Int → Prop :=
   ThrowIf (t.get? bp.node = none) .notFoundError <|
@@ -234,7 +234,7 @@ def ComparePointResult (t : Tree) (r : RangeState) (bp : BoundaryPoint) :
   -- step 6
   Returns 0
 
-/-- DOM §5.5 `intersectsNode(node)`。先頭の「木に無い」は model の都合。 -/
+/-- DOM §5.6 `intersectsNode(node)`。先頭の「木に無い」は model の都合。 -/
 def IntersectsNodeResult (t : Tree) (r : RangeState) (n : NodeId) :
     Except DOMException Bool → Prop :=
   ThrowIf (t.get? n = none) .notFoundError <|
@@ -247,7 +247,7 @@ def IntersectsNodeResult (t : Tree) (r : RangeState) (n : NodeId) :
     ReturnIf (BPBefore t ⟨p, i⟩ r.«end» ∧ BPBefore t r.start ⟨p, i + 1⟩) true
       (Returns false) res
 
-/-- DOM §5.5 `compareBoundaryPoints(how, sourceRange)` の step 3 の表。 -/
+/-- DOM §5.6 `compareBoundaryPoints(how, sourceRange)` の step 3 の表。 -/
 def compareHowPoints (r source : RangeState) : Nat → BoundaryPoint × BoundaryPoint
   -- START_TO_START
   | 0 => (r.start, source.start)
@@ -258,11 +258,11 @@ def compareHowPoints (r source : RangeState) : Nat → BoundaryPoint × Boundary
   -- END_TO_START
   | _ => (r.start, source.«end»)
 
-/-- DOM §5.3 の position を -1 / 0 / 1 で返すこと。 -/
+/-- DOM §5.2 の position を -1 / 0 / 1 で返すこと。 -/
 def PositionResult (t : Tree) (a b : BoundaryPoint) (res : Except DOMException Int) : Prop :=
   (BPBefore t a b ∧ res = .ok (-1)) ∨ (a = b ∧ res = .ok 0) ∨ (BPBefore t b a ∧ res = .ok 1)
 
-/-- DOM §5.5 `compareBoundaryPoints(how, sourceRange)`。 -/
+/-- DOM §5.6 `compareBoundaryPoints(how, sourceRange)`。 -/
 def CompareBoundaryPointsResult (t : Tree) (r source : RangeState) (how : Nat) :
     Except DOMException Int → Prop :=
   -- step 1
@@ -323,7 +323,7 @@ variable {s : DOMState} {i : Nat} {r : RangeState}
   (hwf : WellFormed s.tree) (hs : s.ranges[i]? = some r) (hr : RangeValid s.tree r)
 include hwf hs hr
 
-/-- **`isPointInRange()` の戻り値（例外を含む）は §5.5 の条件ちょうどである。** -/
+/-- **`isPointInRange()` の戻り値（例外を含む）は §5.6 の条件ちょうどである。** -/
 theorem rangeIsPointInRange_eq_iff (bp : BoundaryPoint) (res : Except DOMException Bool) :
     rangeIsPointInRange s i bp = res ↔ IsPointInRangeResult s.tree r bp res := by
   obtain ⟨⟨sd, hsd, -⟩, ⟨ed, hed, -⟩, hse, -⟩ := hr
@@ -364,7 +364,7 @@ theorem rangeIsPointInRange_eq_iff (bp : BoundaryPoint) (res : Except DOMExcepti
     simp only [not_or] at hb
     simp [hb.1, hb.2, Returns, eq_comm]
 
-/-- **`comparePoint()` の戻り値（例外を含む）は §5.5 の条件ちょうどである。** -/
+/-- **`comparePoint()` の戻り値（例外を含む）は §5.6 の条件ちょうどである。** -/
 theorem rangeComparePoint_eq_iff (bp : BoundaryPoint) (res : Except DOMException Int) :
     rangeComparePoint s i bp = res ↔ ComparePointResult s.tree r bp res := by
   obtain ⟨⟨sd, hsd, -⟩, ⟨ed, hed, -⟩, hse, -⟩ := hr
@@ -417,7 +417,7 @@ theorem rangeComparePoint_eq_iff (bp : BoundaryPoint) (res : Except DOMException
     simp [h1, h2, Returns, eq_comm]
 
 open Classical in
-/-- **`intersectsNode()` の戻り値（例外を含む）は §5.5 の条件ちょうどである。** -/
+/-- **`intersectsNode()` の戻り値（例外を含む）は §5.6 の条件ちょうどである。** -/
 theorem rangeIntersectsNode_eq_iff (n : NodeId) (res : Except DOMException Bool) :
     rangeIntersectsNode s i n = res ↔ IntersectsNodeResult s.tree r n res := by
   obtain ⟨⟨sd, hsd, -⟩, ⟨ed, hed, -⟩, hse, -⟩ := hr
@@ -471,7 +471,7 @@ theorem rangeIntersectsNode_eq_iff (n : NodeId) (res : Except DOMException Bool)
 
 end Range
 
-/-- **`compareBoundaryPoints()` の戻り値（例外を含む）は §5.5 の条件ちょうどである。** -/
+/-- **`compareBoundaryPoints()` の戻り値（例外を含む）は §5.6 の条件ちょうどである。** -/
 theorem rangeCompareBoundaryPoints_eq_iff {s : DOMState} {i j : Nat} {r source : RangeState}
     (hwf : WellFormed s.tree) (hi : s.ranges[i]? = some r) (hj : s.ranges[j]? = some source)
     (hr : RangeValid s.tree r) (hsrc : RangeValid s.tree source)

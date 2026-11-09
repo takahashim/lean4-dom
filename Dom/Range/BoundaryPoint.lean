@@ -4,7 +4,7 @@ import Dom.Basic.Order
 /-!
 # boundary point
 
-DOM Standard §5.3（boundary point）と §5.5（Range）のうち、
+DOM Standard §5.2（boundary point）と §5.6（Range）のうち、
 本 model が扱う部分を定義する。
 
 PLAN §8.1。node の length は kind で決まり（`Dom/Basic/NodeId.lean` の `NodeData.length`）、
@@ -35,7 +35,7 @@ theorem checkValidBoundaryPoint_iff (t : Tree) (bp : BoundaryPoint) :
 /--
 `a` が `b` の ancestor のとき、`b` へ至る経路上にある `a` の子。
 
-DOM Standard §5.3 boundary point position の step 4
+DOM Standard §5.2 boundary point position の step 4
 「Let child be nodeB. While child is not a child of nodeA, set child to its parent.」
 に対応する。`b` の inclusive ancestor を下から順に見て、parent が `a` である最初のものを返す。
 -/
@@ -43,7 +43,7 @@ def childTowards (t : Tree) (a b : NodeId) : Option NodeId :=
   (b :: ancestors t b).find? fun x => parentOf t x == some a
 
 /--
-DOM Standard §5.3 boundary point position の step 4-5。
+DOM Standard §5.2 boundary point position の step 4-5。
 
 `a.node` が `b.node` を follow していない場合（かつ両者が異なる場合）に使う。
 -/
@@ -53,7 +53,7 @@ def bpPositionDown (t : Tree) (a b : BoundaryPoint) : Ordering :=
   | none => .lt
 
 /--
-DOM Standard §5.3 の boundary point position。
+DOM Standard §5.2 の boundary point position。
 
 `.lt` が before、`.eq` が equal、`.gt` が after に対応する。
 仕様の step 3 は自分自身を引数を入れ替えて呼ぶが、

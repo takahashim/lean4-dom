@@ -4,7 +4,7 @@ import Dom.Properties.Range
 /-!
 # `Range.deleteContents()` の契約
 
-§5.5 の `deleteContents` は step 4 で「range に含まれる node のうち、親が含まれない
+§5.6 の `deleteContents` は step 4 で「range に含まれる node のうち、親が含まれない
 ものだけ」を集めて順に外す。この形が `removeEach` にとって安全であること
 （外した node の子孫をもう一度外そうとしない）は仕様の意図だが、
 差分テストからは出てこないのでここで示す。

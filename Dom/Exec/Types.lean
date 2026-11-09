@@ -232,7 +232,7 @@ inductive Operation where
   | rangeCommonAncestorContainer (range : Nat)
   /-- `TreeWalker` の走査 method（§6.2）。 -/
   | walkerMove (walker : Nat) (method : WalkerMethod)
-  /-- `Range` の stringifier（§5.5）。 -/
+  /-- `Range` の stringifier（§5.6）。 -/
   | rangeToString (range : Nat)
   /-- §4.4 の、値を返すだけの method。 -/
   | compareDocumentPosition (node other : Nat)

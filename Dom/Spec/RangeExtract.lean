@@ -7,7 +7,7 @@ import Dom.Spec.ReplaceAllSound
 import Dom.Spec.RangeSet
 
 /-!
-# extract・clone the contents・`surroundContents()` の関係意味論（§5.5）
+# extract・clone the contents・`surroundContents()` の関係意味論（§5.6）
 
 "extract"（`cut = true`）と "clone the contents"（`cut = false`）は同じ形をしているので、
 一つの関係 `ContentsInto` で書く。違いは三つで、関係の中で `cut` を見て分ける。
@@ -39,10 +39,10 @@ namespace Dom.Spec
 
 open Dom
 
-/-! ## §5.5 の語彙 -/
+/-! ## §5.6 の語彙 -/
 
 /--
-**§5.5 "get the common ancestor"。**
+**§5.6 "get the common ancestor"。**
 
 container を start node から始め、end node の inclusive ancestor になるまで parent へ上る。止まる所は
 「start node の inclusive ancestor で end node の inclusive ancestor であり、それより start node に
@@ -53,7 +53,7 @@ def CommonAncestor (t : Tree) (r : RangeState) (ca : NodeId) : Prop :=
     ∀ x, InclusiveAncestor t x r.start.node → Ancestor t ca x →
       ¬ InclusiveAncestor t x r.«end».node
 
-/-- **§5.5 partially contained。** start node と end node のどちらか一方だけの inclusive ancestor である。 -/
+/-- **§5.6 partially contained。** start node と end node のどちらか一方だけの inclusive ancestor である。 -/
 def PartiallyContained (t : Tree) (r : RangeState) (n : NodeId) : Prop :=
   (InclusiveAncestor t n r.start.node ∧ ¬ InclusiveAncestor t n r.«end».node) ∨
     (¬ InclusiveAncestor t n r.start.node ∧ InclusiveAncestor t n r.«end».node)
@@ -182,7 +182,7 @@ def General (t : Tree) (r : RangeState) : Prop :=
 mutual
 
 /--
-**§5.5 "extract"（`cut = true`）と "clone the contents"（`cut = false`）の、step 1 の後の部分。**
+**§5.6 "extract"（`cut = true`）と "clone the contents"（`cut = false`）の、step 1 の後の部分。**
 
 `into` は step 1 の fragment（再帰では partially contained child の clone）、`self` は range が `this`
 なら `some i`、subrange なら `none` である。
@@ -288,7 +288,7 @@ inductive SubContents (A : Alloc) (cut : Bool) :
 end
 
 /--
-**§5.5 extract と clone the contents の、結果まで含めた関係。** 成功すれば fragment と状態を返す。
+**§5.6 extract と clone the contents の、結果まで含めた関係。** 成功すれば fragment と状態を返す。
 
 step 1 で、start node の node document の DocumentFragment を作り、そこへ step 2-21 を走らせる。
 -/
@@ -299,7 +299,7 @@ def ContentsResult (A : Alloc) (cut : Bool) (s : DOMState) (r : RangeState) (sel
         (∃ s₂, ContentsInto A cut s₁ r self frag (.ok s₂) ∧ res = .ok (frag, s₂)))
 
 /--
-**§5.5 `surroundContents(newParent)` の、結果まで含めた関係。**
+**§5.6 `surroundContents(newParent)` の、結果まで含めた関係。**
 
 1. Text でない node が partially contained なら InvalidStateError。
 2. newParent が Document・DocumentType・DocumentFragment なら InvalidNodeTypeError。

@@ -5,7 +5,7 @@ import Dom.Spec.ObserverOrder
 /-!
 # childList の mutation record を積む step の関係意味論（§4.3.4）
 
-`remove` の step 16、`insert` の step 4.2 / 9、`move` の step 26-27 が使う。
+`remove` の step 16、`insert` の step 4.2 / 8、`move` の step 26-27 が使う。
 どちらも「childList の record を一つ積む」だけなので、一つの関係にまとめてある。
 
 childList の record は oldValue を持たないので、"queue a mutation record" の

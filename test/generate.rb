@@ -926,7 +926,7 @@ module Generate
     nodes.count { |n| n["parent"] == spec["id"] }
   end
 
-  # boundary point になれない kind。仕様 §5.5 の `setStart` / `setEnd` は
+  # boundary point になれない kind。仕様 §5.6 の `setStart` / `setEnd` は
   # doctype を InvalidNodeTypeError で弾く。
   NON_BOUNDARY_KINDS = %w[documentType].freeze
 
@@ -960,7 +960,7 @@ module Generate
 
   # boundary point の key（`Dom/Properties/Path.lean` の `bpKey`）。
   # root からの各段の index の列に offset を付けたもの。
-  # 仕様 §5.3 の boundary point position は、この列の辞書式比較に一致する
+  # 仕様 §5.2 の boundary point position は、この列の辞書式比較に一致する
   # （`bpPosition_eq_lexCmp`）ので、start ≤ end はこれで判定できる。
   def bp_key(nodes, by_id, id, offset)
     path = []

@@ -47,8 +47,8 @@ step 単位の対応は `Trace/Dom/` の表が持ち、CI が網羅を検査す�
 | replace（結果込み） | `Dom.Spec.ReplaceResult` | `replace_result_sound` | `replace_result_deterministic` | `replace_result_complete` |
 | moveBefore（結果込み） | `Dom.Spec.MoveResult` | `move_result_sound` | `move_result_deterministic` | `move_result_complete` |
 | normalize（結果込み） | `Dom.Spec.NormalizeResult` | `normalize_result_sound` | `normalize_result_deterministic` | `normalize_result_complete` |
-| Range `deleteContents()`（結果込み、§5.5） | `Dom.Spec.DeleteContentsResult` | `rangeDeleteContents_result_sound`（`RangeValid` を仮定） | `deleteContents_result_deterministic` | `rangeDeleteContents_result_complete` |
-| Range `insertNode(node)`（結果込み、§5.5） | `Dom.Spec.InsertNodeResult` | `rangeInsertNode_result_sound`（`RangeValid` を仮定） | `insertNode_result_deterministic` | `rangeInsertNode_result_complete` |
+| Range `deleteContents()`（結果込み、§5.6） | `Dom.Spec.DeleteContentsResult` | `rangeDeleteContents_result_sound`（`RangeValid` を仮定） | `deleteContents_result_deterministic` | `rangeDeleteContents_result_complete` |
+| Range `insertNode(node)`（結果込み、§5.6） | `Dom.Spec.InsertNodeResult` | `rangeInsertNode_result_sound`（`RangeValid` を仮定） | `insertNode_result_deterministic` | `rangeInsertNode_result_complete` |
 | `dispatchEvent`（結果込み、§2.9） | `Dom.Spec.DispatchResult` | `dispatchEvent_result_sound` | `dispatchEvent_result_deterministic`（等号） | `dispatchEvent_result_complete`（等号） |
 | `addEventListener` / `removeEventListener`（結果込み、§2.7） | `Dom.Spec.AddEventListenerResult` / `RemoveEventListenerResult` | `addEventListener_result_sound` / `removeEventListener_result_sound` | complete から | `addEventListener_result_complete` / `removeEventListener_result_complete`（等号） |
 | `setAttribute` / `setAttributeNS` の step 2 以降 / `removeAttribute(NS)` / `toggleAttribute`（結果込み、§4.9） | `Dom.Spec.SetAttributeResult` ほか（`AttributeChanged`・`AttributeAppended`・`AttributeRemoved`・`AttributeRecordQueued`） | `setAttribute_result_sound` ほか（`AttributesValid` を仮定） | `setAttribute_result_deterministic` ほか | `setAttribute_result_complete` ほか |
@@ -162,7 +162,7 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 | --- | --- | --- | --- | --- | --- | --- |
 | replace data | 1-2 IndexSizeError / 3 count の切り詰め / 4 record / 5-7 data の差し替え / 8-11 live range の調整 | `replaceData` と `appendData` / `insertData` / `deleteData` / `setData` | relation `ReplaceDataResult`（success と exception を含む）、preservation `admissible_replaceData` ほか四つ、effect `replaceData_ok` | `characterdata-index-size-and-clamp`, `characterdata-replace-data-ranges` | `test_wpt_character_data.rb` | 済 |
 
-## §5.5 live Range / §6.1 NodeIterator
+## §5.6 live Range / §6.1 NodeIterator
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -172,7 +172,7 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 | nextNode / previousNode（traverse） | traverse 1-6 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before`, `iterator-whattoshow-skips` | `test_wpt_node_edges.rb` | 済（filter は null） |
 | filter（`whatToShow`、filter は null） | filter 1-3 | `showsNode`, `NodeKind.nodeType` | 同上 | `iterator-whattoshow-skips` | 同上 | 済 |
 
-## §5.5 `Range` の API（boundary point を動かす側）
+## §5.6 `Range` の API（boundary point を動かす側）
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -187,7 +187,7 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 | `compareBoundaryPoints(how, source)` | 1 NotSupportedError / 2 WrongDocumentError / 3-4 位置 | `rangeCompareBoundaryPoints` | `Spec.rangeCompareBoundaryPoints_eq_iff`（同上） | `range-compare-boundary-points` | 同上 | 済 |
 | `comparePoint(node, offset)` | 1 WrongDocumentError / 2 doctype / 3 offset / 4-6 位置 | `rangeComparePoint` | `Spec.rangeComparePoint_eq_iff`（同上） | 同上 | 同上 | 済 |
 
-## §5.5 `Range` の API（木を変える側）
+## §5.6 `Range` の API（木を変える側）
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -220,7 +220,7 @@ target から根までの祖先列そのものである。`Window` が無いの�
 | remove an event listener / `removeEventListener` | remove 2 | `removeListenerAt`, `removeEventListener` | relation `RemoveEventListenerResult`（`ListenerRemovedAt`）、`removeEventListener_result_sound` / `_complete`、preservation `admissible_removeEventListener` | 同上 | 同上 | 済 |
 | `stopPropagation` / `stopImmediatePropagation` / `preventDefault` | set the canceled flag | `runAction`, `setCanceledFlag` | relation `CallbackRan`、`invokeOne_passive_preventDefault` | `event-listener-flags`, `event-listener-options-are-converted` | 同上 | 済 |
 
-## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.5 stringifier
+## §4.4 値を返すだけの `Node` の method / §4.9 attribute の getter / §5.6 stringifier
 
 木も live object も変えないので、差分テストでは戻り値だけを比べる。
 

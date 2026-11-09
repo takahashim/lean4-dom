@@ -92,7 +92,7 @@ module DommyRunner
     8 => "comment", 9 => "document", 10 => "documentType", 11 => "documentFragment"
   }.freeze
 
-  # 受け手が range である操作（§5.5 の Range の method）。
+  # 受け手が range である操作（§5.6 の Range の method）。
   RANGE_OPS = %w[rangeSetStart rangeSetEnd rangeSetStartBefore rangeSetStartAfter
                  rangeSetEndBefore rangeSetEndAfter rangeCollapse rangeSelectNode
                  rangeSelectNodeContents rangeIsPointInRange rangeIntersectsNode

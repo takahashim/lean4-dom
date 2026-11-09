@@ -4,7 +4,7 @@ import Dom.Range.Adjust
 /-!
 # boundary point の位置を数列で表す
 
-DOM Standard §5.3 の boundary point position は、tree order と `childTowards` を使って
+DOM Standard §5.2 の boundary point position は、tree order と `childTowards` を使って
 場合分けで定義されている。ここではそれと同値な、より扱いやすい表現を与える。
 
 root から node へ至る経路上の各段の index を並べた列（`pathIndices`）の末尾に
@@ -234,7 +234,7 @@ theorem bpPositionDown_eq_lexCmp (hwf : WellFormed t) {a b : BoundaryPoint}
     rw [hi, hj]
     exact (lexCmp_cons_lt hij _ _).symm
 
-/-- DOM Standard §5.3 の boundary point position は、key の辞書式比較に一致する。 -/
+/-- DOM Standard §5.2 の boundary point position は、key の辞書式比較に一致する。 -/
 theorem bpPosition_eq_lexCmp (hwf : WellFormed t) {a b : BoundaryPoint} {ad bd : NodeData}
     (ha : t.get? a.node = some ad) (hb : t.get? b.node = some bd)
     (hroot : root t a.node = root t b.node) :
@@ -721,7 +721,7 @@ theorem pathIndices_detach_below (hwf : WellFormed t) (hwf' : WellFormed t')
 /-! ### live range pre-remove steps と key -/
 
 /--
-DOM Standard §5.5 の live range pre-remove steps は、key の上では `shiftKey` として働く。
+DOM Standard §5.6 の live range pre-remove steps は、key の上では `shiftKey` として働く。
 
 これと `shiftKey_mono` から、remove が `BoundaryLE` を保つことが従う。
 -/

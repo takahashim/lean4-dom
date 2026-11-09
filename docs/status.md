@@ -7181,6 +7181,10 @@ model の定義と関係は変えず、表と snapshot だけを直した。
 * Web IDL `c812515` は js-to-union step 11.1.1.2 の async sequence の method を `asyncMethod` に直した。model の扱う union は
   async sequence を含まず、この step は表で除外している。残りの commit は表に載せていない algorithm（default toJSON、
   interface object の作成、attribute の setter、wait for all ほか）だけを変えた。
+* コメントの節番号を直した。`Range` の節（§5.5 → §5.6）に加え、boundary point を §5.3 と書いていたもの（改訂前から
+  §5.2）も直した。同じ所で、固定版より前の step 番号のまま残っていたものも直した（pre-remove steps の調整は
+  step 4-5・6-7、move の pre-remove は step 9・10、offset の調整は step 18、remove の transient と record は step 15-16、
+  insert の record は step 8、deleteContents の record は step 9-11）。
 
 ## 未着手
 

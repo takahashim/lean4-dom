@@ -2,7 +2,7 @@ import Dom.Spec.RangeDelete
 import Dom.Spec.SplitText
 
 /-!
-# `Range.insertNode(node)` の関係意味論（§5.5 insert）
+# `Range.insertNode(node)` の関係意味論（§5.6 insert）
 
 step 6 で `PreInsertValidity` を、step 7 で `SplitTextResult` を、step 9 で `RemoveSpec` を、
 step 12 で `PreInsertResult` を composition する。「Text node」は CDATASection を含む（`IsText`）。
@@ -67,7 +67,7 @@ def InsertNodeTail (s : DOMState) (i : Nat) (parent node : NodeId) (ref : Option
             res
 
 /--
-**§5.5 `insertNode(node)` の、結果まで含めた関係。**
+**§5.6 `insertNode(node)` の、結果まで含めた関係。**
 
 `r` は `this`（`s.ranges` の `i` 番目）である。
 -/

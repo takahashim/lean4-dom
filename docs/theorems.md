@@ -599,9 +599,9 @@ theorem liveRangePreRemoveBP_comm (t : Tree) (node parent : NodeId) (index : Nat
       = rangeMoveOutOfSubtree t node parent index (rangeShiftAfterRemove parent index bp)
 ```
 
-§5.5 は step 3-4（部分木の外へ移す）と step 5-6（offset をずらす）の順序を定めるが、
-二つは**無条件に可換**である。step 5-6 は `node` を変えないので step 3-4 の条件に
-影響せず、step 3-4 が移した先の offset はちょうど `index` なので step 5-6 の条件に
+§5.6 は step 4-5（部分木の外へ移す）と step 6-7（offset をずらす）の順序を定めるが、
+二つは**無条件に可換**である。step 6-7 は `node` を変えないので step 4-5 の条件に
+影響せず、step 4-5 が移した先の offset はちょうど `index` なので step 6-7 の条件に
 当てはまらない。
 
 この定理は、差分テストで順序を入れ替えても不一致が出ないことの説明になっている。

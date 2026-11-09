@@ -166,7 +166,7 @@ theorem remove_iterators {s s' : DOMState} {n : NodeId} {b : Bool}
         iteratorPreRemoveOne s.tree n it
       else it := by
   obtain ⟨p', sd, hp', hd, hrec⟩ := remove_cases h
-  -- step 20-21 は iterator を変えない。
+  -- step 15-16 は iterator を変えない。
   have hi : s'.iterators = sd.iterators := by
     rcases hrec with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> simp
   rw [hi]

@@ -81,7 +81,7 @@ def iteratorPreRemoveOne (t : Tree) (toBeRemoved : NodeId) (it : IteratorState) 
   { it with reference := r.1, pointerBeforeReference := r.2 }
 
 /--
-DOM Standard §4.2.3 remove step 4 / move step 11。
+DOM Standard §4.2.3 remove step 4 / move step 10。
 
 仕様どおり、root の node document が削除する node の node document と同じ
 iterator だけを対象にする。

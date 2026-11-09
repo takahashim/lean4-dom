@@ -2,13 +2,13 @@ import Dom.Spec.RangeQuery
 import Dom.Spec.CharacterDataResult
 
 /-!
-# `Range.deleteContents()` の関係意味論（§5.5）
+# `Range.deleteContents()` の関係意味論（§5.6）
 
 `replace` と同じ方針。仕様本文から独立に書き写した関係を置き、
 実行関数がそれを満たすことは `Dom/Spec/RangeDeleteSound.lean` で証明する。
 
 step 9 と step 11 で `ReplaceDataSpec` を、step 10 で `RemoveEachSpec` を composition する。
-「contained」と step 5-7 の新しい boundary point は §5.3 の `BPBefore`
+「contained」と step 5-7 の新しい boundary point は §5.2 の `BPBefore`
 （`Dom/Spec/RangeQuery.lean`）と §4.2 の語彙で書き、実行側の `bpPosition` や
 `containedInRange` は使わない。
 
@@ -24,7 +24,7 @@ namespace Dom.Spec
 open Dom
 
 /--
-**§5.5 contained。**
+**§5.6 contained。**
 
 node の root が range の root で、(node, 0) が start の after、
 (node, node の length) が end の before であること。
@@ -79,7 +79,7 @@ def AndThen (r : Except DOMException DOMState → Prop)
   | res => (∃ e, r (.error e) ∧ res = .error e) ∨ (∃ s₁, r (.ok s₁) ∧ next s₁ res)
 
 /--
-**§5.5 `deleteContents()` の、結果まで含めた関係。**
+**§5.6 `deleteContents()` の、結果まで含めた関係。**
 
 `r` は `this`（`s.ranges` の `i` 番目）である。step 番号は固定版の本文（`docs/spec-version.md`）に合わせる。
 
