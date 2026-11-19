@@ -120,7 +120,7 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
         (hobs.tree.wellFormed hwf) hodx
       have hobsa : ObsEq sa o₁ :=
         adoptSpec_congr hwf hobs ha (adopt_sound (hobs.tree.wellFormed hwf) ho₁)
-      -- step 7.2：insertAt の四つの前提
+      -- step 7.2-7.3：insertAt の四つの前提
       have hkp : ShapePreserving sx.tree o₁.tree := shapePreserving_adopt ho₁
       have hpdx : sx.tree.get? parent = some pd := by rw [hobs.tree]; exact hpd
       obtain ⟨pd₁, hpd₁⟩ := exists_get?_of_kindPreserving hkp hpdx
@@ -155,7 +155,7 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
           | Except.error e => Except.error e
           | Except.ok t => Except.ok (o₁.withTree t)) = _
         rw [hins]
-      -- step 7.3：結果は観測が等しい
+      -- step 7.2-7.3：結果は観測が等しい
       obtain ⟨o₂, ho₂⟩ : ∃ o₂ : DOMState,
           o₂ = o₁.withTree (insertAtIn o₁.tree parent n child pd₁ nd₁) := ⟨_, rfl⟩
       have hins₂ : TreeInserted o₁.tree o₂.tree parent n child :=

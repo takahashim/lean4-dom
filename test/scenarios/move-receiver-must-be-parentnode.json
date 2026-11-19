@@ -2,7 +2,7 @@
   "_note": "moveBefore の receiver は IDL により ParentNode に限られる。move algorithm の step 1-6 にはこの検査が無いので、model は API の側で表す。実際の DOM では Text に moveBefore という method がそもそも無く、呼ぶと DOMException ではなく WebIDL の TypeError になるので、model も TypeError を返す。この step は差分比較できない（Dommy 側は NoMethodError になり harness が skip する）。",
   "_basis": {
     "kind": "model",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "moveBefore"
     ],

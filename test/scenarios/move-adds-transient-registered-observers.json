@@ -2,7 +2,7 @@
   "_note": "move も step 17 で add transient registered observers を呼ぶ。node 2 を observer 0 が subtree で見ている node 1 から node 3 へ動かすと、node 2 には transient が付き、動かした後の node 2 の attribute の変更も observer 0 に届く。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "move",
       "add transient registered observers",

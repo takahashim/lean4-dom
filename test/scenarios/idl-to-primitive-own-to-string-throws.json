@@ -1,7 +1,7 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/tc39/ecma262/blob/5345883164f463e87f8b40aca4956157ecba8783/spec.html",
+    "spec": "https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html",
     "algorithm": [
       "OrdinaryToPrimitive",
       "ToString",

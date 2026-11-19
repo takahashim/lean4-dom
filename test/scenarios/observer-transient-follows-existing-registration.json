@@ -2,7 +2,7 @@
   "_note": "外された node に付く transient registered observer は、その node の registered observer list の末尾に足される（add transient registered observers step 1.5）。したがって、その node に元から付いていた registration より後に来て、characterData の record では observer 1 が先に pending になる。それでも notify は creation index の順に回る（notify mutation observers step 2）ので、配送は observer 0 が先である。whatwg/dom 3071e5f より前の本文は pending になった順に回っていたので、observer 1 が先だった。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "remove",
       "add transient registered observers",

@@ -1,12 +1,13 @@
 {
-  "_note": "iterator の reference が削除される node を指しているときの pre-remove steps。pointerBefore=false なので step 3-4 に落ち、reference は削除 node の parent になる。",
+  "_note": "iterator の reference が削除される node を指しているときの pre-remove steps。pointerBefore=false なので、step 1 が呼ぶ adjust a node pointer の step 3-4 に落ち、reference は削除 node の parent になる。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
-      "NodeIterator pre-remove steps"
+      "NodeIterator pre-remove steps",
+      "adjust a node pointer"
     ],
-    "steps": "3-4",
+    "steps": "NodeIterator pre-remove steps 1 / adjust a node pointer 3-4",
     "note": "pointerBeforeReference が false のときの reference の付け替え。"
   },
   "nodes": [

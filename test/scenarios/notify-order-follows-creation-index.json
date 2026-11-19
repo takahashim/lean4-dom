@@ -2,7 +2,7 @@
   "_note": "notify mutation observers は pending mutation observers を creation index の順に並べてから回る（step 2）。ここでは observer 1 が先に pending になるが、配送は observer 0 が先である。whatwg/dom 3071e5f より前の本文は pending になった順に回っていた。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "notify mutation observers",
       "queue a mutation record"

@@ -7253,8 +7253,7 @@ Web IDL を `e340c2e`（2026-11-07）から `54a5f2d`（2026-11-14）に上げ�
   remove の transient と record（20-21 → 15-16）、dispatch の event path と二つの周（5・12-13 → 6・6.13-6.14）、
   deleteContents（一つずつ繰り下がる）、ensure pre-insert validity の element と fragment の場合（6 → 9・8.1）、
   clone a single node（attribute の clone は 2.5、Attr の節は 5、それ以外の node は 4）など。clone the contents の
-  scenario は extract の番号（21 まで）を使っていたので、clone the contents の番号（17 まで）にした。直した scenario は
-  `_basis.spec` の URL もこの版の commit にした。
+  scenario は extract の番号（21 まで）を使っていたので、clone the contents の番号（17 まで）にした。
 * **節番号**：木の語彙（parent、children、ancestor、descendant、sibling、root、tree order）は §4.2 ではなく §1.1 Trees、
   node の length は §4.2、parent element は §4.9、descendant text content は §4.11、list of elements with qualified name
   （namespace and local name）は §4.4、`MutationObserver` の method は §4.3.1、`NamedNodeMap` の method は §4.9.1、
@@ -7265,12 +7264,22 @@ Web IDL を `e340c2e`（2026-11-07）から `54a5f2d`（2026-11-14）に上げ�
   `docs/traceability.md` の traverse（1-5）・filter（2-4）・toggle（1-5）、move の `insertAt`（step 20-21）、
   range の insert の `referenceNode`（step 3-7）、remove an attribute の handle attribute changes（step 4）。
 
-直していないもの：番号の付いていない algorithm（`append`、normalize の前文の走査、`collapse()`）を番号で指す行、
-observe の step を何に当てたか決められない scenario の 2 本、`iterator-adjust-*` の 2 本（NodeIterator pre-remove steps
-と書くが、番号は呼ぶ先の adjust a node pointer のもの）、証明の段階の名前（`-- step 7.3：…`）。
-`transient-observer-chains-through-removals` の `_note` は番号を直したが、「node 1 の transient を source として
-node 2 に transient が付く」という文は、transient の source を元の registered observer にする現行の add transient
-registered observers（step 1.3）と合わない（whatwg/dom 3071e5f より前の読み）。文の書き直しは別に行う。
+番号だけでは直らなかったものは、文を直した。
+
+* 番号の付いていない algorithm を番号で指していた行：`append`（一文の algorithm）、normalize の「descendant を辿る」
+  （step 1 ではなく前文）、`collapse()`（一文の method steps）。
+* observe の step を `observe 3, 6, 7`・`observe 5, 7` と書いていた scenario の 2 本は、操作が通る step 3（options の検査）・
+  7（既存の registration を探す）・9（新しい registration を足す）にした。
+* `iterator-adjust-on-remove`・`iterator-adjust-pointer-before` は、NodeIterator pre-remove steps の step 1 が呼ぶ
+  adjust a node pointer の step（3-4、2）であることを書いた。
+* `transient-observer-chains-through-removals` の `_note` は、「node 1 の transient を source として node 2 に transient
+  が付く」と書いていた。これは whatwg/dom 3071e5f より前の読みで、現行の add transient registered observers は parent の
+  側の transient も辿るが、新しい transient の source は元の registered observer にする（step 1.3）。それに合わせて書き直した。
+* 証明の段階の名前で、insert の step 7.3 と書いていたもの（`insertAt` は step 7.2-7.3、残りの node への進みは step 7）。
+* `Dom/Properties/Witness.lean` の「§15」は `docs/theorems.md` の §15 のことだったので、そう書いた。
+
+scenario の `_basis.spec` の URL は、DOM・Web IDL・ECMA-262 とも固定版の commit にそろえた（どの scenario の step も
+この版で確かめた）。HTML の 4 本は HTML を固定していないので、そのままにした。
 
 ## 未着手
 

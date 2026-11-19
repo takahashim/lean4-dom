@@ -216,7 +216,7 @@ inductive PassRan (capturing : Bool) (target : NodeId) :
       PassRan capturing target s e (item :: rest) s' e' (log₁ ++ log₂)
 
 /--
-**§2.9 `dispatchEvent` の、結果まで含めた関係。**
+**§2.7 `dispatchEvent()`（§2.9 dispatch）の、結果まで含めた関係。**
 
 成功すれば「最終状態」「戻り値（canceled flag が立っていなければ true）」「呼ばれた listener の列」。
 target が木に無ければ（model の都合）`NotFoundError`。

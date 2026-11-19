@@ -8,7 +8,7 @@
       "notify mutation observers",
       "observe"
     ],
-    "steps": "queue a mutation record 4-5 / notify mutation observers 1-6 / observe 3, 6, 7",
+    "steps": "queue a mutation record 4-5 / notify mutation observers 1-6 / observe 3, 7, 9",
     "note": "配送は record queue を空にし、transient registered observer を外す。"
   },
   "nodes": [

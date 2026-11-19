@@ -2,7 +2,7 @@
   "_note": "add transient registered observers は、transient を足した observer を pending にする（step 1.7）。observer 0 は childList を見ないので remove の record を受けないが、次の notify で transient は外れ、その後の外された node の attribute の変更は届かない。whatwg/dom 3071e5f より前の本文では、record の無い observer は notify されず、transient が残っていた。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "remove",
       "add transient registered observers",

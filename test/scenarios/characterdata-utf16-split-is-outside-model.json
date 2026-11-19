@@ -2,7 +2,7 @@
   "_note": "\"a😀b\" の offset 2 は surrogate pair の途中である。仕様はそこで切った結果（lone surrogate を含む列）も定義するが、Lean の `Char` は surrogate を含まないので `String` では表せない。model はこれを `__outsideModel__` として返す。**仕様の例外ではない**ので、差分テストはこの step 以降を比較しない（`skip` になる）。Dommy も Ruby の UTF-8 String の同じ制約で断るが、両者が同じところで失敗することは仕様適合の証拠にならない。",
   "_basis": {
     "kind": "model",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "replace data"
     ],

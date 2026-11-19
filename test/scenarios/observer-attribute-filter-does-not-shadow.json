@@ -9,7 +9,7 @@
       "setAttribute",
       "handle attribute changes"
     ],
-    "steps": "queue a mutation record 3.2 / observe 5, 7 / setAttribute 6-7 / handle attribute changes 1",
+    "steps": "queue a mutation record 3.2 / observe 3, 7, 9 / setAttribute 6-7 / handle attribute changes 1",
     "note": "filter がこの attribute を含まない registration が、含む registration を隠さないこと。"
   },
   "nodes": [

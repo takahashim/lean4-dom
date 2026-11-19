@@ -297,7 +297,7 @@ theorem insertEach_isOk : ∀ (ns : List NodeId) {s : DOMState} {parent : NodeId
         | Except.error e => Except.error e
         | Except.ok t => Except.ok (s₁.withTree t)) = _
       rw [hins, hs₂]
-    -- step 7.3：残りの列でも条件は保たれる
+    -- step 7 の残りの node：残りの列でも条件は保たれる
     have h₂ : Insertable s₂.tree parent child ns := by
       rw [htree₂]
       exact insertable_insertAt hwf₁ hins h₁

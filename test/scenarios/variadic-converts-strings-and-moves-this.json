@@ -2,7 +2,7 @@
   "_note": "ParentNode と ChildNode の可変長 method は、引数を convert nodes into a node でまとめる。文字列は新しい Text node になり、引数が一つでなければ新しい DocumentFragment に append される。fragment は挿入の後で空になり、どこからも参照されないので観測されない。this 自身を引数に含めると、変換で this が fragment に移る。before は viable sibling を変換の前に、挿入先を変換の後に決め、replaceWith は this の parent が変わったので step 6 の pre-insert に進む。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "convert nodes into a node",
       "append",
