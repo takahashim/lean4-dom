@@ -1,41 +1,99 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "nodeType",
-      "nodeName",
-      "isConnected",
-      "parentNode",
-      "parentElement",
-      "firstChild",
-      "lastChild",
-      "previousSibling",
-      "nextSibling",
-      "childNodes",
-      "tagName",
-      "namespaceURI",
-      "prefix",
-      "localName",
-      "firstElementChild",
-      "lastElementChild",
-      "childElementCount",
-      "children",
-      "previousElementSibling",
-      "nextElementSibling",
-      "doctype",
-      "documentElement",
-      "contentType",
-      "compatMode",
-      "length",
-      "data",
-      "name",
-      "publicId",
-      "systemId",
-      "target"
+    "refs": [
+      {
+        "alg": "dom-node-nodetype"
+      },
+      {
+        "alg": "dom-node-nodename"
+      },
+      {
+        "alg": "dom-node-isconnected"
+      },
+      {
+        "alg": "dom-node-parentnode"
+      },
+      {
+        "alg": "dom-node-parentelement"
+      },
+      {
+        "alg": "dom-node-firstchild"
+      },
+      {
+        "alg": "dom-node-lastchild"
+      },
+      {
+        "alg": "dom-node-previoussibling"
+      },
+      {
+        "alg": "dom-node-nextsibling"
+      },
+      {
+        "alg": "dom-node-childnodes"
+      },
+      {
+        "alg": "dom-element-tagname"
+      },
+      {
+        "alg": "dom-element-namespaceuri"
+      },
+      {
+        "alg": "dom-element-prefix"
+      },
+      {
+        "alg": "dom-element-localname"
+      },
+      {
+        "alg": "dom-parentnode-firstelementchild"
+      },
+      {
+        "alg": "dom-parentnode-lastelementchild"
+      },
+      {
+        "alg": "dom-parentnode-childelementcount"
+      },
+      {
+        "alg": "dom-parentnode-children"
+      },
+      {
+        "alg": "dom-nondocumenttypechildnode-previouselementsibling"
+      },
+      {
+        "alg": "dom-nondocumenttypechildnode-nextelementsibling"
+      },
+      {
+        "alg": "dom-document-doctype"
+      },
+      {
+        "alg": "dom-document-documentelement"
+      },
+      {
+        "alg": "dom-document-contenttype"
+      },
+      {
+        "alg": "dom-document-compatmode"
+      },
+      {
+        "alg": "dom-characterdata-length"
+      },
+      {
+        "alg": "dom-characterdata-data"
+      },
+      {
+        "alg": "dom-documenttype-name"
+      },
+      {
+        "alg": "dom-documenttype-publicid"
+      },
+      {
+        "alg": "dom-documenttype-systemid"
+      },
+      {
+        "alg": "dom-processinginstruction-target"
+      }
     ],
-    "steps": "各 getter",
-    "note": "値を読むだけの getter を、すべての node 種（quirks の HTML document、doctype、HTML と SVG の element、Text、Comment、PI、DocumentFragment、XHTML の XML document、親の無い element、Attr）に対して読む。受け手の interface に無い getter は undefined になる。"
+    "note": "各 getter。 値を読むだけの getter を、すべての node 種（quirks の HTML document、doctype、HTML と SVG の element、Text、Comment、PI、DocumentFragment、XHTML の XML document、親の無い element、Attr）に対して読む。受け手の interface に無い getter は undefined になる。"
   },
   "nodes": [
     {

@@ -2,11 +2,13 @@
   "_note": "Document に二つ目の element を入れると step 9 で HierarchyRequestError。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "9",
+        "text": "If node is a DocumentFragment or Element node"
+      }
     ],
-    "steps": "9",
     "note": "Document の element の子は高々一つである。"
   },
   "nodes": [

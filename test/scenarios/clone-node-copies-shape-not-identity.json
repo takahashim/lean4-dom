@@ -1,10 +1,23 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-clone",
-    "algorithm": ["clone a node", "clone a single node"],
-    "steps": "2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone",
-    "note": "shallow な clone は attribute を写すが children を写さない。deep な clone は subtree ぜんぶを写す。どちらも copy は原本とは別の node なので、原本の隣に入れると両方が木に並ぶ。"
+    "refs": [
+      {
+        "alg": "concept-node-clone",
+        "step": "2",
+        "text": "Let copy be the result of cloning a"
+      },
+      {
+        "alg": "concept-node-clone",
+        "step": "4-5",
+        "text": "If parent is non-null, then append copy to",
+        "last": "If subtree is true, then for each child"
+      },
+      {
+        "alg": "clone-a-single-node"
+      }
+    ],
+    "note": "2 copy を作る / 4 parent が非 null なら copy を append / 5 subtree なら children を tree order で clone。 shallow な clone は attribute を写すが children を写さない。deep な clone は subtree ぜんぶを写す。どちらも copy は原本とは別の node なので、原本の隣に入れると両方が木に並ぶ。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "set the start"
+    "refs": [
+      {
+        "alg": "concept-range-bp-set",
+        "step": "1-4",
+        "text": "If node is a doctype, then throw an",
+        "last": "If these steps were invoked as \"set the"
+      }
     ],
-    "steps": "set the start 1-4",
     "note": "start を end より後ろに置くと range は新しい start へ潰れる（set the start step 4）。"
   },
   "nodes": [

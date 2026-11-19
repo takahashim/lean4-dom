@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "clone the contents"
+    "refs": [
+      {
+        "alg": "concept-range-clone",
+        "step": "10",
+        "text": "Let containedChildren be a list of all children"
+      },
+      {
+        "alg": "concept-range-clone",
+        "step": "14",
+        "text": "For each contained child of containedChildren"
+      }
     ],
-    "steps": "clone the contents 10, 14",
     "note": "両端が同じ element の子の間。contained children だけを fragment へ移す。"
   },
   "nodes": [

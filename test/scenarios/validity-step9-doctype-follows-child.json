@@ -2,11 +2,13 @@
   "_note": "reference child より後ろに doctype があると、element は入れられない。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "9",
+        "text": "If node is a DocumentFragment or Element node"
+      }
     ],
-    "steps": "9",
     "note": "element の挿入検査の二つ目の条件（a doctype is following child）。"
   },
   "nodes": [

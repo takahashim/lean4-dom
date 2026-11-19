@@ -2,11 +2,18 @@
   "_note": "reference child が新しい parent の子でないなら step 3 で NotFoundError。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "move"
+    "refs": [
+      {
+        "alg": "move",
+        "step": "3",
+        "text": "If child is non-null and its parent is"
+      },
+      {
+        "alg": "move",
+        "step": "2",
+        "text": "If node is a host-including inclusive ancestor of"
+      }
     ],
-    "steps": "3",
     "note": "step 2 を通った後で初めて reference child の親を見る。"
   },
   "nodes": [

@@ -1,11 +1,11 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "createProcessingInstruction"
+    "refs": [
+      {
+        "alg": "dom-document-createprocessinginstruction"
+      }
     ],
-    "steps": "createProcessingInstruction / createCDATASection",
     "note": "target が Name production に当たらなければ InvalidCharacterError（先頭が数字）。"
   },
   "nodes": [

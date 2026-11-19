@@ -2,11 +2,13 @@
   "_note": "fragment.replaceChildren(自分自身) は仕様では HierarchyRequestError（step 2）。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "2",
+        "text": "If node is a host-including inclusive ancestor of"
+      }
     ],
-    "steps": "2",
     "note": "replaceChildren(自分自身) は cycle なので HierarchyRequestError。"
   },
   "nodes": [

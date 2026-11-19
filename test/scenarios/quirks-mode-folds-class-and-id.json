@@ -1,13 +1,22 @@
 {
   "_basis": {
     "kind": "spec",
+    "refs": [
+      {
+        "alg": "dom-document-getelementsbyclassname"
+      },
+      {
+        "alg": "dom-element-getelementsbyclassname"
+      },
+      {
+        "alg": "get-an-element-by-id"
+      }
+    ],
     "spec": "https://html.spec.whatwg.org/multipage/semantics-other.html#case-sensitivity-of-selectors",
     "algorithm": [
-      "Case-sensitivity of selectors",
-      "list of elements with class names",
-      "get an element by ID"
+      "Case-sensitivity of selectors"
     ],
-    "steps": "quirks mode の document では class selector・id selector・getElementsByClassName の比較が ASCII case-insensitive になる。no-quirks と limited-quirks では identical。getElementById は mode に依らず identical",
+    "steps": "quirks mode の document では class selector・id selector の比較が ASCII case-insensitive になる。no-quirks と limited-quirks では identical",
     "note": "document 0 は quirks、5 は no-quirks、8 は limited-quirks。ASCII case-insensitive なので `ä` は `Ä` に、`k` は KELVIN SIGN に当たらない。"
   },
   "nodes": [

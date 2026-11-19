@@ -1,12 +1,21 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "insert",
-      "split a Text node"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node,"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "13",
+        "text": "If range is collapsed, then set range's end"
+      },
+      {
+        "alg": "concept-text-split"
+      }
     ],
-    "steps": "insert 7, 13",
     "note": "collapsed な range の start が Text の中。Text を split して、node を split の継ぎ目に入れ、end を入れた node の後ろへ広げる。もう一つの live range は split で新しい Text へ移る。"
   },
   "nodes": [

@@ -1,14 +1,21 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "setStartBefore",
-      "setEndAfter",
-      "collapse"
+    "refs": [
+      {
+        "alg": "dom-range-setstartbefore",
+        "step": "1-3",
+        "text": "Let parent be node's parent",
+        "last": "Set the start of this to boundary point"
+      },
+      {
+        "alg": "dom-range-setendafter"
+      },
+      {
+        "alg": "dom-range-collapse"
+      }
     ],
-    "steps": "setStartBefore 1-3 / collapse（番号の無い一文）",
-    "note": "setStartBefore / setEndAfter は兄弟の位置を使う。collapse は片方の端へ潰す。"
+    "note": "setStartBefore 1-3 / collapse（番号の無い一文）。 setStartBefore / setEndAfter は兄弟の位置を使う。collapse は片方の端へ潰す。"
   },
   "nodes": [
     {

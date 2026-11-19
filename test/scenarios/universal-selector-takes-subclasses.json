@@ -2,7 +2,10 @@
   "_basis": {
     "kind": "regression",
     "spec": "https://drafts.csswg.org/selectors-4/#type-nmsp",
-    "algorithm": ["<type-selector>", "<compound-selector>"],
+    "algorithm": [
+      "<type-selector>",
+      "<compound-selector>"
+    ],
     "steps": "<type-selector> = <wq-name> | <ns-prefix>? '*'、<compound-selector> = [ <type-selector>? <subclass-selector>* ]!",
     "note": "差分テストが見つけた model 側の parser の誤り。`*` の次を namespace の `|` かどうかだけ先読みすべきところで、二 token をまとめて読んでいたので `*.v` が失敗していた。"
   },

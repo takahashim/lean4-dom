@@ -1,12 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-pre-remove",
-    "algorithm": [
-      "pre-remove"
+    "refs": [
+      {
+        "alg": "concept-node-pre-remove",
+        "step": "1",
+        "text": "If child's parent is not parent, then throw"
+      }
     ],
-    "steps": "step 1。child の parent が parent でなければ NotFoundError",
-    "note": "`remove` 自身は parent が無いときだけ落ちるので、この検査が無いと別の親から外せてしまう。"
+    "note": "step 1。child の parent が parent でなければ NotFoundError。 `remove` 自身は parent が無いときだけ落ちるので、この検査が無いと別の親から外せてしまう。"
   },
   "nodes": [
     {

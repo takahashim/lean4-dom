@@ -1,13 +1,27 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://webidl.spec.whatwg.org/#es-overloads",
-    "algorithm": [
-      "ECMAScript argument conversion",
-      "insertNode"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "dfn-create-operation-function",
+        "step": "2.1.5-2.1.8",
+        "text": "Let <operation, values> be the result of passing",
+        "last": "Otherwise, set R to the result of running"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-interface",
+        "step": "2",
+        "text": "JavaScript/Throw a TypeError"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node,"
+      }
     ],
-    "steps": "WebIDL の引数変換は method の step より先に走る / insertNode 7",
-    "note": "insertNode の step 7 は start node が Text なら splitText で割る。null 引数の TypeError はその前に出るので、木は変わらない。"
+    "note": "WebIDL の引数変換は method の step より先に走る / insertNode 7。 insertNode の step 7 は start node が Text なら splitText で割る。null 引数の TypeError はその前に出るので、木は変わらない。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

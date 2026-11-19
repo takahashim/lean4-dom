@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "surroundContents"
+    "refs": [
+      {
+        "alg": "dom-range-surroundcontents",
+        "step": "2",
+        "text": "If newParent is a Document, DocumentType, or DocumentFragment"
+      }
     ],
-    "steps": "surroundContents 2",
     "note": "newParent が Document なので InvalidNodeTypeError。"
   },
   "nodes": [

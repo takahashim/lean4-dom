@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "clone the contents"
+    "refs": [
+      {
+        "alg": "concept-range-clone",
+        "step": "7",
+        "text": "If originalStartNode is not an inclusive ancestor of"
+      },
+      {
+        "alg": "concept-range-clone",
+        "step": "13",
+        "text": "Otherwise, if firstPartiallyContainedChild is non-null"
+      }
     ],
-    "steps": "clone the contents 7, 13",
     "note": "end node が start node の ancestor。last partially contained child は null。"
   },
   "nodes": [

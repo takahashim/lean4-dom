@@ -1,13 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#dom-parentnode-queryselector",
-    "algorithm": [
-      "querySelector(selectors)",
-      "querySelectorAll(selectors)"
+    "refs": [
+      {
+        "alg": "dom-parentnode-queryselector"
+      },
+      {
+        "alg": "dom-parentnode-queryselectorall"
+      }
     ],
-    "steps": "どちらも ParentNode（Document / DocumentFragment / Element）の method である",
-    "note": "IDL が持たない受け手に対しては、method 本体に入る前に WebIDL の TypeError になる。parse a selector より前である。"
+    "note": "どちらも ParentNode（Document / DocumentFragment / Element）の method である。 IDL が持たない受け手に対しては、method 本体に入る前に WebIDL の TypeError になる。parse a selector より前である。"
   },
   "nodes": [
     {

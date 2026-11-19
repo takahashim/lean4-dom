@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "extract"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "11",
+        "text": "If any member of containedChildren is a doctype,"
+      }
     ],
-    "steps": "extract 11",
     "note": "contained child に doctype がある。木を変える前に HierarchyRequestError を投げる。"
   },
   "nodes": [

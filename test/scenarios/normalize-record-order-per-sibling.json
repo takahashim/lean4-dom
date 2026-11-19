@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "normalize"
+    "refs": [
+      {
+        "alg": "dom-node-normalize",
+        "step": "3-7",
+        "text": "Let data be the concatenation of the data",
+        "last": "Remove node's contiguous exclusive Text nodes (excluding itself),"
+      }
     ],
-    "steps": "normalize 3-7",
     "note": "四つの Text の run。仕様を字義どおり読むと characterData は一つだが、engine は兄弟ごとに積む（Dommy issue #24）。model は engine に合わせる。"
   },
   "nodes": [

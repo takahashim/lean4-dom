@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "insert"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "10-13",
+        "text": "Let newOffset be parent's length if referenceNode is",
+        "last": "If range is collapsed, then set range's end"
+      }
     ],
-    "steps": "insert 10-13",
     "note": "element の子の間の collapsed な range に空の DocumentFragment を入れる。何も入らず、range も動かない。"
   },
   "nodes": [

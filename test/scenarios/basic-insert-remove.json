@@ -1,14 +1,26 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "insert",
-      "remove",
-      "pre-insert",
-      "pre-remove"
+    "refs": [
+      {
+        "alg": "concept-node-insert",
+        "step": "1-9",
+        "text": "Let nodes be node's children, if node is",
+        "last": "Run the children changed steps for parent"
+      },
+      {
+        "alg": "concept-node-remove",
+        "step": "1-17",
+        "text": "Let parent be node's parent",
+        "last": "Run the children changed steps for parent"
+      },
+      {
+        "alg": "concept-node-pre-insert"
+      },
+      {
+        "alg": "concept-node-pre-remove"
+      }
     ],
-    "steps": "insert 1-9 / remove 1-17",
     "note": "appendChild と removeChild の素直な往復。木・range・iterator が仕様どおり動くことの基準線。"
   },
   "nodes": [

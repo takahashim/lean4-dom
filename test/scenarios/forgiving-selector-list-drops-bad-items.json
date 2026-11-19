@@ -2,7 +2,11 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#matches",
-    "algorithm": [":is()", ":where()", "parse as a forgiving selector list"],
+    "algorithm": [
+      ":is()",
+      ":where()",
+      "parse as a forgiving selector list"
+    ],
     "steps": "読めなかった項目を捨てる。残りが空でも「valid but matches nothing」である。:not() は forgiving ではない",
     "note": "空の項目（`,` だけ、末尾の `,`）も読めない項目として捨てる。`:not()` は <complex-real-selector-list> なので空は許さない。"
   },

@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "removeChild",
-      "pre-remove"
+    "refs": [
+      {
+        "alg": "dom-node-removechild"
+      },
+      {
+        "alg": "concept-node-pre-remove",
+        "step": "3",
+        "text": "Return child"
+      }
     ],
-    "steps": "removeChild() / pre-remove step 3",
     "note": "removeChild(child) は pre-remove を走らせ、child を返す。child が DocumentType でも同じである。"
   },
   "nodes": [

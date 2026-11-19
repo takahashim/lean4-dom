@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "extract"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "17",
+        "text": "Otherwise, if firstPartiallyContainedChild is non-null"
+      }
     ],
-    "steps": "extract 17",
     "note": "start が入れ子の element（span の中の Text）にある。first partially contained child（div）を clone し、subrange を再帰して extract する。"
   },
   "nodes": [

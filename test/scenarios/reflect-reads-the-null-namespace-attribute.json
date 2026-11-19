@@ -1,13 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "get an attribute value",
-      "reflect"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-get-value"
+      },
+      {
+        "alg": "concept-reflect"
+      }
     ],
-    "steps": "Element.id / className / slot の getter",
-    "note": "reflect は namespace が null の attribute を読む。namespace 付きで prefix の無い同名の attribute は qualified name では一致するので getAttribute は拾うが、reflect は拾わない。null namespace のものが無ければ空文字列。"
+    "note": "Element.id / className / slot の getter。 reflect は namespace が null の attribute を読む。namespace 付きで prefix の無い同名の attribute は qualified name では一致するので getAttribute は拾うが、reflect は拾わない。null namespace のものが無ければ空文字列。"
   },
   "nodes": [
     {

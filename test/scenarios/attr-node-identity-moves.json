@@ -1,17 +1,38 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-element-attributes-set",
-    "algorithm": [
-      "set an attribute",
-      "createAttribute",
-      "getAttributeNode",
-      "setAttributeNode",
-      "removeAttributeNode",
-      "NamedNodeMap.removeNamedItem"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-set",
+        "step": "2-4",
+        "text": "If attr's element is neither null nor element,",
+        "last": "If oldAttr is attr, return attr"
+      },
+      {
+        "alg": "concept-element-attributes-set",
+        "step": "6-7",
+        "text": "If oldAttr is non-null, then replace oldAttr with",
+        "last": "Otherwise, append attr to element"
+      },
+      {
+        "alg": "dom-document-createattribute"
+      },
+      {
+        "alg": "dom-element-getattributenode"
+      },
+      {
+        "alg": "dom-element-setattributenode"
+      },
+      {
+        "alg": "dom-element-removeattributenode",
+        "step": "1",
+        "text": "If this's attribute list does not contain attr,"
+      },
+      {
+        "alg": "dom-namednodemap-removenameditem"
+      }
     ],
-    "steps": "set an attribute 2 InUseAttributeError / 3 同じ鍵の attribute を引く / 4 同じものなら何もしない / 6 replace / 7 append。removeAttributeNode 1 は attribute list に無ければ NotFoundError",
-    "note": "getAttributeNode は同じ Attr を返す。createAttribute が作った Attr はどの element にも付いておらず、setAttributeNode で付けると copy ではなく同じものが動く。removeAttributeNode で外したものを別の element に付け直しても同じ Attr のままである。別の element に付いている Attr を渡すと InUseAttributeError。"
+    "note": "set an attribute 2 InUseAttributeError / 3 同じ鍵の attribute を引く / 4 同じものなら何もしない / 6 replace / 7 append。removeAttributeNode 1 は attribute list に無ければ NotFoundError。 getAttributeNode は同じ Attr を返す。createAttribute が作った Attr はどの element にも付いておらず、setAttributeNode で付けると copy ではなく同じものが動く。removeAttributeNode で外したものを別の element に付け直しても同じ Attr のままである。別の element に付いている Attr を渡すと InUseAttributeError。"
   },
   "nodes": [
     {

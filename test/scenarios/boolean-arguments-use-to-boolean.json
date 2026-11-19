@@ -1,16 +1,32 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "cloneNode",
-      "toggleAttribute",
-      "classList toggle",
-      "Range collapse",
-      "dispatchEvent"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "js-to-boolean"
+      },
+      {
+        "spec": "ecma262",
+        "alg": "sec-toboolean"
+      },
+      {
+        "alg": "dom-node-clonenode"
+      },
+      {
+        "alg": "dom-element-toggleattribute"
+      },
+      {
+        "alg": "dom-domtokenlist-toggle"
+      },
+      {
+        "alg": "dom-range-collapse"
+      },
+      {
+        "alg": "dom-eventtarget-dispatchevent"
+      }
     ],
-    "steps": "WebIDL の boolean への変換",
-    "note": "boolean の引数は ToBoolean で変換する。0、空文字列、null は false、0 でない数、空でない文字列、object は true である。null は引数の省略ではないので、既定値の無い force に null を渡すと false を渡したことになる。"
+    "note": "WebIDL の boolean への変換。 boolean の引数は ToBoolean で変換する。0、空文字列、null は false、0 でない数、空でない文字列、object は true である。null は引数の省略ではないので、既定値の無い force に null を渡すと false を渡したことになる。"
   },
   "nodes": [
     {

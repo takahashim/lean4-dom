@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "normalize"
+    "refs": [
+      {
+        "alg": "dom-node-normalize",
+        "step": "6.3-6.4",
+        "text": "For each live range whose start node is",
+        "last": "For each live range whose end node is"
+      }
     ],
-    "steps": "normalize 6.3-6.4",
     "note": "parent の中で、畳まれる兄弟の位置を指していた boundary point は survivor の継ぎ目へ移る。remove の pre-remove steps より前に渡すのがその効果である。"
   },
   "nodes": [

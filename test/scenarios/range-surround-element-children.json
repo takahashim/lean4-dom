@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "surroundContents"
+    "refs": [
+      {
+        "alg": "dom-range-surroundcontents",
+        "step": "3-7",
+        "text": "Let fragment be the result of extracting this",
+        "last": "Select newParent within this"
+      }
     ],
-    "steps": "surroundContents 3-7",
     "note": "element の子の間の range を、子を持つ element で囲む。step 4 で newParent の子を null で replace all する。"
   },
   "nodes": [

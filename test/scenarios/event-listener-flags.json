@@ -1,13 +1,34 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "inner invoke",
-      "add an event listener",
-      "remove an event listener"
+    "refs": [
+      {
+        "alg": "concept-event-listener-inner-invoke",
+        "step": "2.5",
+        "text": "If listener's once is true, then remove an"
+      },
+      {
+        "alg": "concept-event-listener-inner-invoke",
+        "step": "2.16",
+        "text": "If event's stop immediate propagation flag is set,"
+      },
+      {
+        "alg": "concept-event-listener-invoke",
+        "step": "6",
+        "text": "If event's stop propagation flag is set, then"
+      },
+      {
+        "alg": "concept-event-listener-invoke",
+        "step": "8",
+        "text": "Let listeners be a clone of event's currentTarget"
+      },
+      {
+        "alg": "add-an-event-listener"
+      },
+      {
+        "alg": "remove-an-event-listener"
+      }
     ],
-    "steps": "inner invoke 2.5, 2.16 / invoke 6, 8",
     "note": "once は呼ぶ前に外す。stopPropagation は次の item から、stopImmediatePropagation は同じ item の残りからも止める。preventDefault は cancelable のときだけ効く。配送中に外した listener は（clone を回していても）呼ばれず、配送中に足した listener はこの配送では呼ばれない。"
   },
   "nodes": [

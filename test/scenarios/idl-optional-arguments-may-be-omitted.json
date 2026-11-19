@@ -1,12 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/webidl/blob/54a5f2de6a34e27a517a49370bc07d8943b0be11/index.bs",
-    "algorithm": [
-      "overload resolution algorithm"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "dfn-overload-resolution-algorithm"
+      }
     ],
-    "steps": "overload resolution algorithm（引数の個数）",
-    "note": "optional の引数は省いてよい（toggleAttribute の force、cloneNode の subtree）。nullable でも optional でない引数（lookupPrefix の namespace、insertBefore の child）は、null を渡せば足りる。"
+    "note": "overload resolution algorithm（引数の個数）。 optional の引数は省いてよい（toggleAttribute の force、cloneNode の subtree）。nullable でも optional でない引数（lookupPrefix の namespace、insertBefore の child）は、null を渡せば足りる。"
   },
   "nodes": [
     {

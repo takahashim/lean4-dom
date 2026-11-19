@@ -1,12 +1,22 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "insert",
-      "split a Text node"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node,"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "10-13",
+        "text": "Let newOffset be parent's length if referenceNode is",
+        "last": "If range is collapsed, then set range's end"
+      },
+      {
+        "alg": "concept-text-split"
+      }
     ],
-    "steps": "insert 7, 10-13",
     "note": "Text の中の collapsed な range に空の DocumentFragment を入れる。何も入らないが split は起き、end は新しい Text の前（parent の offset）へ移る。"
   },
   "nodes": [

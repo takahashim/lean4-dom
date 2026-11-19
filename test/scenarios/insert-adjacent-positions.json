@@ -1,14 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "insertAdjacentElement",
-      "insertAdjacentText",
-      "insert adjacent"
+    "refs": [
+      {
+        "alg": "dom-element-insertadjacentelement"
+      },
+      {
+        "alg": "dom-element-insertadjacenttext"
+      },
+      {
+        "alg": "insert-adjacent"
+      }
     ],
-    "steps": "insert adjacent の四つの where",
-    "note": "insert adjacent は where を ASCII case-insensitive に読み、beforebegin と afterend は parent に、afterbegin と beforeend は element 自身に pre-insert する。parent の無い element の beforebegin と afterend は null を返して何もしない（insertAdjacentText では作った Text が捨てられる）。insertAdjacentText が Document に Text を入れようとすると HierarchyRequestError で、scenario はそこで終わる。"
+    "note": "insert adjacent の四つの where。 insert adjacent は where を ASCII case-insensitive に読み、beforebegin と afterend は parent に、afterbegin と beforeend は element 自身に pre-insert する。parent の無い element の beforebegin と afterend は null を返して何もしない（insertAdjacentText では作った Text が捨てられる）。insertAdjacentText が Document に Text を入れようとすると HierarchyRequestError で、scenario はそこで終わる。"
   },
   "nodes": [
     {

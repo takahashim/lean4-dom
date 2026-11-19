@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "set the start"
+    "refs": [
+      {
+        "alg": "concept-range-bp-set",
+        "step": "1-2",
+        "text": "If node is a doctype, then throw an",
+        "last": "If offset is greater than node's length, then"
+      }
     ],
-    "steps": "set the start 1-2",
     "note": "doctype は boundary point になれず（step 1）、length を超える offset は IndexSizeError（step 2）。"
   },
   "nodes": [

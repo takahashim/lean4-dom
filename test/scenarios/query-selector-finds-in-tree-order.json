@@ -1,10 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall",
-    "algorithm": ["querySelector(selectors)", "querySelectorAll(selectors)"],
-    "steps": "どちらも scope-match a selectors string を走らせ、前者はその最初の結果を返す",
-    "note": "候補は scoping root の descendant だけで、受け手そのものは入らない。並びは tree order である。"
+    "refs": [
+      {
+        "alg": "dom-parentnode-queryselector"
+      },
+      {
+        "alg": "dom-parentnode-queryselectorall"
+      },
+      {
+        "alg": "scope-match-a-selectors-string"
+      }
+    ],
+    "note": "どちらも scope-match a selectors string を走らせ、前者はその最初の結果を返す。 候補は scoping root の descendant だけで、受け手そのものは入らない。並びは tree order である。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "substring data"
+    "refs": [
+      {
+        "alg": "concept-cd-substring",
+        "step": "1-4",
+        "text": "Let length be node's length",
+        "last": "Return a string whose value is the code"
+      }
     ],
-    "steps": "substring data 1-4",
     "note": "offset と count は UTF-16 の code unit。offset + count が length を超えたら末尾まで（step 3）。"
   },
   "nodes": [

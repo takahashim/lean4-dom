@@ -1,12 +1,12 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#scope-match-a-selectors-string",
-    "algorithm": [
-      "scope-match a selectors string"
+    "refs": [
+      {
+        "alg": "scope-match-a-selectors-string"
+      }
     ],
-    "steps": "node の root に対して、scoping root を node として照合する",
-    "note": "受け手が木から外れていても、その木の中で照合する。DocumentFragment でも同じである。"
+    "note": "node の root に対して、scoping root を node として照合する。 受け手が木から外れていても、その木の中で照合する。DocumentFragment でも同じである。"
   },
   "nodes": [
     {

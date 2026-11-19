@@ -1,13 +1,23 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "locate a namespace prefix",
-      "lookupPrefix",
-      "isDefaultNamespace"
+    "refs": [
+      {
+        "alg": "locate-a-namespace-prefix",
+        "step": "1-4",
+        "text": "If element's namespace is namespace and its namespace",
+        "last": "Return null"
+      },
+      {
+        "alg": "dom-node-lookupprefix",
+        "step": "1-2",
+        "text": "If namespace is null or the empty string,",
+        "last": "Switch on the interface this implements: Element Return"
+      },
+      {
+        "alg": "dom-node-isdefaultnamespace"
+      }
     ],
-    "steps": "locate a namespace prefix 1-4 / lookupPrefix 1-2",
     "note": "locate a namespace prefix の step 1 は「namespace が一致して、かつ prefix が非 null」なので、prefix の無い element は自分では答えられない。step 2 は `xmlns:` を prefix に持つ属性の最初の一つで、attribute list の順が効く。DocumentType と DocumentFragment はどちらも null。"
   },
   "nodes": [

@@ -2,11 +2,13 @@
   "_note": "element.after(text) で Text を Document の子にできてしまう。仕様では ensure pre-insert validity の step 6 で HierarchyRequestError。appendChild 経由なら Dommy も正しく弾く。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "6",
+        "text": "If node is a Text node, then throw"
+      }
     ],
-    "steps": "6",
     "note": "Document の子に Text は置けない。after() が validity を迂回していた Dommy の不一致。"
   },
   "nodes": [

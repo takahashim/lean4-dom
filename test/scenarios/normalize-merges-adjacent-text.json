@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "normalize"
+    "refs": [
+      {
+        "alg": "dom-node-normalize",
+        "step": "1-7",
+        "text": "Let length be node's length",
+        "last": "Remove node's contiguous exclusive Text nodes (excluding itself),"
+      }
     ],
-    "steps": "normalize 1-7",
     "note": "隣り合う Text を先頭へ畳み、長さ 0 の Text は step 2 で外す。record は engine に合わせて兄弟ごとに積む。"
   },
   "nodes": [

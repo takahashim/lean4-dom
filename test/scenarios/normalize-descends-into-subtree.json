@@ -1,12 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "normalize"
+    "refs": [
+      {
+        "alg": "dom-node-normalize",
+        "step": "1-7",
+        "text": "Let length be node's length",
+        "last": "Remove node's contiguous exclusive Text nodes (excluding itself),"
+      }
     ],
-    "steps": "normalize の前文（descendant exclusive Text node ごとに step 1-7）",
-    "note": "対象は descendant すべてなので、子 element の中の Text も畳む。Comment を挟むと run が切れる。"
+    "note": "normalize の前文（descendant exclusive Text node ごとに step 1-7）。 対象は descendant すべてなので、子 element の中の Text も畳む。Comment を挟むと run が切れる。"
   },
   "nodes": [
     {

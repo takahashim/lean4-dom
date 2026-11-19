@@ -2,7 +2,9 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#grammar",
-    "algorithm": ["<id-selector>"],
+    "algorithm": [
+      "<id-selector>"
+    ],
     "steps": "<id-selector> = <hash-token>、ただし「In <id-selector>, the <hash-token>'s value must be an identifier.」",
     "note": "`#1` の hash-token は type flag が \"unrestricted\" で識別子ではない。よって parse に失敗し、SyntaxError になる。`#vv` は通る。"
   },

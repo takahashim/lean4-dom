@@ -1,13 +1,24 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/tc39/ecma262/blob/40ce6f206b5669e69bf010a38267ae24a2843404/spec.html",
-    "algorithm": [
-      "ToBoolean",
-      "RoundMVResult",
-      "cloneNode"
+    "refs": [
+      {
+        "spec": "ecma262",
+        "alg": "sec-toboolean",
+        "step": "2",
+        "text": "If arg is one of undefined, null, +0𝔽,"
+      },
+      {
+        "spec": "ecma262",
+        "alg": "sec-roundmvresult",
+        "step": "1-5",
+        "text": "If the decimal representation of n has 20",
+        "last": "Return 𝔽(chosen)"
+      },
+      {
+        "alg": "dom-node-clonenode"
+      }
     ],
-    "steps": "ToBoolean step 2 / RoundMVResult step 1-5",
     "note": "有効数字が 20 桁を超える十進表記は、上位 20 桁で切った値と、その 20 桁目に 1 を足した値のどちらを丸めるかが実装に任される。1.23456789012345678901e-400 はどちらの候補も +0 に丸まるので、ToBoolean は false で、cloneNode は浅い clone になる（子は写さない）。1.23456789012345678901 はどちらの候補も 0 でないので true で、深い clone になる。"
   },
   "nodes": [

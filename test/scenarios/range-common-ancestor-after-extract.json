@@ -1,12 +1,19 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "extract",
-      "commonAncestorContainer"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "15",
+        "text": "Set range's start and end to (newNode, newOffset)"
+      },
+      {
+        "alg": "dom-range-commonancestorcontainer"
+      },
+      {
+        "alg": "get-the-common-ancestor"
+      }
     ],
-    "steps": "extract 15, get the common ancestor",
     "note": "extract の後、range は継ぎ目に潰れ、common ancestor はその node になる。"
   },
   "nodes": [

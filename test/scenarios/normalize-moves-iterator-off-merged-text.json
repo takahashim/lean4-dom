@@ -1,12 +1,22 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "normalize",
-      "remove"
+    "refs": [
+      {
+        "alg": "dom-node-normalize",
+        "step": "7",
+        "text": "Remove node's contiguous exclusive Text nodes (excluding itself),"
+      },
+      {
+        "alg": "nodeiterator-pre-removing-steps",
+        "step": "1-2",
+        "text": "Set nodeIterator's reference to the result of adjusting",
+        "last": "If nodeIterator's candidate reference is non-null, then set"
+      },
+      {
+        "alg": "concept-node-remove"
+      }
     ],
-    "steps": "normalize 7 / NodeIterator pre-remove 1-2",
     "note": "畳まれて消える Text を指していた NodeIterator は、remove の pre-remove steps で動く。normalize が remove を呼ぶことの観測である。"
   },
   "nodes": [

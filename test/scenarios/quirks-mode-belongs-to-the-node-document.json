@@ -1,13 +1,19 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-document-mode",
-    "algorithm": [
-      "Case-sensitivity of selectors",
-      "clone a single node",
-      "adopt"
+    "refs": [
+      {
+        "alg": "clone-a-single-node"
+      },
+      {
+        "alg": "concept-node-adopt"
+      }
     ],
-    "steps": "class と id の比較の mode は element の node document のもの。adopt で node document が変われば比較も変わる。document を clone すると copy は元の mode を持つ",
+    "spec": "https://html.spec.whatwg.org/multipage/semantics-other.html#case-sensitivity-of-selectors",
+    "algorithm": [
+      "Case-sensitivity of selectors"
+    ],
+    "steps": "class と id の比較の mode は element の node document のもの",
     "note": "no-quirks の document の `class=Aa` は `.aa` に当たらないが、quirks の document へ移すと当たる。quirks の document を clone した copy も quirks である。"
   },
   "nodes": [

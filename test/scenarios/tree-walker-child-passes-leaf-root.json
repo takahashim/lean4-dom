@@ -1,13 +1,25 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "traverse children",
-      "firstChild",
-      "lastChild"
+    "refs": [
+      {
+        "alg": "concept-traverse-children",
+        "step": "3.3",
+        "text": "If result is FILTERSKIP"
+      },
+      {
+        "alg": "concept-traverse-children",
+        "step": "3.4.1-3.4.4",
+        "text": "Let sibling be node's next sibling if type",
+        "last": "If parent is null, walker's root, or walker's"
+      },
+      {
+        "alg": "dom-treewalker-firstchild"
+      },
+      {
+        "alg": "dom-treewalker-lastchild"
+      }
     ],
-    "steps": "traverse children step 3.3, 3.4.1-3.4.4",
     "note": "current が root の外にあり、root が current の子で children を持たない TreeWalker。traverse children が null を返すのは、兄弟が無くて親へ上がったときにその親が null・root・current の場合だけである（step 3.4.4）。root が葉なら、root を見て SKIP したあと（step 3.3.2 で降りる子が無い）、step 3.4.2 で root の次（lastChild なら前）の兄弟へ進む。だから Text を探す walker は root の兄弟の Text t を返す。Chromium・Firefox・WebKit（Playwright で currentNode を設定して同じ形を作った）も t を返す。"
   },
   "nodes": [

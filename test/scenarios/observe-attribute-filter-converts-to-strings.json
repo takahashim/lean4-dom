@@ -1,13 +1,21 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "observe",
-      "queue a mutation record"
+    "refs": [
+      {
+        "alg": "dom-mutationobserver-observe"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-DOMString"
+      },
+      {
+        "alg": "queue-a-mutation-record",
+        "step": "3.2",
+        "text": "If none of the following are true node"
+      }
     ],
-    "steps": "WebIDL の DOMString への変換（attributeFilter の要素）/ queue a mutation record 3.2",
-    "note": "attributeFilter の要素は ToString で DOMString になる。null は \"null\"、1.0 は \"1\" である。"
+    "note": "WebIDL の DOMString への変換（attributeFilter の要素）/ queue a mutation record 3.2。 attributeFilter の要素は ToString で DOMString になる。null は \"null\"、1.0 は \"1\" である。"
   },
   "nodes": [
     {

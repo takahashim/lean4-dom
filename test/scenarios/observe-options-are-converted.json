@@ -1,11 +1,19 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "observe"
+    "refs": [
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "1-2",
+        "text": "If either options[\"attributeOldValue\"] or options[\"attributeFilter\"] exists, and options[\"attributes\"]",
+        "last": "If options[\"characterDataOldValue\"] exists and options[\"characterData\"] does not exist,"
+      },
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "7",
+        "text": "Let registered be the registered observer in target's"
+      }
     ],
-    "steps": "observe 1-2, 7",
     "note": "options は WebIDL の dictionary への変換で MutationObserverInit になる。boolean の member は ToBoolean で読み、null は false として存在する（undefined だけが省略になる）。attributeFilter の要素は DOMString へ ToString で変換する。"
   },
   "nodes": [

@@ -1,13 +1,23 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "createElement",
-      "flatten element creation options"
+    "refs": [
+      {
+        "alg": "dom-document-createelement"
+      },
+      {
+        "alg": "flatten-element-creation-options"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-union"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-dictionary"
+      }
     ],
-    "steps": "WebIDL の (DOMString or ElementCreationOptions) への変換",
-    "note": "ElementCreationOptions の customElementRegistry は CustomElementRegistry? 型なので、null は受けるが、CustomElementRegistry でない object は WebIDL の dictionary の変換で TypeError になる。"
+    "note": "WebIDL の (DOMString or ElementCreationOptions) への変換。 ElementCreationOptions の customElementRegistry は CustomElementRegistry? 型なので、null は受けるが、CustomElementRegistry でない object は WebIDL の dictionary の変換で TypeError になる。"
   },
   "nodes": [
     {

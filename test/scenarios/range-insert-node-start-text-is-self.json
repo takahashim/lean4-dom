@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "insertNode"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "1",
+        "text": "If range's start node is a ProcessingInstruction or"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node,"
+      }
     ],
-    "steps": "insertNode 1",
     "note": "start node そのものを入れようとすれば HierarchyRequestError（step 1）。start node が Text だと step 7 の split が先に進んでしまうので、検査の有無が表に出る。Dommy は step 1 を持たず、Text を split して自分自身を入れる（docs/status.md の findings 8）。"
   },
   "nodes": [

@@ -1,12 +1,24 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "surroundContents",
-      "insert"
+    "refs": [
+      {
+        "alg": "dom-range-surroundcontents",
+        "step": "3-7",
+        "text": "Let fragment be the result of extracting this",
+        "last": "Select newParent within this"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node,"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "13",
+        "text": "If range is collapsed, then set range's end"
+      }
     ],
-    "steps": "surroundContents 3-7, insert 7, 13",
     "note": "Text の中の collapsed な range を囲む。fragment は空で、insert が Text を split する。"
   },
   "nodes": [

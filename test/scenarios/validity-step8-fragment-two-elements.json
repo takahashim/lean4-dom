@@ -2,11 +2,13 @@
   "_note": "element の子を二つ持つ fragment を Document に入れると step 8 で HierarchyRequestError。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "8",
+        "text": "If node is a DocumentFragment node"
+      }
     ],
-    "steps": "8",
     "note": "fragment の中身を先に数える。parent 側の検査より前である。"
   },
   "nodes": [

@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "deleteContents"
+    "refs": [
+      {
+        "alg": "dom-range-deletecontents",
+        "step": "6",
+        "text": "If originalStartNode is an inclusive ancestor of originalEndNode,"
+      }
     ],
-    "steps": "deleteContents 6",
     "note": "start node が end node の inclusive ancestor なら、range はその場に潰れる（step 6）。"
   },
   "nodes": [

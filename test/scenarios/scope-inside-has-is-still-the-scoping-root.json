@@ -2,7 +2,10 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#relational",
-    "algorithm": [":has()", ":scope"],
+    "algorithm": [
+      ":has()",
+      ":scope"
+    ],
     "steps": ":has() は anchor に対して relative selector を評価する。:scope はそれとは別に scoping root を表す",
     "note": "anchor と scoping root は別物である。`closest(\":has(:scope)\")` は「scoping root を子孫に持つ inclusive ancestor」を探すので、自分ではなく親が返る。"
   },

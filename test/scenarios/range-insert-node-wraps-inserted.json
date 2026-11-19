@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "insertNode"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "4-13",
+        "text": "Otherwise, set referenceNode to the child of range's",
+        "last": "If range is collapsed, then set range's end"
+      }
     ],
-    "steps": "insertNode 4-13",
     "note": "collapsed な range に node を入れると、step 13 で end が「入った node の次」へ動くので、range は入った node をちょうど囲む。"
   },
   "nodes": [

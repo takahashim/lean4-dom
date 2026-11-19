@@ -1,11 +1,24 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "extract"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "9",
+        "text": "If originalEndNode is not an inclusive ancestor of"
+      },
+      {
+        "alg": "concept-range-extract",
+        "step": "13",
+        "text": "If originalStartNode is an inclusive ancestor of originalEndNode,"
+      },
+      {
+        "alg": "concept-range-extract",
+        "step": "18-20",
+        "text": "For each contained child of containedChildren: append contained",
+        "last": "Otherwise, if lastPartiallyContainedChild is non-null"
+      }
     ],
-    "steps": "extract 9, 13, 18-20",
     "note": "start node が end node の ancestor。first partially contained child は null で、range は start に潰れる。"
   },
   "nodes": [

@@ -2,11 +2,14 @@
   "_note": "replace data の step 8-11。offset=2, count=2, data=\"XYZ\" で \"abcdef\" が \"abXYZef\" になる。start 1 は offset 以下なので不変、end 3 は (2,4] にあるので 2 になる。5 と 6 は offset+count より後ろなので data の長さ 3 を足して count 2 を引く。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "replace data"
+    "refs": [
+      {
+        "alg": "concept-cd-replace",
+        "step": "8-11",
+        "text": "For each live range whose start node is",
+        "last": "For each live range whose end node is"
+      }
     ],
-    "steps": "8-11",
     "note": "live range の boundary point の調整。"
   },
   "nodes": [

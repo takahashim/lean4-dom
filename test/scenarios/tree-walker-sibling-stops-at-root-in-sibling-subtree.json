@@ -1,13 +1,26 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "traverse siblings",
-      "nextSibling",
-      "previousSibling"
+    "refs": [
+      {
+        "alg": "concept-traverse-siblings",
+        "step": "3.2.4-3.2.5",
+        "text": "Set sibling to node's first child if type",
+        "last": "If result is FILTERREJECT or sibling is null,"
+      },
+      {
+        "alg": "concept-traverse-siblings",
+        "step": "3.3-3.4",
+        "text": "Set node to node's parent",
+        "last": "If node is null or walker's root, then"
+      },
+      {
+        "alg": "dom-treewalker-nextsibling"
+      },
+      {
+        "alg": "dom-treewalker-previoussibling"
+      }
     ],
-    "steps": "traverse siblings step 3.2.4-3.2.5, 3.3-3.4",
     "note": "current が root の外にあり、root が current の次（前）の兄弟である TreeWalker。walker 0 は root（r）の子 c へ firstChild で移り、c を remove して r の前へ insertBefore すると、current が root の外に出る。traverse siblings の inner loop は兄弟 r を SKIP してその子 k へ降り（step 3.2.4）、k に次の兄弟が無いので抜ける（step 3.2.5）。step 3.3 で k の親へ上がると、それが root なので step 3.4 で null を返す。だから Text を探す walker は、p の先にある Text t2 に届かない。walker 1 は previousSibling の鏡像（root r が current c2 の前の兄弟）で、Text t0 に届かない。walker 0 は Chromium・Firefox・WebKit（Playwright）も null を返す。"
   },
   "nodes": [

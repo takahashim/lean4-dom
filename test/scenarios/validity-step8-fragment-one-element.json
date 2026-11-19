@@ -2,11 +2,14 @@
   "_note": "element の子を一つ持つ fragment は、空の Document になら入る。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "8-9",
+        "text": "If node is a DocumentFragment node",
+        "last": "If node is a DocumentFragment or Element node"
+      }
     ],
-    "steps": "8, 9",
     "note": "step 8 の後半は element の挿入検査へ落ちる。"
   },
   "nodes": [

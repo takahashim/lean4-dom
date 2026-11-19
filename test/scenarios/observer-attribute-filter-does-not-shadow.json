@@ -2,14 +2,39 @@
   "_note": "attributeFilter は \"queue a mutation record\" step 3.2 の条件の一部（三つ目の bullet）であって、observer 単位の後置きの絞り込みではない。observer 0 は node 2 に attributeFilter [\"a\"] の registration を持ち、node 1 に filter 無しの registration を持つので、attribute \"b\" の変更でも record が積まれる（`docs/status.md` の finding 23）。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "queue a mutation record",
-      "observe",
-      "setAttribute",
-      "handle attribute changes"
+    "refs": [
+      {
+        "alg": "queue-a-mutation-record",
+        "step": "3.2",
+        "text": "If none of the following are true node"
+      },
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "3",
+        "text": "If none of options[\"childList\"], options[\"attributes\"], and options[\"characterData\"] is"
+      },
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "7",
+        "text": "Let registered be the registered observer in target's"
+      },
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "9",
+        "text": "Otherwise"
+      },
+      {
+        "alg": "dom-element-setattribute",
+        "step": "6-7",
+        "text": "Set attribute to the result of creating an",
+        "last": "Append attribute to this"
+      },
+      {
+        "alg": "handle-attribute-changes",
+        "step": "1",
+        "text": "Queue a mutation record of \"attributes\" for element"
+      }
     ],
-    "steps": "queue a mutation record 3.2 / observe 3, 7, 9 / setAttribute 6-7 / handle attribute changes 1",
     "note": "filter がこの attribute を含まない registration が、含む registration を隠さないこと。"
   },
   "nodes": [

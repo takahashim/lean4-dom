@@ -1,10 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#dom-element-removeattributenode",
-    "algorithm": ["removeAttributeNode(attr)"],
-    "steps": "1「this の attribute list に attr が無ければ NotFoundError」/ 2 remove する / 3 attr を返す",
-    "note": "別の element に付いている Attr を渡しても、何も起きずに返るのではなく NotFoundError になる。渡した element に付いているときだけ外れる。"
+    "refs": [
+      {
+        "alg": "dom-element-removeattributenode",
+        "step": "1-3",
+        "text": "If this's attribute list does not contain attr,",
+        "last": "Return attr"
+      }
+    ],
+    "note": "1「this の attribute list に attr が無ければ NotFoundError」/ 2 remove する / 3 attr を返す。 別の element に付いている Attr を渡しても、何も起きずに返るのではなく NotFoundError になる。渡した element に付いているときだけ外れる。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

@@ -1,15 +1,25 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "contains",
-      "isEqualNode",
-      "insertBefore",
-      "moveBefore"
+    "refs": [
+      {
+        "alg": "dom-node-contains"
+      },
+      {
+        "alg": "dom-node-isequalnode"
+      },
+      {
+        "alg": "dom-node-insertbefore"
+      },
+      {
+        "alg": "dom-parentnode-movebefore"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-nullable"
+      }
     ],
-    "steps": "contains 1 / isEqualNode 1 / WebIDL の nullable 型への変換",
-    "note": "contains と isEqualNode の引数は Node? で、null なら false を返す。insertBefore と moveBefore の child も Node? で、null なら末尾に入れる。"
+    "note": "contains 1 / isEqualNode 1 / WebIDL の nullable 型への変換。 contains と isEqualNode の引数は Node? で、null なら false を返す。insertBefore と moveBefore の child も Node? で、null なら末尾に入れる。"
   },
   "nodes": [
     {

@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "clone the contents"
+    "refs": [
+      {
+        "alg": "concept-range-clone",
+        "step": "12",
+        "text": "If firstPartiallyContainedChild is a CharacterData node"
+      }
     ],
-    "steps": "clone the contents 12",
     "note": "start が Comment の中。first partially contained child は CharacterData なので data の残りを写す。"
   },
   "nodes": [

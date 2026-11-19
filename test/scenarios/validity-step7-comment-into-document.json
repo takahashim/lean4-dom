@@ -2,11 +2,14 @@
   "_note": "CharacterData は step 7 で通る。Comment は Document の子になれる。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "6-7",
+        "text": "If node is a Text node, then throw",
+        "last": "If node is a CharacterData node, then return"
+      }
     ],
-    "steps": "6, 7",
     "note": "step 6 は Text だけを弾く。Comment と ProcessingInstruction は通る。"
   },
   "nodes": [

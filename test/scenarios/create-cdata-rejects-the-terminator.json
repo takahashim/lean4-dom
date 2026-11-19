@@ -1,11 +1,11 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "createCDATASection"
+    "refs": [
+      {
+        "alg": "dom-document-createcdatasection"
+      }
     ],
-    "steps": "createProcessingInstruction / createCDATASection",
     "note": "XML document でも data が \"]]>\" を含めば InvalidCharacterError。"
   },
   "nodes": [

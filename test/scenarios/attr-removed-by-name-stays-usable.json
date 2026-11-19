@@ -1,13 +1,20 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "remove an attribute",
-      "removeAttribute",
-      "setAttributeNode"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-remove",
+        "step": "2-3",
+        "text": "Remove attribute from element's attribute list",
+        "last": "Set attribute's element to null"
+      },
+      {
+        "alg": "dom-element-removeattribute"
+      },
+      {
+        "alg": "dom-element-setattributenode"
+      }
     ],
-    "steps": "remove an attribute 2-3",
     "note": "remove an attribute は attribute list から取り除き、attribute の element を null にするだけで、Attr object は残る。先に参照を取っていた Attr は、名前で消した後も値を書けて、同じ element に setAttributeNode で付け直せる。"
   },
   "nodes": [

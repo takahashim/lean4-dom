@@ -2,16 +2,40 @@
   "_note": "IDL の戻り値を固定する。`appendChild` / `insertBefore` は入れた node、`replaceChild` / `removeChild` は **取り除いた側** の child、`toggleAttribute` は attribute が結果として付いているか、`nextNode()` は traverse が返した node（collection の端なら null）、`takeRecords()` は空にする前の record queue である。`remove()` や `setAttribute` は undefined を返す。null を返すことと undefined を返すことは別なので、観測は kind を添えて区別する。`toggleAttribute` は step 4-6 の四通り（attribute の有無 × force の有無）をすべて通る。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "pre-insert",
-      "replace",
-      "pre-remove",
-      "toggleAttribute",
-      "NodeIterator.nextNode",
-      "MutationObserver.takeRecords"
+    "refs": [
+      {
+        "alg": "concept-node-pre-insert",
+        "step": "5",
+        "text": "Return node"
+      },
+      {
+        "alg": "concept-node-replace",
+        "step": "11",
+        "text": "Return child"
+      },
+      {
+        "alg": "concept-node-pre-remove",
+        "step": "3",
+        "text": "Return child"
+      },
+      {
+        "alg": "dom-element-toggleattribute",
+        "step": "4-6",
+        "text": "If attribute is null",
+        "last": "Return true"
+      },
+      {
+        "alg": "concept-nodeiterator-traverse",
+        "step": "5",
+        "text": "Return result"
+      },
+      {
+        "alg": "dom-nodeiterator-nextnode"
+      },
+      {
+        "alg": "dom-mutationobserver-takerecords"
+      }
     ],
-    "steps": "pre-insert 5 / replace 11 / pre-remove 3 / toggleAttribute 4-6 / traverse 5",
     "note": "戻り値は仕様が明示している観測対象である。"
   },
   "nodes": [

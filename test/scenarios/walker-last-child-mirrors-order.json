@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "TreeWalker"
+    "refs": [
+      {
+        "alg": "concept-traverse-children",
+        "step": "2",
+        "text": "Set node to node's first child if type"
+      },
+      {
+        "alg": "concept-traverse-children",
+        "step": "3.3",
+        "text": "If result is FILTERSKIP"
+      }
     ],
-    "steps": "traverse children 2, 3.3",
     "note": "lastChild は最後の子から見て、SKIP された node には「最後の子」へ降りる。tree order をそのまま逆にたどるのではなく、兄弟の順だけを逆にした preorder（model の mirrorPreorder）になる。ここでは a2 が先に来る。"
   },
   "nodes": [

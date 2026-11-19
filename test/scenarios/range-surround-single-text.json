@@ -1,12 +1,19 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "surroundContents",
-      "insert"
+    "refs": [
+      {
+        "alg": "dom-range-surroundcontents",
+        "step": "3-7",
+        "text": "Let fragment be the result of extracting this",
+        "last": "Select newParent within this"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node,"
+      }
     ],
-    "steps": "surroundContents 3-7, insert 7",
     "note": "一つの Text の中の range を element で囲む。extract の後、insert の step 7 が Text を split し、newParent を split の継ぎ目に入れる。newParent は木の別の場所から移る。"
   },
   "nodes": [

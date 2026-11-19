@@ -2,11 +2,13 @@
   "_note": "text.before(自分の parent) は仕様では HierarchyRequestError（step 2: node が parent の inclusive ancestor）。Dommy は backend の Makiri::Error をそのまま投げる。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "2",
+        "text": "If node is a host-including inclusive ancestor of"
+      }
     ],
-    "steps": "2",
     "note": "node が parent の inclusive ancestor なら HierarchyRequestError。"
   },
   "nodes": [

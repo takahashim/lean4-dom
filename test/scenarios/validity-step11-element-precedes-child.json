@@ -2,11 +2,14 @@
   "_note": "reference child より前に element があると、doctype は入れられない。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "10-11",
+        "text": "Assert: node is a doctype",
+        "last": "If any of the following are true: parent"
+      }
     ],
-    "steps": "10-11",
     "note": "doctype の挿入検査の二つ目の条件（an element is preceding child）。"
   },
   "nodes": [

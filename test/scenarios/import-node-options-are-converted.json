@@ -1,12 +1,32 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "importNode"
+    "refs": [
+      {
+        "alg": "dom-document-importnode",
+        "step": "2",
+        "text": "Let subtree be false"
+      },
+      {
+        "alg": "dom-document-importnode",
+        "step": "4",
+        "text": "If options is a boolean, then set subtree"
+      },
+      {
+        "alg": "dom-document-importnode",
+        "step": "5.1",
+        "text": "Set subtree to the negation of options[\"selfOnly\"]"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-union"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-dictionary"
+      }
     ],
-    "steps": "importNode 2, 4, 5.1 / WebIDL の union と dictionary への変換",
-    "note": "importNode の options は (boolean or ImportNodeOptions) である。boolean、数、文字列は boolean になり、その値が subtree になる。null と object は ImportNodeOptions になり、subtree は selfOnly の否定になる。CustomElementRegistry でない customElementRegistry は TypeError になる。"
+    "note": "importNode 2, 4, 5.1 / WebIDL の union と dictionary への変換。 importNode の options は (boolean or ImportNodeOptions) である。boolean、数、文字列は boolean になり、その値が subtree になる。null と object は ImportNodeOptions になり、subtree は selfOnly の否定になる。CustomElementRegistry でない customElementRegistry は TypeError になる。"
   },
   "nodes": [
     {

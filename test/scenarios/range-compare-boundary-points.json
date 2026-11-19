@@ -1,12 +1,20 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "compareBoundaryPoints",
-      "comparePoint"
+    "refs": [
+      {
+        "alg": "dom-range-compareboundarypoints",
+        "step": "1-4",
+        "text": "If how is not one of STARTTOSTART, STARTTOEND,",
+        "last": "Switch on how: STARTTOSTART: Set thisPoint to this's"
+      },
+      {
+        "alg": "dom-range-comparepoint",
+        "step": "1-6",
+        "text": "If node's root is not this's root, then",
+        "last": "Return 0"
+      }
     ],
-    "steps": "compareBoundaryPoints 1-4 / comparePoint 1-6",
     "note": "compareBoundaryPoints の四つの how。1 は this の end と source の start、3 は this の start と source の end という非対称な組み合わせである。範囲外の how は NotSupportedError。"
   },
   "nodes": [

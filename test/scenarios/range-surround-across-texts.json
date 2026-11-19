@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "surroundContents"
+    "refs": [
+      {
+        "alg": "dom-range-surroundcontents",
+        "step": "1",
+        "text": "If a non-Text node is partially contained in"
+      }
     ],
-    "steps": "surroundContents 1",
     "note": "両端が別の element の中にあり、Text でない node が partially contained なので InvalidStateError。"
   },
   "nodes": [

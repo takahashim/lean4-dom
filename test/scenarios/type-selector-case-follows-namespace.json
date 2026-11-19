@@ -2,7 +2,9 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#case-sensitive",
-    "algorithm": ["<type-selector>"],
+    "algorithm": [
+      "<type-selector>"
+    ],
     "steps": "既定は identical to（大文字小文字を区別する）。host language が別に定めた場合だけ違う",
     "note": "HTML は HTML namespace の element について ASCII case-insensitive と定めるが、仕様自身が「ほぼ」と註記している。script で作った大文字の local name は selector 側を lowercase した結果と一致しないので当たらない。SVG namespace は既定どおり区別する。"
   },

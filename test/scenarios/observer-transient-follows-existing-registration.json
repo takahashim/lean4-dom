@@ -2,14 +2,33 @@
   "_note": "外された node に付く transient registered observer は、その node の registered observer list の末尾に足される（add transient registered observers step 1.5）。したがって、その node に元から付いていた registration より後に来て、characterData の record では observer 1 が先に pending になる。それでも notify は creation index の順に回る（notify mutation observers step 2）ので、配送は observer 0 が先である。whatwg/dom 3071e5f より前の本文は pending になった順に回っていたので、observer 1 が先だった。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "remove",
-      "add transient registered observers",
-      "queue a mutation record",
-      "notify mutation observers"
+    "refs": [
+      {
+        "alg": "concept-node-remove",
+        "step": "15",
+        "text": "Add transient registered observers given node and parent"
+      },
+      {
+        "alg": "add-transient-registered-observers",
+        "step": "1.5",
+        "text": "Append a new transient registered observer whose observer"
+      },
+      {
+        "alg": "queue-a-mutation-record",
+        "step": "3",
+        "text": "For each node of nodes, and then for"
+      },
+      {
+        "alg": "notify-mutation-observers",
+        "step": "2",
+        "text": "Let notifyList be the result of sorting the"
+      },
+      {
+        "alg": "notify-mutation-observers",
+        "step": "6",
+        "text": "For each mo of notifyList"
+      }
     ],
-    "steps": "remove 15 / add transient registered observers 1.5 / queue a mutation record 3 / notify mutation observers 2, 6",
     "note": "pending の順は inclusive ancestor の walk と各 node の registered observer list の順で決まるが、配送の順は creation index で決まる。"
   },
   "nodes": [

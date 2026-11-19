@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "deleteContents"
+    "refs": [
+      {
+        "alg": "dom-range-deletecontents",
+        "step": "1",
+        "text": "If this is collapsed, then return"
+      }
     ],
-    "steps": "deleteContents 1",
     "note": "collapsed な range では何も起きない（step 1）。"
   },
   "nodes": [

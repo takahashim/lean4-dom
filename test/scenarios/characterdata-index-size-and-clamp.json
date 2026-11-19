@@ -2,11 +2,14 @@
   "_note": "offset が length より大きければ IndexSizeError。offset + count が length を超える場合は count を length - offset に切り詰める（deleteData(4, 99) は末尾まで消す）。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "replace data"
+    "refs": [
+      {
+        "alg": "concept-cd-replace",
+        "step": "1-3",
+        "text": "Let length be node's length",
+        "last": "If offset + count is greater than length,"
+      }
     ],
-    "steps": "1-3",
     "note": "step 1-2 が IndexSizeError、step 3 が count の切り詰め。"
   },
   "nodes": [

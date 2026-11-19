@@ -2,16 +2,37 @@
   "_note": "§4.9 の by-name の一族（`getAttribute` / `setAttribute` / `removeAttribute` / `hasAttribute` / `toggleAttribute`）は attribute を **qualified name** で同定する。`xml:b` の qualified name は \"xml:b\" なので、element は \"b\" という attribute を持たない。したがって toggleAttribute(\"b\") は追加して true を返し、setAttribute(\"b\", \"zz\") は `xml:b` を書き換えずに二つ目を足し、removeAttribute(\"b\") はその二つ目だけを外す。local name で引くと三つとも `xml:b` に当たる（`docs/status.md` の finding 24）。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "get an attribute by name",
-      "setAttribute",
-      "toggleAttribute",
-      "remove an attribute by name",
-      "append an attribute",
-      "remove an attribute"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-get-by-name",
+        "step": "2",
+        "text": "Return the first attribute in element's attribute list"
+      },
+      {
+        "alg": "dom-element-setattribute",
+        "step": "4-7",
+        "text": "Let attribute be the first attribute in this's",
+        "last": "Append attribute to this"
+      },
+      {
+        "alg": "dom-element-toggleattribute",
+        "step": "3-4",
+        "text": "Let attribute be the first attribute in this's",
+        "last": "If attribute is null"
+      },
+      {
+        "alg": "concept-element-attributes-remove-by-name",
+        "step": "1-2",
+        "text": "Let attr be the result of getting an",
+        "last": "If attr is non-null, then remove attr"
+      },
+      {
+        "alg": "concept-element-attributes-append"
+      },
+      {
+        "alg": "concept-element-attributes-remove"
+      }
     ],
-    "steps": "get an attribute by name 2 / setAttribute 4-7 / toggleAttribute 3-4 / remove an attribute by name 1-2",
     "note": "qualified name と local name が食い違うのは prefix が付いているときである。"
   },
   "nodes": [

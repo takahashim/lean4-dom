@@ -244,6 +244,34 @@ Dommy を読み込んでいない process の仕事にしてある。
 * `_` で始まる key（`_note`、`_basis` など）は無視されるので、注記を書いてよい。
   固定 scenario には期待結果の根拠を `_basis` に書く（`docs/traceability.md`）。
 
+### `_basis`
+
+```json
+"_basis": {
+  "kind": "spec",
+  "refs": [
+    {"alg": "concept-node-remove", "step": "15-16",
+     "text": "Add transient registered observers given node and parent",
+     "last": "If suppressObservers is false, then queue a tree"},
+    {"spec": "webidl", "alg": "abstract-opdef-converttoint", "step": "4", "text": "Let x be ? ToNumber(V)"},
+    {"alg": "concept-node-append"}
+  ],
+  "note": "…"
+}
+```
+
+* `refs` は、根拠にした DOM・Web IDL・ECMA-262 の step。`spec` は `dom`（既定）・`webidl`・`ecma262`、`alg` は
+  snapshot（`spec-trace/dom.json` ほか）の key、`step` は一つの番号か、同じ深さで同じ親を持つ範囲。番号付きの step の
+  無い algorithm や algorithm 全体を指すときは `step` を書かない。
+* `text` は step の本文の冒頭、`last` は範囲の最後の step の本文の冒頭である。`alg` と `step` だけを書いて
+  `ruby spec-trace/basis.rb --fill <file>` を走らせると、snapshot から埋まる。
+* 版は書かない（`docs/spec-version.md` の一か所で決まる）。固定していない仕様（HTML、Selectors、CSS Syntax）は、
+  その部分だけを `spec`（URL）・`algorithm`・`steps`（文字列）に書く。
+* `_note` と `note` に「step N」と書いた番号は、どれかの ref の範囲に入る。scenario の操作の番号は「操作 N」と書く。
+* CI の `ruby spec-trace/basis.rb` が、algorithm と step が snapshot にあり、`text`・`last` が本文の冒頭と合うことを
+  検査する。版を上げて改番されるとここで落ちるので、`ruby spec-trace/basis.rb --fix` で本文の一致から番号を付け直す
+  （付け直せなかったものは挙げる）。
+
 `kind` は `document` / `documentType` / `documentFragment` / `element` /
 `text` / `cdataSection` / `processingInstruction` / `comment`。
 

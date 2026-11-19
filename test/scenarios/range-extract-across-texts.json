@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "extract"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "4-21",
+        "text": "If originalStartNode is originalEndNode and it is a",
+        "last": "Return fragment"
+      }
     ],
-    "steps": "extract 4-21",
     "note": "両端が別の Text にある range。両端の Text の残りを clone して fragment に入れ、間の node を fragment へ移し、range を継ぎ目へ潰す。もう一つの live range が parent の offset 4 にある。"
   },
   "nodes": [

@@ -48,6 +48,7 @@ ECMA-262 の表は `Trace/Ecma.lean` にある。
 | `Trace/Dom/*.lean`・`Trace/Webidl.lean`・`Trace/Ecma.lean` | 対応表。step を「実装」「近似（違いを書く）」「除外（理由を書く）」に分ける |
 | `spec-trace/check.rb` | 表と snapshot を突き合わせ、`docs/spec-coverage.md`（`-webidl.md`・`-ecma262.md`）と `spec-trace/map.json`（`webidl-map.json`・`ecma262-map.json`）を作る |
 | `spec-trace/drift.rb` | 上の commit と仕様の repository の新しい版を比べ、表が引き受けている step の変化を挙げる |
+| `spec-trace/basis.rb` | 固定 scenario の `_basis.refs`（期待結果の根拠にした step）を snapshot と突き合わせる。形は `test/README.md` の「`_basis`」 |
 
 CI（`ci.yml`）は、DOM、Web IDL、ECMA-262 のそれぞれについて次を検査する（ECMA-262 は抜き出した節の中で）。
 
@@ -55,6 +56,7 @@ CI（`ci.yml`）は、DOM、Web IDL、ECMA-262 のそれぞれについて次を
 * 表に載せた algorithm の step はどれも、実装・近似・除外のどれかに入る。
 * snapshot は上の commit の source から作り直したものと一致し、その commit は
   この文書と `test/pinned-versions.json` の commit と一致する。
+* 固定 scenario の `_basis.refs` は snapshot にある step を指し、書き添えた本文の冒頭がその step の本文と合う。
 
 週次の `spec-drift.yml` は whatwg/dom、whatwg/webidl、tc39/ecma262 の main と比べ、表が引き受けている step の本文が変わるか、
 分類されていない algorithm が現れたときに失敗する。
@@ -65,7 +67,8 @@ sequence、union）と、operation の関数（this の検査、引数の変換�
 それらの変換が呼ぶ ECMAScript の抽象操作（ToBoolean、ToNumber、StringToNumber と StringNumericValue、RoundMVResult、
 ToString、Number::toString、ToPrimitive、OrdinaryToPrimitive）と `Array.prototype.join` は、ECMA-262 の表に載せた。
 
-Lean のコメントと文書にある step 番号と節番号は、表とは別に人が書いたものであり、機械では検査しない。
+Lean のコメントと文書にある step 番号と節番号は、表とは別に人が書いたものであり、機械では検査しない
+（固定 scenario の `_basis.refs` だけは上のとおり検査する）。
 2026-11 に、`Dom/`・`Trace/`・`docs/`・`test/` の DOM・Web IDL・ECMA-262 の参照（step 番号は約 1,700 行）を
 固定版の snapshot と突き合わせて直した（`docs/status.md` の「DOM と Web IDL の固定版を上げた」）。
 それまでは、改訂より前の番号のまま残ったものが二百ほどあった（例：`remove` の「step 20」は固定版の step 15）。
@@ -83,4 +86,6 @@ Lean のコメントと文書にある step 番号と節番号は、表とは別
    この文書と `test/pinned-versions.json` の commit を書き換える。
 4. `lake build` のあと `ruby spec-trace/check.rb` が出すエラー（無くなった step、引き受け漏れの step、
    分類されていない algorithm）を表で直し、`ruby spec-trace/check.rb --write` で生成物を作り直す。
-5. 固定 scenario と生成 scenario の差分テストを通す。
+5. `ruby spec-trace/basis.rb` で、固定 scenario の `_basis.refs` が新しい snapshot と合うかを見る。改番で落ちたものは
+   `ruby spec-trace/basis.rb --fix` で付け直し、付け直せなかったもの（本文が変わった step）は読み直して直す。
+6. 固定 scenario と生成 scenario の差分テストを通す。

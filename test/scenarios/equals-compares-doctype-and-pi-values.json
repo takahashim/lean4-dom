@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "concept-node-equals",
-      "clone a single node"
+    "refs": [
+      {
+        "alg": "concept-node-equals"
+      },
+      {
+        "alg": "clone-a-single-node",
+        "step": "5",
+        "text": "Fulfill these additional requirements, switching on the interface"
+      }
     ],
-    "steps": "equals（DocumentType・ProcessingInstruction） / clone a single node 5",
     "note": "equals は DocumentType の name・public ID・system ID と、ProcessingInstruction の target と data を比べる。clone a single node はこれらを写す。"
   },
   "nodes": [

@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "clone the contents"
+    "refs": [
+      {
+        "alg": "concept-range-clone",
+        "step": "13",
+        "text": "Otherwise, if firstPartiallyContainedChild is non-null"
+      }
     ],
-    "steps": "clone the contents 13",
     "note": "start が入れ子の element（span の中の Text）にある。first partially contained child（div）を clone し、subrange を再帰して clone する。"
   },
   "nodes": [

@@ -7281,6 +7281,25 @@ Web IDL を `e340c2e`（2026-11-07）から `54a5f2d`（2026-11-14）に上げ�
 scenario の `_basis.spec` の URL は、DOM・Web IDL・ECMA-262 とも固定版の commit にそろえた（どの scenario の step も
 この版で確かめた）。HTML の 4 本は HTML を固定していないので、そのままにした。
 
+### scenario の `_basis` を検査できる形にした
+
+二度の見直しで一番ずれていたのは scenario の `_basis` だった。`steps` が自由な文字列で、版を上げても誰も検査しないので、
+古い番号が残る。そこで、固定した仕様（DOM・Web IDL・ECMA-262）の参照を `_basis.refs` に、snapshot の key・step 番号・
+step の本文の冒頭の組で書き（`test/README.md` の「`_basis`」）、CI で `spec-trace/basis.rb` が検査するようにした。
+
+* 本文の冒頭を番号と一緒に書くので、読めば何の step か分かる。改番されると冒頭が合わなくなって CI が落ち、
+  `ruby spec-trace/basis.rb --fix` が同じ冒頭の step を探して番号を付け直す。本文が変わった step は付け直さずに挙げる。
+  `a2331a4` の snapshot に当てて試すと、改番だけの 6 件を付け直し、transient registered observer の書き直しで
+  本文が変わった step と、当時は無かった algorithm を挙げた。
+* `_basis.spec` の URL は、固定していない仕様（HTML、Selectors、CSS Syntax）にだけ書く。固定した仕様の版は
+  `docs/spec-version.md` の一か所で決まるので、版を上げるたびに URL を書き換えることはなくなった。
+* `_note` と `_basis.note` の「step N」は、どれかの ref の範囲に入らなければならない。注記だけが古い番号のまま
+  残ることを防ぐ。scenario の操作の番号は「操作 N」と書く。
+
+308 本の変換は、今の `algorithm`・`steps` の名前を snapshot の key にする作業で、番号は監査で確かめたものをそのまま
+写した。`steps` にあった説明の文（77 本）は `note` に移した。変換の途中で、`replacewith-bypasses-validity` の注記の
+誤りが見つかった（document が parent の祖先なので、step 4 ではなく step 2 で HierarchyRequestError になる）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。

@@ -1,10 +1,25 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-element-attributes-set-value",
-    "algorithm": ["set an attribute value", "setAttribute(qualifiedName, value)", "clone a single node"],
-    "steps": "set an attribute value 2「attribute が無ければ作って append」 / 3「あれば change」。setAttribute 5 は既にある attribute の value を変えるだけである。clone a single node 2.5 は attribute ごとに clone を作る",
-    "note": "既にある attribute への setAttribute は Attr を作り直さない。一度 removeAttribute してから付け直すと別の Attr になる。clone した element の attribute も別の Attr である。attribute の id はその同一性で、runner が model の freshStateAttrId と同じ規則で振る（test/README.md の「作った attribute の id」）。"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-set-value",
+        "step": "2-3",
+        "text": "If attribute is null, then append the result",
+        "last": "Change attribute to value"
+      },
+      {
+        "alg": "dom-element-setattribute",
+        "step": "5",
+        "text": "If attribute is non-null, then change attribute to"
+      },
+      {
+        "alg": "clone-a-single-node",
+        "step": "2.5",
+        "text": "For each attribute of node's attribute list"
+      }
+    ],
+    "note": "set an attribute value 2「attribute が無ければ作って append」 / 3「あれば change」。setAttribute 5 は既にある attribute の value を変えるだけである。clone a single node 2.5 は attribute ごとに clone を作る。 既にある attribute への setAttribute は Attr を作り直さない。一度 removeAttribute してから付け直すと別の Attr になる。clone した element の attribute も別の Attr である。attribute の id はその同一性で、runner が model の freshStateAttrId と同じ規則で振る（test/README.md の「作った attribute の id」）。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

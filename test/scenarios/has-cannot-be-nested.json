@@ -2,7 +2,9 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#relational",
-    "algorithm": [":has()"],
+    "algorithm": [
+      ":has()"
+    ],
     "steps": "The :has() pseudo-class cannot be nested; :has() is not valid within :has()",
     "note": "`:is()` を挟むと forgiving なのでその項目が落ちるだけで、selector 全体は通る。`:not()` は forgiving でないので通らない。"
   },

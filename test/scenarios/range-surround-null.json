@@ -1,11 +1,17 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "surroundContents"
+    "refs": [
+      {
+        "alg": "dom-range-surroundcontents"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-interface",
+        "step": "2",
+        "text": "JavaScript/Throw a TypeError"
+      }
     ],
-    "steps": "WebIDL",
     "note": "newParent が null。WebIDL の変換で TypeError。"
   },
   "nodes": [

@@ -2,14 +2,26 @@
   "_note": "NodeIterator の iterator collection は root の inclusive descendant 全部で、whatToShow はそこには効かない。効くのは traverse の中の filter で、bit の立っていない node は FILTER_SKIP になり、accept するまで先へ進む。ここでは SHOW_ELEMENT だけを立てているので、nextNode は element 1 と element 4 を返し、間の text 2 と comment 3 は飛ばす。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "traverse",
-      "filter",
-      "NodeIterator.nextNode",
-      "NodeIterator.previousNode"
+    "refs": [
+      {
+        "alg": "concept-nodeiterator-traverse",
+        "step": "3.1-3.5",
+        "text": "If type is \"next\"",
+        "last": "If filterResult is FILTERACCEPT"
+      },
+      {
+        "alg": "concept-node-filter",
+        "step": "2-4",
+        "text": "Let n be node's nodeType attribute value −",
+        "last": "If traverser's filter is null, then return FILTERACCEPT"
+      },
+      {
+        "alg": "dom-nodeiterator-nextnode"
+      },
+      {
+        "alg": "dom-nodeiterator-previousnode"
+      }
     ],
-    "steps": "traverse 3.1-3.5 / filter 2-4",
     "note": "filter は null なので、filter algorithm は step 2-4（whatToShow の bit と、null の filter）だけになる。"
   },
   "nodes": [

@@ -1,20 +1,36 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "getAttributeNS",
-      "hasAttributeNS",
-      "hasAttributes",
-      "getElementsByTagName",
-      "getElementsByTagNameNS",
-      "removeNamedItemNS",
-      "list of elements with qualified name",
-      "list of elements with namespace and local name",
-      "get an attribute by namespace and local name"
+    "refs": [
+      {
+        "alg": "dom-element-getattributens"
+      },
+      {
+        "alg": "dom-element-hasattributens"
+      },
+      {
+        "alg": "dom-element-hasattributes"
+      },
+      {
+        "alg": "dom-document-getelementsbytagname"
+      },
+      {
+        "alg": "dom-element-getelementsbytagname"
+      },
+      {
+        "alg": "dom-document-getelementsbytagnamens"
+      },
+      {
+        "alg": "dom-element-getelementsbytagnamens"
+      },
+      {
+        "alg": "dom-namednodemap-removenameditemns"
+      },
+      {
+        "alg": "concept-element-attributes-get-by-namespace"
+      }
     ],
-    "steps": "各 method",
-    "note": "namespace で attribute を引く method（空文字列の namespace は null、local name で引くので prefix 付きの名前には当たらない）、hasAttributes、tag name で element を引く method（HTML document では HTML namespace の element だけ ASCII lowercase で比べ、他の namespace の element は qualified name をそのまま比べる。XML document ではそのまま。namespace と local name の * は何にでも当たる。受け手自身は含まない）、removeNamedItemNS（無ければ NotFoundError、外した Attr を返す）。無い attribute の removeNamedItemNS は NotFoundError で、scenario はそこで終わる。"
+    "note": "各 method。 namespace で attribute を引く method（空文字列の namespace は null、local name で引くので prefix 付きの名前には当たらない）、hasAttributes、tag name で element を引く method（HTML document では HTML namespace の element だけ ASCII lowercase で比べ、他の namespace の element は qualified name をそのまま比べる。XML document ではそのまま。namespace と local name の * は何にでも当たる。受け手自身は含まない）、removeNamedItemNS（無ければ NotFoundError、外した Attr を返す）。無い attribute の removeNamedItemNS は NotFoundError で、scenario はそこで終わる。"
   },
   "nodes": [
     {

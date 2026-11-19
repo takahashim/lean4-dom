@@ -1,10 +1,22 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#dom-document-adoptnode",
-    "algorithm": ["adoptNode(node)", "adopt"],
-    "steps": "step 1 で Document なら NotSupportedError、step 3 で adopt。adopt は parent があれば remove してから node document を付け替える",
-    "note": "Document 以外なら kind に依らず成功する（`Dom.adoptNode_isOk`）。node document は部分木すべてに付く。"
+    "refs": [
+      {
+        "alg": "dom-document-adoptnode",
+        "step": "1",
+        "text": "If node is a document, then throw a"
+      },
+      {
+        "alg": "dom-document-adoptnode",
+        "step": "3",
+        "text": "Adopt node into this"
+      },
+      {
+        "alg": "concept-node-adopt"
+      }
+    ],
+    "note": "step 1 で Document なら NotSupportedError、step 3 で adopt。adopt は parent があれば remove してから node document を付け替える。 Document 以外なら kind に依らず成功する（`Dom.adoptNode_isOk`）。node document は部分木すべてに付く。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

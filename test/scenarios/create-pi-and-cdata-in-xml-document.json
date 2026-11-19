@@ -1,12 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "createProcessingInstruction",
-      "createCDATASection"
+    "refs": [
+      {
+        "alg": "dom-document-createprocessinginstruction"
+      },
+      {
+        "alg": "dom-document-createcdatasection"
+      }
     ],
-    "steps": "createProcessingInstruction / createCDATASection",
     "note": "createProcessingInstruction は target が Name production に当たり data が \"?>\" を含まなければ、HTML document でも XML document でも ProcessingInstruction を作る。createCDATASection は XML document では CDATASection を作り、HTML document では NotSupportedError で、scenario はそこで終わる。"
   },
   "nodes": [

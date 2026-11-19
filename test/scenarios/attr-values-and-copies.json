@@ -1,14 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#set-an-existing-attribute-value",
-    "algorithm": [
-      "set an existing attribute value",
-      "clone a single node",
-      "importNode(node, options)"
+    "refs": [
+      {
+        "alg": "set-an-existing-attribute-value"
+      },
+      {
+        "alg": "clone-a-single-node"
+      },
+      {
+        "alg": "dom-document-importnode"
+      }
     ],
-    "steps": "Attr の value・nodeValue・textContent の setter は set an existing attribute value を呼ぶ（element があれば change an attribute）。clone は namespace・prefix・local name・value を写し、node document は document、element は null",
-    "note": "attribute 3 は createAttribute で作る detach された Attr。4 は 2 の clone、5 は 1 を document 4 に import したもの。"
+    "note": "Attr の value・nodeValue・textContent の setter は set an existing attribute value を呼ぶ（element があれば change an attribute）。clone は namespace・prefix・local name・value を写し、node document は document、element は null。 attribute 3 は createAttribute で作る detach された Attr。4 は 2 の clone、5 は 1 を document 4 に import したもの。"
   },
   "nodes": [
     {

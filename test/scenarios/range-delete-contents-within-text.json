@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "deleteContents"
+    "refs": [
+      {
+        "alg": "dom-range-deletecontents",
+        "step": "1-3",
+        "text": "If this is collapsed, then return",
+        "last": "If originalStartNode is originalEndNode and it is a"
+      }
     ],
-    "steps": "deleteContents 1-3",
     "note": "start と end が同じ CharacterData なら replace data 一回で済む（step 3）。record も characterData 一つである。"
   },
   "nodes": [

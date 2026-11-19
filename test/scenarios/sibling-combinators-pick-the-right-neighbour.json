@@ -2,7 +2,10 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#sibling-combinators",
-    "algorithm": ["E + F", "E ~ F"],
+    "algorithm": [
+      "E + F",
+      "E ~ F"
+    ],
     "steps": "+ は「すぐ前」、~ は「前のどれか」。どちらも同じ parent の element の並びで見る",
     "note": "element でない兄弟は数に入らない。`+` が「すぐ前」であって「前の最初」ではないことを見るには、左側に当たる兄弟が二つ以上要る。Dom/Spec/Selector.lean の mem_combCandidates_nextSibling がこれを定理にしてある。"
   },

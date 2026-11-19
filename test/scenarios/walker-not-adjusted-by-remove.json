@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "TreeWalker",
-      "remove"
+    "refs": [
+      {
+        "alg": "concept-node-remove",
+        "step": "4",
+        "text": "For each NodeIterator object iterator whose root's node"
+      },
+      {
+        "alg": "dom-treewalker-nextnode"
+      }
     ],
-    "steps": "remove 4 / nextNode",
     "note": "§6.2 には NodeIterator のような \"removing steps\" が無い。current の祖先が remove されても current はそのままで、走査はその（外れた）木の中を進む。"
   },
   "nodes": [

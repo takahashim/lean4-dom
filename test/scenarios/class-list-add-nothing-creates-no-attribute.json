@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "DOMTokenList",
-      "update steps"
+    "refs": [
+      {
+        "alg": "dom-domtokenlist-add"
+      },
+      {
+        "alg": "concept-dtl-update",
+        "step": "1",
+        "text": "If get an attribute by namespace and local"
+      }
     ],
-    "steps": "update steps 1",
     "note": "class attribute が無く token set が空なら update steps は何もしない。add() に token を渡さなくても attribute は作られない。WPT はこの場合を試していない。"
   },
   "nodes": [

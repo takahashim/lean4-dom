@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "observe"
+    "refs": [
+      {
+        "alg": "dom-mutationobserver-observe"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-dictionary"
+      }
     ],
-    "steps": "WebIDL の dictionary への変換",
-    "note": "MutationObserverInit への変換は、値が undefined、null、object のどれでもなければ TypeError になる。"
+    "note": "WebIDL の dictionary への変換。 MutationObserverInit への変換は、値が undefined、null、object のどれでもなければ TypeError になる。"
   },
   "nodes": [
     {

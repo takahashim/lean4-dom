@@ -1,12 +1,12 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "normalize"
+    "refs": [
+      {
+        "alg": "dom-node-normalize"
+      }
     ],
-    "steps": "normalize の前文（Text には descendant が無いので step は走らない）",
-    "note": "normalize() は Node の method なので Text でも呼べる。descendant が無いので何も起きない。"
+    "note": "normalize の前文（Text には descendant が無いので step は走らない）。 normalize() は Node の method なので Text でも呼べる。descendant が無いので何も起きない。"
   },
   "nodes": [
     {

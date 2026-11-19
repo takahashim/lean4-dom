@@ -1,13 +1,28 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "dispatch",
-      "invoke",
-      "inner invoke"
+    "refs": [
+      {
+        "alg": "concept-event-dispatch",
+        "step": "6",
+        "text": "If target is not relatedTarget or target is"
+      },
+      {
+        "alg": "concept-event-dispatch",
+        "step": "6.13-6.14",
+        "text": "For each item of event's path, in reverse",
+        "last": "For each item of event's path"
+      },
+      {
+        "alg": "concept-event-listener-invoke"
+      },
+      {
+        "alg": "concept-event-listener-inner-invoke",
+        "step": "2.3-2.4",
+        "text": "If phase is \"capturing\" and listener's capture is",
+        "last": "If phase is \"bubbling\" and listener's capture is"
+      }
     ],
-    "steps": "dispatch 6, 6.13-6.14 / inner invoke 2.3-2.4",
     "note": "capture の周は根から target へ、bubble の周は target から根へ。target では両方の周が AT_TARGET として走るので、capture の listener が先、そうでない listener が後になる。bubbles が false なら bubble の周は target だけである。"
   },
   "nodes": [

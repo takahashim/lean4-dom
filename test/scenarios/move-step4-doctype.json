@@ -2,11 +2,13 @@
   "_note": "doctype は move できない（step 4）。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "move"
+    "refs": [
+      {
+        "alg": "move",
+        "step": "4",
+        "text": "If node is not an Element or a"
+      }
     ],
-    "steps": "4",
     "note": "move できるのは Element と CharacterData だけである。"
   },
   "nodes": [

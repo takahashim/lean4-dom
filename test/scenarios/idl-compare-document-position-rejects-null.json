@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "compareDocumentPosition"
+    "refs": [
+      {
+        "alg": "dom-node-comparedocumentposition"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-interface"
+      }
     ],
-    "steps": "WebIDL の interface 型への変換",
-    "note": "引数の IDL の型が Node（null 不可）か Attr なので、null や node でない値は WebIDL の interface 型への変換で TypeError になる。method steps に入らないので状態は変わらない。"
+    "note": "WebIDL の interface 型への変換。 引数の IDL の型が Node（null 不可）か Attr なので、null や node でない値は WebIDL の interface 型への変換で TypeError になる。method steps に入らないので状態は変わらない。"
   },
   "nodes": [
     {

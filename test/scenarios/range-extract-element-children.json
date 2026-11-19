@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "extract"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "10",
+        "text": "Let containedChildren be a list of all children"
+      },
+      {
+        "alg": "concept-range-extract",
+        "step": "18",
+        "text": "For each contained child of containedChildren: append contained"
+      }
     ],
-    "steps": "extract 10, 18",
     "note": "両端が同じ element の子の間。contained children だけを fragment へ移す。"
   },
   "nodes": [

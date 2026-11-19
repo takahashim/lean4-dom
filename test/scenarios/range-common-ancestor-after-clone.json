@@ -1,12 +1,17 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "clone the contents",
-      "commonAncestorContainer"
+    "refs": [
+      {
+        "alg": "concept-range-clone"
+      },
+      {
+        "alg": "dom-range-commonancestorcontainer"
+      },
+      {
+        "alg": "get-the-common-ancestor"
+      }
     ],
-    "steps": "clone the contents, get the common ancestor",
     "note": "clone the contents は木も range も変えないので、common ancestor は元のまま。"
   },
   "nodes": [

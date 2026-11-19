@@ -1,14 +1,20 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "textContent",
-      "set text content",
-      "string replace all",
-      "nodeValue"
+    "refs": [
+      {
+        "alg": "dom-node-textcontent/setter"
+      },
+      {
+        "alg": "set-text-content"
+      },
+      {
+        "alg": "string-replace-all"
+      },
+      {
+        "alg": "dom-node-nodevalue/setter"
+      }
     ],
-    "steps": "textContent setter / nodeValue setter",
     "note": "textContent の setter は、Element と DocumentFragment では string replace all（空でなければ新しい Text で、空なら null で replace all）、CharacterData では replace data、Document では何もしない。null は空文字列。nodeValue の setter は CharacterData では replace data、それ以外（Element）では何もしない。Attr の両方の setter は set an existing attribute value。MutationObserver の queue に childList と characterData と attributes の record が積まれ、range は replace all と replace data の調整を受ける。"
   },
   "nodes": [

@@ -2,15 +2,31 @@
   "_note": "Range の offset は IDL の unsigned long、compareBoundaryPoints の how は unsigned short なので、method steps の前に WebIDL の ConvertToInt で変換される。offset の 4294967299 は 3、−4294967295 は 1、4294967298 は 2 になる。how の 65537 は 1（START_TO_END）になって比べられ、65540 は 4 になって NotSupportedError になる。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/webidl/blob/54a5f2de6a34e27a517a49370bc07d8943b0be11/index.bs",
-    "algorithm": [
-      "ConvertToInt",
-      "convert a JavaScript value to unsigned long",
-      "convert a JavaScript value to unsigned short",
-      "set the start or end",
-      "compareBoundaryPoints"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "abstract-opdef-converttoint",
+        "step": "4-12",
+        "text": "Let x be ? ToNumber(V)",
+        "last": "Otherwise, return x"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-unsigned-long"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-unsigned-short"
+      },
+      {
+        "alg": "concept-range-bp-set"
+      },
+      {
+        "alg": "dom-range-compareboundarypoints",
+        "step": "1",
+        "text": "If how is not one of STARTTOSTART, STARTTOEND,"
+      }
     ],
-    "steps": "ConvertToInt 4-12 / compareBoundaryPoints 1",
     "note": "WebIDL の版は docs/spec-version.md に固定した commit。"
   },
   "nodes": [

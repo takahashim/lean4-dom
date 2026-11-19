@@ -1,13 +1,25 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "compareDocumentPosition",
-      "contains",
-      "getRootNode"
+    "refs": [
+      {
+        "alg": "dom-node-comparedocumentposition",
+        "step": "1",
+        "text": "If this is other, then return zero"
+      },
+      {
+        "alg": "dom-node-comparedocumentposition",
+        "step": "7-10",
+        "text": "If node1 is an ancestor of node2 and",
+        "last": "Return DOCUMENTPOSITIONFOLLOWING"
+      },
+      {
+        "alg": "dom-node-contains"
+      },
+      {
+        "alg": "dom-node-getrootnode"
+      }
     ],
-    "steps": "compareDocumentPosition 1, 7-10 / contains / getRootNode",
     "note": "mask は「other が this から見てどこにいるか」。子孫は CONTAINED_BY|FOLLOWING (20)、祖先は CONTAINS|PRECEDING (10)、兄弟は tree order で PRECEDING (2) か FOLLOWING (4)。同じ node なら 0。"
   },
   "nodes": [

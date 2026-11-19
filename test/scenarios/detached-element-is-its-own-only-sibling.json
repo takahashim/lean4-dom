@@ -2,7 +2,12 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#child-index",
-    "algorithm": [":first-child", ":last-child", ":only-child", ":nth-child()"],
+    "algorithm": [
+      ":first-child",
+      ":last-child",
+      ":only-child",
+      ":nth-child()"
+    ],
     "steps": "index は inclusive sibling の中での位置である。Selectors 3 の「parent の child list での位置」から言い換えられている",
     "note": "仕様は「parent を持たない element や、element でない parent を持つ element を除く理由が無い」ので言い換えた、と註記している。よって parent の無い element は自分だけの列の中で 1 番目である。"
   },

@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "stringification behavior"
+    "refs": [
+      {
+        "alg": "dom-range-stringifier",
+        "step": "2",
+        "text": "If this's start node is this's end node"
+      }
     ],
-    "steps": "Range stringifier 2",
     "note": "start node と end node が同じ Text なら、その切り出しだけを返す（step 2）。"
   },
   "nodes": [

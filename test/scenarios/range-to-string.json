@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "stringification behavior"
+    "refs": [
+      {
+        "alg": "dom-range-stringifier",
+        "step": "2-5",
+        "text": "If this's start node is this's end node",
+        "last": "If this's end node is a Text node,"
+      }
     ],
-    "steps": "Range stringifier 2-5",
     "note": "start と end の Text は offset で切り、間は **contained な Text を tree order で** 連結する。Text 以外（comment や PI）は入らない。"
   },
   "nodes": [

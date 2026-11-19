@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "substring data"
+    "refs": [
+      {
+        "alg": "concept-cd-substring",
+        "step": "2",
+        "text": "If offset is greater than length, then throw"
+      }
     ],
-    "steps": "substring data 2",
     "note": "offset が length を超えたら IndexSizeError。length は UTF-16 の code unit 数なので、astral な文字は 2 と数える。"
   },
   "nodes": [

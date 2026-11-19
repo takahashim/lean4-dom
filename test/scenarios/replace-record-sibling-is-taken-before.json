@@ -1,12 +1,24 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-replace",
-    "algorithm": [
-      "replace"
+    "refs": [
+      {
+        "alg": "concept-node-replace",
+        "step": "4",
+        "text": "Let previousSibling be child's previous sibling"
+      },
+      {
+        "alg": "concept-node-replace",
+        "step": "7",
+        "text": "If child's parent is non-null"
+      },
+      {
+        "alg": "concept-node-replace",
+        "step": "10",
+        "text": "Queue a tree mutation record for parent with"
+      }
     ],
-    "steps": "step 4 で previous sibling を控え、step 10 の record に載せる",
-    "note": "控えるのは木を変える前の値である。step 7 で child を外した後に取り直すと、child は親を持たないので null になってしまう。"
+    "note": "step 4 で previous sibling を控え、step 10 の record に載せる。 控えるのは木を変える前の値である。step 7 で child を外した後に取り直すと、child は親を持たないので null になってしまう。"
   },
   "nodes": [
     {

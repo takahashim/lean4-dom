@@ -1,11 +1,11 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "isConnected"
+    "refs": [
+      {
+        "alg": "dom-node-isconnected"
+      }
     ],
-    "steps": "isConnected getter",
     "note": "isConnected は shadow-including root が document なら true、そうでなければ false を返す。DocumentFragment の中の Comment は false である（undefined ではない）。"
   },
   "nodes": [

@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "add an event listener"
+    "refs": [
+      {
+        "alg": "add-an-event-listener"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-dictionary"
+      }
     ],
-    "steps": "WebIDL の dictionary への変換（AddEventListenerOptions の signal）",
-    "note": "signal は AbortSignal 型の member なので、undefined 以外の値で AbortSignal でないもの（null や普通の object）は TypeError になる。method steps に入らないので listener は足されない。"
+    "note": "WebIDL の dictionary への変換（AddEventListenerOptions の signal）。 signal は AbortSignal 型の member なので、undefined 以外の値で AbortSignal でないもの（null や普通の object）は TypeError になる。method steps に入らないので listener は足されない。"
   },
   "nodes": [
     {

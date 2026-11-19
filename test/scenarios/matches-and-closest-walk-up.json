@@ -1,10 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#dom-element-closest",
-    "algorithm": ["matches(selectors)", "closest(selectors)"],
-    "steps": "closest は inclusive ancestor を tree order の逆に見て最初に当たったものを返す",
-    "note": "どちらも scoping root は this である。読めない selector は SyntaxError。"
+    "refs": [
+      {
+        "alg": "dom-element-matches"
+      },
+      {
+        "alg": "dom-element-closest"
+      }
+    ],
+    "note": "closest は inclusive ancestor を tree order の逆に見て最初に当たったものを返す。 どちらも scoping root は this である。読めない selector は SyntaxError。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

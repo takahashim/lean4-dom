@@ -1,11 +1,23 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "deleteContents"
+    "refs": [
+      {
+        "alg": "dom-range-deletecontents",
+        "step": "4",
+        "text": "Let nodesToRemove be a list of all the"
+      },
+      {
+        "alg": "dom-range-deletecontents",
+        "step": "7",
+        "text": "Otherwise"
+      },
+      {
+        "alg": "dom-range-deletecontents",
+        "step": "8",
+        "text": "Set this's start and end to (newNode, newOffset)"
+      }
     ],
-    "steps": "deleteContents 4, 7, 8",
     "note": "上と逆向き。start が text の途中、end が共通祖先の直下の境界で、消えるのは start node の後ろの兄弟である。これも common ancestor の子ではない（docs/status.md の findings 7）。step 7 の reference node で新しい boundary point は (1,1) になる。"
   },
   "nodes": [

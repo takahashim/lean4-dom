@@ -2,14 +2,26 @@
   "_note": "attribute 名の ASCII lowercase は、element が HTML namespace にあって、その node document が HTML document のときだけ走る（\"get an attribute by name\" step 1、`setAttribute` step 2、`toggleAttribute` step 2）。node 1 は HTML namespace の div なので setAttribute(\"A\") は \"a\" を作り、getAttribute(\"A\") も getAttribute(\"a\") もそれを見つける。node 2 は SVG namespace なので \"A\" のまま置かれ、\"a\" とは別の attribute になる。`tagName` は同じ条件で ASCII uppercase になるので、node 1 は \"DIV\"、node 2 は \"rect\"。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
-    "algorithm": [
-      "get an attribute by name",
-      "setAttribute",
-      "toggleAttribute",
-      "Element.tagName"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-get-by-name",
+        "step": "1",
+        "text": "If element is in the HTML namespace and"
+      },
+      {
+        "alg": "dom-element-setattribute",
+        "step": "2",
+        "text": "If this is in the HTML namespace and"
+      },
+      {
+        "alg": "dom-element-toggleattribute",
+        "step": "2",
+        "text": "If this is in the HTML namespace and"
+      },
+      {
+        "alg": "dom-element-tagname"
+      }
     ],
-    "steps": "get an attribute by name 1 / setAttribute 2 / toggleAttribute 2 / tagName",
     "note": "HTML namespace の element が HTML document にあるかどうかで分かれる。"
   },
   "nodes": [
