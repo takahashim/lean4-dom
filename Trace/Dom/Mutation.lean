@@ -20,7 +20,7 @@ def entries : List Entry := [
     impl := [``Dom.insert, ``Dom.insertNodesAt, ``Dom.insertEachAt, ``Dom.insertEach,
              ``Dom.insertPrevSibling]
     spec := [``Dom.Spec.InsertSpec]
-    omitted := [("7.4-7.6", .shadow), ("7.7.1", .hook), ("7.7.2-7.7.4", .customElements),
+    omitted := [("7.4-7.6", .shadow), ("7.7.1-7.7.2", .customElements), ("7.7.3", .hook),
              ("9", .hook), ("10-12", .hook)] },
   { alg := "concept-node-append"
     impl := [``Dom.append]
@@ -28,8 +28,8 @@ def entries : List Entry := [
   { alg := "move"
     impl := [``Dom.move, ``Dom.moveValidity, ``Dom.detachWithLiveAdjust, ``Dom.addTransientObservers]
     spec := [``Dom.Spec.MoveSpec, ``Dom.Spec.MoveValidity]
-    omitted := [("14-16", .shadow), ("22-24", .shadow), ("25.1-25.2", .hook),
-             ("25.3", .customElements)]
+    omitted := [("14-16", .shadow), ("22-24", .shadow), ("25.1", .hook), ("25.2", .customElements),
+             ("25.3", .hook)]
     approx := [("1", "shadow-including root ではなく root で比べる（shadow tree が無いので同じ値）")] },
   { alg := "concept-node-replace"
     impl := [``Dom.replace]
@@ -43,8 +43,8 @@ def entries : List Entry := [
   { alg := "concept-node-remove"
     impl := [``Dom.remove, ``Dom.detachWithLiveAdjust, ``Dom.addTransientObservers]
     spec := [``Dom.Spec.RemoveSpec, ``Dom.Spec.RemoveResult]
-    omitted := [("8-10", .shadow), ("11", .hook), ("12-13", .customElements), ("14.1", .hook),
-             ("14.2", .customElements), ("17", .hook)] }
+    omitted := [("8-10", .shadow), ("11-12", .customElements), ("13", .hook), ("14.1", .customElements),
+             ("14.2", .hook), ("17", .hook)] }
 ]
 
 def exclusions : List Exclusion := [

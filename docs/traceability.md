@@ -4,7 +4,7 @@ WHATWG DOM Standard の algorithm と、Lean の実行関数・契約・固定 s
 Dommy 側の WPT 由来 test を結ぶ対応表である。
 
 参照する仕様は `docs/spec-version.md` に固定した commit
-`3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177`（2026-10-19）である。
+`e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69`（2026-11-15）である。
 step 番号だけに頼ると仕様改訂でずれるので、各行に短い step 要約も置く。
 
 step 単位の対応は `Trace/Dom/` の表が持ち、CI が網羅を検査する。algorithm ごとの集計は

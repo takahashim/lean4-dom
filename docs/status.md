@@ -7217,6 +7217,32 @@ model の定義と関係は変えず、表と snapshot だけを直した。
 `docs/traceability.md` の "WHATWG steps" の列と、番号付きの箇条で step を書いた docstring も同じく直した。
 定理の名前 `replaceAll_acyc_step5` は旧い番号（今の step 6）のまま残した。
 
+## DOM と Web IDL の固定版を上げた（2026-11-19）
+
+週次の `spec-drift.yml` がまた失敗したので、DOM を `6cc2415`（2026-11-04）から `e4f4f4f`（2026-11-15）に、
+Web IDL を `e340c2e`（2026-11-07）から `54a5f2d`（2026-11-14）に上げた。model の定義と関係は変えず、表・snapshot・
+コメントの step 番号を直した。
+
+* DOM `0a3d3eb` は、custom element の callback を積む step を insertion steps・removing steps・moving steps より前に
+  移した。insert の step 7.7 は「connected でなければ continue」を custom element の二つの分岐（7.7.1・7.7.2）の条件に
+  畳み、insertion steps を最後の 7.7.3 にした。remove は `isParentConnected`（step 11）と `disconnectedCallback`
+  （step 12、descendant は 14.1）の後に removing steps（step 13、descendant は 14.2）を走らせる。move は
+  `connectedMoveCallback`（step 25.2）の後に moving steps（step 25.3）を走らせる。model はどれも扱わない
+  （custom element は対象外、三つの steps は hook として除外）ので、表の番号だけを直した。
+* DOM `561f36e` は、ProcessingInstruction の data を直接書いたときにも "update attributes from data" を呼ぶようにした。
+  clone a single node の PI の分岐は step 5.4（target と data を写す）・5.5（update attributes from data）になり、
+  range の extract と clone the contents が CharacterData の一部を写す所は新しい algorithm
+  "clone part of a CharacterData node"（§5.6）にまとめられた。model には PI の attribute map が無いので
+  （replace data の step 12 と同じ）、step 5.5 と新しい algorithm の step 3 を除外し、新しい algorithm の残りの
+  step は `dataPart`・`appendDataClone` の実装として表に載せた。extract の step 4.2-4.4・16.2-16.3・19.2-19.3、
+  clone the contents の step 4.2-4.3・12.2・15.2 は一つずつ繰り上がった。
+* DOM `3e656a5` は PI の `removeAttribute()` の先頭に「無ければ return」を足した（対象外の algorithm）。
+  `5fc66f9` は element の ID を `id` attribute から導く定義にし、ID を保つ attribute change steps を消した。
+  model の `HasId`（namespace の無い `id` attribute の空でない値）はもともとこの定義なので、変わらない。
+  `e4f4f4f` は `getElementsByClassName()` の filter の文言を直した（意味は同じ）。
+* Web IDL は editorial な commit だけで、表に載せた ConvertToInt の step 7 と create an operation function の
+  step 4（"argument list" → "type list"）は文言が変わっただけである。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。

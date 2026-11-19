@@ -29,7 +29,7 @@ import Dom.Spec.Record
 | `TransientAdded` | 15（add transient registered observers） |
 | `RecordQueued` | 16 |
 
-step 8-10（slot）・11/14.1（removing steps）・13/14.2（custom element）・17（children changed steps）は
+step 8-10（slot）・11-12/14.1（custom element）・13/14.2（removing steps）・17（children changed steps）は
 model の対象外である（`docs/traceability.md` の「未対応と対象外」）。
 -/
 

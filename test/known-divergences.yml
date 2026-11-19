@@ -735,7 +735,7 @@
   digest: a6b60884162009d9
   reason: &extract_record_order |
     DOM §5.6 "extract" は step 18 で contained children を fragment へ append し（元の parent に childList の
-    record）、そのあと step 19.4 で original end node の data を replace data で切る（characterData の record）。
+    record）、そのあと step 19.3 で original end node の data を replace data で切る（characterData の record）。
     本文の順では childList の record が先に積まれる。Chromium と WebKit は end node の data を先に切ってから
     contained children を移すので、characterData の record が先になる。木・live range・data・返す fragment は
     本文どおりで、違うのは MutationObserver に届く record の並びだけである。Firefox と jsdom 30.1.2 は本文どおり。

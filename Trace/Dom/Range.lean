@@ -132,6 +132,11 @@ def entries : List Entry := [
     impl := [``Dom.rangeCommonAncestorContainer, ``Dom.commonAncestor]
     spec := [``Dom.Spec.commonAncestor_spec]
     approx := [("*", "端点が別の木にある range（admissible な状態にしか現れない）では outsideModel を返す")] },
+  { alg := "clone-part-of-a-characterdata-node"
+    impl := [``Dom.dataPart, ``Dom.appendDataClone, ``Dom.substringData, ``Dom.cloneSingle]
+    spec := [``Dom.Spec.DataPartResult]
+    omitted := [("3", .todo "ProcessingInstruction の attribute map（update attributes from data）が model に無い")]
+    approx := [("1-2", "先に substring data を求め、その data を持つ clone を作る。clone a node は data を読まないので結果は同じ")] },
   { alg := "concept-range-extract"
     impl := [``Dom.rangeFragment, ``Dom.contentsInto, ``Dom.commonAncestor,
              ``Dom.firstPartiallyContainedChild, ``Dom.lastPartiallyContainedChild,
