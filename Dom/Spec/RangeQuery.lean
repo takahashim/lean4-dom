@@ -15,7 +15,7 @@ import Dom.Range.Api
 §5.2 の boundary point position は「node が同じなら offset を比べる」「一方が他方の
 ancestor なら、子孫の側へ向かう子の index と offset を比べる」「そうでなければ tree order」
 という場合分けである。`BPBefore t a b`（`a` が `b` の before）はこの四つの場合を
-§4.2 の語彙（parent・index・inclusive ancestor）だけで並べたもので、`childTowards` も
+§1.1 の語彙（parent・index・inclusive ancestor）だけで並べたもので、`childTowards` も
 preorder も使わない。step 3 の「引数を入れ替えて呼ぶ」は、`b.node` が `a.node` の
 ancestor である場合（三つ目の選言）として展開してある。
 

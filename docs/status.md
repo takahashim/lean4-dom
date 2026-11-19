@@ -7243,6 +7243,35 @@ Web IDL を `e340c2e`（2026-11-07）から `54a5f2d`（2026-11-14）に上げ�
 * Web IDL は editorial な commit だけで、表に載せた ConvertToInt の step 7 と create an operation function の
   step 4（"argument list" → "type list"）は文言が変わっただけである。
 
+### step 番号と節番号の二度目の見直し
+
+前回の見直しは `test/scenarios/` の `_basis` を対象に入れておらず、番号付きの箇条や表の列も拾い切れていなかった。
+今回は `Dom/`・`Trace/`・`docs/`・`test/`（scenario を含む）・`Audit.lean` の step 番号と節番号（約 2,800 件）を、
+この版の snapshot と突き合わせた。直したのは百三十ほどである。
+
+* **scenario の `_basis`**（約 50 件、40 本）：前回の見直しの対象外だった。queue a mutation record の条件（2.3 → 3.2）、
+  remove の transient と record（20-21 → 15-16）、dispatch の event path と二つの周（5・12-13 → 6・6.13-6.14）、
+  deleteContents（一つずつ繰り下がる）、ensure pre-insert validity の element と fragment の場合（6 → 9・8.1）、
+  clone a single node（attribute の clone は 2.5、Attr の節は 5、それ以外の node は 4）など。clone the contents の
+  scenario は extract の番号（21 まで）を使っていたので、clone the contents の番号（17 まで）にした。直した scenario は
+  `_basis.spec` の URL もこの版の commit にした。
+* **節番号**：木の語彙（parent、children、ancestor、descendant、sibling、root、tree order）は §4.2 ではなく §1.1 Trees、
+  node の length は §4.2、parent element は §4.9、descendant text content は §4.11、list of elements with qualified name
+  （namespace and local name）は §4.4、`MutationObserver` の method は §4.3.1、`NamedNodeMap` の method は §4.9.1、
+  create an attribute と set an existing attribute value は §4.9.2、`previousElementSibling`・`nextElementSibling` は
+  §4.2.7、"validate and extract" は §1.4。
+* **step 番号**：invoke と書いていた inner invoke の step（2.3-2.5、2.11）、adopt の step を `adoptNode()` の表に
+  書いていたもの、`lookupPrefix` と `lookupNamespaceURI` の step 1（呼んだ先の locate a namespace (prefix) の step 1）、
+  `docs/traceability.md` の traverse（1-5）・filter（2-4）・toggle（1-5）、move の `insertAt`（step 20-21）、
+  range の insert の `referenceNode`（step 3-7）、remove an attribute の handle attribute changes（step 4）。
+
+直していないもの：番号の付いていない algorithm（`append`、normalize の前文の走査、`collapse()`）を番号で指す行、
+observe の step を何に当てたか決められない scenario の 2 本、`iterator-adjust-*` の 2 本（NodeIterator pre-remove steps
+と書くが、番号は呼ぶ先の adjust a node pointer のもの）、証明の段階の名前（`-- step 7.3：…`）。
+`transient-observer-chains-through-removals` の `_note` は番号を直したが、「node 1 の transient を source として
+node 2 に transient が付く」という文は、transient の source を元の registered observer にする現行の add transient
+registered observers（step 1.3）と合わない（whatwg/dom 3071e5f より前の読み）。文の書き直しは別に行う。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。

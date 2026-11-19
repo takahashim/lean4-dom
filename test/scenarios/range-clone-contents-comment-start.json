@@ -1,11 +1,11 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "clone the contents"
     ],
-    "steps": "clone the contents 16",
+    "steps": "clone the contents 12",
     "note": "start が Comment の中。first partially contained child は CharacterData なので data の残りを写す。"
   },
   "nodes": [

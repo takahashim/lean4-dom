@@ -66,7 +66,7 @@ def removeDetached (s : DOMState) (aid : AttrId) : DOMState :=
 /-! ## `Attr` を作る -/
 
 /--
-DOM Standard §4.9 "create an attribute"。
+DOM Standard §4.9.2 "create an attribute"。
 
 element を持たない新しい `Attr` を作る。node document は受け手の document `doc` である。
 -/
@@ -198,7 +198,7 @@ def removeAttributeNode (s : DOMState) (element : NodeId) (aid : AttrId) :
     | some a => .ok (aid, detachAttribute s element d a)
 
 /--
-DOM Standard §4.9 `NamedNodeMap.removeNamedItem(qualifiedName)`。
+DOM Standard §4.9.1 `NamedNodeMap.removeNamedItem(qualifiedName)`。
 
 `removeAttribute` と違い、無ければ `NotFoundError` を投げ、外した `Attr` を返す。
 -/
@@ -212,7 +212,7 @@ def removeNamedItem (s : DOMState) (element : NodeId) (qualifiedName : String) :
     | some a => removeAttributeNode s element a.id
 
 /--
-DOM Standard §4.9 `NamedNodeMap.removeNamedItemNS(namespace, localName)`。
+DOM Standard §4.9.1 `NamedNodeMap.removeNamedItemNS(namespace, localName)`。
 
 "remove an attribute by namespace and local name" は get してから remove するので、見つけた `Attr` を
 `removeAttributeNode` で外す。無ければ `NotFoundError`。

@@ -1,13 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "dispatch",
       "invoke",
       "inner invoke"
     ],
-    "steps": "dispatch 5, 12-13 / inner invoke 2.3-2.4",
+    "steps": "dispatch 6, 6.13-6.14 / inner invoke 2.3-2.4",
     "note": "capture の周は根から target へ、bubble の周は target から根へ。target では両方の周が AT_TARGET として走るので、capture の listener が先、そうでない listener が後になる。bubbles が false なら bubble の周は target だけである。"
   },
   "nodes": [

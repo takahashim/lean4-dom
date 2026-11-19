@@ -265,7 +265,7 @@ inductive Operation where
   | lookupNamespaceURI (node : Nat) («prefix» : Option String)
   | lookupPrefix (node : Nat) («namespace» : Option String)
   | isDefaultNamespace (node : Nat) («namespace» : Option String)
-  /-- §2.7 `addEventListener` / `removeEventListener`、§2.9 `dispatchEvent`。options は WebIDL の変換の前の値。 -/
+  /-- §2.7 `addEventListener` / `removeEventListener` / `dispatchEvent`。options は WebIDL の変換の前の値。 -/
   | addEventListener (target : Nat) («type» : String) (source : Nat) (options : Idl.JsValue)
   | removeEventListener (target : Nat) («type» : String) (callback : Nat) (options : Idl.JsValue)
   | dispatchEvent (target : Nat) («type» : String) (bubbles cancelable : Bool)
@@ -357,9 +357,9 @@ inductive Operation where
   -/
   | getElementById (node : Nat) (elementId : String)
   | getElementsByClassName (node : Nat) (classNames : String)
-  /-- §4.2.6 `getElementsByTagName(qualifiedName)`（Document・Element）。 -/
+  /-- §4.5・§4.9 `getElementsByTagName(qualifiedName)`（Document・Element）。 -/
   | getElementsByTagName (node : Nat) (qualifiedName : String)
-  /-- §4.2.6 `getElementsByTagNameNS(namespace, localName)`（Document・Element）。 -/
+  /-- §4.5・§4.9 `getElementsByTagNameNS(namespace, localName)`（Document・Element）。 -/
   | getElementsByTagNameNS (node : Nat) («namespace» : Option String) (localName : String)
   /-- §4.9 `getAttributeNS(namespace, localName)`。 -/
   | getAttributeNS (element : Nat) («namespace» : Option String) (localName : String)
@@ -367,7 +367,7 @@ inductive Operation where
   | hasAttributeNS (element : Nat) («namespace» : Option String) (localName : String)
   /-- §4.9 `hasAttributes()`。 -/
   | hasAttributes (element : Nat)
-  /-- §4.9 `NamedNodeMap.removeNamedItemNS(namespace, localName)`。外した `Attr` を返す。 -/
+  /-- §4.9.1 `NamedNodeMap.removeNamedItemNS(namespace, localName)`。外した `Attr` を返す。 -/
   | removeNamedItemNS (element : Nat) («namespace» : Option String) (localName : String)
   | getElementsByName (node : Nat) (elementName : String)
   /--

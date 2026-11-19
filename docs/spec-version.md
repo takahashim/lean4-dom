@@ -69,6 +69,8 @@ Lean のコメントと文書にある step 番号と節番号は、表とは別
 2026-11 に、`Dom/`・`Trace/`・`docs/`・`test/` の DOM・Web IDL・ECMA-262 の参照（step 番号は約 1,700 行）を
 固定版の snapshot と突き合わせて直した（`docs/status.md` の「DOM と Web IDL の固定版を上げた」）。
 それまでは、改訂より前の番号のまま残ったものが二百ほどあった（例：`remove` の「step 20」は固定版の step 15）。
+2026-11-19 に、scenario の `_basis` と `Audit.lean` を加えた約 2,800 件をもう一度突き合わせ、百三十ほどを直した
+（`docs/status.md` の「step 番号と節番号の二度目の見直し」）。
 番号の正は、step は表、節は snapshot（`spec-trace/dom.json` の `section`）のほうである。
 
 ## 版を上げる手順

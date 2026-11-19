@@ -2,7 +2,7 @@ import Dom.Spec.Lookup
 import Dom.Spec.TreeOrder
 
 /-!
-# lookup が返す element の順序（§4.2.6、§4.5、§4.9、HTML §3.1.5）
+# lookup が返す element の順序（§4.2.4、§4.4、§4.5、§4.9、HTML §3.1.5）
 
 `Dom/Spec/Lookup.lean` は、id・class・name で引く method が **どの** element を返すかを述べる。ここでは
 それに tree order を足す。
@@ -87,7 +87,7 @@ theorem getElementsByTagNameNS_sorted {t : Tree} (hwf : WellFormed t) {node : No
 /-! ## list of elements with qualified name / namespace and local name -/
 
 /--
-§4.2.6 "list of elements with qualified name" の条件。`*` なら何でも当たる。root の node document が
+§4.4 "list of elements with qualified name" の条件。`*` なら何でも当たる。root の node document が
 HTML document なら、HTML namespace の element は qualified name が `q` の ASCII lowercase と、
 それ以外の element は qualified name が `q` と等しいものが当たる。そうでなければ qualified name が `q`。
 -/
@@ -100,7 +100,7 @@ def QualifiedNameMatches (t : Tree) (root : NodeData) (q : String) (ed : NodeDat
         ed.qualifiedName = q)
 
 /--
-§4.2.6 "list of elements with namespace and local name" の条件。空文字列の namespace は null。
+§4.4 "list of elements with namespace and local name" の条件。空文字列の namespace は null。
 `*` は namespace でも local name でも何でも当たる。
 -/
 def NamespaceLocalNameMatches (ns : Option String) (ln : String) (ed : NodeData) : Prop :=

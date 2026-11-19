@@ -678,9 +678,9 @@ theorem importNode_isOk {s : DOMState} {doc n : NodeId} {subtree : Bool} {dd d :
 | `requireDocument` | `TypeError` | 受け手が Document であることを仮定する |
 | `get? n` | `NotFoundError` | node が木にあることを仮定する |
 | step 1 | `NotSupportedError` | node が Document でないことを仮定する |
-| step 2 の `remove` | `NotFoundError` | parent がある node にしか呼ばない |
+| adopt の step 2 の `remove` | `NotFoundError` | parent がある node にしか呼ばない |
 
-step 1 の `ownerDocumentOf` は `get?` の像なので、node が木にあれば必ず `some` である。
+adopt の step 1 の `ownerDocumentOf` は `get?` の像なので、node が木にあれば必ず `some` である。
 -/
 
 /-- **`adopt` は木にある node に対して必ず成功する。** -/

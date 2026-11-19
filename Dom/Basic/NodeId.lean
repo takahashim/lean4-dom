@@ -112,7 +112,7 @@ instance : Repr AttrId := ⟨fun n _ => repr n.id⟩
 instance : ToString AttrId := ⟨fun n => toString n.id⟩
 
 /--
-DOM Standard §4.9 の attribute。
+DOM Standard §4.9.2 の attribute。
 
 attribute は仕様上 node（`Attr`）だが、本 model では element の状態として持つ。
 node tree に入らない（parent を持てず tree order にも現れない）ので、
@@ -340,7 +340,7 @@ def qualifiedName (d : NodeData) : String :=
   | some p => p ++ ":" ++ d.localName
 
 /--
-DOM Standard §4.4 の node length。
+DOM Standard §4.2 の node length。
 
 CharacterData なら data の長さ、DocumentType なら 0、それ以外は children の個数。
 Phase 5 の boundary point validity で使うが、定義は node data だけで決まるためここに置く。

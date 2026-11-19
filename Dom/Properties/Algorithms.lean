@@ -146,7 +146,7 @@ theorem detachWithLiveAdjust_tree {s s' : DOMState} {n : NodeId}
 /--
 `remove` が成功したなら parent があり、木の効果は `detach` と同じである。
 
-mutation record を積む step（20-21）は木を変えないので、
+mutation record を積む step（15-16）は木を変えないので、
 `suppressObservers` の値に依らず成り立つ。
 -/
 theorem remove_ok {s s' : DOMState} {n : NodeId} {b : Bool} (h : remove s n b = .ok s') :

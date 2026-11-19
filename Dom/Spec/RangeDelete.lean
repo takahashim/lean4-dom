@@ -9,7 +9,7 @@ import Dom.Spec.CharacterDataResult
 
 step 9 と step 11 で `ReplaceDataSpec` を、step 10 で `RemoveEachSpec` を composition する。
 「contained」と step 5-7 の新しい boundary point は §5.2 の `BPBefore`
-（`Dom/Spec/RangeQuery.lean`）と §4.2 の語彙で書き、実行側の `bpPosition` や
+（`Dom/Spec/RangeQuery.lean`）と §1.1 の語彙で書き、実行側の `bpPosition` や
 `containedInRange` は使わない。
 
 ## 前提

@@ -51,7 +51,7 @@ theorem lookupNamespaceURI_own_prefix {t : Tree} {n : NodeId} {d : NodeData} {p 
       have h2 : (some p == some "xmlns") = false := by simpa using hxs
       simp [h1, h2, hns, hp]
 
-/-- **`lookupPrefix` は、element 自身の namespace に element 自身の prefix を返す**（step 1）。 -/
+/-- **`lookupPrefix` は、element 自身の namespace に element 自身の prefix を返す**（"locate a namespace prefix" の step 1）。 -/
 theorem lookupPrefix_own_namespace {t : Tree} {n : NodeId} {d : NodeData} {p ns : String}
     (hn : t.get? n = some d) (hk : d.kind = .element) (hp : d.prefix = some p)
     (hns : d.namespace = some ns) (hns' : ns ≠ "") :

@@ -117,7 +117,7 @@ def cloneAttr (s : DOMState) (aid : AttrId) : Except DOMException (AttrId × DOM
 /-! ## value を書く -/
 
 /--
-DOM Standard §4.9 "set an existing attribute value"。`Attr.value`・`nodeValue`・`textContent` の
+DOM Standard §4.9.2 "set an existing attribute value"。`Attr.value`・`nodeValue`・`textContent` の
 setter がどれもこれを呼ぶ。element が null なら value を書き換えるだけで、そうでなければ
 "change an attribute"（mutation record を積む）。Trusted Types の step は対象外である。
 -/

@@ -30,7 +30,7 @@ def iteratorCollection (t : Tree) (root : NodeId) : List NodeId :=
   preorder t root
 
 /--
-DOM Standard §6.1 "filter"、ただし `filter` は null。
+DOM Standard §6 "filter"、ただし `filter` は null。
 
 step 2-4 だけが残り、node type の bit が立っていれば FILTER_ACCEPT、
 立っていなければ FILTER_SKIP になる。

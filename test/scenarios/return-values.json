@@ -2,7 +2,7 @@
   "_note": "IDL の戻り値を固定する。`appendChild` / `insertBefore` は入れた node、`replaceChild` / `removeChild` は **取り除いた側** の child、`toggleAttribute` は attribute が結果として付いているか、`nextNode()` は traverse が返した node（collection の端なら null）、`takeRecords()` は空にする前の record queue である。`remove()` や `setAttribute` は undefined を返す。null を返すことと undefined を返すことは別なので、観測は kind を添えて区別する。`toggleAttribute` は step 4-6 の四通り（attribute の有無 × force の有無）をすべて通る。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "pre-insert",
       "replace",
@@ -11,7 +11,7 @@
       "NodeIterator.nextNode",
       "MutationObserver.takeRecords"
     ],
-    "steps": "pre-insert 5 / replace 11 / pre-remove 3 / toggleAttribute 4-6 / traverse 6",
+    "steps": "pre-insert 5 / replace 11 / pre-remove 3 / toggleAttribute 4-6 / traverse 5",
     "note": "戻り値は仕様が明示している観測対象である。"
   },
   "nodes": [

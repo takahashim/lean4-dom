@@ -152,7 +152,7 @@ module Generate
   ATTRIBUTE_OPS = %w[setAttribute setAttributeNS removeAttribute removeAttributeNS
                      toggleAttribute getAttribute hasAttribute getAttributeNames
                      getAttributeNS hasAttributeNS hasAttributes].freeze
-  # tag name で element を引く操作（§4.2.6）。受け手は Document か Element。
+  # tag name で element を引く操作（§4.5 / §4.9）。受け手は Document か Element。
   TAG_NAME_OPS = %w[getElementsByTagName getElementsByTagNameNS].freeze
   HTML_NS = "http://www.w3.org/1999/xhtml"
 

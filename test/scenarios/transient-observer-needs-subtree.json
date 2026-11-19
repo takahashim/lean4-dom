@@ -3,7 +3,7 @@
     "kind": "spec",
     "spec": "https://dom.spec.whatwg.org/#concept-node-remove",
     "algorithm": ["remove"],
-    "steps": "step 20。parent の inclusive ancestor に付いた registered observer のうち、subtree が true のものだけが transient registered observer を作る",
+    "steps": "step 15。parent の inclusive ancestor に付いた registered observer のうち、subtree が true のものだけが transient registered observer を作る",
     "note": "subtree でない registration は、外した部分木の中の変更を見続けない。この scenario は、外した後で中を変えても record が届かないことを見る。"
   },
   "nodes": [

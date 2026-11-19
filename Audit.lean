@@ -1630,14 +1630,14 @@ open Dom.Audit
   Dom.Spec.tokenSetOk_replace
   Dom.Spec.validateTokens_eq_none_iff
 
--- 名前の検査と createElement（§1.3、§4.5）
+-- 名前の検査と createElement（§1.4、§4.5）
 #audit_axioms
   Dom.Spec.validNamespacePrefix_iff
   Dom.Spec.validAttributeLocalName_iff
   Dom.Spec.validElementLocalName_iff
   Dom.Spec.createElement_result_sound
 
--- descendant text content と substring data（§4.4、§4.10）
+-- descendant text content と substring data（§4.11、§4.10）
 #audit_axioms
   Dom.Spec.descendantTextContent_spec
   Dom.Spec.substringData_result_sound

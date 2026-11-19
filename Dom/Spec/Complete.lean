@@ -499,7 +499,7 @@ theorem replace_complete {s s' : DOMState} {child node parent : NodeId}
 /--
 **`move` は関係を満たす状態があるなら成功する。**
 
-落ちうるのは step 9-10, 13 の `detach` と step 18-21 の `insertAt` の二箇所である。
+落ちうるのは step 9-10, 13 の `detach` と step 20-21 の `insertAt` の二箇所である。
 前者は「`node` に parent がある」から出る（関係の step 7-8 が言っている）。
 後者の四つの前提のうち三つは step 1-6 の validity から、
 **`child` が新しい parent の子であること**は関係の `TreeInserted.childIsChild` から出る。
@@ -530,7 +530,7 @@ theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : O
   have htr : TreeRemoved s.tree s₁.tree node oldParent := hmd.2.2.1
   have hwf₁ : WellFormed s₁.tree := treeRemoved_wellFormed hwf hp htr
   have hwfe₁ : WellFormed e₁.tree := hobs₁.tree.wellFormed hwf₁
-  -- step 18-21：`insertAt` の四つの前提
+  -- step 20-21：`insertAt` の四つの前提
   obtain ⟨pd₁, hpd₁⟩ : ∃ pd₁, e₁.tree.get? newParent = some pd₁ := by
     have h1 := htr.sameNodes newParent
     rw [hpd] at h1

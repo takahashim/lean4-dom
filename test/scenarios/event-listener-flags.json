@@ -1,13 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
+    "spec": "https://github.com/whatwg/dom/blob/e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69/dom.bs",
     "algorithm": [
       "inner invoke",
       "add an event listener",
       "remove an event listener"
     ],
-    "steps": "inner invoke 2.5, 2.14 / invoke 5, 8",
+    "steps": "inner invoke 2.5, 2.16 / invoke 6, 8",
     "note": "once は呼ぶ前に外す。stopPropagation は次の item から、stopImmediatePropagation は同じ item の残りからも止める。preventDefault は cancelable のときだけ効く。配送中に外した listener は（clone を回していても）呼ばれず、配送中に足した listener はこの配送では呼ばれない。"
   },
   "nodes": [

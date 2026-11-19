@@ -6,8 +6,8 @@
       "ECMAScript argument conversion",
       "insertNode"
     ],
-    "steps": "WebIDL の引数変換は method の step より先に走る / insertNode 6",
-    "note": "insertNode の step 6 は start node が Text なら splitText で割る。null 引数の TypeError はその前に出るので、木は変わらない。"
+    "steps": "WebIDL の引数変換は method の step より先に走る / insertNode 7",
+    "note": "insertNode の step 7 は start node が Text なら splitText で割る。null 引数の TypeError はその前に出るので、木は変わらない。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

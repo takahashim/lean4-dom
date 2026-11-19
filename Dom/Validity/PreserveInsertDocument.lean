@@ -433,7 +433,7 @@ theorem documentTreesValid_insert_of_seqOk {s s' : DOMState} {node parent : Node
 /--
 PLAN §6.3 の形。`insert` は Document の children 制約を保つ。
 
-fragment を展開する側では step 8 が、単独の node の側では step 6 / 9 / 10-11 が
+fragment を展開する側では step 8-9 が、単独の node の側では step 6 / 9 / 10-11 が
 `InsertSeqOk` を与える。
 -/
 theorem documentTreesValid_insert {s s' : DOMState} {node parent : NodeId}

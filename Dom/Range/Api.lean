@@ -299,7 +299,7 @@ def refBP (t : Tree) (parent : NodeId) (ref : Option NodeId) : BoundaryPoint :=
   | some c => ⟨parent, (index t c).getD 0⟩
 
 /--
-DOM Standard §5.6 insert の step 8-13。`parent` と `referenceNode` は step 4-7 で決めたもの。
+DOM Standard §5.6 insert の step 8-13。`parent` と `referenceNode` は step 3-7 で決めたもの。
 
 step 10-11 の newOffset は「入った node の最後の次」に等しい。
 model はその形で書く（`siblingBP`）。そうすると端点の妥当性が

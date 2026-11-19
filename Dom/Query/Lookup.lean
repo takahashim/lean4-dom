@@ -105,7 +105,7 @@ def getElementsByClassName (t : Tree) (node : NodeId) (classNames : String) :
 /-! ## `getElementsByTagName()` / `getElementsByTagNameNS()` -/
 
 /--
-DOM §4.2.6 "list of elements with qualified name"。`*` なら descendant の element すべて。
+DOM §4.4 "list of elements with qualified name"。`*` なら descendant の element すべて。
 root の node document が HTML document なら、HTML namespace の element は qualified name を
 ASCII lowercase にした `qualifiedName` と、それ以外の element は `qualifiedName` そのものと比べる。
 -/
@@ -131,7 +131,7 @@ def getElementsByTagName (t : Tree) (node : NodeId) (qualifiedName : String) :
           else d.qualifiedName == qualifiedName)
 
 /--
-DOM §4.2.6 "list of elements with namespace and local name"。空文字列の namespace は null。
+DOM §4.4 "list of elements with namespace and local name"。空文字列の namespace は null。
 `*` は namespace でも local name でも「何でも当たる」。
 -/
 def getElementsByTagNameNS (t : Tree) (node : NodeId) («namespace» : Option String)
