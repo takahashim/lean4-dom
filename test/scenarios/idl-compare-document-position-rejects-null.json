@@ -10,7 +10,7 @@
         "alg": "js-to-interface"
       }
     ],
-    "note": "WebIDL の interface 型への変換。 引数の IDL の型が Node（null 不可）か Attr なので、null や node でない値は WebIDL の interface 型への変換で TypeError になる。method steps に入らないので状態は変わらない。"
+    "note": "WebIDL の interface 型への変換。引数の IDL の型が Node（null 不可）か Attr なので、null や node でない値は WebIDL の interface 型への変換で TypeError になる。method steps に入らないので状態は変わらない。"
   },
   "nodes": [
     {

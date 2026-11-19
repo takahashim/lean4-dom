@@ -19,7 +19,8 @@
 
 上記 commit は `dom.bs` に対する 2026-11-15 時点の最新 commit である。
 Phase 3 の algorithm は 2026-08-25 の版（`a2331a4`）の本文から step を写し、2026-10 に `3c53f93`、2026-11-09 に `6cc2415`、
-2026-11-19 にこの版へ上げた（`docs/status.md` の「DOM の固定版を上げた」と「DOM と Web IDL の固定版を上げた」）。
+2026-11-19 にこの版へ上げた（`docs/status.md` の「DOM の固定版を上げた（2026-10-27）」、「DOM と Web IDL の固定版を上げた（2026-11-09）」、
+「DOM と Web IDL の固定版を上げた（2026-11-19）」）。
 
 各定義の doc comment には、対応する節番号と algorithm 名、および仕様の step 番号を記す。
 仕様が改訂されたときは、この表の commit を更新したうえで step 番号の差分を追う。
@@ -70,7 +71,7 @@ ToString、Number::toString、ToPrimitive、OrdinaryToPrimitive）と `Array.pro
 Lean のコメントと文書にある step 番号と節番号は、表とは別に人が書いたものであり、機械では検査しない
 （固定 scenario の `_basis.refs` だけは上のとおり検査する）。
 2026-11 に、`Dom/`・`Trace/`・`docs/`・`test/` の DOM・Web IDL・ECMA-262 の参照（step 番号は約 1,700 行）を
-固定版の snapshot と突き合わせて直した（`docs/status.md` の「DOM と Web IDL の固定版を上げた」）。
+固定版の snapshot と突き合わせて直した（`docs/status.md` の「DOM と Web IDL の固定版を上げた（2026-11-09）」）。
 それまでは、改訂より前の番号のまま残ったものが二百ほどあった（例：`remove` の「step 20」は固定版の step 15）。
 2026-11-19 に、scenario の `_basis` と `Audit.lean` を加えた約 2,800 件をもう一度突き合わせ、百三十ほどを直した
 （`docs/status.md` の「step 番号と節番号の二度目の見直し」）。
@@ -88,4 +89,6 @@ Lean のコメントと文書にある step 番号と節番号は、表とは別
    分類されていない algorithm）を表で直し、`ruby spec-trace/check.rb --write` で生成物を作り直す。
 5. `ruby spec-trace/basis.rb` で、固定 scenario の `_basis.refs` が新しい snapshot と合うかを見る。改番で落ちたものは
    `ruby spec-trace/basis.rb --fix` で付け直し、付け直せなかったもの（本文が変わった step）は読み直して直す。
+   続けて `ruby spec-trace/basis.rb --since HEAD`（snapshot を commit する前。commit したあとなら前の版の commit）で、
+   根拠の step の本文が変わった scenario を挙げ、期待結果がまだ正しいかを読み直す。冒頭の検査は本文の後半の変化を見ない。
 6. 固定 scenario と生成 scenario の差分テストを通す。

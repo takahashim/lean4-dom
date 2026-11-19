@@ -7,7 +7,7 @@
         "alg": "dfn-overload-resolution-algorithm"
       }
     ],
-    "note": "overload resolution algorithm（引数の個数）。 必須の引数が足りない呼び出しは、overload resolution で TypeError になる。method steps に入らないので状態は変わらない。"
+    "note": "overload resolution algorithm（引数の個数）。必須の引数が足りない呼び出しは、overload resolution で TypeError になる。method steps に入らないので状態は変わらない。"
   },
   "nodes": [
     {

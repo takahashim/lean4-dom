@@ -8,7 +8,7 @@
         "text": "If child's parent is not parent, then throw"
       }
     ],
-    "note": "step 1。child の parent が parent でなければ NotFoundError。 `remove` 自身は parent が無いときだけ落ちるので、この検査が無いと別の親から外せてしまう。"
+    "note": "step 1。child の parent が parent でなければ NotFoundError。`remove` 自身は parent が無いときだけ落ちるので、この検査が無いと別の親から外せてしまう。"
   },
   "nodes": [
     {

@@ -10,7 +10,7 @@
         "alg": "js-to-dictionary"
       }
     ],
-    "note": "WebIDL の dictionary への変換（AddEventListenerOptions の signal）。 signal は AbortSignal 型の member なので、undefined 以外の値で AbortSignal でないもの（null や普通の object）は TypeError になる。method steps に入らないので listener は足されない。"
+    "note": "WebIDL の dictionary への変換（AddEventListenerOptions の signal）。signal は AbortSignal 型の member なので、undefined 以外の値で AbortSignal でないもの（null や普通の object）は TypeError になる。method steps に入らないので listener は足されない。"
   },
   "nodes": [
     {

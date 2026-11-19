@@ -13,7 +13,7 @@
         "text": "If subtree is true, then for each child"
       }
     ],
-    "note": "clone a single node の step 3「node が document なら、node と同じ interface を実装する document を作る」 / clone a node の step 5「subtree なら children を tree order で clone する」。 Document の copy に children が自然に生えることは無い。copy が持つのは、原本の children を clone したものだけである。children が無い document を deep に clone したら、copy も children を持たない。"
+    "note": "clone a single node の step 3「node が document なら、node と同じ interface を実装する document を作る」 / clone a node の step 5「subtree なら children を tree order で clone する」。Document の copy に children が自然に生えることは無い。copy が持つのは、原本の children を clone したものだけである。children が無い document を deep に clone したら、copy も children を持たない。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

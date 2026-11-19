@@ -17,7 +17,7 @@
         "alg": "dom-document-createelementns"
       }
     ],
-    "note": "createElement 1 valid element local name / 2 HTML document なら ASCII lowercase / 4 HTML document なら HTML namespace。createElementNS は validate and extract を通すだけで lowercase しない。 同じ \"P\" でも createElement は \"p\" になり、createElementNS は \"P\" のままである。step 2 の lowercase が createElement 側にしか無いことがこれで分かる。localName が空なら step 1 で InvalidCharacterError。XML document の側（step 2 と 4 が効かない場合）は、この harness が HTML document しか作れないので比べていない。"
+    "note": "createElement 1 valid element local name / 2 HTML document なら ASCII lowercase / 4 HTML document なら HTML namespace。createElementNS は validate and extract を通すだけで lowercase しない。同じ \"P\" でも createElement は \"p\" になり、createElementNS は \"P\" のままである。step 2 の lowercase が createElement 側にしか無いことがこれで分かる。localName が空なら step 1 で InvalidCharacterError。XML document の側（step 2 と 4 が効かない場合）は、この harness が HTML document しか作れないので比べていない。"
   },
   "nodes": [
     {

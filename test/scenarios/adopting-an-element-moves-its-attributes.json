@@ -12,7 +12,7 @@
         "alg": "concept-element-attributes-remove"
       }
     ],
-    "note": "element を別の document へ adopt すると、attribute list の各 attribute の node document も変わる。setAttributeNode は node document を element のものにし、removeAttributeNode は変えない。 attribute 3 は document 4 で作り、div（document 0）に付けると node document が 0 になる。外しても 0 のまま。付け直して div ごと document 4 へ移すと 4 になる。"
+    "note": "element を別の document へ adopt すると、attribute list の各 attribute の node document も変わる。setAttributeNode は node document を element のものにし、removeAttributeNode は変えない。attribute 3 は document 4 で作り、div（document 0）に付けると node document が 0 になる。外しても 0 のまま。付け直して div ごと document 4 へ移すと 4 になる。"
   },
   "nodes": [
     {

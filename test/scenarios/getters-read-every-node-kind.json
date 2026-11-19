@@ -93,7 +93,7 @@
         "alg": "dom-processinginstruction-target"
       }
     ],
-    "note": "各 getter。 値を読むだけの getter を、すべての node 種（quirks の HTML document、doctype、HTML と SVG の element、Text、Comment、PI、DocumentFragment、XHTML の XML document、親の無い element、Attr）に対して読む。受け手の interface に無い getter は undefined になる。"
+    "note": "各 getter。値を読むだけの getter を、すべての node 種（quirks の HTML document、doctype、HTML と SVG の element、Text、Comment、PI、DocumentFragment、XHTML の XML document、親の無い element、Attr）に対して読む。受け手の interface に無い getter は undefined になる。"
   },
   "nodes": [
     {

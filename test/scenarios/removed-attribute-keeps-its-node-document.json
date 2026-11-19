@@ -9,7 +9,7 @@
         "alg": "dom-element-removeattributenode"
       }
     ],
-    "note": "remove an attribute は attribute の element を null にするだけで、node document は変えない。 parser や setAttribute で付いた attribute を外しても、node document は element の document のままである。"
+    "note": "remove an attribute は attribute の element を null にするだけで、node document は変えない。parser や setAttribute で付いた attribute を外しても、node document は element の document のままである。"
   },
   "nodes": [
     {

@@ -14,7 +14,7 @@
         "alg": "handle-attribute-changes"
       }
     ],
-    "note": "queue a mutation record step 3.2 の三つ目の bullet: type が \"attributes\" で options[\"attributeFilter\"] が存在し、かつ「name を含まない**または** namespace が非 null」なら、その registration には積まない。 attributeFilter は local name だけを見る list なので、仕様は namespace 付きの attribute をまとめて外す。filter を「名前が一致するか」だけで実装すると、namespace が違う同名の attribute まで拾ってしまう（findings 36）。三つの操作はどれも local name が \"data-x\" で、namespace が null の 操作 1 だけが record を積む。操作 0 の qualified name を \"p:data-x\" に してあるのは、操作 1 の setAttribute が qualified name で引くからである（\"data-x\" にすると 操作 0 が作った namespace 付きの attribute を書き換えてしまい、操作 1 も積まれなくなる）。 notify を置いていないのは、JS の runner が配送順を復元できず比較の対象外になるためである（record queue はそのまま比べられる）。"
+    "note": "queue a mutation record step 3.2 の三つ目の bullet: type が \"attributes\" で options[\"attributeFilter\"] が存在し、かつ「name を含まない**または** namespace が非 null」なら、その registration には積まない。attributeFilter は local name だけを見る list なので、仕様は namespace 付きの attribute をまとめて外す。filter を「名前が一致するか」だけで実装すると、namespace が違う同名の attribute まで拾ってしまう（findings 36）。三つの操作はどれも local name が \"data-x\" で、namespace が null の 操作 1 だけが record を積む。操作 0 の qualified name を \"p:data-x\" に してあるのは、操作 1 の setAttribute が qualified name で引くからである（\"data-x\" にすると 操作 0 が作った namespace 付きの attribute を書き換えてしまい、操作 1 も積まれなくなる）。notify を置いていないのは、JS の runner が配送順を復元できず比較の対象外になるためである（record queue はそのまま比べられる）。"
   },
   "nodes": [
     {

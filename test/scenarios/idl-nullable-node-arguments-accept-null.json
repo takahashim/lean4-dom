@@ -19,7 +19,7 @@
         "alg": "js-to-nullable"
       }
     ],
-    "note": "contains 1 / isEqualNode 1 / WebIDL の nullable 型への変換。 contains と isEqualNode の引数は Node? で、null なら false を返す。insertBefore と moveBefore の child も Node? で、null なら末尾に入れる。"
+    "note": "contains 1 / isEqualNode 1 / WebIDL の nullable 型への変換。contains と isEqualNode の引数は Node? で、null なら false を返す。insertBefore と moveBefore の child も Node? で、null なら末尾に入れる。"
   },
   "nodes": [
     {

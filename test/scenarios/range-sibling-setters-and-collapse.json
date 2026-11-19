@@ -15,7 +15,7 @@
         "alg": "dom-range-collapse"
       }
     ],
-    "note": "setStartBefore 1-3 / collapse（番号の無い一文）。 setStartBefore / setEndAfter は兄弟の位置を使う。collapse は片方の端へ潰す。"
+    "note": "setStartBefore 1-3 / collapse（番号の無い一文）。setStartBefore / setEndAfter は兄弟の位置を使う。collapse は片方の端へ潰す。"
   },
   "nodes": [
     {

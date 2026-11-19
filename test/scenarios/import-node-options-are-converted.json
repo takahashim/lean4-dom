@@ -26,7 +26,7 @@
         "alg": "js-to-dictionary"
       }
     ],
-    "note": "importNode 2, 4, 5.1 / WebIDL の union と dictionary への変換。 importNode の options は (boolean or ImportNodeOptions) である。boolean、数、文字列は boolean になり、その値が subtree になる。null と object は ImportNodeOptions になり、subtree は selfOnly の否定になる。CustomElementRegistry でない customElementRegistry は TypeError になる。"
+    "note": "importNode 2, 4, 5.1 / WebIDL の union と dictionary への変換。importNode の options は (boolean or ImportNodeOptions) である。boolean、数、文字列は boolean になり、その値が subtree になる。null と object は ImportNodeOptions になり、subtree は selfOnly の否定になる。CustomElementRegistry でない customElementRegistry は TypeError になる。"
   },
   "nodes": [
     {

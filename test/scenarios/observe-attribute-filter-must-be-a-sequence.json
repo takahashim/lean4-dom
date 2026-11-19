@@ -10,7 +10,7 @@
         "alg": "js-to-sequence"
       }
     ],
-    "note": "WebIDL の sequence への変換（attributeFilter）。 attributeFilter は sequence<DOMString> なので、object でない値（null や文字列）と、@@iterator を持たない object は TypeError になる。method steps に入らないので registration は足されない。"
+    "note": "WebIDL の sequence への変換（attributeFilter）。attributeFilter は sequence<DOMString> なので、object でない値（null や文字列）と、@@iterator を持たない object は TypeError になる。method steps に入らないので registration は足されない。"
   },
   "nodes": [
     {

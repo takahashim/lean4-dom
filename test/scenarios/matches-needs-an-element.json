@@ -9,7 +9,7 @@
         "alg": "dom-element-closest"
       }
     ],
-    "note": "どちらも Element の method である。 Document に対して呼べば WebIDL の TypeError になる。読めない selector より先に効く。"
+    "note": "どちらも Element の method である。Document に対して呼べば WebIDL の TypeError になる。読めない selector より先に効く。"
   },
   "nodes": [
     {

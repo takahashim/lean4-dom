@@ -14,7 +14,7 @@
         "text": "Adopt node into parent's node document"
       }
     ],
-    "note": "step 2-3。child の次の兄弟が node なら、reference child を node の次の兄弟に取り直す。 step 6 の adopt が node を親から外すので、取り直しが無いと reference child が木から消えて末尾に付く。"
+    "note": "step 2-3。child の次の兄弟が node なら、reference child を node の次の兄弟に取り直す。step 6 の adopt が node を親から外すので、取り直しが無いと reference child が木から消えて末尾に付く。"
   },
   "nodes": [
     {

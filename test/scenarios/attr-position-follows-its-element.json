@@ -18,7 +18,7 @@
         "alg": "locate-a-namespace"
       }
     ],
-    "note": "compareDocumentPosition は step 4-5 で Attr を element に置き換える。同じ element の attribute どうしは attribute list の順（IMPLEMENTATION_SPECIFIC 付き）、attribute は element に含まれ、element の子より前に来る。contains は inclusive descendant だけ、Attr の equals は namespace・local name・value、locate a namespace は element で探す。 attribute 1 と 2 は div（node 2）の a と b。"
+    "note": "compareDocumentPosition は step 4-5 で Attr を element に置き換える。同じ element の attribute どうしは attribute list の順（IMPLEMENTATION_SPECIFIC 付き）、attribute は element に含まれ、element の子より前に来る。contains は inclusive descendant だけ、Attr の equals は namespace・local name・value、locate a namespace は element で探す。attribute 1 と 2 は div（node 2）の a と b。"
   },
   "nodes": [
     {

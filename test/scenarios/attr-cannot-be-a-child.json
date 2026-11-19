@@ -8,7 +8,7 @@
         "text": "If node is not a DocumentFragment, DocumentType, Element,"
       }
     ],
-    "note": "step 4：node が DocumentFragment・DocumentType・Element・CharacterData でなければ HierarchyRequestError。 Attr を子として入れようとする。"
+    "note": "step 4：node が DocumentFragment・DocumentType・Element・CharacterData でなければ HierarchyRequestError。Attr を子として入れようとする。"
   },
   "nodes": [
     {

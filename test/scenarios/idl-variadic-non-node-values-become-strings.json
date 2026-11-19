@@ -13,7 +13,7 @@
         "alg": "dom-childnode-before"
       }
     ],
-    "note": "WebIDL の union への変換（(Node or DOMString)）。 (Node or DOMString) の union は、platform object でない値を DOMString に変換する。null は \"null\"、true は \"true\"、普通の object は \"[object Object]\" の Text node になる。"
+    "note": "WebIDL の union への変換（(Node or DOMString)）。(Node or DOMString) の union は、platform object でない値を DOMString に変換する。null は \"null\"、true は \"true\"、普通の object は \"[object Object]\" の Text node になる。"
   },
   "nodes": [
     {

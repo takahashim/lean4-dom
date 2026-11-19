@@ -6,7 +6,7 @@
         "alg": "dom-node-normalize"
       }
     ],
-    "note": "normalize の前文（Text には descendant が無いので step は走らない）。 normalize() は Node の method なので Text でも呼べる。descendant が無いので何も起きない。"
+    "note": "normalize の前文（Text には descendant が無いので step は走らない）。normalize() は Node の method なので Text でも呼べる。descendant が無いので何も起きない。"
   },
   "nodes": [
     {

@@ -12,7 +12,7 @@
         "alg": "dom-range-stringifier"
       }
     ],
-    "note": "外す node の inclusive descendant を指していた端点は、(parent, index) へ移る。 始点と終点が同じ位置に潰れても range は生きている。何も選んでいない（toString が空）が、位置は指しているので、そこへ insertNode すると外した node が在った場所に入る。"
+    "note": "外す node の inclusive descendant を指していた端点は、(parent, index) へ移る。始点と終点が同じ位置に潰れても range は生きている。何も選んでいない（toString が空）が、位置は指しているので、そこへ insertNode すると外した node が在った場所に入る。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

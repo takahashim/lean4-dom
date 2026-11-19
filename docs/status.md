@@ -7295,6 +7295,12 @@ step の本文の冒頭の組で書き（`test/README.md` の「`_basis`」）�
   `docs/spec-version.md` の一か所で決まるので、版を上げるたびに URL を書き換えることはなくなった。
 * `_note` と `_basis.note` の「step N」は、どれかの ref の範囲に入らなければならない。注記だけが古い番号のまま
   残ることを防ぐ。scenario の操作の番号は「操作 N」と書く。
+* 冒頭の検査は、step の本文の後半が変わっても通る。本文の変化は週次の `drift.rb` が hash で見つけるが
+  （ref 621 件のうち step を指すものはどれも対応表の algorithm の step）、どの scenario がその step を根拠にしたかは
+  出ない。そこで `ruby spec-trace/basis.rb --since <古い版の commit>` を足し、古い版と新しい版の snapshot を本文の
+  hash で比べて、根拠の step（範囲の中と下の step を含む）が変わった scenario を挙げるようにした。
+  `ed7dbc5`（DOM `6cc2415`）と比べると、今回の版上げで変わった step（clone part の step 4.1・12.1・15.1、insert の
+  step 7.7.1-7.7.2、clone a single node の step 5 とその下）を引く 22 本を挙げた。
 
 308 本の変換は、今の `algorithm`・`steps` の名前を snapshot の key にする作業で、番号は監査で確かめたものをそのまま
 写した。`steps` にあった説明の文（77 本）は `note` に移した。変換の途中で、`replacewith-bypasses-validity` の注記の

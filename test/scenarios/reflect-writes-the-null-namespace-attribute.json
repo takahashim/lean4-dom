@@ -9,7 +9,7 @@
         "alg": "concept-reflect"
       }
     ],
-    "note": "Element.id / className / slot の setter。 setter は namespace も prefix も null の attribute に書く。namespace 付きの同名 attribute は書き換えず、null namespace のものを新しく append する。"
+    "note": "Element.id / className / slot の setter。setter は namespace も prefix も null の attribute に書く。namespace 付きの同名 attribute は書き換えず、null namespace のものを新しく append する。"
   },
   "nodes": [
     {

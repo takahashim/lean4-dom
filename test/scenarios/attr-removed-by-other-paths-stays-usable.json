@@ -15,7 +15,7 @@
         "alg": "dom-element-removeattributens"
       }
     ],
-    "note": "remove an attribute は attribute list から取り除き、attribute の element を null にするだけで、Attr object は残る。先に参照を取っていた Attr は、名前で消した後も値を書けて、同じ element に setAttributeNode で付け直せる。 toggleAttribute と removeAttributeNS も同じ algorithm を通る。消した Attr の id は、後で作る Attr に使い回されない。"
+    "note": "remove an attribute は attribute list から取り除き、attribute の element を null にするだけで、Attr object は残る。先に参照を取っていた Attr は、名前で消した後も値を書けて、同じ element に setAttributeNode で付け直せる。toggleAttribute と removeAttributeNS も同じ algorithm を通る。消した Attr の id は、後で作る Attr に使い回されない。"
   },
   "nodes": [
     {

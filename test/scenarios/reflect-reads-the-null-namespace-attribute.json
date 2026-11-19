@@ -9,7 +9,7 @@
         "alg": "concept-reflect"
       }
     ],
-    "note": "Element.id / className / slot の getter。 reflect は namespace が null の attribute を読む。namespace 付きで prefix の無い同名の attribute は qualified name では一致するので getAttribute は拾うが、reflect は拾わない。null namespace のものが無ければ空文字列。"
+    "note": "Element.id / className / slot の getter。reflect は namespace が null の attribute を読む。namespace 付きで prefix の無い同名の attribute は qualified name では一致するので getAttribute は拾うが、reflect は拾わない。null namespace のものが無ければ空文字列。"
   },
   "nodes": [
     {

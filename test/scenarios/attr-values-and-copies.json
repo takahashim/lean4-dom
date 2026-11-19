@@ -12,7 +12,7 @@
         "alg": "dom-document-importnode"
       }
     ],
-    "note": "Attr の value・nodeValue・textContent の setter は set an existing attribute value を呼ぶ（element があれば change an attribute）。clone は namespace・prefix・local name・value を写し、node document は document、element は null。 attribute 3 は createAttribute で作る detach された Attr。4 は 2 の clone、5 は 1 を document 4 に import したもの。"
+    "note": "Attr の value・nodeValue・textContent の setter は set an existing attribute value を呼ぶ（element があれば change an attribute）。clone は namespace・prefix・local name・value を写し、node document は document、element は null。attribute 3 は createAttribute で作る detach された Attr。4 は 2 の clone、5 は 1 を document 4 に import したもの。"
   },
   "nodes": [
     {

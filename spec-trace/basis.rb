@@ -5,6 +5,7 @@
 #   ruby spec-trace/basis.rb                  # test/scenarios/*.json を検査する
 #   ruby spec-trace/basis.rb --fill FILE ...  # refs の text・last を snapshot から埋める（書くときに使う）
 #   ruby spec-trace/basis.rb --fix            # 版を上げて番号がずれた ref を、本文の一致で付け直す
+#   ruby spec-trace/basis.rb --since REV      # REV の時点から、根拠の step の本文が変わった scenario を挙げる
 #
 # ref の形：
 #
@@ -23,7 +24,8 @@
 #   * `text`（`last`）が、その番号の step の本文の冒頭と合わない（版を上げて改番されたときもここで落ちる）
 #   * 固定した仕様（DOM・Web IDL・ECMA-262）を `_basis.spec` の URL で指している（`refs` に書く。版は
 #     `docs/spec-version.md` の一か所で決まる）
-#   * `_note` と `_basis.note` に書いた step 番号が、どの ref の範囲にも入らない
+#   * 一つの step を指す ref に `last` がある
+#   * `_note` と `_basis.note` に書いた step 番号が、どの ref の範囲にも入らない（範囲は両端が同じ ref に入る）
 
 require "json"
 require_relative "specs"
@@ -32,7 +34,7 @@ ROOT = File.expand_path("..", __dir__)
 
 module Trace
   class Basis
-    PINNED_URL = %r{github\.com/(whatwg/dom|whatwg/webidl|tc39/ecma262)/|dom\.spec\.whatwg\.org|webidl\.spec\.whatwg\.org|tc39\.es/ecma262}
+    PINNED_URL = %r{github\.com/(whatwg/dom|whatwg/webidl|tc39/ecma262)/|dom\.spec\.whatwg\.org|webidl\.spec\.whatwg\.org|tc39\.es/ecma262|262\.ecma-international\.org}
     # 本文の中で step 番号を書いた所（"step 3.2"、"step 4-11"、"steps 1-5"、"step 2 と 4"、"step 4、9-10"）。
     # 直前が日本語でも拾う（`\b` は日本語の文字も語の文字に数えるので使わない）。
     STEP_NUM = /\d+(?:\.\d+)*/
@@ -79,6 +81,8 @@ module Trace
     # "4-17" を両端に分ける。両端は同じ深さで、同じ親を持つ。
     def ends(sel)
       lo, hi = sel.split("-", 2)
+      return nil if lo.to_s.empty?
+
       hi ||= lo
       pl = lo.split(".")
       ph = hi.split(".")
@@ -126,6 +130,7 @@ module Trace
         end
         lo, hi = pair
         range = lo == hi ? [lo] : [lo, hi]
+        error("#{at}: step #{lo} は範囲でないのに last がある") if lo == hi && ref["last"]
         if fill
           [["text", lo], ["last", hi]].each do |key, n|
             next if ref[key] || (key == "last" && lo == hi)
@@ -178,13 +183,14 @@ module Trace
     end
 
     # 注記の step 番号は、refs のどれかの範囲に入らなければならない（refs と一緒に直す）。
+    # 注記の範囲（"step 4-11"）は、両端が同じ ref の範囲に入らなければならない。
     def check_notes(where, data, basis, covered)
       [data["_note"], basis["note"]].compact.each do |note|
         note.scan(NOTE_STEP).each do |(list)|
-          list.scan(STEP_NUM).each do |n|
-            next if covered.any? { |r| within?(n, r) }
+          list.scan(/(#{STEP_NUM})(?:\s*[-–〜～]\s*(#{STEP_NUM}))?/).each do |lo, hi|
+            next if covered.any? { |r| within?(lo, r) && (hi.nil? || within?(hi, r)) }
 
-            error("#{where}: 注記の step #{n} が refs のどの範囲にも無い")
+            error("#{where}: 注記の step #{hi ? "#{lo}-#{hi}" : lo} が refs のどの範囲にも無い")
           end
         end
       end
@@ -216,22 +222,96 @@ module Trace
       body = JSON.pretty_generate(basis).gsub("\n", "\n  ")
       File.write(path, src[0...start] + "  \"_basis\": #{body}" + src[(stop + 3)..])
     end
+
+    # 版を上げたあと、根拠の step の本文が変わった scenario を挙げる（期待結果を読み直す一覧）。
+    # 古い版は git の rev の時点の snapshot と scenario、新しい版は working tree のもの。
+    # step は本文の hash で対応させるので、改番だけの step は挙げない。範囲の ref は、範囲の中の step と
+    # その下の step をすべて見る。`step` の無い ref は algorithm 全体の hash を比べる。
+    def changes_since(rev, files)
+      old_algs = Hash.new do |h, sp|
+        src = git_show(rev, Trace.spec(sp)[:snapshot])
+        h[sp] = src ? JSON.parse(src)["algorithms"].to_h { |a| [a["key"], a] } : {}
+      end
+      files.filter_map do |path|
+        rel = path.delete_prefix("#{ROOT}/")
+        new_refs = JSON.parse(File.read(path)).dig("_basis", "refs") || []
+        old_src = git_show(rev, rel)
+        old_refs = old_src ? (JSON.parse(old_src).dig("_basis", "refs") || []) : []
+        lines = []
+        # 新しい版で引いている step のうち、古い版に同じ本文の step が無いもの（変わったか加わった）。
+        new_refs.each { |r| lines.concat(diff_ref(r, @algs, old_algs, "新しい版")) }
+        # 古い版で引いていた step のうち、新しい版に同じ本文の step が無いもの（変わったか無くなった）。
+        old_refs.each { |r| lines.concat(diff_ref(r, old_algs, @algs, "古い版")) }
+        [File.basename(path), lines.uniq] unless lines.empty?
+      end
+    end
+
+    # ref が `from` の版で指す step のうち、`to` の版の同じ algorithm に同じ本文の step が無いもの。
+    def diff_ref(ref, from, to, label)
+      sp = ref["spec"] || "dom"
+      return [] unless Trace::SPECS.key?(sp)
+
+      a = from[sp][ref["alg"]]
+      b = to[sp][ref["alg"]]
+      return [] unless a
+      return ["#{sp} #{ref['alg']}：#{label}にしか無い algorithm"] unless b
+
+      unless ref["step"].is_a?(String) && (pair = ends(ref["step"]))
+        return a["hash"] == b["hash"] ? [] : ["#{sp} #{ref['alg']}：algorithm の本文が変わった"]
+      end
+
+      have = b["steps"].map { |s| s["hash"] }
+      gone = a["steps"].select { |s| within?(s["n"], pair.uniq) && !have.include?(s["hash"]) }
+      gone.map { |s| "#{sp} #{ref['alg']} step #{s['n']}（#{label}の番号）：「#{Basis.lead(s['text'])}」" }
+    end
+
+    def git_show(rev, rel)
+      out = IO.popen(["git", "-C", ROOT, "show", "#{rev}:#{rel}"], err: File::NULL, &:read)
+      $?.success? ? out : nil
+    end
   end
 end
 
 if $PROGRAM_NAME == __FILE__
   fill = ARGV.delete("--fill")
   fix = ARGV.delete("--fix")
-  abort "--fill と --fix は一緒に使えない" if fill && fix
+  since = nil
+  if (i = ARGV.index("--since"))
+    since = ARGV.delete_at(i + 1) or abort "--since には git の rev を渡す"
+    ARGV.delete_at(i)
+  end
+  abort "--fill・--fix・--since は一緒に使えない" if [fill, fix, since].compact.size > 1
   if (bad = ARGV.find { |a| a.start_with?("--") })
     abort "未知の option #{bad}"
   end
   mode = fill ? :fill : (fix ? :fix : :check)
-  files = ARGV.empty? ? Dir[File.join(ROOT, "test/scenarios/*.json")].sort : ARGV
-  files.reject! { |f| File.basename(f).start_with?("failing-") }
+  files =
+    if ARGV.empty?
+      Dir[File.join(ROOT, "test/scenarios/*.json")].sort.reject { |f| File.basename(f).start_with?("failing-") || f.end_with?(".lean.json", ".impl.json", ".dommy.json") }
+    else
+      ARGV
+    end
+  if (missing = files.find { |f| !File.file?(f) })
+    abort "file が無い：#{missing}"
+  end
   b = Trace::Basis.new
   files.each { |f| b.check_file(f, fill: mode == :fill, fix: mode == :fix) }
   puts "直した ref：#{b.fixed}" if mode == :fix
+  if since
+    abort "git の rev #{since} が無い" unless system("git", "-C", ROOT, "rev-parse", "--verify", "--quiet", "#{since}^{commit}", out: File::NULL)
+
+    changed = b.changes_since(since, files.map { |f| File.expand_path(f) })
+    if changed.empty?
+      puts "#{since} から、根拠の step の本文が変わった scenario は無い"
+    else
+      puts "#{since} から根拠の step の本文が変わった scenario（期待結果を読み直す）："
+      changed.each do |name, lines|
+        puts "  #{name}"
+        lines.each { |l| puts "    #{l}" }
+      end
+      puts "#{changed.size} 本"
+    end
+  end
   if b.errors.empty?
     puts "scenario #{files.size} 本の _basis は固定版の snapshot と合う"
   else

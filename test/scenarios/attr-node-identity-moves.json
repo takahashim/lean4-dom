@@ -32,7 +32,7 @@
         "alg": "dom-namednodemap-removenameditem"
       }
     ],
-    "note": "set an attribute 2 InUseAttributeError / 3 同じ鍵の attribute を引く / 4 同じものなら何もしない / 6 replace / 7 append。removeAttributeNode 1 は attribute list に無ければ NotFoundError。 getAttributeNode は同じ Attr を返す。createAttribute が作った Attr はどの element にも付いておらず、setAttributeNode で付けると copy ではなく同じものが動く。removeAttributeNode で外したものを別の element に付け直しても同じ Attr のままである。別の element に付いている Attr を渡すと InUseAttributeError。"
+    "note": "set an attribute 2 InUseAttributeError / 3 同じ鍵の attribute を引く / 4 同じものなら何もしない / 6 replace / 7 append。removeAttributeNode 1 は attribute list に無ければ NotFoundError。getAttributeNode は同じ Attr を返す。createAttribute が作った Attr はどの element にも付いておらず、setAttributeNode で付けると copy ではなく同じものが動く。removeAttributeNode で外したものを別の element に付け直しても同じ Attr のままである。別の element に付いている Attr を渡すと InUseAttributeError。"
   },
   "nodes": [
     {

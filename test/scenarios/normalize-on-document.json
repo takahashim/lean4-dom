@@ -9,7 +9,7 @@
         "last": "Remove node's contiguous exclusive Text nodes (excluding itself),"
       }
     ],
-    "note": "normalize の前文（descendant exclusive Text node ごとに step 1-7）。 normalize() は Node の method なので Document でも呼べる。Dommy は Element と DocumentFragment にしか置いていないので、この scenario は capability の印として残す。"
+    "note": "normalize の前文（descendant exclusive Text node ごとに step 1-7）。normalize() は Node の method なので Document でも呼べる。Dommy は Element と DocumentFragment にしか置いていないので、この scenario は capability の印として残す。"
   },
   "nodes": [
     {

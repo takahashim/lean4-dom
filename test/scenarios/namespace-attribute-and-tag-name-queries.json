@@ -30,7 +30,7 @@
         "alg": "concept-element-attributes-get-by-namespace"
       }
     ],
-    "note": "各 method。 namespace で attribute を引く method（空文字列の namespace は null、local name で引くので prefix 付きの名前には当たらない）、hasAttributes、tag name で element を引く method（HTML document では HTML namespace の element だけ ASCII lowercase で比べ、他の namespace の element は qualified name をそのまま比べる。XML document ではそのまま。namespace と local name の * は何にでも当たる。受け手自身は含まない）、removeNamedItemNS（無ければ NotFoundError、外した Attr を返す）。無い attribute の removeNamedItemNS は NotFoundError で、scenario はそこで終わる。"
+    "note": "各 method。namespace で attribute を引く method（空文字列の namespace は null、local name で引くので prefix 付きの名前には当たらない）、hasAttributes、tag name で element を引く method（HTML document では HTML namespace の element だけ ASCII lowercase で比べ、他の namespace の element は qualified name をそのまま比べる。XML document ではそのまま。namespace と local name の * は何にでも当たる。受け手自身は含まない）、removeNamedItemNS（無ければ NotFoundError、外した Attr を返す）。無い attribute の removeNamedItemNS は NotFoundError で、scenario はそこで終わる。"
   },
   "nodes": [
     {

@@ -17,7 +17,7 @@
         "alg": "js-to-dictionary"
       }
     ],
-    "note": "WebIDL の (DOMString or ElementCreationOptions) への変換。 ElementCreationOptions の customElementRegistry は CustomElementRegistry? 型なので、null は受けるが、CustomElementRegistry でない object は WebIDL の dictionary の変換で TypeError になる。"
+    "note": "WebIDL の (DOMString or ElementCreationOptions) への変換。ElementCreationOptions の customElementRegistry は CustomElementRegistry? 型なので、null は受けるが、CustomElementRegistry でない object は WebIDL の dictionary の変換で TypeError になる。"
   },
   "nodes": [
     {

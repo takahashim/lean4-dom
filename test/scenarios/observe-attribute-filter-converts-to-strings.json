@@ -15,7 +15,7 @@
         "text": "If none of the following are true node"
       }
     ],
-    "note": "WebIDL の DOMString への変換（attributeFilter の要素）/ queue a mutation record 3.2。 attributeFilter の要素は ToString で DOMString になる。null は \"null\"、1.0 は \"1\" である。"
+    "note": "WebIDL の DOMString への変換（attributeFilter の要素）/ queue a mutation record 3.2。attributeFilter の要素は ToString で DOMString になる。null は \"null\"、1.0 は \"1\" である。"
   },
   "nodes": [
     {

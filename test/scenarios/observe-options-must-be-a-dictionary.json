@@ -10,7 +10,7 @@
         "alg": "js-to-dictionary"
       }
     ],
-    "note": "WebIDL の dictionary への変換。 MutationObserverInit への変換は、値が undefined、null、object のどれでもなければ TypeError になる。"
+    "note": "WebIDL の dictionary への変換。MutationObserverInit への変換は、値が undefined、null、object のどれでもなければ TypeError になる。"
   },
   "nodes": [
     {

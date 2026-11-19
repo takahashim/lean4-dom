@@ -8,7 +8,7 @@
         "text": "If parent is not a Document, DocumentFragment, or"
       }
     ],
-    "note": "step 1：parent が Document・DocumentFragment・Element でなければ HierarchyRequestError。 Attr に子を入れようとする。"
+    "note": "step 1：parent が Document・DocumentFragment・Element でなければ HierarchyRequestError。Attr に子を入れようとする。"
   },
   "nodes": [
     {

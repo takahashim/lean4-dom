@@ -267,10 +267,15 @@ Dommy を読み込んでいない process の仕事にしてある。
   `ruby spec-trace/basis.rb --fill <file>` を走らせると、snapshot から埋まる。
 * 版は書かない（`docs/spec-version.md` の一か所で決まる）。固定していない仕様（HTML、Selectors、CSS Syntax）は、
   その部分だけを `spec`（URL）・`algorithm`・`steps`（文字列）に書く。
-* `_note` と `note` に「step N」と書いた番号は、どれかの ref の範囲に入る。scenario の操作の番号は「操作 N」と書く。
+* `_note` と `note` に「step N」と書いた番号は、どれかの ref の範囲に入る（「step 4-11」は両端が同じ ref の範囲に入る）。
+  どの algorithm の step かまでは見ないので、Web IDL の step のつもりの番号が DOM の ref の範囲に入っても通る。
+  scenario の操作の番号は「操作 N」と書く。
 * CI の `ruby spec-trace/basis.rb` が、algorithm と step が snapshot にあり、`text`・`last` が本文の冒頭と合うことを
   検査する。版を上げて改番されるとここで落ちるので、`ruby spec-trace/basis.rb --fix` で本文の一致から番号を付け直す
   （付け直せなかったものは挙げる）。
+* 冒頭の検査は本文の後半の変化を見ない。版を上げたら `ruby spec-trace/basis.rb --since <古い版の commit>` で、
+  根拠の step（範囲の中と下の step を含む）の本文が変わった scenario を挙げ、期待結果を読み直す。
+  step は本文の hash で対応させるので、改番だけの step は挙がらない。
 
 `kind` は `document` / `documentType` / `documentFragment` / `element` /
 `text` / `cdataSection` / `processingInstruction` / `comment`。

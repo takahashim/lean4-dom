@@ -13,7 +13,7 @@
         "text": "If registered's options[\"subtree\"] is false, then continue"
       }
     ],
-    "note": "step 15。parent の inclusive ancestor に付いた registered observer のうち、subtree が true のものだけが transient registered observer を作る。 subtree でない registration は、外した部分木の中の変更を見続けない。この scenario は、外した後で中を変えても record が届かないことを見る。"
+    "note": "step 15。parent の inclusive ancestor に付いた registered observer のうち、subtree が true のものだけが transient registered observer を作る。subtree でない registration は、外した部分木の中の変更を見続けない。この scenario は、外した後で中を変えても record が届かないことを見る。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

@@ -19,7 +19,7 @@
         "alg": "js-to-DOMString"
       }
     ],
-    "note": "WebIDL の DOMString への変換。 DOMString の引数は ToString で変換する。null は \"null\"、数は Number::toString、真偽値は \"true\"/\"false\"、普通の object は \"[object Object]\"、配列は要素を \",\" でつないだもの（null の要素は空文字列）になる。"
+    "note": "WebIDL の DOMString への変換。DOMString の引数は ToString で変換する。null は \"null\"、数は Number::toString、真偽値は \"true\"/\"false\"、普通の object は \"[object Object]\"、配列は要素を \",\" でつないだもの（null の要素は空文字列）になる。"
   },
   "nodes": [
     {

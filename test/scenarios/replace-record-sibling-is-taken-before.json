@@ -18,7 +18,7 @@
         "text": "Queue a tree mutation record for parent with"
       }
     ],
-    "note": "step 4 で previous sibling を控え、step 10 の record に載せる。 控えるのは木を変える前の値である。step 7 で child を外した後に取り直すと、child は親を持たないので null になってしまう。"
+    "note": "step 4 で previous sibling を控え、step 10 の record に載せる。控えるのは木を変える前の値である。step 7 で child を外した後に取り直すと、child は親を持たないので null になってしまう。"
   },
   "nodes": [
     {

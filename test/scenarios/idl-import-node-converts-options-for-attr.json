@@ -14,7 +14,7 @@
         "alg": "js-to-dictionary"
       }
     ],
-    "note": "WebIDL の union と dictionary への変換。 importNode(node, options) の options は、node の種類によらず method steps の前に (boolean or ImportNodeOptions) へ変換される。CustomElementRegistry を表せないので、undefined でない customElementRegistry は TypeError になる。node が Attr でも同じで、先に options を持たない importNode は成功する。"
+    "note": "WebIDL の union と dictionary への変換。importNode(node, options) の options は、node の種類によらず method steps の前に (boolean or ImportNodeOptions) へ変換される。CustomElementRegistry を表せないので、undefined でない customElementRegistry は TypeError になる。node が Attr でも同じで、先に options を持たない importNode は成功する。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

@@ -25,7 +25,7 @@
         "last": "Set x to x modulo 2bitLength"
       }
     ],
-    "note": "WebIDL の ConvertToInt step 4、9-10。 JavaScript は数を倍精度に丸めてから ConvertToInt する。2^53 + 1 は 2^53 に丸まるので 2^32 の剰余は 0、4294967295.9999999999 は 2^32 に丸まるので 0 になる（十進のまま整数部を取れば 1 と 4294967295）。文字列の数も同じく丸める。"
+    "note": "WebIDL の ConvertToInt step 4、9-10。JavaScript は数を倍精度に丸めてから ConvertToInt する。2^53 + 1 は 2^53 に丸まるので 2^32 の剰余は 0、4294967295.9999999999 は 2^32 に丸まるので 0 になる（十進のまま整数部を取れば 1 と 4294967295）。文字列の数も同じく丸める。"
   },
   "nodes": [
     {

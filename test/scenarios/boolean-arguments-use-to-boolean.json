@@ -26,7 +26,7 @@
         "alg": "dom-eventtarget-dispatchevent"
       }
     ],
-    "note": "WebIDL の boolean への変換。 boolean の引数は ToBoolean で変換する。0、空文字列、null は false、0 でない数、空でない文字列、object は true である。null は引数の省略ではないので、既定値の無い force に null を渡すと false を渡したことになる。"
+    "note": "WebIDL の boolean への変換。boolean の引数は ToBoolean で変換する。0、空文字列、null は false、0 でない数、空でない文字列、object は true である。null は引数の省略ではないので、既定値の無い force に null を渡すと false を渡したことになる。"
   },
   "nodes": [
     {
