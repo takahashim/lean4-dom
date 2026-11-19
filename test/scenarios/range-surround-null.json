@@ -9,7 +9,7 @@
         "spec": "webidl",
         "alg": "js-to-interface",
         "step": "2",
-        "text": "JavaScript/Throw a TypeError"
+        "text": "Throw a TypeError"
       }
     ],
     "note": "newParent が null。WebIDL の変換で TypeError。"

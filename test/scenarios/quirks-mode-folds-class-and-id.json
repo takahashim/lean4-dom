@@ -17,7 +17,7 @@
       "Case-sensitivity of selectors"
     ],
     "steps": "quirks mode の document では class selector・id selector の比較が ASCII case-insensitive になる。no-quirks と limited-quirks では identical",
-    "note": "document 0 は quirks、5 は no-quirks、8 は limited-quirks。ASCII case-insensitive なので `ä` は `Ä` に、`k` は KELVIN SIGN に当たらない。"
+    "note": "getElementsByClassName の比較も quirks mode では ASCII case-insensitive になる。getElementById は mode に依らず identical。document 0 は quirks、5 は no-quirks、8 は limited-quirks。ASCII case-insensitive なので `ä` は `Ä` に、`k` は KELVIN SIGN に当たらない。"
   },
   "nodes": [
     {

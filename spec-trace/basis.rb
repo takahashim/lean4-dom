@@ -14,7 +14,8 @@
 #   {"alg": "concept-node-append"}            # 番号付きの step の無い algorithm、または algorithm 全体
 #
 # `spec` は dom（既定）・webidl・ecma262、`alg` は snapshot の key。`text` は step の本文の冒頭で、`last` は範囲の
-# 最後の step の本文の冒頭。大文字小文字と、英数字以外の文字（Bikeshed・ecmarkup の markup を含む）を無視して比べる。
+# 最後の step の本文の冒頭。Bikeshed の link（`[=for/term|text=]`、`{{Interface/member}}`）は描画された語に読み替え、
+# 大文字小文字と、英数字以外の文字（Bikeshed・ecmarkup の markup を含む）を無視して比べる。
 #
 # 失敗にするもの：
 #
@@ -32,8 +33,11 @@ ROOT = File.expand_path("..", __dir__)
 module Trace
   class Basis
     PINNED_URL = %r{github\.com/(whatwg/dom|whatwg/webidl|tc39/ecma262)/|dom\.spec\.whatwg\.org|webidl\.spec\.whatwg\.org|tc39\.es/ecma262}
-    # 本文の中で step 番号を書いた所（"step 3.2"、"step 4-11"、"steps 1-5"）。
-    NOTE_STEP = /\bsteps? (\d+(?:\.\d+)*)(?:\s*-\s*(\d+(?:\.\d+)*))?/
+    # 本文の中で step 番号を書いた所（"step 3.2"、"step 4-11"、"steps 1-5"、"step 2 と 4"、"step 4、9-10"）。
+    # 直前が日本語でも拾う（`\b` は日本語の文字も語の文字に数えるので使わない）。
+    STEP_NUM = /\d+(?:\.\d+)*/
+    NOTE_STEP = /(?<![A-Za-z])[Ss]teps? (#{STEP_NUM}(?:\s*[-–〜～]\s*#{STEP_NUM})?(?:\s*(?:,|、|・|と|and|or)\s*#{STEP_NUM}(?:\s*[-–〜～]\s*#{STEP_NUM})?)*)/
+    ENTITIES = { "&minus;" => "−", "&amp;" => "&", "&quot;" => "\"", "&hellip;" => "…", "&infin;" => "∞" }.freeze
 
     attr_reader :errors, :fixed
 
@@ -45,13 +49,21 @@ module Trace
       @fixed = 0
     end
 
+    # Bikeshed の link（`[=for/term|text=]`、`{{Interface/member}}`）を描画された語に、entity を文字にする。
+    def self.unlink(s)
+      s.gsub(/\[=([^\]]*?)=\]|\{\{([^}]*?)\}\}/) do
+        inner = Regexp.last_match(1) || Regexp.last_match(2)
+        inner.include?("|") ? inner.split("|", 2).last : inner.split("/").last.to_s
+      end.gsub(/&[a-z]+;/) { |e| ENTITIES.fetch(e, e) }
+    end
+
     # 比べる形。`lead` が落とす markup の文字は消し（`FILTER_ACCEPT` と `FILTERACCEPT` を同じにする）、
     # ほかの英数字以外は区切りにする。
-    def self.norm(s) = s.downcase.gsub(/&minus;/, "-").delete("|*_\\").gsub(/[^a-z0-9]+/, " ").strip
+    def self.norm(s) = unlink(s).downcase.delete("|*_\\").gsub(/[^a-z0-9]+/, " ").strip
 
     # snapshot の本文から、人が読む冒頭（markup を落とした最初の数語）を作る。
     def self.lead(s, words = 8)
-      plain = s.gsub(/\[=|=\]|\[\[|\]\]|[|*_\\]|\{\{|\}\}/, "").gsub(/&minus;/, "−").gsub(/\s+/, " ").strip
+      plain = unlink(s).gsub(/\[\[|\]\]|[|*_\\]/, "").gsub(/\s+/, " ").strip
       w = plain.split(" ")
       w.size <= words ? plain.sub(/[.:]\z/, "") : w.first(words).join(" ")
     end
@@ -103,6 +115,10 @@ module Trace
           error("#{at}: step が無いのに text がある") if ref["text"] || ref["last"]
           next
         end
+        unless ref["step"].is_a?(String)
+          error("#{at}: step は文字列で書く（#{ref['step'].inspect}）")
+          next
+        end
         pair = ends(ref["step"])
         unless pair
           error("#{at}: step の範囲 #{ref['step']} の両端は同じ深さで、昇順でなければならない")
@@ -111,9 +127,13 @@ module Trace
         lo, hi = pair
         range = lo == hi ? [lo] : [lo, hi]
         if fill
-          ref["text"] ||= (s = step_of(alg, lo)) && Basis.lead(s["text"])
-          ref["last"] ||= (s = step_of(alg, hi)) && Basis.lead(s["text"]) if lo != hi
-          changed = true
+          [["text", lo], ["last", hi]].each do |key, n|
+            next if ref[key] || (key == "last" && lo == hi)
+            next unless (s = step_of(alg, n))
+
+            ref[key] = Basis.lead(s["text"])
+            changed = true
+          end
         end
         mark = @errors.size
         ok = check_end(alg, lo, ref["text"], "#{at}（#{ref['alg']} step #{lo}）")
@@ -160,8 +180,8 @@ module Trace
     # 注記の step 番号は、refs のどれかの範囲に入らなければならない（refs と一緒に直す）。
     def check_notes(where, data, basis, covered)
       [data["_note"], basis["note"]].compact.each do |note|
-        note.scan(NOTE_STEP).each do |a, b|
-          [a, b].compact.each do |n|
+        note.scan(NOTE_STEP).each do |(list)|
+          list.scan(STEP_NUM).each do |n|
             next if covered.any? { |r| within?(n, r) }
 
             error("#{where}: 注記の step #{n} が refs のどの範囲にも無い")
@@ -189,8 +209,10 @@ module Trace
     # `_basis` の塊だけを書き直す（ほかの部分の整形はそのまま）。
     def replace_basis(path, basis)
       src = File.read(path)
-      start = src.index(/^  "_basis": \{\n/) or abort "#{path}: _basis の塊が見つからない"
-      stop = src.index(/^  \}/, start) or abort "#{path}: _basis の終わりが見つからない"
+      start = src.index(/^  "_basis": \{\n/)
+      stop = start && src.index(/^  \}/, start)
+      return error("#{File.basename(path)}: _basis の塊が見つからないので書き直せない") unless stop
+
       body = JSON.pretty_generate(basis).gsub("\n", "\n  ")
       File.write(path, src[0...start] + "  \"_basis\": #{body}" + src[(stop + 3)..])
     end
@@ -198,7 +220,13 @@ module Trace
 end
 
 if $PROGRAM_NAME == __FILE__
-  mode = ARGV.delete("--fill") ? :fill : (ARGV.delete("--fix") ? :fix : :check)
+  fill = ARGV.delete("--fill")
+  fix = ARGV.delete("--fix")
+  abort "--fill と --fix は一緒に使えない" if fill && fix
+  if (bad = ARGV.find { |a| a.start_with?("--") })
+    abort "未知の option #{bad}"
+  end
+  mode = fill ? :fill : (fix ? :fix : :check)
   files = ARGV.empty? ? Dir[File.join(ROOT, "test/scenarios/*.json")].sort : ARGV
   files.reject! { |f| File.basename(f).start_with?("failing-") }
   b = Trace::Basis.new

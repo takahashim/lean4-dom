@@ -14,7 +14,7 @@
       "Case-sensitivity of selectors"
     ],
     "steps": "class と id の比較の mode は element の node document のもの",
-    "note": "no-quirks の document の `class=Aa` は `.aa` に当たらないが、quirks の document へ移すと当たる。quirks の document を clone した copy も quirks である。"
+    "note": "adopt で node document が変われば比較も変わる。document を clone すると copy は元の mode を持つ。no-quirks の document の `class=Aa` は `.aa` に当たらないが、quirks の document へ移すと当たる。quirks の document を clone した copy も quirks である。"
   },
   "nodes": [
     {

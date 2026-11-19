@@ -13,7 +13,7 @@
         "spec": "webidl",
         "alg": "js-to-interface",
         "step": "2",
-        "text": "JavaScript/Throw a TypeError"
+        "text": "Throw a TypeError"
       },
       {
         "alg": "concept-range-bp-set",
