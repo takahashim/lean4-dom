@@ -1,12 +1,15 @@
 {
-  "_note": "\"a😀b\" の offset 2 は surrogate pair の途中である。仕様はそこで切った結果（lone surrogate を含む列）も定義するが、Lean の `Char` は surrogate を含まないので `String` では表せない。model はこれを `__outsideModel__` として返す。**仕様の例外ではない**ので、差分テストはこの step 以降を比較しない（`skip` になる）。Dommy も Ruby の UTF-8 String の同じ制約で断るが、両者が同じところで失敗することは仕様適合の証拠にならない。",
+  "_note": "\"a😀b\" の offset 2 は surrogate pair の途中である。仕様はそこで切った結果（lone surrogate を含む列）も定義するが、Lean の `Char` は surrogate を含まないので `String` では表せない。model はこれを `__outsideModel__` として返す。**仕様の例外ではない**ので、差分テストはこの操作以降を比較しない（`skip` になる）。Dommy も Ruby の UTF-8 String の同じ制約で断るが、両者が同じところで失敗することは仕様適合の証拠にならない。",
   "_basis": {
     "kind": "model",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "replace data"
+    "refs": [
+      {
+        "alg": "concept-cd-replace",
+        "step": "5-7",
+        "text": "Insert data into node's data after offset code",
+        "last": "Starting from deleteOffset code units, remove count code"
+      }
     ],
-    "steps": "replace data 5-7",
     "note": "model の対象外を固定する scenario。surrogate pair を割る切り出しは Lean の Char で表せない。"
   },
   "nodes": [

@@ -4,8 +4,8 @@
 
 | 仕様 | 版 | commit |
 | --- | --- | --- |
-| WHATWG DOM Standard | Living Standard, 2026-11-04 | `6cc24159f1fe0857686d6712affb37d33229777e` |
-| WHATWG Web IDL Standard | Living Standard, 2026-11-07 | `e340c2e5c40b2c3616d8b1393dcc34f0b6db0e4b` |
+| WHATWG DOM Standard | Living Standard, 2026-11-15 | `e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69` |
+| WHATWG Web IDL Standard | Living Standard, 2026-11-14 | `54a5f2de6a34e27a517a49370bc07d8943b0be11` |
 | ECMA-262（ECMAScript Language Specification） | draft, 2026-10-23 | `40ce6f206b5669e69bf010a38267ae24a2843404` |
 
 * 本文：https://dom.spec.whatwg.org/
@@ -17,9 +17,10 @@
   Web IDL の変換が呼ぶ抽象操作（ToBoolean、ToNumber、StringToNumber、ToString、Number::toString、ToPrimitive）と
   `Array.prototype.join`（`Dom/Idl/`）がこの版に従う。対応表は `Trace/Ecma.lean` にある。
 
-上記 commit は `dom.bs` に対する 2026-11-04 時点の最新 commit である。
-Phase 3 の algorithm は 2026-08-25 の版（`a2331a4`）の本文から step を写し、2026-10 に `3c53f93`、2026-11 にこの版へ上げた
-（`docs/status.md` の「DOM の固定版を上げた」と「DOM と Web IDL の固定版を上げた」）。
+上記 commit は `dom.bs` に対する 2026-11-15 時点の最新 commit である。
+Phase 3 の algorithm は 2026-08-25 の版（`a2331a4`）の本文から step を写し、2026-10 に `3c53f93`、2026-11-09 に `6cc2415`、
+2026-11-19 にこの版へ上げた（`docs/status.md` の「DOM の固定版を上げた（2026-10-27）」、「DOM と Web IDL の固定版を上げた（2026-11-09）」、
+「DOM と Web IDL の固定版を上げた（2026-11-19）」）。
 
 各定義の doc comment には、対応する節番号と algorithm 名、および仕様の step 番号を記す。
 仕様が改訂されたときは、この表の commit を更新したうえで step 番号の差分を追う。
@@ -48,6 +49,7 @@ ECMA-262 の表は `Trace/Ecma.lean` にある。
 | `Trace/Dom/*.lean`・`Trace/Webidl.lean`・`Trace/Ecma.lean` | 対応表。step を「実装」「近似（違いを書く）」「除外（理由を書く）」に分ける |
 | `spec-trace/check.rb` | 表と snapshot を突き合わせ、`docs/spec-coverage.md`（`-webidl.md`・`-ecma262.md`）と `spec-trace/map.json`（`webidl-map.json`・`ecma262-map.json`）を作る |
 | `spec-trace/drift.rb` | 上の commit と仕様の repository の新しい版を比べ、表が引き受けている step の変化を挙げる |
+| `spec-trace/basis.rb` | 固定 scenario の `_basis.refs`（期待結果の根拠にした step）を snapshot と突き合わせる。形は `test/README.md` の「`_basis`」 |
 
 CI（`ci.yml`）は、DOM、Web IDL、ECMA-262 のそれぞれについて次を検査する（ECMA-262 は抜き出した節の中で）。
 
@@ -55,6 +57,7 @@ CI（`ci.yml`）は、DOM、Web IDL、ECMA-262 のそれぞれについて次を
 * 表に載せた algorithm の step はどれも、実装・近似・除外のどれかに入る。
 * snapshot は上の commit の source から作り直したものと一致し、その commit は
   この文書と `test/pinned-versions.json` の commit と一致する。
+* 固定 scenario の `_basis.refs` は snapshot にある step を指し、書き添えた本文の冒頭がその step の本文と合う。
 
 週次の `spec-drift.yml` は whatwg/dom、whatwg/webidl、tc39/ecma262 の main と比べ、表が引き受けている step の本文が変わるか、
 分類されていない algorithm が現れたときに失敗する。
@@ -65,10 +68,13 @@ sequence、union）と、operation の関数（this の検査、引数の変換�
 それらの変換が呼ぶ ECMAScript の抽象操作（ToBoolean、ToNumber、StringToNumber と StringNumericValue、RoundMVResult、
 ToString、Number::toString、ToPrimitive、OrdinaryToPrimitive）と `Array.prototype.join` は、ECMA-262 の表に載せた。
 
-Lean のコメントと文書にある step 番号と節番号は、表とは別に人が書いたものであり、機械では検査しない。
+Lean のコメントと文書にある step 番号と節番号は、表とは別に人が書いたものであり、機械では検査しない
+（固定 scenario の `_basis.refs` だけは上のとおり検査する）。
 2026-11 に、`Dom/`・`Trace/`・`docs/`・`test/` の DOM・Web IDL・ECMA-262 の参照（step 番号は約 1,700 行）を
-固定版の snapshot と突き合わせて直した（`docs/status.md` の「DOM と Web IDL の固定版を上げた」）。
+固定版の snapshot と突き合わせて直した（`docs/status.md` の「DOM と Web IDL の固定版を上げた（2026-11-09）」）。
 それまでは、改訂より前の番号のまま残ったものが二百ほどあった（例：`remove` の「step 20」は固定版の step 15）。
+2026-11-19 に、scenario の `_basis` と `Audit.lean` を加えた約 2,800 件をもう一度突き合わせ、百三十ほどを直した
+（`docs/status.md` の「step 番号と節番号の二度目の見直し」）。
 番号の正は、step は表、節は snapshot（`spec-trace/dom.json` の `section`）のほうである。
 
 ## 版を上げる手順
@@ -81,4 +87,8 @@ Lean のコメントと文書にある step 番号と節番号は、表とは別
    この文書と `test/pinned-versions.json` の commit を書き換える。
 4. `lake build` のあと `ruby spec-trace/check.rb` が出すエラー（無くなった step、引き受け漏れの step、
    分類されていない algorithm）を表で直し、`ruby spec-trace/check.rb --write` で生成物を作り直す。
-5. 固定 scenario と生成 scenario の差分テストを通す。
+5. `ruby spec-trace/basis.rb` で、固定 scenario の `_basis.refs` が新しい snapshot と合うかを見る。改番で落ちたものは
+   `ruby spec-trace/basis.rb --fix` で付け直し、付け直せなかったもの（本文が変わった step）は読み直して直す。
+   続けて `ruby spec-trace/basis.rb --since HEAD`（snapshot を commit する前。commit したあとなら前の版の commit）で、
+   根拠の step の本文が変わった scenario を挙げ、期待結果がまだ正しいかを読み直す。冒頭の検査は本文の後半の変化を見ない。
+6. 固定 scenario と生成 scenario の差分テストを通す。

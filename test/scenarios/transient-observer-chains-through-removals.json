@@ -1,16 +1,44 @@
 {
-  "_note": "transient registered observer は「source を持つ registered observer」なので、それ自身が registered observer list に入り、次の removal の source にもなる。step 0 で node 1 を document から外すと、subtree observer の transient が node 1 に付く。step 1 の replaceChildren は replace all step 3 で node 2 を node 1 から外すので、その transient を source として node 2 にも transient が付く。続く insert step 7.1 の adopt が node 3 を node 2 から外す — これは suppressObservers に かからない removal なので record が積まれ、node 2 に付いた transient がそれを拾う。transient を source から除くと、この三つ目の record が落ちる（model 側の不具合）。",
+  "_note": "transient registered observer も registered observer list の要素なので、次の removal で add transient registered observers が辿る（step 1。新しい transient の source は元の registered observer にする、step 1.3）。操作 0 で node 1 を document から外すと、subtree observer の transient が node 1 に付く。操作 1 の replaceChildren は replace all step 5 で node 2 を node 1 から外すので、node 1 の transient を辿って node 2 にも transient（source は node 0 の registration）が付く。続く insert step 7.1 の adopt が node 3 を node 2 から外す — これは suppressObservers に かからない removal なので record が積まれ、node 2 に付いた transient がそれを拾う。add transient registered observers が parent の側の transient を飛ばすと、この三つ目の record が落ちる（model 側の不具合）。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "remove",
-      "replace all",
-      "insert",
-      "adopt",
-      "queue a mutation record"
+    "refs": [
+      {
+        "alg": "concept-node-remove",
+        "step": "15-16",
+        "text": "Add transient registered observers given node and parent",
+        "last": "If suppressObservers is false, then queue a tree"
+      },
+      {
+        "alg": "add-transient-registered-observers",
+        "step": "1",
+        "text": "For each inclusive ancestor inclusiveAncestor of parent, and"
+      },
+      {
+        "alg": "add-transient-registered-observers",
+        "step": "1.3",
+        "text": "Let source be registered's source if registered is"
+      },
+      {
+        "alg": "concept-node-replace-all",
+        "step": "5-6",
+        "text": "Remove all parent's children, in tree order, with",
+        "last": "If node is non-null, then insert node into"
+      },
+      {
+        "alg": "concept-node-insert",
+        "step": "7.1",
+        "text": "Adopt node into parent's node document"
+      },
+      {
+        "alg": "concept-node-adopt",
+        "step": "2",
+        "text": "If node's parent is non-null, then remove node"
+      },
+      {
+        "alg": "queue-a-mutation-record"
+      }
     ],
-    "steps": "remove 20-21 / replace all 3-4 / insert 7.1 / adopt 2",
     "note": "transient registered observer 自身が registered observer list の要素である。"
   },
   "nodes": [

@@ -2,11 +2,13 @@
   "_note": "parent が Text なら step 1 で HierarchyRequestError。reference child を見る前に落ちる。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "1",
+        "text": "If parent is not a Document, DocumentFragment, or"
+      }
     ],
-    "steps": "1",
     "note": "parent は Document / DocumentFragment / Element に限る。"
   },
   "nodes": [

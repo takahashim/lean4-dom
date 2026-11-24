@@ -2,11 +2,18 @@
   "_note": "before() の挿入側 offset 調整（仕様 insert step 5）は、step 7 の adopt→remove より前に走る。element6.before 相当で 6 を前へ動かすと、6 の中にあった boundary は remove により (1,1) へ出るが、step 5 はその前に済んでいるので +1 されない。仕様/Lean は (1,1)、Dommy は調整を後に回すので (1,2)。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "insert"
+    "refs": [
+      {
+        "alg": "concept-node-insert",
+        "step": "5",
+        "text": "If child is non-null"
+      },
+      {
+        "alg": "concept-node-insert",
+        "step": "7",
+        "text": "For each node in nodes, in tree order"
+      }
     ],
-    "steps": "5, 7",
     "note": "insert step 5 の offset 調整は step 7 の adopt→remove より前に走る。"
   },
   "nodes": [

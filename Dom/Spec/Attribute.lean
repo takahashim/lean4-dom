@@ -152,7 +152,7 @@ def TreeDetachedOnly (s s₁ : DOMState) (D : List Attr) : Prop :=
 
 /--
 **"remove an attribute"。** 2. list から取り除く。3. attribute の element を null にする（`Attr` は残り、どの
-element にも付いていない `Attr` として detach された list に入る）。1. handle attribute changes（oldValue は
+element にも付いていない `Attr` として detach された list に入る）。4. handle attribute changes（oldValue は
 attribute の value）。
 -/
 def AttributeRemoved (s : DOMState) (element : NodeId) (d : NodeData) (a : Attr)

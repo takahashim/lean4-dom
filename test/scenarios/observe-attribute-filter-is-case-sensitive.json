@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "queue a mutation record"
+    "refs": [
+      {
+        "alg": "queue-a-mutation-record",
+        "step": "3.2",
+        "text": "If none of the following are true node"
+      }
     ],
-    "steps": "queue a mutation record 2.3",
     "note": "attributeFilter は attribute の local name と大文字小文字を区別して比べる。setAttributeNS は名前を小文字にしないので、local name が \"ID\" の attribute は filter [\"ID\"] に当たり、filter [\"id\"] には当たらない。"
   },
   "nodes": [

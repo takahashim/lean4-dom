@@ -1,15 +1,24 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#dom-node-comparedocumentposition",
-    "algorithm": [
-      "compareDocumentPosition(other)",
-      "contains(other)",
-      "equals",
-      "locate a namespace"
+    "refs": [
+      {
+        "alg": "dom-node-comparedocumentposition",
+        "step": "4-5",
+        "text": "If node1 is an attribute, then set attr1",
+        "last": "If node2 is an attribute"
+      },
+      {
+        "alg": "dom-node-contains"
+      },
+      {
+        "alg": "concept-node-equals"
+      },
+      {
+        "alg": "locate-a-namespace"
+      }
     ],
-    "steps": "compareDocumentPosition は step 3-4 で Attr を element に置き換える。同じ element の attribute どうしは attribute list の順（IMPLEMENTATION_SPECIFIC 付き）、attribute は element に含まれ、element の子より前に来る。contains は inclusive descendant だけ、Attr の equals は namespace・local name・value、locate a namespace は element で探す",
-    "note": "attribute 1 と 2 は div（node 2）の a と b。"
+    "note": "compareDocumentPosition は step 4-5 で Attr を element に置き換える。同じ element の attribute どうしは attribute list の順（IMPLEMENTATION_SPECIFIC 付き）、attribute は element に含まれ、element の子より前に来る。contains は inclusive descendant だけ、Attr の equals は namespace・local name・value、locate a namespace は element で探す。attribute 1 と 2 は div（node 2）の a と b。"
   },
   "nodes": [
     {

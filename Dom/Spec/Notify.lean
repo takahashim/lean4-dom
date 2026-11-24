@@ -54,7 +54,7 @@ def NotifyResult (s s' : DOMState) (out : List (Nat × List MutationRecord)) : P
     NotifiedEach { s with microtaskQueued := false, pendingObservers := [] } notifyList s' out
 
 /--
-**§4.3 `disconnect()` の関係。**
+**§4.3.1 `disconnect()` の関係。**
 
 1-2. node list と transient node set の各 node から、observer が this の registered observer を外す。
 3. node list を空にする（transient node set は step 2 で空になる）。
@@ -69,7 +69,7 @@ def DisconnectResult (s : DOMState) (mo : Nat) (s' : DOMState) : Prop :=
   (s.observers[mo]? = none ∧ s' = s)
 
 /--
-**§4.3 `takeRecords()` の関係。**
+**§4.3.1 `takeRecords()` の関係。**
 
 1. records は record queue の clone。2. record queue を空にする。3. records を返す。
 -/

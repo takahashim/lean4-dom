@@ -1,10 +1,19 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-remove",
-    "algorithm": ["remove"],
-    "steps": "step 20。parent の inclusive ancestor に付いた registered observer のうち、subtree が true のものだけが transient registered observer を作る",
-    "note": "subtree でない registration は、外した部分木の中の変更を見続けない。この scenario は、外した後で中を変えても record が届かないことを見る。"
+    "refs": [
+      {
+        "alg": "concept-node-remove",
+        "step": "15",
+        "text": "Add transient registered observers given node and parent"
+      },
+      {
+        "alg": "add-transient-registered-observers",
+        "step": "1.1",
+        "text": "If registered's options[\"subtree\"] is false, then continue"
+      }
+    ],
+    "note": "step 15。parent の inclusive ancestor に付いた registered observer のうち、subtree が true のものだけが transient registered observer を作る。subtree でない registration は、外した部分木の中の変更を見続けない。この scenario は、外した後で中を変えても record が届かないことを見る。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

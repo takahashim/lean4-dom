@@ -28,7 +28,7 @@ def rootFuel (t : Tree) : Nat → NodeId → NodeId
     | some p => rootFuel t f p
 
 /--
-DOM Standard §4.2 の root。
+DOM Standard §1.1 の root。
 
 fuel には store の要素数を渡す。well-formed な木ではこれで十分であることを
 `root_parent_eq_none` で示す。
@@ -69,7 +69,7 @@ def preorderFuel (t : Tree) : Nat → NodeId → List NodeId
     if t.contains n then n :: (childrenOf t n).flatMap (preorderFuel t f) else []
 
 /--
-DOM Standard §4.2 の tree order による、`n` の inclusive descendant の列挙。
+DOM Standard §1.1 の tree order による、`n` の inclusive descendant の列挙。
 
 well-formed な木ではちょうど inclusive descendant 全体を重複なく列挙することを
 `mem_preorder_iff` と `preorder_nodup` で示す。
@@ -114,7 +114,7 @@ def precedesIn : List NodeId → NodeId → NodeId → Bool
     else precedesIn rest a b
 
 /--
-DOM Standard §4.2 の tree order による先行関係。
+DOM Standard §1.1 の tree order による先行関係。
 
 `a` と `b` が同じ木に属さない場合は `false` を返す。
 -/

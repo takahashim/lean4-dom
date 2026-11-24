@@ -4,7 +4,7 @@ WHATWG DOM Standard の algorithm と、Lean の実行関数・契約・固定 s
 Dommy 側の WPT 由来 test を結ぶ対応表である。
 
 参照する仕様は `docs/spec-version.md` に固定した commit
-`3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177`（2026-10-19）である。
+`e4f4f4f0ace83fe6c52ab68e047351ce7f2dcd69`（2026-11-15）である。
 step 番号だけに頼ると仕様改訂でずれるので、各行に短い step 要約も置く。
 
 step 単位の対応は `Trace/Dom/` の表が持ち、CI が網羅を検査する。algorithm ごとの集計は
@@ -130,7 +130,7 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 | ensure pre-insert validity | 1 parent の kind / 2 cycle / 3 child の parent / 4 node の kind / 5 非 Document / 6 Text / 7 CharacterData / 8 fragment / 9 element / 10-11 doctype | `ensurePreInsertionValidity` | exception 順序 `ensurePreInsertionValidity_step1`〜`_step3`、事実の抽出 `_parentCanHaveChildren` `_nodeNotDocument` `_doctypeParentIsDocument` `_childParent` `_documentFacts` | `childnode-after-bypasses-validity`, `childnode-before-leaks-backend-error`, `replacechildren-bypasses-validity`, `replacewith-bypasses-validity` | `test_wpt_child_node_pre_insertion_validity.rb` | 済 |
 | pre-insert | 1 validity / 2-3 reference child のずらし / 4 insert | `preInsert` | success `preInsert_succeeds_iff`、exception `preInsert_error_iff`、preservation `admissible_preInsert`、委譲 `insertBefore_refines_preInsert`、reference child `ensurePreInsertionValidity_shift` | 同上 | `test_wpt_node_mutation.rb` | 済 |
 | insert | 1-3 nodes と count / 4 fragment の children を外す / 5 live range の offset 調整 / 6 previousSibling / 7 adopt して入れる / 8 record | `insert`, `insertNodesAt`, `insertEachAt`, `insertEach` | preservation `admissible_insert`、success `insert_isOk_of_validity`（`Insertable`）、effect `insert_parentOf` `insert_children_split` `insert_preserves_endpoints`、frame `insertAt_frame`、negative `exists_insert_breaking_boundaryLE` | `basic-insert-remove`, `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb`, `test_wpt_mutation_record_insertion_point.rb` | 済 |
-| append | 1 pre-insert(child=null) | `append` | success `append_succeeds_iff`、委譲 `append_refines_preInsert`、preservation `admissible_append` | `basic-insert-remove` | `test_wpt_node_mutation.rb` | 済 |
+| append | pre-insert(child=null)（番号の無い一文） | `append` | success `append_succeeds_iff`、委譲 `append_refines_preInsert`、preservation `admissible_append` | `basic-insert-remove` | `test_wpt_node_mutation.rb` | 済 |
 | remove | 1-2 parent の assert / 3 live range の pre-remove / 4 NodeIterator の pre-remove / 7 children から外す / 15 transient observer / 16 record | `remove`, `detachWithLiveAdjust`, `detach` | preservation `admissible_remove`、success `remove_succeeds_iff`、exception `remove_error_iff`、effect `remove_parentOf` `remove_not_mem_childrenOf` `remove_ranges` `remove_iterators`、frame `detach_frame` | `basic-insert-remove`, `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_mutation_primitives.rb`, `test_wpt_transient_registered_observer.rb` | 済 |
 | pre-remove | 1 parent の一致 / 2 remove | `preRemove` | success `preRemove_succeeds_iff`、exception `preRemove_error_iff` `preRemove_error_notFound`、委譲 `removeChild_refines_preRemove` | `basic-insert-remove` | `test_wpt_node_methods_on_every_node.rb` | 済 |
 | replace | 1 validity(child を除外) / 2-3 reference child / 4 previousSibling / 6 adopt / 7 child を外す / 9 insert / 10 record | `replace` | success `replace_succeeds_iff`、exception `replace_error_iff`、preservation `admissible_replace`、exception `replace_cycle_precedes_notFound`、effect `replace_reference_head` | `replacewith-bypasses-validity` | `test_wpt_mutation_record_insertion_point.rb` | 済 |
@@ -141,13 +141,13 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 
 | Algorithm | WHATWG steps | Evaluator | Contracts | Scenario | WPT | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| normalize | 1 descendant exclusive Text を順に / 2 長さ 0 なら外す / 3-4 続く兄弟の data を足す / 5-6 live range の引き渡し / 7 兄弟を外す | `normalize`, `normalizeList`, `normalizeRun`, `followingTexts`, `normalizeMergeOne`, `normalizeMergeBP` | relation `NormalizeResult`（兄弟ごとの読み）、success `normalize_isOk`、preservation `admissible_normalize`、`endpointsValid_normalizeMerge` | `normalize-merges-adjacent-text`, `normalize-record-order-per-sibling`, `normalize-empty-sibling-keeps-boundary`, `normalize-parent-boundary-moves-to-join`, `normalize-descends-into-subtree`, `normalize-moves-iterator-off-merged-text` | （Dommy に normalize の WPT 由来 test は無い） | 済（record は engine の読み） |
+| normalize | 前文 descendant exclusive Text を順に / 1-2 長さ 0 なら外す / 3-4 続く兄弟の data を足す / 5-6 live range の引き渡し / 7 兄弟を外す | `normalize`, `normalizeList`, `normalizeRun`, `followingTexts`, `normalizeMergeOne`, `normalizeMergeBP` | relation `NormalizeResult`（兄弟ごとの読み）、success `normalize_isOk`、preservation `admissible_normalize`、`endpointsValid_normalizeMerge` | `normalize-merges-adjacent-text`, `normalize-record-order-per-sibling`, `normalize-empty-sibling-keeps-boundary`, `normalize-parent-boundary-moves-to-join`, `normalize-descends-into-subtree`, `normalize-moves-iterator-off-merged-text` | （Dommy に normalize の WPT 由来 test は無い） | 済（record は engine の読み） |
 
 ### normalize の分岐
 
 | step | 分岐 | 固定 scenario |
 | --- | --- | --- |
-| 1 | descendant を tree order で辿る（子 element の中も） | `normalize-descends-into-subtree` |
+| 前文 | descendant を tree order で辿る（子 element の中も） | `normalize-descends-into-subtree` |
 | 2 | 長さ 0 の Text を外す | `normalize-merges-adjacent-text` |
 | 3-4 | run の data を足す（兄弟ごと） | `normalize-record-order-per-sibling` |
 | 3-4 | 空の兄弟は data の step を飛ばす | `normalize-empty-sibling-keeps-boundary` |
@@ -169,8 +169,8 @@ record を積む step は種類ごとに切り出してある。childList（`rem
 | live range pre-remove steps | 1-7 | `liveRangePreRemove` | `remove_preserves_endpoints`, `valid_liveRangePreRemoveBP`, `boundaryLE_detach` | `iterator-adjust-on-remove` | `test_wpt_range_mutations.rb` | 済 |
 | live range の insert 側調整 | insert step 5 | `liveRangeInsertAdjust` | `rangeValidUpTo_liveRangeInsertAdjust` | `range-adjust-order-on-before`, `range-order-broken-by-insert` | `test_wpt_live_range_insert_order.rb` | 済 |
 | NodeIterator pre-remove steps | 1-2 | `iteratorPreRemove`, `iteratorPreRemoveOne` | `remove_preserves_iterators_valid`, `remove_iterators_leave_subtree`, `adjustNodePointer_spec` | `iterator-adjust-on-remove`, `iterator-adjust-pointer-before` | `test_wpt_node_edges.rb` | 済 |
-| nextNode / previousNode（traverse） | traverse 1-6 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before`, `iterator-whattoshow-skips` | `test_wpt_node_edges.rb` | 済（filter は null） |
-| filter（`whatToShow`、filter は null） | filter 1-3 | `showsNode`, `NodeKind.nodeType` | 同上 | `iterator-whattoshow-skips` | 同上 | 済 |
+| nextNode / previousNode（traverse） | traverse 1-5 | `nextNode`, `previousNode` | `validIterator_nextNode`, `validIterator_previousNode` | `iterator-adjust-pointer-before`, `iterator-whattoshow-skips` | `test_wpt_node_edges.rb` | 済（filter は null） |
+| filter（`whatToShow`、filter は null） | filter 2-4 | `showsNode`, `NodeKind.nodeType` | 同上 | `iterator-whattoshow-skips` | 同上 | 済 |
 
 ## §5.6 `Range` の API（boundary point を動かす側）
 
@@ -241,7 +241,7 @@ target から根までの祖先列そのものである。`Window` が無いの�
 `compareDocumentPosition` の step 6（同じ木にない）は PRECEDING と FOLLOWING の
 どちらを返すかを実装に任せている。差分テストはその二 bit を落として比べる
 （`test/compare.rb` の `normalize_returned`）。一貫性そのものは model 側の定理で見る。
-同じ木にある場合の値は `Spec.compareDocumentPosition_eq_iff` が §4.2 の語彙
+同じ木にある場合の値は `Spec.compareDocumentPosition_eq_iff` が §1.1 の語彙
 （`Ancestor` と構造で書いた tree order `PrecedesStruct`）だけで一意に決めている。
 
 ## §6.2 TreeWalker
@@ -258,7 +258,7 @@ FILTER_REJECT が出ないぶん、仕様の pointer 走査は
 | `parentNode()` | 1-3 | `walkerParentNode`, `takeUntilIncl` | relation `WalkerParentNodeResult`、`walkerParentNode_result_sound`・`_complete`、`exists_data_of_walkerParentNode` | `walker-parent-node-leaves-root` | 同上 | 済 |
 | `firstChild()` / `lastChild()`（traverse children） | 1-4 | `walkerFirstChild`, `walkerLastChild`, `mirrorPreorder`, `cutAtRootExit` | relation `WalkerFirstChildResult`・`WalkerLastChildResult`（`MirrorPrecedes`）、`walkerFirstChild_result_sound`・`walkerLastChild_result_sound`（反転した木の `firstChild()`、`walkerLastChild_eq`）と `_complete`、`exists_data_of_walkerFirstChild` ほか | `walker-whattoshow-skips`, `walker-last-child-mirrors-order`, `tree-walker-child-passes-leaf-root` | 同上 | 済 |
 | `nextSibling()` / `previousSibling()`（traverse siblings） | 1-3 | `walkerSibling`, `siblingLevels`, `siblingCandidates`, `cutAtRootExit` | relation `WalkerNextSiblingResult`・`WalkerPreviousSiblingResult`（`SiblingClimb`・`FollowingSibling`・`PrecedingSibling`）、`walkerNextSibling_result_sound`・`walkerPreviousSibling_result_sound`（反転した木の `nextSibling()`、`walkerPreviousSibling_eq`）と `_complete`、`exists_data_of_walkerSibling` | `walker-whattoshow-skips`, `tree-walker-sibling-stops-at-root-in-sibling-subtree` | 同上 | 済 |
-| filter（`whatToShow`、filter は null） | filter 1-3 | `walkerAccepts`, `showsNode` | — | `walker-whattoshow-skips` | 同上 | 済 |
+| filter（`whatToShow`、filter は null） | filter 2-4 | `walkerAccepts`, `showsNode` | — | `walker-whattoshow-skips` | 同上 | 済 |
 | walker の保存 | — | `walkerStep` | `walkersValid_walkerStep`, `admissible_walkerStep` | — | — | 済 |
 
 `currentNode` の setter は scenario の初期状態（`walkers` の `current`）としてだけ使える。
@@ -319,7 +319,7 @@ runner も同じ規則で振るので差分テストの比較対象に入って�
 | `contains` / `isEqualNode` / namespace の探索に `Attr` | contains / equals の `Attr` の枝 / locate a namespace の `Attr` の枝 | `nodeContainsRef`, `nodeRefEquals`, `attrLookupNamespaceURI`, `attrLookupPrefix`, `attrIsDefaultNamespace` | `nodeContainsRef_attr_attr`, `nodeContainsRef_node_attr` | `attr-position-follows-its-element` | — | 済 |
 | `appendChild` の親か子に `Attr` | ensure pre-insertion validity 1・4 | `appendChildRef` | `appendChildRef_attr_fails`, `admissible_appendChildRef` | `attr-cannot-be-a-child`, `attr-cannot-have-children` | — | 済 |
 | reflect（`id` / `className` / `slot`、HTML の `title` / `lang` / `accessKey` / `inert` / `autofocus`） | DOM §4.9・HTML §2.6.1 の getter と setter（DOMString と boolean） | `reflectSpec`, `getReflectedProp`, `setReflectedProp`, `setReflectedBool` | `SameNullNsView.getReflected`、preservation `admissible_setReflectedProp`, `admissible_setReflectedBool` | `reflect-reads-the-null-namespace-attribute`, `reflect-writes-the-null-namespace-attribute` | — | 済（enumerated・URL・数値の reflect は対象外） |
-| `DOMTokenList`（`classList`） | §7.1 add 1-3 / remove 1-3 / toggle 1-4 / replace 1-6 / contains / update steps 1-2 | `classListAdd`, `classListRemove`, `classListToggle`, `classListReplace`, `classListContains`, `tokenListUpdate` | `SameNullNsView.classListContains`、preservation `admissible_classListAdd` ほか | `class-list-ignores-namespaced-class`, `class-list-add-nothing-creates-no-attribute` | — | 済（`value` と `supports` は対象外） |
+| `DOMTokenList`（`classList`） | §7.1 add 1-3 / remove 1-3 / toggle 1-5 / replace 1-6 / contains / update steps 1-2 | `classListAdd`, `classListRemove`, `classListToggle`, `classListReplace`, `classListContains`, `tokenListUpdate` | `SameNullNsView.classListContains`、preservation `admissible_classListAdd` ほか | `class-list-ignores-namespaced-class`, `class-list-add-nothing-creates-no-attribute` | — | 済（`value` と `supports` は対象外） |
 | `HTMLCollection.namedItem(key)`（`children`） | §4.2.10.2 1-2 | `childrenNamedItem` | `SameNullNsView.childrenNamedItem` | `named-item-ignores-namespaced-id-and-name` | — | 済 |
 | `dataset`（`DOMStringMap`） | HTML §3.2.6.8 name-value pairs 1-3 / setter 1-5 / deleter 1-3 | `datasetPairs`, `datasetGet`, `datasetKeys`, `datasetSet`, `datasetDelete` | preservation `admissible_datasetSet`, `admissible_datasetDelete` | `dataset-reads-by-qualified-name`, `dataset-writes-the-null-namespace-attribute`, `dataset-deletes-by-qualified-name`, `dataset-only-on-html-and-svg` | — | 済（本文の字面どおり。どの browser も字面どおりではない。MathML の element は扱っていない） |
 
@@ -454,7 +454,7 @@ selector は CSS の仕様なので、参照する版は `docs/selectors-spec-ve
 | featureless な virtual scoping root に当たりうる selector | Selectors §3.3 "Featureless Elements" | `allowedS`・`allowedL`・`allowedCp`、`matchSimple` の featureless の枝、`matchCompound` | `allowedL_iff`, `allowedCp_iff`, `matchSimple_iff_spec`, `allowedL_scope_irrelevant` | `scope-pseudo-virtual-root-is-featureless`, `featureless-virtual-root-logical-combinations` | 済 |
 | class・id selector の大文字小文字と document の mode | HTML §"Case-sensitivity of selectors"・DOM §4.5 | `inQuirksModeOf`, `quirksFold`, `matchSimple` の `.id`・`.cls` の枝 | `inQuirksModeOf_iff`, `quirksFold_eq_iff`, `classWordIn_iff`, `matchSimple_iff_spec` | `quirks-mode-folds-class-and-id`, `quirks-mode-belongs-to-the-node-document` | 済（limited-quirks は no-quirks と同じ） |
 | `getElementById(elementId)` | DOM §4.2.4 | `getElementById`, `elementIdOf`（`Dom/Query/Lookup.lean`） | `getElementById_eq_some`, `getElementById_eq_none_iff`, `getElementById_error_iff`, `elementIdOf_eq_some_iff`（`Dom/Spec/Lookup.lean`） | `lookups-compare-attribute-values` | 済（tree order で最初であることは `List.find?` そのもの） |
-| `getElementsByClassName(classNames)` / ordered set parser | DOM §4.5・§4.9・§2.3 | `getElementsByClassName`, `orderedSetParse`, `elementClassesOf` | `mem_getElementsByClassName_iff`, `mem_orderedSetParse_iff`, `mem_elementClassesOf_iff` | `lookups-compare-attribute-values`, `class-names-keep-case-without-quirks`, `quirks-mode-folds-class-and-id` | 済 |
+| `getElementsByClassName(classNames)` / ordered set parser | DOM §4.5・§4.9・§1.2 | `getElementsByClassName`, `orderedSetParse`, `elementClassesOf` | `mem_getElementsByClassName_iff`, `mem_orderedSetParse_iff`, `mem_elementClassesOf_iff` | `lookups-compare-attribute-values`, `class-names-keep-case-without-quirks`, `quirks-mode-folds-class-and-id` | 済 |
 | `getElementsByName(elementName)` | HTML §3.1.5 | `getElementsByName` | `mem_getElementsByName_iff` | `lookups-compare-attribute-values`, `get-elements-by-name-finds-only-html-elements` | 済 |
 
 ## `cloneNode` / `adoptNode` の全域性

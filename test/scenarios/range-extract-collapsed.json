@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "extract"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "1-2",
+        "text": "Let fragment be the result of creating a",
+        "last": "If range is collapsed, then return fragment"
+      }
     ],
-    "steps": "extract 1-2",
     "note": "collapsed な range。空の fragment を返し、木も range も変わらない。"
   },
   "nodes": [

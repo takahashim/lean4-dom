@@ -1,15 +1,25 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "setAttribute",
-      "appendData",
-      "classList add",
-      "dispatchEvent"
+    "refs": [
+      {
+        "alg": "dom-element-setattribute"
+      },
+      {
+        "alg": "dom-characterdata-appenddata"
+      },
+      {
+        "alg": "dom-domtokenlist-add"
+      },
+      {
+        "alg": "dom-eventtarget-dispatchevent"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-DOMString"
+      }
     ],
-    "steps": "WebIDL の DOMString への変換",
-    "note": "DOMString の引数は ToString で変換する。null は \"null\"、数は Number::toString、真偽値は \"true\"/\"false\"、普通の object は \"[object Object]\"、配列は要素を \",\" でつないだもの（null の要素は空文字列）になる。"
+    "note": "WebIDL の DOMString への変換。DOMString の引数は ToString で変換する。null は \"null\"、数は Number::toString、真偽値は \"true\"/\"false\"、普通の object は \"[object Object]\"、配列は要素を \",\" でつないだもの（null の要素は空文字列）になる。"
   },
   "nodes": [
     {

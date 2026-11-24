@@ -1,10 +1,22 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-clone",
-    "algorithm": ["clone a single node", "importNode(node, options)"],
-    "steps": "clone a single node の step 2.1「node の attribute list の各 attribute について、clone a single node で copy を作り copy に append する」。Attr の clone は step 3 の Attr 節で namespace・namespace prefix・local name・value を写す",
-    "note": "copy の attribute は原本と同じ namespace・prefix・local name を持つ。id だけが違う（copy の Attr は別のものである）。prefix 付きの attribute を qualified name 一つに潰してはいけない。"
+    "refs": [
+      {
+        "alg": "clone-a-single-node",
+        "step": "2.5",
+        "text": "For each attribute of node's attribute list"
+      },
+      {
+        "alg": "clone-a-single-node",
+        "step": "5",
+        "text": "Fulfill these additional requirements, switching on the interface"
+      },
+      {
+        "alg": "dom-document-importnode"
+      }
+    ],
+    "note": "clone a single node の step 2.5「node の attribute list の各 attribute について、clone a single node で copy を作り copy に append する」。Attr の clone は step 5 の Attr 節で namespace・namespace prefix・local name・value を写す。copy の attribute は原本と同じ namespace・prefix・local name を持つ。id だけが違う（copy の Attr は別のものである）。prefix 付きの attribute を qualified name 一つに潰してはいけない。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

@@ -1,12 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "add an event listener",
-      "remove an event listener"
+    "refs": [
+      {
+        "alg": "add-an-event-listener",
+        "step": "5",
+        "text": "If eventTarget's event listener list does not contain"
+      },
+      {
+        "alg": "remove-an-event-listener",
+        "step": "2",
+        "text": "Set listener's removed to true and remove listener"
+      }
     ],
-    "steps": "add 5 / remove 2",
     "note": "同じ (type, callback, capture) は二度足されない（add の step 5）。removeEventListener は同じ三つ組を外す。capture が違えば別の listener である。"
   },
   "nodes": [

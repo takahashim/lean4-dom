@@ -1,10 +1,19 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#dom-document-importnode",
-    "algorithm": ["importNode(node, options)"],
-    "steps": "1 Document なら NotSupportedError / 最後に clone a node を document = this、subtree = options で呼ぶ",
-    "note": "copy は新しい node で、node document は受け手である。原本は元の document に残る。Document を渡すと NotSupportedError。"
+    "refs": [
+      {
+        "alg": "dom-document-importnode",
+        "step": "1",
+        "text": "If node is a document or shadow root,"
+      },
+      {
+        "alg": "dom-document-importnode",
+        "step": "7",
+        "text": "Return the result of cloning a node given"
+      }
+    ],
+    "note": "importNode の step 1 で Document なら NotSupportedError、step 7 で clone a node を document = this、subtree = options で呼ぶ。copy は新しい node で、node document は受け手である。原本は元の document に残る。Document を渡すと NotSupportedError。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

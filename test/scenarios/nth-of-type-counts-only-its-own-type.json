@@ -2,7 +2,13 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#typed-child-index",
-    "algorithm": [":nth-of-type()", ":nth-last-of-type()", ":first-of-type", ":last-of-type", ":only-of-type"],
+    "algorithm": [
+      ":nth-of-type()",
+      ":nth-last-of-type()",
+      ":first-of-type",
+      ":last-of-type",
+      ":only-of-type"
+    ],
     "steps": "同じ type（namespace と local name）の兄弟だけを並べて数える",
     "note": "type の位置と element の位置がずれる木でないと、絞り込みを落としても気付けない。span を先頭と途中に混ぜてある。Dom/Spec/Selector.lean の matchSimple_nth_iff がこれを定理にしてある。"
   },

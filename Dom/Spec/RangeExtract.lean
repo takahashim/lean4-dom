@@ -290,7 +290,7 @@ end
 /--
 **§5.6 extract と clone the contents の、結果まで含めた関係。** 成功すれば fragment と状態を返す。
 
-step 1 で、start node の node document の DocumentFragment を作り、そこへ step 2-21 を走らせる。
+step 1 で、start node の node document の DocumentFragment を作り、そこへ step 2-21（clone the contents は step 2-17）を走らせる。
 -/
 def ContentsResult (A : Alloc) (cut : Bool) (s : DOMState) (r : RangeState) (self : Option Nat) :
     Except DOMException (NodeId × DOMState) → Prop

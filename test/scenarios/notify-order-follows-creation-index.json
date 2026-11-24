@@ -2,12 +2,23 @@
   "_note": "notify mutation observers は pending mutation observers を creation index の順に並べてから回る（step 2）。ここでは observer 1 が先に pending になるが、配送は observer 0 が先である。whatwg/dom 3071e5f より前の本文は pending になった順に回っていた。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/3c53f93a3e1fb11ef5bd38029b7a9c97baaf0177/dom.bs",
-    "algorithm": [
-      "notify mutation observers",
-      "queue a mutation record"
+    "refs": [
+      {
+        "alg": "notify-mutation-observers",
+        "step": "2",
+        "text": "Let notifyList be the result of sorting the"
+      },
+      {
+        "alg": "notify-mutation-observers",
+        "step": "6",
+        "text": "For each mo of notifyList"
+      },
+      {
+        "alg": "queue-a-mutation-record",
+        "step": "5.3",
+        "text": "Append observer to the surrounding agent's pending mutation"
+      }
     ],
-    "steps": "notify mutation observers 2, 6 / queue a mutation record 5.3",
     "note": "observer の creation index は scenario の observers の並びである。"
   },
   "nodes": [

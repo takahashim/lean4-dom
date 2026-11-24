@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "flatten more",
-      "add an event listener"
+    "refs": [
+      {
+        "alg": "event-flatten-more",
+        "step": "4",
+        "text": "If options is a dictionary"
+      },
+      {
+        "alg": "add-an-event-listener"
+      }
     ],
-    "steps": "flatten more 4",
     "note": "once の member は WebIDL の boolean へ ToBoolean で変換する。0 と空文字列は false なので、once にならない。"
   },
   "nodes": [

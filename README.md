@@ -140,6 +140,11 @@ ruby spec-trace/check.rb --spec ecma262 --write
 ruby spec-trace/drift.rb
 ruby spec-trace/drift.rb --spec webidl
 ruby spec-trace/drift.rb --spec ecma262
+
+# 固定 scenario の _basis.refs（期待結果の根拠にした step）を snapshot と突き合わせる
+ruby spec-trace/basis.rb
+# 版を上げたあと、根拠の step の本文が古い版から変わった scenario を挙げる
+ruby spec-trace/basis.rb --since <古い版の commit>
 ```
 
 差分テストの詳しい実行方法については `test/README.md` を参照されたい。

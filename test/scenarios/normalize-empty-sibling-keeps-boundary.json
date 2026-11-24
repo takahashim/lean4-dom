@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "normalize"
+    "refs": [
+      {
+        "alg": "dom-node-normalize",
+        "step": "3-7",
+        "text": "Let data be the concatenation of the data",
+        "last": "Remove node's contiguous exclusive Text nodes (excluding itself),"
+      }
     ],
-    "steps": "normalize 3-7",
     "note": "run の途中にある空の Text は data を変えないので characterData record を積まない。boundary point は継ぎ目へ渡す。"
   },
   "nodes": [

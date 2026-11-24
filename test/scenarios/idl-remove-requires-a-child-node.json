@@ -1,12 +1,17 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/webidl/blob/8c65329114411ebd3af025106c2267f5bc00faeb/index.bs",
-    "algorithm": [
-      "create an operation function",
-      "remove"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "dfn-create-operation-function",
+        "step": "2.1.2.3",
+        "text": "If jsValue does not implement the interface target,"
+      },
+      {
+        "alg": "dom-childnode-remove"
+      }
     ],
-    "steps": "create an operation function step 2.1.2.3",
     "note": "remove() は ChildNode の method なので、this が DocumentFragment なら method steps に入る前に TypeError になる。Text の remove() は先に成功する。"
   },
   "nodes": [

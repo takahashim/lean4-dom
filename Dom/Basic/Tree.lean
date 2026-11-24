@@ -33,11 +33,11 @@ def empty : Tree := ⟨NodeStore.empty⟩
 
 end Tree
 
-/-- DOM Standard §4.2 の parent。木に無い node の parent は `none` とする。 -/
+/-- DOM Standard §1.1 の parent。木に無い node の parent は `none` とする。 -/
 def parentOf (t : Tree) (n : NodeId) : Option NodeId :=
   (t.get? n).bind (·.parent)
 
-/-- DOM Standard §4.2 の children。木に無い node の children は空とする。 -/
+/-- DOM Standard §1.1 の children。木に無い node の children は空とする。 -/
 def childrenOf (t : Tree) (n : NodeId) : List NodeId :=
   match t.get? n with
   | none => []
@@ -60,14 +60,14 @@ def ownerDocumentGetter (t : Tree) (n : NodeId) : Option NodeId :=
   | none => none
   | some d => if d.kind == .document then none else some d.ownerDocument
 
-/-- DOM Standard §4.4 の node length。 -/
+/-- DOM Standard §4.2 の node length。 -/
 def lengthOf (t : Tree) (n : NodeId) : Nat :=
   match t.get? n with
   | none => 0
   | some d => d.length
 
 /--
-DOM Standard §4.2 の ancestor。`Ancestor t a n` は「`a` は `n` の ancestor である」と読む。
+DOM Standard §1.1 の ancestor。`Ancestor t a n` は「`a` は `n` の ancestor である」と読む。
 
 `step` は parent そのもの、`trans` は parent の ancestor をたどる場合である。
 -/
@@ -75,19 +75,19 @@ inductive Ancestor (t : Tree) : NodeId → NodeId → Prop where
   | step {a n : NodeId} : parentOf t n = some a → Ancestor t a n
   | trans {a b n : NodeId} : parentOf t n = some b → Ancestor t a b → Ancestor t a n
 
-/-- DOM Standard §4.2 の inclusive ancestor。 -/
+/-- DOM Standard §1.1 の inclusive ancestor。 -/
 @[reducible] def InclusiveAncestor (t : Tree) (a n : NodeId) : Prop :=
   a = n ∨ Ancestor t a n
 
-/-- DOM Standard §4.2 の descendant。 -/
+/-- DOM Standard §1.1 の descendant。 -/
 @[reducible] def Descendant (t : Tree) (d n : NodeId) : Prop :=
   Ancestor t n d
 
-/-- DOM Standard §4.2 の inclusive descendant。 -/
+/-- DOM Standard §1.1 の inclusive descendant。 -/
 @[reducible] def InclusiveDescendant (t : Tree) (d n : NodeId) : Prop :=
   InclusiveAncestor t n d
 
-/-- DOM Standard §4.2 の sibling。同じ parent を持つ相異なる二つの node。 -/
+/-- DOM Standard §1.1 の sibling。同じ parent を持つ相異なる二つの node。 -/
 def Sibling (t : Tree) (a b : NodeId) : Prop :=
   a ≠ b ∧ ∃ p, parentOf t a = some p ∧ parentOf t b = some p
 

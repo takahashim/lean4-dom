@@ -1,12 +1,20 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "isPointInRange",
-      "intersectsNode"
+    "refs": [
+      {
+        "alg": "dom-range-ispointinrange",
+        "step": "1-5",
+        "text": "If node's root is not this's root, then",
+        "last": "Return true"
+      },
+      {
+        "alg": "dom-range-intersectsnode",
+        "step": "1-6",
+        "text": "If node's root is not this's root, then",
+        "last": "Return false"
+      }
     ],
-    "steps": "isPointInRange 1-5 / intersectsNode 1-6",
     "note": "isPointInRange は別の木なら false、doctype なら InvalidNodeTypeError。intersectsNode は parent の無い node に true を返す。"
   },
   "nodes": [

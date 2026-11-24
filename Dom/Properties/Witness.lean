@@ -45,7 +45,7 @@ theorem get?_html : state.tree.get? ⟨1⟩ =
 
 /-! ## 主定理をこの状態に当てる -/
 
-/-- `cloneNode` は失敗しない（§15）。 -/
+/-- `cloneNode` は失敗しない（`docs/theorems.md` の §15）。 -/
 example : ∃ c s', cloneNode state ⟨1⟩ true = .ok (c, s') :=
   cloneNode_isOk state_admissible get?_html
 

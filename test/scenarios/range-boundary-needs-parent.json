@@ -1,14 +1,34 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "selectNode",
-      "selectNodeContents",
-      "setStartBefore",
-      "setEndAfter"
+    "refs": [
+      {
+        "alg": "dom-range-selectnode"
+      },
+      {
+        "alg": "concept-range-select",
+        "step": "1-2",
+        "text": "Let parent be node's parent",
+        "last": "If parent is null, then throw an \"InvalidNodeTypeError\""
+      },
+      {
+        "alg": "dom-range-selectnodecontents",
+        "step": "1",
+        "text": "If node is a doctype, then throw an"
+      },
+      {
+        "alg": "dom-range-setstartbefore",
+        "step": "1-2",
+        "text": "Let parent be node's parent",
+        "last": "If parent is null, then throw an \"InvalidNodeTypeError\""
+      },
+      {
+        "alg": "dom-range-setendafter",
+        "step": "1-2",
+        "text": "Let parent be node's parent",
+        "last": "If parent is null, then throw an \"InvalidNodeTypeError\""
+      }
     ],
-    "steps": "selectNode 1-2 / selectNodeContents 1 / setStartBefore 1-2 / setEndAfter 1-2",
     "note": "parent の無い node は boundary point を決められないので、selectNode・setStartBefore・setEndAfter はどれも InvalidNodeTypeError になる（それぞれ step 2）。doctype を selectNodeContents するのも同じ（step 1）。Dommy にはこの検査が無く、いまは不一致になる（docs/status.md の findings 6）。"
   },
   "nodes": [

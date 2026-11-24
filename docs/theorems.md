@@ -751,7 +751,7 @@ theorem walkerNextNode_result_sound (hwf : WellFormed t) (hw : ValidWalker t w) 
     WalkerNextNodeResult t w (walkerNextNode t w)
 ```
 
-関係は §4.2 の tree order を、列を使わない構造的な条件 `PrecedesStruct`（ancestor であるか、共通の parent の下で
+関係は §1.1 の tree order を、列を使わない構造的な条件 `PrecedesStruct`（ancestor であるか、共通の parent の下で
 index の小さい子の側にいる）で書く。`TreeOrderList t r l` は `r` の inclusive descendant をその順に並べた列で、
 `preorder` がそれであり、列は一つしかない。
 
@@ -1108,7 +1108,7 @@ clone に append する（`SubContents`）。実行関数も同じ順に走り�
 し終えた空の subfragment を状態から消す（`discardCreated`）。だから二つの soundness は、`surroundContents()` と同じく、
 成功の状態が関係の状態からそれを消したものであると述べる。
 `contentsInto_sound` は、木にあった node が kind ごと残り（`Keeps`）、live range の数が変わらない（`LenKeep`）ことを、
-部品で閉じた性質として運ぶ。step 19 で last partially contained child を扱うときにそれが木にあって Document でないこと、
+部品で閉じた性質として運ぶ。step 19-20 で last partially contained child を扱うときにそれが木にあって Document でないこと、
 `surroundContents()` の step 5・7 で `this` がまだあることは、この二つから出る。
 
 node を作る関係（split、extract、clone the contents）は、作る node の id を決めない。だから本文どおりの関係の一意性と

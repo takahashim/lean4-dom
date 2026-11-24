@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "insertNode"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node, then set referenceNode to the"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "13",
+        "text": "If range is collapsed, then set range's end"
+      }
     ],
-    "steps": "insertNode 7, 13",
     "note": "start node が Text で、start offset がその data の末尾。step 7 は Text を split し（新しい Text は空）、node を split の継ぎ目に入れ、collapsed な range の end を入れた node の後ろへ広げる。"
   },
   "nodes": [

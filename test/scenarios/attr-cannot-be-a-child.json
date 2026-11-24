@@ -1,12 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity",
-    "algorithm": [
-      "ensure pre-insertion validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "4",
+        "text": "If node is not a DocumentFragment, DocumentType, Element,"
+      }
     ],
-    "steps": "step 4：node が DocumentFragment・DocumentType・Element・CharacterData でなければ HierarchyRequestError",
-    "note": "Attr を子として入れようとする。"
+    "note": "step 4：node が DocumentFragment・DocumentType・Element・CharacterData でなければ HierarchyRequestError。Attr を子として入れようとする。"
   },
   "nodes": [
     {

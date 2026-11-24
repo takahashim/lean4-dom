@@ -1,10 +1,17 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-clone",
-    "algorithm": ["clone a single node", "importNode(node, options)"],
-    "steps": "clone a single node の step 3「それ以外は node と同じ interface を実装する node を作る」",
-    "note": "copy は原本と同じ interface でなければならない。ProcessingInstruction を import したら ProcessingInstruction が返る。Comment と並べてあるのは、片方だけ通る実装を切り分けるためである。"
+    "refs": [
+      {
+        "alg": "clone-a-single-node",
+        "step": "4",
+        "text": "Otherwise, set copy to the result of creating"
+      },
+      {
+        "alg": "dom-document-importnode"
+      }
+    ],
+    "note": "clone a single node の step 4「それ以外は node と同じ interface を実装する node を作る」。copy は原本と同じ interface でなければならない。ProcessingInstruction を import したら ProcessingInstruction が返る。Comment と並べてあるのは、片方だけ通る実装を切り分けるためである。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

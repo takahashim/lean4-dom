@@ -120,7 +120,7 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
         (hobs.tree.wellFormed hwf) hodx
       have hobsa : ObsEq sa o₁ :=
         adoptSpec_congr hwf hobs ha (adopt_sound (hobs.tree.wellFormed hwf) ho₁)
-      -- step 7.2：insertAt の四つの前提
+      -- step 7.2-7.3：insertAt の四つの前提
       have hkp : ShapePreserving sx.tree o₁.tree := shapePreserving_adopt ho₁
       have hpdx : sx.tree.get? parent = some pd := by rw [hobs.tree]; exact hpd
       obtain ⟨pd₁, hpd₁⟩ := exists_get?_of_kindPreserving hkp hpdx
@@ -155,7 +155,7 @@ theorem insertEach_complete {parent : NodeId} {child : Option NodeId} {doc : Nod
           | Except.error e => Except.error e
           | Except.ok t => Except.ok (o₁.withTree t)) = _
         rw [hins]
-      -- step 7.3：結果は観測が等しい
+      -- step 7.2-7.3：結果は観測が等しい
       obtain ⟨o₂, ho₂⟩ : ∃ o₂ : DOMState,
           o₂ = o₁.withTree (insertAtIn o₁.tree parent n child pd₁ nd₁) := ⟨_, rfl⟩
       have hins₂ : TreeInserted o₁.tree o₂.tree parent n child :=
@@ -499,7 +499,7 @@ theorem replace_complete {s s' : DOMState} {child node parent : NodeId}
 /--
 **`move` は関係を満たす状態があるなら成功する。**
 
-落ちうるのは step 9-10, 13 の `detach` と step 18-21 の `insertAt` の二箇所である。
+落ちうるのは step 9-10, 13 の `detach` と step 20-21 の `insertAt` の二箇所である。
 前者は「`node` に parent がある」から出る（関係の step 7-8 が言っている）。
 後者の四つの前提のうち三つは step 1-6 の validity から、
 **`child` が新しい parent の子であること**は関係の `TreeInserted.childIsChild` から出る。
@@ -530,7 +530,7 @@ theorem move_isOk_of_spec {s s' : DOMState} {node newParent : NodeId} {child : O
   have htr : TreeRemoved s.tree s₁.tree node oldParent := hmd.2.2.1
   have hwf₁ : WellFormed s₁.tree := treeRemoved_wellFormed hwf hp htr
   have hwfe₁ : WellFormed e₁.tree := hobs₁.tree.wellFormed hwf₁
-  -- step 18-21：`insertAt` の四つの前提
+  -- step 20-21：`insertAt` の四つの前提
   obtain ⟨pd₁, hpd₁⟩ : ∃ pd₁, e₁.tree.get? newParent = some pd₁ := by
     have h1 := htr.sameNodes newParent
     rw [hpd] at h1

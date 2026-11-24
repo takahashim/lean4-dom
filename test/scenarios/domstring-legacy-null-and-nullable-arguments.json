@@ -1,16 +1,32 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "CharacterData data",
-      "setAttributeNS",
-      "createElementNS",
-      "Attr value",
-      "Attr nodeValue"
+    "refs": [
+      {
+        "alg": "dom-characterdata-data"
+      },
+      {
+        "alg": "dom-element-setattributens"
+      },
+      {
+        "alg": "dom-document-createelementns"
+      },
+      {
+        "alg": "dom-attr-value/setter"
+      },
+      {
+        "alg": "dom-node-nodevalue/setter"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-DOMString"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-nullable"
+      }
     ],
-    "steps": "WebIDL の DOMString?・[LegacyNullToEmptyString] DOMString への変換",
-    "note": "CharacterData の data の setter は [LegacyNullToEmptyString] なので null は空文字列になる。appendData の引数はただの DOMString なので null は \"null\" になる。DOMString? の引数（namespace、prefix）は null のまま、ほかの値は ToString する。Attr の value は DOMString なので null は \"null\"、nodeValue と textContent は DOMString? で、Attr の setter は null を空文字列として扱う。"
+    "note": "WebIDL の DOMString?・[LegacyNullToEmptyString] DOMString への変換。CharacterData の data の setter は [LegacyNullToEmptyString] なので null は空文字列になる。appendData の引数はただの DOMString なので null は \"null\" になる。DOMString? の引数（namespace、prefix）は null のまま、ほかの値は ToString する。Attr の value は DOMString なので null は \"null\"、nodeValue と textContent は DOMString? で、Attr の setter は null を空文字列として扱う。"
   },
   "nodes": [
     {

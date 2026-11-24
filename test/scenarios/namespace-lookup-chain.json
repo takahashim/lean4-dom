@@ -1,13 +1,23 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "locate a namespace",
-      "lookupNamespaceURI",
-      "isDefaultNamespace"
+    "refs": [
+      {
+        "alg": "locate-a-namespace",
+        "step": "1-6",
+        "text": "If prefix is \"xml\", then return the XML",
+        "last": "Return the result of running locate a namespace"
+      },
+      {
+        "alg": "dom-node-lookupnamespaceuri",
+        "step": "1-2",
+        "text": "If prefix is the empty string, then set",
+        "last": "Return the result of running locate a namespace"
+      },
+      {
+        "alg": "dom-node-isdefaultnamespace"
+      }
     ],
-    "steps": "locate a namespace（Element 1-6 / Document 1-2）/ lookupNamespaceURI 1-2",
     "note": "prefix は親 element へ遡って解決する。`xml` と `xmlns` は木を見ずに決まる（step 1-2）。element 自身の namespace の一致（step 3）は xmlns 属性（step 4）より先に見るので、既定 namespace の属性があっても element の namespace が勝つ。xmlns 属性の値が空文字列なら、そこで止まって null を返す。"
   },
   "nodes": [

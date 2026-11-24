@@ -2,7 +2,9 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#grammar",
-    "algorithm": [":has()"],
+    "algorithm": [
+      ":has()"
+    ],
     "steps": "<relative-selector> = <combinator>? <complex-selector>。combinator は省略できるが complex selector は要る",
     "note": "`:has(>)` は combinator だけなので通らない。"
   },

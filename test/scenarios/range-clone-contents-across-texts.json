@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "clone the contents"
+    "refs": [
+      {
+        "alg": "concept-range-clone",
+        "step": "4-17",
+        "text": "If originalStartNode is originalEndNode and it is a",
+        "last": "Return fragment"
+      }
     ],
-    "steps": "clone the contents 4-21",
     "note": "両端が別の Text にある range。両端の Text の残りを clone して fragment に入れ、間の node を subtree ごと clone して fragment に入れ、木と range は変えない。もう一つの live range が parent の offset 4 にある。"
   },
   "nodes": [

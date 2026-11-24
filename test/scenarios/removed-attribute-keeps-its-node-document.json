@@ -1,13 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-element-attributes-remove",
-    "algorithm": [
-      "remove an attribute",
-      "removeAttributeNode(attr)"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-remove"
+      },
+      {
+        "alg": "dom-element-removeattributenode"
+      }
     ],
-    "steps": "remove an attribute は attribute の element を null にするだけで、node document は変えない",
-    "note": "parser や setAttribute で付いた attribute を外しても、node document は element の document のままである。"
+    "note": "remove an attribute は attribute の element を null にするだけで、node document は変えない。parser や setAttribute で付いた attribute を外しても、node document は element の document のままである。"
   },
   "nodes": [
     {

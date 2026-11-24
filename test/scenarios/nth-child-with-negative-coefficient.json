@@ -2,7 +2,9 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/css-syntax-3/#anb-microsyntax",
-    "algorithm": ["<a-n-plus-b>"],
+    "algorithm": [
+      "<a-n-plus-b>"
+    ],
     "steps": "index i = An + B for any non-negative integer n",
     "note": "n が非負に限るので、A が負なら表す index は有限個になる。:nth-child(-n+2) は先頭の二つを指す。Dom/Spec/Selector.lean の anbMatches_iff がこれを定理にしてある。"
   },

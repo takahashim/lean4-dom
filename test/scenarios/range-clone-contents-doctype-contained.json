@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "clone the contents"
+    "refs": [
+      {
+        "alg": "concept-range-clone",
+        "step": "11",
+        "text": "If any member of containedChildren is a doctype,"
+      }
     ],
-    "steps": "clone the contents 11",
     "note": "contained child に doctype がある。木を変える前に HierarchyRequestError を投げる。"
   },
   "nodes": [

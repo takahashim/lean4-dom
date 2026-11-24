@@ -200,7 +200,7 @@ theorem invokeOne_canceled_of_not_cancelable (s : DOMState) (e : EventState) (l 
 **選別条件に合う listener が一つも無ければ、`innerInvoke` は何もしない。**
 
 capture 周では capture listener だけ、bubble 周では非 capture listener だけを呼ぶ
-（invoke の step 2.3-2.4）。`removed` と `type` の検査も同じ形である。
+（inner invoke の step 2.3-2.4）。`removed` と `type` の検査も同じ形である。
 -/
 theorem innerInvoke_skip (capturing : Bool) (cur : NodeId) :
     ∀ (idxs : List Nat) (s : DOMState) (e : EventState) (log : List Invocation),
@@ -286,7 +286,7 @@ theorem runPass_not_canceled (capturing : Bool) (target : NodeId) :
     · obtain ⟨hc2, he2⟩ := invokeItem_not_canceled s e log capturing item (item == target) hc he
       exact runPass_not_canceled capturing target rest _ _ _ hc2 he2
 
-/-- **`cancelable` が false なら `dispatchEvent` は必ず true を返す（§2.4）。** -/
+/-- **`cancelable` が false なら `dispatchEvent` は必ず true を返す（§2.2）。** -/
 theorem dispatchEvent_not_cancelable (s : DOMState) (target : NodeId) (ty : String)
     (bubbles : Bool) {s' : DOMState} {r : Bool} {log : List Invocation}
     (h : dispatchEvent s target ty bubbles false = .ok (s', r, log)) : r = true := by
@@ -304,7 +304,7 @@ theorem dispatchEvent_not_cancelable (s : DOMState) (target : NodeId) (ty : Stri
 
 /-! ## `once` -/
 
-/-- **`once` の listener は呼ぶ前に外される（invoke の step 2.5）。** -/
+/-- **`once` の listener は呼ぶ前に外される（inner invoke の step 2.5）。** -/
 theorem invokeOne_once (s : DOMState) (e : EventState) (l : EventListener) (i : Nat)
     (h : l.once = true) :
     (invokeOne s e l i).1 =
@@ -312,7 +312,7 @@ theorem invokeOne_once (s : DOMState) (e : EventState) (l : EventListener) (i : 
   unfold invokeOne; rw [if_pos h]
 
 /--
-**passive な listener の `preventDefault()` は canceled flag を立てない（invoke の step 2.11、
+**passive な listener の `preventDefault()` は canceled flag を立てない（inner invoke の step 2.11、
 "set the canceled flag"）。** 呼んだ後の in passive listener flag は落ちている（step 2.14）。
 -/
 theorem invokeOne_passive_preventDefault (s : DOMState) (e : EventState) (l : EventListener) (i : Nat)

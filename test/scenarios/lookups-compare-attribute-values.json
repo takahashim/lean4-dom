@@ -1,14 +1,23 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-getelementsbyclassname",
+    "refs": [
+      {
+        "alg": "get-an-element-by-id"
+      },
+      {
+        "alg": "dom-document-getelementsbyclassname"
+      },
+      {
+        "alg": "dom-element-getelementsbyclassname"
+      }
+    ],
+    "spec": "https://html.spec.whatwg.org/multipage/dom.html#dom-document-getelementsbyname",
     "algorithm": [
-      "get an element by ID",
-      "list of elements with class names",
       "getElementsByName"
     ],
-    "steps": "getElementById は descendant のうち ID が一致する最初の element（空の id は ID にならない）。getElementsByClassName は ordered set parser で読んだ class をすべて持つ descendant（空なら空）。getElementsByName は name attribute（namespace 無し）の値が一致する element。受け手の種別が違えば TypeError",
-    "note": "Document と DocumentFragment に getElementById、Document と Element に getElementsByClassName、Document に getElementsByName がある。"
+    "steps": "getElementsByName は name attribute（namespace 無し）の値が一致する element",
+    "note": "getElementById は descendant のうち ID が一致する最初の element（空の id は ID にならない）。getElementsByClassName は ordered set parser で読んだ class をすべて持つ descendant（空なら空）。受け手の種別が違えば TypeError。Document と DocumentFragment に getElementById、Document と Element に getElementsByClassName、Document に getElementsByName がある。"
   },
   "nodes": [
     {

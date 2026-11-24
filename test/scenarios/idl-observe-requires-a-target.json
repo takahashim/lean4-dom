@@ -1,12 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/webidl/blob/8c65329114411ebd3af025106c2267f5bc00faeb/index.bs",
-    "algorithm": [
-      "overload resolution algorithm"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "dfn-overload-resolution-algorithm"
+      }
     ],
-    "steps": "overload resolution algorithm（引数の個数）",
-    "note": "必須の引数が足りない呼び出しは、overload resolution で TypeError になる。method steps に入らないので状態は変わらない。"
+    "note": "overload resolution algorithm（引数の個数）。必須の引数が足りない呼び出しは、overload resolution で TypeError になる。method steps に入らないので状態は変わらない。"
   },
   "nodes": [
     {

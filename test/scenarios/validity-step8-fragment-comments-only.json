@@ -2,11 +2,13 @@
   "_note": "element の子を持たない fragment は step 8 でそのまま通る。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "ensure pre-insert validity"
+    "refs": [
+      {
+        "alg": "concept-node-ensure-pre-insertion-validity",
+        "step": "8",
+        "text": "If node is a DocumentFragment node"
+      }
     ],
-    "steps": "8",
     "note": "fragment に element の子が無ければ、parent 側の検査は走らない。"
   },
   "nodes": [

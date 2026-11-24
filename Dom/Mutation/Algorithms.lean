@@ -178,7 +178,7 @@ DOM Standard §4.2.3 "remove"。
 
 step 1-2 は parent が非 null であることの assert なので、model では
 parent が無ければ `notFoundError` を返す。
-step 11 と 14.1 の removing steps は他仕様のための拡張点なので扱わない。
+step 13 と 14.2 の removing steps は他仕様のための拡張点なので扱わない。
 -/
 def remove (s : DOMState) (node : NodeId) (suppressObservers : Bool := false) :
     Except DOMException DOMState :=

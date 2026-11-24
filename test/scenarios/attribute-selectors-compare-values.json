@@ -2,7 +2,15 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#attribute-selectors",
-    "algorithm": ["[attr]", "[attr=value]", "[attr~=value]", "[attr|=value]", "[attr^=value]", "[attr$=value]", "[attr*=value]"],
+    "algorithm": [
+      "[attr]",
+      "[attr=value]",
+      "[attr~=value]",
+      "[attr|=value]",
+      "[attr^=value]",
+      "[attr$=value]",
+      "[attr*=value]"
+    ],
     "steps": "六つの演算子と i / s flag",
     "note": "空の値を取る ^= $= *= はどれにも当たらない。"
   },

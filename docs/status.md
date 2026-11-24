@@ -7217,6 +7217,111 @@ model の定義と関係は変えず、表と snapshot だけを直した。
 `docs/traceability.md` の "WHATWG steps" の列と、番号付きの箇条で step を書いた docstring も同じく直した。
 定理の名前 `replaceAll_acyc_step5` は旧い番号（今の step 6）のまま残した。
 
+## DOM と Web IDL の固定版を上げた（2026-11-19）
+
+週次の `spec-drift.yml` がまた失敗したので、DOM を `6cc2415`（2026-11-04）から `e4f4f4f`（2026-11-15）に、
+Web IDL を `e340c2e`（2026-11-07）から `54a5f2d`（2026-11-14）に上げた。model の定義と関係は変えず、表・snapshot・
+コメントの step 番号を直した。
+
+* DOM `0a3d3eb` は、custom element の callback を積む step を insertion steps・removing steps・moving steps より前に
+  移した。insert の step 7.7 は「connected でなければ continue」を custom element の二つの分岐（7.7.1・7.7.2）の条件に
+  畳み、insertion steps を最後の 7.7.3 にした。remove は `isParentConnected`（step 11）と `disconnectedCallback`
+  （step 12、descendant は 14.1）の後に removing steps（step 13、descendant は 14.2）を走らせる。move は
+  `connectedMoveCallback`（step 25.2）の後に moving steps（step 25.3）を走らせる。model はどれも扱わない
+  （custom element は対象外、三つの steps は hook として除外）ので、表の番号だけを直した。
+* DOM `561f36e` は、ProcessingInstruction の data を直接書いたときにも "update attributes from data" を呼ぶようにした。
+  clone a single node の PI の分岐は step 5.4（target と data を写す）・5.5（update attributes from data）になり、
+  range の extract と clone the contents が CharacterData の一部を写す所は新しい algorithm
+  "clone part of a CharacterData node"（§5.6）にまとめられた。model には PI の attribute map が無いので
+  （replace data の step 12 と同じ）、step 5.5 と新しい algorithm の step 3 を除外し、新しい algorithm の残りの
+  step は `dataPart`・`appendDataClone` の実装として表に載せた。extract の step 4.2-4.4・16.2-16.3・19.2-19.3、
+  clone the contents の step 4.2-4.3・12.2・15.2 は一つずつ繰り上がった。
+* DOM `3e656a5` は PI の `removeAttribute()` の先頭に「無ければ return」を足した（対象外の algorithm）。
+  `5fc66f9` は element の ID を `id` attribute から導く定義にし、ID を保つ attribute change steps を消した。
+  model の `HasId`（namespace の無い `id` attribute の空でない値）はもともとこの定義なので、変わらない。
+  `e4f4f4f` は `getElementsByClassName()` の filter の文言を直した（意味は同じ）。
+* Web IDL は editorial な commit だけで、表に載せた ConvertToInt の step 7 と create an operation function の
+  step 4（"argument list" → "type list"）は文言が変わっただけである。
+
+### step 番号と節番号の二度目の見直し
+
+前回の見直しは `test/scenarios/` の `_basis` を対象に入れておらず、番号付きの箇条や表の列も拾い切れていなかった。
+今回は `Dom/`・`Trace/`・`docs/`・`test/`（scenario を含む）・`Audit.lean` の step 番号と節番号（約 2,800 件）を、
+この版の snapshot と突き合わせた。直したのは百三十ほどである。
+
+* **scenario の `_basis`**（約 50 件、40 本）：前回の見直しの対象外だった。queue a mutation record の条件（2.3 → 3.2）、
+  remove の transient と record（20-21 → 15-16）、dispatch の event path と二つの周（5・12-13 → 6・6.13-6.14）、
+  deleteContents（一つずつ繰り下がる）、ensure pre-insert validity の element と fragment の場合（6 → 9・8.1）、
+  clone a single node（attribute の clone は 2.5、Attr の節は 5、それ以外の node は 4）など。clone the contents の
+  scenario は extract の番号（21 まで）を使っていたので、clone the contents の番号（17 まで）にした。
+* **節番号**：木の語彙（parent、children、ancestor、descendant、sibling、root、tree order）は §4.2 ではなく §1.1 Trees、
+  node の length は §4.2、parent element は §4.9、descendant text content は §4.11、list of elements with qualified name
+  （namespace and local name）は §4.4、`MutationObserver` の method は §4.3.1、`NamedNodeMap` の method は §4.9.1、
+  create an attribute と set an existing attribute value は §4.9.2、`previousElementSibling`・`nextElementSibling` は
+  §4.2.7、"validate and extract" は §1.4。
+* **step 番号**：invoke と書いていた inner invoke の step（2.3-2.5、2.11）、adopt の step を `adoptNode()` の表に
+  書いていたもの、`lookupPrefix` と `lookupNamespaceURI` の step 1（呼んだ先の locate a namespace (prefix) の step 1）、
+  `docs/traceability.md` の traverse（1-5）・filter（2-4）・toggle（1-5）、move の `insertAt`（step 20-21）、
+  range の insert の `referenceNode`（step 3-7）、remove an attribute の handle attribute changes（step 4）。
+
+番号だけでは直らなかったものは、文を直した。
+
+* 番号の付いていない algorithm を番号で指していた行：`append`（一文の algorithm）、normalize の「descendant を辿る」
+  （step 1 ではなく前文）、`collapse()`（一文の method steps）。
+* observe の step を `observe 3, 6, 7`・`observe 5, 7` と書いていた scenario の 2 本は、操作が通る step 3（options の検査）・
+  7（既存の registration を探す）・9（新しい registration を足す）にした。
+* `iterator-adjust-on-remove`・`iterator-adjust-pointer-before` は、NodeIterator pre-remove steps の step 1 が呼ぶ
+  adjust a node pointer の step（3-4、2）であることを書いた。
+* `transient-observer-chains-through-removals` の `_note` は、「node 1 の transient を source として node 2 に transient
+  が付く」と書いていた。これは whatwg/dom 3071e5f より前の読みで、現行の add transient registered observers は parent の
+  側の transient も辿るが、新しい transient の source は元の registered observer にする（step 1.3）。それに合わせて書き直した。
+* 証明の段階の名前で、insert の step 7.3 と書いていたもの（`insertAt` は step 7.2-7.3、残りの node への進みは step 7）。
+* `Dom/Properties/Witness.lean` の「§15」は `docs/theorems.md` の §15 のことだったので、そう書いた。
+
+scenario の `_basis.spec` の URL は、DOM・Web IDL・ECMA-262 とも固定版の commit にそろえた（どの scenario の step も
+この版で確かめた）。HTML の 4 本は HTML を固定していないので、そのままにした。
+
+### scenario の `_basis` を検査できる形にした
+
+二度の見直しで一番ずれていたのは scenario の `_basis` だった。`steps` が自由な文字列で、版を上げても誰も検査しないので、
+古い番号が残る。そこで、固定した仕様（DOM・Web IDL・ECMA-262）の参照を `_basis.refs` に、snapshot の key・step 番号・
+step の本文の冒頭の組で書き（`test/README.md` の「`_basis`」）、CI で `spec-trace/basis.rb` が検査するようにした。
+
+* 本文の冒頭を番号と一緒に書くので、読めば何の step か分かる。改番されると冒頭が合わなくなって CI が落ち、
+  `ruby spec-trace/basis.rb --fix` が同じ冒頭の step を探して番号を付け直す。本文が変わった step は付け直さずに挙げる。
+  `a2331a4` の snapshot に当てて試すと、改番だけの 6 件を付け直し、transient registered observer の書き直しで
+  本文が変わった step と、当時は無かった algorithm を挙げた。
+* `_basis.spec` の URL は、固定していない仕様（HTML、Selectors、CSS Syntax）にだけ書く。固定した仕様の版は
+  `docs/spec-version.md` の一か所で決まるので、版を上げるたびに URL を書き換えることはなくなった。
+* `_note` と `_basis.note` の「step N」は、どれかの ref の範囲に入らなければならない。注記だけが古い番号のまま
+  残ることを防ぐ。scenario の操作の番号は「操作 N」と書く。
+* 冒頭の検査は、step の本文の後半が変わっても通る。本文の変化は週次の `drift.rb` が hash で見つけるが
+  （ref 621 件のうち step を指すものはどれも対応表の algorithm の step）、どの scenario がその step を根拠にしたかは
+  出ない。そこで `ruby spec-trace/basis.rb --since <古い版の commit>` を足し、古い版と新しい版の snapshot を本文の
+  hash で比べて、根拠の step（範囲の中と下の step を含む）が変わった scenario を挙げるようにした。
+  `ed7dbc5`（DOM `6cc2415`）と比べると、今回の版上げで変わった step（clone part の step 4.1・12.1・15.1、insert の
+  step 7.7.1-7.7.2、clone a single node の step 5 とその下）を引く 22 本を挙げた。
+
+308 本の変換は、今の `algorithm`・`steps` の名前を snapshot の key にする作業で、番号は監査で確かめたものをそのまま
+写した。`steps` にあった説明の文（77 本）は `note` に移した。変換の途中で、`replacewith-bypasses-validity` の注記の
+誤りが見つかった（document が parent の祖先なので、step 4 ではなく step 2 で HierarchyRequestError になる）。
+
+見直しで、検査の穴が三つ見つかって塞いだ。
+
+* 冒頭が同じ algorithm の別の step にも合う ref が 27 件あった（live range の調整の start と end の組、
+  「Otherwise」、insert の step 3 と 7 など）。このままでは、改番で番号が別の step にずれても冒頭が合って通る。
+  冒頭は同じ親を持つ step の中で一つに決まらなければならないことにし、本文全体が冒頭と同じ step を優先して
+  選ぶようにした（「Otherwise:」と「Otherwise, if …:」を区別するため）。合わなくなった 7 種類（13 本）の冒頭は
+  `--fill` で伸ばした。
+* `steps` から `note` に移した説明の文のうち 15 本は、番号を「set an attribute 2 … / 3 …」の形で書いていて、
+  「step N」しか拾わない注記の検査に掛かっていなかった。`idl-nullable-node-arguments-accept-null` の
+  「contains 1 / isEqualNode 1」は、番号付きの step の無い algorithm を指していた。15 本を「step N」の形に
+  書き直し、注記の頭の番号と「 / 」の前後の番号を error にした。
+* ref の key の打ち間違い（`steps`）が algorithm 全体の ref として通っていた。未知の key を error にした。
+
+あわせて、`--since` に symlink を通った path を渡すと古い版の scenario が読めずに黙って比べ漏れる所を直し、
+ref が読めなかった scenario では注記の検査を飛ばすようにした（同じ原因の error が重なるだけなので）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。

@@ -71,7 +71,7 @@ namespace MutationObserver
 
 
 /--
-DOM Standard §4.3 `MutationObserver.observe(target, options)` の step 3-6。
+DOM Standard §4.3.1 `MutationObserver.observe(target, options)` の step 3-6。
 
 解決後（step 1-2 の後）の options を検査する。本文はここで "throw a TypeError" と書くので、
 `DOMException` ではなく WebIDL の simple exception（`IdlException.typeError`）を返す。
@@ -90,7 +90,7 @@ def observeOptionsError (opts₀ : MutationObserverInit) : Option IdlException :
   else none
 
 /--
-DOM Standard §4.3 `MutationObserver.observe(target, options)` の step 1-2 と step 7-9。
+DOM Standard §4.3.1 `MutationObserver.observe(target, options)` の step 1-2 と step 7-9。
 
 options を解決して registered observer を足すか差し替える。step 3-6 の検査は含まない。
 検査を含めた method 全体は `observeMethod` である。
@@ -127,7 +127,7 @@ def observe (s : DOMState) (mo : Nat) (target : NodeId) (opts₀ : MutationObser
                 | some o => s.observers.set mo { o with nodeList := o.nodeList ++ [target] } }
 
 /--
-DOM Standard §4.3 `MutationObserver.observe(target, options)` の method steps 全体。
+DOM Standard §4.3.1 `MutationObserver.observe(target, options)` の method steps 全体。
 
 step 3-6 の TypeError は四通りある。
 
@@ -146,7 +146,7 @@ def observeMethod (s : DOMState) (mo : Nat) (target : NodeId) (opts : MutationOb
   | none => liftDom (observe s mo target opts)
 
 /--
-DOM Standard §4.3 `MutationObserver.disconnect()`。
+DOM Standard §4.3.1 `MutationObserver.disconnect()`。
 
 step 1-2 はこの observer の registered observer を全部外す（model の node list は本文の node list と
 transient node set を合わせたもの）。step 3 で node list を、step 4 で record queue を空にする。
@@ -158,7 +158,7 @@ def disconnect (s : DOMState) (mo : Nat) : DOMState :=
         | none => s.observers
         | some o => s.observers.set mo { o with nodeList := [], records := [] } }
 
-/-- DOM Standard §4.3 `MutationObserver.takeRecords()`。 -/
+/-- DOM Standard §4.3.1 `MutationObserver.takeRecords()`。 -/
 def takeRecords (s : DOMState) (mo : Nat) : DOMState × List MutationRecord :=
   match s.observers[mo]? with
   | none => (s, [])

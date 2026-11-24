@@ -427,7 +427,7 @@ theorem getAttributeNodeNS_spec (t : Tree) {e : NodeId} {d : NodeData} (he : t.g
     ∃ a, AttrByKey d ns ln a ∧ getAttributeNodeNS t e ns ln = .ok (a.map (·.id)) :=
   ⟨_, getAttributeByKey_spec d ns ln, by unfold getAttributeNodeNS requireElement; simp [he, hk]⟩
 
-/-- §4.9 `removeNamedItemNS(namespace, localName)`。 -/
+/-- §4.9.1 `removeNamedItemNS(namespace, localName)`。 -/
 def RemoveNamedItemNSResult (s : DOMState) (element : NodeId) (ns : Option String) (ln : String) :
     Except DOMException (AttrId × DOMState) → Prop
   | .error e => ReceiverError s element e ∨ ∃ d, IsElementData s element d ∧

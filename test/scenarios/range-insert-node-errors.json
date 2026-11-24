@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "insertNode"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "1",
+        "text": "If range's start node is a ProcessingInstruction or"
+      },
+      {
+        "alg": "concept-node-pre-insert",
+        "step": "1",
+        "text": "Ensure pre-insert validity given node, parent, child, and"
+      }
     ],
-    "steps": "insertNode 1",
     "note": "start node が Comment なら HierarchyRequestError（step 1）。Dommy はこの検査を持たないが、Comment に子を入れようとして pre-insert の step 1 で同じ例外になる。"
   },
   "nodes": [

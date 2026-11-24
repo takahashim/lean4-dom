@@ -1,12 +1,21 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "insert",
-      "split a Text node"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "7",
+        "text": "If range's start node is a Text node, then set referenceNode to the"
+      },
+      {
+        "alg": "concept-range-insert",
+        "step": "9",
+        "text": "If node's parent is non-null, then remove node"
+      },
+      {
+        "alg": "concept-text-split"
+      }
     ],
-    "steps": "insert 7, 9",
     "note": "collapsed でない range の start が Text の中。木の別の場所にある Comment を split の継ぎ目へ移す。"
   },
   "nodes": [

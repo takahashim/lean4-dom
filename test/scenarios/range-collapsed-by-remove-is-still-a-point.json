@@ -1,10 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-live-range-pre-remove-steps",
-    "algorithm": ["live range pre-remove steps", "insertNode(node)", "stringifier"],
-    "steps": "外す node の inclusive descendant を指していた端点は、(parent, index) へ移る",
-    "note": "始点と終点が同じ位置に潰れても range は生きている。何も選んでいない（toString が空）が、位置は指しているので、そこへ insertNode すると外した node が在った場所に入る。"
+    "refs": [
+      {
+        "alg": "live-range-pre-remove-steps"
+      },
+      {
+        "alg": "dom-range-insertnode"
+      },
+      {
+        "alg": "dom-range-stringifier"
+      }
+    ],
+    "note": "外す node の inclusive descendant を指していた端点は、(parent, index) へ移る。始点と終点が同じ位置に潰れても range は生きている。何も選んでいない（toString が空）が、位置は指しているので、そこへ insertNode すると外した node が在った場所に入る。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

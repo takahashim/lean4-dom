@@ -1,12 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "equals",
-      "isEqualNode"
+    "refs": [
+      {
+        "alg": "concept-node-equals"
+      },
+      {
+        "alg": "dom-node-isequalnode"
+      }
     ],
-    "steps": "equals",
     "note": "attribute の比較は順序非依存で、しかも **prefix を見ない**（namespace・local name・value だけ）。子は index ごとに順序どおり一致しなければならない。"
   },
   "nodes": [

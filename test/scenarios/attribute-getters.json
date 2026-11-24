@@ -1,13 +1,20 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "getAttribute",
-      "hasAttribute",
-      "getAttributeNames"
+    "refs": [
+      {
+        "alg": "dom-element-getattribute",
+        "step": "1-2",
+        "text": "Let attr be the result of getting an",
+        "last": "If attr is null, return null"
+      },
+      {
+        "alg": "dom-element-hasattribute"
+      },
+      {
+        "alg": "dom-element-getattributenames"
+      }
     ],
-    "steps": "getAttribute 1-2 / hasAttribute / getAttributeNames",
     "note": "HTML document の HTML element では qualified name を ASCII lowercase してから探す。getAttributeNames は attribute list の順に qualified name を返す。"
   },
   "nodes": [

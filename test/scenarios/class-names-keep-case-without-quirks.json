@@ -1,13 +1,17 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-document-mode",
+    "refs": [
+      {
+        "alg": "dom-document-getelementsbyclassname"
+      }
+    ],
+    "spec": "https://drafts.csswg.org/selectors-4/#match-a-selector-against-an-element",
     "algorithm": [
-      "list of elements with class names",
       "match a selector against an element"
     ],
-    "steps": "document の mode は作られたときに決まり、既定は no-quirks。doctype を外しても変わらない。no-quirks の文書では class を identical に比べる",
-    "note": "harness は document の子（doctype を含む）を外してから木を組む。jsdom はそこで mode を quirks に変え、class を ASCII case-insensitive に比べてしまう。findings 46。"
+    "steps": "no-quirks の文書では class を identical に比べる",
+    "note": "document の mode は作られたときに決まり、既定は no-quirks。doctype を外しても変わらない。harness は document の子（doctype を含む）を外してから木を組む。jsdom はそこで mode を quirks に変え、class を ASCII case-insensitive に比べてしまう。findings 46。"
   },
   "nodes": [
     {

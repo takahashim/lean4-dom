@@ -1,12 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "normalize"
+    "refs": [
+      {
+        "alg": "dom-node-normalize",
+        "step": "1-7",
+        "text": "Let length be node's length",
+        "last": "Remove node's contiguous exclusive Text nodes (excluding itself),"
+      }
     ],
-    "steps": "normalize 1",
-    "note": "normalize() は Node の method なので Document でも呼べる。Dommy は Element と DocumentFragment にしか置いていないので、この scenario は capability の印として残す。"
+    "note": "normalize の前文（descendant exclusive Text node ごとに step 1-7）。normalize() は Node の method なので Document でも呼べる。Dommy は Element と DocumentFragment にしか置いていないので、この scenario は capability の印として残す。"
   },
   "nodes": [
     {

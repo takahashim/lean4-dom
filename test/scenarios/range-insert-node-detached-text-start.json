@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "insertNode"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "1",
+        "text": "If range's start node is a ProcessingInstruction or"
+      }
     ],
-    "steps": "insertNode 1",
     "note": "parent の無い Text が start node なら、入れる先が決まらないので HierarchyRequestError（step 1）。Dommy はこの検査を持たず、黙って何もしない（docs/status.md の findings 8）。"
   },
   "nodes": [

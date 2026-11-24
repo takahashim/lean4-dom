@@ -1,11 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "substringData"
+    "refs": [
+      {
+        "alg": "dom-characterdata-substringdata"
+      },
+      {
+        "spec": "ecma262",
+        "alg": "sec-stringtonumber"
+      }
     ],
-    "steps": "ECMAScript StringToNumber",
     "note": "StringToNumber は StringNumericLiteral の文法で読む。0b・0o・0x の整数（符号は付けられない）、小数点の前後のどちらかが空の小数、指数を受ける。数字の区切りの _ は無い。空白は Unicode の Zs と BOM と改行も含む。読めなければ NaN で、ConvertToInt は 0 にする。"
   },
   "nodes": [

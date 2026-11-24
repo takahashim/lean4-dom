@@ -1,15 +1,35 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "traverse children",
-      "firstChild",
-      "lastChild",
-      "nextNode",
-      "previousNode"
+    "refs": [
+      {
+        "alg": "concept-traverse-children",
+        "step": "3.4.4",
+        "text": "If parent is null, walker's root, or walker's"
+      },
+      {
+        "alg": "dom-treewalker-firstchild"
+      },
+      {
+        "alg": "dom-treewalker-lastchild"
+      },
+      {
+        "alg": "dom-treewalker-nextnode",
+        "step": "3.4.1",
+        "text": "If temporary is this's root, then return null"
+      },
+      {
+        "alg": "dom-treewalker-previousnode",
+        "step": "2",
+        "text": "While node is not this's root"
+      },
+      {
+        "alg": "dom-treewalker-previousnode",
+        "step": "2.3-2.5",
+        "text": "If node is this's root or node's parent",
+        "last": "If the return value of filtering node within"
+      }
     ],
-    "steps": "traverse children step 3.4.4 / nextNode step 3.4.1 / previousNode step 2, 2.3-2.5",
     "note": "current が root の外にある TreeWalker。traverse children と nextNode は、親へ上がったときにそれが root なら null を返すので、root の部分木を見終えた先には届かない（Text を探す walker は p の中の Text を返さない）。previousNode は root に達したら root を見て止まるので、root より前の Comment には届かない。root の部分木を通らない lastChild は p の中の Text を返す。"
   },
   "nodes": [

@@ -95,7 +95,7 @@ def exclusions : List Exclusion := [
   { target := "concept-child-text-content",
     reason := .todo "child text content を計算する関数が無い" },
   { target := "dom-text-text", reason := .host },
-  -- §4.13。model の NodeData は target も attribute map も持たず、PI を作る関数も無い。
+  -- §4.13 ProcessingInstruction
   { target := "interface-processinginstruction",
     reason := .todo "ProcessingInstruction の target は持ち `getProperty` で読め、`createProcessingInstruction` もあるが、attribute map（§4.13 の `setAttribute` ほか）が無い" },
   { target := "dom-comment-comment", reason := .host }

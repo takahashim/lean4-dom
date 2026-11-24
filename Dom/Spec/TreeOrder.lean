@@ -1,10 +1,10 @@
 import Dom.Properties.TreeOrder
 
 /-!
-# tree order の列（§4.2）と、その上の「最初の」
+# tree order の列（§1.1）と、その上の「最初の」
 
 本文の多くの algorithm は「tree order で最初の」「following のうち最初の」と言う。実行関数は
-`preorder`（前順の列）を `find?` で探すが、関係の側は列を使わず、§4.2 の tree order
+`preorder`（前順の列）を `find?` で探すが、関係の側は列を使わず、§1.1 の tree order
 （`PrecedesStruct`。ancestor であるか、共通の parent の下で index の小さい子の側にいる）で言う。
 
 | 関係 | 本文 |

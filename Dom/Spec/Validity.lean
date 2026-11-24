@@ -82,7 +82,7 @@ def HasTwoElementChildren (t : Tree) (p : NodeId) : Prop :=
 step 9 の「a doctype is following child」。
 
 仕様の `following` は木の順序だが、ここでは `parent` の children の中での後ろとして
-書いた。doctype の親は Document だけ（§4.1 の制約）で、木に Document は一つしか
+書いた。doctype の親は Document だけ（§4.2 の制約）で、木に Document は一つしか
 無いので、`parent` が Document のとき両者は一致する。
 step 9 へ来ているのは `parent` が Document のときだけである（step 5 が分岐する）。
 木順との一致は `doctypeFollowing_iff_precedes`（`Dom/Spec/ValidityOrder.lean`）にある。

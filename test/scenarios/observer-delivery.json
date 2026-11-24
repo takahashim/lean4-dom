@@ -2,13 +2,35 @@
   "_note": "MutationObserver の配送。observe で登録し、木を変えて record を積み、microtask checkpoint（notify）で callback に配送する。配送の後は record queue が空になり、transient registration も外れる。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "queue a mutation record",
-      "notify mutation observers",
-      "observe"
+    "refs": [
+      {
+        "alg": "queue-a-mutation-record",
+        "step": "4-5",
+        "text": "If interestedObservers is empty, then return",
+        "last": "For each observer → mappedOldValue of interestedObservers"
+      },
+      {
+        "alg": "notify-mutation-observers",
+        "step": "1-6",
+        "text": "Set the surrounding agent's mutation observer microtask queued",
+        "last": "For each mo of notifyList"
+      },
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "3",
+        "text": "If none of options[\"childList\"], options[\"attributes\"], and options[\"characterData\"] is"
+      },
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "7",
+        "text": "Let registered be the registered observer in target's"
+      },
+      {
+        "alg": "dom-mutationobserver-observe",
+        "step": "9",
+        "text": "Otherwise"
+      }
     ],
-    "steps": "queue a mutation record 4-5 / notify mutation observers 1-5 / observe 3, 6, 7",
     "note": "配送は record queue を空にし、transient registered observer を外す。"
   },
   "nodes": [

@@ -1,13 +1,28 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://webidl.spec.whatwg.org/#es-overloads",
-    "algorithm": [
-      "ECMAScript argument conversion",
-      "set the start"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "dfn-create-operation-function",
+        "step": "2.1.5-2.1.8",
+        "text": "Let <operation, values> be the result of passing",
+        "last": "Otherwise, set R to the result of running"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-interface",
+        "step": "2",
+        "text": "Throw a TypeError"
+      },
+      {
+        "alg": "concept-range-bp-set",
+        "step": "1-2",
+        "text": "If node is a doctype, then throw an",
+        "last": "If offset is greater than node's length, then"
+      }
     ],
-    "steps": "WebIDL の引数変換は method の step より先に走る / set the start 1-2",
-    "note": "Range の Node 引数はどれも non-nullable なので、null は手順が一つも走らないうちに TypeError になる。offset を node の length より大きくしても IndexSizeError にならないことで、変換が先だと分かる。失敗した呼び出しは range を動かさない。"
+    "note": "WebIDL の引数変換は method の step（ここでは set the start の step 1-2）より先に走る。Range の Node 引数はどれも non-nullable なので、null は手順が一つも走らないうちに TypeError になる。offset を node の length より大きくしても IndexSizeError にならないことで、変換が先だと分かる。失敗した呼び出しは range を動かさない。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

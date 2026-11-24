@@ -3,9 +3,9 @@ import Dom.Spec.ReplaceDataSound
 import Dom.Query.NodeQuery
 
 /-!
-# descendant text content と substring data（§4.4、§4.10）
+# descendant text content と substring data（§4.11、§4.10）
 
-* `DescendantTextContent t n s`：§4.4 "descendant text content" は、`n` の Text node descendant の data を
+* `DescendantTextContent t n s`：§4.11 "descendant text content" は、`n` の Text node descendant の data を
   tree order に連結したもの。実行関数 `descendantTextContent` がそれである（`descendantTextContent_spec`）。
 * `SubstringResult`：§4.10 "substring data" は、offset が length を超えれば IndexSizeError、そうでなければ
   offset から count（length − offset で切り詰める）code unit を返す。code unit の境界が surrogate pair の途中に
@@ -19,7 +19,7 @@ open Dom
 /-- node の data（木に無ければ空）。 -/
 def dataOf (t : Tree) (x : NodeId) : String := ((t.get? x).map NodeData.data).getD ""
 
-/-- §4.4 "descendant text content"。 -/
+/-- §4.11 "descendant text content"。 -/
 def DescendantTextContent (t : Tree) (n : NodeId) (s : String) : Prop :=
   ∃ l : List NodeId, l.Pairwise (PrecedesStruct t) ∧
     (∀ x, x ∈ l ↔ Ancestor t n x ∧ ∃ d, t.get? x = some d ∧ d.kind.isText = true) ∧

@@ -1,11 +1,18 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "createElement"
+    "refs": [
+      {
+        "alg": "dom-document-createelement",
+        "step": "2",
+        "text": "If this is an HTML document, then set"
+      },
+      {
+        "alg": "dom-document-createelement",
+        "step": "4",
+        "text": "Let namespace be the HTML namespace, if this"
+      }
     ],
-    "steps": "createElement 2, 4",
     "note": "createElement は、this が HTML document なら localName を ASCII lowercase にする（step 2）。namespace は、this が HTML document か、this の content type が application/xhtml+xml なら HTML namespace、そうでなければ null である（step 4）。XHTML の XML document では、小文字にしないまま HTML namespace の element になる。"
   },
   "nodes": [

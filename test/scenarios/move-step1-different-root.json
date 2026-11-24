@@ -2,11 +2,13 @@
   "_note": "root が違う node は move できない（step 1）。",
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "move"
+    "refs": [
+      {
+        "alg": "move",
+        "step": "1",
+        "text": "If newParent's shadow-including root is not the same"
+      }
     ],
-    "steps": "1",
     "note": "move は node document を付け替えないので、同じ root であることを要求する。"
   },
   "nodes": [

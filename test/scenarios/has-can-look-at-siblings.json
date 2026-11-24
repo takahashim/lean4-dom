@@ -2,7 +2,9 @@
   "_basis": {
     "kind": "spec",
     "spec": "https://drafts.csswg.org/selectors-4/#relational",
-    "algorithm": [":has()"],
+    "algorithm": [
+      ":has()"
+    ],
     "steps": "引数は relative selector で、anchor は :has() を付けた element である。combinator は > だけでなく + や ~ も書ける",
     "note": "だから候補は anchor の部分木に限らない。Dom/Spec/Selector.lean の matchSimple_has_iff がそれを定理にしてある。"
   },

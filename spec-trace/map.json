@@ -812,16 +812,16 @@
           }
         },
         {
-          "steps": "7.7.1",
+          "steps": "7.7.1-7.7.2",
           "why": {
-            "reason": "hook",
+            "reason": "custom-elements",
             "detail": ""
           }
         },
         {
-          "steps": "7.7.2-7.7.4",
+          "steps": "7.7.3",
           "why": {
-            "reason": "custom-elements",
+            "reason": "hook",
             "detail": ""
           }
         },
@@ -887,16 +887,23 @@
           }
         },
         {
-          "steps": "25.1-25.2",
+          "steps": "25.1",
           "why": {
             "reason": "hook",
             "detail": ""
           }
         },
         {
-          "steps": "25.3",
+          "steps": "25.2",
           "why": {
             "reason": "custom-elements",
+            "detail": ""
+          }
+        },
+        {
+          "steps": "25.3",
+          "why": {
+            "reason": "hook",
             "detail": ""
           }
         }
@@ -976,30 +983,30 @@
           }
         },
         {
-          "steps": "11",
+          "steps": "11-12",
           "why": {
-            "reason": "hook",
+            "reason": "custom-elements",
             "detail": ""
           }
         },
         {
-          "steps": "12-13",
+          "steps": "13",
           "why": {
-            "reason": "custom-elements",
+            "reason": "hook",
             "detail": ""
           }
         },
         {
           "steps": "14.1",
           "why": {
-            "reason": "hook",
+            "reason": "custom-elements",
             "detail": ""
           }
         },
         {
           "steps": "14.2",
           "why": {
-            "reason": "custom-elements",
+            "reason": "hook",
             "detail": ""
           }
         },
@@ -1998,6 +2005,13 @@
           "why": {
             "reason": "custom-elements",
             "detail": ""
+          }
+        },
+        {
+          "steps": "5.5",
+          "why": {
+            "reason": "todo",
+            "detail": "ProcessingInstruction の attribute map（update attributes from data）が model に無い"
           }
         }
       ],
@@ -4568,6 +4582,36 @@
         {
           "steps": "*",
           "what": "端点が別の木にある range（admissible な状態にしか現れない）では outsideModel を返す"
+        }
+      ]
+    },
+    {
+      "alg": "clone-part-of-a-characterdata-node",
+      "steps": [
+        "*"
+      ],
+      "impl": [
+        "Dom.dataPart",
+        "Dom.appendDataClone",
+        "Dom.substringData",
+        "Dom.cloneSingle"
+      ],
+      "spec": [
+        "Dom.Spec.DataPartResult"
+      ],
+      "omit": [
+        {
+          "steps": "3",
+          "why": {
+            "reason": "todo",
+            "detail": "ProcessingInstruction の attribute map（update attributes from data）が model に無い"
+          }
+        }
+      ],
+      "approx": [
+        {
+          "steps": "1-2",
+          "what": "先に substring data を求め、その data を持つ clone を作る。clone a node は data を読まないので結果は同じ"
         }
       ]
     },

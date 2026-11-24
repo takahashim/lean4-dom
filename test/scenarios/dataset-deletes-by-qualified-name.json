@@ -1,6 +1,11 @@
 {
   "_basis": {
     "kind": "spec",
+    "refs": [
+      {
+        "alg": "concept-element-attributes-remove-by-name"
+      }
+    ],
     "spec": "https://github.com/whatwg/html/blob/6992cb519a02db34f653ddd54c50fad2565285f5/source",
     "algorithm": [
       "DOMStringMap",

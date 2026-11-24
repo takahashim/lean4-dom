@@ -74,7 +74,8 @@ def failWith {α : Type} (s : DOMState) : Except DOMException α → Except (DOM
 
 /--
 "clone of n" を作って data を置き換え、`into` に append する
-（extract の step 4.1-4.3・16.1-16.3・19.1-19.3、clone the contents の対応する step）。
+（"clone part of a CharacterData node" の step 1-2・4 と、extract の step 4.1-4.2・16.1-16.2・19.1-19.2、
+clone the contents の対応する step）。PI の attribute を data から作り直す step 3 は model に無い。
 
 clone の node document は n の node document である（clone a node の document の既定値）。
 append に失敗した clone はどこからも辿れないので消す。
@@ -112,7 +113,7 @@ def containedChildren (t : Tree) (r : RangeState) (ca : NodeId) : List NodeId :=
   (childrenOf t ca).filter (containedInRange t r)
 
 /--
-CharacterData の一部を clone に写し、`cut` なら原本からその部分を消す
+CharacterData の一部を clone に写し（"clone part of a CharacterData node"）、`cut` なら原本からその部分を消す
 （extract の step 4・16・19、clone the contents の step 4・12・15）。
 
 clone は n の data を `offset` から `count` 個の code unit に置き換えたもの。

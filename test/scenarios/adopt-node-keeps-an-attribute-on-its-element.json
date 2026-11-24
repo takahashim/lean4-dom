@@ -1,14 +1,21 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-adopt",
-    "algorithm": [
-      "adoptNode(node)",
-      "adopt",
-      "append an attribute"
+    "refs": [
+      {
+        "alg": "dom-document-adoptnode"
+      },
+      {
+        "alg": "concept-node-adopt",
+        "step": "2-3",
+        "text": "If node's parent is non-null, then remove node",
+        "last": "If document is not oldDocument, then for each"
+      },
+      {
+        "alg": "concept-element-attributes-append"
+      }
     ],
-    "steps": "adopt の step 2 は parent があるときだけ remove する。Attr は parent を持たないので element から外れず、step 3 で node document だけが変わる。element を adopt すると attribute list の各 attribute の node document も変わる",
-    "note": "本文どおりに読むと attribute 1 は div に付いたまま node document が 4 になる。Chromium・Firefox・WebKit は element から外す（DOM4 の振る舞い）。jsdom は本文どおり。"
+    "note": "adopt の step 2 は parent があるときだけ remove する。Attr は parent を持たないので element から外れず、step 3 で node document だけが変わる。element を adopt すると attribute list の各 attribute の node document も変わる。本文どおりに読むと attribute 1 は div に付いたまま node document が 4 になる。Chromium・Firefox・WebKit は element から外す（DOM4 の振る舞い）。jsdom は本文どおり。"
   },
   "nodes": [
     {

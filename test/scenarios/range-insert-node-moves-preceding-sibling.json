@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "insertNode"
+    "refs": [
+      {
+        "alg": "concept-range-insert",
+        "step": "9-11",
+        "text": "If node's parent is non-null, then remove node",
+        "last": "Increase newOffset by node's length if node is"
+      }
     ],
-    "steps": "insertNode 9-11",
     "note": "newOffset は step 9 で node を外した「後」に数える。node が同じ parent の前方にいると index がひとつずれるので、先に数えると end が一つ後ろになる。Dommy は先に数えている（docs/status.md の findings 8）。"
   },
   "nodes": [

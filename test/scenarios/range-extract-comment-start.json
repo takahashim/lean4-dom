@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "extract"
+    "refs": [
+      {
+        "alg": "concept-range-extract",
+        "step": "16",
+        "text": "If firstPartiallyContainedChild is a CharacterData node"
+      }
     ],
-    "steps": "extract 16",
     "note": "start が Comment の中。first partially contained child は CharacterData なので data の残りを写す。"
   },
   "nodes": [

@@ -1,13 +1,19 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "convert nodes into a node",
-      "before"
+    "refs": [
+      {
+        "spec": "webidl",
+        "alg": "js-to-union"
+      },
+      {
+        "alg": "convert-nodes-into-a-node"
+      },
+      {
+        "alg": "dom-childnode-before"
+      }
     ],
-    "steps": "WebIDL の union への変換（(Node or DOMString)）",
-    "note": "(Node or DOMString) の union は、platform object でない値を DOMString に変換する。null は \"null\"、true は \"true\"、普通の object は \"[object Object]\" の Text node になる。"
+    "note": "WebIDL の union への変換（(Node or DOMString)）。(Node or DOMString) の union は、platform object でない値を DOMString に変換する。null は \"null\"、true は \"true\"、普通の object は \"[object Object]\" の Text node になる。"
   },
   "nodes": [
     {

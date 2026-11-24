@@ -4,14 +4,14 @@ import Dom.Properties.NodeQuery
 # `contains`・`getRootNode`・`compareDocumentPosition` の関係仕様
 
 `Dom/Query/NodeQuery.lean` の三つの method が返すものを、実行関数の道具（fuel 付きの
-`root`・`isAncestorOf`・`precedes`）を使わずに §4.2 の語彙で言い、実行関数がそれに
+`root`・`isAncestorOf`・`precedes`）を使わずに §1.1 の語彙で言い、実行関数がそれに
 一致することを示す。
 
 | 関係 | 本文 |
 | --- | --- |
-| `IsRoot t r n` | §4.2 の root。`n` の inclusive ancestor で parent を持たないもの |
+| `IsRoot t r n` | §1.1 の root。`n` の inclusive ancestor で parent を持たないもの |
 | `SameTree t x y` | 二つの node が同じ root を持つ |
-| `PrecedesStruct t x y` | §4.2 の tree order で `x` が `y` に先行する（`Dom/Properties/Tree.lean`） |
+| `PrecedesStruct t x y` | §1.1 の tree order で `x` が `y` に先行する（`Dom/Properties/Tree.lean`） |
 | `DocumentPositionSpec` | §4.4 `compareDocumentPosition` の step 1、6-10 |
 
 `PrecedesStruct` は「ancestor であるか、共通の parent の下で index の小さい子の側にいる」という
@@ -30,7 +30,7 @@ open Dom
 
 variable {t : Tree}
 
-/-- DOM §4.2 の root。`r` は `n` の inclusive ancestor であり、parent を持たない。 -/
+/-- DOM §1.1 の root。`r` は `n` の inclusive ancestor であり、parent を持たない。 -/
 def IsRoot (t : Tree) (r n : NodeId) : Prop :=
   InclusiveAncestor t r n ∧ parentOf t r = none
 
@@ -62,7 +62,7 @@ def DocumentPositionSpec (t : Tree) (node other : NodeId) (v : Nat) : Prop :=
 theorem isRoot_root (hwf : WellFormed t) (n : NodeId) : IsRoot t (root t n) n :=
   ⟨root_inclusive_ancestor t n, root_parent_eq_none hwf n⟩
 
-/-- **`getRootNode()` は §4.2 の root をちょうど返す。** -/
+/-- **`getRootNode()` は §1.1 の root をちょうど返す。** -/
 theorem getRootNode_eq_iff (hwf : WellFormed t) (n r : NodeId) :
     getRootNode t n = r ↔ IsRoot t r n := by
   rw [getRootNode_eq]

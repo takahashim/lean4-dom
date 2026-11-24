@@ -62,6 +62,10 @@ jobs:
           ruby spec-trace/extract.rb --check-snapshot spec-trace/webidl.json
           ruby spec-trace/extract.rb --check-snapshot spec-trace/ecma262.json
 
+      # 固定 scenario の `_basis.refs` が、固定版の snapshot の step を指していることを確かめる。
+      - name: Scenario basis
+        run: ruby spec-trace/basis.rb
+
       # 公開主定理が propext / Classical.choice / Quot.sound 以外の
       # axiom に依存していないことを確認する。`sorryAx` もここで落ちる。
       - name: Axiom audit

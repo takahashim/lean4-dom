@@ -1,11 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "HTMLCollection.namedItem"
+    "refs": [
+      {
+        "alg": "dom-htmlcollection-nameditem",
+        "step": "1-2",
+        "text": "If key is the empty string, return null",
+        "last": "Return the first element in the collection for"
+      }
     ],
-    "steps": "namedItem 1-2",
     "note": "ID も name も namespace が null の attribute で決まる。namespace 付きの id・name を持つ前の二つは当たらず、三つ目が返る。key が空なら null。"
   },
   "nodes": [

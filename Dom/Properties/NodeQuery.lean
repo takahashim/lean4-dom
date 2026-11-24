@@ -392,7 +392,7 @@ theorem locateNamespaceIn_xmlns (t : Tree) (e : NodeId) (rest : List NodeId) :
         else _) = _
   rw [if_neg (by simp), if_pos (by simp)]
 
-/-- **element では `lookupNamespaceURI("xml")` は仕様の固定値を返す（step 1）。** -/
+/-- **element では `lookupNamespaceURI("xml")` は仕様の固定値を返す（"locate a namespace" の step 1）。** -/
 theorem lookupNamespaceURI_xml {t : Tree} {n : NodeId} {d : NodeData}
     (hn : t.get? n = some d) (hk : d.kind = NodeKind.element) :
     lookupNamespaceURI t n (some "xml") = some xmlNamespace := by

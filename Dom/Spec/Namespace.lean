@@ -9,7 +9,7 @@ import Dom.Query.NodeQuery
 
 | 関係 | 本文 |
 | --- | --- |
-| `ParentElementIs t n p` | §4.2 の parent element |
+| `ParentElementIs t n p` | §4.9 の parent element |
 | `DocumentElementIs t n e` | §4.2 の document element（element の子のうち最初のもの） |
 | `IsXmlnsDecl prefix a` | "locate a namespace" step 4 の attribute の条件 |
 | `LocateNamespaceElem` | "locate a namespace" の Element の枝（step 1-6） |
@@ -22,7 +22,7 @@ namespace Dom.Spec
 
 open Dom
 
-/-- §4.2 の parent element。parent が element でなければ null。 -/
+/-- §4.9 の parent element。parent が element でなければ null。 -/
 def ParentElementIs (t : Tree) (n : NodeId) : Option NodeId → Prop
   | some p => parentOf t n = some p ∧ kindOf t p = some .element
   | none => ∀ p, parentOf t n = some p → kindOf t p ≠ some .element

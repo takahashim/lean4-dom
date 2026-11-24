@@ -1,14 +1,21 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "remove an attribute",
-      "toggleAttribute",
-      "removeAttributeNS"
+    "refs": [
+      {
+        "alg": "concept-element-attributes-remove",
+        "step": "2-3",
+        "text": "Remove attribute from element's attribute list",
+        "last": "Set attribute's element to null"
+      },
+      {
+        "alg": "dom-element-toggleattribute"
+      },
+      {
+        "alg": "dom-element-removeattributens"
+      }
     ],
-    "steps": "remove an attribute 2-3",
-    "note": "remove an attribute は attribute list から取り除き、attribute の element を null にするだけで、Attr object は残る。先に参照を取っていた Attr は、名前で消した後も値を書けて、同じ element に setAttributeNode で付け直せる。 toggleAttribute と removeAttributeNS も同じ algorithm を通る。消した Attr の id は、後で作る Attr に使い回されない。"
+    "note": "remove an attribute は attribute list から取り除き、attribute の element を null にするだけで、Attr object は残る。先に参照を取っていた Attr は、名前で消した後も値を書けて、同じ element に setAttributeNode で付け直せる。toggleAttribute と removeAttributeNS も同じ algorithm を通る。消した Attr の id は、後で作る Attr に使い回されない。"
   },
   "nodes": [
     {

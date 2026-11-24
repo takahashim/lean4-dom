@@ -1,11 +1,29 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "TreeWalker"
+    "refs": [
+      {
+        "alg": "dom-treewalker-firstchild"
+      },
+      {
+        "alg": "dom-treewalker-nextnode"
+      },
+      {
+        "alg": "dom-treewalker-nextsibling"
+      },
+      {
+        "alg": "dom-treewalker-lastchild"
+      },
+      {
+        "alg": "dom-treewalker-parentnode"
+      },
+      {
+        "alg": "dom-treewalker-previousnode"
+      },
+      {
+        "alg": "dom-treewalker-previoussibling"
+      }
     ],
-    "steps": "firstChild / nextNode / nextSibling / lastChild / parentNode / previousNode / previousSibling",
     "note": "filter が null で whatToShow が SHOW_ALL なら、走査は tree order をそのまま前後にたどる。返す node が無ければ current は動かない。"
   },
   "nodes": [

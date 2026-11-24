@@ -1,12 +1,35 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "DOMTokenList",
-      "update steps"
+    "refs": [
+      {
+        "alg": "algorithm:DOMTokenList/attribute change steps"
+      },
+      {
+        "alg": "dom-domtokenlist-add",
+        "step": "1-3",
+        "text": "For each token of tokens",
+        "last": "Run the update steps"
+      },
+      {
+        "alg": "dom-domtokenlist-toggle",
+        "step": "1-4",
+        "text": "If token is the empty string, then throw",
+        "last": "Otherwise, if force not given or is true,"
+      },
+      {
+        "alg": "dom-domtokenlist-replace",
+        "step": "1-6",
+        "text": "If either token or newToken is the empty",
+        "last": "Return true"
+      },
+      {
+        "alg": "dom-domtokenlist-contains"
+      },
+      {
+        "alg": "concept-dtl-update"
+      }
     ],
-    "steps": "add 1-3 / toggle 1-4 / replace 1-6 / contains",
     "note": "classList の token set は namespace が null の class attribute から読み、update steps も null namespace に書く。namespace 付きの class は見ない。"
   },
   "nodes": [

@@ -1,12 +1,14 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "get text content",
-      "nodeValue"
+    "refs": [
+      {
+        "alg": "get-text-content"
+      },
+      {
+        "alg": "dom-node-nodevalue"
+      }
     ],
-    "steps": "get text content / nodeValue getter",
     "note": "Element と DocumentFragment は子孫 Text の連結、CharacterData は data、Document と DocumentType は null。nodeValue は CharacterData だけが値を持つ。"
   },
   "nodes": [

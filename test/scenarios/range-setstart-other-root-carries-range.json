@@ -1,11 +1,13 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "set the start"
+    "refs": [
+      {
+        "alg": "concept-range-bp-set",
+        "step": "4",
+        "text": "If these steps were invoked as \"set the"
+      }
     ],
-    "steps": "set the start 4",
     "note": "別の木にある boundary point を置くと、range 全体がそちらへ移る（set the start step 4 の前半）。"
   },
   "nodes": [

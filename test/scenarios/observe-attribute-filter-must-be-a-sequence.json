@@ -1,12 +1,16 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://github.com/whatwg/dom/blob/a2331a45360129e8645ef7e0a04740241b6e3726/dom.bs",
-    "algorithm": [
-      "observe"
+    "refs": [
+      {
+        "alg": "dom-mutationobserver-observe"
+      },
+      {
+        "spec": "webidl",
+        "alg": "js-to-sequence"
+      }
     ],
-    "steps": "WebIDL の sequence への変換（attributeFilter）",
-    "note": "attributeFilter は sequence<DOMString> なので、object でない値（null や文字列）と、@@iterator を持たない object は TypeError になる。method steps に入らないので registration は足されない。"
+    "note": "WebIDL の sequence への変換（attributeFilter）。attributeFilter は sequence<DOMString> なので、object でない値（null や文字列）と、@@iterator を持たない object は TypeError になる。method steps に入らないので registration は足されない。"
   },
   "nodes": [
     {

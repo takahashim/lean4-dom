@@ -1,12 +1,15 @@
 {
   "_basis": {
     "kind": "spec",
-    "spec": "https://dom.spec.whatwg.org/#concept-node-pre-insert",
-    "algorithm": [
-      "pre-insert"
+    "refs": [
+      {
+        "alg": "concept-node-pre-insert",
+        "step": "2-3",
+        "text": "Let referenceChild be child",
+        "last": "If referenceChild is node, then set referenceChild to"
+      }
     ],
-    "steps": "step 2-3。child が node と同じなら、reference child を node の次の兄弟に取り直す",
-    "note": "この取り直しが無いと、node を外したあとで reference child が木から消えてしまい、末尾に付く。位置が変わらないことがこの step の意味である。"
+    "note": "step 2-3。child が node と同じなら、reference child を node の次の兄弟に取り直す。この取り直しが無いと、node を外したあとで reference child が木から消えてしまい、末尾に付く。位置が変わらないことがこの step の意味である。"
   },
   "nodes": [
     {
