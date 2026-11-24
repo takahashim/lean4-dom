@@ -7306,6 +7306,22 @@ step の本文の冒頭の組で書き（`test/README.md` の「`_basis`」）�
 写した。`steps` にあった説明の文（77 本）は `note` に移した。変換の途中で、`replacewith-bypasses-validity` の注記の
 誤りが見つかった（document が parent の祖先なので、step 4 ではなく step 2 で HierarchyRequestError になる）。
 
+見直しで、検査の穴が三つ見つかって塞いだ。
+
+* 冒頭が同じ algorithm の別の step にも合う ref が 27 件あった（live range の調整の start と end の組、
+  「Otherwise」、insert の step 3 と 7 など）。このままでは、改番で番号が別の step にずれても冒頭が合って通る。
+  冒頭は同じ親を持つ step の中で一つに決まらなければならないことにし、本文全体が冒頭と同じ step を優先して
+  選ぶようにした（「Otherwise:」と「Otherwise, if …:」を区別するため）。合わなくなった 7 種類（13 本）の冒頭は
+  `--fill` で伸ばした。
+* `steps` から `note` に移した説明の文のうち 15 本は、番号を「set an attribute 2 … / 3 …」の形で書いていて、
+  「step N」しか拾わない注記の検査に掛かっていなかった。`idl-nullable-node-arguments-accept-null` の
+  「contains 1 / isEqualNode 1」は、番号付きの step の無い algorithm を指していた。15 本を「step N」の形に
+  書き直し、注記の頭の番号と「 / 」の前後の番号を error にした。
+* ref の key の打ち間違い（`steps`）が algorithm 全体の ref として通っていた。未知の key を error にした。
+
+あわせて、`--since` に symlink を通った path を渡すと古い版の scenario が読めずに黙って比べ漏れる所を直し、
+ref が読めなかった scenario では注記の検査を飛ばすようにした（同じ原因の error が重なるだけなので）。
+
 ## 未着手
 
 * ProcessingInstruction の attribute map（§4.13 の `setAttribute` ほか）。

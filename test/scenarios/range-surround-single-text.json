@@ -11,7 +11,7 @@
       {
         "alg": "concept-range-insert",
         "step": "7",
-        "text": "If range's start node is a Text node,"
+        "text": "If range's start node is a Text node, then set referenceNode to the"
       }
     ],
     "note": "一つの Text の中の range を element で囲む。extract の後、insert の step 7 が Text を split し、newParent を split の継ぎ目に入れる。newParent は木の別の場所から移る。"

@@ -15,8 +15,8 @@
       {
         "alg": "live-range-pre-remove-steps",
         "step": "4-5",
-        "text": "For each live range whose start node is",
-        "last": "For each live range whose end node is"
+        "text": "For each live range whose start node is an",
+        "last": "For each live range whose end node is an"
       },
       {
         "alg": "dom-parentnode-append"

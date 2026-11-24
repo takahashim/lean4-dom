@@ -18,7 +18,7 @@
       {
         "alg": "concept-range-insert",
         "step": "7",
-        "text": "If range's start node is a Text node,"
+        "text": "If range's start node is a Text node, then set referenceNode to the"
       }
     ],
     "note": "WebIDL の引数変換は method の step より先に走る。insertNode が呼ぶ insert の step 7 は start node が Text なら splitText で割る。null 引数の TypeError はその前に出るので、木は変わらない。"

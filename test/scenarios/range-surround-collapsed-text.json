@@ -11,7 +11,7 @@
       {
         "alg": "concept-range-insert",
         "step": "7",
-        "text": "If range's start node is a Text node,"
+        "text": "If range's start node is a Text node, then set referenceNode to the"
       },
       {
         "alg": "concept-range-insert",

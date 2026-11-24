@@ -5,8 +5,8 @@
       {
         "alg": "dom-node-normalize",
         "step": "6.3-6.4",
-        "text": "For each live range whose start node is",
-        "last": "For each live range whose end node is"
+        "text": "For each live range whose start node is currentNode's",
+        "last": "For each live range whose end node is currentNode's"
       }
     ],
     "note": "parent の中で、畳まれる兄弟の位置を指していた boundary point は survivor の継ぎ目へ移る。remove の pre-remove steps より前に渡すのがその効果である。"

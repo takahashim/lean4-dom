@@ -265,11 +265,19 @@ Dommy を読み込んでいない process の仕事にしてある。
   無い algorithm や algorithm 全体を指すときは `step` を書かない。
 * `text` は step の本文の冒頭、`last` は範囲の最後の step の本文の冒頭である。`alg` と `step` だけを書いて
   `ruby spec-trace/basis.rb --fill <file>` を走らせると、snapshot から埋まる。
+* 冒頭は、同じ親を持つ step の中でその step に決まる長さにする。`text` で始まる step のうち本文全体が `text` と
+  同じものがあればそれを選ぶので、「Otherwise:」（`Otherwise`）と「Otherwise, if …:」は区別できる。
+  live range の調整のように冒頭の揃った step が並ぶ所では長くなる。`--fill` は決まるまで語を足し、
+  決まらない冒頭が書いてあれば書き直す。
+* ref の key は `spec`・`alg`・`step`・`text`・`last` だけである（`steps` などの打ち間違いは error）。
 * 版は書かない（`docs/spec-version.md` の一か所で決まる）。固定していない仕様（HTML、Selectors、CSS Syntax）は、
   その部分だけを `spec`（URL）・`algorithm`・`steps`（文字列）に書く。
-* `_note` と `note` に「step N」と書いた番号は、どれかの ref の範囲に入る（「step 4-11」は両端が同じ ref の範囲に入る）。
+* `_note` と `note` に「step N」と書いた番号は、`step` を書いたどれかの ref の範囲に入る（「step 4-11」は両端が同じ ref
+  の範囲に入る）。`step` の無い ref（algorithm 全体）は数えないので、注記で番号を挙げる step は、番号付きの ref でも指す。
   どの algorithm の step かまでは見ないので、Web IDL の step のつもりの番号が DOM の ref の範囲に入っても通る。
   scenario の操作の番号は「操作 N」と書く。
+* 仕様の step の番号は、注記でも必ず「step N」と書く（「importNode の step 2」）。「1 … / 3 …」「importNode 2」の形は
+  上の検査に掛からない。注記の頭の番号と「 / 」の前後の番号は error にするが、それ以外の形は見ない。
 * CI の `ruby spec-trace/basis.rb` が、algorithm と step が snapshot にあり、`text`・`last` が本文の冒頭と合うことを
   検査する。版を上げて改番されるとここで落ちるので、`ruby spec-trace/basis.rb --fix` で本文の一致から番号を付け直す
   （付け直せなかったものは挙げる）。

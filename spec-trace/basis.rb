@@ -22,12 +22,21 @@
 #
 #   * snapshot に無い algorithm・step
 #   * `text`（`last`）が、その番号の step の本文の冒頭と合わない（版を上げて改番されたときもここで落ちる）
+#   * `text`（`last`）で、同じ親を持つ step から一つに決まらない（下の「step の決め方」）。`--fill` は決まるまで語を足す
+#   * ref に spec・alg・step・text・last 以外の key がある
 #   * 固定した仕様（DOM・Web IDL・ECMA-262）を `_basis.spec` の URL で指している（`refs` に書く。版は
 #     `docs/spec-version.md` の一か所で決まる）
 #   * 一つの step を指す ref に `last` がある
-#   * `_note` と `_basis.note` に書いた step 番号が、どの ref の範囲にも入らない（範囲は両端が同じ ref に入る）
+#   * `_note` と `_basis.note` に書いた step 番号が、step を書いたどの ref の範囲にも入らない（範囲は両端が同じ ref
+#     に入る）。`step` の無い ref は数えない
+#   * 注記が番号で始まる、または「/ 番号」を含む（番号は「step N」と書く。そうでないと上の検査に掛からない）
+#
+# step の決め方：`text` で始まる step のうち、本文全体が `text` と同じものがあればそれだけを候補にする。
+# 「Otherwise:」と「Otherwise, if …:」のように、本文が別の step の冒頭になっている step を区別するためである。
+# 検査では、番号の step と同じ親を持つ step の中で、候補がその step ちょうど一つでなければならない。
 
 require "json"
+require "pathname"
 require_relative "specs"
 
 ROOT = File.expand_path("..", __dir__)
@@ -38,6 +47,10 @@ module Trace
     # 本文の中で step 番号を書いた所（"step 3.2"、"step 4-11"、"steps 1-5"、"step 2 と 4"、"step 4、9-10"）。
     # 直前が日本語でも拾う（`\b` は日本語の文字も語の文字に数えるので使わない）。
     STEP_NUM = /\d+(?:\.\d+)*/
+    REF_KEYS = %w[spec alg step text last].freeze
+    # 「step」を付けずに書いた番号（"1 Document なら … / 3 adopt"）。
+    # 区切りの「 / 」の前後と、注記の頭を見る（URL の「/」は見ない）。
+    BARE_NUM = %r{\A\s*\d|\s/\s*\d|\d\s+/\s}
     NOTE_STEP = /(?<![A-Za-z])[Ss]teps? (#{STEP_NUM}(?:\s*[-–〜～]\s*#{STEP_NUM})?(?:\s*(?:,|、|・|と|and|or)\s*#{STEP_NUM}(?:\s*[-–〜～]\s*#{STEP_NUM})?)*)/
     ENTITIES = { "&minus;" => "−", "&amp;" => "&", "&quot;" => "\"", "&hellip;" => "…", "&infin;" => "∞" }.freeze
 
@@ -103,16 +116,24 @@ module Trace
       refs = basis["refs"] || []
       changed = false
       covered = []
+      # ref が読めなかったときは、注記の検査を飛ばす（範囲が分からないので、同じ原因の error が重なるだけになる）。
+      broken = false
       refs.each_with_index do |ref, i|
         at = "#{where}: refs[#{i}]"
+        unless (extra = ref.keys - REF_KEYS).empty?
+          error("#{at}: 未知の key #{extra.join('・')}（#{REF_KEYS.join('・')} のどれか）")
+          broken = true
+        end
         sp = ref["spec"] || "dom"
         unless Trace::SPECS.key?(sp)
           error("#{at}: 未知の仕様 #{sp}")
+          broken = true
           next
         end
         alg = @algs[sp][ref["alg"]]
         unless alg
           error("#{at}: #{sp} に algorithm #{ref['alg']} が無い")
+          broken = true
           next
         end
         unless ref["step"]
@@ -121,11 +142,13 @@ module Trace
         end
         unless ref["step"].is_a?(String)
           error("#{at}: step は文字列で書く（#{ref['step'].inspect}）")
+          broken = true
           next
         end
         pair = ends(ref["step"])
         unless pair
           error("#{at}: step の範囲 #{ref['step']} の両端は同じ深さで、昇順でなければならない")
+          broken = true
           next
         end
         lo, hi = pair
@@ -133,10 +156,15 @@ module Trace
         error("#{at}: step #{lo} は範囲でないのに last がある") if lo == hi && ref["last"]
         if fill
           [["text", lo], ["last", hi]].each do |key, n|
-            next if ref[key] || (key == "last" && lo == hi)
+            next if key == "last" && lo == hi
             next unless (s = step_of(alg, n))
+            # 書いてある冒頭は、その step に合うのに一つに決まらないときだけ書き直す。
+            next if ref[key] && (!Basis.prefix?(ref[key], s["text"]) || unique?(alg, n, ref[key]))
 
-            ref[key] = Basis.lead(s["text"])
+            new = unique_lead(alg, n)
+            next if new == ref[key]
+
+            ref[key] = new
             changed = true
           end
         end
@@ -156,29 +184,62 @@ module Trace
         end
         covered << range
       end
-      check_notes(where, data, basis, covered)
+      check_notes(where, data, basis, covered) unless broken
       return unless changed
 
       replace_basis(path, basis)
     end
 
-    # 番号 n の step があり、本文が text で始まるか。
+    # 番号 n の step があり、本文が text で始まり、同じ親を持つ step の中で text から n に決まるか。
     def check_end(alg, n, text, at)
       s = step_of(alg, n)
       problem =
         if !s then "step が snapshot に無い"
         elsif !text then "text が無い（--fill で埋める）"
-        elsif !Basis.prefix?(text, s["text"]) then "本文の冒頭が合わない。snapshot は「#{Basis.lead(s['text'])}」"
+        elsif !Basis.prefix?(text, s["text"]) then "本文の冒頭が合わない。snapshot は「#{unique_lead(alg, n)}」"
+        elsif !unique?(alg, n, text)
+          others = candidates(siblings(alg, n), text).map { |c| c["n"] } - [n]
+          "冒頭が step #{others.join('、')} にも合う（--fill で長くする）"
         end
       error("#{at}: #{problem}") if problem
       problem.nil?
     end
 
-    # text で始まる step がちょうど一つなら、その番号。
+    # text で始まる step。本文全体が text と同じ step があれば、それだけにする。
+    def candidates(steps, text)
+      c = steps.select { |s| Basis.prefix?(text, s["text"]) }
+      exact = c.select { |s| Basis.norm(s["text"]) == Basis.norm(text) }
+      exact.empty? ? c : exact
+    end
+
+    # n と同じ親を持つ step（n を含む）。
+    def siblings(alg, n)
+      parent = n.split(".")[0..-2]
+      alg["steps"].select do |s|
+        p = s["n"].split(".")
+        p.size == parent.size + 1 && p[0..-2] == parent
+      end
+    end
+
+    def unique?(alg, n, text) = candidates(siblings(alg, n), text).map { |c| c["n"] } == [n]
+
+    # step n の冒頭。同じ親を持つ step の中で n に決まるまで語を足す（決まらなければ本文全体）。
+    def unique_lead(alg, n)
+      full = step_of(alg, n)["text"]
+      words = 8
+      loop do
+        t = Basis.lead(full, words)
+        return t if unique?(alg, n, t) || t == Basis.lead(full, words + 1)
+
+        words += 1
+      end
+    end
+
+    # algorithm 全体で text から一つに決まる step の番号。
     def relocate(alg, text)
       return nil unless text
 
-      c = alg["steps"].select { |s| Basis.prefix?(text, s["text"]) }
+      c = candidates(alg["steps"], text)
       c.size == 1 ? c[0]["n"] : nil
     end
 
@@ -186,6 +247,9 @@ module Trace
     # 注記の範囲（"step 4-11"）は、両端が同じ ref の範囲に入らなければならない。
     def check_notes(where, data, basis, covered)
       [data["_note"], basis["note"]].compact.each do |note|
+        if (m = note.match(BARE_NUM))
+          error("#{where}: 注記に「step」を付けない番号がある。「step N」と書く（「#{note[[m.begin(0) - 15, 0].max, 30]}」）")
+        end
         note.scan(NOTE_STEP).each do |(list)|
           list.scan(/(#{STEP_NUM})(?:\s*[-–〜～]\s*(#{STEP_NUM}))?/).each do |lo, hi|
             next if covered.any? { |r| within?(lo, r) && (hi.nil? || within?(hi, r)) }
@@ -233,7 +297,7 @@ module Trace
         h[sp] = src ? JSON.parse(src)["algorithms"].to_h { |a| [a["key"], a] } : {}
       end
       files.filter_map do |path|
-        rel = path.delete_prefix("#{ROOT}/")
+        rel = Basis.repo_path(path)
         new_refs = JSON.parse(File.read(path)).dig("_basis", "refs") || []
         old_src = git_show(rev, rel)
         old_refs = old_src ? (JSON.parse(old_src).dig("_basis", "refs") || []) : []
@@ -263,6 +327,12 @@ module Trace
       have = b["steps"].map { |s| s["hash"] }
       gone = a["steps"].select { |s| within?(s["n"], pair.uniq) && !have.include?(s["hash"]) }
       gone.map { |s| "#{sp} #{ref['alg']} step #{s['n']}（#{label}の番号）：「#{Basis.lead(s['text'])}」" }
+    end
+
+    # repo の root からの path（git show に渡す形）。symlink を解いてから比べる。repo の外なら nil。
+    def self.repo_path(path)
+      rel = Pathname(File.realpath(path)).relative_path_from(Pathname(File.realpath(ROOT))).to_s
+      rel.start_with?("../") ? nil : rel
     end
 
     def git_show(rev, rel)
@@ -300,7 +370,11 @@ if $PROGRAM_NAME == __FILE__
   if since
     abort "git の rev #{since} が無い" unless system("git", "-C", ROOT, "rev-parse", "--verify", "--quiet", "#{since}^{commit}", out: File::NULL)
 
-    changed = b.changes_since(since, files.map { |f| File.expand_path(f) })
+    if (outside = files.find { |f| Trace::Basis.repo_path(f).nil? })
+      abort "repo の外の file は --since で比べられない：#{outside}"
+    end
+
+    changed = b.changes_since(since, files)
     if changed.empty?
       puts "#{since} から、根拠の step の本文が変わった scenario は無い"
     else
