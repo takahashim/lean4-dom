@@ -9,7 +9,7 @@
         "last": "Return attr"
       }
     ],
-    "note": "1「this の attribute list に attr が無ければ NotFoundError」/ 2 remove する / 3 attr を返す。別の element に付いている Attr を渡しても、何も起きずに返るのではなく NotFoundError になる。渡した element に付いているときだけ外れる。"
+    "note": "removeAttributeNode の step 1 で this の attribute list に attr が無ければ NotFoundError、step 2 で remove し、step 3 で attr を返す。別の element に付いている Attr を渡しても、何も起きずに返るのではなく NotFoundError になる。渡した element に付いているときだけ外れる。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },

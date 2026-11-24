@@ -11,7 +11,7 @@
         "alg": "concept-node-replace"
       }
     ],
-    "note": "ensure pre-insert validity 9（childrenToExclude が child）。replace の validity の検査（ensure pre-insert validity の step 9 の element の場合）は、parent に child 以外の element の子があるか、child より前に doctype があるときだけ HierarchyRequestError にする。置き換える doctype 自身は child なので当たらず、doctype だけを子に持つ Document の doctype を element に置き換えられる。"
+    "note": "ensure pre-insert validity の step 9（childrenToExclude が child）。replace の validity の検査（ensure pre-insert validity の step 9 の element の場合）は、parent に child 以外の element の子があるか、child より前に doctype があるときだけ HierarchyRequestError にする。置き換える doctype 自身は child なので当たらず、doctype だけを子に持つ Document の doctype を element に置き換えられる。"
   },
   "nodes": [
     {

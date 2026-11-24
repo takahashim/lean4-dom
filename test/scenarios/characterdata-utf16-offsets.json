@@ -13,7 +13,7 @@
         "last": "For each live range whose end node is"
       }
     ],
-    "note": "replace data 1-11 / boundary point の妥当性。offset は UTF-16 の code unit。boundary point に scalar 境界の制限は無い。"
+    "note": "replace data の step 1-11 と、boundary point の妥当性。offset は UTF-16 の code unit。boundary point に scalar 境界の制限は無い。"
   },
   "nodes": [
     {

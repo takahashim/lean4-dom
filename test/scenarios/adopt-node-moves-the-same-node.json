@@ -17,7 +17,7 @@
         "alg": "concept-node-adopt"
       }
     ],
-    "note": "1 Document なら NotSupportedError / 3 adopt する（parent があれば remove し、subtree の node document を付け替える） / 4 node を返す。返るのは渡した node そのもので、copy は作られない。元の親からは外れ、subtree ぜんぶの node document が受け手になる。Document を渡すと NotSupportedError。"
+    "note": "adoptNode の step 1 で Document なら NotSupportedError、step 3 で adopt し（parent があれば remove し、subtree の node document を付け替える）、step 4 で node を返す。返るのは渡した node そのもので、copy は作られない。元の親からは外れ、subtree ぜんぶの node document が受け手になる。Document を渡すと NotSupportedError。"
   },
   "nodes": [
     { "id": 0, "kind": "document" },
